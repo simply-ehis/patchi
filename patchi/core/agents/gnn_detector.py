@@ -1,242 +1,152 @@
 """
 GNN-based bug detection agent for Patchi.
 
-This agent uses Graph Neural Networks to detect structural vulnerabilities in code
-by analyzing Code Property Graphs (CPGs). It complements the existing static analysis
-and AI-powered fix generation pipeline.
+Uses a true Graph Neural Network (GIN + GAT) over Code Property Graphs to
+flag vulnerability patterns. High-recall by design: findings are MEDIUM
+"review these functions" signals with CWE references — never proof.
+
+Honesty contract (PLAN_runtime_bug_detection.md Slice 3.2):
+  - model missing / checksum bad / weights untrained -> clear skip line,
+    zero findings. NEVER a silent no-op, never fabricated output.
 """
 
 from __future__ import annotations
 
-import json
 import logging
 import os
-import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
 
 from patchi.core.agents.base import (
     AgentGroup,
     AgentInput,
     AgentResult,
     BaseAgent,
-    Finding,
+    Severity,
+    make_finding,
     register,
 )
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("patchi.core.agents.gnn_detector")
 
-
-def make_finding(
-    agent: str,
-    finding_type: str,
-    severity: str,
-    file: str,
-    line: int = 0,
-    message: str = "",
-    detail: str = "",
-    code_snippet: str = "",
-    suggestion: str = "",
-    fix_agent: Optional[str] = None,
-    cwe: str = "",
-    **kwargs,
-) -> Finding:
-    """Create a finding for the GNN detector."""
-    return Finding(
-        agent=agent,
-        type=finding_type,
-        severity=severity,
-        file=file,
-        line=line,
-        message=message,
-        detail=detail,
-        code_snippet=code_snippet,
-        suggestion=suggestion,
-        fix_agent=fix_agent,
-        cwe=cwe,
-        extra=kwargs,
-    )
+_SKIP_DIRS = {"node_modules", ".venv", "venv", "__pycache__", ".git", "build", "dist"}
+_ANALYZE_EXTENSIONS = {".py", ".js", ".ts", ".go", ".rs", ".java", ".c", ".cpp"}
 
 
 @register
 class GNNBugDetector(BaseAgent):
-    """
-    GNN-based bug detection agent.
-
-    Uses Graph Neural Networks to detect structural vulnerabilities by analyzing
-    Code Property Graphs (CPGs). This agent complements the existing static analysis
-    pipeline by providing deeper semantic analysis of code structure.
-
-    The agent processes files through a three-stage pipeline:
-    1. Graph extraction (CPG creation)
-    2. GNN inference for vulnerability detection
-    3. Finding generation and integration
-    """
+    """Graph-pattern vulnerability detector (GIN+GAT over CPGs)."""
 
     name = "GNNBugDetector"
     group = AgentGroup.SECURITY
-    timeout = 60
-
-    def __init__(self):
-        super().__init__()
-        self.model = None
-        self.graph_extractor = None
-        self._initialize_model()
-
-    def _initialize_model(self) -> None:
-        """Initialize the GNN model and graph extractor."""
-        try:
-            # Import here to avoid hard dependencies
-            from patchi.core.agents.gnn_models import GNNVulnerabilityClassifier
-            from patchi.core.agents.cpg_extractor import CPGExtractor
-
-            self.model = GNNVulnerabilityClassifier()
-            self.graph_extractor = CPGExtractor()
-            logger.info("GNN model and graph extractor initialized successfully")
-        except ImportError as e:
-            logger.warning(f"Could not import GNN components: {e}")
-            logger.info("GNN detector will operate in limited mode")
-            self.model = None
-            self.graph_extractor = None
+    timeout = 120
 
     def _run(self, inp: AgentInput, result: AgentResult) -> None:
-        """Run GNN-based bug detection."""
-        logger.info("Starting GNN-based bug detection")
+        cfg = inp.config or {}
+        gnn_cfg = cfg.get("gnn", {}) or {}
+        allow_untrained = bool(gnn_cfg.get("allow_untrained", False))
+        threshold = float(gnn_cfg.get("threshold", 0.5))
+        max_files = int(gnn_cfg.get("max_files", 100))
 
-        # Check if GNN components are available
-        if self.model is None or self.graph_extractor is None:
-            logger.warning("GNN components not available, skipping detection")
+        from patchi.core.agents.gnn_models import GNNVulnerabilityClassifier
+
+        model = GNNVulnerabilityClassifier(
+            allow_untrained=allow_untrained, threshold=threshold
+        )
+        if not model.available:
+            # Honest skip: visible in result data AND agent logs.
+            reason = model.skip_reason()
+            logger.info("GNNBugDetector skipped: %s", reason)
+            result.data["skipped_reason"] = reason
             result.files_scanned = 0
+            result.status = self._status_skipped()
             return
 
-        findings = []
-        files_processed = 0
+        cpg_available = self._cpg_available()
+        if not cpg_available:
+            result.data["skipped_reason"] = "CPG extractor unavailable"
+            result.files_scanned = 0
+            result.status = self._status_skipped()
+            return
 
-        # Get files to analyze based on input scope
-        files_to_analyze = self._get_files_to_analyze(inp)
+        from patchi.core.agents.cpg_extractor import CPGExtractor
 
-        for file_path in files_to_analyze:
+        extractor = CPGExtractor()
+        root = Path(inp.root)
+        files = self._files_to_analyze(inp, max_files)
+
+        findings_added = 0
+        processed = 0
+        for rel_path, abs_path in files:
             try:
-                # Extract Code Property Graph
-                cpg = self.graph_extractor.extract_graph(file_path, inp.root)
-
-                # Run GNN inference
-                vulnerabilities = self.model.detect_vulnerabilities(cpg)
-
-                # Convert vulnerabilities to findings
-                for vuln in vulnerabilities:
-                    finding = self._vulnerability_to_finding(
-                        vuln, file_path, inp.root
-                    )
-                    if finding:
-                        findings.append(finding)
-
-                files_processed += 1
-
-            except Exception as e:
-                logger.error(f"Error processing file {file_path}: {e}")
+                graph = extractor.extract_graph(str(abs_path), root)
+                if not graph or not graph.get("nodes"):
+                    continue
+            except Exception as e:  # noqa: BLE001
+                logger.debug("CPG extraction failed for %s: %s", rel_path, e)
                 continue
 
-        # Add findings to result
-        for finding in findings:
-            result.add_finding(finding)
+            for vuln in model.detect_vulnerabilities(graph):
+                severity = Severity(vuln.get("severity", "info"))
+                finding = make_finding(
+                    agent=self.name,
+                    finding_type="model_detected_vulnerability",
+                    severity=severity,
+                    file=rel_path,
+                    line=int(vuln.get("line", 0)),
+                    message=vuln.get("title", "GNN pattern match"),
+                    detail=vuln.get("description", ""),
+                    suggestion=vuln.get("suggestion", ""),
+                    cwe=vuln.get("cwe", ""),
+                    confidence=vuln.get("confidence", 0.5),
+                    function=vuln.get("function", ""),
+                    trusted_model=model.trusted,
+                )
+                result.add_finding(finding)
+                findings_added += 1
+            processed += 1
 
-        result.files_scanned = files_processed
-        result.data["gnn_findings"] = len(findings)
+        result.files_scanned = processed
+        result.data["gnn_findings"] = findings_added
+        result.data["model_trusted"] = model.trusted
+        result.status = self._status_done()
 
-        logger.info(
-            f"GNN detection completed: {len(findings)} vulnerabilities found "
-            f"in {files_processed} files"
-        )
+    # ── helpers ──────────────────────────────────────────────────────────────
 
-    def _get_files_to_analyze(self, inp: AgentInput) -> List[Path]:
-        """Get list of files to analyze based on input scope."""
-        files = []
+    def _status_skipped(self):
+        from patchi.core.agents.base import AgentStatus
 
-        # Check if extra contains file scope
-        if hasattr(inp, "extra") and inp.extra:
-            if "files" in inp.extra:
-                files.extend(Path(f) for f in inp.extra["files"])
+        return AgentStatus.SKIPPED
 
-        # If no specific files, analyze all Python files by default
-        if not files:
-            for root, dirs, filenames in os.walk(inp.root):
-                for filename in filenames:
-                    if filename.endswith((".py", ".cpp", ".c", ".java", ".js", ".ts", ".go", ".rs")):
-                        files.append(Path(root) / filename)
+    def _status_done(self):
+        from patchi.core.agents.base import AgentStatus
 
-        return files
+        return AgentStatus.DONE
 
-    def _vulnerability_to_finding(
-        self, vuln: Dict[str, Any], file_path: Path, root: Path
-    ) -> Optional[Finding]:
-        """Convert a GNN vulnerability detection to a Finding."""
+    def _cpg_available(self) -> bool:
         try:
-            # Map GNN severity to Patchi severity
-            severity = self._map_severity(vuln.get("severity", "medium"))
+            from patchi.core.agents.cpg_extractor import CPGExtractor  # noqa: F401
 
-            # Determine fix agent based on vulnerability type
-            fix_agent = self._determine_fix_agent(vuln.get("type", ""))
+            return True
+        except ImportError:
+            return False
 
-            # Create relative file path
-            try:
-                rel_path = file_path.relative_to(root)
-            except ValueError:
-                rel_path = file_path
-
-            return make_finding(
-                agent=self.name,
-                finding_type=vuln.get("type", "gnn_detected_vulnerability"),
-                severity=severity,
-                file=str(rel_path),
-                line=vuln.get("line", 0),
-                message=vuln.get("title", ""),
-                detail=vuln.get("description", ""),
-                code_snippet=vuln.get("code_snippet", ""),
-                suggestion=vuln.get("suggestion", ""),
-                fix_agent=fix_agent,
-                cwe=vuln.get("cwe", ""),
-                confidence=vuln.get("confidence", 0.5),
-                vulnerability_category=vuln.get("category", ""),
-                affected_function=vuln.get("function", ""),
-            )
-        except Exception as e:
-            logger.error(f"Error converting vulnerability to finding: {e}")
-            return None
-
-    def _map_severity(self, gnn_severity: str) -> str:
-        """Map GNN severity to Patchi severity."""
-        severity_map = {
-            "critical": "CRITICAL",
-            "high": "HIGH",
-            "medium": "MEDIUM",
-            "low": "LOW",
-            "info": "INFO",
-        }
-        return severity_map.get(gnn_severity.lower(), "MEDIUM")
-
-    def _determine_fix_agent(self, vuln_type: str) -> Optional[str]:
-        """Determine which fix agent should handle this vulnerability."""
-        # Map vulnerability types to fix agents
-        type_to_agent = {
-            "buffer_overflow": "SecurityFixer",
-            "null_pointer_dereference": "CodeFixer",
-            "memory_leak": "MemoryFixer",
-            "race_condition": "SecurityFixer",
-            "type_mismatch": "CodeFixer",
-            "logic_bug": "RefactorAgent",
-            "sql_injection": "SecurityFixer",
-            "xss": "SecurityFixer",
-            "path_traversal": "SecurityFixer",
-        }
-        return type_to_agent.get(vuln_type, None)
-
-    def is_available(self) -> bool:
-        """Check if GNN detector is available."""
-        return self.model is not None and self.graph_extractor is not None
-
-    def get_supported_languages(self) -> List[str]:
-        """Get list of supported programming languages."""
-        if self.graph_extractor:
-            return self.graph_extractor.supported_languages
-        return []
+    def _files_to_analyze(self, inp: AgentInput, max_files: int):
+        root = Path(inp.root)
+        if inp.scope:
+            for rel in inp.scope[:max_files]:
+                p = (root / rel).resolve()
+                if p.is_file() and p.suffix.lower() in _ANALYZE_EXTENSIONS:
+                    yield rel.replace("\\", "/"), p
+            return
+        count = 0
+        for dirpath, dirnames, filenames in os.walk(root):
+            dirnames[:] = [d for d in dirnames if d not in _SKIP_DIRS]
+            for name in filenames:
+                if count >= max_files:
+                    return
+                if Path(name).suffix.lower() not in _ANALYZE_EXTENSIONS:
+                    continue
+                p = Path(dirpath) / name
+                rel = p.relative_to(root).as_posix()
+                yield rel, p
+                count += 1
