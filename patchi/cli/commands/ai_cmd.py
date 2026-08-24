@@ -10,7 +10,6 @@ Subcommands:
 """
 
 from __future__ import annotations
-from patchi.cli.console import con
 
 import os
 import time
@@ -19,6 +18,7 @@ from pathlib import Path
 from rich.table import Table
 from rich.text import Text
 
+from patchi.cli.console import con
 from patchi.core.config import require_project_root
 
 _TEST_PROMPT = "Reply with exactly: PATCHI AI READY"
@@ -43,6 +43,49 @@ def run(args) -> None:
         run_remove(root, getattr(args, "name", ""))
     else:
         con.print(f"[red]Unknown ai subcommand: {ai_cmd!r}[/red]")
+
+def run_profiles(root=None) -> None:
+    """List configured AI provider profiles (E-12 S-2 seed: p ai profiles)."""
+    from rich.table import Table
+
+    from patchi.cli.console import con
+
+    r = _resolve_root(root)
+    from patchi.core import config as cfg
+
+    keys = cfg.load(r).get("ai", {}).get("keys", [])
+    con.print()
+    if not keys:
+        con.print("[yellow]No AI provider profiles configured.[/yellow]")
+        con.print("[dim]Add one with `p key add` or edit .patchi/config.json.[/dim]")
+        con.print()
+        return
+
+    table = Table(show_header=True, header_style="bold #C8621A", box=None, pad_edge=False)
+    table.add_column("Nickname", style="bold #F2EDD6", width=14)
+    table.add_column("Provider", width=10)
+    table.add_column("Model", width=28)
+    table.add_column("Base URL", width=40)
+    table.add_column("Status", width=7)
+    table.add_column("Env Var", style="dim")
+
+    for k in keys:
+        status = k.get("status", "?")
+        color = {"ok": "#4ADE80", "error": "#FF4D6D"}.get(status, "#FACC15")
+        table.add_row(
+            k.get("nickname", "?"),
+            k.get("provider", "?"),
+            k.get("model", "?"),
+            k.get("base_url", "?"),
+            f"[{color}]{status}[/{color}]",
+            k.get("env_var", "?"),
+        )
+    con.print(table)
+    con.print()
+    con.print("[dim]Profile schema (E-12 S-2): nickname, provider, env_var, "
+              "base_url, model, format, status, extra_body[/dim]")
+    con.print()
+
 
 def _resolve_root(root: Path | None) -> Path:
     if root is not None:

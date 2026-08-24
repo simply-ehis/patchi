@@ -345,6 +345,14 @@ COMMANDS: list[Command] = [
                       help="JSON output"),),
             ),
 
+    Command("assure", "Assurance campaigns — prove properties, record evidence",
+            "patchi.cli.commands.assure_cmd:run",
+            args=(Arg("--json", dest="json_output", action="store_true",
+                      help="JSON output"),
+                  Arg("--reset", action="store_true",
+                      help="Discard all recorded claims/evidence")),
+            ),
+
     Command("audit", "Full project audit + Plan-vs-Built drift",
             "patchi.cli.commands.audit_cmd:run",
             args=(Arg("--quick", action="store_true", help="Quick audit (skip deep scan)"),
@@ -399,6 +407,8 @@ COMMANDS: list[Command] = [
                 Command("remove", "Remove an API key by name",
                         "patchi.cli.commands.ai_cmd:run_remove",
                         args=(Arg("name"),)),
+                Command("profiles", "List configured AI provider profiles (E-12 S-2)",
+                        "patchi.cli.commands.ai_cmd:run_profiles"),
             )),
 
     Command("charter", "Manage project charter and rules",
