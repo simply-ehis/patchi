@@ -1,0 +1,180 @@
+domain_id: "logging-error-handling"
+version: "1.0.0"
+display_name: "Security Logging and Error Handling"
+source_standard: "OWASP Application Security Verification Standard (ASVS) 5.0.0, Chapter V16: Security Logging and Error Handling (fetched and verified directly from the official ASVS 5.0.0 CSV release, github.com/OWASP/ASVS, July 2026)"
+component_type: "backend-api"
+cross_cutting: true
+weight: 0.75
+
+# NOTE ON SCOPE: this domain covers the target APPLICATION's own runtime logging and
+# error-handling behavior. It is deliberately distinct from the cicd-pipeline domain's
+# CI/CD-system-specific logging control (build/pipeline log integrity), which covers a
+# different layer entirely (the CI system's own logs, not the application's). Do not
+# merge or duplicate controls between these two domains — if a finding could plausibly
+# belong to either, check whether it concerns the running application's own logs
+# (this domain) or the CI/CD system's logs (cicd-pipeline) before assigning it.
+
+activation_signals:
+  required_any:
+    - signal: "has_logging_library_usage"       # winston, pino, log4j, python logging module, etc.
+    - signal: "has_custom_error_handler"        # try/catch blocks producing user-facing error responses, error-handling middleware
+    - signal: "has_authentication_or_authorization_logic"  # logging requirements here are most load-bearing where security events actually occur
+  excluded_if:
+    - signal: "no_runtime_logging_or_error_surface"  # e.g. a pure library/package with no logging output and no user-facing error responses of its own
+
+controls:
+  - control_id: "LOG-01"
+    name: "Maintain a logging inventory"
+    description: "An inventory must document the logging performed at each layer of the application's technology stack: what events are logged, log formats, where logs are stored, how they're used, how access is controlled, and retention duration."
+    source_clause: "ASVS 5.0.0, V16.1.1"
+    severity: "medium"
+    check_method: "manual-review"
+    detector: "manual-review only — this is a documentation requirement, though a static scan of logging call sites (see LOG-04) can help populate and verify the inventory's accuracy against actual code"
+    remediation_ref: "fix-playbook://LOG-01"
+
+  - control_id: "LOG-02"
+    name: "Include sufficient metadata in every log entry"
+    description: "Each log entry must include necessary metadata (when, where, who, what) to allow detailed investigation of an event's timeline."
+    source_clause: "ASVS 5.0.0, V16.2.1"
+    severity: "medium"
+    check_method: "static"
+    detector: "Semgrep rule flagging logging calls that pass only a bare string with no structured metadata fields (timestamp, actor, source, event type) — most structured-logging libraries make this a checkable pattern"
+    remediation_ref: "fix-playbook://LOG-02"
+
+  - control_id: "LOG-03"
+    name: "Use synchronized, UTC (or explicit-offset) timestamps across all logging components"
+    description: "Time sources for all logging components must be synchronized, and timestamps in security event metadata must use UTC or an explicit time zone offset, to prevent confusion during correlation and daylight saving transitions."
+    source_clause: "ASVS 5.0.0, V16.2.2"
+    severity: "low"
+    check_method: "static"
+    detector: "Semgrep rule flagging timestamp generation that uses local/naive datetime objects without timezone information rather than a UTC-aware or explicitly-offset timestamp"
+    remediation_ref: "fix-playbook://LOG-03"
+
+  - control_id: "LOG-04"
+    name: "Only send logs to documented destinations"
+    description: "The application must only store or broadcast logs to the files and services documented in the log inventory (LOG-01), not to undocumented additional destinations."
+    source_clause: "ASVS 5.0.0, V16.2.3"
+    severity: "medium"
+    check_method: "static"
+    detector: "Semgrep/CodeQL rule enumerating all logging-sink configurations (file paths, log-shipping endpoints, third-party logging service integrations) in the codebase for comparison against the documented inventory — flags any destination not present in LOG-01's documentation"
+    remediation_ref: "fix-playbook://LOG-04"
+
+  - control_id: "LOG-05"
+    name: "Use a common, correlatable log format"
+    description: "Logs must be readable and correlatable by the log processor in use, preferably using a common, structured logging format (e.g. JSON with consistent field names) rather than inconsistent free-text formats across components."
+    source_clause: "ASVS 5.0.0, V16.2.4"
+    severity: "low"
+    check_method: "static"
+    detector: "Semgrep rule flagging logging calls using ad hoc string concatenation/interpolation instead of the application's configured structured-logging library/formatter"
+    remediation_ref: "fix-playbook://LOG-05"
+
+  - control_id: "LOG-06"
+    name: "Enforce data-protection-level rules when logging sensitive data"
+    description: "Logging of sensitive data must respect the data's protection level — some data (credentials, payment details) must never be logged; other data (session tokens) may only be logged hashed, masked, or partially."
+    source_clause: "ASVS 5.0.0, V16.2.5"
+    severity: "critical"
+    check_method: "static"
+    detector: "CodeQL/Semgrep dataflow rule taint-tracking known-sensitive variables (password fields, tokens, payment card data, API keys) to logging call sites, flagging any path where such a value reaches a log statement unmasked"
+    remediation_ref: "fix-playbook://LOG-06"
+
+  - control_id: "LOG-07"
+    name: "Log all authentication attempts, successful and unsuccessful"
+    description: "All authentication operations must be logged, including successful and unsuccessful attempts, with metadata such as the authentication type/factors used."
+    source_clause: "ASVS 5.0.0, V16.3.1"
+    severity: "high"
+    check_method: "static"
+    detector: "Semgrep/CodeQL rule confirming every authentication code path (login success, login failure, MFA challenge) has an associated logging call in both its success and failure branches"
+    remediation_ref: "fix-playbook://LOG-07"
+
+  - control_id: "LOG-08"
+    name: "Log failed authorization attempts"
+    description: "Failed authorization attempts must be logged; at the highest verification level, all authorization decisions must be logged, including access to sensitive data (without logging the sensitive data's actual content)."
+    source_clause: "ASVS 5.0.0, V16.3.2"
+    severity: "high"
+    check_method: "static"
+    detector: "Semgrep/CodeQL rule confirming authorization-check failure branches (403 responses, access-denied code paths) include a logging call"
+    remediation_ref: "fix-playbook://LOG-08"
+
+  - control_id: "LOG-09"
+    name: "Log security-control bypass attempts"
+    description: "The application must log the security events defined in its documentation and log attempts to bypass security controls such as input validation, business logic constraints, and anti-automation measures."
+    source_clause: "ASVS 5.0.0, V16.3.3"
+    severity: "high"
+    check_method: "static"
+    detector: "Semgrep rule confirming validation-failure and rate-limit-triggered code paths include a logging call, not just a silent rejection response"
+    remediation_ref: "fix-playbook://LOG-09"
+
+  - control_id: "LOG-10"
+    name: "Log unexpected errors and security control failures"
+    description: "The application must log unexpected errors and security control failures, such as backend TLS failures."
+    source_clause: "ASVS 5.0.0, V16.3.4"
+    severity: "medium"
+    check_method: "static"
+    detector: "Semgrep rule confirming catch-all exception handlers and TLS/connection-failure branches include a logging call rather than silently swallowing the error"
+    remediation_ref: "fix-playbook://LOG-10"
+
+  - control_id: "LOG-11"
+    name: "Encode logged data to prevent log injection"
+    description: "All logging components must appropriately encode data written to logs to prevent log injection attacks (e.g. an attacker embedding fake log lines or control characters within user-controlled input that gets logged verbatim)."
+    source_clause: "ASVS 5.0.0, V16.4.1"
+    severity: "medium"
+    check_method: "static"
+    detector: "Semgrep/CodeQL dataflow rule flagging user-controlled input reaching a logging call without passing through the logging library's structured-field mechanism or an explicit sanitization/encoding step (e.g. stripping newlines/control characters from free-text log messages)"
+    remediation_ref: "fix-playbook://LOG-11"
+
+  - control_id: "LOG-12"
+    name: "Protect logs from unauthorized access and modification"
+    description: "Logs must be protected from unauthorized access and must not be modifiable by unauthorized parties."
+    source_clause: "ASVS 5.0.0, V16.4.2"
+    severity: "high"
+    check_method: "manual-review"
+    detector: "manual-review only, though static config review of log-storage permissions (file system ACLs, log-service access controls) can serve as a supporting check"
+    remediation_ref: "fix-playbook://LOG-12"
+
+  - control_id: "LOG-13"
+    name: "Securely transmit logs to a logically separate system"
+    description: "Logs must be securely transmitted to a logically separate system for analysis, detection, alerting, and escalation, so that a breach of the application does not also compromise its own logs."
+    source_clause: "ASVS 5.0.0, V16.4.3"
+    severity: "high"
+    check_method: "manual-review"
+    detector: "manual-review only — verifying genuine logical separation (not just a different directory on the same compromised host) requires reviewing actual deployment architecture"
+    remediation_ref: "fix-playbook://LOG-13"
+
+  - control_id: "LOG-14"
+    name: "Return generic error messages, never expose internal system data"
+    description: "A generic message must be returned to the consumer for unexpected or security-sensitive errors, with no exposure of internal system data such as stack traces, database queries, secret keys, or tokens."
+    source_clause: "ASVS 5.0.0, V16.5.1"
+    severity: "high"
+    check_method: "static"
+    detector: "Semgrep rule flagging error-handling code that returns raw exception messages, stack traces, or internal error objects directly in an HTTP response body rather than a generic, pre-defined error message"
+    remediation_ref: "fix-playbook://LOG-14"
+
+  - control_id: "LOG-15"
+    name: "Continue operating securely when external resource access fails"
+    description: "The application must continue to operate securely when access to an external resource fails, using patterns such as circuit breakers or graceful degradation rather than failing in an insecure or undefined way."
+    source_clause: "ASVS 5.0.0, V16.5.2"
+    severity: "medium"
+    check_method: "manual-review"
+    detector: "manual-review only, though a static check can flag external-service call sites with no circuit-breaker/retry-limit/fallback logic as candidates for review"
+    remediation_ref: "fix-playbook://LOG-15"
+
+  - control_id: "LOG-16"
+    name: "Fail closed, not open, on exceptions"
+    description: "The application must fail gracefully and securely, including when an exception occurs, preventing fail-open conditions such as processing a transaction despite validation-logic errors."
+    source_clause: "ASVS 5.0.0, V16.5.3"
+    severity: "critical"
+    check_method: "static"
+    detector: "Semgrep/CodeQL rule flagging exception-handling branches around security-sensitive operations (validation, authorization, payment processing) that allow the operation to proceed to a success path despite the exception, rather than aborting/denying"
+    remediation_ref: "fix-playbook://LOG-16"
+
+  - control_id: "LOG-17"
+    name: "Define a last-resort handler for all unhandled exceptions"
+    description: "A last-resort error handler must be defined to catch all unhandled exceptions, both to preserve error details for logging and to prevent an unhandled error from crashing the entire application process (a loss of availability)."
+    source_clause: "ASVS 5.0.0, V16.5.4"
+    severity: "high"
+    check_method: "static"
+    detector: "Semgrep/CodeQL rule confirming a top-level/global exception handler (e.g. process.on('uncaughtException') in Node, a global exception middleware in a web framework) exists and logs before any process-level fallback behavior"
+    remediation_ref: "fix-playbook://LOG-17"
+
+deprecated_by: null
+last_reviewed: "2026-07-08"

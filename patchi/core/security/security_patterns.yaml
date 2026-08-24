@@ -1,0 +1,257 @@
+# Patchi Security Patterns Configuration
+# ========================================
+#
+# Centralized sink/source patterns for security agents.
+# Agents load these at startup and can be extended via this file
+# without modifying agent source code.
+#
+# Structure:
+#   injection:
+#     sql_sinks:       SQL injection sinks per language
+#     exec_sinks:      Command injection sinks
+#     xss_call_sinks:  XSS sinks via function calls
+#     xss_assign_sinks: XSS sinks via assignments
+#     path_traversal_sinks: Path traversal sinks
+#
+#   ssrf:
+#     protocol_patterns:   Dangerous protocol handlers
+#     metadata_patterns:   Cloud metadata endpoints
+#     internal_network:    Internal network patterns
+#     url_var_names:       URL variable name patterns
+#     user_input_markers:  User input source markers
+#     redirect_sinks:      Redirect/forward sinks per language
+#
+#   catch_block:
+#     noop_patterns:   Patterns that indicate a no-op handler
+
+injection:
+  sql_sinks:
+    python:
+      - execute
+      - executemany
+      - executescript
+      - raw
+      - rawquery
+    javascript:
+      - query
+      - execute
+      - knex
+    typescript:
+      - query
+      - execute
+      - knex
+    java:
+      - executeQuery
+      - executeUpdate
+      - prepareStatement
+      - createQuery
+      - nativeQuery
+    php:
+      - mysql_query
+      - pg_query
+      - query
+      - mysqli_query
+    ruby:
+      - execute
+      - find_by_sql
+      - where
+
+  exec_sinks:
+    python:
+      - subprocess.call
+      - subprocess.Popen
+      - subprocess.run
+      - subprocess.check_call
+      - subprocess.check_output
+      - os.system
+      - os.popen
+      - eval
+      - exec
+    javascript:
+      - child_process.exec
+      - child_process.execSync
+      - child_process.spawn
+      - child_process.spawnSync
+      - child_process.execFile
+      - eval
+      - Function
+    typescript:
+      - child_process.exec
+      - child_process.execSync
+      - child_process.spawn
+      - child_process.spawnSync
+      - child_process.execFile
+      - eval
+      - Function
+    java:
+      - Runtime.getRuntime.exec
+      - ProcessBuilder
+      - ScriptEngine.eval
+    php:
+      - exec
+      - shell_exec
+      - system
+      - passthru
+      - proc_open
+      - popen
+
+  xss_call_sinks:
+    javascript:
+      - document.write
+      - document.writeln
+    typescript:
+      - document.write
+      - document.writeln
+    php:
+      - echo
+      - print
+      - printf
+      - vprintf
+
+  xss_assign_sinks:
+    javascript:
+      - innerHTML
+      - outerHTML
+      - insertAdjacentHTML
+    typescript:
+      - innerHTML
+      - outerHTML
+      - insertAdjacentHTML
+
+  path_traversal_sinks:
+    python:
+      - open
+      - os.path.join
+      - pathlib.Path
+      - builtins.open
+    javascript:
+      - fs.readFile
+      - fs.readFileSync
+      - fs.writeFile
+      - fs.writeFileSync
+      - path.join
+    typescript:
+      - fs.readFile
+      - fs.readFileSync
+      - fs.writeFile
+      - fs.writeFileSync
+      - path.join
+    php:
+      - file_get_contents
+      - fopen
+      - include
+      - require
+      - include_once
+      - require_once
+    java:
+      - new File
+      - Files.read
+      - Files.write
+      - FileInputStream
+      - FileOutputStream
+
+ssrf:
+  protocol_patterns:
+    - pattern: "[\"']file://"
+      severity: high
+      message: "file:// protocol handler — potential local file access via SSRF"
+    - pattern: "[\"']gopher://"
+      severity: high
+      message: "gopher:// protocol handler — potential SSRF vector"
+    - pattern: "[\"']dict://"
+      severity: medium
+      message: "dict:// protocol handler — potential SSRF vector"
+    - pattern: "[\"']ldap://"
+      severity: medium
+      message: "ldap:// protocol handler — potential SSRF vector"
+
+  metadata_patterns:
+    - pattern: "169.254.169.254"
+      severity: critical
+      message: "AWS/GCP cloud metadata endpoint access — potential SSRF to cloud credentials"
+    - pattern: "metadata.google.internal"
+      severity: critical
+      message: "GCP metadata endpoint access — potential SSRF to cloud credentials"
+
+  internal_network:
+    - pattern: "(?:localhost|127\\.0\\.0\\.1|0\\.0\\.0\\.0):\\d+"
+      severity: low
+      message: "Localhost URL — verify this is not user-controlled"
+    - pattern: "(?:10\\.\\d+\\.\\d+\\.\\d+|172\\.(?:1[6-9]|2\\d|3[01])\\.\\d+\\.\\d+|192\\.168\\.\\d+\\.\\d+)"
+      severity: medium
+      message: "Internal network IP — potential SSRF to internal services"
+
+  url_var_names:
+    - url
+    - endpoint
+    - target
+    - host
+    - base_url
+    - baseUri
+    - requestUrl
+    - fetchUrl
+    - request_url
+    - apiUrl
+    - serviceUrl
+
+  user_input_markers:
+    - "request."
+    - "req."
+    - "params."
+    - "args."
+    - "input"
+    - "data["
+    - "form["
+    - "query."
+    - "body."
+    - "headers."
+    - "c.Query"
+    - "r.URL"
+    - "ctx.Query"
+    - "request.query"
+    - "request.params"
+
+  redirect_sinks:
+    python:
+      - redirect
+      - redirect_url
+      - safe_redirect
+    javascript:
+      - res.redirect
+      - response.redirect
+    typescript:
+      - res.redirect
+      - response.redirect
+    java:
+      - sendRedirect
+      - forward
+    php:
+      - header
+      - redirect
+    ruby:
+      - redirect_to
+      - redirect_back
+    go:
+      - http.Redirect
+    c_sharp:
+      - Redirect
+      - RedirectToAction
+    kotlin:
+      - respondRedirect
+    swift:
+      - redirect
+
+catch_block:
+  noop_patterns:
+    - "pass"
+    - "next"
+    - "nil"
+    - "None"
+    - "null"
+    - "undefined"
+    - "console\\.log\\("
+    - "console\\.warn\\("
+    - "print\\("
+    - "println\\("
+    - "traceback\\.print_exc"
+    - "printStackTrace"

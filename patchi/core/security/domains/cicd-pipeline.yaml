@@ -1,0 +1,391 @@
+# ============================================================================
+# Patchi Security Domain: cicd-pipeline
+# ============================================================================
+# SOURCE VERIFICATION NOTE:
+#   Source standard: OWASP Top 10 CI/CD Security Risks (CICD-SEC-1 through
+#   CICD-SEC-10). Initial release v1.0 September 2022, stable release v1.0
+#   October 2022 — confirmed current via owasp.org (no later numbered
+#   revision exists as of this writing).
+#   Confidence: HIGH. Every control below is drawn from the "Recommendations"
+#   section of the official OWASP page for that risk at
+#   https://owasp.org/www-project-top-10-ci-cd-security-risks/CICD-SEC-0N-...
+#   — fetched directly, not recalled from memory. Descriptions are
+#   reworded, not verbatim; original text is OWASP's own (CC-BY-SA-style
+#   OWASP project licensing).
+#
+#   SEVERITY NOTE — same caveat as llm-integration and mobile: this
+#   standard does not publish a per-category severity/impact table.
+#   Severities below are Patchi's own judgment, calibrated by typical
+#   exploit outcome: categories whose realization commonly leads directly
+#   to secret theft or arbitrary code execution in the pipeline (Poisoned
+#   Pipeline Execution, Dependency Chain Abuse, Insufficient Credential
+#   Hygiene, Improper Artifact Integrity Validation) are rated
+#   critical/high; categories that primarily weaken governance or
+#   detection rather than directly enabling compromise (Insecure System
+#   Configuration, Ungoverned 3rd-Party Services, Insufficient Logging) are
+#   rated medium, consistent with how this taxonomy treats detective vs.
+#   preventive-critical controls elsewhere (e.g. MASVS-RESILIENCE).
+# ============================================================================
+
+domain_id: "cicd-pipeline"
+version: "1.0.0"
+display_name: "CI/CD Pipeline Security"
+source_standard: "OWASP Top 10 CI/CD Security Risks (v1.0, stable release October 2022)"
+component_type: "infra"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "github_actions_workflow_present (a .github/workflows/*.yml or *.yaml file)"
+    - signal: "gitlab_ci_config_present (a .gitlab-ci.yml file)"
+    - signal: "jenkinsfile_present (a file named Jenkinsfile anywhere in the repo)"
+    - signal: "other_ci_config_present (a .circleci/config.yml, azure-pipelines.yml, bitbucket-pipelines.yml, or .travis.yml file)"
+  excluded_if:
+    - signal: "no_ci_config_files_found (none of the required_any signals fired)"
+
+controls:
+  # ==== CICD-SEC-1: Insufficient Flow Control Mechanisms ====
+  - control_id: "CICD-01"
+    name: "Branch protection enforced on production/sensitive branches without exclusions"
+    description: "Branches hosting code used in production or other sensitive systems must have branch protection rules enabled, without exclusions carved out for specific users or branches that would let them bypass the protection."
+    source_clause: "OWASP Top 10 CI/CD Security Risks, CICD-SEC-1: Insufficient Flow Control Mechanisms, Recommendations"
+    severity: "high"
+    check_method: "manual-review"
+    detector: "manual-review only (requires querying the SCM platform's API/settings, which a static repo scan cannot see); GitHub/GitLab branch-protection settings can be checked via their respective APIs if Patchi has platform access"
+    remediation_ref: "fix-playbook://CICD-01"
+
+  - control_id: "CICD-02"
+    name: "Users able to push unreviewed code cannot also trigger production deployment"
+    description: "Accounts permitted to push unreviewed code to a repository must not simultaneously hold permission to trigger the deployment pipelines connected to that repository, preventing a single compromised or malicious account from both poisoning and shipping code."
+    source_clause: "OWASP Top 10 CI/CD Security Risks, CICD-SEC-1: Insufficient Flow Control Mechanisms, Recommendations"
+    severity: "high"
+    check_method: "manual-review"
+    detector: "manual-review only (requires cross-referencing SCM push permissions against CI/CD deployment-trigger permissions)"
+    remediation_ref: "fix-playbook://CICD-02"
+
+  - control_id: "CICD-03"
+    name: "Auto-merge rules restricted, audited, and free of third-party code in the decision path"
+    description: "Where auto-merge rules exist, their use must be limited to the minimal necessary contexts, their logic thoroughly reviewed to ensure they cannot be bypassed, and third-party code must not be part of the auto-merge decision process."
+    source_clause: "OWASP Top 10 CI/CD Security Risks, CICD-SEC-1: Insufficient Flow Control Mechanisms, Recommendations"
+    severity: "high"
+    check_method: "static"
+    detector: "manual-review of repository auto-merge configuration; Semgrep can flag workflow files that programmatically approve/merge PRs based on conditions evaluated from PR content"
+    remediation_ref: "fix-playbook://CICD-03"
+
+  - control_id: "CICD-04"
+    name: "Manual approval required before production deployment"
+    description: "Deployment pipelines targeting production must require manual approval/review as a gate, rather than deploying automatically and unconditionally on every push or merge."
+    source_clause: "OWASP Top 10 CI/CD Security Risks, CICD-SEC-1: Insufficient Flow Control Mechanisms, Recommendations"
+    severity: "high"
+    check_method: "static"
+    detector: "Semgrep / manual-review (rule: a workflow/pipeline file with a production-deployment job triggered directly on push/merge with no environment-protection-rule or manual-approval gate configured)"
+    remediation_ref: "fix-playbook://CICD-04"
+
+  # ==== CICD-SEC-2: Inadequate Identity and Access Management ====
+  - control_id: "CICD-05"
+    name: "Centralized identity provider used instead of local accounts"
+    description: "Identities across SCM, CI, and CD systems should be created and managed through a centralized organizational identity provider (SSO/SAML/OIDC) rather than local, system-specific accounts, which are harder to deprovision consistently."
+    source_clause: "OWASP Top 10 CI/CD Security Risks, CICD-SEC-2: Inadequate Identity and Access Management, Recommendations"
+    severity: "high"
+    check_method: "manual-review"
+    detector: "manual-review only (organizational identity architecture, not visible in a repository scan)"
+    remediation_ref: "fix-playbook://CICD-05"
+
+  - control_id: "CICD-06"
+    name: "Stale and time-bound identities periodically reviewed and deprovisioned"
+    description: "Accounts and programmatic credentials that no longer require access must be identified and disabled/removed, and permissions should be granted with a predetermined expiry where possible."
+    source_clause: "OWASP Top 10 CI/CD Security Risks, CICD-SEC-2: Inadequate Identity and Access Management, Recommendations"
+    severity: "high"
+    check_method: "manual-review"
+    detector: "manual-review only (requires a periodic access-review process against the identity provider/SCM/CI platforms)"
+    remediation_ref: "fix-playbook://CICD-06"
+
+  - control_id: "CICD-07"
+    name: "Non-organizational email domains not granted access to CI/CD systems"
+    description: "Employees must not be permitted to register against the SCM, CI, or other CI/CD platforms using personal email addresses or any domain not owned and managed by the organization."
+    source_clause: "OWASP Top 10 CI/CD Security Risks, CICD-SEC-2: Inadequate Identity and Access Management, Recommendations"
+    severity: "medium"
+    check_method: "manual-review"
+    detector: "manual-review only (requires auditing the SCM/CI platform's member list against the organization's approved domain list)"
+    remediation_ref: "fix-playbook://CICD-07"
+
+  # ==== CICD-SEC-3: Dependency Chain Abuse ====
+  - control_id: "CICD-08"
+    name: "Third-party packages pulled through a vetted internal proxy, not directly from the public internet"
+    description: "Package manager clients should be configured to pull packages through an internal proxy/registry containing pre-vetted packages, rather than fetching directly from public package repositories."
+    source_clause: "OWASP Top 10 CI/CD Security Risks, CICD-SEC-3: Dependency Chain Abuse, Recommendations"
+    severity: "high"
+    check_method: "static"
+    detector: "Semgrep / manual-review (rule: package-manager config files — .npmrc, pip.conf, .m2/settings.xml — pointing at a public registry URL rather than an internal proxy)"
+    remediation_ref: "fix-playbook://CICD-08"
+
+  - control_id: "CICD-09"
+    name: "Checksum/signature verification enabled for pulled packages"
+    description: "Package manager clients should have checksum and signature verification enabled so a package's integrity is validated against a known-good value before use."
+    source_clause: "OWASP Top 10 CI/CD Security Risks, CICD-SEC-3: Dependency Chain Abuse, Recommendations"
+    severity: "high"
+    check_method: "static"
+    detector: "Semgrep / manual-review (rule: package-manager configuration with integrity/checksum verification explicitly disabled, e.g. npm's --no-verify-signatures or pip's --trusted-host bypassing verification)"
+    remediation_ref: "fix-playbook://CICD-09"
+
+  - control_id: "CICD-10"
+    name: "Dependency versions pinned via enforced lockfiles"
+    description: "Clients should be configured to use a pre-vetted, pinned package version or version range rather than always fetching the latest, using the ecosystem's lockfile mechanism (package-lock.json, Pipfile.lock, etc.), and the lockfile must actually be enforced in CI (e.g. npm ci rather than npm install)."
+    source_clause: "OWASP Top 10 CI/CD Security Risks, CICD-SEC-3: Dependency Chain Abuse, Recommendations"
+    severity: "high"
+    check_method: "static"
+    detector: "Semgrep (rule: a CI workflow step running a non-lockfile-respecting install command such as npm install/pip install without -r requirements.txt --require-hashes, where a lockfile exists in the repo but isn't enforced)"
+    remediation_ref: "fix-playbook://CICD-10"
+
+  - control_id: "CICD-11"
+    name: "Install/build scripts run without access to pipeline secrets"
+    description: "When executing package installation scripts (e.g. npm postinstall hooks), a separate execution context without access to secrets and other sensitive resources should be used, since these scripts run arbitrary third-party code."
+    source_clause: "OWASP Top 10 CI/CD Security Risks, CICD-SEC-3: Dependency Chain Abuse, Recommendations"
+    severity: "critical"
+    check_method: "manual-review"
+    detector: "manual-review only (requires understanding the pipeline's execution-context/secret-scoping architecture)"
+    remediation_ref: "fix-playbook://CICD-11"
+
+  # ==== CICD-SEC-4: Poisoned Pipeline Execution (PPE) ====
+  - control_id: "CICD-12"
+    name: "CI configuration file changes reviewed before execution"
+    description: "Changes to the CI pipeline configuration file must be reviewed (e.g. via required pull-request review) before being executed, or the file should be stored outside the repository being built and in a separately protected location."
+    source_clause: "OWASP Top 10 CI/CD Security Risks, CICD-SEC-4: Poisoned Pipeline Execution, Recommendations"
+    severity: "critical"
+    check_method: "manual-review"
+    detector: "manual-review only (requires confirming branch-protection/review requirements specifically cover the CI config file path)"
+    remediation_ref: "fix-playbook://CICD-12"
+
+  - control_id: "CICD-13"
+    name: "Pipelines processing unreviewed or fork-originated code run without secret access"
+    description: "Pipelines that execute code from unreviewed sources (e.g. triggered by pull requests from public forks) must run on nodes/contexts without access to the organization's secrets, since a Public-PPE (3PE) attack would otherwise expose them."
+    source_clause: "OWASP Top 10 CI/CD Security Risks, CICD-SEC-4: Poisoned Pipeline Execution, Recommendations and Description (Public-PPE / 3PE)"
+    severity: "critical"
+    check_method: "static"
+    detector: "Semgrep / actionlint (rule: a GitHub Actions workflow triggered on pull_request_target or with secrets: inherit that also checks out and executes code from the PR head, a well-known 3PE pattern)"
+    remediation_ref: "fix-playbook://CICD-13"
+
+  - control_id: "CICD-14"
+    name: "Files referenced by the pipeline configuration receive the same review rigor as the configuration itself"
+    description: "Scripts, Makefiles, and other files that the CI configuration references and executes must receive the same change-review scrutiny as the pipeline configuration file itself, since modifying them achieves the same effect as modifying the pipeline file directly (Indirect PPE)."
+    source_clause: "OWASP Top 10 CI/CD Security Risks, CICD-SEC-4: Poisoned Pipeline Execution, Description (Indirect PPE / I-PPE)"
+    severity: "high"
+    check_method: "manual-review"
+    detector: "manual-review only (requires identifying which files a given pipeline configuration references and confirming they fall under the same protected-path review rules)"
+    remediation_ref: "fix-playbook://CICD-14"
+
+  - control_id: "CICD-15"
+    name: "Automatic tool configurations (linters/scanners) don't load and run unreviewed external code"
+    description: "Configuration files for CI-integrated linters and security scanners, which often load and run external code from a location defined in the configuration, must not be modifiable by unreviewed contributors, since this is a form of Indirect PPE."
+    source_clause: "OWASP Top 10 CI/CD Security Risks, CICD-SEC-4: Poisoned Pipeline Execution, Description (I-PPE, automatic tools)"
+    severity: "high"
+    check_method: "static"
+    detector: "Semgrep (rule: a linter/scanner configuration file referencing an external, mutable, non-pinned code location such as a branch reference instead of a commit SHA)"
+    remediation_ref: "fix-playbook://CICD-15"
+
+  # ==== CICD-SEC-5: Insufficient PBAC (Pipeline-Based Access Controls) ====
+  - control_id: "CICD-16"
+    name: "Secrets scoped so each pipeline/step accesses only what it requires"
+    description: "Secrets used within CI/CD systems must be scoped so that each pipeline and each step within it can access only the specific secrets it genuinely requires."
+    source_clause: "OWASP Top 10 CI/CD Security Risks, CICD-SEC-5: Insufficient PBAC, Recommendations"
+    severity: "high"
+    check_method: "static"
+    detector: "Semgrep / manual-review (rule: a workflow job with secrets: inherit or access to an org-wide secret set when it only performs an operation needing a narrower scope)"
+    remediation_ref: "fix-playbook://CICD-16"
+
+  - control_id: "CICD-17"
+    name: "Shared execution nodes not used across pipelines of different sensitivity levels"
+    description: "A shared execution node/runner should only be used for pipelines with identical confidentiality/sensitivity levels, not mixed across pipelines that require access to different, differently-sensitive resources."
+    source_clause: "OWASP Top 10 CI/CD Security Risks, CICD-SEC-5: Insufficient PBAC, Recommendations"
+    severity: "high"
+    check_method: "manual-review"
+    detector: "manual-review only (requires understanding the runner/node pool architecture and which pipelines share it)"
+    remediation_ref: "fix-playbook://CICD-17"
+
+  - control_id: "CICD-18"
+    name: "Execution nodes reverted to a clean/pristine state after each pipeline run"
+    description: "The execution node should be reverted to its pristine state after each pipeline execution, preventing residual state (cached credentials, artifacts, injected code) from persisting into subsequent runs."
+    source_clause: "OWASP Top 10 CI/CD Security Risks, CICD-SEC-5: Insufficient PBAC, Recommendations"
+    severity: "medium"
+    check_method: "manual-review"
+    detector: "manual-review only (requires confirming the runner infrastructure uses ephemeral/single-use nodes rather than long-lived, reused ones)"
+    remediation_ref: "fix-playbook://CICD-18"
+
+  - control_id: "CICD-19"
+    name: "Network segmentation restricts execution nodes to only required resources"
+    description: "Network segmentation for the environment an execution node runs in should be configured so the node can access only the specific network resources it requires, limiting lateral movement if the node is compromised."
+    source_clause: "OWASP Top 10 CI/CD Security Risks, CICD-SEC-5: Insufficient PBAC, Recommendations"
+    severity: "high"
+    check_method: "manual-review"
+    detector: "manual-review only (network architecture review)"
+    remediation_ref: "fix-playbook://CICD-19"
+
+  # ==== CICD-SEC-6: Insufficient Credential Hygiene ====
+  - control_id: "CICD-20"
+    name: "No secrets present in SCM repository history, current or past"
+    description: "Secrets must not exist in any branch of an SCM repository, including historical commits, since a secret remains readable in commit history even after being removed from the current branch."
+    source_clause: "OWASP Top 10 CI/CD Security Risks, CICD-SEC-6: Insufficient Credential Hygiene, Recommendations"
+    severity: "critical"
+    check_method: "static"
+    detector: "Gitleaks / TruffleHog (run against full commit history, not just the current branch tip)"
+    remediation_ref: "fix-playbook://CICD-20"
+
+  - control_id: "CICD-21"
+    name: "Secrets not printed to build console output or logs"
+    description: "Vendor-provided secret-masking features (or third-party tooling) must prevent secrets from being printed to console output, and existing historical build outputs must be checked and scrubbed of any secrets they already contain."
+    source_clause: "OWASP Top 10 CI/CD Security Risks, CICD-SEC-6: Insufficient Credential Hygiene, Recommendations"
+    severity: "critical"
+    check_method: "static"
+    detector: "Semgrep (rule: a workflow step with echo/print/console.log of a variable sourced from a secrets context)"
+    remediation_ref: "fix-playbook://CICD-21"
+
+  - control_id: "CICD-22"
+    name: "Secrets removed from all artifact types"
+    description: "Secrets must be verified absent from every type of artifact produced by the pipeline — container image layers, compiled binaries, and Helm charts among them — not just from source code."
+    source_clause: "OWASP Top 10 CI/CD Security Risks, CICD-SEC-6: Insufficient Credential Hygiene, Recommendations"
+    severity: "critical"
+    check_method: "static"
+    detector: "Trivy / Gitleaks secret scanning run against built artifacts (container images, binaries, Helm charts), not just source"
+    remediation_ref: "fix-playbook://CICD-22"
+
+  - control_id: "CICD-23"
+    name: "Dedicated secrets-management tool used rather than plaintext configuration"
+    description: "Secrets should be stored and injected via a dedicated secrets-management tool (HashiCorp Vault, AWS Secrets Manager, cloud-native equivalents, or the CI platform's built-in encrypted secrets store) rather than plaintext environment variables in configuration files."
+    source_clause: "OWASP Top 10 CI/CD Security Risks, CICD-SEC-6: Insufficient Credential Hygiene, Recommendations"
+    severity: "high"
+    check_method: "static"
+    detector: "Gitleaks / Semgrep (rule: a plaintext credential value assigned directly in a checked-in .env, config.yml, or pipeline definition file rather than referenced from a secrets store)"
+    remediation_ref: "fix-playbook://CICD-23"
+
+  - control_id: "CICD-24"
+    name: "Credentials rotated regularly; long-lived static credentials avoided"
+    description: "Credentials used within the CI/CD ecosystem should be rotated on a regular basis, with temporary/short-lived credentials preferred over long-lived static ones wherever the target system supports it."
+    source_clause: "OWASP Top 10 CI/CD Security Risks, CICD-SEC-6: Insufficient Credential Hygiene, Recommendations"
+    severity: "high"
+    check_method: "manual-review"
+    detector: "manual-review only (requires confirming rotation policy/cadence against the secrets-management platform); Semgrep can flag use of a long-lived static cloud credential where an OIDC-federated short-lived alternative exists (e.g. AWS access keys in a GitHub Actions workflow instead of configure-aws-credentials with OIDC)"
+    remediation_ref: "fix-playbook://CICD-24"
+
+  # ==== CICD-SEC-7: Insecure System Configuration ====
+  - control_id: "CICD-25"
+    name: "Inventory of CI/CD systems and versions maintained with a designated owner"
+    description: "An inventory of every system and version in use across the CI/CD ecosystem must be maintained, each with a designated owner, and continuously checked for known vulnerabilities."
+    source_clause: "OWASP Top 10 CI/CD Security Risks, CICD-SEC-7: Insecure System Configuration, Recommendations"
+    severity: "medium"
+    check_method: "manual-review"
+    detector: "manual-review only"
+    remediation_ref: "fix-playbook://CICD-25"
+
+  - control_id: "CICD-26"
+    name: "Default credentials disabled on all CI/CD system components"
+    description: "Default/vendor-shipped credentials on all systems in the CI/CD ecosystem (self-hosted CI servers, artifact repositories, etc.) must be disabled or changed, never left at their out-of-the-box values."
+    source_clause: "OWASP Top 10 CI/CD Security Risks, CICD-SEC-7: Insecure System Configuration, Recommendations (credential hygiene subsection)"
+    severity: "high"
+    check_method: "dynamic"
+    detector: "OWASP ZAP / manual-review (default-credential active scan against self-hosted CI/CD component admin interfaces)"
+    remediation_ref: "fix-playbook://CICD-26"
+
+  - control_id: "CICD-27"
+    name: "Communication between SCM and CI/CD platforms secured with TLS 1.2 or greater"
+    description: "Communication between the SCM and the CI/CD platform must use TLS 1.2 or greater, not an older or deprecated protocol version."
+    source_clause: "OWASP Top 10 CI/CD Security Risks, CICD-SEC-7: Insecure System Configuration, cross-referenced in the OWASP CI/CD Security Cheat Sheet's Secure Configuration section"
+    severity: "medium"
+    check_method: "dynamic"
+    detector: "OWASP ZAP / manual-review (TLS version/config scan against self-hosted CI/CD endpoints)"
+    remediation_ref: "fix-playbook://CICD-27"
+
+  # ==== CICD-SEC-8: Ungoverned Usage of 3rd-Party Services ====
+  - control_id: "CICD-28"
+    name: "Governance process and inventory for 3rd-party CI/CD integrations"
+    description: "A governance process and up-to-date inventory must exist for every third-party application, plugin, or integration granted access to CI/CD systems, given how easily such integrations can be added without review."
+    source_clause: "OWASP Top 10 CI/CD Security Risks, CICD-SEC-8: Ungoverned Usage of 3rd Party Services, Description and Recommendations"
+    severity: "medium"
+    check_method: "static"
+    detector: "Semgrep / manual-review (rule: third-party GitHub Actions referenced in workflow files pinned to a mutable tag/branch rather than a commit SHA, as a proxy signal for un-vetted third-party trust)"
+    remediation_ref: "fix-playbook://CICD-28"
+
+  - control_id: "CICD-29"
+    name: "Third-party integrations granted least-privilege scope"
+    description: "Third-party services and applications integrated into CI/CD systems must be granted only the minimum permissions/scope they need (e.g. read access to a single repository) rather than broad organization-wide administrative access."
+    source_clause: "OWASP Top 10 CI/CD Security Risks, CICD-SEC-8: Ungoverned Usage of 3rd Party Services, Description"
+    severity: "high"
+    check_method: "manual-review"
+    detector: "manual-review only (requires inspecting the actual OAuth/App permission scope granted to each third-party integration)"
+    remediation_ref: "fix-playbook://CICD-29"
+
+  - control_id: "CICD-30"
+    name: "Unused or over-permissive 3rd-party integrations periodically de-provisioned"
+    description: "Third-party integrations that are no longer in active use, or whose granted permissions exceed their actual usage, must be identified and removed/downgraded through a recurring review."
+    source_clause: "OWASP Top 10 CI/CD Security Risks, CICD-SEC-8: Ungoverned Usage of 3rd Party Services, Recommendations"
+    severity: "medium"
+    check_method: "manual-review"
+    detector: "manual-review only"
+    remediation_ref: "fix-playbook://CICD-30"
+
+  # ==== CICD-SEC-9: Improper Artifact Integrity Validation ====
+  - control_id: "CICD-31"
+    name: "Commit signing enforced and verified before code enters the pipeline"
+    description: "Commits should be signed using a unique key per contributor, and the pipeline should enforce signature verification, preventing unsigned commits from flowing through to production."
+    source_clause: "OWASP Top 10 CI/CD Security Risks, CICD-SEC-9: Improper Artifact Integrity Validation, Recommendations (Code signing)"
+    severity: "high"
+    check_method: "manual-review"
+    detector: "manual-review only (requires confirming SCM-level commit-signature-verification enforcement, e.g. GitHub's 'require signed commits' branch protection setting)"
+    remediation_ref: "fix-playbook://CICD-31"
+
+  - control_id: "CICD-32"
+    name: "Pipeline-generated artifacts signed and verified before downstream consumption"
+    description: "Artifacts generated during the pipeline (packages, container images, binaries) should be signed using an external resource-signing infrastructure, with the signature validated against the signing authority before the artifact is consumed by any subsequent pipeline step."
+    source_clause: "OWASP Top 10 CI/CD Security Risks, CICD-SEC-9: Improper Artifact Integrity Validation, Recommendations (Artifact verification software: in-toto, SLSA, Sigstore)"
+    severity: "high"
+    check_method: "static"
+    detector: "manual-review / cosign verify (checking for a signing step in the pipeline and a corresponding verification step before deployment)"
+    remediation_ref: "fix-playbook://CICD-32"
+
+  - control_id: "CICD-33"
+    name: "Third-party resource hashes verified against officially published values before use"
+    description: "When fetching third-party resources for use in build or deploy pipelines, their hash should be calculated and cross-referenced against the official published hash from the resource's provider before use, guarding against a compromised mirror or CDN."
+    source_clause: "OWASP Top 10 CI/CD Security Risks, CICD-SEC-9: Improper Artifact Integrity Validation, Recommendations (referenced in the Codecov case study and mitigation guidance)"
+    severity: "high"
+    check_method: "static"
+    detector: "Semgrep (rule: a pipeline step downloading a third-party script/binary via curl/wget with no subsequent checksum comparison against a pinned, known-good hash)"
+    remediation_ref: "fix-playbook://CICD-33"
+
+  - control_id: "CICD-34"
+    name: "Configuration drift detection for production resources"
+    description: "Production resources should be monitored for configuration drift against their signed infrastructure-as-code templates, alerting when a deployed resource's actual configuration diverges from what the pipeline last deployed, which could indicate unauthorized out-of-band changes."
+    source_clause: "OWASP Top 10 CI/CD Security Risks, CICD-SEC-9: Improper Artifact Integrity Validation, Recommendations (Configuration drift detection)"
+    severity: "medium"
+    check_method: "manual-review"
+    detector: "manual-review only (requires confirming drift-detection tooling is deployed and monitored, e.g. via the cloud provider's config-compliance service)"
+    remediation_ref: "fix-playbook://CICD-34"
+
+  # ==== CICD-SEC-10: Insufficient Logging and Visibility ====
+  - control_id: "CICD-35"
+    name: "Inventory of all CI/CD systems maintained to support log-source mapping"
+    description: "An inventory must exist of every system involved in the CI/CD process (SCM, CI, artifact repositories, package management, container registries, CD tools, orchestration engines), including every instance of self-managed systems, as a prerequisite for knowing what needs to be logged."
+    source_clause: "OWASP Top 10 CI/CD Security Risks, CICD-SEC-10: Insufficient Logging and Visibility, Recommendations (Mapping the environment)"
+    severity: "medium"
+    check_method: "manual-review"
+    detector: "manual-review only"
+    remediation_ref: "fix-playbook://CICD-35"
+
+  - control_id: "CICD-36"
+    name: "Relevant log sources enabled across all identified CI/CD systems"
+    description: "Once systems are inventoried, the appropriate logs must actually be enabled on each — this is often not the default state — covering both human and programmatic access."
+    source_clause: "OWASP Top 10 CI/CD Security Risks, CICD-SEC-10: Insufficient Logging and Visibility, Recommendations (Identifying and enabling the appropriate log sources)"
+    severity: "medium"
+    check_method: "manual-review"
+    detector: "manual-review only (requires checking each system's actual logging configuration, since defaults vary by vendor)"
+    remediation_ref: "fix-playbook://CICD-36"
+
+  - control_id: "CICD-37"
+    name: "Centralized log aggregation and alerting for CI/CD system activity"
+    description: "Logs from CI/CD systems should be aggregated into a centralized platform (SIEM or equivalent) with alerting configured, so suspicious activity across any stage of the CI/CD ecosystem can be detected and investigated."
+    source_clause: "OWASP Top 10 CI/CD Security Risks, CICD-SEC-10: Insufficient Logging and Visibility, Description and Recommendations"
+    severity: "medium"
+    check_method: "manual-review"
+    detector: "manual-review only"
+    remediation_ref: "fix-playbook://CICD-37"
+
+deprecated_by: null
+last_reviewed: "2026-07-04"

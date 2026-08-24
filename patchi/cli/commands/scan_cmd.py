@@ -1,0 +1,972 @@
+"""
+`p scan` — Run a brain scan on the project.
+
+Usage:
+  p scan               — full project scan
+  p scan src/auth      — targeted scan of a specific area
+  p scan --dry-run     — show what would be scanned without parsing
+
+Shows:
+  - Rich multi-bar progress display (one bar per phase)
+  - Live file discovery feed
+  - Summary table after completion
+  - Contract confirmation if new critical flows are found
+"""
+
+from __future__ import annotations
+from patchi.cli.console import con
+
+import hashlib
+import time
+from pathlib import Path
+from typing import Any
+
+from rich.live import Live
+from rich.panel import Panel
+from rich.progress import (
+    BarColumn,
+    Progress,
+    SpinnerColumn,
+    TaskProgressColumn,
+    TextColumn,
+    TimeElapsedColumn,
+)
+from rich.table import Table
+from rich.text import Text
+
+from patchi.core import config as cfg
+from patchi.core import memory as mem
+from patchi.core.agents.base import AgentGroup, list_agents
+from patchi.core.brain.brain import Brain, BrainReport, ScanProgress
+from patchi.core.brain.freshness import check_freshness
+from patchi.core.config import require_project_root
+
+import logging
+_log = logging.getLogger("patchi.cli.scan_cmd")
+
+def run(
+    area: str | None = None,
+    dry_run: bool = False,
+    force: bool = False,
+    quiet: bool = False,
+    no_logo: bool = False,
+    deep: bool = False,
+    file_path: str | None = None,
+    contract: bool = False,
+    all_flows: bool = False,
+    offline: bool = False,
+    json_output: bool = False,
+    side: bool = True,
+    pipeline: bool = False,
+    daemon: bool = False,
+    governor: bool = False,
+    root: Path | None = None,
+) -> None:
+    """Entry point for `p scan [area]`."""
+    try:
+        r = root or require_project_root()
+    except RuntimeError as e:
+        con.print(f"[red]{e}[/red]")
+        return
+
+    # ── Contract review mode ──────────────────────────────────────────────────
+    if contract:
+        _run_contract_review(r, all_flows=all_flows)
+        return
+
+    # ── Offline mode ──────────────────────────────────────────────────────────
+    if offline:
+        import os
+
+        os.environ["PATCHI_OFFLINE"] = "1"
+        if not quiet:
+            con.print(
+                "[bold #C8621A]OFFLINE MODE[/bold #C8621A] — Static analysis only. Zero API calls."
+            )
+            con.print(
+                "[dim]Findings will have no AI explanations. Run without --offline to add them.[/dim]"
+            )
+            con.print()
+
+    # ── Dry run ───────────────────────────────────────────────────────────────
+    if dry_run:
+        _show_dry_run(r, area)
+        return
+
+    # ── Handle file-specific deep scan ────────────────────────────────────────
+    if file_path:
+        _run_file_scan(r, file_path, deep)
+        return
+
+    # ── Check freshness first ─────────────────────────────────────────────────
+    freshness = check_freshness(r)
+    if (
+        not freshness["is_stale"]
+        and freshness["last_recorded"]
+        and not area
+        and not force
+        and not deep
+        and not contract
+    ):
+        con.print()
+        con.print(
+            "[dim]Brain is already fresh.[/dim] "
+            f"[dim]Last scan: {_fmt_time(freshness['last_recorded'])}[/dim]"
+        )
+        con.print("[dim]Run [bold]p scan --force[/bold] to re-scan anyway.[/dim]")
+        con.print()
+        # Still show current status
+        _show_summary_from_memory(r)
+        return
+
+    # ── Scan ──────────────────────────────────────────────────────────────────
+    con.print()
+    area_label = f" [dim]→ {area}[/dim]" if area else ""
+    scan_type = "Deep" if deep else "Scanning"
+    con.print(f"[bold #C8621A]{scan_type}{area_label}[/bold #C8621A]")
+    con.print()
+
+    _scan_start = time.monotonic()  # wall clock for entire scan
+
+    progress = _build_progress()
+    tasks: dict[str, Any] = {}
+
+    phases = {
+        "discovery": "Discovering files",
+        "parsing": "Parsing source files",
+        "framework": "Detecting framework",
+        "routes": "Mapping routes",
+        "graph": "Building import graph",
+        "contract": "Inferring app contract",
+    }
+
+    for phase, label in phases.items():
+        tasks[phase] = progress.add_task(
+            f"[dim]{label}[/dim]",
+            total=None,  # indeterminate until we know file count
+        )
+
+    last_phase = [None]
+
+    def on_progress(sp: ScanProgress) -> None:
+        task_id = tasks.get(sp.phase)
+        if task_id is None:
+            return
+
+        # Advance completed previous phase
+        if last_phase[0] and last_phase[0] != sp.phase:
+            prev_id = tasks.get(last_phase[0])
+            if prev_id is not None:
+                progress.update(prev_id, completed=100, total=100)
+        last_phase[0] = sp.phase
+
+        if sp.total:
+            progress.update(
+                task_id,
+                total=sp.total,
+                completed=sp.current,
+                description=f"[dim]{sp.message[:60]}[/dim]",
+            )
+        else:
+            progress.update(task_id, description=f"[dim]{sp.message[:60]}[/dim]", total=None)
+
+    report: BrainReport | None = None
+    agent_results: list | None = None
+    error: str | None = None
+
+    _is_tty = con.is_terminal
+
+    def _run_scan() -> None:
+        nonlocal report, agent_results, error
+        try:
+            brain = Brain(r, on_progress=on_progress)
+            report = brain.scan(area)
+
+            # ── Run scanner agents via coordinator ─────────────────────────────
+            # Import scanners to trigger @register decorators
+            import patchi.core.agents.scanners  # noqa: F401
+            from patchi.core.agents.coordinator import Coordinator, CoordinatorProgress
+            if not governor:
+                agents_task = progress.add_task("[dim]Running scanner agents…[/dim]", total=len(list_agents(AgentGroup.SCANNER)))
+
+                def on_agent_progress(cp: CoordinatorProgress) -> None:
+                    progress.update(
+                        agents_task,
+                        completed=cp.current,
+                        total=cp.total,
+                        description=f"[dim]{cp.agent_name} — {cp.finding_count} findings[/dim]",
+                    )
+
+                coord = Coordinator(r, on_progress=on_agent_progress)
+                scope = list(report.import_graph.nodes) if report.import_graph else []
+                agent_results = coord.run_all_scanners(scope=scope if area else None, side=side)
+
+                # Mark all tasks complete
+                for tid in tasks.values():
+                    progress.update(tid, completed=100, total=100)
+                progress.update(agents_task, completed=len(agent_results), total=len(agent_results))
+
+        except Exception as e:
+            import traceback
+            error = f"{e}\n{traceback.format_exc()}"
+
+    if _is_tty:
+        with Live(progress, console=con, refresh_per_second=10):
+            _run_scan()
+    else:
+        _run_scan()
+
+    if error:
+        con.print(f"\n[red]Scan failed:[/red] {error}")
+        return
+
+    # ── Deep scan processing ──────────────────────────────────────────────────
+    if deep:
+        _run_deep_scan_analysis(r, report, agent_results)
+
+    if report is None:
+        con.print("\n[red]Scan returned no results.[/red]")
+        return
+
+    # ── Results summary ───────────────────────────────────────────────────────
+    con.print()
+    _scan_elapsed = time.monotonic() - _scan_start
+    _show_report_summary(report, agent_results, wall_time=_scan_elapsed)
+
+    # ── Pipeline / defense mode ───────────────────────────────────────────────
+    if pipeline:
+        con.print()
+        con.print("[bold #C8621A]─ Defense Pipeline ─[/bold #C8621A]")
+        try:
+            from patchi.core.security.defense_layer import DefenseLayer
+            from patchi.core.security.detection_pipeline import DetectionPipeline
+            from patchi.core.security.orchestrator import SecurityOrchestrator
+            sec_group_names = {a.name for a in list_agents(AgentGroup.SECURITY)}
+            sec_group_names.update({
+                "DependencyScanner",
+                "EnvScanner",
+                "SideFileScanner",
+            })
+            sec_agents = [
+                a
+                for a in agent_results
+                if getattr(a, "agent_name", "") in sec_group_names
+            ]
+            report_sec = SecurityOrchestrator().correlate(sec_agents)
+            pipeline_inst = DetectionPipeline(r, cfg.load(r))
+            gated = pipeline_inst.process(report_sec)
+            con.print(
+                f"  Findings gated: [bold]{len(gated.findings)}[/bold] "
+                f"(defend={len(gated.defend)}, "
+                f"ai_analyze={len(gated.ai_analyze)}, "
+                f"human_review={len(gated.human_review)}, "
+                f"discarded={len(gated.discarded)})"
+            )
+            if gated.defend:
+                defense = DefenseLayer(r, cfg.load(r))
+                results = defense.defend_all(gated.defend)
+                con.print(
+                    f"  Defense actions applied: [bold]{sum(1 for d in results if d.status == 'applied')}/{len(results)}[/bold]"
+                )
+                for d in results:
+                    if d.status == "applied":
+                        con.print(f"    [green]✓[/green] {d.action} → {d.target}")
+            else:
+                con.print("  [dim]No actionable defense findings.[/dim]")
+        except Exception as e:
+            import traceback
+
+            con.print(f"  [red]Pipeline error: {e}[/red]")
+            con.print(traceback.format_exc())
+
+    # ── Daemon mode ───────────────────────────────────────────────────────────
+    if daemon:
+        con.print()
+        con.print("[bold #C8621A]─ Scan Scheduler Daemon ─[/bold #C8621A]")
+        try:
+            from patchi.core.security.scheduler import ScanScheduler
+
+            scheduler = ScanScheduler(r, cfg.load(r), on_result=lambda res: None)
+            scheduler.start()
+            if scheduler.is_running:
+                con.print(
+                    f"  [green]✓[/green] Scheduler started with {len(scheduler._agents)} security agents"
+                )
+                con.print(
+                    f"  [dim]Default interval: {cfg.load(r).get('pipeline', {}).get('scheduler', {}).get('intervals', {}).get('default', '1h')}[/dim]"
+                )
+                con.print(
+                    "  [dim]Use [bold]p hosted daemon[/bold] for production daemon mode[/dim]"
+                )
+            else:
+                con.print(
+                    "  [yellow]Scheduler not enabled (pipeline.scheduler.enabled=false)[/yellow]"
+                )
+        except Exception as e:
+            import traceback
+
+            con.print(f"  [red]Daemon error: {e}[/red]")
+            con.print(traceback.format_exc())
+
+    # ── Governor v2 pipeline ─────────────────────────────────────────────────
+    if governor:
+        from patchi.core.agents.governor import Governor
+
+        con.print()
+        con.print("[bold #C8621A]─ Governor v2 Pipeline ─[/bold #C8621A]")
+        gov = Governor(r)
+        try:
+            results = gov.run_full_pipeline_v2()
+            for pr in results:
+                status_style = "#4ADE80" if pr.passed else "#FF4D6D"
+                con.print(
+                    f"  {pr.phase.value}: [bold {status_style}]{pr.status.value}[/bold {status_style}]"
+                    f"  [dim]{pr.duration_ms}ms  {pr.findings_count} findings  {pr.agents_run} agents[/dim]"
+                )
+                if pr.errors:
+                    for err in pr.errors[:3]:
+                        con.print(f"    [dim]  {err}[/dim]")
+            con.print(
+                f"  [bold]Pipeline {'[#4ADE80]PASSED[/#4ADE80]' if any(r.passed for r in results) else '[#FF4D6D]FAILED[/#FF4D6D]'}[/bold]"
+            )
+        except Exception as e:
+            import traceback
+
+            con.print(f"  [red]Governor pipeline error: {e}[/red]")
+            con.print(traceback.format_exc())
+        finally:
+            gov.close()
+
+    # ── Contract confirmation ─────────────────────────────────────────────────
+    import sys
+
+    is_interactive = sys.stdin.isatty() if hasattr(sys.stdin, "isatty") else False
+
+    if contract and is_interactive and report.inferred_flows:
+        _run_contract_confirmation(r, report, all_flows=all_flows)
+
+    elif report.inferred_flows:
+        # New flows inferred that aren't yet confirmed
+        new_flows = [
+            f for f in report.inferred_flows if f.id not in {cf.id for cf in report.confirmed_flows}
+        ]
+        if new_flows:
+            con.print()
+            con.print(
+                f"[yellow]![/yellow] [dim]{len(new_flows)} new potential critical flow(s) found.[/dim]"
+            )
+            con.print("[dim]Run [bold]p scan --contract[/bold] to review and confirm.[/dim]")
+
+    # ── Doc validation ────────────────────────────────────────────────────────
+    dv = report.doc_validation or {}
+    if dv.get("total_claims", 0) > 0:
+        stale = len(dv.get("stale_claims", []))
+        validated = len(dv.get("validated_claims", []))
+        total = dv["total_claims"]
+        doc_files = len(dv.get("doc_files_found", []))
+        if stale > 0:
+            con.print(
+                f"[yellow]![/yellow] [dim]{stale}/{total} doc claim(s) stale — "
+                f"docs say it but code doesn't have it[/dim]"
+            )
+        else:
+            con.print(
+                f"[dim]{validated}/{total} doc claim(s) verified across {doc_files} file(s)[/dim]"
+            )
+
+    # ── Health score ──────────────────────────────────────────────────────────
+    health_score = None
+    try:
+        from patchi.core.health import compute as compute_health
+
+        hs = compute_health(r)
+        health_score = hs.total
+        con.print()
+        con.print(
+            f"[bold {hs.color}]● Health: {hs.total}/100 ({hs.grade})[/bold {hs.color}]  "
+            f"[dim]security {hs.security:.0f}  tests {hs.test_coverage:.0f}  "
+            f"dead code {hs.dead_code:.0f}  deps {hs.dependency:.0f}  "
+            f"contract {hs.contract:.0f}[/dim]"
+        )
+    except Exception as e:
+        con.print(f"[dim]Health score unavailable: {e}[/dim]")
+
+    # ── Auto-update BRAIN.md ──────────────────────────────────────────────────
+    try:
+        from patchi.cli.commands.brain_cmd import run as brain_run
+
+        brain_run(root=r, force=True)
+    except Exception as e:
+        con.print(f"[dim]BRAIN.md auto-update failed: {e}[/dim]")
+
+    # ── JSON output ──────────────────────────────────────────────────────────
+    if json_output:
+        import json
+
+        from patchi.core.agents.coordinator import merge_results
+
+        merged = (
+            merge_results(agent_results) if agent_results else {"findings": [], "total_findings": 0}
+        )
+
+        findings = []
+        for f in merged["findings"]:
+            findings.append(
+                {
+                    "severity": f.get("severity", "info"),
+                    "file": f.get("file", ""),
+                    "line": f.get("line", 0),
+                    "message": f.get("message", ""),
+                    "agent": f.get("agent", ""),
+                }
+            )
+
+        dead_files = [str(df) for df in (report.dead_files or [])]
+        circular_deps = [cd.short_label for cd in (report.circular_dependencies or [])]
+        languages = dict(report.language_breakdown) if report.language_breakdown else {}
+
+        result = {
+            "file_count": report.file_count,
+            "route_count": report.route_count,
+            "health_score": health_score,
+            "findings": findings,
+            "languages": languages,
+            "dead_files": dead_files,
+            "circular_deps": circular_deps,
+        }
+        con.print(json.dumps(result, indent=2))
+        return
+
+    con.print()
+
+def _run_contract_review(root: Path, all_flows: bool = False) -> None:
+    """Run contract review mode."""
+    con.print("[bold #C8621A]Contract Review Mode[/bold #C8621A]")
+    con.print()
+
+    # Load brain data to get contract information
+    brain_data = mem.get_brain(root)
+    inferred_flows = brain_data.get("inferred_flows", [])
+    confirmed_flows = brain_data.get("confirmed_flows", [])
+
+    if not inferred_flows:
+        con.print("[dim]No inferred contract flows found. Run a full scan first.[/dim]")
+        return
+
+    # Filter: when --all-flows, show everything; otherwise hide suggested
+    if not all_flows:
+        visible = [f for f in inferred_flows if not f.get("suggested", False)]
+    else:
+        visible = inferred_flows
+
+    # Show unconfirmed flows for review
+    confirmed_ids = {cf.get("id") for cf in confirmed_flows}
+    unconfirmed_flows = [f for f in visible if f.get("id") not in confirmed_ids]
+    hidden_count = len(inferred_flows) - len(visible)
+
+    if not unconfirmed_flows:
+        label = f"[green]✓[/green] All {len(visible)} contract flows confirmed!"
+        if hidden_count:
+            label += f" ({hidden_count} low-confidence flows hidden — use --all-flows to see)"
+        con.print(label)
+        return
+
+    label = f"[yellow]Found {len(unconfirmed_flows)} unconfirmed flow(s) to review:[/yellow]"
+    if hidden_count:
+        label += f" [dim]({hidden_count} low-confidence hidden — use --all-flows to see all)[/dim]"
+    con.print(label)
+
+    for i, flow in enumerate(unconfirmed_flows, 1):
+        conf = flow.get("confidence", "medium")
+        conf_tag = ""
+        if conf == "low":
+            conf_tag = " [dim](low confidence)[/dim]"
+        elif conf == "high":
+            conf_tag = " [dim](high)[/dim]"
+        con.print(f"  {i}. [bold]{flow.get('name', 'Unknown flow')}[/bold]{conf_tag}")
+        con.print(f"     [dim]{flow.get('description', 'No description')}[/dim]")
+        routes = flow.get("routes", [])
+        if routes:
+            con.print(f"     [dim]Routes: {', '.join(routes[:3])}[/dim]")
+
+    con.print()
+    con.print("[dim]Run a full scan to confirm these flows.[/dim]")
+
+def _run_file_scan(root: Path, file_path: str, deep: bool = False) -> None:
+    """Run deep analysis on a specific file."""
+    con.print(f"[bold #C8621A]Deep analysis of {file_path}[/bold #C8621A]")
+
+    file_abs_path = root / file_path
+    if not file_abs_path.exists():
+        con.print(f"[red]File does not exist: {file_path}[/red]")
+        return
+
+    if deep:  # Only do deep AI analysis when --deep flag is explicitly passed
+        try:
+            import patchi.core.config as config_mod
+            from patchi.core.ai.client import call_ai
+            from patchi.core.ai.prompts import SYSTEM_PROMPTS, Skill
+
+            config = config_mod.load(root)
+            content = file_abs_path.read_text(encoding="utf-8")
+            lang = "python" if file_path.endswith(".py") else "javascript"
+
+            system_prompt = SYSTEM_PROMPTS.get(Skill.DEEP_ANALYSIS, "You are a code analyst.")
+            user_prompt = f"Analyse this {lang} file:\n\nFILE: {file_path}\n\n```\n{content[:6000]}\n```\n\nReturn a JSON object with: purpose, functions (with issues), issues (with line numbers), and architecture notes."
+
+            result = call_ai(config, system_prompt, user_prompt, max_tokens=2000)
+            if result:
+                con.print(f"[#4ADE80]✓[/#4ADE80] AI analysis for {file_path}:")
+                con.print()
+                # Try to format JSON response
+                import json
+
+                try:
+                    analysis = json.loads(
+                        result.strip().removeprefix("```json").removesuffix("```").strip()
+                    )
+                    for key, val in analysis.items():
+                        if isinstance(val, str):
+                            con.print(f"  [bold]{key}:[/bold] {val}")
+                        elif isinstance(val, list):
+                            con.print(f"  [bold]{key}:[/bold]")
+                            for item in val[:10]:
+                                if isinstance(item, dict):
+                                    line = item.get("line", "")
+                                    name = item.get("name", item.get("function", ""))
+                                    issue = item.get("issue", item.get("description", ""))
+                                    con.print(
+                                        f"    L{line} {name}: {issue}"
+                                        if line
+                                        else f"    {name}: {issue}"
+                                    )
+                                else:
+                                    con.print(f"    {item}")
+                except (json.JSONDecodeError, ValueError):
+                    # Not JSON — print raw
+                    for line in result.strip().splitlines()[:30]:
+                        con.print(f"  {line}")
+            else:
+                con.print("[yellow]AI returned no response — showing file structure only.[/yellow]")
+                lines = content.splitlines()
+                con.print(
+                    f"[dim]File has {len(lines)} lines · {file_abs_path.stat().st_size} bytes[/dim]"
+                )
+
+        except Exception as e:
+            con.print(f"[red]Error analyzing file: {e}[/red]")
+    else:
+        con.print(f"[dim]Basic scan of {file_path}[/dim]")
+
+def _run_deep_scan_analysis(root: Path, report: BrainReport, agent_results: list) -> None:
+    """Run deep AI analysis on changed files since last deep scan."""
+    try:
+        import patchi.core.config as config_mod
+        from patchi.core.ai.client import call_ai_structured
+        from patchi.core.ai.prompts import Skill, build_prompt, get_system_prompt
+
+        config = config_mod.load(root)
+
+        # Quick AI availability check
+        test = call_ai_structured(config, "Say OK", 'Reply with JSON: {"ok": true}')
+        if test is None:
+            con.print(
+                "[yellow]No AI available — skipping deep analysis (run without --offline to use AI).[/yellow]"
+            )
+            return
+
+        brain_data = mem.get_brain(root)
+        last_hashes = brain_data.get("deep_scan_hashes", {})
+
+        tokens_used = 0
+        files_analyzed = 0
+        findings: list[dict] = []
+
+        source_exts = (".py", ".js", ".ts", ".jsx", ".tsx", ".go", ".rs", ".java", ".rb", ".php")
+        all_files = [p for p in root.rglob("*") if p.suffix in source_exts]
+
+        for file_path in all_files:
+            rel_path = file_path.relative_to(root).as_posix()
+            try:
+                content = file_path.read_text(encoding="utf-8", errors="replace")
+            except Exception as e:
+                _log.warning("_run_deep_scan_analysis failed: %s", e)
+                continue
+
+            current_hash = hashlib.sha256(content.encode()).hexdigest()
+            if last_hashes.get(rel_path) == current_hash:
+                continue
+
+            con.print(f"[dim]Deep analyzing {rel_path}...[/dim]")
+
+            system = get_system_prompt(Skill.DEEP_ANALYSIS)
+            user_prompt = build_prompt(
+                Skill.DEEP_ANALYSIS,
+                {
+                    "file_path": rel_path,
+                    "file_content": content[:6000],
+                    "language": rel_path.split(".")[-1],
+                },
+            )
+
+            result = call_ai_structured(config, system, user_prompt, max_tokens=3000)
+            if result is None:
+                continue
+
+            analysis_entry = {
+                "file": rel_path,
+                "hash": current_hash,
+                "analysis": result,
+            }
+            brain_data.setdefault("deep_analyses", {})[rel_path] = analysis_entry
+            last_hashes[rel_path] = current_hash
+
+            tokens_used += len(content.split())
+            files_analyzed += 1
+
+            # Collect issues for the summary
+            for issue in result.get("issues") or []:
+                findings.append(
+                    {
+                        "file": rel_path,
+                        "type": issue.get("type", "unknown"),
+                        "severity": issue.get("severity", "low"),
+                        "line": issue.get("line", 0),
+                        "message": issue.get("description", ""),
+                    }
+                )
+
+        # Persist
+        brain_data["deep_scan_hashes"] = last_hashes
+        mem.save_brain(brain_data, root)
+
+        # Summary
+        con.print(f"[dim]Deep scan: {files_analyzed} files analyzed, ~{tokens_used} tokens[/dim]")
+        if findings:
+            by_sev: dict[str, int] = {}
+            for f in findings:
+                by_sev[f["severity"]] = by_sev.get(f["severity"], 0) + 1
+            parts = "  ".join(
+                f"[{_SEV_COLORS.get(s, '#B8A898')}]{c} {s}[/{_SEV_COLORS.get(s, '#B8A898')}]"
+                for s, c in sorted(by_sev.items())
+            )
+            con.print(f"[bold #F2EDD6]Deep Analysis Issues:[/bold #F2EDD6]  {parts}")
+            for f in findings[:8]:
+                loc = f"{f['file']}:{f['line']}" if f["line"] else f["file"]
+                con.print(f"  [dim]{loc}[/dim] — {f['message'][:100]}")
+
+    except Exception as e:
+        import traceback
+
+        con.print(f"[red]Error during deep scan: {e}[/red]")
+        con.print(f"[dim]{traceback.format_exc()}[/dim]")
+
+_SEV_COLORS = {
+    "critical": "#FF4D6D",
+    "high": "#FF8C42",
+    "medium": "#FACC15",
+    "low": "#4ADE80",
+    "info": "#B8A898",
+}
+
+def _show_report_summary(
+    report: BrainReport, agent_results: list | None = None, wall_time: float | None = None
+) -> None:
+    """Print the post-scan results table."""
+    if wall_time is not None:
+        duration = f"{wall_time:.1f}s"
+    else:
+        duration = f"{report.duration_seconds:.1f}s"
+
+    # Stats table
+    table = Table(show_header=False, box=None, pad_edge=False, padding=(0, 3))
+    table.add_column("Label", style="bold #F2EDD6", width=22)
+    table.add_column("Value", style="#B8A898")
+
+    table.add_row("Files scanned", str(report.file_count))
+
+    if report.language_breakdown:
+        lang_str = "  ".join(
+            f"{lang}: {cnt}" for lang, cnt in list(report.language_breakdown.items())[:4]
+        )
+        table.add_row("Languages", lang_str)
+
+    if report.stack and report.stack.frameworks:
+        fw_str = ", ".join(f.name for f in report.stack.frameworks[:3])
+        table.add_row("Framework", fw_str)
+
+    table.add_row("Routes found", str(report.route_count))
+    table.add_row(
+        "Import graph", f"{len(report.import_graph.nodes)} nodes" if report.import_graph else "—"
+    )
+
+    if report.circular_dependencies:
+        circ_text = Text(f"{len(report.circular_dependencies)} circular deps found", style="yellow")
+        table.add_row("Circular deps", circ_text)
+    else:
+        table.add_row("Circular deps", Text("None ✓", style="#4ADE80"))
+
+    if report.dead_files:
+        dead_text = Text(f"{len(report.dead_files)} unreachable files", style="dim")
+        table.add_row("Dead code", dead_text)
+    else:
+        table.add_row("Dead code", Text("None found ✓", style="#4ADE80"))
+
+    if report.errors:
+        err_text = Text(f"{len(report.errors)} parse error(s)", style="yellow")
+        table.add_row("Parse errors", err_text)
+
+    table.add_row("Scan duration", duration)
+
+    con.print(
+        Panel(
+            table,
+            title="[bold #C8621A]Brain Scan Complete[/bold #C8621A]",
+            border_style="#2A3D28",
+        )
+    )
+
+    # Circular dep details
+    if report.circular_dependencies:
+        con.print()
+        con.print("[yellow]Circular dependencies:[/yellow]")
+        for cd in report.circular_dependencies[:5]:
+            con.print(f"  [dim]→[/dim] {cd.short_label}")
+        if len(report.circular_dependencies) > 5:
+            con.print(f"  [dim]… and {len(report.circular_dependencies) - 5} more[/dim]")
+
+    # Dead files
+    if report.dead_files:
+        con.print()
+        con.print(f"[dim]Dead files ({len(report.dead_files)}):[/dim]")
+        for df in report.dead_files[:8]:
+            con.print(f"  [dim]○ {df}[/dim]")
+        if len(report.dead_files) > 8:
+            con.print(f"  [dim]… and {len(report.dead_files) - 8} more[/dim]")
+
+    # Agent findings summary
+    if agent_results:
+        _show_agent_findings_summary(agent_results)
+
+def _show_agent_findings_summary(agent_results: list) -> None:
+    """Show a condensed findings table from all scanner agents."""
+    from patchi.core.agents.coordinator import merge_results
+
+    merged = merge_results(agent_results)
+    total = merged["total_findings"]
+
+    if total == 0:
+        con.print()
+        con.print(Text("✓ No issues found by scanner agents.", style="#4ADE80"))
+        return
+
+    # Count by severity
+    by_sev: dict[str, int] = {}
+    for f in merged["findings"]:
+        sev = f.get("severity", "info")
+        by_sev[sev] = by_sev.get(sev, 0) + 1
+
+    con.print()
+    sev_parts: list[str] = []
+    for sev in ("critical", "high", "medium", "low", "info"):
+        count = by_sev.get(sev, 0)
+        if count:
+            colors = {
+                "critical": "#FF4D6D",
+                "high": "#FF8C42",
+                "medium": "#FACC15",
+                "low": "#4ADE80",
+                "info": "#B8A898",
+            }
+            sev_parts.append(f"[{colors[sev]}]{count} {sev}[/{colors[sev]}]")
+
+    sev_str = "  ".join(sev_parts)
+    con.print(f"[bold #F2EDD6]Agent Findings:[/bold #F2EDD6]  {sev_str}")
+
+    # Show agent-by-agent summary
+    con.print()
+    table = Table(show_header=True, header_style="dim", box=None, pad_edge=False)
+    table.add_column("Agent", style="bold #F2EDD6", width=26)
+    table.add_column("Findings", justify="right", width=10)
+    table.add_column("Status", width=10)
+    table.add_column("ms", justify="right", width=8)
+
+    for r in sorted(agent_results, key=lambda x: -x.finding_count):
+        status_colors = {
+            "done": "#4ADE80",
+            "failed": "#FF4D6D",
+            "skipped": "dim",
+            "running": "#C8621A",
+        }
+        color = status_colors.get(r.status.value, "dim")
+        table.add_row(
+            r.agent_name,
+            str(r.finding_count) if r.finding_count else "—",
+            Text(r.status.value, style=color),
+            str(r.duration_ms),
+        )
+
+    con.print(table)
+
+    # Show top critical/high findings
+    top = [f for f in merged["findings"] if f.get("severity") in ("critical", "high")][:5]
+    if top:
+        con.print()
+        con.print("[bold #FF4D6D]Critical / High findings:[/bold #FF4D6D]")
+        for f in top:
+            sev = f.get("severity", "info")
+            color = "#FF4D6D" if sev == "critical" else "#FF8C42"
+            fpath = f.get("file", "")
+            line = f.get("line", 0)
+            loc = f"{fpath}:{line}" if line else fpath
+            con.print(f"  [{color}]●[/{color}] [dim]{loc}[/dim]")
+            con.print(f"    {f.get('message', '')[:80]}")
+
+def _run_contract_confirmation(root: Path, report: BrainReport, all_flows: bool = False) -> None:
+    """Interactive contract confirmation flow."""
+    from rich.prompt import Confirm, Prompt
+
+    from patchi.core.brain.contract import ContractBuilder, confirm_flows
+
+    builder = ContractBuilder(
+        report.routes, report.file_infos, report.dead_files, report.circular_dependencies
+    )
+
+    # Filter flows: hide suggested unless --all-flows
+    shown_flows = report.inferred_flows
+    hidden_count = 0
+    if not all_flows:
+        shown_flows = [f for f in report.inferred_flows if not f.suggested]
+        hidden_count = len(report.inferred_flows) - len(shown_flows)
+
+    msg = builder.build_confirmation_message(shown_flows, all_flows=all_flows)
+
+    con.print()
+    sub = f" ({hidden_count} low-confidence flows hidden — use --all-flows to see)" if hidden_count else ""
+    con.print(
+        Panel(
+            f"[bold #F2EDD6]App Contract[/bold #F2EDD6]\n\n[dim]{msg}[/dim]{sub}",
+            border_style="#C8621A",
+        )
+    )
+    con.print()
+
+    # Show each inferred flow and ask Y/N
+    confirmed_ids: set[str] = set()
+    for flow in shown_flows:
+        conf_tag = ""
+        if flow.confidence == "high":
+            conf_tag = " [dim](high confidence)[/dim]"
+        elif flow.confidence == "low":
+            conf_tag = " [dim](low confidence)[/dim]"
+        con.print(f"  [bold]{flow.name}[/bold]{conf_tag}  [dim]{flow.description}[/dim]")
+        if flow.routes:
+            route_str = ", ".join(flow.routes[:3])
+            con.print(f"  [dim]Routes: {route_str}[/dim]")
+        yn = Confirm.ask(f"  Include [bold]{flow.name}[/bold] in contract?", default=True)
+        if yn:
+            confirmed_ids.add(flow.id)
+        con.print()
+
+    # Any additional flows?
+    user_flows: list[dict] = []
+    if Confirm.ask("Add any flows I didn't detect?", default=False):
+        while True:
+            name = Prompt.ask("  Flow name (or Enter to finish)")
+            if not name:
+                break
+            desc = Prompt.ask("  One-sentence description")
+            user_flows.append({"name": name, "description": desc})
+
+    confirmed = confirm_flows(report.inferred_flows, confirmed_ids, user_flows)
+
+    # Save to brain memory
+    brain_mem = mem.get_brain(root)
+    brain_mem["confirmed_flows"] = [f.to_dict() for f in confirmed]
+    brain_mem["contract_locked"] = True  # p fix checks this before running
+    mem.save_brain(brain_mem, root)
+
+    con.print()
+    con.print(
+        f"[#4ADE80]✓[/#4ADE80] App contract locked: "
+        f"[bold]{len(confirmed)}[/bold] flow(s) protected."
+    )
+    con.print("[dim]Every fix will check against this contract before applying.[/dim]")
+
+def _show_dry_run(root: Path, area: str | None) -> None:
+    """Show what would be scanned without actually scanning."""
+    from patchi.core import config as cfg
+    from patchi.core.brain.scanner import FileScanner
+
+    try:
+        config = cfg.load(root)
+    except Exception as e:
+        con.print(f"[dim]Config load error: {e}[/dim]")
+        config = {}
+
+    scanner = FileScanner(
+        root=root,
+        ignore_paths=config.get("ignore_paths", []),
+    )
+    paths = scanner.discover(area)
+
+    con.print()
+    con.print(f"[dim]--dry-run: would scan {len(paths)} files[/dim]")
+    con.print()
+
+    from patchi.core.brain.languages import detect_language
+
+    by_lang: dict = {}
+    for p in paths:
+        lang = detect_language(p).value
+        by_lang[lang] = by_lang.get(lang, 0) + 1
+
+    table = Table(show_header=True, header_style="bold #C8621A", box=None)
+    table.add_column("Language")
+    table.add_column("Files", justify="right")
+    for lang, count in sorted(by_lang.items(), key=lambda x: x[1], reverse=True):
+        table.add_row(lang, str(count))
+    con.print(table)
+    con.print()
+
+def _show_summary_from_memory(root: Path) -> None:
+    """Show last scan summary from brain memory."""
+    brain = mem.get_brain(root)
+    if not brain:
+        return
+    con.print(
+        f"[dim]Last scan:[/dim] {brain.get('file_count', '?')} files · "
+        f"{brain.get('route_count', '?')} routes · "
+        f"{brain.get('framework', '?')} detected"
+    )
+    con.print()
+
+def _build_progress() -> Progress:
+    return Progress(
+        SpinnerColumn(spinner_name="dots"),
+        TextColumn("[progress.description]{task.description}"),
+        BarColumn(bar_width=24),
+        TaskProgressColumn(),
+        TimeElapsedColumn(),
+        transient=False,
+    )
+
+def _fmt_time(iso: str) -> str:
+    """Format ISO timestamp as human-readable."""
+    try:
+        from datetime import datetime, timezone
+
+        dt = datetime.fromisoformat(iso)
+        now = datetime.now(timezone.utc)
+        diff = now - dt
+        secs = diff.total_seconds()
+        if secs < 60:
+            return "just now"
+        if secs < 3600:
+            return f"{int(secs // 60)}m ago"
+        if secs < 86400:
+            return f"{int(secs // 3600)}h ago"
+        return f"{int(secs // 86400)}d ago"
+    except Exception as e:
+        _log.warning("_fmt_time failed: %s", e)
+        return iso

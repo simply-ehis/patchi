@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="brain-panel">
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Brain Knowledge</span>
+      <button class="btn" onclick="location.reload()">Refresh</button>
+    </div>
+
+    <div style="padding:16px;line-height:1.7;font-size:14px;max-width:800px">
+      {{ brain_content }}
+    </div>
+  </div>
+</div>
+{% endblock %}

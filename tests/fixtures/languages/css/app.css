@@ -1,0 +1,45 @@
+@import url("reset.css");
+@import "theme.css";
+
+:root {
+    --primary: #007bff;
+    --spacing: 1rem;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: var(--spacing);
+}
+
+#header {
+    background: var(--primary);
+    color: white;
+    padding: calc(var(--spacing) * 2);
+}
+
+.btn-primary {
+    background: var(--primary);
+    border: none;
+    color: white;
+    padding: 0.5rem 1rem;
+}
+
+.btn-primary:hover {
+    opacity: 0.9;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.fade-in {
+    animation: fadeIn 0.3s ease-in;
+}
+
+@media (max-width: 768px) {
+    .container {
+        padding: 0.5rem;
+    }
+}

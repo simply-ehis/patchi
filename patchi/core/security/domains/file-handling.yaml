@@ -1,0 +1,137 @@
+domain_id: "file-handling"
+version: "1.0.0"
+display_name: "File Handling Security"
+source_standard: "OWASP Application Security Verification Standard (ASVS) 5.0.0, Chapter V5: File Handling (fetched and verified directly from the official ASVS 5.0.0 CSV release, github.com/OWASP/ASVS, July 2026)"
+component_type: "backend-api"
+cross_cutting: true
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "has_file_upload_endpoint"        # multipart/form-data route, file-upload middleware (multer, busboy, etc.) detected
+    - signal: "has_file_download_endpoint"      # route serving files by path/id, Content-Disposition usage detected
+    - signal: "has_archive_extraction_code"     # unzip/tar/gzip extraction library imports (zlib, adm-zip, tar, unzipper, etc.)
+    - signal: "has_user_supplied_path_construction"  # code building filesystem paths from request params/body
+  excluded_if:
+    - signal: "no_file_io_beyond_static_bundled_assets"   # app only reads its own bundled/static files, never user-supplied paths or uploads
+
+controls:
+  - control_id: "FH-01"
+    name: "Document file handling policy"
+    description: "The application's documentation must define permitted file types, expected extensions, maximum size (including unpacked/decompressed size) for each upload feature, and how the app behaves when a malicious file is detected."
+    source_clause: "ASVS 5.0.0, V5.1.1"
+    severity: "low"
+    check_method: "manual-review"
+    detector: "manual-review only — this is a documentation requirement, not something inferable from code"
+    remediation_ref: "fix-playbook://FH-01"
+
+  - control_id: "FH-02"
+    name: "Enforce file size limits before processing"
+    description: "The application must only accept files of a size it can process without a performance loss or denial-of-service impact — enforced before significant processing begins, not after."
+    source_clause: "ASVS 5.0.0, V5.2.1"
+    severity: "medium"
+    check_method: "static"
+    detector: "Semgrep rule checking for a size-limit configuration (e.g. multer's 'limits.fileSize', busboy's equivalent, or an explicit Content-Length check) present on every file-upload route"
+    remediation_ref: "fix-playbook://FH-02"
+
+  - control_id: "FH-03"
+    name: "Validate file content matches claimed type, not just extension"
+    description: "When accepting a file (standalone or within an archive), the application must check that the file extension matches an expected type and validate that the actual content corresponds to that type — via magic-byte inspection, image re-encoding, or specialized content-validation libraries — not extension-string matching alone."
+    source_clause: "ASVS 5.0.0, V5.2.2"
+    severity: "high"
+    check_method: "static"
+    detector: "Semgrep/CodeQL dataflow rule — flags upload handlers that branch on file.originalname/extension string only, with no accompanying magic-byte or content-type verification library call (e.g. file-type, magic-bytes.js, python-magic)"
+    remediation_ref: "fix-playbook://FH-03"
+
+  - control_id: "FH-04"
+    name: "Check compressed-file uncompressed size and file count before extraction"
+    description: "The application must check compressed files (zip, gz, docx, odt, etc.) against a maximum allowed uncompressed size and a maximum number of contained files before decompression begins, to prevent zip-bomb / decompression-bomb denial-of-service attacks."
+    source_clause: "ASVS 5.0.0, V5.2.3"
+    severity: "high"
+    check_method: "static"
+    detector: "Semgrep dataflow rule — flags archive-extraction library calls (unzip, tar, adm-zip, etc.) with no preceding size/entry-count check against the archive's central directory metadata"
+    remediation_ref: "fix-playbook://FH-04"
+
+  - control_id: "FH-05"
+    name: "Enforce per-user file size quota and file count limits"
+    description: "A file size quota and maximum number of files per user must be enforced so a single user cannot exhaust storage with too many or too-large files."
+    source_clause: "ASVS 5.0.0, V5.2.4"
+    severity: "low"
+    check_method: "manual-review"
+    detector: "manual-review only — quota enforcement is typically business logic spread across the app/storage layer, not a single greppable pattern"
+    remediation_ref: "fix-playbook://FH-05"
+
+  - control_id: "FH-06"
+    name: "Reject or allowlist symlinks in uploaded compressed files"
+    description: "The application must not allow uploading compressed files containing symlinks unless specifically required, in which case an allowlist of permitted symlink targets must be enforced."
+    source_clause: "ASVS 5.0.0, V5.2.5"
+    severity: "medium"
+    check_method: "static"
+    detector: "Semgrep dataflow rule — flags archive extraction that doesn't check entry.type/isSymbolicLink() (or the equivalent for the archive library in use) and reject/allowlist before writing extracted symlink entries to disk"
+    remediation_ref: "fix-playbook://FH-06"
+
+  - control_id: "FH-07"
+    name: "Reject oversized image dimensions (pixel flood protection)"
+    description: "Uploaded images with pixel dimensions larger than a defined maximum must be rejected, to prevent pixel-flood attacks (images that decode to an enormous in-memory bitmap despite a small file size)."
+    source_clause: "ASVS 5.0.0, V5.2.6"
+    severity: "low"
+    check_method: "static"
+    detector: "Semgrep rule — flags image-processing library usage (sharp, Pillow/PIL, ImageMagick bindings) with no dimension check performed before or during decode"
+    remediation_ref: "fix-playbook://FH-07"
+
+  - control_id: "FH-08"
+    name: "Never execute uploaded/generated files as server-side code"
+    description: "Files uploaded or generated from untrusted input and stored in a publicly accessible folder must never be executable as server-side program code when accessed directly via HTTP request."
+    source_clause: "ASVS 5.0.0, V5.3.1"
+    severity: "critical"
+    check_method: "static"
+    detector: "manual-review only, supplemented by static config review — check web server / static-file-serving configuration to confirm the upload storage directory has execution disabled (e.g. no PHP/CGI handler mapped to that path, no Node require() of uploaded files)"
+    remediation_ref: "fix-playbook://FH-08"
+
+  - control_id: "FH-09"
+    name: "Never build file paths directly from user-submitted filenames (path traversal / LFI / RFI / SSRF prevention)"
+    description: "When constructing file paths for file operations, the application must use internally generated or trusted data rather than user-submitted filenames or metadata. If user-submitted values must be used, strict validation and sanitization is required to prevent path traversal, local/remote file inclusion, and SSRF."
+    source_clause: "ASVS 5.0.0, V5.3.2"
+    severity: "critical"
+    check_method: "static"
+    detector: "CodeQL taint-tracking rule — flags any value from request params/body/headers reaching a filesystem path-construction or file-open call (fs.readFile, open(), path.join with unsanitized input) without passing through a path-normalization + allowlist-boundary check first"
+    remediation_ref: "fix-playbook://FH-09"
+
+  - control_id: "FH-10"
+    name: "Ignore user-provided path information during server-side decompression (zip-slip prevention)"
+    description: "Server-side file processing such as decompression must ignore any path information embedded in the archive entries themselves, extracting to a fixed, sanitized destination rather than trusting the archive's internal file paths — this is the specific defense against zip-slip attacks."
+    source_clause: "ASVS 5.0.0, V5.3.3"
+    severity: "critical"
+    check_method: "static"
+    detector: "Semgrep dataflow rule — flags archive extraction code that writes entries using the archive's own entry.path/entry.name directly to the filesystem without first stripping/validating against directory traversal sequences (../) and confirming the resolved path stays within the intended extraction directory"
+    remediation_ref: "fix-playbook://FH-10"
+
+  - control_id: "FH-11"
+    name: "Validate or ignore user-submitted filenames in download responses"
+    description: "The application must validate or ignore user-submitted filenames (including those passed via JSON, JSONP, or URL parameters) and instead specify a filename explicitly in the Content-Disposition response header rather than reflecting an unvalidated user-controlled value."
+    source_clause: "ASVS 5.0.0, V5.4.1"
+    severity: "medium"
+    check_method: "static"
+    detector: "Semgrep dataflow rule — flags Content-Disposition header construction where the filename value traces back to unsanitized request input"
+    remediation_ref: "fix-playbook://FH-11"
+
+  - control_id: "FH-12"
+    name: "Encode/sanitize served filenames to prevent header/structure injection"
+    description: "Filenames served in HTTP response headers or email attachments must be encoded or sanitized (following RFC 6266 for Content-Disposition) to preserve document/header structure and prevent injection attacks via crafted filenames."
+    source_clause: "ASVS 5.0.0, V5.4.2"
+    severity: "medium"
+    check_method: "static"
+    detector: "Semgrep rule — flags Content-Disposition or email-attachment filename construction without RFC 6266-compliant encoding (e.g. missing filename* percent-encoding for non-ASCII/special characters)"
+    remediation_ref: "fix-playbook://FH-12"
+
+  - control_id: "FH-13"
+    name: "Scan files from untrusted sources with antivirus before serving"
+    description: "Files obtained from untrusted sources must be scanned by an antivirus/malware scanner to prevent the application from serving known malicious content to other users."
+    source_clause: "ASVS 5.0.0, V5.4.3"
+    severity: "medium"
+    check_method: "manual-review"
+    detector: "manual-review only — presence of an AV-scanning step (e.g. ClamAV integration) in the upload/serving pipeline is greppable as a configuration check, but confirming it actually runs before every untrusted file is served requires manual review of the request flow"
+    remediation_ref: "fix-playbook://FH-13"
+
+deprecated_by: null
+last_reviewed: "2026-07-08"

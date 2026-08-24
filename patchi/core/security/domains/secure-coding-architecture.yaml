@@ -1,0 +1,218 @@
+domain_id: "secure-coding-architecture"
+version: "1.0.0"
+display_name: "Secure Coding and Architecture"
+source_standard: "OWASP Application Security Verification Standard (ASVS) 5.0.0, Chapter V15: Secure Coding and Architecture (fetched and verified directly from the official ASVS 5.0.0 CSV release, github.com/OWASP/ASVS, July 2026)."
+component_type: "backend-api"
+cross_cutting: true
+weight: 0.85
+
+# NOTE ON SCOPE: V15.1/V15.2 (dependency/SBOM policy and remediation timeframes) is a
+# governance layer ON TOP OF what the Dependency Agent's scanners (OSV-Scanner, Trivy,
+# Grype) already do mechanically — those tools find vulnerable dependencies; this domain
+# covers whether the ORGANIZATION has a documented, followed policy for how quickly to
+# act on what they find. Don't treat this domain as redundant with the dependency-scan
+# ants; it's the process layer those ants' output should feed into. V15.3/V15.4 are
+# genuinely new ground — defensive coding patterns (mass assignment, type confusion,
+# prototype pollution, IP-spoofing-aware logging) and concurrency safety, neither of
+# which is covered by any other domain built so far.
+
+activation_signals:
+  required_any:
+    - signal: "has_third_party_dependencies"       # any package manager manifest with dependencies
+    - signal: "has_multi_threaded_or_async_code"     # thread pools, worker threads, async concurrency primitives
+    - signal: "has_dynamic_object_serialization"      # ORM/object mapping accepting external input directly
+  excluded_if:
+    - signal: "single_file_no_dependencies_no_concurrency"  # trivial script with no dependency tree and no concurrent execution
+
+controls:
+  - control_id: "SECARCH-01"
+    name: "Document risk-based remediation timeframes for vulnerable dependencies"
+    description: "Documentation must define risk-based remediation timeframes for third-party component versions with known vulnerabilities, and for updating libraries in general, to minimize risk from these components."
+    source_clause: "ASVS 5.0.0, V15.1.1"
+    severity: "medium"
+    check_method: "manual-review"
+    detector: "manual-review only — documentation/policy requirement"
+    remediation_ref: "fix-playbook://SECARCH-01"
+
+  - control_id: "SECARCH-02"
+    name: "Maintain a software bill of materials (SBOM) from trusted repositories"
+    description: "An inventory catalog (such as an SBOM) must be maintained of all third-party libraries in use, including verification that components come from pre-defined, trusted, and continually maintained repositories."
+    source_clause: "ASVS 5.0.0, V15.1.2"
+    severity: "high"
+    check_method: "static"
+    detector: "SBOM generation tooling (Syft, CycloneDX generators) run against the dependency manifest, cross-referenced against a list of trusted/expected package registries"
+    remediation_ref: "fix-playbook://SECARCH-02"
+
+  - control_id: "SECARCH-03"
+    name: "Document resource-intensive functionality and its availability safeguards"
+    description: "Documentation must identify functionality which is time-consuming or resource-demanding, including how to prevent availability loss from overuse and how to avoid response-building taking longer than the consumer's timeout — potential defenses include asynchronous processing, queues, and per-user/per-application parallel process limits."
+    source_clause: "ASVS 5.0.0, V15.1.3"
+    severity: "low"
+    check_method: "manual-review"
+    detector: "manual-review only — documentation requirement"
+    remediation_ref: "fix-playbook://SECARCH-03"
+
+  - control_id: "SECARCH-04"
+    name: "Document third-party libraries considered risky components"
+    description: "Application documentation must highlight third-party libraries which are considered to be 'risky components' (e.g. unmaintained, historically vulnerability-prone, or handling especially sensitive operations)."
+    source_clause: "ASVS 5.0.0, V15.1.4"
+    severity: "low"
+    check_method: "manual-review"
+    detector: "manual-review only — documentation requirement"
+    remediation_ref: "fix-playbook://SECARCH-04"
+
+  - control_id: "SECARCH-05"
+    name: "Document use of dangerous functionality"
+    description: "Application documentation must highlight parts of the application where 'dangerous functionality' is being used (e.g. dynamic code execution, raw system calls, unsafe deserialization)."
+    source_clause: "ASVS 5.0.0, V15.1.5"
+    severity: "low"
+    check_method: "manual-review"
+    detector: "manual-review only — documentation requirement, though a static scan for known dangerous-function call patterns (eval, exec, unsafe deserialization) can seed the documentation"
+    remediation_ref: "fix-playbook://SECARCH-05"
+
+  - control_id: "SECARCH-06"
+    name: "Contain no components breaching documented remediation timeframes"
+    description: "The application must only contain components which have not breached the documented update and remediation timeframes (per SECARCH-01)."
+    source_clause: "ASVS 5.0.0, V15.2.1"
+    severity: "high"
+    check_method: "static"
+    detector: "OSV-Scanner/Trivy/Grype scan cross-referenced against SECARCH-01's documented timeframe — flags any known-CVE dependency whose age since disclosure exceeds the documented remediation window"
+    remediation_ref: "fix-playbook://SECARCH-06"
+
+  - control_id: "SECARCH-07"
+    name: "Implement documented availability defenses for resource-intensive functionality"
+    description: "The application must implement defenses against availability loss due to time-consuming or resource-demanding functionality, based on the documented security decisions and strategies (per SECARCH-03)."
+    source_clause: "ASVS 5.0.0, V15.2.2"
+    severity: "medium"
+    check_method: "manual-review"
+    detector: "manual-review only — cross-referencing actual implementation against SECARCH-03's documented strategy"
+    remediation_ref: "fix-playbook://SECARCH-07"
+
+  - control_id: "SECARCH-08"
+    name: "Exclude test code, samples, and dev functionality from production"
+    description: "The production environment must only include functionality required for the application to function, and must not expose extraneous functionality such as test code, sample snippets, or development functionality."
+    source_clause: "ASVS 5.0.0, V15.2.3"
+    severity: "high"
+    check_method: "static"
+    detector: "Static build-pipeline scan flagging test directories, sample/demo routes, or dev-only middleware/endpoints present in the production build artifact"
+    remediation_ref: "fix-playbook://SECARCH-08"
+
+  - control_id: "SECARCH-09"
+    name: "Source dependencies from expected repositories to prevent dependency confusion"
+    description: "Third-party components and all transitive dependencies must be sourced from the expected repository (internal or external), with no risk of a dependency confusion attack — where an internal package name could be shadowed by a malicious public package of the same name."
+    source_clause: "ASVS 5.0.0, V15.2.4"
+    severity: "high"
+    check_method: "static"
+    detector: "Package-manager configuration scan confirming scoped package names or explicit registry pinning for internal packages, preventing public-registry resolution from shadowing an internally-named package"
+    remediation_ref: "fix-playbook://SECARCH-09"
+
+  - control_id: "SECARCH-10"
+    name: "Isolate dangerous functionality and risky components"
+    description: "The application must implement additional protections around parts documented as containing 'dangerous functionality' or using 'risky components' — sandboxing, encapsulation, containerization, or network-level isolation — to delay and deter attackers who compromise one part of an application from pivoting elsewhere."
+    source_clause: "ASVS 5.0.0, V15.2.5"
+    severity: "medium"
+    check_method: "manual-review"
+    detector: "manual-review only — architectural isolation strategy requiring design-level review, cross-referenced against SECARCH-04/05's documented risky components"
+    remediation_ref: "fix-playbook://SECARCH-10"
+
+  - control_id: "SECARCH-11"
+    name: "Return only the required subset of fields from a data object"
+    description: "The application must only return the required subset of fields from a data object rather than the entire object, since some individual fields should not be accessible to users."
+    source_clause: "ASVS 5.0.0, V15.3.1"
+    severity: "high"
+    check_method: "static"
+    detector: "Semgrep/CodeQL rule flagging serialization of an entire ORM/data model object directly into an API response without an explicit field allowlist"
+    remediation_ref: "fix-playbook://SECARCH-11"
+
+  - control_id: "SECARCH-12"
+    name: "Do not follow redirects on backend-initiated external calls unless intended"
+    description: "Where the application backend makes calls to external URLs, it must be configured to not follow redirects unless this is intended functionality, to prevent SSRF-adjacent redirect-based bypasses of URL allowlisting."
+    source_clause: "ASVS 5.0.0, V15.3.2"
+    severity: "medium"
+    check_method: "static"
+    detector: "Semgrep/CodeQL rule flagging HTTP client configuration with automatic redirect-following enabled on backend-initiated outbound calls, particularly where the target URL is influenced by external input"
+    remediation_ref: "fix-playbook://SECARCH-12"
+
+  - control_id: "SECARCH-13"
+    name: "Prevent mass assignment via per-action field allowlisting"
+    description: "The application must have countermeasures against mass assignment attacks by limiting allowed fields per controller and action, so it is not possible to insert or update a field value that was not intended to be part of that specific action."
+    source_clause: "ASVS 5.0.0, V15.3.3"
+    severity: "critical"
+    check_method: "static"
+    detector: "Semgrep/CodeQL rule flagging update/create handlers that bind an entire incoming request body directly to a data model (e.g. Object.assign(model, req.body), ORM mass-assignment without an explicit permitted-fields list) rather than an explicit per-field allowlist"
+    remediation_ref: "fix-playbook://SECARCH-13"
+
+  - control_id: "SECARCH-14"
+    name: "Use trusted, unmanipulable fields for client IP in logging/security decisions"
+    description: "All proxying and middleware components must transfer the user's original IP address correctly using trusted data fields that cannot be manipulated by the end user, and the application/web server must use this correct value for logging and security decisions such as rate limiting — while accounting for the fact that even the original IP address may not be fully reliable due to dynamic IPs, VPNs, or corporate firewalls."
+    source_clause: "ASVS 5.0.0, V15.3.4"
+    severity: "high"
+    check_method: "static"
+    detector: "Semgrep/CodeQL rule flagging rate-limiting/logging logic that trusts a client-controllable header (e.g. a raw X-Forwarded-For value with no trusted-proxy validation) for security decisions rather than a properly validated/trusted source"
+    remediation_ref: "fix-playbook://SECARCH-14"
+
+  - control_id: "SECARCH-15"
+    name: "Enforce strict type checking to prevent type juggling/confusion"
+    description: "The application must explicitly ensure variables are of the correct type and perform strict equality/comparator operations, to avoid type juggling or type confusion vulnerabilities caused by the code making assumptions about a variable's type."
+    source_clause: "ASVS 5.0.0, V15.3.5"
+    severity: "high"
+    check_method: "static"
+    detector: "Semgrep rule flagging loose equality comparisons (== in PHP/JS) on security-relevant values (passwords, tokens, type-ambiguous input) rather than strict equality (=== / type-checked comparison)"
+    remediation_ref: "fix-playbook://SECARCH-15"
+
+  - control_id: "SECARCH-16"
+    name: "Prevent prototype pollution in JavaScript code"
+    description: "JavaScript code must be written to prevent prototype pollution, for example by using Set()/Map() instead of plain object literals for dynamic key-value storage derived from untrusted input."
+    source_clause: "ASVS 5.0.0, V15.3.6"
+    severity: "high"
+    check_method: "static"
+    detector: "Semgrep rule flagging recursive merge/assign operations (e.g. a custom deep-merge function, or lodash merge with unvalidated keys) operating on plain object literals with keys derived from untrusted input, without guarding against '__proto__'/'constructor'/'prototype' key names"
+    remediation_ref: "fix-playbook://SECARCH-16"
+
+  - control_id: "SECARCH-17"
+    name: "Defend against HTTP parameter pollution"
+    description: "The application must have defenses against HTTP parameter pollution attacks, particularly if the framework makes no distinction about the source of request parameters (query string, body, cookies, or headers)."
+    source_clause: "ASVS 5.0.0, V15.3.7"
+    severity: "medium"
+    check_method: "static"
+    detector: "Semgrep/CodeQL rule flagging parameter-reading code that doesn't specify an explicit source (body vs. query vs. header) and could be ambiguously satisfied by multiple conflicting parameter instances"
+    remediation_ref: "fix-playbook://SECARCH-17"
+
+  - control_id: "SECARCH-18"
+    name: "Access shared objects in multi-threaded code safely"
+    description: "Shared objects in multi-threaded code (caches, files, in-memory objects accessed by multiple threads) must be accessed safely using thread-safe types and synchronization mechanisms (locks, semaphores) to avoid race conditions and data corruption."
+    source_clause: "ASVS 5.0.0, V15.4.1"
+    severity: "high"
+    check_method: "manual-review"
+    detector: "manual-review only, though a static check can flag shared mutable state accessed from multiple thread/worker contexts with no visible lock/mutex usage as a candidate for review"
+    remediation_ref: "fix-playbook://SECARCH-18"
+
+  - control_id: "SECARCH-19"
+    name: "Perform resource state checks and dependent actions atomically (TOCTOU prevention)"
+    description: "Checks on a resource's state (existence, permissions) and the actions that depend on them must be performed as a single atomic operation, to prevent time-of-check to time-of-use (TOCTOU) race conditions — e.g. checking a file exists before opening it, or verifying access before granting it, without an atomic guarantee between the two steps."
+    source_clause: "ASVS 5.0.0, V15.4.2"
+    severity: "high"
+    check_method: "static"
+    detector: "Semgrep/CodeQL rule flagging a check-then-act pattern (e.g. file-exists check followed by a separate open call, or a permission check followed by a separate action) with no atomic operation/lock spanning both steps"
+    remediation_ref: "fix-playbook://SECARCH-19"
+
+  - control_id: "SECARCH-20"
+    name: "Use locks consistently and scope locking logic to the resource owner"
+    description: "Locks must be used consistently to avoid threads getting stuck (waiting on each other or retrying endlessly), and locking logic must stay within the code responsible for managing the resource to ensure locks cannot be inadvertently or maliciously modified by external code."
+    source_clause: "ASVS 5.0.0, V15.4.3"
+    severity: "medium"
+    check_method: "manual-review"
+    detector: "manual-review only — deadlock/livelock analysis and lock-encapsulation review require understanding the specific concurrency design"
+    remediation_ref: "fix-playbook://SECARCH-20"
+
+  - control_id: "SECARCH-21"
+    name: "Prevent thread starvation via fair resource allocation"
+    description: "Resource allocation policies must prevent thread starvation by ensuring fair access to resources, such as by leveraging thread pools that allow lower-priority threads to proceed within a reasonable timeframe."
+    source_clause: "ASVS 5.0.0, V15.4.4"
+    severity: "low"
+    check_method: "manual-review"
+    detector: "manual-review only — fairness analysis of thread-pool/scheduling configuration requires understanding actual workload patterns"
+    remediation_ref: "fix-playbook://SECARCH-21"
+
+deprecated_by: null
+last_reviewed: "2026-07-09"

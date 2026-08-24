@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="dashboard">
+  <!-- Brain Map -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Brain Map — File Dependencies</span>
+    
+    </div>
+    <div class="brain-map-container">
+      <div id="brain-map" class="brain-map-canvas"></div>
+    </div>
+  </div>
+
+  <!-- Health + Charts row -->
+  <div class="grid-3">
+    <!-- Health Score Ring -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Health Score</span>
+      </div>
+      <div id="health-ring"></div>
+    </div>
+
+    <!-- Language Breakdown -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Languages</span>
+      </div>
+      <div id="language-donut"></div>
+    </div>
+
+    <!-- Findings Timeline -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Findings Trend</span>
+      </div>
+      <div id="findings-timeline"></div>
+    </div>
+  </div>
+
+  <!-- Severity cards -->
+  <div class="grid-4" id="severity-cards">
+    <div class="severity-card critical">
+      <div class="severity-count" id="count-critical">—</div>
+      <div class="severity-label">Critical</div>
+    </div>
+    <div class="severity-card high">
+      <div class="severity-count" id="count-high">—</div>
+      <div class="severity-label">High</div>
+    </div>
+    <div class="severity-card medium">
+      <div class="severity-count" id="count-medium">—</div>
+      <div class="severity-label">Medium</div>
+    </div>
+    <div class="severity-card low">
+      <div class="severity-count" id="count-low">—</div>
+      <div class="severity-label">Low</div>
+    </div>
+  </div>
+
+  <!-- Quick actions -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Quick Actions</span>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-primary" hx-post="/api/scan" hx-swap="none"
+        onclick="toast('Scan started…', 'info')">
+        ▶ Run Security Scan
+      </button>
+      <button class="btn" hx-get="/api/scan?type=report" hx-swap="none"
+        onclick="toast('Generating report…', 'info')">
+        📊 Security Report
+      </button>
+      <button class="btn" hx-get="/review" hx-target=".content" hx-push-url="true">
+        ◪ Review Fixes
+      </button>
+      <button class="btn" hx-get="/chat" hx-target=".content" hx-push-url="true">
+        💬 Ask AI
+      </button>
+    </div>
+  </div>
+
+  <!-- Recent findings -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Recent Findings</span>
+      <a href="/findings" hx-get="/findings" hx-target=".content" hx-push-url="true"
+        style="color:var(--accent);font-size:12px;text-decoration:none">
+        View all →
+      </a>
+    </div>
+    <div id="recent-findings"
+      hx-get="/api/findings-table?limit=5"
+      hx-trigger="every 30s"
+      hx-swap="innerHTML">
+      <div class="htmx-indicator" style="text-align:center;padding:8px;color:var(--text-secondary)">Loading findings…</div>
+      <div class="empty-state">
+        <div class="empty-state-icon">🔍</div>
+        <div class="empty-state-text">Run a scan to see findings</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Agent Status Grid -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Agent Status</span>
+    </div>
+    <div id="agent-grid"
+      hx-get="/api/agents/status"
+      hx-trigger="every 30s"
+      hx-swap="innerHTML">
+      <div class="htmx-indicator" style="text-align:center;padding:8px;color:var(--text-secondary)">Refreshing agents…</div>
+      <div class="empty-state">
+        <div class="empty-state-text">No agents have run yet.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Initialize charts — BrainMap is auto-initialized via htmx:afterSettle in base.html
+  (function() {
+    function init() {
+      if (typeof Charts !== 'undefined') {
+        Charts.healthRing('health-ring', {{ health_score }}, {{ health_components | tojson }});
+        {% if languages %}
+        Charts.languageDonut('language-donut', {{ languages | tojson }});
+        {% endif %}
+        fetch('/api/charts/timeline')
+          .then(r => r.json())
+          .then(data => {
+            Charts.findingsTimeline('findings-timeline', data.history || []);
+          })
+          .catch(function(err) { console.warn('Timeline chart error:', err); });
+      }
+      // Populate severity counts
+      fetch('/api/findings')
+        .then(r => r.json())
+        .then(data => {
+          const findings = data.findings || [];
+          const counts = { critical: 0, high: 0, medium: 0, low: 0 };
+          findings.forEach(function(f) {
+            var sev = (f.severity || 'info').toLowerCase();
+            if (counts[sev] !== undefined) counts[sev]++;
+          });
+          Object.keys(counts).forEach(function(sev) {
+            var el = document.getElementById('count-' + sev);
+            if (el) el.textContent = counts[sev];
+          });
+        })
+        .catch(function(err) { console.warn('Findings count error:', err); });
+    }
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+      init();
+    } else {
+      document.addEventListener('DOMContentLoaded', init);
+    }
+  })();
+</script>
+{% endblock %}

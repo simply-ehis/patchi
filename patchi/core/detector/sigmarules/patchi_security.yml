@@ -1,0 +1,248 @@
+title: Patchi Security Agent Detection Rule Set
+id: patchi-core-001
+description: |
+  Built-in detection rules that map Patchi's own agent findings to MITRE ATT&CK
+  technique IDs. These rules fire when Patchi agents produce findings — the Sigma
+  engine normalizes them into events for the dispatcher.
+status: stable
+author: Patchi Core
+tags:
+  - attack.t1190
+  - attack.t1055
+  - attack.t1110
+  - attack.t1552
+  - attack.t1562
+  - attack.t1046
+logsource:
+  category: patchi_agent
+  product: patchi
+detection:
+  selection_agent:
+    event.source: "agent"
+  condition: selection_agent
+falsepositives:
+  - None (Patchi's own agent output)
+level: informational
+target_agent: ""
+
+
+title: SQL Injection Detected
+id: patchi-injection-001
+description: >
+  A Patchi security agent detected SQL injection patterns in source code
+  or ingress traffic. Routes to InjectionAgent for verification and
+  OWASP CRS rule matching.
+status: stable
+author: Patchi Core
+tags:
+  - attack.t1190
+  - cwe.89
+logsource:
+  category: patchi_finding
+  product: patchi
+detection:
+  selection:
+    event.source: "agent"
+    event.agent_name: "InjectionAgent"
+    event.payload.type: ["sqli", "sql_injection", "injection"]
+  condition: selection
+falsepositives:
+  - "ORM query builders with string interpolation"
+  - "SQL in comments or documentation"
+level: high
+target_agent: "InjectionAgent"
+
+
+title: Brute Force Attempt Detected
+id: patchi-auth-001
+description: >
+  Authentication audit agent detected repeated login failures, credential
+  stuffing patterns, or weak password practices. Routes to Auth agent.
+status: stable
+author: Patchi Core
+tags:
+  - attack.t1110
+  - cwe.307
+logsource:
+  category: patchi_finding
+  product: patchi
+detection:
+  selection:
+    event.source: "agent"
+    event.agent_name: ["AuthenticationAuditAgent", "AuthZAgent"]
+    event.suggested_agent: ["brute_force", "credential_stuffing"]
+  condition: selection
+falsepositives:
+  - "Legitimate automated testing"
+level: high
+target_agent: "AuthAgent"
+
+
+title: Hardcoded Secret Detected
+id: patchi-secret-001
+description: >
+  Secret scanner found a hardcoded API key, password, or token in the
+  codebase. Routes to Secrets Agent for rotation and removal.
+status: stable
+author: Patchi Core
+tags:
+  - attack.t1552.001
+  - cwe.798
+logsource:
+  category: patchi_finding
+  product: patchi
+detection:
+  selection:
+    event.source: "secret"
+  condition: selection
+falsepositives:
+  - "Test fixtures with placeholder values"
+  - "Documentation examples"
+level: critical
+target_agent: "SecretsAgent"
+
+
+title: Dependency CVE Detected
+id: patchi-dep-001
+description: >
+  Dependency vulnerability agent or OSV scanner found a known CVE in a
+  project dependency. Routes to DependencyAgent for CVE verification and
+  upgrade patching.
+status: stable
+author: Patchi Core
+tags:
+  - attack.t1190
+  - cwe.1104
+logsource:
+  category: patchi_finding
+  product: patchi
+detection:
+  selection:
+    event.source: ["dependency", "agent"]
+    event.agent_name: ["DependencyVulnerabilityAgent", "CVEMonitorAgent", "DependencyCVEChecker"]
+  condition: selection
+falsepositives:
+  - "Dev-only dependencies"
+  - "Already-patched CVEs with stale lockfiles"
+level: critical
+target_agent: "DependencyAgent"
+
+
+title: Vulnerable Network Service
+id: patchi-net-001
+description: >
+  Network security agent detects exposed services, weak TLS configs, or
+  missing HTTPS enforcement. Routes to NetworkAgent for assessment.
+status: stable
+author: Patchi Core
+tags:
+  - attack.t1046
+  - cwe.200
+logsource:
+  category: patchi_finding
+  product: patchi
+detection:
+  selection:
+    event.source: "agent"
+    event.agent_name: "NetworkAgent"
+  condition: selection
+falsepositives:
+  - "Deliberately exposed dev services"
+level: medium
+target_agent: "NetworkAgent"
+
+
+title: Cryptographic Weakness
+id: patchi-crypto-001
+description: >
+  Crypto security agent detects weak hashing algorithms (MD5, SHA1),
+  deprecated encryption, or hardcoded cryptographic keys.
+status: stable
+author: Patchi Core
+tags:
+  - attack.t1562
+  - cwe.327
+logsource:
+  category: patchi_finding
+  product: patchi
+detection:
+  selection:
+    event.source: "agent"
+    event.agent_name: "CryptoAgent"
+  condition: selection
+falsepositives:
+  - "Legacy compatibility code not used in prod"
+level: high
+target_agent: "CryptoAgent"
+
+
+title: Unusual Traffic Pattern
+id: patchi-triage-001
+description: >
+  Detector's anomaly layer flagged a statistically unusual traffic pattern
+  that doesn't match any existing rule. Routes to TriageAgent for
+  investigation.
+status: experimental
+author: Patchi Core
+tags:
+  - attack.t9999
+logsource:
+  category: anomaly
+  product: patchi
+detection:
+  selection:
+    event.severity: ["high", "critical"]
+    event.suggested_agent: ""
+  condition: selection
+falsepositives:
+  - "Legitimate traffic spikes"
+level: medium
+target_agent: "TriageAgent"
+
+
+title: HTTP Anomaly (4xx Spike)
+id: patchi-http-001
+description: >
+  HTTP detector observes a spike in 4xx/5xx responses from a specific
+  endpoint. Could indicate scanning, brute force, or exploitation attempts.
+status: experimental
+author: Patchi Core
+tags:
+  - attack.t1190
+  - attack.t1110
+logsource:
+  category: webserver
+  product: http
+detection:
+  selection:
+    event.source: "http_traffic"
+    event.payload.status_code: ["401", "403", "404", "429", "500"]
+    event.confidence: "*"
+  condition: selection
+falsepositives:
+  - "Crawler or legitimate high-traffic user"
+level: medium
+target_agent: "AuthAgent"
+
+
+title: Container Escape Indicators
+id: patchi-runtime-001
+description: >
+  Falco or runtime agent detects syscalls indicative of container escape
+  attempts (mount namespace escape, cgroup manipulation).
+status: stable
+author: Patchi Core
+tags:
+  - attack.t1611
+logsource:
+  category: process_creation
+  product: linux
+detection:
+  selection:
+    event.source: "syscall"
+    event.payload.syscall: ["mount", "unshare", "nsenter"]
+  condition: selection
+falsepositives:
+  - "Legitimate container build operations"
+level: critical
+target_agent: "RuntimeAgent"

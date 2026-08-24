@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="findings-panel">
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Security Findings ({{ total }})</span>
+      <div style="display:flex;gap:8px">
+        <select id="filter-severity" onchange="filterFindings()" class="btn" style="padding:4px 8px">
+          <option value="">All Severity</option>
+          <option value="critical">Critical</option>
+          <option value="high">High</option>
+          <option value="medium">Medium</option>
+          <option value="low">Low</option>
+        </select>
+        <select id="filter-agent" onchange="filterFindings()" class="btn" style="padding:4px 8px">
+          <option value="">All Agents</option>
+        </select>
+      </div>
+    </div>
+
+    {% if findings %}
+    <table class="data-table" id="findings-table">
+      <thead>
+        <tr>
+          <th>Severity</th>
+          <th>File</th>
+          <th>Line</th>
+          <th>Message</th>
+          <th>Agent</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for f in findings %}
+        <tr data-severity="{{ f.severity }}" data-agent="{{ f.agent }}">
+          <td><span class="badge badge-{{ f.severity }}">{{ f.severity }}</span></td>
+          <td style="font-family:var(--font-mono);font-size:12px">{{ f.file }}</td>
+          <td>{{ f.line if f.line is not none else '' }}</td>
+          <td>{{ (f.message or '')[:80] }}</td>
+          <td style="color:var(--text-secondary)">{{ f.agent }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">
+      <div class="empty-state-icon">✅</div>
+      <div class="empty-state-text">No findings yet. Run a scan first.</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+function filterFindings() {
+  const sev = document.getElementById('filter-severity').value;
+  const agent = document.getElementById('filter-agent').value;
+  document.querySelectorAll('#findings-table tbody tr').forEach(row => {
+    const matchSev = !sev || row.dataset.severity === sev;
+    const matchAgent = !agent || row.dataset.agent === agent;
+    row.style.display = (matchSev && matchAgent) ? '' : 'none';
+  });
+}
+
+// Populate agent filter
+document.addEventListener('DOMContentLoaded', () => {
+  const agents = new Set();
+  document.querySelectorAll('#findings-table tbody tr').forEach(row => {
+    agents.add(row.dataset.agent);
+  });
+  const sel = document.getElementById('filter-agent');
+  agents.forEach(a => {
+    const opt = document.createElement('option');
+    opt.value = a;
+    opt.textContent = a;
+    sel.appendChild(opt);
+  });
+});
+</script>
+{% endblock %}

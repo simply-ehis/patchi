@@ -1,0 +1,122 @@
+domain_id: "github-app-bot"
+version: "1.0.0"
+display_name: "GitHub App / Bot Identity Security"
+# SOURCE CURRENCY NOTE (verified 2026-07-04):
+# Primary source is GitHub's own official documentation for GitHub Apps, webhooks,
+# and Actions security (all current, actively maintained docs.github.com pages,
+# cross-checked today). Supplemented by the OWASP Top 10 CI/CD Security Risks
+# project for the overlapping CI-trigger surface (this project's canonical
+# 10-category document; no newer dated revision was found as of 2026-07-04 —
+# it should be treated as stable rather than actively versioned) and by OWASP
+# Top 10 for Agentic Applications 2026 (ASI01) for bots that use an LLM to
+# interpret PR content. Several controls here (GHA-06, GHA-07, GHA-09) overlap
+# substantially with the core taxonomy's ci-cd-pipeline domain, since GitHub
+# Actions triggered by App/bot activity IS a CI/CD trigger surface — these are
+# included here with a GitHub-App-specific framing but should be treated as
+# cross-referenced with, not duplicated against, ci-cd-pipeline in scoring: if
+# both domains activate for the same repository, avoid double-counting.
+source_standard: "GitHub official documentation (Apps, Webhooks, Actions security — accessed 2026-07-04); supplemented by OWASP Top 10 CI/CD Security Risks (canonical 10-category document, version undated) and OWASP Top 10 for Agentic Applications 2026 (ASI01) — see per-control source_clause"
+component_type: "github-app"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "repository or service registers/operates a GitHub App (has an App ID, private key, and/or webhook secret) or a GitHub bot account performing automated actions on PRs/issues"
+    - signal: "codebase generates GitHub App JWTs or installation access tokens (e.g. via @octokit/auth-app, PyGithub App auth, or manual RS256 JWT signing against a GitHub App private key)"
+    - signal: "repository defines GitHub Actions workflows triggered by pull_request_target, workflow_run, or issue_comment in combination with checkout or execution of PR-supplied content"
+  excluded_if:
+    - signal: "automation uses only a personal access token or the default GITHUB_TOKEN within a plain pull_request-triggered workflow with no elevated/privileged trigger and no GitHub App identity involved"
+
+controls:
+  - control_id: "GHA-01"
+    name: "Cryptographic webhook signature verification"
+    description: "Every incoming webhook payload must be verified against the X-Hub-Signature-256 header using HMAC-SHA256 with the registered webhook secret, using a constant-time comparison function (e.g. crypto.timingSafeEqual, hmac.compare_digest, secure_compare) rather than a plain equality operator, before the payload is trusted or processed."
+    source_clause: "GitHub Docs, 'Validating webhook deliveries' — 'Validate incoming webhook payloads against the token... Never use a plain == operator. Instead consider using a method like secure_compare or crypto.timingSafeEqual'"
+    severity: "critical"
+    check_method: "static"
+    detector: "manual-review only; static grep for signature-comparison code confirming use of a constant-time compare function rather than ==/===/string equality"
+    remediation_ref: "fix-playbook://GHA-01"
+
+  - control_id: "GHA-02"
+    name: "High-entropy webhook secret with secure storage"
+    description: "The webhook secret must be a random string with high entropy (not a guessable phrase or short value), must never be hardcoded in application code or committed to a repository, and must be retrieved at runtime from a secrets manager or equivalent secure store rather than a plaintext config file."
+    source_clause: "GitHub Docs, 'Best practices for using webhooks' — 'The webhook secret should be a random string of text with high entropy. You should securely store your webhook secret in a way that your server can access'"
+    severity: "high"
+    check_method: "static"
+    detector: "secret-scanning tools (e.g. gitleaks, trufflehog, GitHub secret scanning) can detect hardcoded/committed webhook secrets"
+    remediation_ref: "fix-playbook://GHA-02"
+
+  - control_id: "GHA-03"
+    name: "Installation token scope and repository minimization"
+    description: "When generating a GitHub App installation access token, the request must explicitly restrict both the repositories (via repository_ids or repositories) and the permissions the token will carry to only what the specific operation requires, rather than omitting these parameters and receiving a token scoped to every repository and permission the installation was granted."
+    source_clause: "GitHub Docs, 'Generating an installation access token for a GitHub App' — 'you can use the repositories or repository_ids body parameters to specify individual repositories... use the permissions body parameter to specify the permissions that the installation access token should have'"
+    severity: "high"
+    check_method: "static"
+    detector: "manual-review only; static review of installation-token-generation call sites to confirm repositories/permissions parameters are set rather than omitted"
+    remediation_ref: "fix-playbook://GHA-03"
+
+  - control_id: "GHA-04"
+    name: "Minimal App permission grant and restricted installability"
+    description: "The GitHub App's registered permission set must include only the specific permissions its functionality requires (no speculative 'permissions we might need later'), and its installability should be restricted to only the intended account(s) rather than left open to installation by any third party, unless the App is intentionally a public/marketplace integration."
+    source_clause: "GitHub Docs, 'Best practices for creating a GitHub App' (permission minimization guidance) combined with the App registration setting restricting 'Where can this GitHub App be installed?' to a specific account — both are current official configuration options as of 2026-07-04"
+    severity: "high"
+    check_method: "manual-review"
+    detector: "manual-review only; GitHub App settings page review, or GitHub API GET /app response review, to confirm permissions match declared functionality"
+    remediation_ref: "fix-playbook://GHA-04"
+
+  - control_id: "GHA-05"
+    name: "Private key secure storage, sign-only handling, and rotation"
+    description: "The App's RSA private key (used to sign JWTs for installation-token issuance) must never be hardcoded, must not be stored as a plaintext environment variable where a stronger option (key vault / HSM / secrets manager) is available, must be treated as sign-only where the storage mechanism supports it, and must be rotated on a defined schedule and immediately upon suspected compromise, since it does not expire automatically."
+    source_clause: "GitHub Docs, 'Best practices for creating a GitHub App' — 'You must store private keys, tokens, and client secrets securely... Consider storing your GitHub App's private key in a key vault... making it sign-only... You should never hard code your private key in your app'"
+    severity: "critical"
+    check_method: "static"
+    detector: "secret-scanning tools (gitleaks, trufflehog) for committed .pem/private-key material; manual-review for vault vs. plaintext-env-var storage architecture"
+    remediation_ref: "fix-playbook://GHA-05"
+
+  - control_id: "GHA-06"
+    name: "No execution of untrusted PR content in privileged trigger contexts"
+    description: "Workflows triggered by pull_request_target, workflow_run, or issue_comment — which run with write permissions and secret access even for PRs from forks — must not check out, build, or execute code or scripts originating from the PR head (e.g. via actions/checkout with the PR head ref, running the PR's build scripts, or installing its dependencies) in that privileged context. Untrusted PR content must be built/tested only in an unprivileged pull_request-triggered job, with results handed off via artifacts to a separate privileged job that never executes PR-supplied code itself."
+    source_clause: "GitHub Docs, 'Secure use reference' (Actions) — 'Workflows that use these triggers must not explicitly check out untrusted code, including from pull request forks'; and 'Securely using pull_request_target' — describes the 'pwn request' pattern and the two-workflow (pull_request + workflow_run) mitigation. Cross-references OWASP Top 10 CI/CD Security Risks, CICD-SEC-4: Poisoned Pipeline Execution, for the general PPE risk class this instantiates. NOTE: this control substantially overlaps the core ci-cd-pipeline domain's PPE controls; treat as a GitHub-App/bot-triggered instance of that same risk rather than double-scoring."
+    severity: "critical"
+    check_method: "static"
+    detector: "CodeQL (GitHub's official Actions query packs, e.g. actions/untrusted-checkout), OpenSSF Scorecard 'Dangerous-Workflow' check"
+    remediation_ref: "fix-playbook://GHA-06"
+
+  - control_id: "GHA-07"
+    name: "Least-privilege default GITHUB_TOKEN permissions"
+    description: "Workflow and repository-level default permissions for the automatically-provisioned GITHUB_TOKEN must be set to read-only (or more restrictive) by default, with elevated permissions (e.g. write access) granted explicitly and narrowly per-job only where that job specifically requires it."
+    source_clause: "GitHub Docs, 'Secure use reference' (Actions) — 'You should therefore make sure that the GITHUB_TOKEN is granted the minimum required permissions. It's good security practice to set the default permission for the GITHUB_TOKEN to read access only for repository contents.' NOTE: overlaps the core ci-cd-pipeline domain's credential-scoping controls; the GitHub-App-specific angle here is the interaction with bot-triggered workflows specifically."
+    severity: "high"
+    check_method: "static"
+    detector: "actionlint, or a custom check confirming a repository- or organization-level default of permissions: read-all (or narrower) rather than the historical write-all default"
+    remediation_ref: "fix-playbook://GHA-07"
+
+  - control_id: "GHA-08"
+    name: "Treat PR/issue content as untrusted input to bot decision logic"
+    description: "Any bot logic — including LLM-based PR summarization, triage, or auto-labeling — that reads PR titles, descriptions, diffs, commit messages, or comments must treat that content strictly as untrusted data, not as instructions to the bot itself. A crafted PR description or file designed to redirect the bot's behavior (e.g. instructing it to approve, merge, or misreport its own findings) must not be able to alter the bot's declared task scope or output any more than any other indirect-prompt-injection vector would."
+    source_clause: "Adapted — OWASP Top 10 for Agentic Applications 2026, ASI01: Agent Goal Hijack, applied specifically to the GitHub-bot PR-content-as-injection-vector case; no GitHub-native or CI/CD-specific standard addresses this LLM-specific risk directly as of 2026-07-04. Cross-reference: this is the same control class as AGT-01 in the agent-orchestration domain, instantiated for a GitHub-App-specific untrusted-content source."
+    severity: "high"
+    check_method: "manual-review"
+    detector: "manual-review only; prompt-injection-pattern scanners (e.g. rebuff, promptmap) can be applied to PR-content fixtures as a partial check if the bot is LLM-based"
+    remediation_ref: "fix-playbook://GHA-08"
+
+  - control_id: "GHA-09"
+    name: "Required-check and branch-protection bypass prevention"
+    description: "Branch protection rules (required status checks, required reviews) must not be bypassable by the bot's own identity or token unless that bypass is an explicit, reviewed, and narrowly-scoped exception. The bot must not be able to dismiss required reviews, force-push to protected branches, or mark its own required check as passing without the underlying check actually having run against the current commit."
+    source_clause: "Adapted — OWASP Top 10 CI/CD Security Risks, CICD-SEC-1: Insufficient Flow Control Mechanisms (bypassing mandatory approval/gating controls), applied to the specific case of a GitHub App/bot identity holding or being exempted from branch-protection enforcement. NOTE: overlaps the core ci-cd-pipeline domain's flow-control controls; included here because the bypass vector in this domain is specifically the bot's own elevated identity, not a general pipeline misconfiguration."
+    severity: "high"
+    check_method: "manual-review"
+    detector: "manual-review only; GitHub API review of branch protection rules (GET /repos/{owner}/{repo}/branches/{branch}/protection) to confirm the bot/App identity is not present in bypass allowlists"
+    remediation_ref: "fix-playbook://GHA-09"
+
+  - control_id: "GHA-10"
+    name: "Idempotent, replay-safe webhook delivery processing"
+    description: "Webhook handling must deduplicate deliveries using the X-GitHub-Delivery header (a unique GUID per delivery attempt) so that GitHub's automatic retries on timeout or 5xx responses do not cause the bot to take a duplicated action (e.g. posting the same comment twice, re-running an approval)."
+    source_clause: "Original/community guidance — not found as an explicit MUST in GitHub's official webhook documentation as of 2026-07-04, but is standard, widely-documented practice for handling GitHub's documented webhook-retry behavior; labeled here as adapted community guidance rather than a direct standard clause."
+    severity: "medium"
+    check_method: "static"
+    detector: "manual-review only; static review confirming a delivery-ID dedup store (e.g. Redis SETNX or DB unique constraint on X-GitHub-Delivery) exists in the webhook handler"
+    remediation_ref: "fix-playbook://GHA-10"
+
+deprecated_by: null
+last_reviewed: "2026-07-04"

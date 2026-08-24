@@ -1,0 +1,34 @@
+{% if agents %}
+<table class="data-table">
+  <thead>
+    <tr>
+      <th>Agent</th>
+      <th>Status</th>
+      <th>Findings</th>
+      <th>Duration</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for a in agents %}
+    <tr>
+      <td style="font-weight:500">{{ a.name }}</td>
+      <td>
+        {% if a.status == 'done' %}
+          <span class="badge badge-low">clean</span>
+        {% elif a.status == 'failed' %}
+          <span class="badge badge-critical">failed</span>
+        {% else %}
+          <span class="badge badge-info">{{ a.status }}</span>
+        {% endif %}
+      </td>
+      <td>{{ a.findings }}</td>
+      <td style="font-family:var(--font-mono);font-size:11px">{{ a.duration_ms }}ms</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<div style="padding:12px;color:var(--text-dim);font-size:12px">
+  No agent data yet. Run a scan first.
+</div>
+{% endif %}

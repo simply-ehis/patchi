@@ -1,0 +1,1239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Patchi — Open Source Security Colony</title>
+<meta name="description" content="An intelligent agent that scans, fixes, secures, and guards your app. 20 security agents. Closed-loop fix verification. Continuous monitoring.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --cli-bg:#0A0A0A;--cli-accent:#E8E8E8;--cli-text:#E8E8E8;
+  --web-bg:#1A1208;--web-accent:#FFB000;--web-text:#F5F0E8;
+  --hosted-bg:#10220F;--hosted-accent:#5FA052;--hosted-text:#E8F5E5;
+  --high:#FF4444;--med:#FFAA00;--fixed:#44FF44;--info:#888888;
+  --font-mono:'JetBrains Mono',monospace;
+  --font-body:'Inter',system-ui,sans-serif;
+  --expo-out:cubic-bezier(0.22,1,0.36,1);
+  --expo-in-out:cubic-bezier(0.87,0,0.13,1);
+  --soft:cubic-bezier(0.4,0,0.2,1);
+}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{
+  font-family:var(--font-body);color:var(--cli-text);
+  background:var(--cli-bg);overflow-x:hidden;
+  line-height:1.85;font-size:0.95rem;
+}
+a{color:inherit;text-decoration:none}
+button{font:inherit;cursor:pointer;border:none;background:none;color:inherit}
+pre,code{font-family:var(--font-mono)}
+
+/* ═══ SVG LAYER ═══ */
+#colony-svg{
+  position:fixed;top:0;left:0;width:100%;height:100%;
+  z-index:0;opacity:0;
+  transition:opacity 0.6s var(--expo-out);
+}
+#colony-svg.visible{opacity:1}
+#colony-svg circle.node,#colony-svg circle.hosted-node{
+  fill:#000;transition:fill 0.4s var(--soft);pointer-events:auto;cursor:pointer;
+}
+#colony-svg circle.node:hover,#colony-svg circle.hosted-node:hover{
+  fill:var(--web-accent);
+}
+#colony-svg line.edge{stroke:#000;stroke-width:0.5;opacity:0.32}
+#colony-svg .hosted-edge{stroke:#000;stroke-width:0.7;opacity:0.42}
+
+/* Node pulse */
+@keyframes nodePulse{
+  0%,100%{opacity:1}50%{opacity:0.6}
+}
+.node.pulse,.hosted-node.pulse{animation:nodePulse 4s ease-in-out infinite}
+
+/* Ant SVG */
+.ant-body{fill:#000}
+.ant-cargo{fill:var(--fixed);opacity:0}
+.ant-cargo.active{opacity:1}
+
+/* Pheromone trails */
+.pheromone-trail{fill:none;stroke-width:2;stroke-linecap:round;opacity:0}
+.pheromone-trail.active{
+  stroke-dasharray:4 6;
+  animation:pheroDraw 2.5s forwards;
+}
+@keyframes pheroDraw{
+  0%{stroke-dashoffset:0;opacity:0.6}
+  100%{stroke-dashoffset:-20;opacity:0}
+}
+
+/* Glow pulse (Hosted) */
+@keyframes glowPulse{
+  0%,100%{opacity:0.08;transform:scale(1)}
+  50%{opacity:0.14;transform:scale(1.05)}
+}
+#amber-glow{
+  position:fixed;top:50%;left:50%;width:350px;height:350px;
+  border-radius:50%;pointer-events:none;z-index:1;
+  background:radial-gradient(circle,rgba(255,176,0,0.12) 0%,transparent 70%);
+  opacity:0;transition:opacity 1s var(--soft);
+  transform:translate(-50%,-50%);
+}
+#amber-glow.active{opacity:1;animation:glowPulse 6s ease-in-out infinite}
+
+/* Pheromone cursor trail */
+#cursor-trail{
+  position:fixed;width:3px;height:3px;border-radius:50%;
+  background:var(--web-accent);pointer-events:none;z-index:5;
+  opacity:0;transition:opacity 0.3s;
+}
+
+/* ═══ DEPTH SECTIONS ═══ */
+.depth{position:relative;z-index:10;min-height:100vh}
+.depth-content{position:relative;z-index:20;max-width:780px;margin:0 auto;padding:0 1.5rem}
+
+/* CLI */
+#cli-depth{
+  min-height:100vh;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  background:var(--cli-bg);color:var(--cli-text);padding:2rem 1.5rem;
+}
+#cli-depth .ascii-banner{
+  font-family:var(--font-mono);font-size:clamp(0.38rem,1.4vw,0.72rem);
+  opacity:0.85;white-space:pre;line-height:1.3;
+  text-align:center;margin-bottom:2rem;color:var(--cli-text);
+}
+#cli-depth .typewriter{
+  font-family:var(--font-mono);font-size:1.05rem;
+  color:var(--cli-accent);margin-bottom:2.5rem;min-height:1.5em;
+}
+#cli-depth .typewriter .cursor{
+  display:inline-block;width:2px;height:1.1em;
+  background:var(--cli-accent);vertical-align:text-bottom;
+  animation:blink 1s step-end infinite;
+}
+@keyframes blink{50%{opacity:0}}
+
+/* Terminal */
+.terminal{
+  width:100%;max-width:720px;background:#111;border:1px solid #222;
+  border-radius:8px;padding:1.25rem 1.5rem;
+  font-family:var(--font-mono);font-size:0.82rem;
+  line-height:1.75;min-height:320px;
+  box-shadow:0 8px 32px rgba(0,0,0,0.5);
+  overflow:hidden;position:relative;
+}
+.terminal-header{
+  display:flex;align-items:center;gap:6px;
+  margin-bottom:1rem;padding-bottom:0.75rem;border-bottom:1px solid #1a1a1a;
+}
+.terminal-dot{width:10px;height:10px;border-radius:50%;background:#333}
+.terminal-dot.r{background:#ff5f57}.terminal-dot.y{background:#ffbd2e}.terminal-dot.g{background:#28c840}
+.terminal-body{
+  min-height:260px;max-height:400px;
+  overflow-y:auto;scroll-behavior:smooth;
+  scrollbar-width:thin;scrollbar-color:#333 #111;
+}
+.terminal-body::-webkit-scrollbar{width:6px}
+.terminal-body::-webkit-scrollbar-track{background:#111}
+.terminal-body::-webkit-scrollbar-thumb{background:#333;border-radius:3px}
+.terminal-line{
+  opacity:0;transform:translateY(5px);
+  transition:opacity 0.25s var(--expo-out),transform 0.25s var(--expo-out);
+  white-space:pre-wrap;word-break:break-all;
+}
+.terminal-line.visible{opacity:1;transform:translateY(0)}
+.terminal-line.tag-high{color:var(--high)}
+.terminal-line.tag-med{color:var(--med)}
+.terminal-line.tag-fixed{color:var(--fixed)}
+.terminal-line.tag-info{color:var(--info)}
+.terminal-input-line{
+  display:flex;align-items:center;gap:0;
+  margin-top:0.5rem;opacity:0;transition:opacity 0.3s;
+}
+.terminal-input-line.visible{opacity:1}
+.terminal-prompt{color:var(--cli-accent);white-space:nowrap}
+.terminal-input{
+  flex:1;background:none;border:none;outline:none;
+  color:var(--cli-accent);font-family:var(--font-mono);
+  font-size:0.82rem;line-height:1.75;caret-color:var(--cli-accent);
+}
+.terminal-output{margin-top:0.3rem;color:var(--info);white-space:pre-wrap}
+
+/* Video placeholder */
+.video-placeholder{
+  width:100%;max-width:720px;aspect-ratio:16/9;
+  background:#111;border:1px solid #222;border-radius:8px;
+  margin-top:2rem;display:flex;align-items:center;justify-content:center;
+  overflow:hidden;cursor:pointer;position:relative;
+}
+.video-placeholder::after{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(180deg,transparent 40%,rgba(0,0,0,0.6));
+  pointer-events:none;
+}
+.video-placeholder .play-icon{
+  width:48px;height:48px;border-radius:50%;
+  background:rgba(255,255,255,0.1);border:2px solid rgba(255,255,255,0.3);
+  display:flex;align-items:center;justify-content:center;
+  z-index:1;transition:background 0.3s;
+}
+.video-placeholder:hover .play-icon{background:rgba(255,255,255,0.2)}
+.video-placeholder .play-icon::after{
+  content:'';width:0;height:0;
+  border-left:16px solid #fff;border-top:10px solid transparent;
+  border-bottom:10px solid transparent;margin-left:4px;
+}
+.cli-video-fallback{
+  position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:0.5rem;
+  font-family:var(--font-mono);font-size:0.7rem;color:var(--info);
+}
+.cli-video-fallback .fake-cursor{
+  display:inline-block;width:7px;height:14px;background:var(--cli-accent);
+  animation:blink 1s step-end infinite;
+}
+
+/* WEB DEPTH */
+#web-depth{background:var(--web-bg);color:var(--web-text);padding-top:10vh}
+#web-depth .depth-content{max-width:900px}
+.web-hero{min-height:50vh;display:flex;align-items:center;justify-content:center;position:relative}
+.sub-hero{
+  opacity:0;transform:translateX(-40px);
+  transition:opacity 0.7s var(--expo-out),transform 0.7s var(--expo-out);
+}
+.sub-hero.visible{opacity:1;transform:translateX(0)}
+.sub-hero h2{
+  font-family:var(--font-mono);font-size:clamp(2.2rem,5.5vw,4.2rem);
+  font-weight:700;letter-spacing:-0.03em;
+  color:var(--web-accent);margin-bottom:1rem;
+}
+.sub-hero .subtitle{font-size:1.05rem;opacity:0.85;margin-bottom:1.5rem}
+.body-text{
+  opacity:0;transform:translateY(20px);
+  transition:opacity 0.6s var(--expo-out),transform 0.6s var(--expo-out);
+}
+.body-text.visible{opacity:1;transform:translateY(0)}
+.body-text p{margin-bottom:1.2rem}
+.ui-chrome{
+  display:flex;gap:0.75rem;flex-wrap:wrap;margin:2rem 0;
+  opacity:0;transform:translateY(15px);
+  transition:opacity 0.5s var(--expo-out) 0.2s,transform 0.5s var(--expo-out) 0.2s;
+}
+.ui-chrome.visible{opacity:1;transform:translateY(0)}
+.filter-btn{
+  font-family:var(--font-mono);font-size:0.78rem;font-weight:500;
+  padding:0.5rem 1rem;border:1px solid #333;border-radius:4px;
+  background:transparent;color:var(--web-text);
+  transition:background 0.3s var(--soft),border-color 0.3s var(--soft);
+}
+.filter-btn:hover{background:rgba(255,176,0,0.18);border-color:var(--web-accent)}
+.filter-btn:focus-visible{outline:2px solid var(--web-accent);outline-offset:2px}
+.filter-btn.active{border-color:var(--web-accent);color:var(--web-accent)}
+.web-video-fallback{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+.web-video-fallback .pulse-node{
+  width:12px;height:12px;border-radius:50%;background:var(--web-accent);
+  animation:nodePulse 3s ease-in-out infinite;
+}
+
+/* HOSTED DEPTH */
+#hosted-depth{background:var(--hosted-bg);color:var(--hosted-text);padding-top:10vh}
+#hosted-depth .depth-content{max-width:900px}
+.hosted-hero{min-height:40vh;display:flex;align-items:center;justify-content:center;position:relative}
+.hosted-hero h2{
+  font-family:var(--font-mono);font-size:clamp(2.2rem,5.5vw,4.2rem);
+  font-weight:700;letter-spacing:-0.03em;
+  color:var(--hosted-accent);margin-bottom:0.5rem;
+  opacity:0;transform:translateY(20px);
+  transition:opacity 0.7s var(--expo-out),transform 0.7s var(--expo-out);
+}
+.hosted-hero h2.visible{opacity:1;transform:translateY(0)}
+.hosted-hero .massive-line{
+  font-family:var(--font-mono);font-size:clamp(2.5rem,6vw,5rem);
+  font-weight:700;color:var(--hosted-accent);
+  letter-spacing:-0.04em;margin-bottom:1rem;
+  opacity:0;transform:translateY(30px);
+  transition:opacity 0.8s var(--expo-out),transform 0.8s var(--expo-out);
+}
+.hosted-hero .massive-line.visible{opacity:1;transform:translateY(0)}
+.hosted-hero .subtitle{font-size:1.05rem;opacity:0.85}
+.hosted-video-fallback{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+.hosted-video-fallback .glow-orb{
+  width:80px;height:80px;border-radius:50%;
+  background:radial-gradient(circle,rgba(255,176,0,0.25),transparent);
+  animation:glowPulse 4s ease-in-out infinite;
+}
+
+/* CLOSING */
+#closing{
+  background:var(--cli-bg);color:var(--cli-text);
+  min-height:80vh;display:flex;align-items:center;
+  justify-content:center;padding:4rem 1.5rem;
+}
+#closing .depth-content{max-width:700px;text-align:center}
+.closing-box{
+  font-family:var(--font-mono);font-size:0.82rem;
+  border:1px solid #333;border-radius:8px;
+  padding:2rem;text-align:left;
+  background:#111;margin-bottom:2.5rem;line-height:1.6;
+  white-space:pre;
+}
+.closing-box .highlight{color:var(--web-accent)}
+.install-commands{
+  display:flex;flex-direction:column;gap:0.75rem;
+  align-items:center;margin-bottom:2rem;
+}
+.install-cmd{
+  font-family:var(--font-mono);font-size:0.85rem;
+  padding:0.75rem 1.5rem;background:#111;border:1px solid #333;
+  border-radius:6px;cursor:pointer;width:100%;max-width:400px;
+  text-align:left;position:relative;
+  transition:border-color 0.3s var(--soft),background 0.3s var(--soft);
+}
+.install-cmd:hover{border-color:var(--web-accent);background:#151515}
+.install-cmd:focus-visible{outline:2px solid var(--cli-accent);outline-offset:2px}
+.install-cmd .copied{
+  position:absolute;right:1rem;top:50%;transform:translateY(-50%);
+  color:var(--fixed);font-size:0.75rem;opacity:0;transition:opacity 0.3s;
+}
+.install-cmd.copied .copied{opacity:1}
+.install-cmd .prefix{color:var(--info)}
+.closing-meta{font-family:var(--font-mono);font-size:0.75rem;color:var(--info);line-height:2}
+
+/* FLOATING TERMINAL PILL */
+#terminal-pill{
+  position:fixed;bottom:1.5rem;right:1.5rem;z-index:40;
+  background:#111;border:1px solid #333;border-radius:24px;
+  padding:0.6rem 1.2rem;font-family:var(--font-mono);
+  font-size:0.75rem;color:var(--info);
+  cursor:pointer;opacity:0;transform:translateY(20px);
+  transition:opacity 0.4s var(--soft),transform 0.4s var(--soft),border-color 0.3s var(--soft);
+  pointer-events:none;
+}
+#terminal-pill.visible{opacity:1;transform:translateY(0);pointer-events:auto}
+#terminal-pill:hover{border-color:var(--web-accent)}
+#terminal-pill .pill-dot{
+  display:inline-block;width:6px;height:6px;border-radius:50%;
+  background:var(--fixed);margin-right:0.5rem;vertical-align:middle;
+}
+
+/* VIDEO MODAL */
+#video-modal{
+  position:fixed;inset:0;z-index:100;
+  background:rgba(0,0,0,0.92);
+  display:flex;align-items:center;justify-content:center;
+  opacity:0;pointer-events:none;transition:opacity 0.3s var(--soft);
+}
+#video-modal.open{opacity:1;pointer-events:auto}
+#video-modal .modal-close{
+  position:absolute;top:1.5rem;right:1.5rem;
+  width:40px;height:40px;border-radius:50%;
+  background:rgba(255,255,255,0.1);border:none;
+  color:#fff;font-size:1.5rem;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:background 0.3s;
+}
+#video-modal .modal-close:hover{background:rgba(255,255,255,0.2)}
+#video-modal .modal-content{
+  width:90%;max-width:960px;aspect-ratio:16/9;
+  background:#000;border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  color:var(--info);font-family:var(--font-mono);font-size:0.9rem;
+}
+
+/* TOOLTIP */
+#node-tooltip{
+  position:fixed;z-index:50;pointer-events:none;
+  font-family:var(--font-mono);font-size:0.75rem;
+  background:rgba(10,10,10,0.95);border:1px solid #333;
+  padding:0.6rem 0.9rem;border-radius:4px;
+  opacity:0;transition:opacity 0.15s var(--soft);
+  max-width:260px;
+}
+#node-tooltip.visible{opacity:1}
+#node-tooltip .tt-file{color:var(--web-accent);font-weight:700;margin-bottom:0.25rem}
+#node-tooltip .tt-meta{color:var(--info);font-size:0.7rem}
+
+/* SCROLL PROGRESS */
+#scroll-progress{
+  position:fixed;top:0;left:0;height:2px;z-index:50;
+  background:var(--web-accent);width:0%;transition:width 0.1s linear;
+}
+
+/* REDUCED MOTION */
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{
+    animation-duration:0.01ms !important;animation-iteration-count:1 !important;
+    transition-duration:0.2s !important;
+  }
+  .terminal-line{opacity:1;transform:none}
+  .sub-hero,.body-text,.ui-chrome,.hosted-hero h2,.hosted-hero .massive-line{opacity:1;transform:none}
+  .ant-group{display:none}
+}
+
+/* RESPONSIVE */
+@media(max-width:768px){
+  .depth-content{padding:0 1rem}
+  .terminal{font-size:0.72rem;padding:1rem}
+  .closing-box{font-size:0.72rem;padding:1.25rem}
+  .install-cmd{font-size:0.78rem}
+}
+</style>
+</head>
+<body>
+
+<div id="scroll-progress" aria-hidden="true"></div>
+<div id="cursor-trail" aria-hidden="true"></div>
+<div id="node-tooltip" role="tooltip" aria-hidden="true">
+  <div class="tt-file"></div>
+  <div class="tt-meta"></div>
+</div>
+<div id="video-modal" role="dialog" aria-label="Video player" aria-hidden="true">
+  <button class="modal-close" aria-label="Close video">&times;</button>
+  <div class="modal-content">Video demo coming soon</div>
+</div>
+<div id="terminal-pill" aria-label="Terminal status">
+  <span class="pill-dot"></span>
+  <span class="pill-text">4 fixed, 0 remaining</span>
+</div>
+<div id="amber-glow" aria-hidden="true"></div>
+
+<!-- ═══ PERSISTENT SVG ═══ -->
+<svg id="colony-svg" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+  <g id="web-graph" style="display:none">
+    <g id="web-edges"></g>
+    <g id="web-nodes"></g>
+  </g>
+  <g id="hosted-graph" style="display:none">
+    <g id="hosted-edges"></g>
+    <g id="hosted-nodes"></g>
+  </g>
+  <g id="svg-pheromones"></g>
+  <g id="svg-ants"></g>
+</svg>
+
+<!-- ═══ CLI DEPTH ═══ -->
+<section id="cli-depth" class="depth" data-depth="cli">
+  <div class="depth-content" style="max-width:780px">
+    <pre class="ascii-banner" aria-label="PATCHI" role="img">
+ ██████╗  █████╗ ███████╗██╗  ██╗██████╗  ██████╗  █████╗ ██████╗ ██████╗
+ ██╔══██╗██╔══██╗██╔════╝██║  ██║██╔══██╗██╔═══██╗██╔══██╗██╔══██╗██╔══██╗
+ ██████╔╝███████║███████╗███████║██████╔╝██║   ██║███████║██████╔╝██║  ██║
+ ██╔═══╝ ██╔══██║╚════██║██╔══██║██╔══██╗██║   ██║██╔══██║██╔══██╗██║  ██║
+ ██║     ██║  ██║███████║██║  ██║██████╔╝╚██████╔╝██║  ██║██║  ██║██████╔╝
+ ╚═╝     ╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚═════╝  ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═════╝</pre>
+    <div class="typewriter" aria-live="polite">
+      <span id="typewriter-text"></span><span class="cursor"></span>
+    </div>
+    <div class="terminal" role="region" aria-label="Simulated terminal output">
+      <div class="terminal-header">
+        <span class="terminal-dot r"></span>
+        <span class="terminal-dot y"></span>
+        <span class="terminal-dot g"></span>
+      </div>
+      <div class="terminal-body" id="terminal-body" aria-live="polite"></div>
+      <div class="terminal-input-line" id="terminal-input-line">
+        <span class="terminal-prompt">$&nbsp;</span>
+        <input class="terminal-input" id="terminal-input" type="text"
+               placeholder="type a command..." autocomplete="off" spellcheck="false"
+               aria-label="Terminal command input">
+      </div>
+      <div class="terminal-output" id="terminal-output"></div>
+    </div>
+    <div class="video-placeholder" role="button" tabindex="0"
+         aria-label="Watch CLI demo video" data-video="cli">
+      <div class="cli-video-fallback">
+        <span>$ patchi scan ./src</span>
+        <span style="color:var(--high)">[HIGH] src/auth.js:123</span>
+        <span style="color:var(--fixed)">[FIXED] Credential externalized</span>
+        <span class="fake-cursor"></span>
+      </div>
+      <div class="play-icon"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ WEB DEPTH ═══ -->
+<section id="web-depth" class="depth" data-depth="web">
+  <div class="web-hero" aria-hidden="true"></div>
+  <div class="depth-content">
+    <div class="sub-hero" id="web-sub-hero">
+      <h2>The Colony Structure</h2>
+      <p class="subtitle">Every file is a node. Scouts move through them one by one,<br>
+      flagging what needs attention, while workers patch it before<br>
+      the scan finishes.</p>
+    </div>
+    <div class="video-placeholder" role="button" tabindex="0"
+         aria-label="Watch Web dashboard demo" data-video="web" style="margin:2rem auto">
+      <div class="web-video-fallback"><div class="pulse-node"></div></div>
+      <div class="play-icon"></div>
+    </div>
+    <div class="body-text" id="web-body">
+      <p>The colony's structure is visible now. Files as nodes, dependencies
+      as edges, the entire nest mapped in amber light. Scouts range across
+      your codebase — <strong style="color:var(--web-accent)">20 security agents</strong> covering
+      TaintAnalyzer, SecretScanner, ConfigAuditAgent, InjectionAgent,
+      AuthZAgent, CryptoAgent, and more — flagging what needs attention.
+      Workers patch it before the scan finishes. What was raw text in the
+      CLI is now a living graph you can read at a glance.</p>
+      <p>Patchi's agents run in parallel via a ThreadPoolExecutor coordinator.
+      The orchestrator deduplicates findings, correlates across agents, and
+      assigns composite risk scores. Every fix is re-scanned to verify
+      the finding is actually gone. No other coding agent does this.</p>
+    </div>
+    <div class="ui-chrome" id="web-chrome">
+      <button class="filter-btn" data-severity="high">Filter: HIGH</button>
+      <button class="filter-btn" data-severity="med">Filter: MED</button>
+      <button class="filter-btn" data-severity="all">Show All</button>
+      <button class="filter-btn" id="export-btn">Export</button>
+    </div>
+    <div class="body-text" id="web-health" style="margin-top:2rem">
+      <div style="background:#111;border:1px solid #333;border-radius:8px;padding:1.5rem;font-family:var(--font-mono);font-size:0.82rem">
+        <div style="color:var(--web-accent);font-weight:700;margin-bottom:0.75rem">Health Score Breakdown</div>
+        <div style="display:grid;grid-template-columns:1fr auto;gap:0.4rem 1rem;line-height:1.8">
+          <span>Security Posture (35%)</span><span style="color:var(--fixed)">82/100</span>
+          <span>Test Coverage (25%)</span><span style="color:var(--med)">64/100</span>
+          <span>Dead Code Ratio (20%)</span><span style="color:var(--fixed)">91/100</span>
+          <span>Dependency Health (10%)</span><span style="color:var(--high)">45/100</span>
+          <span>App Contract (10%)</span><span style="color:var(--info)">N/A</span>
+          <span style="font-weight:700;border-top:1px solid #333;padding-top:0.4rem">Total</span>
+          <span style="color:var(--web-accent);font-weight:700;border-top:1px solid #333;padding-top:0.4rem">74/100 (B)</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ HOSTED DEPTH ═══ -->
+<section id="hosted-depth" class="depth" data-depth="hosted">
+  <div class="hosted-hero" aria-hidden="true"></div>
+  <div class="depth-content">
+    <div class="hosted-hero" style="flex-direction:column;text-align:center;min-height:auto;padding:2rem 0">
+      <div class="massive-line" id="hosted-massive">The colony never sleeps.</div>
+      <h2 id="hosted-h2">Defended Territory</h2>
+      <p class="subtitle" id="hosted-sub">Your repos are watched constantly, around the clock.</p>
+    </div>
+    <div class="video-placeholder" role="button" tabindex="0"
+         aria-label="Watch Hosted mode demo" data-video="hosted" style="margin:2rem auto">
+      <div class="hosted-video-fallback"><div class="glow-orb"></div></div>
+      <div class="play-icon"></div>
+    </div>
+    <div class="body-text" id="hosted-body">
+      <p>Hosted mode is continuous, self-hosted, always-on defense. The colony
+      guards your territory around the clock — and critically, hosting is
+      user-controlled. Patchi does not run anyone's code on its own servers.
+      You own the infrastructure. You own the data. The soldiers stand
+      guard on your machines, not ours.</p>
+      <p>The colony grows its structure over time. Every scan feeds the test
+      loop. Every fix sharpens the rules. The pheromone trail of findings
+      makes the next scout faster, the next worker more precise.</p>
+      <p>Continuous CVE monitoring watches NVD, GHSA, and OSV feeds.
+      When a new vulnerability drops, Patchi re-scans your dependencies
+      automatically and alerts via your configured channels. The colony
+      never sleeps because threats never sleep.</p>
+    </div>
+    <div class="body-text" id="hosted-agents" style="margin-top:2rem">
+      <div style="background:#111;border:1px solid #333;border-radius:8px;padding:1.5rem;font-family:var(--font-mono);font-size:0.78rem;line-height:1.9">
+        <div style="color:var(--hosted-accent);font-weight:700;margin-bottom:0.5rem">20-Agent Security Surface</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.2rem 1.5rem">
+          <span>TaintAnalyzer</span><span>InjectionAgent</span>
+          <span>SecretScanner</span><span>AuthZAgent</span>
+          <span>ConfigAuditAgent</span><span>CryptoAgent</span>
+          <span>HeaderAuditAgent</span><span>NetworkAgent</span>
+          <span>RateLimitAuditor</span><span>PrivacyAgent</span>
+          <span>CORSAuditor</span><span>DepVulnerabilityAgent</span>
+          <span>DependencyCVEChecker</span><span>ComplianceAgent</span>
+          <span>MisconfigAgent</span><span>SecretsGuard</span>
+          <span>JWTSecurityAgent</span><span>SupplyChainAgent</span>
+          <span>SensitiveDataAgent</span><span>IaCScannerAgent</span>
+          <span>AuthAuditAgent</span><span>PolicyEngineAgent</span>
+          <span>SSRFProtectionAgent</span><span>CVEMonitorAgent</span>
+          <span style="color:var(--high)">SecurityProber (dev)</span><span>RedTeamAgent</span>
+          <span>PlanAuditorAgent</span><span style="color:var(--info)"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ CLOSING ═══ -->
+<section id="closing" class="depth" data-depth="closing">
+  <div class="depth-content">
+    <div class="closing-box">╔═══════════════════════════════════════════════╗
+║  <span class="highlight">PATCHI — Open Source Security Colony</span>  ║
+╚═══════════════════════════════════════════════╝
+
+$ <span class="highlight">patchi install</span>
+
+# One-line installs:
+# Apache-2.0 License — see LICENSE
+# Sponsored by the community
+# Issues: github.com/patchi/patchi/issues</div>
+    <div class="install-commands">
+      <button class="install-cmd" data-cmd="pip install patchi" aria-label="Copy pip install command">
+        <span class="prefix">$</span> pip install patchi
+        <span class="copied">Copied!</span>
+      </button>
+      <button class="install-cmd" data-cmd="npm install -g patchi" aria-label="Copy npm install command">
+        <span class="prefix">$</span> npm install -g patchi
+        <span class="copied">Copied!</span>
+      </button>
+      <button class="install-cmd" data-cmd="docker pull patchi/patchi" aria-label="Copy docker pull command">
+        <span class="prefix">$</span> docker pull patchi/patchi
+        <span class="copied">Copied!</span>
+      </button>
+    </div>
+    <div class="closing-meta">
+      Apache-2.0 License<br>
+      Python 3.11+ · Node.js 18+<br>
+      github.com/patchi/patchi
+    </div>
+  </div>
+</section>
+
+<script>
+(function(){
+'use strict';
+
+const CFG = {
+  WEB_NODES: 80,
+  HOSTED_NODES: 38,
+  MAX_ANTS: 15,
+  MAX_TRAILS: 8,
+  ANT_SPEED: { scout:[1800,3200], worker:[2800,4500], soldier:[4000,6500], ambient:[5000,8000] },
+  TERMINAL_LINES: [
+    { text:'$ patchi scan ./src', cls:'', delay:800 },
+    { text:'[INFO] Loading ruleset: semgrep-core, gitleaks, osv-scanner', cls:'tag-info', delay:500 },
+    { text:'[INFO] Scanning 1,247 files across 89 packages...', cls:'tag-info', delay:700 },
+    { text:'[HIGH] src/auth.js:123 — Hardcoded API key in function parameter', cls:'tag-high', delay:900 },
+    { text:'[MED]  src/db/query.js:45 — Potential SQL injection via string concat', cls:'tag-med', delay:450 },
+    { text:'[HIGH] src/config.yml:12 — Exposed database password in plain text', cls:'tag-high', delay:600 },
+    { text:'[MED]  src/utils/parser.py:88 — Unsafe deserialization (pickle)', cls:'tag-med', delay:500 },
+    { text:'[INFO] Running fix agent...', cls:'tag-info', delay:800 },
+    { text:'[HIGH] src/auth.js:123 → [FIXED] Credential moved to environment variable', cls:'tag-fixed', delay:1100 },
+    { text:'[MED]  src/db/query.js:45 → [FIXED] Parameterized query applied', cls:'tag-fixed', delay:600 },
+    { text:'[HIGH] src/config.yml:12 → [FIXED] Secret rotated and externalized to vault', cls:'tag-fixed', delay:700 },
+    { text:'[MED]  src/utils/parser.py:88 → [FIXED] Replaced pickle with json.loads', cls:'tag-fixed', delay:600 },
+    { text:'[INFO] Re-scanning patched files...', cls:'tag-info', delay:700 },
+    { text:'[INFO] Scan complete. 4 findings, 4 fixed, 0 remaining.', cls:'tag-info', delay:900 },
+    { text:'[INFO] Report written to ./patchi-report.json', cls:'tag-info', delay:500 },
+  ],
+  TYPEWRITER: 'An intelligent agent that scans, fixes, secures, and guards your app.',
+  WEB_FILES: [
+    'src/auth.js','src/db/query.js','src/config.yml','src/utils/parser.py',
+    'src/api/routes.js','src/middleware/cors.js','src/middleware/auth.js',
+    'src/models/user.py','src/services/crypto.py','src/services/email.py',
+    'src/tests/test_auth.py','src/tests/test_api.py','src/views/dashboard.tsx',
+    'src/views/login.tsx','src/components/Header.tsx','src/lib/validation.js',
+    'src/lib/sanitize.js','src/deps/package.json','src/deps/requirements.txt',
+    'src/deps/Cargo.toml','src/deploy/Dockerfile','src/deploy/docker-compose.yml',
+    'src/deploy/k8s/deployment.yaml','src/deploy/terraform/main.tf',
+    'src/core/scanner.py','src/core/fixer.py','src/core/coordinator.py',
+    'src/core/health.py','src/core/snapshot.py','src/core/queue.py',
+    'src/security/taint.py','src/security/secret_scan.py','src/security/config_audit.py',
+    'src/security/orchestrator.py','src/security/policy_engine.py','src/security/supply_chain.py',
+    'src/security/red_team.py','src/security/cve_monitor.py','src/security/plan_auditor.py',
+    'src/security/prechecks.py','src/security/governance.py','src/security/history.py',
+    'src/security/blast_radius.py','src/security/browser_tester.py','src/security/evidence.py',
+    'src/security/app_mapper.py','src/security/container_scanner.py','src/security/iac_scanner.py',
+    'src/cli/main.py','src/cli/commands/scan.py','src/cli/commands/fix.py',
+    'src/cli/commands/security.py','src/cli/commands/status.py','src/cli/commands/agents.py',
+    'src/cli/commands/ai.py','src/cli/commands/web.py','src/brain/parse.py',
+    'src/brain/framework.py','src/brain/routes.py','src/brain/import_graph.py',
+    'src/brain/contract.py','src/testing/unit_test.py','src/testing/api_test.py',
+    'src/testing/security_test.py','src/web/app.py','src/web/static/main.js',
+    'src/web/static/style.css','src/fix/security_fixer.py','src/fix/env_fixer.py',
+    'src/guard/risk_gate.py','src/guard/snapshot.py','src/hosted/anomaly.py',
+    'src/hosted/watchlist.py','src/hosted/log_parsers.py','src/hosted/tokens.py',
+    'src/hosted/ip_reputation.py','pyproject.toml','Makefile','Dockerfile',
+  ],
+};
+
+/* ── State ── */
+let currentDepth = 'cli';
+let terminalDone = false;
+let terminalRunning = false;
+let antCount = 0;
+let trailCount = 0;
+let activeAnts = [];
+let ticking = false;
+let lastScrollY = 0;
+let scrollVelocity = 0;
+const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ── DOM refs ── */
+const $ = s => document.querySelector(s);
+const $$ = s => document.querySelectorAll(s);
+const svg = $('#colony-svg');
+const webEdgesG = $('#web-edges');
+const webNodesG = $('#web-nodes');
+const hostedEdgesG = $('#hosted-edges');
+const hostedNodesG = $('#hosted-nodes');
+const svgAnts = $('#svg-ants');
+const svgPheromones = $('#svg-pheromones');
+const webGraphEl = $('#web-graph');
+const hostedGraphEl = $('#hosted-graph');
+const tooltip = $('#node-tooltip');
+const scrollProgress = $('#scroll-progress');
+const amberGlow = $('#amber-glow');
+const terminalPill = $('#terminal-pill');
+const videoModal = $('#video-modal');
+const cursorTrail = $('#cursor-trail');
+
+/* ═══ SVG GRAPH GENERATION ═══ */
+
+function generateGraph(count, w, h, clusterCount){
+  const nodes = [], edges = [];
+  const cx = w/2, cy = h/2;
+  const clusters = [];
+  for(let i=0;i<clusterCount;i++){
+    const angle = (i/clusterCount)*Math.PI*2 - Math.PI/2;
+    const r = Math.min(w,h)*0.32;
+    clusters.push({ x: cx+Math.cos(angle)*r, y: cy+Math.sin(angle)*r, files:[] });
+  }
+  const shuffled = [...CFG.WEB_FILES].sort(()=>Math.random()-0.5);
+  for(let i=0;i<count;i++){
+    const cluster = clusters[i % clusters.length];
+    nodes.push({
+      x: cluster.x + (Math.random()-0.5)*120,
+      y: cluster.y + (Math.random()-0.5)*120,
+      file: shuffled[i % shuffled.length],
+      findings: Math.random()<0.15 ? Math.floor(Math.random()*3)+1 : 0,
+      id: 'node-'+i,
+      cluster: i % clusters.length,
+    });
+    cluster.files.push(i);
+  }
+  for(let i=0;i<nodes.length;i++){
+    const same = nodes.filter((n,j)=>j!==i && n.cluster===nodes[i].cluster);
+    for(let c=0;c<Math.min(2,same.length);c++){
+      const target = same[Math.floor(Math.random()*same.length)];
+      const ti = nodes.indexOf(target);
+      if(!edges.find(e=>(e[0]===i&&e[1]===ti)||(e[0]===ti&&e[1]===i)))
+        edges.push([i, ti]);
+    }
+    if(Math.random()<0.08){
+      const other = nodes[Math.floor(Math.random()*nodes.length)];
+      const oi = nodes.indexOf(other);
+      if(other.cluster!==nodes[i].cluster && !edges.find(e=>(e[0]===i&&e[1]===oi)||(e[0]===oi&&e[1]===i)))
+        edges.push([i, oi]);
+    }
+  }
+  return {nodes, edges};
+}
+
+function renderGraph(container, graph, nodeClass, edgeClass){
+  container.innerHTML = '';
+  const el = (tag, attrs) => {
+    const e = document.createElementNS('http://www.w3.org/2000/svg', tag);
+    for(const [k,v] of Object.entries(attrs)) e.setAttribute(k,v);
+    return e;
+  };
+  graph.edges.forEach(([a,b])=>{
+    const na = graph.nodes[a], nb = graph.nodes[b];
+    container.appendChild(el('line',{x1:na.x,y1:na.y,x2:nb.x,y2:nb.y,class:edgeClass}));
+  });
+  graph.nodes.forEach((n,i)=>{
+    const attrs = {cx:n.x,cy:n.y,r:5,id:n.id,class:nodeClass,'data-file':n.file};
+    if(n.findings!==undefined) attrs['data-findings']=n.findings;
+    const circle = el('circle', attrs);
+    if(n.findings>0) circle.classList.add('pulse');
+    container.appendChild(circle);
+  });
+}
+
+const webGraph = generateGraph(CFG.WEB_NODES, 1200, 800, 8);
+
+function generateVillage(count, w, h){
+  const nodes = [], edges = [];
+  const cx = w/2, cy = h/2;
+  const clusters = [];
+  for(let i=0;i<5;i++){
+    const angle = (i/5)*Math.PI*2 - Math.PI/2;
+    const r = Math.min(w,h)*0.3;
+    clusters.push({ x:cx+Math.cos(angle)*r, y:cy+Math.sin(angle)*r });
+  }
+  const names = [
+    'auth-service','api-gateway','data-layer','web-frontend','infra',
+    'auth/routes','auth/middleware','auth/tokens','api/routes','api/middleware',
+    'data/models','data/migrations','data/cache','web/pages','web/components',
+    'infra/docker','infra/k8s','infra/terraform','infra/ci','infra/secrets',
+    'auth/session','auth/oauth','api/rate-limit','api/contracts','data/encryption',
+    'web/state','web/api-client','infra/monitoring','infra/logging','infra/backup',
+    'auth/roles','api/validators','data/validators','web/forms','infra/network',
+    'auth/audit','api/graphql','data/analytics','web/realtime','infra/deploy'
+  ];
+  for(let i=0;i<count;i++){
+    const cluster = clusters[i % clusters.length];
+    nodes.push({
+      x: cluster.x+(Math.random()-0.5)*90,
+      y: cluster.y+(Math.random()-0.5)*90,
+      file: names[i % names.length],
+      id: 'village-'+i,
+      cluster: i % clusters.length,
+    });
+  }
+  for(let i=0;i<nodes.length;i++){
+    const same = nodes.filter((n,j)=>j!==i && n.cluster===nodes[i].cluster);
+    if(same.length>0){
+      const target = same[Math.floor(Math.random()*same.length)];
+      const ti = nodes.indexOf(target);
+      if(!edges.find(e=>(e[0]===i&&e[1]===ti)||(e[0]===ti&&e[1]===i)))
+        edges.push([i, ti]);
+    }
+  }
+  return {nodes, edges};
+}
+const hostedGraph = generateVillage(CFG.HOSTED_NODES, 1200, 800);
+
+function renderVillage(container, graph){
+  container.innerHTML = '';
+  const el = (tag, attrs) => {
+    const e = document.createElementNS('http://www.w3.org/2000/svg', tag);
+    for(const [k,v] of Object.entries(attrs)) e.setAttribute(k,v);
+    return e;
+  };
+  graph.edges.forEach(([a,b])=>{
+    const na = graph.nodes[a], nb = graph.nodes[b];
+    container.appendChild(el('line',{x1:na.x,y1:na.y,x2:nb.x,y2:nb.y,class:'hosted-edge'}));
+  });
+  graph.nodes.forEach((n)=>{
+    // House shape: rect body + triangle roof
+    const g = el('g',{class:'hosted-node','data-file':n.file,id:n.id,transform:`translate(${n.x},${n.y})`});
+    // Body
+    g.appendChild(el('rect',{x:-7,y:-4,width:14,height:10,rx:1,fill:'#000'}));
+    // Roof
+    g.appendChild(el('polygon',{points:'-9,-4 0,-10 9,-4',fill:'#000'}));
+    container.appendChild(g);
+  });
+}
+
+/* ═══ ANT SYSTEM ═══ */
+
+function createAnt(x, y, state, pathNodes){
+  if(antCount >= CFG.MAX_ANTS || prefersReducedMotion) return null;
+  const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+  g.classList.add('ant-group');
+  const head = el('circle',{r:'1.5',cx:'0',cy:'0'});
+  head.classList.add('ant-body');
+  const thorax = el('rect',{x:'-1.25',y:'-3',width:'2.5',height:'2',rx:'0.8'});
+  thorax.classList.add('ant-body');
+  const abdomen = el('rect',{x:'-2',y:'-6.5',width:'4',height:'3',rx:'1.2'});
+  abdomen.classList.add('ant-body');
+  const cargo = el('circle',{r:'2',cx:'0',cy:'-5'});
+  cargo.classList.add('ant-cargo');
+  if(state==='worker') cargo.classList.add('active');
+  g.appendChild(abdomen);g.appendChild(thorax);g.appendChild(head);g.appendChild(cargo);
+  const scale = state==='soldier' ? ' scale(1.2)' : '';
+  g.setAttribute('transform',`translate(${x},${y})${scale}`);
+  svgAnts.appendChild(g);
+  antCount++;
+  function el(tag,attrs){const e=document.createElementNS('http://www.w3.org/2000/svg',tag);for(const[k,v]of Object.entries(attrs))e.setAttribute(k,v);return e;}
+  const speed = CFG.ANT_SPEED[state] || CFG.ANT_SPEED.ambient;
+  const duration = (speed[0]+Math.random()*(speed[1]-speed[0])) / (1 + scrollVelocity*0.5);
+  return { el:g, x, y, state, pathNodes, duration, startTime:performance.now(), progress:0, cargo };
+}
+
+function updateAnts(now){
+  if(prefersReducedMotion) return;
+  activeAnts = activeAnts.filter(ant => {
+    const elapsed = now - ant.startTime;
+    ant.progress = Math.min(1, elapsed / ant.duration);
+    if(ant.progress >= 1){
+      ant.el.remove(); antCount--;
+      // Fix ripple: green ring on arrival for worker ants
+      if(ant.state==='worker' && ant.pathNodes.length>=2){
+        const last = ant.pathNodes[ant.pathNodes.length-1];
+        const ripple = document.createElementNS('http://www.w3.org/2000/svg','circle');
+        ripple.setAttribute('cx',last.x);ripple.setAttribute('cy',last.y);
+        ripple.setAttribute('r','5');ripple.setAttribute('fill','none');
+        ripple.setAttribute('stroke','#44FF44');ripple.setAttribute('stroke-width','2');
+        ripple.setAttribute('opacity','0.8');
+        svgPheromones.appendChild(ripple);
+        let t=0;
+        const animRipple=()=>{
+          t+=16;
+          const p=Math.min(1,t/1200);
+          ripple.setAttribute('r', 5+p*25);
+          ripple.setAttribute('opacity', 0.8*(1-p));
+          if(p<1) requestAnimationFrame(animRipple);
+          else ripple.remove();
+        };
+        requestAnimationFrame(animRipple);
+      }
+      return false;
+    }
+    if(ant.pathNodes && ant.pathNodes.length>=2){
+      const totalSeg = ant.pathNodes.length-1;
+      const segFloat = ant.progress * totalSeg;
+      const segIdx = Math.min(Math.floor(segFloat), totalSeg-1);
+      const segT = segFloat - segIdx;
+      const from = ant.pathNodes[segIdx], to = ant.pathNodes[segIdx+1];
+      const x = from.x+(to.x-from.x)*segT;
+      const y = from.y+(to.y-from.y)*segT;
+      const angle = Math.atan2(to.x-from.x, -(to.y-from.y))*(180/Math.PI);
+      const sc = ant.state==='soldier' ? ' scale(1.2)' : '';
+      ant.el.setAttribute('transform',`translate(${x},${y}) rotate(${angle})${sc}`);
+      ant.x=x; ant.y=y;
+
+      // Pheromone trail (scout only)
+      if(ant.state==='scout' && trailCount < CFG.MAX_TRAILS && Math.random()<0.15){
+        const trail = document.createElementNS('http://www.w3.org/2000/svg','circle');
+        trail.setAttribute('cx',x);trail.setAttribute('cy',y);
+        trail.setAttribute('r','3');trail.setAttribute('fill','none');
+        trail.setAttribute('stroke','#FF4444');trail.setAttribute('stroke-width','2');
+        trail.setAttribute('opacity','0.5');
+        trail.classList.add('pheromone-trail','active');
+        svgPheromones.appendChild(trail);
+        trailCount++;
+        setTimeout(()=>{trail.remove();trailCount--;},2500);
+      }
+    }
+    return true;
+  });
+}
+
+function spawnScout(targetNode){
+  if(!targetNode || prefersReducedMotion) return;
+  const cx = parseFloat(targetNode.getAttribute('cx'))||0;
+  const cy = parseFloat(targetNode.getAttribute('cy'))||0;
+  const sx = Math.random()*1200, sy = Math.random()*800;
+  const ant = createAnt(sx,sy,'scout',[{x:sx,y:sy},{x:cx,y:cy}]);
+  if(ant) activeAnts.push(ant);
+  setTimeout(()=>{
+    targetNode.style.transition='fill 0.3s';
+    targetNode.style.fill='#FF4444';
+    setTimeout(()=>{targetNode.style.fill='';targetNode.style.transition='';},600);
+  }, ant?ant.duration*0.9:2000);
+}
+
+function spawnWorker(targetNode){
+  if(!targetNode || prefersReducedMotion) return;
+  const cx = parseFloat(targetNode.getAttribute('cx'))||0;
+  const cy = parseFloat(targetNode.getAttribute('cy'))||0;
+  const sx = Math.random()*1200, sy = Math.random()*800;
+  const ant = createAnt(sx,sy,'worker',[{x:sx,y:sy},{x:cx,y:cy}]);
+  if(ant) activeAnts.push(ant);
+  setTimeout(()=>{
+    targetNode.style.transition='fill 0.3s';
+    targetNode.style.fill='#44FF44';
+    setTimeout(()=>{targetNode.style.fill='';targetNode.style.transition='';},800);
+  }, ant?ant.duration*0.9:3000);
+}
+
+/* Ambient ants */
+let ambientInterval = null;
+function startAmbientAnts(){
+  if(ambientInterval || prefersReducedMotion) return;
+  ambientInterval = setInterval(()=>{
+    if(currentDepth!=='web' || antCount>=CFG.MAX_ANTS) return;
+    const nodes = webNodesG.querySelectorAll('circle.node');
+    if(nodes.length===0) return;
+    const n1=nodes[Math.floor(Math.random()*nodes.length)];
+    const n2=nodes[Math.floor(Math.random()*nodes.length)];
+    if(n1===n2) return;
+    const ant = createAnt(
+      parseFloat(n1.getAttribute('cx')),parseFloat(n1.getAttribute('cy')),
+      'ambient',
+      [{x:parseFloat(n1.getAttribute('cx')),y:parseFloat(n1.getAttribute('cy'))},
+       {x:parseFloat(n2.getAttribute('cx')),y:parseFloat(n2.getAttribute('cy'))}]
+    );
+    if(ant) activeAnts.push(ant);
+  }, 2500);
+}
+function stopAmbientAnts(){if(ambientInterval){clearInterval(ambientInterval);ambientInterval=null;}}
+
+/* ═══ SCROLL & DEPTH ═══ */
+
+function getScrollProgress(){
+  const docH = document.documentElement.scrollHeight - window.innerHeight;
+  return docH>0 ? window.scrollY/docH : 0;
+}
+
+function updateDepth(){
+  const cli=$('#cli-depth'),web=$('#web-depth'),hosted=$('#hosted-depth');
+  const cliR=cli.getBoundingClientRect(),webR=web.getBoundingClientRect(),hostedR=hosted.getBoundingClientRect();
+  const vh=window.innerHeight;
+  let newDepth='cli';
+  if(hostedR.top<vh*0.5 && hostedR.bottom>vh*0.3) newDepth='hosted';
+  else if(webR.top<vh*0.5 && webR.bottom>vh*0.3) newDepth='web';
+
+  if(newDepth!==currentDepth){
+    currentDepth=newDepth;
+    document.body.style.background = newDepth==='cli'?'var(--cli-bg)':newDepth==='web'?'var(--web-bg)':'var(--hosted-bg)';
+    svg.classList.toggle('visible',newDepth!=='cli');
+    webGraphEl.style.display = newDepth==='web'?'':'none';
+    hostedGraphEl.style.display = newDepth==='hosted'?'':'none';
+    amberGlow.classList.toggle('active',newDepth==='hosted');
+    if(newDepth==='web') startAmbientAnts(); else stopAmbientAnts();
+  }
+  updateSVGViewBox();
+  terminalPill.classList.toggle('visible',cliR.bottom<0 && !terminalRunning);
+}
+
+function updateSVGViewBox(){
+  const p = getScrollProgress();
+  let vb;
+  if(p < 0.2){
+    vb = '400 300 400 200';
+  } else if(p < 0.3){
+    const t = (p-0.2)/0.1;
+    const scale = 400 + t*200;
+    vb = `${600-scale/2} ${400-scale/4} ${scale} ${scale/2}`;
+  } else if(p < 0.5){
+    vb = '0 0 1200 800';
+  } else if(p < 0.6){
+    const t = (p-0.5)/0.1;
+    const scale = 1200 - t*800;
+    vb = `${600-scale/2} ${400-scale/4} ${scale} ${scale/2}`;
+  } else {
+    vb = '0 0 1200 800';
+  }
+  svg.setAttribute('viewBox', vb);
+}
+
+/* ═══ OBSERVERS ═══ */
+
+function setupObservers(){
+  const cliObs = new IntersectionObserver((entries)=>{
+    entries.forEach(e=>{
+      if(e.isIntersecting && e.intersectionRatio>0.25 && !terminalRunning && !terminalDone)
+        runTerminalSimulation();
+    });
+  },{threshold:[0.25,0.5,0.75,1]});
+  cliObs.observe($('#cli-depth'));
+
+  const heroObs = new IntersectionObserver((entries)=>{
+    entries.forEach(e=>{if(e.isIntersecting) e.target.classList.add('visible');});
+  },{threshold:0.6});
+  heroObs.observe($('#web-sub-hero'));
+  heroObs.observe($('#hosted-massive'));
+  heroObs.observe($('#hosted-h2'));
+
+  const bodyObs = new IntersectionObserver((entries)=>{
+    entries.forEach(e=>{if(e.isIntersecting) e.target.classList.add('visible');});
+  },{threshold:0.3});
+  $$('.body-text').forEach(el=>bodyObs.observe(el));
+
+  const chromeObs = new IntersectionObserver((entries)=>{
+    entries.forEach(e=>{if(e.isIntersecting) e.target.classList.add('visible');});
+  },{threshold:0.5});
+  chromeObs.observe($('#web-chrome'));
+}
+
+/* ═══ TERMINAL ═══ */
+
+function runTerminalSimulation(){
+  if(terminalRunning||terminalDone) return;
+  terminalRunning=true;
+  const body=$('#terminal-body'), inputLine=$('#terminal-input-line');
+  let totalDelay=0;
+  CFG.TERMINAL_LINES.forEach((line,i)=>{
+    totalDelay+=line.delay;
+    setTimeout(()=>{
+      const div=document.createElement('div');
+      div.className='terminal-line '+line.cls;
+      div.textContent=line.text;
+      body.appendChild(div);
+      requestAnimationFrame(()=>{requestAnimationFrame(()=>{div.classList.add('visible');});});
+      body.scrollTop=body.scrollHeight;
+      if(i===CFG.TERMINAL_LINES.length-1){
+        setTimeout(()=>{
+          inputLine.classList.add('visible');
+          $('#terminal-input').focus();
+          terminalDone=true;terminalRunning=false;
+        },400);
+      }
+    },totalDelay);
+  });
+}
+
+function setupTerminalInput(){
+  const input=$('#terminal-input'),output=$('#terminal-output');
+  input.addEventListener('keydown',(e)=>{
+    if(e.key!=='Enter') return;
+    const cmd=input.value.trim().toLowerCase();
+    input.value='';output.textContent='';
+    if(cmd==='scan'){
+      output.textContent='[INFO] Scanning 1,247 files...\n[INFO] 4 findings detected';
+      const nodes=webNodesG.querySelectorAll('circle.node.pulse');
+      if(nodes.length>=2){spawnScout(nodes[0]);setTimeout(()=>spawnScout(nodes[1]),300);}
+    } else if(cmd==='fix'){
+      output.textContent='[INFO] Applying patches...\n[FIXED] 4/4 fixes applied';
+      const nodes=webNodesG.querySelectorAll('circle.node.pulse');
+      if(nodes.length>=2){spawnWorker(nodes[0]);setTimeout(()=>spawnWorker(nodes[1]),500);}
+    } else if(cmd==='guard'){
+      output.textContent='[INFO] Switching to Hosted mode...';
+      $('#hosted-depth').scrollIntoView({behavior:'smooth'});
+    } else if(cmd==='help'){
+      output.textContent='Available commands:\n  scan  — Run a security scan\n  fix   — Apply security patches\n  guard — Switch to Hosted view\n  help  — Show this message';
+    } else {
+      output.textContent=`Unknown command: ${cmd}. Type "help" for available commands.`;
+    }
+  });
+}
+
+/* ═══ TYPEWRITER ═══ */
+
+function setupTypewriter(){
+  const el=$('#typewriter-text'),text=CFG.TYPEWRITER;
+  let i=0;
+  const type=()=>{if(i<text.length){el.textContent+=text[i];i++;setTimeout(type,35+Math.random()*45);}};
+  const obs=new IntersectionObserver((entries)=>{
+    if(entries[0].isIntersecting){type();obs.disconnect();}
+  },{threshold:0.5});
+  obs.observe(el.parentElement);
+}
+
+/* ═══ TOOLTIPS ═══ */
+
+function setupTooltips(){
+  document.addEventListener('mousemove',(e)=>{
+    const t=e.target;
+    if(t.classList.contains('node')||t.classList.contains('hosted-node')){
+      const file=t.getAttribute('data-file')||'unknown';
+      const findings=t.getAttribute('data-findings')||'0';
+      tooltip.querySelector('.tt-file').textContent=file;
+      tooltip.querySelector('.tt-meta').textContent=`${findings} finding${findings==='1'?'':'s'} · last scan: 2m ago`;
+      tooltip.style.left=(e.clientX+12)+'px';
+      tooltip.style.top=(e.clientY+12)+'px';
+      tooltip.classList.add('visible');
+    } else {
+      tooltip.classList.remove('visible');
+    }
+  });
+}
+
+/* ═══ PHEROMONE CURSOR (Web depth) ═══ */
+
+let lastCursorTrail = 0;
+function setupCursorTrail(){
+  document.addEventListener('mousemove',(e)=>{
+    if(currentDepth!=='web') {cursorTrail.style.opacity='0';return;}
+    const now=Date.now();
+    if(now-lastCursorTrail<100) return;
+    lastCursorTrail=now;
+    cursorTrail.style.left=e.clientX+'px';
+    cursorTrail.style.top=e.clientY+'px';
+    cursorTrail.style.opacity='0.6';
+    clearTimeout(cursorTrail._hideTimer);
+    cursorTrail._hideTimer=setTimeout(()=>{cursorTrail.style.opacity='0';},1500);
+  });
+}
+
+/* ═══ FILTERS ═══ */
+
+function setupFilters(){
+  $$('.filter-btn[data-severity]').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      $$('.filter-btn[data-severity]').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      const sev=btn.dataset.severity;
+      webNodesG.querySelectorAll('circle.node').forEach(n=>{
+        const f=parseInt(n.getAttribute('data-findings')||'0');
+        n.style.opacity = sev==='all'?'1':sev==='high'?(f>=2?'1':'0.2'):(f===1?'1':'0.2');
+      });
+    });
+  });
+}
+
+/* ═══ VIDEO MODAL ═══ */
+
+function setupVideoModal(){
+  $$('.video-placeholder').forEach(p=>{
+    p.addEventListener('click',()=>{videoModal.classList.add('open');});
+    p.addEventListener('keydown',(e)=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();videoModal.classList.add('open');}});
+  });
+  $('.modal-close').addEventListener('click',()=>{videoModal.classList.remove('open');});
+  videoModal.addEventListener('click',(e)=>{if(e.target===videoModal) videoModal.classList.remove('open');});
+  document.addEventListener('keydown',(e)=>{if(e.key==='Escape') videoModal.classList.remove('open');});
+}
+
+/* ═══ INSTALL COPY ═══ */
+
+function setupInstallCopy(){
+  $$('.install-cmd[data-cmd]').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      navigator.clipboard.writeText(btn.dataset.cmd).then(()=>{
+        btn.classList.add('copied');
+        setTimeout(()=>btn.classList.remove('copied'),1500);
+      });
+    });
+  });
+}
+
+/* ═══ EXPORT ═══ */
+
+function setupExport(){
+  $('#export-btn').addEventListener('click',()=>{
+    const report={
+      tool:'patchi',version:'0.6.0',scan_date:new Date().toISOString(),
+      health_score:{total:74,grade:'B',security:82,test_coverage:64,dead_code:91,dependency:45},
+      findings:[
+        {file:'src/auth.js',line:123,severity:'high',rule:'hardcoded-credential',status:'fixed'},
+        {file:'src/db/query.js',line:45,severity:'medium',rule:'sql-injection',status:'fixed'},
+        {file:'src/config.yml',line:12,severity:'high',rule:'exposed-secret',status:'fixed'},
+        {file:'src/utils/parser.py',line:88,severity:'medium',rule:'unsafe-deserialization',status:'fixed'},
+      ],
+      agents_run:20,scan_duration_ms:4200,
+    };
+    const blob=new Blob([JSON.stringify(report,null,2)],{type:'application/json'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');a.href=url;a.download='patchi-report.json';a.click();
+    URL.revokeObjectURL(url);
+  });
+}
+
+/* ═══ ANIMATION LOOP ═══ */
+
+function animationLoop(now){
+  updateAnts(now);
+  requestAnimationFrame(animationLoop);
+}
+
+/* ═══ SCROLL ═══ */
+
+function onScroll(){
+  if(!ticking){
+    requestAnimationFrame(()=>{
+      scrollVelocity = Math.abs(window.scrollY - lastScrollY);
+      lastScrollY = window.scrollY;
+      updateDepth();
+      scrollProgress.style.width = (getScrollProgress()*100)+'%';
+      ticking=false;
+    });
+    ticking=true;
+  }
+}
+
+/* ═══ INIT ═══ */
+
+function init(){
+  renderGraph(webNodesG, webGraph, 'node', 'edge');
+  renderVillage(hostedNodesG, hostedGraph);
+  svg.setAttribute('viewBox','400 300 400 200');
+
+  setupObservers();
+  setupTerminalInput();
+  setupTypewriter();
+  setupTooltips();
+  setupFilters();
+  setupVideoModal();
+  setupInstallCopy();
+  setupExport();
+  setupCursorTrail();
+
+  window.addEventListener('scroll',onScroll,{passive:true});
+  updateDepth();
+  requestAnimationFrame(animationLoop);
+}
+
+if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init);
+else init();
+
+})();
+</script>
+</body>
+</html>

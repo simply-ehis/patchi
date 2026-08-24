@@ -1,0 +1,280 @@
+playbooks:
+- playbook_id: MCP-01
+  control_name: No token passthrough — validate token audience before use
+  summary: Check who a token was issued for before you use it — never just relay it.
+  remediation_steps:
+  - At every point the MCP server receives a bearer token from a client, validate
+    the token's audience (aud) claim matches this server's own identifier before doing
+    anything else with it.
+  - Reject the request outright (401/403) if the audience does not match — do not
+    fall back to forwarding the token to a downstream API 'just in case' it works
+    there.
+  - If the server genuinely needs to call a downstream API on the user's behalf, mint
+    or exchange for a new, separately-scoped downstream token rather than reusing
+    the inbound token verbatim.
+  - Log rejected audience mismatches — a pattern of these is a signal of probing or
+    misconfigured clients.
+  implementation_notes:
+  - If using a standard OAuth/OIDC library, audience validation is usually a single
+    config flag (e.g. audience= parameter in most JWT verification libraries) — the
+    common failure mode is skipping this because 'the token is otherwise valid.'
+  verification:
+  - 'Test: present a validly-signed token issued for a different audience and confirm
+    the server rejects it rather than proxying it downstream.'
+  references:
+  - MCP Specification, Security Best Practices — Token Passthrough
+  control_id: MCP-01
+- playbook_id: MCP-02
+  control_name: Non-deterministic, user-bound session identifiers
+  summary: Make session IDs unguessable, and never let them substitute for authentication.
+  remediation_steps:
+  - Generate session IDs using a cryptographically secure random number generator
+    (e.g. UUIDv4 via a CSPRNG), never sequential counters, timestamps, or hashes of
+    predictable inputs.
+  - Bind each session ID to the authenticated user's identity server-side, e.g. store/key
+    it as <user_id>:<session_id>, so a leaked session ID alone cannot be replayed
+    as another user.
+  - On every request, re-verify the caller's authentication (token/credential) independent
+    of the session ID — never treat 'has a valid session ID' as sufficient proof of
+    identity on its own.
+  - Rotate or expire session IDs on a reasonable interval, and invalidate them on
+    logout or credential change.
+  implementation_notes:
+  - If sessions are shared across multiple server instances via a queue or shared
+    store (as in streamable-HTTP resumable-stream designs), make sure the user-binding
+    is checked at the point of resumption/redelivery too, not just at initial connect.
+  verification:
+  - 'Test: attempt to reuse a valid session ID without presenting the associated authentication
+    and confirm access is denied.'
+  - 'Review: confirm the session-ID generator is a CSPRNG-backed function, not a custom
+    or predictable generator.'
+  references:
+  - MCP Specification, Security Best Practices — Session Hijacking
+  control_id: MCP-02
+- playbook_id: MCP-03
+  control_name: SSRF protection on server-influenced or discovery-time URLs
+  summary: Don't blindly fetch whatever URL another party hands you — block internal
+    targets.
+  remediation_steps:
+  - Enforce HTTPS for all OAuth-related and discovery-time URLs in production; allow
+    http:// only for loopback addresses during local development, with an explicit
+    opt-out flag.
+  - 'Block outbound requests to private/reserved IP ranges: 10.0.0.0/8, 172.16.0.0/12,
+    192.168.0.0/16, 127.0.0.0/8, 169.254.0.0/16 (this includes cloud metadata endpoints),
+    and IPv6 equivalents (fc00::/7, fe80::/10).'
+  - Use a well-tested IP-range validation library rather than hand-rolled parsing
+    — attackers exploit octal/hex/IPv4-mapped-IPv6 encoding tricks that custom parsers
+    often miss.
+  - Apply the same HTTPS and IP-range checks to redirect targets; consider disabling
+    automatic redirect-following and validating each hop manually.
+  - Where feasible, route this traffic through an egress proxy that enforces the network
+    policy centrally (e.g. Smokescreen or an equivalent), rather than relying solely
+    on in-process checks.
+  - 'Be aware of DNS rebinding (TOCTOU): a domain can resolve safely at validation
+    time and to an internal IP at request time. Pin the resolved IP between check
+    and use where possible.'
+  implementation_notes:
+  - This applies both to MCP clients doing OAuth discovery and to MCP servers that
+    themselves make outbound calls based on data received from another party.
+  verification:
+  - 'Test: point a discovery URL at 169.254.169.254 and at an RFC1918 address and
+    confirm both are blocked.'
+  - 'Test: use a DNS-rebinding domain (resolves safely then to an internal IP) and
+    confirm the second resolution is still blocked (pinning works).'
+  references:
+  - MCP Specification, Security Best Practices — Server-Side Request Forgery (SSRF)
+  - OWASP SSRF Prevention Cheat Sheet
+  control_id: MCP-03
+- playbook_id: MCP-04
+  control_name: Per-client consent to prevent confused-deputy attacks (proxy servers
+    only)
+  summary: Check your own consent registry before forwarding to the third party —
+    don't rely on their cookie.
+  remediation_steps:
+  - Maintain a server-side registry mapping (user, client_id) -> consent decision,
+    checked before initiating any third-party authorization redirect.
+  - Show a consent screen that clearly names the requesting MCP client and the specific
+    third-party scopes being requested, bound to that client_id specifically (not
+    a generic 'you have consented' flag).
+  - Only set the state-tracking cookie/session immediately before redirecting to the
+    third-party identity provider, and only after consent has been explicitly approved
+    — never before.
+  - Validate the OAuth state parameter exactly matches at the callback, reject on
+    mismatch or absence, and make state values single-use with a short expiry (e.g.
+    10 minutes).
+  - Validate redirect_uri with exact string matching against the registered value
+    — no wildcards or pattern matching.
+  - 'Apply CSRF protections and clickjacking protections (frame-ancestors CSP or X-Frame-Options:
+    DENY) on the consent page itself.'
+  implementation_notes:
+  - This control only applies if the server is acting as an OAuth proxy with a static
+    client_id toward a third-party authorization server. If the server is not a proxy,
+    this control doesn't apply — see the domain file's activation logic conceptually
+    (per-control applicability, not a separate activation signal here).
+  verification:
+  - 'Test: attempt the documented confused-deputy attack flow (dynamically register
+    a malicious client, rely on an existing consent cookie) and confirm the per-client
+    consent registry blocks the bypass.'
+  references:
+  - MCP Specification, Security Best Practices — Confused Deputy Problem
+  control_id: MCP-04
+- playbook_id: MCP-05
+  control_name: Incremental, least-privilege OAuth scope model
+  summary: Start small, ask for more only when actually needed.
+  remediation_steps:
+  - Define a minimal baseline scope (e.g. mcp:tools-basic) covering only low-risk
+    discovery/read operations, and require nothing more for initial connection.
+  - When a privileged operation is first attempted, issue a targeted WWW-Authenticate
+    scope="..." challenge naming only the specific scope needed for that operation
+    — not the full catalog of available scopes.
+  - Accept down-scoped tokens gracefully; do not require all-or-nothing consent for
+    the full scope set.
+  - Remove wildcard/omnibus scopes (*, all, full-access) from scopes_supported entirely.
+  - Log scope-elevation events (scope requested, scope granted) with correlation IDs
+    for audit.
+  implementation_notes:
+  - 'Common mistake to specifically check for: publishing every possible scope in
+    scopes_supported ''just in case,'' which defeats the incremental model even if
+    the challenge logic is otherwise correct.'
+  verification:
+  - 'Review: confirm scopes_supported contains no wildcard/omnibus entries.'
+  - 'Test: attempt a privileged operation with only baseline scope and confirm the
+    server issues a precise, narrow elevation challenge rather than requesting broad
+    access.'
+  references:
+  - MCP Specification, Security Best Practices — Scope Minimization
+  control_id: MCP-05
+- playbook_id: MCP-06
+  control_name: Sandboxing and transport restriction for locally-run MCP servers
+  summary: Don't leave a local server reachable by anything other than its intended
+    client.
+  remediation_steps:
+  - Prefer the stdio transport for local servers, which inherently limits access to
+    the process that spawned it (the intended MCP client).
+  - If an HTTP transport must be used locally, require an authorization token on every
+    request, or switch to a unix domain socket / other IPC mechanism with OS-level
+    access restriction rather than an open TCP port.
+  - 'If your architecture uses a proxy that spawns MCP servers as child processes
+    over stdio, treat that proxy as a privileged boundary: sandbox/containerize spawned
+    processes, restrict their filesystem access, and log all stdio usage.'
+  - Never accept unauthenticated commands from a config file or one-click install
+    flow without a clear, non-truncated confirmation of the exact command to be executed.
+  implementation_notes:
+  - This control targets the server side; the corresponding client-side consent-dialog
+    requirements ('MUST show the exact command,' etc.) belong to whatever component
+    hosts/launches the server, not the tool itself — flag this to that component's
+    owner if you don't control it.
+  verification:
+  - 'Test: attempt to connect to a local HTTP-transport server from an unauthenticated
+    local process and confirm it is rejected.'
+  - 'Review: confirm stdio is used wherever feasible, and that any local HTTP listener
+    enforces a token check.'
+  references:
+  - MCP Specification, Security Best Practices — Local MCP Server Compromise
+  control_id: MCP-06
+- playbook_id: MCP-07
+  control_name: Reject dangerous URL schemes in any server-supplied authorization
+    URL
+  summary: Only ever hand clients http(s) URLs — nothing a browser or shell could
+    misinterpret.
+  remediation_steps:
+  - Restrict any URL this server constructs and sends to a client (authorization endpoints,
+    redirect targets) to an explicit allowlist of http (loopback-only) and https schemes.
+  - Never dynamically construct these URLs by concatenating unsanitized input; use
+    a proper URL-building library instead of string concatenation.
+  - Add an automated check in CI that scans for any URL-construction code path reachable
+    from server-to-client responses and confirms scheme restriction is applied.
+  implementation_notes:
+  - This is the server-side discipline that makes the client-side validation (which
+    the MCP spec mandates clients perform) actually meaningful in practice — a well-behaved
+    server should never produce something a compliant client has to catch.
+  verification:
+  - 'Test: attempt to make the server emit a javascript: or data: URL through any
+    authorization-flow code path and confirm the URL-construction layer rejects/strips
+    it before it reaches a response.'
+  references:
+  - MCP Specification, Security Best Practices — OAuth Authorization URL Validation
+    (server-side corollary of the client-side MUSTs; see domain file source_clause
+    note)
+  control_id: MCP-07
+- playbook_id: MCP-08
+  control_name: Strict schema validation of inbound tool-call arguments
+  summary: Validate every argument before you touch it — authentication is not the
+    same as safe input.
+  remediation_steps:
+  - 'Define an explicit schema (JSON Schema, Pydantic model, Zod schema, etc.) for
+    every tool''s arguments: required/optional fields, types, ranges, and allowed
+    enum values.'
+  - Validate incoming tool-call arguments against that schema before any business
+    logic runs, and reject (not coerce) calls with unexpected extra fields, wrong
+    types, or out-of-range values.
+  - Do not assume that because the calling agent authenticated successfully, its argument
+    content is safe — authentication and input validation are separate concerns and
+    both are required.
+  - For any argument that will be used to construct a downstream query, command, or
+    file path, apply the argument-specific defenses appropriate to that sink (parameterized
+    queries, path canonicalization/allowlisting, command-argument arrays instead of
+    shell strings) in addition to the schema check.
+  implementation_notes:
+  - Version your tool argument schemas; when a schema changes, reject calls using
+    an unrecognized/outdated shape rather than silently accepting a superset.
+  verification:
+  - 'Test: send a tool call with an out-of-range value, an unexpected extra field,
+    and a type mismatch, and confirm each is rejected with a clear error rather than
+    processed.'
+  references:
+  - Adapted from OWASP API Security Top 10 2023, API8:2023 Security Misconfiguration
+    and API3:2023 Broken Object Property Level Authorization
+  control_id: MCP-08
+- playbook_id: MCP-09
+  control_name: Do not let downstream/tool output be consumed as trusted without validation
+  summary: Check what comes back from the systems you call before handing it to the
+    agent.
+  remediation_steps:
+  - When this tool calls another API/service and relays the response, validate that
+    response against an expected schema (type, size, content-type) before returning
+    it to the calling agent.
+  - Set explicit size limits on relayed downstream content to prevent a compromised
+    or malfunctioning downstream service from flooding the agent's context.
+  - Strip or flag content in the downstream response that resembles an embedded instruction/directive
+    before passing it along, since a compromised downstream service is a viable indirect-prompt-injection
+    vector into the calling agent.
+  - Treat downstream error messages carefully — don't relay raw stack traces or internal
+    error detail from a downstream system straight through to the calling agent.
+  implementation_notes:
+  - This control is about the tool's role as a relay; it complements (and does not
+    replace) the calling agent/orchestrator's own untrusted-content handling (see
+    agent-orchestration domain, AGT-01).
+  verification:
+  - 'Test: have the downstream dependency (or a stub of it) return an oversized or
+    malformed payload and confirm the tool sanitizes/rejects it rather than passing
+    it straight through.'
+  references:
+  - Adapted from OWASP API Security Top 10 2023, API10:2023 Unsafe Consumption of
+    APIs
+  control_id: MCP-09
+- playbook_id: MCP-10
+  control_name: Least-privilege downstream credentials held by the tool itself
+  summary: Give the tool only the downstream access it actually needs — not a shared,
+    broad service account.
+  remediation_steps:
+  - Inventory the downstream systems (databases, internal APIs, cloud resources) this
+    tool touches, and scope its credential to only the operations its declared functions
+    require.
+  - Replace any shared service account used across multiple unrelated tools with a
+    per-tool credential, so a compromise of one tool doesn't grant reach into systems
+    that tool never needed.
+  - Where the downstream is cloud-native, express this as a dedicated IAM role/policy
+    for the tool rather than reusing the broader application's execution role.
+  - Periodically review the credential's actual usage against its granted scope and
+    trim unused permissions.
+  implementation_notes:
+  - 'This is distinct from MCP-05 (client-facing OAuth scope): MCP-05 concerns what
+    the calling agent is allowed to request of this server; MCP-10 concerns what this
+    server/tool is allowed to do to its own downstream systems.'
+  verification:
+  - 'Review: confirm the tool''s downstream credential does not exceed what its declared
+    function set requires (e.g. a read-only reporting tool does not hold write credentials).'
+  references:
+  - Adapted from OWASP API Security Top 10 2023, API5:2023 Broken Function Level Authorization
+  control_id: MCP-10

@@ -1,0 +1,34 @@
+[Unit]
+Description=Patchi Hosted Guard — live application monitoring
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=patchi
+Group=patchi
+WorkingDirectory=/opt/patchi
+ExecStart=/opt/patchi/venv/bin/patchi hosted daemon --guard
+Restart=on-failure
+RestartSec=5
+StartLimitBurst=10
+StartLimitIntervalSec=3600
+
+# Environment
+Environment=PATH=/opt/patchi/venv/bin:/usr/bin:/usr/local/bin
+Environment=PATCHI_ROOT=/opt/patchi/data
+
+# Hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/patchi/data
+PrivateTmp=true
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=patchi-guard
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,503 @@
+playbooks:
+- blast_radius_notes: SCM platform configuration, not a code change; enabling protection
+    can block direct pushes some workflows may have relied on, so confirm the team's
+    actual merge workflow first.
+  control_id: CICD-01
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - A human confirms branch protection is enabled on all production/sensitive branches
+    via the SCM platform's settings, with no user or branch exclusions.
+- blast_radius_notes: Access-control change across two systems (SCM and CI/CD); may
+    require restructuring roles if the same engineers currently hold both permissions
+    by default.
+  control_id: CICD-02
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - A human cross-references SCM push permissions against CI/CD deployment-trigger
+    permissions and revokes deployment-trigger access from any account that can also
+    push unreviewed code.
+- blast_radius_notes: Narrowing auto-merge scope may require manual review for PR
+    types that previously auto-merged — expect a short-term increase in manual review
+    volume.
+  control_id: CICD-03
+  deterministic_tool: null
+  fix_strategy: llm-template-fill
+  human_review_required: true
+  llm_fix_template: "\"Given an auto-merge rule/workflow {automerge_config} with broad\
+    \ applicability or\n logic influenced by PR content/third-party code: narrow the\
+    \ rule's scope to the\n minimal necessary contexts (e.g. dependency-update PRs\
+    \ from a single trusted bot\n only), remove any dependency on third-party code\
+    \ in the merge decision, and add\n explicit conditions that cannot be satisfied\
+    \ by attacker-controlled PR content;\n preserve legitimate low-risk auto-merge\
+    \ use cases.\"\n"
+  playbook_version: 1.0.0
+  verification_checks:
+  - Confirm the auto-merge rule's scope is narrowed and documented.
+  - Attempt to satisfy the auto-merge conditions with a crafted PR in a test environment
+    and confirm it cannot be gamed.
+- blast_radius_notes: Adds a manual step to the deployment flow, slowing time-to-production
+    — a deliberate, expected tradeoff for this control.
+  control_id: CICD-04
+  deterministic_tool: 'add a required-reviewers/environment-protection-rule to the
+    production deployment job (e.g. GitHub Actions environment protection rules, GitLab
+    manual job with when: manual)'
+  fix_strategy: deterministic-autofix
+  human_review_required: false
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - Confirm a production deployment now pauses for approval before proceeding.
+  - Confirm the approval step correctly gates the deployment and cannot be bypassed.
+- blast_radius_notes: Organizational identity migration; significant undertaking if
+    local accounts are currently the norm, not a quick fix.
+  control_id: CICD-05
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - A human confirms SCM/CI/CD system access is federated through the organization's
+    IdP rather than local accounts.
+- blast_radius_notes: Process addition (recurring access review); may temporarily
+    disrupt access for accounts incorrectly flagged as stale, so confirm before removing.
+  control_id: CICD-06
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - A human runs an access review across SCM/CI/CD systems, disabling stale accounts
+    and setting expiry dates on remaining grants where the platform supports it.
+- blast_radius_notes: May affect external collaborators who need a documented alternative
+    access path (e.g. a guest account under organizational control) rather than simple
+    removal.
+  control_id: CICD-07
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - A human audits SCM/CI platform membership for non-organizational email domains
+    and removes or migrates non-compliant accounts.
+- blast_radius_notes: Requires the internal proxy to actually mirror/allow the packages
+    the project needs — set this up and validate before cutting over, or builds will
+    fail.
+  control_id: CICD-08
+  deterministic_tool: point package manager configuration (.npmrc, pip.conf, .m2/settings.xml,
+    etc.) at an internal proxy/registry (e.g. Artifactory, Nexus, Azure Artifacts)
+    instead of the public registry directly
+  fix_strategy: deterministic-autofix
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - Confirm package installs now route through the internal proxy.
+  - Confirm the proxy has the required packages cached/available, so builds don't
+    break due to missing packages.
+- blast_radius_notes: May surface pre-existing checksum mismatches for legitimately-used
+    packages if the registry mirror is inconsistent — investigate rather than re-disabling
+    verification if this happens.
+  control_id: CICD-09
+  deterministic_tool: remove any flags disabling signature/checksum verification from
+    package manager configuration or CI install commands
+  fix_strategy: deterministic-autofix
+  human_review_required: false
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - Confirm verification is enabled and a package install correctly fails if its checksum
+    doesn't match.
+- blast_radius_notes: If the lockfile is currently out of date relative to the manifest,
+    this change will break the build until the lockfile is regenerated and committed
+    — treat that as a prerequisite, not a side effect to work around.
+  control_id: CICD-10
+  deterministic_tool: change the CI install step to a lockfile-respecting command
+    (npm ci instead of npm install, pip install -r requirements.txt --require-hashes,
+    bundle install --deployment, etc.)
+  fix_strategy: deterministic-autofix
+  human_review_required: false
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - Confirm the CI build now fails if the lockfile and manifest are out of sync, rather
+    than silently resolving new versions.
+  - Confirm the build still succeeds with the current, correct lockfile.
+- blast_radius_notes: Architectural change to the pipeline's execution stages, separating
+    install-time execution from secret-bearing stages.
+  control_id: CICD-11
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - A human confirms package installation (including postinstall/preinstall scripts)
+    executes in a stage/context with no access to pipeline secrets.
+- blast_radius_notes: SCM configuration change; if relocating the config file to a
+    separate protected branch, this requires updating how the CI platform is told
+    where to find it.
+  control_id: CICD-12
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - A human confirms the CI configuration file path is covered by required-review
+    branch protection, or is relocated to a separately protected branch/location.
+- blast_radius_notes: This is one of the most consequential fixes in the domain (direct
+    secret-exfiltration path via a well-known GitHub Actions anti-pattern) — prioritize
+    accordingly, and test with an actual fork-based PR, not just a same-repo branch.
+  control_id: CICD-13
+  deterministic_tool: null
+  fix_strategy: llm-template-fill
+  human_review_required: true
+  llm_fix_template: "\"Given a workflow {workflow_file} triggered on pull_request_target\
+    \ (or with\n secrets: inherit) that also checks out and executes code from the\
+    \ PR head ref:\n either switch the trigger to pull_request (which runs with no\
+    \ secret access for\n fork-originated PRs) if secrets aren't genuinely needed\
+    \ for this job, or, if\n secrets are needed, split the workflow so the portion\
+    \ needing secrets never\n executes attacker-controlled code from the PR (e.g.\
+    \ gate secret-requiring steps\n behind a maintainer-only approval using workflow_run\
+    \ or environment\n protection); preserve the legitimate CI functionality for trusted\
+    \ contributions.\"\n"
+  playbook_version: 1.0.0
+  verification_checks:
+  - Re-run the Semgrep/actionlint rule and confirm the risky pattern is resolved.
+  - Submit a test PR from a fork attempting to exfiltrate a secret and confirm it
+    cannot access one.
+- blast_radius_notes: May require reorganizing which paths are covered by branch-protection
+    review rules to include referenced scripts/Makefiles.
+  control_id: CICD-14
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - A human identifies every file the CI pipeline configuration references and executes,
+    and confirms each falls under the same protected-path review requirement as the
+    pipeline configuration file.
+- blast_radius_notes: Localized to the specific configuration file; requires periodically
+    and deliberately updating the pin as a conscious action rather than automatically
+    tracking the latest version.
+  control_id: CICD-15
+  deterministic_tool: null
+  fix_strategy: llm-template-fill
+  human_review_required: false
+  llm_fix_template: "\"Given a linter/scanner configuration file referencing an external\
+    \ code location\n via a mutable branch reference {mutable_ref}: pin the reference\
+    \ to a specific,\n immutable commit SHA instead; preserve the tool's existing\
+    \ functionality at that\n pinned version, with a documented process for deliberately\
+    \ updating the pin.\"\n"
+  playbook_version: 1.0.0
+  verification_checks:
+  - Re-run the Semgrep rule and confirm zero findings.
+  - Confirm the linter/scanner still runs correctly using the pinned reference.
+- blast_radius_notes: Localized to the specific job definition; low risk if the actual
+    secret usage was correctly identified.
+  control_id: CICD-16
+  deterministic_tool: null
+  fix_strategy: llm-template-fill
+  human_review_required: false
+  llm_fix_template: "\"Given a pipeline job {job} with secrets: inherit or access\
+    \ to a broad secret set\n when it only needs {specific_secret}: replace the broad\
+    \ grant with an explicit\n reference to only {specific_secret}; preserve the job's\
+    \ functional requirements.\"\n"
+  playbook_version: 1.0.0
+  verification_checks:
+  - Confirm the job's secret access is now scoped to only what it uses.
+  - Confirm the job still completes successfully with the narrowed secret access.
+- blast_radius_notes: Infrastructure change to runner/node pool architecture; may
+    require provisioning additional dedicated runner pools.
+  control_id: CICD-17
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - A human confirms runner/node pools are segmented by sensitivity level, with no
+    pipeline requiring elevated access sharing a runner pool with lower-sensitivity
+    pipelines.
+- blast_radius_notes: Infrastructure change to the runner provisioning model; ephemeral
+    runners can increase job startup latency, a deliberate tradeoff.
+  control_id: CICD-18
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: false
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - A human confirms the runner infrastructure uses ephemeral, single-use execution
+    environments (e.g. fresh container/VM per job) rather than long-lived, reused
+    runners.
+- blast_radius_notes: Network infrastructure change; incorrect segmentation can break
+    legitimate pipeline steps that need to reach specific external services, so map
+    required connectivity before restricting.
+  control_id: CICD-19
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - A human confirms network segmentation/firewall rules restrict the execution node
+    to only the specific resources its pipelines require.
+- blast_radius_notes: Rotating the secret is urgent and non-optional; rewriting shared
+    git history is disruptive to every contributor's local clone and should be planned
+    as a coordinated, communicated event, not done silently.
+  control_id: CICD-20
+  deterministic_tool: null
+  fix_strategy: llm-template-fill
+  human_review_required: true
+  llm_fix_template: "\"Given a secret {secret} found by Gitleaks/TruffleHog in commit\
+    \ history (even if\n already removed from the current branch tip): treat {secret}\
+    \ as compromised and\n rotate it immediately at the source system; then, if full\
+    \ removal from history is\n required (e.g. for compliance), use a history-rewriting\
+    \ tool (git filter-repo or\n BFG Repo-Cleaner) to purge it, coordinating with\
+    \ all repository contributors\n since this rewrites shared history and requires\
+    \ a force-push and re-clone.\"\n"
+  playbook_version: 1.0.0
+  verification_checks:
+  - Confirm the rotated secret is active and the old value no longer works.
+  - If history was rewritten, confirm Gitleaks/TruffleHog no longer finds the secret
+    anywhere in the rewritten history.
+- blast_radius_notes: Localized to the specific workflow step; also check whether
+    the secret was already exposed in historical build logs, which may need separate
+    scrubbing/rotation.
+  control_id: CICD-21
+  deterministic_tool: null
+  fix_strategy: llm-template-fill
+  human_review_required: true
+  llm_fix_template: "\"Given a workflow step {step} that echoes/prints a variable\
+    \ sourced from a\n secrets context: remove the print/echo of the secret value;\
+    \ if debugging is\n needed, print only a redacted indicator (e.g. 'secret is set:\
+    \ true/false')\n instead of the value; preserve the rest of the step's diagnostic\
+    \ output.\"\n"
+  playbook_version: 1.0.0
+  verification_checks:
+  - Re-run the Semgrep rule and confirm zero findings.
+  - Trigger the step in a test run and confirm the secret value no longer appears
+    in build logs.
+- blast_radius_notes: Previously-published artifacts containing the secret remain
+    exposed regardless of this fix — they should be deleted/replaced and the secret
+    rotated, not just prevented going forward.
+  control_id: CICD-22
+  deterministic_tool: null
+  fix_strategy: llm-template-fill
+  human_review_required: true
+  llm_fix_template: "\"Given a secret found embedded in a built artifact (container\
+    \ layer, binary, Helm\n chart) by Trivy/Gitleaks: identify the build step that\
+    \ embeds it (commonly a\n baked-in config file, ENV instruction, or build argument)\
+    \ and remove it from the\n build process, injecting the secret at deploy/runtime\
+    \ instead (see the\n corresponding container-infra CTR-11 pattern for Dockerfiles);\
+    \ rotate the\n exposed secret since previously-published artifacts may already\
+    \ have it.\"\n"
+  playbook_version: 1.0.0
+  verification_checks:
+  - Rebuild the artifact and re-run the secret scan, confirming zero findings.
+  - Confirm the application still receives the secret correctly at runtime.
+- blast_radius_notes: Requires provisioning the secrets-management tool if not already
+    in use; the exposed credential must be rotated regardless of the code fix.
+  control_id: CICD-23
+  deterministic_tool: null
+  fix_strategy: llm-template-fill
+  human_review_required: true
+  llm_fix_template: "\"Given a plaintext credential value in a checked-in configuration\
+    \ file {config_file}:\n move the value into the CI platform's encrypted secrets\
+    \ store or a dedicated\n secrets-management tool (Vault, AWS Secrets Manager,\
+    \ etc.), replacing the\n plaintext value in {config_file} with a reference/lookup\
+    \ to the secret store;\n preserve the application's ability to access the credential\
+    \ at runtime via the\n new mechanism.\"\n"
+  playbook_version: 1.0.0
+  verification_checks:
+  - Confirm the plaintext value is removed from {config_file}.
+  - Confirm the application/pipeline correctly retrieves the credential from the new
+    secrets-management mechanism.
+  - Rotate the credential, since its plaintext value in version control must be treated
+    as compromised.
+- blast_radius_notes: Migrating to OIDC-federated credentials is a meaningful integration
+    change per target cloud provider, not a config toggle.
+  control_id: CICD-24
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: false
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - A human confirms a credential rotation cadence/policy exists and is followed,
+    and that long-lived static credentials are migrated to short-lived, federated
+    alternatives (e.g. OIDC) where the target platform supports it.
+- blast_radius_notes: Documentation/process task.
+  control_id: CICD-25
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: false
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - A human confirms a maintained inventory of CI/CD systems and versions exists,
+    with a designated owner per system.
+- blast_radius_notes: Coordinate the credential change with all legitimate administrators
+    to avoid locking out active operators.
+  control_id: CICD-26
+  deterministic_tool: change default admin credentials on self-hosted CI/CD system
+    components (Jenkins, artifact repositories, etc.) at first-run configuration
+  fix_strategy: deterministic-autofix
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - Re-run the default-credential scan and confirm no component accepts default credentials.
+  - Confirm legitimate administrators have the new credentials via a secure channel.
+- blast_radius_notes: Can break integrations from legacy clients that only support
+    older TLS versions — identify and upgrade those clients rather than leaving the
+    older protocol enabled for them.
+  control_id: CICD-27
+  deterministic_tool: update TLS configuration on self-hosted CI/CD components to
+    require TLS 1.2 or greater, disabling older protocol versions
+  fix_strategy: deterministic-autofix
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - Re-run a TLS configuration scan and confirm only TLS 1.2+ is accepted.
+  - Confirm legitimate clients (webhooks, integrations) can still connect using a
+    supported TLS version.
+- blast_radius_notes: Process/documentation task; may surface ungoverned integrations
+    needing further review under CICD-29/CICD-30.
+  control_id: CICD-28
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: false
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - A human confirms a governance process and current inventory exist for all third-party
+    integrations with CI/CD access.
+- blast_radius_notes: Narrowing a third-party integration's permissions can break
+    functionality it was silently relying on beyond its stated purpose — test the
+    integration's actual functionality after narrowing.
+  control_id: CICD-29
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - A human reviews each third-party integration's granted OAuth/App scope and narrows
+    it to the minimum required, removing broad admin-level grants where a narrower
+    scope would suffice.
+- blast_radius_notes: Process addition (recurring review); removing an integration
+    presumed unused that turns out to be needed would break that functionality, so
+    confirm before removing.
+  control_id: CICD-30
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - A human runs a periodic review of third-party integrations, removing unused ones
+    and confirming remaining ones' permissions still match actual usage.
+- blast_radius_notes: Will block pushes from any contributor who hasn't set up commit
+    signing — roll out with advance notice and setup instructions before enabling
+    enforcement.
+  control_id: CICD-31
+  deterministic_tool: enable 'require signed commits' branch protection setting on
+    the SCM platform, with contributors configuring commit signing (GPG/SSH signing)
+    locally
+  fix_strategy: deterministic-autofix
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - Confirm unsigned commits are now rejected on the protected branch.
+  - Confirm all active contributors have commit signing configured and can still push.
+- blast_radius_notes: Requires setting up and securing the signing key/identity infrastructure
+    first; a broken signing step will block all deployments, so roll out gradually
+    with monitoring.
+  control_id: CICD-32
+  deterministic_tool: add a cosign sign step after artifact creation and a cosign
+    verify step before deployment/consumption in the pipeline
+  fix_strategy: deterministic-autofix
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - Confirm artifacts are signed on creation.
+  - Confirm the deployment step rejects an unsigned or tampered artifact in a test.
+- blast_radius_notes: Requires sourcing the official hash from a channel independent
+    of the download itself (e.g. the provider's signed release notes), or the check
+    provides false assurance against a compromised mirror.
+  control_id: CICD-33
+  deterministic_tool: null
+  fix_strategy: llm-template-fill
+  human_review_required: false
+  llm_fix_template: "\"Given a pipeline step downloading a third-party resource via\
+    \ {download_command}\n with no checksum verification: add a step that computes\
+    \ the downloaded\n resource's hash and compares it against the official published\
+    \ hash from\n {resource_provider} (pinned in the pipeline configuration, sourced\
+    \ out-of-band\n from the download itself); fail the pipeline if the hashes don't\
+    \ match; preserve\n the resource's use for matching downloads.\"\n"
+  playbook_version: 1.0.0
+  verification_checks:
+  - Re-run the Semgrep rule and confirm zero findings.
+  - Deliberately corrupt the downloaded resource in a test and confirm the pipeline
+    fails the check.
+- blast_radius_notes: Tooling/process addition (e.g. cloud provider config-compliance
+    service); no direct application risk.
+  control_id: CICD-34
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: false
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - A human confirms configuration-drift detection tooling is deployed against production
+    resources and generates alerts on divergence from the signed IaC template.
+- blast_radius_notes: Documentation task; prerequisite for CICD-36.
+  control_id: CICD-35
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: false
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - A human confirms a maintained inventory of every CI/CD system instance (including
+    self-managed ones) exists.
+- blast_radius_notes: May incur additional log-storage cost proportional to the number
+    and activity level of enabled systems.
+  control_id: CICD-36
+  deterministic_tool: enable audit and application logging on each inventoried CI/CD
+    system (not always the default), per that system's own logging configuration
+  fix_strategy: deterministic-autofix
+  human_review_required: false
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - Confirm each inventoried system now emits logs for both human and programmatic
+    access/events.
+- blast_radius_notes: Observability infrastructure addition; alerting thresholds should
+    be tuned iteratively to avoid alert fatigue from false positives.
+  control_id: CICD-37
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: false
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - A human confirms CI/CD system logs are aggregated into a centralized SIEM/logging
+    platform with alerting rules configured for suspicious activity.

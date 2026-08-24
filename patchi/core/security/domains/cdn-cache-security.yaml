@@ -1,0 +1,106 @@
+# ============================================================================
+# Patchi Security Domain: cdn-cache-security
+# ============================================================================
+# SOURCE VERIFICATION NOTE — READ BEFORE USING THIS FILE:
+#   Source standards: PortSwigger Research (2018, 2025) on web cache
+#   poisoning and deception attacks, and Amazon CloudFront Origin Access
+#   Control (OAC) documentation.
+#
+#   SOURCING CONSTRAINT, DISCLOSED HONESTLY: PortSwigger Research
+#   publications are freely available blog posts and whitepapers but are
+#   not published under an open-source license. The control descriptions
+#   below are paraphrased from the vulnerability classes, attack patterns,
+#   and mitigation guidance described in these publications, not
+#   reproduced verbatim. CloudFront OAC documentation is AWS's own
+#   product documentation and is freely accessible; control descriptions
+#   are paraphrased from its guidance, not copied.
+#
+#   COVERAGE NOTE: the source publications cover a wide range of cache
+#   poisoning vectors, edge cases, and product-specific behaviors. This
+#   domain selects the subset that is realistically checkable by a
+#   static/dynamic scanner examining a repository's CDN configuration
+#   (CloudFront distro YAML, VCL snippets, cache policies) and
+#   application response headers — which is what Patchi actually has
+#   access to. Checks requiring live traffic replay or manual
+#   researcher-controlled cache probing are excluded as out of scope.
+#
+#   SEVERITY NOTE: severity ratings are inferred from the PortSwigger
+#   Research impact assessments (cache poisoning leading to XSS, open
+#   redirection, or credential theft is rated high/critical; information
+#   leakage from cache misconfiguration is rated medium; operational
+#   issues like stale content are rated low).
+# ============================================================================
+
+domain_id: "cdn-cache-security"
+version: "1.0.0"
+display_name: "CDN / Edge Cache Security"
+source_standard: "PortSwigger Research (2018, 2025) + Amazon CloudFront OAC docs"
+component_type: "infra"
+cross_cutting: true
+weight: 0.55
+
+activation_signals:
+  required_any:
+    - signal: "cdn_config_present (a CloudFront distribution YAML, Fastly VCL, Cloudflare Page Rule, or other CDN configuration in the repo)"
+    - signal: "cache_header_evidence (Cache-Control, Surrogate-Control, or CDN-specific cache headers set in application code or config)"
+    - signal: "origin_shield_or_cache_layer (use of CloudFront Origin Shield, Fastly shield, or similar edge-cache layer)"
+  excluded_if:
+    - signal: "no_cdn_no_cache_config (none of the required_any signals fired)"
+
+controls:
+  - control_id: "CDN-01"
+    name: "Unkeyed input cache poisoning prevented"
+    description: "CDN configuration must ensure that all request inputs that affect the response content (headers like X-Forwarded-Host, X-Original-URL, X-Rewrite-URL, and unsanitized query parameters) are included in the cache key or stripped/normalized at the edge, so an attacker cannot poison the cache with a crafted request that stores a malicious response served to subsequent users."
+    source_clause: "PortSwigger Research, 'New cache poisoning techniques' (2018-2025)"
+    severity: "critical"
+    check_method: "static"
+    detector: "manual-review / Semgrep (rule: CDN configuration without explicit cache-key rules for host-derivative or URL-derivative headers; application code setting X-Forwarded-Host or similar headers without corresponding cache-key inclusion)"
+    remediation_ref: "fix-playbook://CDN-01"
+
+  - control_id: "CDN-02"
+    name: "Cache key normalization applied"
+    description: "CDN cache keys must be normalized so that equivalent requests (differing only in query parameter order, case-sensitive header variants, or URL-encoded equivalents) resolve to the same cache key, preventing cache-key fragmentation that an attacker can exploit to serve targeted poisoned responses."
+    source_clause: "PortSwigger Research, cache-key manipulation and fragmentation attacks"
+    severity: "high"
+    check_method: "static"
+    detector: "manual-review (CDN configuration review: cache key policy must normalize query strings, apply consistent case handling, and ignore non-deterministic headers)"
+    remediation_ref: "fix-playbook://CDN-02"
+
+  - control_id: "CDN-03"
+    name: "Origin bypass via host header manipulation prevented"
+    description: "CDN configuration must ensure the origin server does not trust the Host header from the client for routing or virtual-host selection when the CDN fronts it. Origin Access Control (OAC) or equivalent must be used so the origin only accepts requests from the CDN's own IP ranges or signed tokens, preventing direct origin access that bypasses cache controls."
+    source_clause: "Amazon CloudFront OAC documentation; PortSwigger Research, origin-bound cache poisoning"
+    severity: "high"
+    check_method: "static"
+    detector: "manual-review (CloudFront distribution config: origin access identity or origin access control must be configured; origin must not use public IP without OAC)"
+    remediation_ref: "fix-playbook://CDN-03"
+
+  - control_id: "CDN-04"
+    name: "Vary header used correctly for content negotiation"
+    description: "CDN edge caches must correctly handle the Vary response header so that responses cached for one variant (e.g. Accept-Encoding: gzip) are not served to clients requesting a different variant. Overly broad Vary headers defeat caching; missing Vary headers on content-negotiated responses cause incorrect cache hits."
+    source_clause: "PortSwigger Research, Vary header cache deception; HTTP caching standards"
+    severity: "medium"
+    check_method: "static"
+    detector: "manual-review (application response headers must include Vary: Accept-Encoding at minimum for compressed responses; CDN config must not strip or ignore Vary headers)"
+    remediation_ref: "fix-playbook://CDN-04"
+
+  - control_id: "CDN-05"
+    name: "Error responses not cached without explicit cache-control"
+    description: "CDN configuration must not cache error responses (4xx, 5xx) by default, as cached error pages can cause denial-of-service or mask ongoing attacks. Error pages should set Cache-Control: no-store or a very short TTL unless explicitly justified."
+    source_clause: "PortSwigger Research, error response caching; CDN vendor best practices"
+    severity: "medium"
+    check_method: "static"
+    detector: "manual-review (CDN cache policy must not include error responses in the cache; application error pages must set appropriate Cache-Control headers)"
+    remediation_ref: "fix-playbook://CDN-05"
+
+  - control_id: "CDN-06"
+    name: "Cache purge/invalidation authenticated and rate-limited"
+    description: "CDN cache purge or invalidation endpoints must be protected by authentication and rate limiting, so an attacker cannot flush the cache to cause origin overload (cache-busting DDoS) or selectively invalidate cached content to trigger cache poisoning via fresh origin fetches."
+    source_clause: "PortSwigger Research, cache-busting attacks; CDN vendor security best practices"
+    severity: "medium"
+    check_method: "static"
+    detector: "manual-review (CDN purge API tokens must not be exposed in the repository; purge endpoints must be behind authentication)"
+    remediation_ref: "fix-playbook://CDN-06"
+
+deprecated_by: null
+last_reviewed: "2026-07-12"

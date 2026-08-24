@@ -1,0 +1,249 @@
+playbooks:
+- blast_radius_notes: Changing permissions on control plane manifests may break kubeadm
+    or other cluster bootstrapping tools that expect specific file ownership.
+  control_id: K8S-01
+  deterministic_tool: 'chmod 600 and chown root:root on all control plane manifest files
+    in /etc/kubernetes/manifests/'
+  fix_strategy: deterministic-autofix
+  human_review_required: false
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - Confirm control plane manifest files have mode 600 and are owned by root:root.
+  - Confirm the control plane continues to function correctly.
+- blast_radius_notes: Disabling anonymous authentication may break health checks, monitoring
+    tools, or any component relying on anonymous API access.
+  control_id: K8S-02
+  deterministic_tool: 'set --anonymous-auth=false in the kube-apiserver manifest/config'
+  fix_strategy: deterministic-autofix
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - Confirm --anonymous-auth=false is set on the kube-apiserver.
+  - Confirm all legitimate components authenticate properly.
+- blast_radius_notes: Disabling the insecure port forces all API traffic through the
+    secure port; any component still configured for the insecure port will break.
+  control_id: K8S-03
+  deterministic_tool: 'set --insecure-port=0 in the kube-apiserver manifest/config'
+  fix_strategy: deterministic-autofix
+  human_review_required: false
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - Confirm --insecure-port=0 is set on the kube-apiserver.
+  - Confirm no components are using the insecure port for API access.
+- blast_radius_notes: Adding required admission controllers (PodSecurity, NodeRestriction)
+    may reject existing workloads that violate the new policies; test in a staging environment
+    first.
+  control_id: K8S-04
+  deterministic_tool: 'add required admission controllers (PodSecurity, NodeRestriction,
+    etc.) to the kube-apiserver admission-control flag'
+  fix_strategy: deterministic-autofix
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - Confirm the required admission controllers are enabled.
+  - Confirm existing workloads are not rejected by the new admission policies.
+- blast_radius_notes: Disabling profiling reduces attack surface with minimal functional
+    impact; primarily affects debugging capabilities.
+  control_id: K8S-05
+  deterministic_tool: 'set --profiling=false in the kube-apiserver manifest/config'
+  fix_strategy: deterministic-autofix
+  human_review_required: false
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - Confirm --profiling=false is set on the kube-apiserver.
+  - Confirm the debug profiling endpoint is no longer accessible.
+- blast_radius_notes: Configuring audit log path and rotation prevents log loss and disk
+    filling; ensure adequate disk space on the control-plane node.
+  control_id: K8S-06
+  deterministic_tool: 'set --audit-log-path and configure --audit-log-maxage/--audit-log-maxbackup/--audit-log-maxsize
+    in the kube-apiserver manifest/config'
+  fix_strategy: deterministic-autofix
+  human_review_required: false
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - Confirm audit logging is enabled and writing to the configured path.
+  - Confirm log rotation settings prevent unbounded disk usage.
+- blast_radius_notes: Provisioning TLS certificates for the control plane requires proper
+    certificate management; incorrect certificates break all API server communication.
+  control_id: K8S-07
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - A human confirms valid TLS certificates are provisioned for the API server.
+  - Confirm all clients trust the certificate chain.
+  - Confirm certificate rotation is configured.
+- blast_radius_notes: Configuring etcd encryption and mutual TLS requires careful coordination;
+    misconfiguration can cause data loss or cluster unavailability.
+  control_id: K8S-08
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - A human confirms etcd encryption at rest is configured.
+  - Confirm mutual TLS is required for all etcd client connections.
+  - Confirm etcd is accessible only from authorized components.
+- blast_radius_notes: Changing etcd data directory permissions may break etcd if it expects
+    different ownership; verify etcd runs as the correct user.
+  control_id: K8S-09
+  deterministic_tool: 'chmod 700 on the etcd data directory'
+  fix_strategy: deterministic-autofix
+  human_review_required: false
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - Confirm the etcd data directory has mode 700.
+  - Confirm etcd continues to function correctly.
+- blast_radius_notes: Disabling kubelet anonymous auth and read-only port may break monitoring
+    tools or health checks that rely on these endpoints.
+  control_id: K8S-10
+  deterministic_tool: 'set --anonymous-auth=false and --read-only-port=0 on the kubelet'
+  fix_strategy: deterministic-autofix
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - Confirm --anonymous-auth=false and --read-only-port=0 are set on the kubelet.
+  - Confirm all legitimate kubelet clients authenticate properly.
+- blast_radius_notes: Configuring TLS for kubelet communication requires certificate
+    provisioning to all kubelets; incorrect configuration breaks node communication.
+  control_id: K8S-11
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - A human confirms TLS certificates are configured for kubelet communication.
+  - Confirm the API server communicates with kubelets over TLS.
+  - Confirm kubelets present valid client certificates.
+- blast_radius_notes: Changing kubelet config file permissions may break kubeadm or other
+    tools that manage kubelet configuration.
+  control_id: K8S-12
+  deterministic_tool: 'chmod 600 and chown root:root on kubelet configuration files'
+  fix_strategy: deterministic-autofix
+  human_review_required: false
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - Confirm kubelet configuration files have mode 600 and are owned by root:root.
+  - Confirm the kubelet continues to function correctly.
+- blast_radius_notes: Narrowing RBAC wildcards requires understanding actual API usage;
+    overly narrow rules break legitimate workloads; audit real usage before applying.
+  control_id: K8S-13
+  deterministic_tool: null
+  fix_strategy: llm-template-fill
+  human_review_required: true
+  llm_fix_template: "\"Given a Role/ClusterRole using wildcard (*) in apiGroups,\n\
+    \ resources, or verbs: replace the wildcard with the explicit, minimal\n list\
+    \ of API groups/resources/verbs the role's subjects actually use;\n preserve access\
+    \ for all currently-legitimate operations.\"\n"
+  playbook_version: 1.0.0
+  verification_checks:
+  - Confirm no wildcards remain in the role definition.
+  - Confirm subjects bound to this role can still perform all their legitimate operations.
+- blast_radius_notes: Disabling automountServiceAccountToken breaks workloads that read
+    the mounted token to call the Kubernetes API; verify no such usage exists first.
+  control_id: K8S-14
+  deterministic_tool: 'add automountServiceAccountToken: false to Pod specs or ServiceAccount
+    definitions where Kubernetes API access is not needed'
+  fix_strategy: deterministic-autofix
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - Confirm automountServiceAccountToken: false is set where not needed.
+  - Confirm workloads that require API access still have the token mounted.
+- blast_radius_notes: Adding pod-security.kubernetes.io/enforce=restricted may reject
+    existing workloads that use privileged features; test in a staging namespace first.
+  control_id: K8S-15
+  deterministic_tool: null
+  fix_strategy: llm-template-fill
+  human_review_required: true
+  llm_fix_template: "\"Given a namespace without pod security enforcement: add the\n\
+    \ pod-security.kubernetes.io/enforce=restricted label; ensure existing\n workloads\
+    \ in the namespace comply with the restricted profile or\n migrate them to a compliant\
+    \ namespace; preserve workload\n functionality.\"\n"
+  playbook_version: 1.0.0
+  verification_checks:
+  - Confirm the pod-security.kubernetes.io/enforce=restricted label is set.
+  - Confirm existing workloads comply with the restricted security profile.
+- blast_radius_notes: "Removing privileged: true may break containers that require elevated
+    privileges; identify and replace with specific capabilities."
+  control_id: K8S-16
+  deterministic_tool: null
+  fix_strategy: llm-template-fill
+  human_review_required: true
+  llm_fix_template: "\"Given a container spec with privileged: true: remove the\n\
+    \ privileged flag; identify the specific capabilities or device access\n the container\
+    \ actually needs and grant those narrowly instead;\n preserve the container's functional\
+    \ requirements.\"\n"
+  playbook_version: 1.0.0
+  verification_checks:
+  - Confirm privileged mode is removed.
+  - Confirm the container still functions with only the specific capabilities granted.
+- blast_radius_notes: Removing hostPath volume mounts breaks workloads that depend on
+    host filesystem access; identify legitimate uses and replace with appropriate storage
+    abstractions.
+  control_id: K8S-17
+  deterministic_tool: null
+  fix_strategy: llm-template-fill
+  human_review_required: true
+  llm_fix_template: "\"Given a Pod spec with a hostPath volume: replace with a\n\
+    \ more appropriate storage abstraction (PersistentVolumeClaim, ConfigMap,\n Secret,\
+    \ or emptyDir depending on the data's nature and lifecycle\n needs) unless there\
+    \ is a specific, documented node-level need;\n preserve the pod's legitimate data-access\
+    \ requirements.\"\n"
+  playbook_version: 1.0.0
+  verification_checks:
+  - Confirm hostPath volumes are replaced or removed.
+  - Confirm pods still have access to the data they need via the new storage mechanism.
+- blast_radius_notes: A default-deny NetworkPolicy without carefully identified allow
+    rules breaks all inter-service communication; map actual traffic flows first.
+  control_id: K8S-18
+  deterministic_tool: null
+  fix_strategy: llm-template-fill
+  human_review_required: true
+  llm_fix_template: "\"Given a namespace with no NetworkPolicy defined: add a\n\
+    \ baseline default-deny NetworkPolicy (denying all ingress/egress by\n default),\
+    \ then add specific allow rules for the legitimate traffic\n flows the workloads\
+    \ actually need; preserve required connectivity\n between services.\"\n"
+  playbook_version: 1.0.0
+  verification_checks:
+  - Confirm a NetworkPolicy resource exists for the namespace.
+  - Confirm all legitimate service-to-service and external traffic flows still work.
+- blast_radius_notes: Migrating to external secrets management requires code changes
+    to read secrets from the new source; coordinate with all workloads that consume
+    secrets.
+  control_id: K8S-19
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - A human confirms all secrets are migrated to an external secrets management system.
+  - Confirm workloads read secrets from the new source.
+  - Confirm Kubernetes Secrets are no longer used for sensitive data.
+- blast_radius_notes: Adding explicit namespace to manifests prevents accidental deployment
+    to the wrong namespace; may require updating deployment scripts.
+  control_id: K8S-20
+  deterministic_tool: 'add an explicit metadata.namespace field to all namespace-scoped
+    manifests'
+  fix_strategy: deterministic-autofix
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - Confirm all namespace-scoped manifests have an explicit metadata.namespace.
+  - Confirm deployments target the intended namespace.

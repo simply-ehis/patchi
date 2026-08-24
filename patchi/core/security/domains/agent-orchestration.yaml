@@ -1,0 +1,119 @@
+domain_id: "agent-orchestration"
+version: "1.0.0"
+display_name: "Agent Orchestration / Multi-Agent Dispatcher Security"
+# NOTE ON SOURCE CURRENCY (verified 2026-07-04):
+# A mature, dedicated standard now exists for this domain: the OWASP Top 10 for
+# Agentic Applications 2026 (ASI01-ASI10), published by the OWASP GenAI Security
+# Project on 2025-12-09 (announced at Black Hat Europe 2025 / OWASP Agentic
+# Security Summit). This supersedes the brief's assumption that no dedicated
+# standard exists. It is used below as the primary source, alongside the OWASP
+# Top 10 for LLM Applications 2025 (LLM01-LLM10, PDF v4.2.0a) for entries that
+# predate the agentic-specific split, and MITRE ATLAS (content version 2026.05,
+# format 6.0.0) for adversary technique grounding. Controls not traceable to
+# either are explicitly marked "Original — Patchi" in source_clause and must
+# not be read as standard-derived.
+source_standard: "OWASP Top 10 for Agentic Applications 2026 (ASI01-ASI10, published 2025-12-09); supplemented by OWASP Top 10 for LLM Applications 2025 (LLM01-LLM10) and MITRE ATLAS (content v2026.05) — see per-control source_clause for exact attribution"
+component_type: "agent-orchestrator"
+weight: 0.9
+
+activation_signals:
+  required_any:
+    - signal: "architecture declares >=2 distinct agent/worker roles that exchange machine-readable messages or task handoffs (e.g. coordinator/worker, planner/executor, supervisor/subagent patterns)"
+    - signal: "codebase imports a multi-agent or orchestration framework (e.g. LangGraph, CrewAI, AutoGen, OpenAI Swarm/Agents SDK, custom dispatcher loop that re-invokes an LLM based on prior LLM output)"
+    - signal: "a component programmatically invokes an LLM in a loop where the loop-continuation condition is itself derived from LLM output (agentic loop)"
+  excluded_if:
+    - signal: "system makes exactly one LLM call per user request with no tool-calling, no re-invocation, and no inter-agent messaging"
+
+controls:
+  - control_id: "AGT-01"
+    name: "Untrusted-content/instruction segregation for routed signals"
+    description: "The orchestrator must structurally separate trusted operator/system instructions from content the agent merely reads or receives from other agents, tools, or external sources (documents, tool outputs, retrieved data, messages routed from other agents). Content in the untrusted channel must never be concatenated into the instruction channel without explicit marking, and agents must not silently adopt a new objective or task scope based on content from the untrusted channel."
+    source_clause: "OWASP Top 10 for Agentic Applications 2026, ASI01: Agent Goal Hijack (mitigation: 'treat all agent-consumed content as untrusted; separate trusted instructions from retrieved data')"
+    severity: "critical"
+    check_method: "manual-review"
+    detector: "manual-review only (no mature static analyzer verifies instruction/data channel separation in arbitrary orchestration code as of 2026-07-04; some coverage possible via custom Semgrep rules against known framework APIs, e.g. flagging string concatenation of tool-output variables into system-prompt variables)"
+    remediation_ref: "fix-playbook://AGT-01"
+
+  - control_id: "AGT-02"
+    name: "Bounded goal/task scope per agent invocation"
+    description: "Each agent or sub-agent invocation must be constrained to a declared, narrow task scope (explicit allowed objective, allowed tool set, and termination condition) rather than being granted open-ended autonomy by default. The dispatcher must reject or flag agent outputs that attempt to redefine the task's objective mid-execution."
+    source_clause: "OWASP Top 10 for Agentic Applications 2026, ASI01: Agent Goal Hijack (mitigation: 'constrain the agent to a defined goal scope'); reinforced by OWASP Top 10 for LLM Applications 2025, LLM06:2025 Excessive Agency (excessive autonomy root cause)"
+    severity: "high"
+    check_method: "static"
+    detector: "manual-review only; partial static coverage feasible via config-schema linting if the orchestration framework externalizes per-agent scope/tool-allowlist as declarative config (e.g. LangGraph node config, CrewAI agent role definitions)"
+    remediation_ref: "fix-playbook://AGT-02"
+
+  - control_id: "AGT-03"
+    name: "Authenticated, integrity-checked inter-agent messaging"
+    description: "Messages passed between agents (including a worker agent's output format that a coordinator parses as if it were another agent's trusted output) must be authenticated and integrity-checked so that one agent cannot forge, replay, or impersonate the message format/identity of another agent in the pipeline. The dispatcher must reject inter-agent payloads that do not carry a verifiable sender identity or that fail schema/signature validation."
+    source_clause: "OWASP Top 10 for Agentic Applications 2026, ASI07: Insecure Inter-Agent Communication (attack vector: 'spoofed, replayed, or tampered messages between agents'; mitigation: 'authenticate every agent-to-agent message, sign and verify inter-agent traffic')"
+    severity: "critical"
+    check_method: "dynamic"
+    detector: "manual-review only; dynamic fuzzing of inter-agent message channels can be scripted with a generic message-replay/mutation harness, but no off-the-shelf open-source tool targets this specifically as of 2026-07-04"
+    remediation_ref: "fix-playbook://AGT-03"
+
+  - control_id: "AGT-04"
+    name: "Coordinator-side schema validation against agent-format impersonation"
+    description: "The coordinating layer must validate that every inbound agent/worker message strictly matches the expected output schema for that specific sender role before acting on it, rather than trusting free-form output that merely resembles the expected format. This defends against a compromised or malicious agent crafting output that mimics another agent's expected structure to get itself trusted upstream."
+    source_clause: "Original — Patchi. Adapted from OWASP Top 10 for Agentic Applications 2026 ASI07 (Insecure Inter-Agent Communication) and ASI10 (Rogue Agents), neither of which specifies schema-level format-impersonation validation as a discrete control; this is an original, narrower control derived from those risk descriptions, not a directly quoted requirement."
+    severity: "high"
+    check_method: "static"
+    detector: "manual-review only; JSON-schema/pydantic-model validation at message ingestion points can be checked statically for presence via custom lint rule"
+    remediation_ref: "fix-playbook://AGT-04"
+
+  - control_id: "AGT-05"
+    name: "Bounded agent-invocation loops and recursion depth"
+    description: "The orchestrator must enforce a hard maximum on the number of agent-to-agent or self-reinvocation calls within a single task execution (recursion/iteration cap), plus a wall-clock or token-budget ceiling, so that a manipulated or malfunctioning agent cannot drive an unbounded invocation loop."
+    source_clause: "OWASP Top 10 for Agentic Applications 2026, ASI08: Cascading Agent Failures (mitigation: 'cap the depth of autonomous chains so one fault cannot cascade unchecked'); also OWASP Top 10 for LLM Applications 2025, LLM10:2025 Unbounded Consumption"
+    severity: "high"
+    check_method: "static"
+    detector: "manual-review only; a simple static grep/AST check can confirm presence of a loop-counter or max-iteration parameter in orchestration loop code (e.g. semgrep rule against known frameworks' max_iterations/recursion_limit parameters)"
+    remediation_ref: "fix-playbook://AGT-05"
+
+  - control_id: "AGT-06"
+    name: "Circuit breakers and output validation at agent handoffs"
+    description: "At each handoff between agents, the receiving agent or dispatcher must validate the prior agent's output against sanity/plausibility checks before acting on it or passing it further downstream, and must halt propagation (circuit-break) once a defined error or anomaly threshold is reached within a task chain."
+    source_clause: "OWASP Top 10 for Agentic Applications 2026, ASI08: Cascading Agent Failures (mitigation: 'add circuit breakers between agents, validate outputs at each handoff')"
+    severity: "high"
+    check_method: "manual-review"
+    detector: "manual-review only"
+    remediation_ref: "fix-playbook://AGT-06"
+
+  - control_id: "AGT-07"
+    name: "Provenance-tagged trust levels for upstream findings"
+    description: "Findings, conclusions, or data produced by a worker/sub-agent and fed upstream to a coordinating agent must carry provenance metadata (which agent produced it, on what input, at what trust level), and the coordinator must not treat unverified worker output as ground truth for decisions with material effect (e.g. security findings, financial actions) without independent corroboration or a defined verification step."
+    source_clause: "OWASP Top 10 for Agentic Applications 2026, ASI06: Memory and Context Poisoning (mitigation: 'validate what enters long-term memory, segment memory by trust level, reconcile stored context against a trusted source') and ASI10: Rogue Agents (attack vector: compromised agent 'acting harmfully while still appearing legitimate')"
+    severity: "critical"
+    check_method: "manual-review"
+    detector: "manual-review only"
+    remediation_ref: "fix-playbook://AGT-07"
+
+  - control_id: "AGT-08"
+    name: "Behavioral baseline monitoring for rogue/drifted agents"
+    description: "Agent behavior (tool-call patterns, output volume/frequency, targets of action) must be monitored against an established baseline for that agent's role, with alerting on deviation, so that a compromised or misaligned agent that continues to appear superficially legitimate can still be detected."
+    source_clause: "OWASP Top 10 for Agentic Applications 2026, ASI10: Rogue Agents (mitigation: 'monitor agent behaviour against expected baselines, enforce strong identity on every agent in the workflow'). Note: MITRE ATLAS (content v2026.05) documents related real-world agent-compromise technique patterns (e.g. its OpenClaw agentic-tool case-study investigation, PR-26-00176-1, Feb 2026) but this control cites specific ATLAS technique IDs only where independently confirmed; none are cited here to avoid misattribution."
+    severity: "medium"
+    check_method: "dynamic"
+    detector: "manual-review only; anomaly-detection can build on generic observability/SIEM tooling (no agent-specific open-source baseline detector identified as of 2026-07-04)"
+    remediation_ref: "fix-playbook://AGT-08"
+
+  - control_id: "AGT-09"
+    name: "Least-agency tool and permission scoping per agent"
+    description: "Each agent must be granted only the specific tools, data access, and privileges required for its declared task (least agency/least privilege), rather than inheriting a shared, broad credential or tool set used by the whole orchestration system. Permission grants must be scoped, short-lived where feasible, and independently auditable per agent identity."
+    source_clause: "OWASP Top 10 for Agentic Applications 2026, ASI03: Identity and Privilege Abuse (mitigation: 'apply least privilege to every agent identity, prefer short-lived scoped credentials over standing ones'); reinforced by OWASP Top 10 for LLM Applications 2025, LLM06:2025 Excessive Agency (excessive functionality/permissions root causes)"
+    severity: "high"
+    check_method: "static"
+    detector: "manual-review only; IaC/config scanners (e.g. Checkov, tfsec) can partially verify credential scoping if agent permissions are expressed as cloud IAM policy, but do not natively understand 'agent' as a principal type as of 2026-07-04"
+    remediation_ref: "fix-playbook://AGT-09"
+
+  - control_id: "AGT-10"
+    name: "Out-of-band human confirmation for irreversible or high-impact actions"
+    description: "Actions with irreversible or high-impact consequences (e.g. financial transactions, destructive data operations, credential/permission changes) initiated by an agent must require confirmation through a channel independent of the agent's own conversational output, rather than relying on the user's trust in the agent's stated intent."
+    source_clause: "OWASP Top 10 for Agentic Applications 2026, ASI09: Human-Agent Trust Exploitation (mitigation: 'route consent and high-impact approvals through a universal login or out-of-band confirmation, never through the agent's chat interface alone')"
+    severity: "high"
+    check_method: "manual-review"
+    detector: "manual-review only"
+    remediation_ref: "fix-playbook://AGT-10"
+
+deprecated_by: null
+last_reviewed: "2026-07-04"

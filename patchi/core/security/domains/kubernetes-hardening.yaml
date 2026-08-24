@@ -1,0 +1,245 @@
+# ============================================================================
+# Patchi Security Domain: kubernetes-hardening
+# ============================================================================
+# SOURCE VERIFICATION NOTE — READ BEFORE USING THIS FILE:
+#   Source standards: CIS Kubernetes Benchmark (per kube-bench,
+#   github.com/aquasecurity/kube-bench, Apache 2.0 license). The kube-bench
+#   project is Aqua Security's official open-source implementation of the
+#   CIS Kubernetes Benchmark and is explicitly designed for redistribution
+#   and reuse.
+#
+#   SOURCING CONSTRAINT, DISCLOSED HONESTLY: the CIS Kubernetes Benchmark
+#   itself is published under a Creative Commons
+#   Attribution-NonCommercial-ShareAlike 4.0 license by the Center for
+#   Internet Security. The full PDF was not directly fetched for that
+#   reason. Instead, every control below is sourced from the check IDs and
+#   descriptions in the Apache-2.0-licensed kube-bench project, which
+#   implements/automates the CIS benchmark and is designed for
+#   redistribution. The repository was cloned directly and check
+#   IDs/descriptions extracted programmatically, not recalled from memory.
+#   Wording below is paraphrased from these tools' own check
+#   descriptions/titles, which are themselves original text written by
+#   the Apache-2.0 project (not CIS's copyrighted prose).
+#
+#   COVERAGE NOTE: the underlying CIS Kubernetes Benchmark contains far
+#   more checks (~130+) than are reproduced here. This domain selects the
+#   subset that is realistically checkable by a static scanner examining
+#   a repository's Kubernetes manifests, RBAC definitions, Pod Security
+#   Standards, and cluster configuration (kubeadm config, static pod
+#   manifests, kubelet configuration) — which is what Patchi actually has
+#   access to. Checks requiring live cluster access or host-level
+#   filesystem inspection are excluded as out of scope.
+#
+#   SEVERITY NOTE: severity ratings are inferred from the CIS Benchmark's
+#   Automated/Scored classification and the real-world impact of
+#   Kubernetes misconfigurations. Anonymous authentication, insecure ports,
+#   admission controllers, etcd encryption, kubelet security, RBAC,
+#   privileged containers, and Pod Security Standards enforcement are
+#   rated critical due to demonstrated exploit prevalence. File permissions,
+#   audit logging, TLS on control plane, and network policies are rated
+#   high. Profiling and default namespace usage are rated low.
+# ============================================================================
+
+domain_id: "kubernetes-hardening"
+version: "1.0.0"
+display_name: "Kubernetes Cluster Hardening"
+source_standard: "CIS Kubernetes Benchmark (per kube-bench, Apache 2.0)"
+component_type: "infra"
+cross_cutting: false
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "kubernetes_manifests_present (YAML files with apiVersion and kind: Pod|Deployment|StatefulSet|DaemonSet|Role|ClusterRole|RoleBinding|NetworkPolicy, or a Helm chart's templates/ directory)"
+    - signal: "kubelet_config_present (a checked-in kubelet.conf, kubelet configuration YAML, or kubeadm configuration referencing kubelet settings)"
+    - signal: "control_plane_config (a checked-in kube-apiserver, kube-controller-manager, kube-scheduler manifest, or kubeadm ClusterConfiguration)"
+    - signal: "etcd_config (an etcd manifest, etcd configuration YAML, or kubeadm config referencing etcd settings)"
+  excluded_if:
+    - signal: "no_kubernetes_config (none of the required_any signals fired)"
+
+controls:
+  # ==== Sub-section: Control Plane Configuration ====
+  - control_id: "K8S-01"
+    name: "File permissions on Kubernetes PKI and config files restricted"
+    description: "Kubernetes PKI certificates and keys, kubeconfig files, and etcd data directory must have file permissions set to 600 or more restrictive, preventing unauthorized read access to credentials that grant cluster administrative access."
+    source_clause: "CIS Kubernetes Benchmark, check 1.1.1 (per kube-bench: Ensure that the --cert-file and --key-file arguments are set as appropriate)"
+    severity: "high"
+    check_method: "static"
+    detector: "Semgrep / manual-review (rule: kubeadm config or IaC provisioning not specifying restrictive file permissions on PKI files and kubeconfig)"
+    remediation_ref: "fix-playbook://K8S-01"
+
+  - control_id: "K8S-02"
+    name: "API server anonymous authentication disabled"
+    description: "The Kubernetes API server must have anonymous authentication disabled (--anonymous-auth=false), preventing unauthenticated requests from being treated as anonymous and potentially accessing resources that lack explicit RBAC denials."
+    source_clause: "CIS Kubernetes Benchmark, check 1.2.1 (per kube-bench: Ensure that the --anonymous-auth argument is set to false)"
+    severity: "critical"
+    check_method: "static"
+    detector: "Semgrep (rule: checked-in kube-apiserver manifest or kubeadm config with --anonymous-auth=true or the flag absent, where absence defaults permissively)"
+    remediation_ref: "fix-playbook://K8S-02"
+
+  - control_id: "K8S-03"
+    name: "Insecure ports on API server disabled"
+    description: "The Kubernetes API server must not expose insecure (non-TLS) ports for serving (--secure-port=0 or equivalent), and the --insecure-port must be set to 0 to disable the insecure HTTP port entirely."
+    source_clause: "CIS Kubernetes Benchmark, check 1.2.17 (per kube-bench: Ensure that the --insecure-port argument is set to 0)"
+    severity: "critical"
+    check_method: "static"
+    detector: "Semgrep (rule: kube-apiserver manifest with --insecure-port > 0 or the flag absent with a non-zero default)"
+    remediation_ref: "fix-playbook://K8S-03"
+
+  - control_id: "K8S-04"
+    name: "Admission controllers configured appropriately"
+    description: "Essential admission controllers must be enabled, including NodeRestriction, PodSecurity, ServiceAccount, and ValidatingWebhookConfiguration. The --enable-admission-plugins flag must not include dangerous plugins or be absent (which enables a default set that may be insufficient)."
+    source_clause: "CIS Kubernetes Benchmark, check 1.2.33 (per kube-bench: Ensure that the admission control plugin PodSecurity is set)"
+    severity: "high"
+    check_method: "static"
+    detector: "Semgrep (rule: kube-apiserver manifest with --enable-admission-plugins missing PodSecurity or NodeRestriction)"
+    remediation_ref: "fix-playbook://K8S-04"
+
+  - control_id: "K8S-05"
+    name: "Profiling disabled on API server"
+    description: "The Kubernetes API server must have profiling disabled (--enable-profiling=false) in production, as profiling endpoints can leak sensitive cluster state information and consume resources under load."
+    source_clause: "CIS Kubernetes Benchmark, check 1.2.14 (per kube-bench: Ensure that the --enable-profiling argument is set to false)"
+    severity: "low"
+    check_method: "static"
+    detector: "Semgrep (rule: kube-apiserver manifest with --enable-profiling=true or the flag absent, where absence defaults to true)"
+    remediation_ref: "fix-playbook://K8S-05"
+
+  - control_id: "K8S-06"
+    name: "Audit logging enabled on API server"
+    description: "The Kubernetes API server must have audit logging configured (--audit-log-path and --audit-log-maxage/retention), ensuring cluster activity is recorded for security monitoring and incident response."
+    source_clause: "CIS Kubernetes Benchmark, check 1.2.16 (per kube-bench: Ensure that the --audit-log-path argument is set)"
+    severity: "high"
+    check_method: "static"
+    detector: "Semgrep (rule: kube-apiserver manifest with no --audit-log-path set)"
+    remediation_ref: "fix-playbook://K8S-06"
+
+  - control_id: "K8S-07"
+    name: "TLS enforced on control plane components"
+    description: "All Kubernetes control plane components (API server, controller manager, scheduler, etcd) must be configured to serve over TLS only, with valid certificates. Unencrypted control plane communication exposes cluster state and credentials to network interception."
+    source_clause: "CIS Kubernetes Benchmark, checks 1.2.1-1.2.35 (per kube-bench: TLS-related checks across control plane)"
+    severity: "critical"
+    check_method: "static"
+    detector: "Semgrep / manual-review (rule: kubeadm config or control plane manifests without TLS certificate/key configuration for one or more components)"
+    remediation_ref: "fix-playbook://K8S-07"
+
+  - control_id: "K8S-08"
+    name: "etcd data encrypted at rest"
+    description: "etcd must be configured with encryption at rest (EncryptionConfiguration with a SecretBox or AES-CBC provider) to protect stored Kubernetes Secrets, which often contain database credentials, API keys, and TLS certificates."
+    source_clause: "CIS Kubernetes Benchmark, check 1.2.34 (per kube-bench: Ensure that encryption providers are appropriately configured)"
+    severity: "critical"
+    check_method: "static"
+    detector: "Semgrep (rule: no EncryptionConfiguration manifest referencing kind: EncryptionConfiguration, or the configuration present but without a secretbox provider)"
+    remediation_ref: "fix-playbook://K8S-08"
+
+  - control_id: "K8S-09"
+    name: "etcd data directory permissions restricted"
+    description: "The etcd data directory must have file permissions set to 700 or more restrictive, preventing unauthorized read/write access to the etcd data store which contains all cluster state including Secrets."
+    source_clause: "CIS Kubernetes Benchmark, check 1.1.7 (per kube-bench: Ensure that the etcd data directory permissions are set to 700 or more restrictive)"
+    severity: "high"
+    check_method: "static"
+    detector: "Semgrep / manual-review (rule: kubeadm config or etcd manifest without explicit data-dir permissions)"
+    remediation_ref: "fix-playbook://K8S-09"
+
+  # ==== Sub-section: Worker Node Security ====
+  - control_id: "K8S-10"
+    name: "Kubelet anonymous authentication disabled"
+    description: "The kubelet must have anonymous authentication disabled (--anonymous-auth=false), preventing unauthenticated access to the kubelet API which exposes sensitive node and pod information."
+    source_clause: "CIS Kubernetes Benchmark, check 4.2.1 (per kube-bench: Ensure that the --anonymous-auth argument is set to false)"
+    severity: "critical"
+    check_method: "static"
+    detector: "Semgrep (rule: kubelet configuration with --anonymous-auth=true or the flag absent)"
+    remediation_ref: "fix-playbook://K8S-10"
+
+  - control_id: "K8S-11"
+    name: "Kubelet TLS serving and client certificate auth configured"
+    description: "The kubelet must serve its API over TLS (--tls-cert-file and --tls-private-key-file) and require client certificate authentication (--client-ca-file) for kubelet API access, preventing unauthorized node management."
+    source_clause: "CIS Kubernetes Benchmark, checks 4.2.3-4.2.4 (per kube-bench: Ensure that TLS certificate files are set)"
+    severity: "high"
+    check_method: "static"
+    detector: "Semgrep (rule: kubelet configuration without --tls-cert-file, --tls-private-key-file, or --client-ca-file)"
+    remediation_ref: "fix-playbook://K8S-11"
+
+  - control_id: "K8S-12"
+    name: "Kubelet configuration file permissions restricted"
+    description: "The kubelet configuration file (kubelet.conf or kubelet-config.yaml) must have file permissions set to 600 or more restrictive, preventing unauthorized modification that could compromise node security."
+    source_clause: "CIS Kubernetes Benchmark, check 4.2.12 (per kube-bench: Ensure that the kubelet configuration file has permissions set to 644 or more restrictive)"
+    severity: "medium"
+    check_method: "static"
+    detector: "Semgrep / manual-review (rule: kubelet configuration file with overly permissive file permissions)"
+    remediation_ref: "fix-playbook://K8S-12"
+
+  # ==== Sub-section: Kubernetes Policies ====
+  - control_id: "K8S-13"
+    name: "RBAC least privilege enforced"
+    description: "Kubernetes RBAC must enforce least-privilege access: no wildcard apiGroups, resources, or verbs in Roles/ClusterRoles; cluster-admin binding restricted to designated administrators only; no unnecessary cluster-wide permissions."
+    source_clause: "CIS Kubernetes Benchmark, checks 5.1.1-5.1.6 (per kube-bench: RBAC and ServiceAccount checks)"
+    severity: "critical"
+    check_method: "static"
+    detector: "Semgrep (rule: Role/ClusterRole with wildcard apiGroups, resources, or verbs; ClusterRoleBinding referencing cluster-admin for non-admin subjects)"
+    remediation_ref: "fix-playbook://K8S-13"
+
+  - control_id: "K8S-14"
+    name: "Service account token auto-mounting disabled where unnecessary"
+    description: "Pods that do not need to call the Kubernetes API must set automountServiceAccountToken: false, avoiding unnecessary exposure of the service account token inside the container filesystem."
+    source_clause: "CIS Kubernetes Benchmark, check 5.1.6 (per kube-bench: Ensure that the --automount-service-account-token argument is not set to true)"
+    severity: "medium"
+    check_method: "static"
+    detector: "Semgrep (rule: Pod/Deployment spec with no automountServiceAccountToken: false for workloads that do not call the Kubernetes API)"
+    remediation_ref: "fix-playbook://K8S-14"
+
+  - control_id: "K8S-15"
+    name: "Pod Security Standards enforced at namespace level"
+    description: "Namespaces must enforce Pod Security Standards (restricted, baseline, or privileged profile) via namespace labels (pod-security.kubernetes.io/enforce), ensuring that pod security context requirements are applied consistently across all workloads in the namespace."
+    source_clause: "CIS Kubernetes Benchmark, check 5.2.1 (per kube-bench: Minimize the admission of privileged containers); Kubernetes Pod Security Standards (enforce via namespace labels)"
+    severity: "critical"
+    check_method: "static"
+    detector: "Semgrep (rule: application namespace with no pod-security.kubernetes.io/enforce label, or the label set to privileged)"
+    remediation_ref: "fix-playbook://K8S-15"
+
+  - control_id: "K8S-16"
+    name: "Privileged containers disallowed"
+    description: "Pod admission must prevent privileged containers (securityContext.privileged: true), which grant near-complete host access and effectively defeat all container isolation mechanisms."
+    source_clause: "CIS Kubernetes Benchmark, check 5.2.2 (per kube-bench: Minimize the admission of privileged containers)"
+    severity: "critical"
+    check_method: "static"
+    detector: "Semgrep (rule: Pod spec container with securityContext.privileged: true, or no Pod Security Standards policy blocking privileged containers)"
+    remediation_ref: "fix-playbook://K8S-16"
+
+  - control_id: "K8S-17"
+    name: "HostPath volumes restricted"
+    description: "Pod admission must minimize HostPath volumes (securityContext.hostPath or volume type hostPath), as they give pods direct access to the host filesystem and can be used for container escape and privilege escalation."
+    source_clause: "CIS Kubernetes Benchmark, check 5.2.12 (per kube-bench: Minimize the admission of HostPath volumes)"
+    severity: "high"
+    check_method: "static"
+    detector: "Semgrep (rule: Pod spec with volumes of type hostPath, or no Pod Security Standards policy blocking hostPath)"
+    remediation_ref: "fix-playbook://K8S-17"
+
+  - control_id: "K8S-18"
+    name: "Default-deny NetworkPolicy defined for all namespaces"
+    description: "Every namespace must have at least one NetworkPolicy with a default-deny ingress and egress policy, ensuring that pod network access is explicitly controlled rather than open by default."
+    source_clause: "CIS Kubernetes Benchmark, check 5.3.2 (per kube-bench: Ensure that all namespaces have NetworkPolicies defined)"
+    severity: "high"
+    check_method: "static"
+    detector: "Semgrep / manual-review (rule: a namespace with no NetworkPolicy resource defined, or no default-deny policy)"
+    remediation_ref: "fix-playbook://K8S-18"
+
+  - control_id: "K8S-19"
+    name: "External secrets management configured"
+    description: "Kubernetes Secrets should be sourced from an external secrets manager (Vault, AWS Secrets Manager, GCP Secret Manager) rather than stored as static YAML manifests. The ExternalSecret or SecretStore CRDs should be used to sync secrets from external providers."
+    source_clause: "Kubernetes security best practices; external-secrets.io documentation"
+    severity: "high"
+    check_method: "static"
+    detector: "manual-review / Semgrep (rule: static Secret manifests in the repository instead of ExternalSecret or SecretStore resources, for secrets that should be dynamically managed)"
+    remediation_ref: "fix-playbook://K8S-19"
+
+  - control_id: "K8S-20"
+    name: "Default namespace not used for application workloads"
+    description: "Application workloads should be deployed into a dedicated namespace rather than the default namespace, to enable proper RBAC scoping, NetworkPolicy enforcement, and resource quota isolation."
+    source_clause: "CIS Kubernetes Benchmark, check 5.7.4 (per kube-bench: Ensure that the default namespace is not used)"
+    severity: "low"
+    check_method: "static"
+    detector: "Semgrep (rule: manifest with no metadata.namespace set, or explicitly set to 'default', for an application workload)"
+    remediation_ref: "fix-playbook://K8S-20"
+
+deprecated_by: null
+last_reviewed: "2026-07-12"

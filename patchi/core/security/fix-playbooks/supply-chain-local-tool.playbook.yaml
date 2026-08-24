@@ -1,0 +1,288 @@
+playbooks:
+- blast_radius_notes: If the lockfile is currently stale relative to the manifest,
+    this will break the build until the lockfile is regenerated and committed as a
+    prerequisite fix.
+  control_id: SUPPLY-01
+  deterministic_tool: change CI install step to a lockfile-respecting command (npm
+    ci, pip install -r requirements.txt --require-hashes, cargo build --locked, etc.)
+  fix_strategy: deterministic-autofix
+  human_review_required: false
+  llm_fix_template: null
+  playbook_version: 1.1.0
+  verification_checks:
+  - Confirm the CI build fails if the lockfile and manifest are out of sync, rather
+    than silently resolving new versions.
+  - Confirm the release build still succeeds with the current, correct lockfile.
+- blast_radius_notes: Flagging a legitimate build script (e.g. compiling a native
+    addon) as suspicious is a real risk of over-triggering here — human judgment is
+    needed to distinguish legitimate build steps from genuinely risky ones.
+  control_id: SUPPLY-02
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.1.0
+  verification_checks:
+  - A human reviews every postinstall/preinstall/build script in the project and its
+    direct dependencies, confirming none perform unexpected network calls or execute
+    remotely-fetched code.
+- blast_radius_notes: Additive CI step; low risk to existing release functionality,
+    though it does add a dependency on the generator action's own reliability.
+  control_id: SUPPLY-03
+  deterministic_tool: integrate slsa-github-generator (or an equivalent reusable SLSA
+    provenance-generating workflow) into the release pipeline
+  fix_strategy: deterministic-autofix
+  human_review_required: false
+  llm_fix_template: null
+  playbook_version: 1.1.0
+  verification_checks:
+  - Confirm each new release publishes a provenance attestation file alongside the
+    artifact.
+  - Confirm the provenance correctly identifies the artifact's digest and build parameters.
+- blast_radius_notes: Requires establishing a signing identity (OIDC-based keyless
+    signing is simplest for public projects); a misconfigured signing step will block
+    releases, so test on a pre-release/tag first.
+  control_id: SUPPLY-04
+  deterministic_tool: add a cosign sign / Sigstore keyless-signing step to the release
+    pipeline after artifact and provenance generation
+  fix_strategy: deterministic-autofix
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.1.0
+  verification_checks:
+  - Confirm each released artifact has a corresponding, valid signature.
+  - Confirm a downstream consumer can successfully run cosign verify against the published
+    artifact.
+- blast_radius_notes: Meaningful architectural change to the release pipeline's job
+    structure, separating 'build' from 'sign' into isolated stages with different
+    trust levels.
+  control_id: SUPPLY-05
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.1.0
+  verification_checks:
+  - A human confirms the signing key/credential used to sign provenance is never exposed
+    to the job/container step that executes untrusted build/test code (e.g. by using
+    a separate, more privileged job that only handles signing after the build artifact
+    is produced).
+- blast_radius_notes: May require building out a CI-based release workflow for the
+    first time if releases are currently done manually — a real, non-trivial migration,
+    not a quick patch.
+  control_id: SUPPLY-06
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.1.0
+  verification_checks:
+  - A human confirms all release-producing steps run in CI (not a maintainer's local
+    machine) and that any documented manual-release instructions are removed or clearly
+    marked deprecated.
+- blast_radius_notes: May require migrating from a self-hosted runner to the CI provider's
+    hosted, ephemeral runners for the release job specifically.
+  control_id: SUPPLY-07
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.1.0
+  verification_checks:
+  - A human confirms the CI provider's runners used for releases are ephemeral (fresh
+    per job) and that the release job doesn't rely on a persistent, reused self-hosted
+    runner shared with untrusted workloads.
+- blast_radius_notes: Documentation addition alongside the signing pipeline change
+    from SUPPLY-04; low risk.
+  control_id: SUPPLY-08
+  deterministic_tool: add artifact signing to the release pipeline (see SUPPLY-04)
+    and publish clear signature-verification instructions in the project's README/install
+    docs
+  fix_strategy: deterministic-autofix
+  human_review_required: false
+  llm_fix_template: null
+  playbook_version: 1.1.0
+  verification_checks:
+  - Confirm published artifacts are signed.
+  - Confirm the README/docs include a copy-pasteable verification command for end
+    users.
+- blast_radius_notes: Adding verification steps to the install script is low-risk;
+    documenting alternatives is purely additive. The main effort is establishing and
+    maintaining published checksums/signatures per release.
+  control_id: SUPPLY-09
+  deterministic_tool: null
+  fix_strategy: llm-template-fill
+  human_review_required: false
+  llm_fix_template: "\"Given an install script {install_script} served via a curl|sh\
+    \ or iwr|iex\n pattern with no integrity check: \n 1. Confirm the script is served\
+    \ exclusively over HTTPS from a domain the\n    project controls.\n 2. Add a documented,\
+    \ safer alternative install method (a versioned\n    download with a published\
+    \ checksum, or a package-manager-native\n    install like brew/apt/npm) alongside\
+    \ the pipe-to-shell option.\n 3. Within {install_script} itself, add a step that\
+    \ verifies the\n    downloaded binary's checksum/signature before executing or\
+    \ installing\n    it, rather than trusting the download unconditionally.\n Preserve\
+    \ the one-line convenience for users who accept that tradeoff.\"\n"
+  playbook_version: 1.1.0
+  verification_checks:
+  - Confirm the install script now verifies a checksum/signature before use.
+  - Confirm the safer alternative install method is documented and functional.
+- blast_radius_notes: Localized to the self-update function; requires establishing
+    a trusted, independent channel for the expected checksum/signature, which is the
+    part that needs careful design, not just the verification code itself.
+  control_id: SUPPLY-10
+  deterministic_tool: null
+  fix_strategy: llm-template-fill
+  human_review_required: true
+  llm_fix_template: "\"Given a self-update code path {update_function} that downloads\
+    \ and applies\n a new version with no verification: before replacing the running\
+    \ binary,\n add a step that fetches the expected checksum/signature for the new\n\
+    \ version from a channel independent of the download itself (e.g. a\n separate,\
+    \ signed manifest file or the GitHub Releases API rather than\n the same CDN serving\
+    \ the binary), verifies the downloaded binary against\n it, and aborts the update\
+    \ on mismatch; preserve the update's existing\n success-path behavior for a verified\
+    \ download.\"\n"
+  playbook_version: 1.1.0
+  verification_checks:
+  - Attempt a self-update against a tampered/corrupted binary in a test environment
+    and confirm the update aborts.
+  - Confirm a legitimate update still applies successfully.
+- blast_radius_notes: May surface pre-existing checksum mismatches if the lockfile
+    is stale or a registry mirror is inconsistent — investigate rather than re-disabling
+    verification if this happens.
+  control_id: SUPPLY-11
+  deterministic_tool: remove any flags/config disabling hash or integrity verification
+    in the package manager configuration or CI install commands
+  fix_strategy: deterministic-autofix
+  human_review_required: false
+  llm_fix_template: null
+  playbook_version: 1.1.0
+  verification_checks:
+  - Confirm verification is enabled and a package install correctly fails on a checksum
+    mismatch in a test.
+- blast_radius_notes: Primarily a registry-account administrative task; low technical
+    risk.
+  control_id: SUPPLY-12
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: false
+  llm_fix_template: null
+  playbook_version: 1.1.0
+  verification_checks:
+  - A human checks the relevant package registries for typosquatted variants of the
+    project's package name and reserves/monitors them where feasible, and confirms
+    the actual package name uses appropriate registry-native scoping (e.g. an npm
+    @org/ scope).
+- blast_radius_notes: Typically already satisfied; relevant mainly for projects with
+    undocumented manual steps outside the repository.
+  control_id: SUPPLY-13
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: false
+  llm_fix_template: null
+  playbook_version: 1.1.0
+  verification_checks:
+  - A human confirms the project's source is fully tracked in Git (or an equivalent
+    VCS) with no critical release logic living outside version control.
+- blast_radius_notes: Will break any existing workflow that relies on force-pushing
+    to the release branch (uncommon and generally itself a bad practice) — confirm
+    no legitimate process depends on it.
+  control_id: SUPPLY-14
+  deterministic_tool: enable 'restrict force pushes' in the SCM platform's branch
+    protection settings for release branches
+  fix_strategy: deterministic-autofix
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.1.0
+  verification_checks:
+  - Attempt a force-push to the protected branch in a test scenario and confirm it
+    is rejected.
+- blast_radius_notes: Low risk; release tags should never legitimately need to move
+    once published.
+  control_id: SUPPLY-15
+  deterministic_tool: enable tag protection rules on the SCM platform for release
+    tag patterns (e.g. v*)
+  fix_strategy: deterministic-autofix
+  human_review_required: false
+  llm_fix_template: null
+  playbook_version: 1.1.0
+  verification_checks:
+  - Attempt to move or delete an existing protected release tag in a test scenario
+    and confirm it is rejected.
+- blast_radius_notes: May temporarily slow merges if existing CI checks are flaky
+    — stabilize the required checks before enforcing them as blocking, or contributors
+    will be blocked by infrastructure issues rather than real problems.
+  control_id: SUPPLY-16
+  deterministic_tool: configure required status checks (CI tests, linting, security
+    scans) in branch protection settings for release branches
+  fix_strategy: deterministic-autofix
+  human_review_required: false
+  llm_fix_template: null
+  playbook_version: 1.1.0
+  verification_checks:
+  - Confirm a merge to the release branch is blocked when a required check fails.
+  - Confirm the requirement has been continuously enforced (not toggled off and on)
+    since it was introduced.
+- blast_radius_notes: Slows solo-maintainer workflows if the project has only one
+    active contributor — for small projects, consider a documented trusted-robot exception
+    for well-audited automation (e.g. Dependabot) rather than disabling the control
+    entirely.
+  control_id: SUPPLY-17
+  deterministic_tool: enable 'require pull request reviews before merging' with at
+    least 1 required approving review, on branch protection settings for release branches
+  fix_strategy: deterministic-autofix
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.1.0
+  verification_checks:
+  - Attempt to merge an unreviewed change to the release branch in a test scenario
+    and confirm it is blocked.
+- blast_radius_notes: Documentation task.
+  control_id: SUPPLY-18
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: false
+  llm_fix_template: null
+  playbook_version: 1.1.0
+  verification_checks:
+  - A human confirms the project documents how contributor/maintainer identity is
+    established and authenticated.
+- blast_radius_notes: Additive CI step; low risk.
+  control_id: SUPPLY-19
+  deterministic_tool: add an SBOM-generation step (Syft, or OWASP CycloneDX tooling
+    for the project's ecosystem) to the release pipeline, publishing the SBOM alongside
+    the release artifact
+  fix_strategy: deterministic-autofix
+  human_review_required: false
+  llm_fix_template: null
+  playbook_version: 1.1.0
+  verification_checks:
+  - Confirm each release publishes an SBOM file.
+  - Confirm the SBOM accurately reflects the release's actual dependency tree.
+- blast_radius_notes: Can block releases on vulnerabilities in dependencies with no
+    available fix — pair with a documented exception/waiver process so this doesn't
+    become a permanent release blocker with no path forward.
+  control_id: SUPPLY-20
+  deterministic_tool: add an OSV-Scanner step to the release pipeline, configured
+    to fail the release on known-vulnerable dependencies above a defined severity
+    threshold
+  fix_strategy: deterministic-autofix
+  human_review_required: false
+  llm_fix_template: null
+  playbook_version: 1.1.0
+  verification_checks:
+  - Confirm the release pipeline blocks a release when a known-vulnerable dependency
+    is present in a test.
+  - Confirm a clean dependency tree still releases successfully.
+- blast_radius_notes: Migrating CI publishing to OIDC/trusted-publishing is a real
+    integration change per registry (npm, PyPI, crates.io each have their own setup)
+    — plan it as a small project, not a toggle.
+  control_id: SUPPLY-21
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.1.0
+  verification_checks:
+  - A human confirms MFA is enabled on the package registry publishing account(s),
+    and that CI-based publishing uses a short-lived, scoped mechanism (OIDC/trusted
+    publishing) rather than a long-lived stored token.

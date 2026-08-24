@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="history-panel">
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Project Summary</span>
+    </div>
+    <div style="display:flex;gap:24px;padding:16px;font-size:13px">
+      <div><span style="color:var(--text-secondary)">Files:</span> <strong>{{ file_count }}</strong></div>
+      <div><span style="color:var(--text-secondary)">Routes:</span> <strong>{{ route_count }}</strong></div>
+      <div><span style="color:var(--text-secondary)">Framework:</span> <strong>{{ framework }}</strong></div>
+      <div><span style="color:var(--text-secondary)">Patches:</span> <strong>{{ patches|length }}</strong></div>
+      <div><span style="color:var(--text-secondary)">Scans:</span> <strong>{{ scan_history|length }}</strong></div>
+    </div>
+  </div>
+
+  <!-- Scan History -->
+  <div class="card" style="margin-top:12px">
+    <div class="card-header">
+      <span class="card-title">Scan History</span>
+    </div>
+    {% if scan_history %}
+    <div style="overflow-x:auto;padding:12px">
+      <table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead>
+          <tr style="border-bottom:1px solid var(--border);color:var(--text-secondary)">
+            <th style="text-align:left;padding:6px 8px">Time</th>
+            <th style="text-align:left;padding:6px 8px">Tool</th>
+            <th style="text-align:right;padding:6px 8px">Findings</th>
+            <th style="text-align:right;padding:6px 8px">Health</th>
+            <th style="text-align:right;padding:6px 8px">Duration</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in scan_history %}
+          <tr style="border-bottom:1px solid var(--border)">
+            <td style="padding:6px 8px;font-family:var(--font-mono);font-size:11px">{{ s.timestamp[:19] }}</td>
+            <td style="padding:6px 8px">{{ s.tool }}</td>
+            <td style="padding:6px 8px;text-align:right">{{ s.findings_count }}</td>
+            <td style="padding:6px 8px;text-align:right">{{ s.health_score }}/100</td>
+            <td style="padding:6px 8px;text-align:right;font-family:var(--font-mono)">{{ s.duration_ms }}ms</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <div class="empty-state-icon">⏱</div>
+      <div class="empty-state-text">No scan history yet. Run a scan.</div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Patch History -->
+  <div class="card" style="margin-top:12px">
+    <div class="card-header">
+      <span class="card-title">Patch History</span>
+    </div>
+    {% if patches %}
+    <div style="overflow-x:auto;padding:12px">
+      <table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead>
+          <tr style="border-bottom:1px solid var(--border);color:var(--text-secondary)">
+            <th style="text-align:left;padding:6px 8px">ID</th>
+            <th style="text-align:left;padding:6px 8px">File</th>
+            <th style="text-align:left;padding:6px 8px">State</th>
+            <th style="text-align:right;padding:6px 8px">Risk</th>
+            <th style="text-align:left;padding:6px 8px">Applied</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in patches %}
+          <tr style="border-bottom:1px solid var(--border)">
+            <td style="padding:6px 8px;font-family:var(--font-mono);font-size:11px">{{ p.id[:10] }}…</td>
+            <td style="padding:6px 8px">{{ (p.changes or [{}])[0].get('path','') }}</td>
+            <td style="padding:6px 8px">{{ p.state }}</td>
+            <td style="padding:6px 8px;text-align:right">{{ p.risk_score }}%</td>
+            <td style="padding:6px 8px;font-family:var(--font-mono);font-size:11px">{{ (p.applied_at or p.rolled_back_at or '—')[:19] }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <div class="empty-state-icon">◪</div>
+      <div class="empty-state-text">No patch history yet. Run 'p fix' to generate fixes.</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

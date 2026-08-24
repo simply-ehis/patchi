@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="guard-panel">
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Hosted Guard</span>
+      <span class="badge {% if enabled %}badge-low{% else %}badge-info{% endif %}">
+        {% if enabled %}Connected{% else %}Not Configured{% endif %}
+      </span>
+    </div>
+
+    {% if not enabled %}
+    <div class="empty-state">
+      <div class="empty-state-icon">◬</div>
+      <div class="empty-state-text">Hosted mode not configured.</div>
+      <div style="margin-top:12px;color:var(--text-dim);font-size:12px">
+        Run <code>p hosted init</code> to set up live monitoring.
+      </div>
+    </div>
+    {% else %}
+    <div style="margin-bottom:12px;font-size:13px;color:var(--text-secondary)">
+      Log: <code>{{ log_path }}</code>
+    </div>
+
+    <!-- Top Threats -->
+    <div id="top-threats"
+      hx-get="/api/guard/threats"
+      hx-trigger="every 10s"
+      hx-swap="innerHTML">
+      Loading threats…
+    </div>
+
+    <!-- Live Events -->
+    <div style="margin-top:16px">
+      <div class="card-title" style="margin-bottom:8px">Live Events</div>
+      <div id="guard-events" style="max-height:300px;overflow-y:auto;font-family:var(--font-mono);font-size:12px;color:var(--text-secondary)">
+        Waiting for events…
+      </div>
+      <div id="guard-live-stream"
+        hx-get="/api/guard/live"
+        hx-trigger="load once"
+        hx-swap="innerHTML"
+        hx-target="#guard-events">
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+  // Handle guard events via WebSocket
+  const origHandler = window.handleWSEvent;
+  window.handleWSEvent = function(event, data) {
+    if (origHandler) origHandler(event, data);
+
+    if (event === 'guard.alert' || event === 'guard.status' || event === 'guard.anomaly_detected') {
+      const el = document.getElementById('guard-events');
+      if (el) {
+        const ts = new Date().toLocaleTimeString();
+        const msg = data.title || data.event || data.message || JSON.stringify(data);
+        // Skip if the same message already exists at the top
+        const first = el.firstElementChild;
+        if (first && first.textContent.includes(msg)) return;
+        const line = document.createElement('div');
+        line.style.marginBottom = '4px';
+        line.innerHTML = `<span style="color:var(--text-dim)">${ts}</span> ${msg}`;
+        el.prepend(line);
+        // Keep max 50 events
+        while (el.children.length > 50) el.removeChild(el.lastChild);
+      }
+    }
+  };
+</script>
+{% endblock %}

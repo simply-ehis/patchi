@@ -1,0 +1,26 @@
+{% if findings %}
+<table class="data-table">
+  <thead>
+    <tr>
+      <th>Severity</th>
+      <th>File</th>
+      <th>Message</th>
+      <th>Agent</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for f in findings %}
+    <tr>
+      <td><span class="badge badge-{{ f.severity }}">{{ f.severity }}</span></td>
+      <td style="font-family:var(--font-mono);font-size:11px">{{ f.file }}{% if f.line %}:{{ f.line }}{% endif %}</td>
+      <td>{{ (f.message or '')[:60] }}</td>
+      <td style="color:var(--text-dim);font-size:11px">{{ f.agent }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<div class="empty-state" style="padding:20px">
+  <div class="empty-state-text">No findings. Run a scan first.</div>
+</div>
+{% endif %}

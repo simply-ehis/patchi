@@ -1,0 +1,15 @@
+This product includes adaptations of skills from SecOpsAgentKit
+(https://github.com/AgentSecOps/SecOpsAgentKit), which is licensed
+under the Creative Commons Attribution-ShareAlike 4.0 International
+(CC BY-SA 4.0) license.
+
+SecOpsAgentKit Copyright (c) 2024 AgentSecOps
+
+Changes vs. original: Adapted for Patchi's deterministic Python agent
+architecture — transformed CLI-command skills into pattern-based
+detection rules with CWE mappings, confidence scores, and automated
+remediation templates. Removed tool-invocation instructions; added
+context-adaptive severity, multi-agent cross-correlation hints, and
+Patchi action-type bindings.
+
+Full license text: https://creativecommons.org/licenses/by-sa/4.0/

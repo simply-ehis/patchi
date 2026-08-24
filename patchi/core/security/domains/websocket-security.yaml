@@ -1,0 +1,54 @@
+domain_id: "websocket-security"
+version: "1.0.0"
+display_name: "WebSocket Security"
+source_standard: "OWASP Application Security Verification Standard (ASVS) 5.0.0, Chapter V4: API and Web Service, Section V4.4: WebSocket (fetched and verified directly from the official ASVS 5.0.0 CSV release, github.com/OWASP/ASVS, July 2026)."
+component_type: "backend-api"
+cross_cutting: false
+weight: 0.75
+
+activation_signals:
+  required_any:
+    - signal: "has_websocket_server_library"
+    - signal: "has_websocket_client_connections"
+  excluded_if:
+    - signal: "no_websocket_usage"
+
+controls:
+  - control_id: "WS-01"
+    name: "Use WSS (WebSocket over TLS) for all connections"
+    description: "WebSocket over TLS (WSS) must be used for all WebSocket connections, never unencrypted WS."
+    source_clause: "ASVS 5.0.0, V4.4.1"
+    severity: "critical"
+    check_method: "static"
+    detector: "Semgrep/CodeQL rule flagging ws:// URLs in WebSocket client connection code, or server configuration accepting unencrypted WebSocket upgrades"
+    remediation_ref: "fix-playbook://WS-01"
+
+  - control_id: "WS-02"
+    name: "Validate the Origin header against an allowlist during the WebSocket handshake"
+    description: "During the initial HTTP WebSocket handshake, the Origin header field must be checked against a list of origins allowed for the application, to prevent cross-site WebSocket hijacking from an unauthorized origin."
+    source_clause: "ASVS 5.0.0, V4.4.2"
+    severity: "high"
+    check_method: "static"
+    detector: "Semgrep/CodeQL rule confirming the WebSocket server's upgrade/connection handler validates the Origin header against an explicit allowlist before accepting the connection"
+    remediation_ref: "fix-playbook://WS-02"
+
+  - control_id: "WS-03"
+    name: "Use dedicated, spec-compliant tokens when standard session management can't apply"
+    description: "If the application's standard session management mechanism cannot be used for the WebSocket connection, dedicated tokens must be used instead, and these must comply with the relevant Session Management security requirements."
+    source_clause: "ASVS 5.0.0, V4.4.3"
+    severity: "high"
+    check_method: "manual-review"
+    detector: "manual-review only, though a static check can flag WebSocket authentication using a custom token scheme not matching the app's standard session-token logic"
+    remediation_ref: "fix-playbook://WS-03"
+
+  - control_id: "WS-04"
+    name: "Obtain/validate WebSocket session tokens through the prior authenticated HTTPS session"
+    description: "Dedicated WebSocket session management tokens must be initially obtained or validated through the previously authenticated HTTPS session when transitioning an existing HTTPS session to a WebSocket channel."
+    source_clause: "ASVS 5.0.0, V4.4.4"
+    severity: "high"
+    check_method: "static"
+    detector: "Semgrep/CodeQL rule confirming the WebSocket upgrade flow derives its session token from the existing authenticated HTTPS session rather than accepting an independent WebSocket-only credential"
+    remediation_ref: "fix-playbook://WS-04"
+
+deprecated_by: null
+last_reviewed: "2026-07-09"

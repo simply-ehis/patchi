@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="review-panel">
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Patch Review ({{ total }})</span>
+      <div style="display:flex;gap:4px">
+        {% if patches %}
+        <button class="btn btn-primary" onclick="applyAllSafe()">Apply All Low Risk</button>
+        {% endif %}
+        <button class="btn" onclick="undo()" title="Undo last applied patch">↩ Undo</button>
+        <button class="btn" onclick="redo()" title="Redo last undone patch">↪ Redo</button>
+      </div>
+    </div>
+
+    {% if patches %}
+    {% for p in patches %}
+    <div class="card" style="margin-bottom:8px" id="patch-{{ p.id }}">
+      <div style="display:flex;justify-content:space-between;align-items:start">
+        <div>
+          <div style="font-weight:600;margin-bottom:4px">{{ (p.description or '')[:80] }}</div>
+          <div style="font-size:12px;color:var(--text-secondary)">
+            {{ (p.changes or [{}])[0].get('path', '') }} · Risk: {{ p.risk_score }}/100 · Confidence: {{ p.confidence }}%
+          </div>
+        </div>
+        <div style="display:flex;gap:4px">
+          <button class="btn" style="font-size:12px;padding:4px 12px"
+            hx-post="/api/fix/apply/{{ p.id }}" hx-swap="none"
+            onclick="document.getElementById('patch-{{ p.id }}').style.opacity=0.3">
+            ✓ Apply
+          </button>
+          <button class="btn btn-danger" style="font-size:12px;padding:4px 12px"
+            hx-post="/api/fix/reject/{{ p.id }}" hx-swap="none"
+            onclick="document.getElementById('patch-{{ p.id }}').style.display='none'">
+            ✗ Reject
+          </button>
+          <button class="btn" style="font-size:12px;padding:4px 8px"
+            onclick="toggleDiff('diff-{{ p.id }}')">
+            ⌥ Diff
+          </button>
+        </div>
+      </div>
+      {% if p.diff %}
+      <div id="diff-{{ p.id }}" style="display:none;margin-top:8px">
+        <pre style="background:var(--bg-secondary,#111a0e);border-radius:6px;padding:12px;overflow-x:auto;font-size:11px;line-height:1.5;white-space:pre-wrap;word-break:break-all"><code>{% for line in p.diff.splitlines() %}{% if line.startswith('+') and not line.startswith('+++') %}<span style="color:#4ADE80">{{ line }}</span>
+{% elif line.startswith('-') and not line.startswith('---') %}<span style="color:#FF4D6D">{{ line }}</span>
+{% elif line.startswith('@@') %}<span style="color:#38BDF8">{{ line }}</span>
+{% else %}<span style="color:var(--text-secondary,#7a6a5a)">{{ line }}</span>
+{% endif %}{% endfor %}</code></pre>
+      </div>
+      {% endif %}
+    </div>
+    {% endfor %}
+    {% else %}
+    <div class="empty-state">
+      <div class="empty-state-icon">◪</div>
+      <div class="empty-state-text">No patches to review. Run 'p fix' to generate fixes.</div>
+    </div>
+    {% endif %}
+  </div>
+  </div>
+</div>
+<script>
+function toggleDiff(id) {
+  const el = document.getElementById(id);
+  if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+function applyAllSafe() {
+  if (!confirm('Apply all low-risk patches?')) return;
+  fetch('/api/fix/apply-all-safe', {method:'POST'})
+    .then(r => r.json())
+    .then(d => { if (d.ok) location.reload(); });
+}
+function undo() {
+  fetch('/api/undo', {method:'POST'})
+    .then(r => r.json())
+    .then(d => { toast(d.ok ? 'Undone: ' + d.patch_id : 'Error: ' + d.error, d.ok ? 'info' : 'error'); if (d.ok) location.reload(); })
+    .catch(e => toast('Undo failed: ' + e.message, 'error'));
+}
+function redo() {
+  fetch('/api/redo', {method:'POST'})
+    .then(r => r.json())
+    .then(d => { toast(d.ok ? 'Redone: ' + d.patch_id : 'Error: ' + d.error, d.ok ? 'info' : 'error'); if (d.ok) location.reload(); })
+    .catch(e => toast('Redo failed: ' + e.message, 'error'));
+}
+</script>
+{% endblock %}

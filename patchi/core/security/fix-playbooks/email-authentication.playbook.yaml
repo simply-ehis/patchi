@@ -1,0 +1,111 @@
+playbooks:
+- blast_radius_notes: Publishing an SPF record with all legitimate senders requires
+    identifying every system that sends email on behalf of the domain; missing a sender
+    causes legitimate email to fail SPF checks.
+  control_id: EMAILAUTH-01
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - A human audits all email-sending systems and includes them in the SPF record.
+  - Confirm SPF lookup count stays under 10 (DNS limit).
+- blast_radius_notes: Consolidating DNS lookups under 10 requires restructuring the
+    SPF record; an incorrect rewrite can break email deliverability.
+  control_id: EMAILAUTH-02
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - A human restructures the SPF record to use nested redirects or macro expansions.
+  - Confirm the total DNS lookup count is under 10.
+- blast_radius_notes: Generating a new 2048+ RSA DKIM key and publishing the new public
+    key requires updating all services that verify DKIM; coordination with recipients
+    may be needed for smooth transition.
+  control_id: EMAILAUTH-03
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - A human generates a new RSA 2048+ bit key pair for DKIM signing.
+  - Confirm the new public key is published in DNS and all signing services use the
+    new private key.
+- blast_radius_notes: Setting up two-selector rolling rotation is a proactive measure;
+    low risk but requires coordination with DNS management for selector records.
+  control_id: EMAILAUTH-04
+  deterministic_tool: 'configure two DKIM selectors (e.g. s1, s2) with staggered key
+    rotation schedules'
+  fix_strategy: deterministic-autofix
+  human_review_required: false
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - Confirm both DKIM selectors are published in DNS.
+  - Confirm signing services rotate keys according to the defined schedule.
+- blast_radius_notes: Staged DMARC rollout from p=none to p=reject requires monitoring
+    DMARC reports for legitimate mail failures before tightening enforcement; skipping
+    the monitoring phase can reject legitimate email.
+  control_id: EMAILAUTH-05
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - A human reviews DMARC aggregate reports to confirm legitimate email passes authentication.
+  - Confirm DMARC policy is progressively tightened from none to quarantine to reject.
+- blast_radius_notes: Changing adkim/aspf from relaxed to strict may reject email
+    from legitimate sources that use non-aligned subdomains.
+  control_id: EMAILAUTH-06
+  deterministic_tool: set adkim and aspf tags to s (strict) or r (relaxed) in the
+    DMARC record
+  fix_strategy: deterministic-autofix
+  human_review_required: false
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - Confirm the DMARC record reflects the intended adkim/aspf settings.
+  - Confirm legitimate email still passes DMARC alignment.
+- blast_radius_notes: Publishing rua= is purely additive; it enables aggregate reporting
+    without affecting email delivery.
+  control_id: EMAILAUTH-07
+  deterministic_tool: 'add rua= tag to the DMARC record pointing to a valid aggregate
+    report receiver'
+  fix_strategy: deterministic-autofix
+  human_review_required: false
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - Confirm the DMARC record includes a valid rua= URI.
+  - Confirm aggregate reports are being received and parsed.
+- blast_radius_notes: Replacing manual header concatenation with a safe library may
+    change email header formatting; test with receiving servers to confirm no breakage.
+  control_id: EMAILAUTH-08
+  deterministic_tool: null
+  fix_strategy: llm-template-fill
+  human_review_required: true
+  llm_fix_template: "\"Given code that manually concatenates email headers for DKIM signing\
+    \ or\n SPF evaluation: replace with a well-maintained email library that\n handles\
+    \ header canonicalization correctly (e.g. Python's\n email.utils, Node's nodemailer);\
+    \ preserve the email's functional\n requirements.\"\n"
+  playbook_version: 1.0.0
+  verification_checks:
+  - Confirm the new library is correctly canonicalizing headers for authentication.
+  - Confirm email sending still works and passes SPF/DKIM/DMARC checks.
+- blast_radius_notes: Publishing an explicit DMARC record at every subdomain prevents
+    subdomain takeover via spoofing; purely additive security improvement.
+  control_id: EMAILAUTH-09
+  deterministic_tool: 'publish a DMARC record (p=none minimum) at every active subdomain
+    that sends or could be spoofed for email'
+  fix_strategy: deterministic-autofix
+  human_review_required: false
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - Confirm DMARC records exist for all active subdomains.
+  - Confirm subdomains that do not send email have p=reject or are otherwise protected.

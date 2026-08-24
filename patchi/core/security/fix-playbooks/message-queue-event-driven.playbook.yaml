@@ -1,0 +1,245 @@
+playbooks:
+- playbook_id: MQ-01
+  control_name: Authenticated producers and consumers
+  summary: No anonymous connections to production topics or queues — ever.
+  remediation_steps:
+  - For Kafka, enable a SASL_SSL or SSL listener and configure SASL/SCRAM-SHA-512 (or OAUTHBEARER if you
+    have an OIDC provider) for client authentication; avoid SASL/PLAIN except where paired with an external
+    secret-rotation system, and never rely on PLAINTEXT listeners in production.
+  - For AWS SQS, ensure application code assumes an IAM role (via EC2 instance profile, ECS task role,
+    or Lambda execution role) rather than embedding long-term IAM access keys.
+  - 'Remove any remaining anonymous or default-credential access paths (e.g. a Kafka broker configured
+    with allow.everyone.if.no.acl.found=true, or an SQS queue policy with Principal: ''*'' and no condition).'
+  - Rotate any credentials that were previously used in a shared or anonymous fashion, since their exposure
+    history is unknown.
+  implementation_notes:
+  - SASL/SCRAM-SHA-512 is described by Kafka's own ecosystem guidance as the pragmatic default for most
+    production deployments; reserve mTLS for internal service-to-service links where certificate management
+    is already mature.
+  verification:
+  - Attempt an unauthenticated connection to the broker/queue from a test client and confirm it is rejected.
+  - Review IAM/ACL configuration to confirm no anonymous or wildcard-principal access remains.
+  references:
+  - Apache Kafka documentation, Authentication using SASL
+  - AWS SQS documentation, Security best practices
+  control_id: MQ-01
+- playbook_id: MQ-02
+  control_name: Least-privilege, per-topic/queue authorization
+  summary: Grant each service access to exactly the topics/queues and operations it uses.
+  remediation_steps:
+  - For Kafka, define a distinct principal per service and grant kafka-acls.sh permissions scoped to the
+    specific topics and operations (Read/Write/Describe) that service needs — avoid wildcard topic patterns
+    unless a genuine shared-prefix convention exists.
+  - For AWS SQS, write queue and KMS key policies scoped to the specific producer/consumer roles involved,
+    following the pattern in AWS's own least-privilege SQS guide, rather than a broad sqs:* grant.
+  - Periodically audit ACLs/policies against actual usage (Kafka's own audit logs, or AWS CloudTrail for
+    SQS API calls) and remove unused grants.
+  - Separate administrative operations (topic/queue creation, deletion, policy changes) into a distinct,
+    more restricted principal from the ones used by regular producers/consumers.
+  implementation_notes:
+  - This is one of the most impactful controls in this domain — overly broad topic/queue access is a common
+    way a single compromised service credential turns into full-pipeline compromise.
+  verification:
+  - 'Review: kafka-acls.sh --list (or the equivalent SQS/KMS policy review) confirms each principal''s
+    grants match its declared need.'
+  references:
+  - Apache Kafka documentation, Authorization and ACLs
+  - AWS SQS documentation, Access management for encrypted Amazon SQS queues with least privilege policies
+  control_id: MQ-02
+- playbook_id: MQ-03
+  control_name: Enforced encryption in transit for broker connections
+  summary: TLS everywhere — no plaintext broker listeners in anything but local dev.
+  remediation_steps:
+  - For Kafka, configure SASL_SSL or SSL listeners and disable PLAINTEXT/SASL_PLAINTEXT listeners on any
+    broker reachable outside a fully isolated local development environment.
+  - For AWS SQS, add a Deny statement to the queue's resource policy for requests where aws:SecureTransport
+    is false, forcing all API calls onto HTTPS.
+  - Verify client libraries are actually configured to use the TLS-enabled endpoint/listener — a broker
+    offering TLS doesn't prevent a misconfigured client from connecting over a still-open plaintext listener
+    if one exists.
+  implementation_notes:
+  - 'This is a common gap in local-to-staging promotion: a developer disables TLS locally for convenience
+    and the same client configuration ships to a shared staging environment that isn''t actually isolated.'
+  verification:
+  - Attempt a plaintext connection to the broker/queue endpoint and confirm it is rejected or unavailable.
+  references:
+  - Apache Kafka documentation (Security Overview)
+  - AWS SQS documentation, Security best practices
+  control_id: MQ-03
+- playbook_id: MQ-04
+  control_name: Encryption at rest for message bodies
+  summary: Encrypt what's sitting in the queue, not just what's moving through the wire.
+  remediation_steps:
+  - For AWS SQS, enable server-side encryption (SSE-SQS for simplicity, or SSE-KMS with a customer-managed
+    key for finer-grained access control and audit logging) on every queue carrying sensitive data.
+  - For self-hosted Kafka/RabbitMQ, enable full-disk or volume-level encryption on the broker's data-directory
+    storage.
+  - Remember that enabling SSE on an SQS queue only encrypts messages sent after encryption was enabled
+    — backlogged messages remain unencrypted, so plan a queue-drain or migration if retroactive coverage
+    matters.
+  implementation_notes:
+  - SSE-KMS costs more per-request than SSE-SQS but gives you audit trail (via CloudTrail) of every encrypt/decrypt
+    call and finer control over key policy — worth it for genuinely sensitive queues.
+  verification:
+  - 'Review: confirm SSE is enabled on relevant SQS queues (or volume encryption on self-hosted broker
+    storage), and that anonymous SendMessage/ReceiveMessage requests are rejected as expected once SSE
+    is on.'
+  references:
+  - AWS SQS documentation, Encryption at rest in Amazon SQS
+  control_id: MQ-04
+- playbook_id: MQ-05
+  control_name: Message payload validation at consumption (treat message content as untrusted)
+  summary: Validate every message the same way you'd validate an API request body.
+  remediation_steps:
+  - Define an explicit schema (JSON Schema, Avro, or Protobuf) for every message type and validate incoming
+    messages against it at the top of the consumer handler, before any business logic runs.
+  - Reject and route to a dead-letter queue (see MQ-07) any message that fails schema validation, rather
+    than attempting to coerce or partially process it.
+  - Apply the same injection-prevention discipline used elsewhere (parameterized queries, safe command
+    construction) to any data extracted from a message that reaches a downstream system.
+  - If using a schema registry (e.g. Confluent Schema Registry), enforce compatibility checks so a producer
+    can't silently ship a schema-incompatible message that a consumer would otherwise trust.
+  implementation_notes:
+  - This is especially important in event-driven architectures where a consumer may receive messages from
+    producers it doesn't directly control or fully trust (e.g. a shared platform topic with multiple producing
+    teams).
+  verification:
+  - 'Test: publish a malformed or schema-violating message and confirm the consumer rejects/DLQs it rather
+    than processing it.'
+  references:
+  - Adapted from OWASP ASVS 5.0.0, V1.2 Injection Prevention
+  control_id: MQ-05
+  llm_fix_template: "# Fill in for the specific consumer handler and message schema.\n# <SCHEMA_IMPORT>:\
+    \ import/reference for the message's JSON Schema, Avro schema, or Protobuf definition\n# <VALIDATOR_CALL>:\
+    \ the schema library's validate call for this stack (e.g. ajv.validate, jsonschema.validate, fastavro.validate)\n\
+    # <DLQ_ROUTE_FN>: the existing function/mechanism this codebase already uses to route a message to\
+    \ its dead-letter queue (see MQ-07's fix in this same consumer)\n\ndef handle_message(message):\n\
+    \    if not <VALIDATOR_CALL>(<SCHEMA_IMPORT>, message.body):\n        log.warning(\"Schema validation\
+    \ failed for message %s\", message.id)\n        <DLQ_ROUTE_FN>(message, reason=\"schema_validation_failed\"\
+    )\n        return\n    # existing business logic continues below, operating only on a validated message\n\
+    \    ...\n"
+  verification_checks:
+  - check: Publish a message that violates the declared schema and confirm the consumer routes it to the
+      dead-letter queue/topic rather than processing it.
+    method: dynamic
+  - check: Static rule confirms the schema-validation call appears before any business-logic statement
+      in the handler function body.
+    method: static
+  blast_radius_notes: Inserting validation at the top of an existing, live consumer handler risks rejecting
+    messages that were previously processed successfully under a looser implicit contract (e.g. optional
+    fields the handler tolerated but the formal schema marks required) — this can cause a spike of false-positive
+    DLQ routing immediately after deploy if the schema doesn't precisely match real historical traffic.
+    Requires coordination with MQ-07 (DLQ routing must already exist and be monitored) before this fix
+    is safe to ship, since rejected messages need somewhere to go and someone watching that they arrive
+    there for the right reason.
+- playbook_id: MQ-06
+  control_name: Message-level integrity verification beyond transport encryption
+  summary: For messages that need to survive multiple hops, add a signature — TLS alone only covers one
+    leg.
+  remediation_steps:
+  - For messages where integrity matters beyond a single broker hop (e.g. multi-broker relay, long-lived
+    queued messages, or messages from a less-trusted producer), include a signature or HMAC over the message
+    body, computed by the producer with a key the consumer can verify against.
+  - Have the consumer verify this signature before processing the message, rejecting (and routing to a
+    DLQ) any message that fails verification.
+  - Scope this control to the messages that actually need it — applying message-level signing universally
+    adds overhead that may not be justified for low-sensitivity, single-hop internal traffic already covered
+    by MQ-03's transport encryption.
+  implementation_notes:
+  - 'This is defense-in-depth for the specific gap transport encryption doesn''t cover: a message sitting
+    at rest in a broker, or crossing a boundary where TLS has already been terminated and re-established
+    by an intermediate hop.'
+  verification:
+  - 'Test: tamper with a message''s body after it''s been queued (e.g. by directly modifying it via broker
+    admin tooling in a test environment) and confirm the consumer''s signature check rejects it.'
+  references:
+  - Adapted from OWASP ASVS 5.0.0, V11 Cryptography
+  control_id: MQ-06
+- playbook_id: MQ-07
+  control_name: Bounded retry with dead-letter queue for poison messages
+  summary: Cap the retries, then move the bad message somewhere safe instead of looping forever.
+  remediation_steps:
+  - For AWS SQS, create a dead-letter queue and configure the source queue's RedrivePolicy with a maxReceiveCount
+    appropriate to your workload (the default is 10; many workloads are better served by a lower value
+    like 3-5).
+  - For Kafka, implement equivalent bounded-retry logic in the consumer application itself (Kafka has
+    no native DLQ construct) — track a per-message retry count and route to a designated dead-letter topic
+    after the threshold is exceeded.
+  - Alert on messages landing in the dead-letter queue/topic so they get human attention rather than silently
+    accumulating unnoticed.
+  - Periodically review dead-lettered messages to distinguish genuine poison messages (malformed/adversarial)
+    from transient processing failures that indicate a bug worth fixing upstream.
+  implementation_notes:
+  - A poison message that isn't bounded can, in the worst case, consume consumer resources indefinitely
+    or block a FIFO queue's ordering guarantee for all subsequent messages behind it.
+  verification:
+  - 'Test: publish a message engineered to always fail processing and confirm it lands in the dead-letter
+    queue/topic after the configured retry count, rather than retrying indefinitely.'
+  references:
+  - AWS SQS documentation, Using dead-letter queues in Amazon SQS
+  control_id: MQ-07
+- playbook_id: MQ-08
+  control_name: Restricted dead-letter queue access (redrive allow policy)
+  summary: Lock down who can redrive into your DLQ — it's a magnet for interesting failures.
+  remediation_steps:
+  - Set the dead-letter queue's RedriveAllowPolicy to byQueue, explicitly listing the specific source
+    queue ARN(s) permitted to target it, rather than leaving the default allowAll in place.
+  - For a DLQ that should never receive redirected messages from any other queue (e.g. a highly sensitive
+    queue's DLQ), consider denyAll and handle redrive through a separate, explicitly-authorized process
+    instead.
+  - Apply the same least-privilege queue-policy discipline (MQ-02) to who can read from the DLQ once messages
+    land there, since it often accumulates the most anomalous/adversarial message content in the system.
+  implementation_notes:
+  - This is a low-effort control — typically a single policy attribute — with disproportionate value given
+    that DLQs concentrate exactly the kind of malformed or adversarial content most worth protecting.
+  verification:
+  - 'Review: confirm RedriveAllowPolicy is set to byQueue or denyAll rather than the default allowAll,
+    unless a documented reason requires the permissive default.'
+  references:
+  - AWS SQS documentation, Using dead-letter queues in Amazon SQS
+  control_id: MQ-08
+- playbook_id: MQ-09
+  control_name: Idempotent consumers to mitigate at-least-once redelivery and replay
+  summary: Track what you've already processed so a redelivered message doesn't fire twice.
+  remediation_steps:
+  - For each consumer handling messages with a side effect (writing to a database, calling a downstream
+    API, sending a notification), track processed message IDs in a durable store (a database table with
+    a unique constraint, or a cache with sufficient TTL) and check it before executing the side effect.
+  - Where the broker or message format provides a natural idempotency key (e.g. a business transaction
+    ID rather than just the broker's own message ID), prefer that key, since a producer retry might generate
+    a new broker-level message ID for logically the same event.
+  - Design downstream side effects to be naturally idempotent where possible (e.g. an upsert instead of
+    an insert) as an additional layer of protection beyond the dedup check.
+  - Set consumer visibility-timeout/processing-time configuration realistically, since an underestimated
+    timeout causing premature redelivery is one of the most common sources of unnecessary duplicate processing.
+  implementation_notes:
+  - This is the message-consumption analogue of the github-app-bot domain's GHA-10 webhook-replay control
+    — same underlying problem (at-least-once delivery), same fix pattern (dedup key + check before acting).
+  verification:
+  - 'Test: redeliver the same message twice (e.g. by resetting a consumer''s offset in a test environment)
+    and confirm the side effect occurs only once.'
+  references:
+  - Adapted — informed by AWS SQS and Apache Kafka documented at-least-once delivery semantics
+  control_id: MQ-09
+- playbook_id: MQ-10
+  control_name: Confused-deputy prevention for cross-service queue access
+  summary: Scope service-to-service queue grants to the exact source resource, not just the service type.
+  remediation_steps:
+  - For any SQS/SNS resource policy granting a service principal (e.g. sns.amazonaws.com, s3.amazonaws.com)
+    permission to send messages, add an aws:SourceArn condition restricting it to the specific expected
+    source resource ARN.
+  - For cross-account grants, add aws:SourceAccount or aws:PrincipalOrgID conditions scoping access to
+    the expected account or organization, rather than a bare cross-account principal grant.
+  - Run AWS IAM Access Analyzer against the queue and any associated KMS key policy to catch unintended
+    external-access grants that don't have an appropriate source-restriction condition.
+  implementation_notes:
+  - Follow AWS's own published pattern (SNS-to-SQS fanout with a source-restricted policy) as a template
+    rather than writing the condition logic from scratch.
+  verification:
+  - 'Review: confirm every service-principal grant in the queue/KMS key policy includes an aws:SourceArn,
+    aws:SourceAccount, or aws:PrincipalOrgID condition.'
+  - Run IAM Access Analyzer and confirm no unexpected external-access findings remain open.
+  references:
+  - AWS Security Blog, How to set up least privilege access to your encrypted Amazon SQS queue
+  - AWS SQS documentation, Access management for encrypted Amazon SQS queues with least privilege policies
+  control_id: MQ-10

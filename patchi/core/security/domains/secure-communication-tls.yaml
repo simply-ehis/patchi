@@ -1,0 +1,135 @@
+domain_id: "secure-communication-tls"
+version: "1.0.0"
+display_name: "Secure Communication (TLS)"
+source_standard: "OWASP Application Security Verification Standard (ASVS) 5.0.0, Chapter V12: Secure Communication (fetched and verified directly from the official ASVS 5.0.0 markdown source, github.com/OWASP/ASVS, July 2026). Cross-referenced against the OWASP Transport Layer Security Cheat Sheet and Mozilla's Server Side TLS configuration guide, both cited directly in the ASVS chapter's own references section."
+component_type: "backend-api"
+cross_cutting: true
+weight: 0.85
+
+# NOTE ON SCOPE: this domain covers transport-layer encryption mechanics (TLS versions,
+# cipher suites, certificate validation) for both external client-facing traffic and
+# internal service-to-service traffic. It is distinct from general-cryptography (V11),
+# which covers application-level cryptographic operations (encrypting data fields,
+# hashing, signing) rather than the transport channel itself. An app can have perfect
+# V11 compliance and still transmit that well-encrypted data over a TLS 1.0 connection —
+# these are genuinely separate layers and both need independent scoring.
+
+activation_signals:
+  required_any:
+    - signal: "has_https_endpoint"                # any externally-exposed HTTPS service
+    - signal: "has_service_to_service_tls_config"  # internal mTLS, service mesh, database TLS connections
+    - signal: "has_tls_client_connections"          # outbound HTTPS/TLS calls to external APIs, DBs, etc.
+  excluded_if:
+    - signal: "no_network_transport_beyond_localhost"  # a purely local CLI tool with no network communication of its own
+
+controls:
+  - control_id: "TLS-01"
+    name: "Enable only current TLS protocol versions"
+    description: "Only the latest recommended versions of the TLS protocol must be enabled — TLS 1.2 and TLS 1.3 — with the latest version set as the preferred option; older protocol versions (TLS 1.0, TLS 1.1, all SSL versions) must be disabled."
+    source_clause: "ASVS 5.0.0, V12.1.1"
+    severity: "critical"
+    check_method: "static"
+    detector: "Static config-file scan (web server config, load balancer config, application TLS options) flagging any enabled protocol version below TLS 1.2; also checkable dynamically via O-Saft or Mozilla's TLS observatory-style tooling against a running endpoint"
+    remediation_ref: "fix-playbook://TLS-01"
+
+  - control_id: "TLS-02"
+    name: "Enable only recommended cipher suites; require forward secrecy at L3"
+    description: "Only recommended cipher suites may be enabled, with the strongest suites set as preferred; L3 applications must only support cipher suites providing forward secrecy (ECDHE/DHE-based suites, not static RSA key exchange)."
+    source_clause: "ASVS 5.0.0, V12.1.2"
+    severity: "high"
+    check_method: "static"
+    detector: "Static config scan flagging cipher suite configuration containing deprecated/weak suites (RC4, DES, export-grade ciphers, non-forward-secret RSA key exchange) rather than a current recommended list (e.g. Mozilla's Intermediate/Modern configuration generator output)"
+    remediation_ref: "fix-playbook://TLS-02"
+
+  - control_id: "TLS-03"
+    name: "Validate mTLS client certificates as trusted before using their identity"
+    description: "If mutual TLS is used, the application must validate that client certificates are trusted before using the certificate's identity for authentication or authorization decisions."
+    source_clause: "ASVS 5.0.0, V12.1.3"
+    severity: "high"
+    check_method: "static"
+    detector: "Semgrep/CodeQL rule confirming mTLS-based authentication logic verifies the client certificate against a trusted CA/allowlist before extracting and trusting its identity claims"
+    remediation_ref: "fix-playbook://TLS-03"
+
+  - control_id: "TLS-04"
+    name: "Enable certificate revocation checking (OCSP stapling)"
+    description: "Proper certificate revocation checking, such as OCSP Stapling, must be enabled and configured, so a revoked certificate is not silently trusted."
+    source_clause: "ASVS 5.0.0, V12.1.4"
+    severity: "medium"
+    check_method: "static"
+    detector: "Static web-server/load-balancer config scan confirming OCSP stapling is enabled (L3 requirement)"
+    remediation_ref: "fix-playbook://TLS-04"
+
+  - control_id: "TLS-05"
+    name: "Enable Encrypted Client Hello (ECH)"
+    description: "Encrypted Client Hello must be enabled in the application's TLS settings to prevent exposure of sensitive metadata, such as the Server Name Indication (SNI), during the TLS handshake."
+    source_clause: "ASVS 5.0.0, V12.1.5"
+    severity: "low"
+    check_method: "static"
+    detector: "Static TLS config scan confirming ECH support is enabled where the TLS termination point/CDN supports it (L3 requirement; ECH support is still emerging across server software as of this writing)"
+    remediation_ref: "fix-playbook://TLS-05"
+
+  - control_id: "TLS-06"
+    name: "Enforce TLS for all external client connectivity, no insecure fallback"
+    description: "TLS must be used for all connectivity between a client and external-facing, HTTP-based services, with no fallback to insecure or unencrypted communication."
+    source_clause: "ASVS 5.0.0, V12.2.1"
+    severity: "critical"
+    check_method: "static"
+    detector: "Static web-server config scan confirming HTTP-to-HTTPS redirect is enforced and no plain-HTTP listener serves application content; also checkable by attempting a plain-HTTP connection against the deployed endpoint"
+    remediation_ref: "fix-playbook://TLS-06"
+
+  - control_id: "TLS-07"
+    name: "Use publicly trusted TLS certificates for external-facing services"
+    description: "External-facing services must use TLS certificates issued by a publicly trusted certificate authority, not self-signed or internally-issued certificates that a public client's browser/HTTP client would not trust by default."
+    source_clause: "ASVS 5.0.0, V12.2.2"
+    severity: "high"
+    check_method: "static"
+    detector: "Dynamic TLS handshake check confirming the presented certificate chains to a publicly trusted root CA"
+    remediation_ref: "fix-playbook://TLS-07"
+
+  - control_id: "TLS-08"
+    name: "Encrypt all inbound/outbound connections including non-HTTP protocols"
+    description: "An encrypted protocol such as TLS must be used for all inbound and outbound connections to and from the application — monitoring systems, management tools, remote access/SSH, middleware, databases, mainframes, partner systems, or external APIs — with no fallback to insecure/unencrypted protocols."
+    source_clause: "ASVS 5.0.0, V12.3.1"
+    severity: "high"
+    check_method: "static"
+    detector: "Static connection-string/config scan flagging database drivers, message-queue clients, or other non-HTTP connections configured without TLS/SSL mode enabled (e.g. a Postgres connection string missing sslmode=require)"
+    remediation_ref: "fix-playbook://TLS-08"
+
+  - control_id: "TLS-09"
+    name: "Validate TLS server certificates on outbound client connections"
+    description: "TLS clients (the application acting as a client to another service) must validate the certificate received from the server before communicating with it, rather than disabling certificate validation."
+    source_clause: "ASVS 5.0.0, V12.3.2"
+    severity: "critical"
+    check_method: "static"
+    detector: "Semgrep/CodeQL rule flagging HTTP client configuration or code with certificate validation explicitly disabled (e.g. rejectUnauthorized: false in Node, verify=False in Python requests, InsecureSkipVerify: true in Go)"
+    remediation_ref: "fix-playbook://TLS-09"
+
+  - control_id: "TLS-10"
+    name: "Encrypt internal HTTP-based service-to-service communication"
+    description: "TLS or another appropriate transport encryption mechanism must be used for all connectivity between internal, HTTP-based services within the application, with no fallback to insecure or unencrypted communication."
+    source_clause: "ASVS 5.0.0, V12.3.3"
+    severity: "high"
+    check_method: "static"
+    detector: "Static config/deployment-manifest scan flagging internal service-to-service HTTP endpoints not configured for TLS (e.g. a Kubernetes service exposing plain HTTP between pods with no mTLS/service-mesh encryption layer)"
+    remediation_ref: "fix-playbook://TLS-10"
+
+  - control_id: "TLS-11"
+    name: "Use trusted certificates for internal TLS connections"
+    description: "TLS connections between internal services must use trusted certificates; where internally-generated or self-signed certificates are used, the consuming service must be configured to trust only specific internal CAs and specific self-signed certificates, not blanket-trust any certificate."
+    source_clause: "ASVS 5.0.0, V12.3.4"
+    severity: "high"
+    check_method: "static"
+    detector: "Semgrep/CodeQL rule flagging internal-service TLS client configuration that disables certificate validation entirely rather than pinning to a specific internal CA/certificate set"
+    remediation_ref: "fix-playbook://TLS-11"
+
+  - control_id: "TLS-12"
+    name: "Use strong mutual authentication between internal services"
+    description: "Services communicating internally must use strong authentication to verify each endpoint's identity — TLS client authentication using public-key infrastructure, resistant to replay attacks; for microservice architectures, a service mesh should be considered to simplify certificate management."
+    source_clause: "ASVS 5.0.0, V12.3.5"
+    severity: "medium"
+    check_method: "manual-review"
+    detector: "manual-review only, though a static check can flag internal service endpoints with no mTLS client-certificate requirement configured as a candidate for review (L3 requirement)"
+    remediation_ref: "fix-playbook://TLS-12"
+
+deprecated_by: null
+last_reviewed: "2026-07-09"

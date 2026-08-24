@@ -1,0 +1,89 @@
+playbooks:
+- blast_radius_notes: Flipping to STRICT mTLS without confirming all services support
+    mTLS will break inter-service communication; apply PERMISSIVE first and verify
+    via telemetry.
+  control_id: MESH-01
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - A human applies PERMISSIVE mode first and confirms all services report mTLS via
+    mesh telemetry.
+  - Confirm STRICT mode is only applied after all services are verified to support mTLS.
+- blast_radius_notes: Cluster-wide auto-injection may inject sidecars into system namespaces
+    or third-party workloads that don't support them; scoping to labeled namespaces
+    prevents unintended injection.
+  control_id: MESH-02
+  deterministic_tool: 'disable cluster-wide auto-injection and enable it only for explicitly
+    labeled namespaces'
+  fix_strategy: deterministic-autofix
+  human_review_required: false
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - Confirm auto-injection is disabled cluster-wide.
+  - Confirm only labeled namespaces have sidecar injection enabled.
+  - Confirm system/third-party namespaces are not injecting sidecars.
+- blast_radius_notes: hostNetwork, NET_ADMIN, and NET_RAW capabilities can escalate
+    privileges; removing them may break legitimate workloads that require network-level
+    access.
+  control_id: MESH-03
+  deterministic_tool: 'audit pod security contexts for hostNetwork, NET_ADMIN, NET_RAW
+    and remove unless reviewed and justified'
+  fix_strategy: deterministic-autofix
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - Confirm no pods have hostNetwork: true unless explicitly justified.
+  - Confirm NET_ADMIN and NET_RAW capabilities are dropped unless required.
+  - Confirm workloads still function after capability removal.
+- blast_radius_notes: Narrowing RBAC write access to mesh CRDs may break mesh control-plane
+    operations; verify actual API usage before revoking.
+  control_id: MESH-04
+  deterministic_tool: 'narrow RBAC write access (update, create, delete) on mesh CRDs
+    to only the mesh control-plane service account'
+  fix_strategy: deterministic-autofix
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - Confirm write access to mesh CRDs is restricted to the mesh control plane.
+  - Confirm the mesh control plane can still perform its management operations.
+- blast_radius_notes: Applying default-deny before mapping actual traffic flows will
+    break all inter-service communication; build the traffic map first.
+  control_id: MESH-05
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - A human builds a traffic map from observed mesh telemetry before applying default-deny.
+  - Confirm allow rules cover all legitimate traffic flows.
+  - Confirm default-deny policy does not block required communication.
+- blast_radius_notes: Migrating root CA to HSM-backed or cert-manager requires coordinated
+    certificate rotation across all mesh workloads; incorrect migration breaks mTLS.
+  control_id: MESH-06
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - A human confirms the root CA is migrated to HSM-backed or cert-manager.
+  - Confirm all mesh workloads trust the new root CA.
+  - Confirm the old root CA is rotated out after migration.
+- blast_radius_notes: Cross-cluster trust relationships must be explicitly documented
+    and configured; undocumented trust can create unintended attack paths.
+  control_id: MESH-07
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - A human documents all cross-cluster trust relationships.
+  - Confirm trust is only established between explicitly authorized clusters.

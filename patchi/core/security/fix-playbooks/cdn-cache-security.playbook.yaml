@@ -1,0 +1,79 @@
+playbooks:
+- blast_radius_notes: Stripping unkeyed inputs at the edge may change cache behavior
+    for requests that previously cached different content under the same key; verify
+    no application logic depends on the old caching behavior.
+  control_id: CDN-01
+  deterministic_tool: 'configure edge rules to strip/query-sort all unkeyed inputs
+    (query params, cookies, headers) before computing the cache key'
+  fix_strategy: deterministic-autofix
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - Confirm the edge rule is applied and strips unkeyed inputs from the cache key.
+  - Confirm cache hit ratio and content serving behavior remain correct for legitimate
+    traffic.
+- blast_radius_notes: Changing cache key normalization may cause a full cache flush and
+    cold-start penalty; origin load will spike temporarily until the cache warms.
+  control_id: CDN-02
+  deterministic_tool: normalize cache keys by lowercasing host, stripping default ports,
+    and sorting query parameters consistently
+  fix_strategy: deterministic-autofix
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - Confirm cache keys are normalized consistently across all edge locations.
+  - Confirm no duplicate cache entries exist for semantically identical URLs.
+- blast_radius_notes: Locking origin access to CDN-only IPs may block legitimate
+    direct-origin traffic (monitoring, health checks) that bypasses the CDN.
+  control_id: CDN-03
+  deterministic_tool: 'restrict origin server access to CDN IP ranges only via firewall
+    rules or cloud security groups'
+  fix_strategy: deterministic-autofix
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - Confirm origin is only reachable from CDN edge IPs.
+  - Confirm CDN can still fetch from origin successfully.
+  - Confirm monitoring/health-check systems that bypass CDN are updated to use CDN
+    endpoints.
+- blast_radius_notes: Incorrect Vary or cache-key configuration may cause overly broad
+    or overly narrow cache segmentation; test with real traffic patterns.
+  control_id: CDN-04
+  deterministic_tool: configure Vary headers and cache-key settings to match actual
+    content variants
+  fix_strategy: deterministic-autofix
+  human_review_required: false
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - Confirm Vary headers are set correctly for content that varies by Accept-Encoding,
+    Accept-Language, etc.
+  - Confirm cache segmentation matches actual content variants.
+- blast_radius_notes: Setting no-store on error responses prevents caching of error
+    pages; may increase origin load during error storms.
+  control_id: CDN-05
+  deterministic_tool: 'set Cache-Control: no-store on 4xx/5xx error responses at the
+    edge'
+  fix_strategy: deterministic-autofix
+  human_review_required: false
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - Confirm error responses carry Cache-Control: no-store.
+  - Confirm error responses are not served from cache.
+- blast_radius_notes: Purge mechanisms may have multiple authentication methods; enumerating
+    and hardening each requires manual review to avoid locking out legitimate purge
+    operations.
+  control_id: CDN-06
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - A human enumerates all purge mechanisms (API keys, tokens, signed URLs) and confirms
+    each requires proper authentication.
+  - Confirm stale purge mechanisms are disabled or rotated.

@@ -1,0 +1,118 @@
+# ============================================================================
+# Patchi Security Domain: dns-security
+# ============================================================================
+# SOURCE VERIFICATION NOTE — READ BEFORE USING THIS FILE:
+#   Source standards: RFC 4033-4035 (DNSSEC), RFC 8624 (DNSSEC Algorithm
+#   Implementation Registry), RFC 8659 (CAA Record Format), and
+#   community security research on DNS hygiene and dangling DNS records.
+#
+#   SOURCING CONSTRAINT, DISCLOSED HONESTLY: the RFC documents are freely
+#   published by the IETF under the BCP/IETF trust license and are
+#   publicly accessible. The control descriptions below are paraphrased
+#   from the protocol requirements and security considerations sections
+#   of these RFCs, not reproduced verbatim. Community research (e.g.
+#   dangling DNS record studies, zone transfer survey data) is summarized
+#   from published academic and industry papers; control descriptions
+#   are original paraphrases, not copied text.
+#
+#   COVERAGE NOTE: the source standards cover the full DNS protocol stack
+#   including zone file formatting, resolver behavior, and DNSSEC
+#   validation. This domain selects the subset that is realistically
+#   checkable by examining a repository's DNS zone files, Terraform
+#   DNS provider configs, and CI/CD DNS deployment scripts — which is
+#   what Patchi actually has access to. Checks requiring live DNS
+#   resolution testing or network-level observation are excluded as out
+#   of scope for a source-repository scanner.
+#
+#   SEVERITY NOTE: severity ratings are inferred from the RFC security
+#   considerations sections and the real-world impact of DNS
+#   misconfigurations. Dangling records and zone transfer exposure
+#   are rated high due to demonstrated attack prevalence; DNSSEC
+#   deployment gaps are rated medium as they represent defense-in-depth
+#   rather than an immediate exploitable flaw; stale/wildcard records
+#   are rated low as they are operational hygiene issues with secondary
+#   security implications.
+# ============================================================================
+
+domain_id: "dns-security"
+version: "1.0.0"
+display_name: "DNS Security"
+source_standard: "RFC 4033-4035, RFC 8624, RFC 8659, community research"
+component_type: "infra"
+cross_cutting: true
+weight: 0.55
+
+activation_signals:
+  required_any:
+    - signal: "dns_zone_file_present (a .zone file, BIND zone config, or DNS-as-code resource like aws_route53_record / azurerm_dns_zone in the repo)"
+    - signal: "dns_provider_config (Terraform/Pulumi/CDK for Route53, Cloudflare DNS, Azure DNS, Google Cloud DNS, or similar)"
+    - signal: "domain_apex_configuration (reference to a bare domain, www CNAME, or MX/TXT/CAA records in config files)"
+  excluded_if:
+    - signal: "no_dns_config (none of the required_any signals fired)"
+
+controls:
+  - control_id: "DNS-01"
+    name: "Dangling DNS records detected and removed"
+    description: "DNS records pointing to decommissioned or non-existent infrastructure (dangling CNAME, A, or MX records) must be identified and removed. Dangling records are a proven vector for subdomain takeover attacks where an attacker provisions the target infrastructure and claims the dangling endpoint."
+    source_clause: "Community research on subdomain takeover (dangling CNAME/A records); RFC 1034, Section 3.6"
+    severity: "high"
+    check_method: "static"
+    detector: "manual-review / Semgrep (rule: DNS-as-code records referencing provisioned resources that have been removed or have empty outputs; Terraform state drift where the target resource no longer exists)"
+    remediation_ref: "fix-playbook://DNS-01"
+
+  - control_id: "DNS-02"
+    name: "DNS zone transfer restricted"
+    description: "DNS primary servers must restrict AXFR (zone transfer) requests to authorized secondary servers only, preventing information disclosure of the full zone contents including internal hostnames, IP addresses, and service topology."
+    source_clause: "RFC 5936, Section 3 (DNS Zone Transfer Protocol); community research on DNS information disclosure"
+    severity: "high"
+    check_method: "static"
+    detector: "manual-review (DNS server configuration: allow-transfer must be restricted to explicit secondary server IPs; tsig-key authentication should be used for transfers)"
+    remediation_ref: "fix-playbook://DNS-02"
+
+  - control_id: "DNS-03"
+    name: "DNSSEC deployment for critical domains"
+    description: "Critical domains (company apex, customer-facing domains, email-sending domains) should have DNSSEC deployed to protect against DNS spoofing and cache poisoning attacks that could redirect users to attacker-controlled infrastructure."
+    source_clause: "RFC 4033-4035 (DNSSEC Mechanisms and Protocols); NIST SP 800-81 Rev. 2"
+    severity: "medium"
+    check_method: "static"
+    detector: "manual-review / external DNS lookup (DNSKEY, RRSIG, DS records must be present at the parent zone for DNSSEC to be active)"
+    remediation_ref: "fix-playbook://DNS-03"
+
+  - control_id: "DNS-04"
+    name: "DNSSEC algorithm hygiene maintained"
+    description: "DNSSEC deployments must use current, recommended algorithms. Deprecated algorithms (RSASHA1, RSAMD5) must be migrated away from. The key signing key (KSK) and zone signing key (ZSK) should use RSA-2048+ or ECDSAP256SHA256/ECDSAP384SHA384 per current best practice."
+    source_clause: "RFC 8624 (DNSSEC Algorithm Implementation Registry); NIST SP 800-131A Rev. 2"
+    severity: "medium"
+    check_method: "static"
+    detector: "manual-review / external DNS lookup (DNSKEY algorithm field must reference a non-deprecated algorithm per RFC 8624 registry)"
+    remediation_ref: "fix-playbook://DNS-04"
+
+  - control_id: "DNS-05"
+    name: "NS delegation records validated"
+    description: "Name server (NS) records at the parent zone must correctly delegate to authoritative name servers that are themselves reachable and properly configured. Mismatched or unreachable NS records cause domain resolution failures and can be exploited for domain hijacking."
+    source_clause: "RFC 1034, Section 4.2.2 (NS Records); community research on NS delegation attacks"
+    severity: "high"
+    check_method: "static"
+    detector: "manual-review / external DNS lookup (NS records at the parent must match the SOA MNAME; delegated NS servers must respond authoritatively)"
+    remediation_ref: "fix-playbook://DNS-05"
+
+  - control_id: "DNS-06"
+    name: "CAA records configured for certificate issuance"
+    description: "Certification Authority Authorization (CAA) records must be configured on critical domains to restrict which Certificate Authorities are permitted to issue certificates, preventing unauthorized certificate issuance that could enable man-in-the-middle attacks."
+    source_clause: "RFC 8659 (CAA Record Format); RFC 8555 (ACME protocol security considerations)"
+    severity: "medium"
+    check_method: "static"
+    detector: "manual-review / external DNS lookup (CAA records must be present on apex and critical subdomains; the 'issue' and 'issuewild' tags must restrict to authorized CAs)"
+    remediation_ref: "fix-playbook://DNS-06"
+
+  - control_id: "DNS-07"
+    name: "Stale and wildcard records reviewed"
+    description: "DNS wildcard records (*.domain.com) should be avoided for sensitive subdomains as they can unintentionally resolve unregistered hostnames. Stale records for decommissioned services should be removed to reduce attack surface."
+    source_clause: "RFC 1034, Section 4.3.3 (Wildcards); community DNS hygiene best practices"
+    severity: "low"
+    check_method: "static"
+    detector: "manual-review (wildcard A/CNAME records at the zone apex or sensitive subdomains; records pointing to IPs/CNAMEs that no longer correspond to active infrastructure)"
+    remediation_ref: "fix-playbook://DNS-07"
+
+deprecated_by: null
+last_reviewed: "2026-07-12"

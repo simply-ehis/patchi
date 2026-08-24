@@ -1,0 +1,420 @@
+# ============================================================================
+# Patchi Security Domain: container-infra
+# ============================================================================
+# SOURCE VERIFICATION NOTE — READ BEFORE USING THIS FILE:
+#   Source standards: CIS Docker Benchmark (current edition tracked by the
+#   docker/docker-bench-security project) and CIS Kubernetes Benchmark
+#   v1.11.0 (released 2025-04-01, confirmed current; targets Kubernetes
+#   v1.29-v1.32).
+#
+#   SOURCING CONSTRAINT, DISCLOSED HONESTLY: the CIS Benchmark documents
+#   themselves are published under a Creative Commons
+#   Attribution-NonCommercial-ShareAlike 4.0 license by the Center for
+#   Internet Security. They are free to download but that license's
+#   NonCommercial and ShareAlike terms make it inappropriate to reproduce
+#   their full recommendation text inside an open-source tool's data files,
+#   and the full PDF text was not directly fetched for that reason.
+#
+#   Instead, every control below is sourced from the check IDs and
+#   descriptions in two official, Apache-2.0-licensed open-source projects
+#   that implement/automate the CIS benchmarks and are explicitly designed
+#   for redistribution and reuse:
+#     - docker/docker-bench-security (github.com/docker/docker-bench-security)
+#       — Docker's own official open-source implementation of the CIS
+#       Docker Benchmark checks.
+#     - aquasecurity/kube-bench (github.com/aquasecurity/kube-bench),
+#       config profile cis-1.11 — Aqua Security's official open-source
+#       implementation of CIS Kubernetes Benchmark v1.11.0.
+#   Both repositories were cloned directly and check IDs/descriptions
+#   extracted programmatically, not recalled from memory or copied from the
+#   CIS PDF. Wording below is paraphrased from these tools' own check
+#   descriptions/titles, which are themselves original text written by
+#   these Apache-2.0 projects (not CIS's copyrighted prose).
+#
+#   COVERAGE NOTE: the underlying CIS benchmarks contain far more checks
+#   (~90 for Docker across 8 sections, ~130+ for Kubernetes across 5
+#   sections) than are reproduced here. This domain selects the subset that
+#   is realistically checkable by a static/dynamic scanner examining a
+#   repository's Dockerfiles, compose files, Kubernetes manifests, and RBAC
+#   definitions — which is what Patchi actually has access to. Checks that
+#   require live access to a running host's filesystem permissions or a
+#   live cluster's control-plane configuration (the majority of CIS
+#   Docker's Sections 1 and 3, and CIS Kubernetes' Section 1.1) are
+#   excluded as out of scope for a source-repository scanner, not because
+#   they're unimportant — they belong in a runtime/CSPM tool, not here.
+#
+#   SEVERITY NOTE: like the other non-ASVS/API-Top-10 domains, CIS
+#   Benchmarks don't publish a severity field per se, but DO classify each
+#   check as "Automated"/"Scored" (machine-verifiable, treated as higher
+#   confidence and generally higher severity here since these are usually
+#   default-open or clearly binary misconfigurations) vs "Manual"
+#   (requires human judgment about context, generally rated medium unless
+#   the underlying risk is severe regardless of context, e.g. privileged
+#   containers or the Docker socket mounted inside a container).
+# ============================================================================
+
+domain_id: "container-infra"
+version: "1.0.0"
+display_name: "Container & Kubernetes Infrastructure Security"
+source_standard: "CIS Docker Benchmark (per docker/docker-bench-security) and CIS Kubernetes Benchmark v1.11.0 (per aquasecurity/kube-bench cis-1.11 profile)"
+component_type: "infra"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "dockerfile_present (a file named Dockerfile or matching Dockerfile.* anywhere in the repo)"
+    - signal: "compose_file_present (docker-compose.yml, docker-compose.yaml, or compose.yaml present)"
+    - signal: "kubernetes_manifest_present (a YAML file with apiVersion and kind: Pod|Deployment|StatefulSet|DaemonSet|Role|ClusterRole|RoleBinding|NetworkPolicy fields, or a Helm chart's templates/ directory)"
+  excluded_if:
+    - signal: "no_dockerfile_no_compose_no_k8s_manifest (none of the required_any signals fired)"
+
+controls:
+  # ==== Sub-section: Docker daemon configuration (checkable via daemon.json / IaC in-repo) ====
+  - control_id: "CTR-01"
+    name: "Inter-container traffic on the default bridge restricted"
+    description: "Docker daemon configuration should restrict network traffic between containers on the default bridge network (icc: false), requiring explicit links/networks for intended communication."
+    source_clause: "CIS Docker Benchmark, check 2.2 (per docker-bench-security tests/2_docker_daemon_configuration.sh)"
+    severity: "medium"
+    check_method: "static"
+    detector: "Semgrep / manual-review (rule: a checked-in daemon.json with no \"icc\": false setting, where the repo manages Docker host config as code)"
+    remediation_ref: "fix-playbook://CTR-01"
+
+  - control_id: "CTR-02"
+    name: "No insecure (unencrypted/unverified) registries configured"
+    description: "The Docker daemon must not be configured to trust insecure registries, which would allow images to be pulled over unencrypted or unverified connections."
+    source_clause: "CIS Docker Benchmark, check 2.5"
+    severity: "high"
+    check_method: "static"
+    detector: "Semgrep (rule: a checked-in daemon.json with a non-empty insecure-registries array)"
+    remediation_ref: "fix-playbook://CTR-02"
+
+  - control_id: "CTR-03"
+    name: "TLS authentication configured for the Docker daemon's remote API"
+    description: "If the Docker daemon exposes its API over the network, TLS client authentication must be configured rather than leaving the socket open to any caller."
+    source_clause: "CIS Docker Benchmark, check 2.7"
+    severity: "critical"
+    check_method: "static"
+    detector: "Semgrep (rule: a checked-in daemon.json or systemd unit exposing tcp:// without --tlsverify)"
+    remediation_ref: "fix-playbook://CTR-03"
+
+  - control_id: "CTR-04"
+    name: "Containers restricted from acquiring new privileges"
+    description: "Containers should be run with the no-new-privileges flag/security option set, preventing processes inside the container from gaining additional privileges via setuid/setgid binaries."
+    source_clause: "CIS Docker Benchmark, check 2.14 (daemon-wide) and check 5.26 (per-container)"
+    severity: "high"
+    check_method: "static"
+    detector: "Semgrep (rule: docker-compose.yml service or docker run definition missing security_opt: no-new-privileges:true)"
+    remediation_ref: "fix-playbook://CTR-04"
+
+  # ==== Sub-section: Container Images and Build Files (all Dockerfile-checkable) ====
+  - control_id: "CTR-05"
+    name: "Container runs as a non-root user"
+    description: "Dockerfiles must create and switch to a dedicated non-root user (USER instruction) rather than running the container process as root by default."
+    source_clause: "CIS Docker Benchmark, check 4.1"
+    severity: "high"
+    check_method: "static"
+    detector: "Semgrep / Hadolint (rule: a Dockerfile with no USER instruction, or USER root as the final user)"
+    remediation_ref: "fix-playbook://CTR-05"
+
+  - control_id: "CTR-06"
+    name: "Base images sourced only from trusted registries/publishers"
+    description: "Dockerfiles should reference base images only from trusted, verified sources, avoiding unofficial or unverified images from public registries."
+    source_clause: "CIS Docker Benchmark, check 4.2"
+    severity: "medium"
+    check_method: "manual-review"
+    detector: "manual-review only (trust assessment of the base image publisher); Trivy/Grype can complement this with vulnerability scanning of the resolved image"
+    remediation_ref: "fix-playbook://CTR-06"
+
+  - control_id: "CTR-07"
+    name: "Docker Content Trust enabled for image pull/push operations"
+    description: "Docker Content Trust (or an equivalent image-signing mechanism such as Cosign/Sigstore) should be enabled so only signed images are pulled and run."
+    source_clause: "CIS Docker Benchmark, check 4.5"
+    severity: "medium"
+    check_method: "static"
+    detector: "Semgrep / manual-review (rule: CI/CD pipeline or shell scripts invoking docker pull/push with DOCKER_CONTENT_TRUST not set to 1, and no cosign verify step)"
+    remediation_ref: "fix-playbook://CTR-07"
+
+  - control_id: "CTR-08"
+    name: "HEALTHCHECK instruction present in container images"
+    description: "Dockerfiles should include a HEALTHCHECK instruction so orchestrators can detect and react to an unhealthy container."
+    source_clause: "CIS Docker Benchmark, check 4.6"
+    severity: "low"
+    check_method: "static"
+    detector: "Hadolint / Semgrep (rule: a Dockerfile with no HEALTHCHECK instruction)"
+    remediation_ref: "fix-playbook://CTR-08"
+
+  - control_id: "CTR-09"
+    name: "setuid/setgid permissions removed from unnecessary binaries"
+    description: "Dockerfiles should strip setuid/setgid permission bits from binaries that don't require them, reducing local privilege-escalation surface inside the container."
+    source_clause: "CIS Docker Benchmark, check 4.8"
+    severity: "medium"
+    check_method: "manual-review"
+    detector: "manual-review only (requires knowing which binaries in the image genuinely need setuid/setgid); Trivy can flag such files during an image scan"
+    remediation_ref: "fix-playbook://CTR-09"
+
+  - control_id: "CTR-10"
+    name: "COPY used instead of ADD in Dockerfiles"
+    description: "Dockerfiles should use COPY rather than ADD unless ADD's extra behavior (remote URL fetch, automatic archive extraction) is specifically and safely needed, since ADD's implicit behaviors have caused real vulnerabilities."
+    source_clause: "CIS Docker Benchmark, check 4.9"
+    severity: "low"
+    check_method: "static"
+    detector: "Hadolint (rule DL3020: 'Use COPY instead of ADD for files and folders')"
+    remediation_ref: "fix-playbook://CTR-10"
+
+  - control_id: "CTR-11"
+    name: "No secrets stored in Dockerfiles or image layers"
+    description: "Secrets (API keys, passwords, private keys) must never be stored in a Dockerfile instruction or baked into an image layer, since they remain recoverable from the image history even if later removed."
+    source_clause: "CIS Docker Benchmark, check 4.10"
+    severity: "critical"
+    check_method: "static"
+    detector: "Gitleaks / Trivy secret scanning (run against both the Dockerfile and the built image's layer history)"
+    remediation_ref: "fix-playbook://CTR-11"
+
+  # ==== Sub-section: Container Runtime (checkable via compose/k8s pod spec) ====
+  - control_id: "CTR-12"
+    name: "Linux kernel capabilities restricted to the minimum needed"
+    description: "Containers should drop all Linux capabilities by default and only add back the specific ones genuinely required, rather than running with the full default capability set."
+    source_clause: "CIS Docker Benchmark, check 5.4"
+    severity: "high"
+    check_method: "static"
+    detector: "Semgrep (rule: docker-compose.yml/Kubernetes pod spec with no cap_drop: [ALL] / securityContext.capabilities.drop, or cap_add including a broad capability like SYS_ADMIN without clear justification)"
+    remediation_ref: "fix-playbook://CTR-12"
+
+  - control_id: "CTR-13"
+    name: "Privileged containers not used"
+    description: "Containers must not be run in privileged mode, which grants near-complete access to the host, effectively defeating container isolation."
+    source_clause: "CIS Docker Benchmark, check 5.5; CIS Kubernetes Benchmark v1.11.0, check 5.2.2 (Minimize the admission of privileged containers)"
+    severity: "critical"
+    check_method: "static"
+    detector: "Semgrep (rule: docker-compose.yml privileged: true, or Kubernetes pod spec securityContext.privileged: true)"
+    remediation_ref: "fix-playbook://CTR-13"
+
+  - control_id: "CTR-14"
+    name: "Sensitive host directories not mounted into containers"
+    description: "Containers must not mount sensitive host directories (e.g. /, /etc, /var/run/docker.sock, /proc) unless there is a specific, justified need."
+    source_clause: "CIS Docker Benchmark, check 5.6"
+    severity: "critical"
+    check_method: "static"
+    detector: "Semgrep (rule: docker-compose.yml/Kubernetes volumeMounts referencing a host path from a known-sensitive list)"
+    remediation_ref: "fix-playbook://CTR-14"
+
+  - control_id: "CTR-15"
+    name: "Docker socket not mounted inside any container"
+    description: "The Docker socket (/var/run/docker.sock) must not be mounted inside a container, since access to it is equivalent to root access on the host."
+    source_clause: "CIS Docker Benchmark, check 5.32"
+    severity: "critical"
+    check_method: "static"
+    detector: "Semgrep (rule: a volume mount of /var/run/docker.sock in docker-compose.yml or a Kubernetes hostPath volume)"
+    remediation_ref: "fix-playbook://CTR-15"
+
+  - control_id: "CTR-16"
+    name: "Host's network namespace not shared with containers"
+    description: "Containers should not share the host's network namespace (--network=host), which removes network isolation between the container and host."
+    source_clause: "CIS Docker Benchmark, check 5.10; CIS Kubernetes Benchmark v1.11.0, check 5.2.5 (Minimize the admission of containers wishing to share the host network namespace)"
+    severity: "high"
+    check_method: "static"
+    detector: "Semgrep (rule: docker-compose.yml network_mode: host, or Kubernetes pod spec hostNetwork: true)"
+    remediation_ref: "fix-playbook://CTR-16"
+
+  - control_id: "CTR-17"
+    name: "Memory usage limited for containers"
+    description: "Containers should have an explicit memory limit configured, preventing a single container from exhausting host memory."
+    source_clause: "CIS Docker Benchmark, check 5.11"
+    severity: "medium"
+    check_method: "static"
+    detector: "Semgrep (rule: docker-compose.yml service or Kubernetes pod spec with no mem_limit / resources.limits.memory set)"
+    remediation_ref: "fix-playbook://CTR-17"
+
+  - control_id: "CTR-18"
+    name: "Container root filesystem mounted read-only"
+    description: "Containers should mount their root filesystem as read-only where the application allows it, limiting the ability of a compromised process to persist changes."
+    source_clause: "CIS Docker Benchmark, check 5.13"
+    severity: "medium"
+    check_method: "static"
+    detector: "Semgrep (rule: docker-compose.yml/Kubernetes pod spec with no read_only: true / readOnlyRootFilesystem: true)"
+    remediation_ref: "fix-playbook://CTR-18"
+
+  - control_id: "CTR-19"
+    name: "PIDs cgroup limit set on containers"
+    description: "Containers should have a limit set on the number of processes they can create (PIDs cgroup), preventing fork-bomb style resource exhaustion."
+    source_clause: "CIS Docker Benchmark, check 5.29"
+    severity: "medium"
+    check_method: "static"
+    detector: "Semgrep (rule: docker-compose.yml service or Kubernetes pod spec with no pids_limit / equivalent PID limit configured)"
+    remediation_ref: "fix-playbook://CTR-19"
+
+  - control_id: "CTR-20"
+    name: "Host's user namespaces not shared with containers"
+    description: "Containers should not share the host's user namespace, preserving the additional isolation user-namespace remapping provides."
+    source_clause: "CIS Docker Benchmark, check 5.31"
+    severity: "medium"
+    check_method: "static"
+    detector: "Semgrep (rule: docker-compose.yml userns_mode: host)"
+    remediation_ref: "fix-playbook://CTR-20"
+
+  # ==== Sub-section: Kubernetes RBAC and Pod Security (CIS Kubernetes v1.11.0, section 5) ====
+  - control_id: "CTR-21"
+    name: "cluster-admin ClusterRole binding restricted to where required"
+    description: "The built-in cluster-admin ClusterRole should only be bound to subjects that genuinely need full administrative access to the cluster."
+    source_clause: "CIS Kubernetes Benchmark v1.11.0, check 5.1.1"
+    severity: "high"
+    check_method: "static"
+    detector: "Semgrep / manual-review (rule: a ClusterRoleBinding manifest referencing roleRef.name: cluster-admin for a subject other than a designated cluster administrator)"
+    remediation_ref: "fix-playbook://CTR-21"
+
+  - control_id: "CTR-22"
+    name: "RBAC access to Secrets minimized"
+    description: "Roles and ClusterRoles should minimize get/list/watch access to Secrets objects, since broad Secret access is a common path to credential exposure."
+    source_clause: "CIS Kubernetes Benchmark v1.11.0, check 5.1.2"
+    severity: "high"
+    check_method: "static"
+    detector: "Semgrep (rule: a Role/ClusterRole manifest granting get/list/watch on resources: [\"secrets\"] to a broad subject)"
+    remediation_ref: "fix-playbook://CTR-22"
+
+  - control_id: "CTR-23"
+    name: "Wildcard use minimized in Roles and ClusterRoles"
+    description: "RBAC Role/ClusterRole definitions should avoid wildcard (*) values in apiGroups, resources, or verbs, which grant unintended broad access as the API evolves."
+    source_clause: "CIS Kubernetes Benchmark v1.11.0, check 5.1.3"
+    severity: "high"
+    check_method: "static"
+    detector: "Semgrep (rule: a Role/ClusterRole manifest with apiGroups, resources, or verbs containing \"*\")"
+    remediation_ref: "fix-playbook://CTR-23"
+
+  - control_id: "CTR-24"
+    name: "Default service accounts not actively used"
+    description: "Workloads should use a dedicated, minimally-privileged ServiceAccount rather than relying on the default ServiceAccount automatically assigned per namespace."
+    source_clause: "CIS Kubernetes Benchmark v1.11.0, check 5.1.5"
+    severity: "medium"
+    check_method: "static"
+    detector: "Semgrep (rule: a Pod/Deployment manifest with no explicit spec.serviceAccountName set, or set to \"default\")"
+    remediation_ref: "fix-playbook://CTR-24"
+
+  - control_id: "CTR-25"
+    name: "Service Account tokens auto-mounted only where necessary"
+    description: "Pods that do not need to call the Kubernetes API should set automountServiceAccountToken: false, avoiding unnecessary token exposure inside the container filesystem."
+    source_clause: "CIS Kubernetes Benchmark v1.11.0, check 5.1.6"
+    severity: "medium"
+    check_method: "static"
+    detector: "Semgrep (rule: a Pod/ServiceAccount manifest with no automountServiceAccountToken: false, for workloads that don't call the Kubernetes API)"
+    remediation_ref: "fix-playbook://CTR-25"
+
+  - control_id: "CTR-26"
+    name: "Admission of containers sharing the host IPC/PID namespace minimized"
+    description: "Pod admission should minimize containers requesting hostIPC or hostPID, which allow a container to interact with host or other containers' processes/IPC."
+    source_clause: "CIS Kubernetes Benchmark v1.11.0, checks 5.2.3-5.2.4 (Minimize the admission of containers wishing to share the host process ID / IPC namespace)"
+    severity: "high"
+    check_method: "static"
+    detector: "Semgrep (rule: a Pod spec with hostPID: true or hostIPC: true)"
+    remediation_ref: "fix-playbook://CTR-26"
+
+  - control_id: "CTR-27"
+    name: "Admission of containers with allowPrivilegeEscalation minimized"
+    description: "Pod admission should minimize containers that set allowPrivilegeEscalation: true, which lets a process gain more privileges than its parent."
+    source_clause: "CIS Kubernetes Benchmark v1.11.0, check 5.2.6"
+    severity: "high"
+    check_method: "static"
+    detector: "Semgrep (rule: a Pod spec container securityContext with allowPrivilegeEscalation: true or the field unset, which defaults permissively on some clusters)"
+    remediation_ref: "fix-playbook://CTR-27"
+
+  - control_id: "CTR-28"
+    name: "Admission of root containers minimized"
+    description: "Pod admission should minimize containers that run as root; securityContext.runAsNonRoot: true (or an equivalent non-root runAsUser) should be set."
+    source_clause: "CIS Kubernetes Benchmark v1.11.0, check 5.2.7"
+    severity: "high"
+    check_method: "static"
+    detector: "Semgrep (rule: a Pod spec container with no securityContext.runAsNonRoot: true and no non-zero runAsUser set)"
+    remediation_ref: "fix-playbook://CTR-28"
+
+  - control_id: "CTR-29"
+    name: "Admission of containers with the NET_RAW capability minimized"
+    description: "Pod admission should minimize containers retaining the NET_RAW capability, which allows raw socket use for packet crafting/sniffing."
+    source_clause: "CIS Kubernetes Benchmark v1.11.0, check 5.2.8"
+    severity: "medium"
+    check_method: "static"
+    detector: "Semgrep (rule: a Pod spec container securityContext.capabilities with no explicit drop of NET_RAW, given it is part of the default capability set)"
+    remediation_ref: "fix-playbook://CTR-29"
+
+  - control_id: "CTR-30"
+    name: "Admission of HostPath volumes minimized"
+    description: "Pod admission should minimize use of HostPath volumes, which give a pod direct access to the host filesystem and can be used to escape container isolation."
+    source_clause: "CIS Kubernetes Benchmark v1.11.0, check 5.2.12"
+    severity: "high"
+    check_method: "static"
+    detector: "Semgrep (rule: a Pod spec volumes entry of type hostPath)"
+    remediation_ref: "fix-playbook://CTR-30"
+
+  - control_id: "CTR-31"
+    name: "NetworkPolicies defined for all namespaces"
+    description: "Every namespace should have at least one NetworkPolicy defined, since pods are fully network-accessible to each other by default absent an explicit policy."
+    source_clause: "CIS Kubernetes Benchmark v1.11.0, check 5.3.2"
+    severity: "high"
+    check_method: "static"
+    detector: "Semgrep / manual-review (rule: a namespace directory/manifest set with no corresponding NetworkPolicy resource defined)"
+    remediation_ref: "fix-playbook://CTR-31"
+
+  - control_id: "CTR-32"
+    name: "Secrets mounted as files rather than environment variables"
+    description: "Kubernetes Secrets should be consumed as mounted volumes rather than environment variables, since env vars are more commonly leaked via logs, crash dumps, or child-process inheritance."
+    source_clause: "CIS Kubernetes Benchmark v1.11.0, check 5.4.1"
+    severity: "medium"
+    check_method: "static"
+    detector: "Semgrep (rule: a Pod spec container with env/envFrom referencing a secretKeyRef instead of a volumeMounts entry backed by a Secret volume)"
+    remediation_ref: "fix-playbook://CTR-32"
+
+  - control_id: "CTR-33"
+    name: "seccomp profile set on pod/container definitions"
+    description: "Pods and containers should set an explicit seccomp profile (e.g. RuntimeDefault) rather than running unconfined."
+    source_clause: "CIS Kubernetes Benchmark v1.11.0, check 5.7.2"
+    severity: "medium"
+    check_method: "static"
+    detector: "Semgrep (rule: a Pod spec with no securityContext.seccompProfile set)"
+    remediation_ref: "fix-playbook://CTR-33"
+
+  - control_id: "CTR-34"
+    name: "SecurityContext explicitly applied to pods and containers"
+    description: "Pods and containers should have an explicit securityContext rather than relying entirely on cluster/namespace defaults, ensuring the intended security posture is version-controlled with the workload."
+    source_clause: "CIS Kubernetes Benchmark v1.11.0, check 5.7.3"
+    severity: "medium"
+    check_method: "static"
+    detector: "Semgrep (rule: a Pod/container spec with no securityContext block at all)"
+    remediation_ref: "fix-playbook://CTR-34"
+
+  - control_id: "CTR-35"
+    name: "Default namespace not used for application workloads"
+    description: "Application workloads should be deployed into a dedicated namespace rather than the default namespace, to enable proper RBAC and NetworkPolicy scoping."
+    source_clause: "CIS Kubernetes Benchmark v1.11.0, check 5.7.4"
+    severity: "low"
+    check_method: "static"
+    detector: "Semgrep (rule: a manifest with no metadata.namespace set, or explicitly set to \"default\", for an application workload)"
+    remediation_ref: "fix-playbook://CTR-35"
+
+  # ==== Sub-section: Kubernetes API Server / Control Plane (only where provisioned as code, e.g. kubeadm config in-repo) ====
+  - control_id: "CTR-36"
+    name: "API server anonymous authentication disabled"
+    description: "Where the cluster's control-plane configuration is managed as code in the repository (e.g. kubeadm ClusterConfiguration, static pod manifests), the API server's --anonymous-auth flag must be set to false."
+    source_clause: "CIS Kubernetes Benchmark v1.11.0, check 1.2.1"
+    severity: "critical"
+    check_method: "static"
+    detector: "Semgrep (rule: a checked-in kube-apiserver manifest/config with --anonymous-auth=true or the flag absent, where absence defaults permissively on the target version)"
+    remediation_ref: "fix-playbook://CTR-36"
+
+  - control_id: "CTR-37"
+    name: "API server authorization mode does not include AlwaysAllow"
+    description: "Where control-plane configuration is managed as code, the API server's --authorization-mode flag must not include AlwaysAllow, which disables all authorization checks."
+    source_clause: "CIS Kubernetes Benchmark v1.11.0, check 1.2.6"
+    severity: "critical"
+    check_method: "static"
+    detector: "Semgrep (rule: a checked-in kube-apiserver manifest/config with --authorization-mode including AlwaysAllow)"
+    remediation_ref: "fix-playbook://CTR-37"
+
+  - control_id: "CTR-38"
+    name: "API server audit logging configured"
+    description: "Where control-plane configuration is managed as code, the API server's --audit-log-path (and related retention flags) should be configured so cluster activity is auditable."
+    source_clause: "CIS Kubernetes Benchmark v1.11.0, check 1.2.16"
+    severity: "medium"
+    check_method: "static"
+    detector: "Semgrep (rule: a checked-in kube-apiserver manifest/config with no --audit-log-path set)"
+    remediation_ref: "fix-playbook://CTR-38"
+
+deprecated_by: null
+last_reviewed: "2026-07-04"

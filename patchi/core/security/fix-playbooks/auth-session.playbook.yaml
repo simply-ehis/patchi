@@ -1,0 +1,759 @@
+playbooks:
+- blast_radius_notes: Documentation only.
+  control_id: AUTHSESS-01
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: false
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - A human confirms documentation covers rate limiting, anti-automation, and adaptive
+    response, including anti-lockout-abuse behavior.
+- blast_radius_notes: Documentation only.
+  control_id: AUTHSESS-02
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: false
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - A human confirms a documented context-specific word list exists.
+- blast_radius_notes: Documentation only, though may surface undocumented pathways
+    needing AUTHSESS-19-style fixes.
+  control_id: AUTHSESS-03
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - A human confirms all authentication pathways are documented with consistent enforced
+    strength.
+- blast_radius_notes: Localized to the password-validation schema; existing users
+    with shorter passwords are unaffected until their next password change.
+  control_id: AUTHSESS-04
+  deterministic_tool: framework password-validation schema (change minLength to 8+)
+  fix_strategy: deterministic-autofix
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - Re-run the Semgrep rule and confirm minLength >= 8.
+  - Attempt registration with a 7-character password and confirm rejection.
+- blast_radius_notes: Feature-build task, not a small patch.
+  control_id: AUTHSESS-05
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - A human confirms a password-change feature exists and is reachable from account
+    settings.
+- blast_radius_notes: Localized to the password-change handler.
+  control_id: AUTHSESS-06
+  deterministic_tool: null
+  fix_strategy: llm-template-fill
+  human_review_required: true
+  llm_fix_template: "\"Given a password-change handler {handler} that doesn't verify\
+    \ the current\n password: require and verify {current_password_field} against\
+    \ the stored hash\n before accepting {new_password_field}; reject with 401/403\
+    \ on mismatch;\n preserve the success path for correct current-password submissions.\"\
+    \n"
+  playbook_version: 1.0.0
+  verification_checks:
+  - Submit a change request with a wrong current password and confirm rejection.
+  - Confirm a correct current password still allows the change.
+- blast_radius_notes: Localized to the password-validation function; adds a lookup,
+    no schema change.
+  control_id: AUTHSESS-07
+  deterministic_tool: null
+  fix_strategy: llm-template-fill
+  human_review_required: true
+  llm_fix_template: "\"Given a password-validation function {validator} lacking a\
+    \ common-password\n check: add a lookup against a top-3000+ common-password list\
+    \ (e.g. a SecLists\n dataset) filtered to the app's length policy; reject matches\
+    \ with a clear error;\n preserve existing length/composition checks.\"\n"
+  playbook_version: 1.0.0
+  verification_checks:
+  - Attempt registration with a known top-100 common password and confirm rejection.
+- blast_radius_notes: Localized to the validation regex; removing composition rules
+    is safe and recommended by current NIST/ASVS guidance.
+  control_id: AUTHSESS-08
+  deterministic_tool: null
+  fix_strategy: llm-template-fill
+  human_review_required: false
+  llm_fix_template: "\"Given a password-validation regex {regex} enforcing character-class\
+    \ composition:\n remove the composition requirement, retaining only length bounds\
+    \ (see AUTHSESS-04\n and AUTHSESS-12); preserve any breached/common-password checks\
+    \ already present.\"\n"
+  playbook_version: 1.0.0
+  verification_checks:
+  - Submit an all-lowercase, all-digit, or all-symbol password meeting length requirements
+    and confirm it is now accepted.
+- blast_radius_notes: Single template/component attribute change.
+  control_id: AUTHSESS-09
+  deterministic_tool: change input type attribute from text to password in the template/component
+  fix_strategy: deterministic-autofix
+  human_review_required: false
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - Re-run the Semgrep rule and confirm zero findings.
+  - Confirm the field visually masks input in a browser.
+- blast_radius_notes: Single markup/handler change.
+  control_id: AUTHSESS-10
+  deterministic_tool: remove onpaste preventDefault() handler and autocomplete="off"
+    from the password field markup
+  fix_strategy: deterministic-autofix
+  human_review_required: false
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - Confirm paste now works in the password field in a manual browser test.
+  - Confirm a password manager can autofill the field.
+- blast_radius_notes: Touches the core password-hashing/verification path; requires
+    a rehash-on-login migration for existing accounts, not an atomic change.
+  control_id: AUTHSESS-11
+  deterministic_tool: null
+  fix_strategy: llm-template-fill
+  human_review_required: true
+  llm_fix_template: "\"Given a password-verification path that applies {transformation}\
+    \ (lower()/\n upper()/truncation) before hashing/comparison: remove {transformation}\
+    \ so the\n raw submitted password is hashed/compared exactly as received; note\
+    \ this\n requires a migration step for already-hashed passwords stored under the\
+    \ old\n transformed scheme (rehash on next successful login).\"\n"
+  playbook_version: 1.0.0
+  verification_checks:
+  - Confirm a password containing mixed case or exceeding any prior truncation length
+    now authenticates correctly.
+- blast_radius_notes: Localized to the validation schema; confirm the hashing algorithm
+    used (e.g. bcrypt's 72-byte input limit) doesn't silently truncate long passwords.
+  control_id: AUTHSESS-12
+  deterministic_tool: framework password-validation schema (raise maxLength to >=
+    64)
+  fix_strategy: deterministic-autofix
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - Attempt registration with a 64-character password and confirm acceptance.
+- blast_radius_notes: May require removing a scheduled job and associated user-facing
+    'password expiring' notifications.
+  control_id: AUTHSESS-13
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - A human confirms no scheduled job or check forces periodic password expiry, and
+    removes one if found.
+- blast_radius_notes: Depends on AUTHSESS-02's list existing first.
+  control_id: AUTHSESS-14
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - A human confirms the password validator actually checks submitted passwords against
+    the documented context-word list.
+- blast_radius_notes: Adds an external API call (or local hash-prefix dataset) to
+    the validation path; consider latency/availability fallback behavior.
+  control_id: AUTHSESS-15
+  deterministic_tool: null
+  fix_strategy: llm-template-fill
+  human_review_required: true
+  llm_fix_template: "\"Given a password-validation function {validator} lacking a\
+    \ breached-password\n check: integrate a k-anonymity breached-password lookup\
+    \ (e.g. the Have I Been\n Pwned Pwned Passwords range API) and reject matches;\
+    \ preserve existing checks.\"\n"
+  playbook_version: 1.0.0
+  verification_checks:
+  - Attempt to set a known-breached password (e.g. 'password123') and confirm rejection.
+- blast_radius_notes: May surface a gap requiring a targeted rate-limiting fix (see
+    backend-api API-09).
+  control_id: AUTHSESS-16
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - Re-run OWASP ZAP's brute-force scan and confirm behavior matches the documented
+    design.
+- blast_radius_notes: Deleting a default account used by internal tooling/scripts
+    can break automation depending on it; check for that first.
+  control_id: AUTHSESS-17
+  deterministic_tool: delete or disable the default account record/seed data
+  fix_strategy: deterministic-autofix
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - Re-run OWASP ZAP's default-credential scan and confirm no default account is reachable.
+- blast_radius_notes: Significant feature addition (MFA enrollment/verification flow),
+    not a small patch.
+  control_id: AUTHSESS-18
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - A human confirms MFA or an equivalent documented combined-factor scheme is enforced
+    for access.
+- blast_radius_notes: Audit task; may surface further fixes.
+  control_id: AUTHSESS-19
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - A human reviewer diffs actual authentication routes against documentation and
+    closes any gap.
+- blast_radius_notes: Feature addition touching login flow and a notification/email
+    system.
+  control_id: AUTHSESS-20
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: false
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - A human confirms a suspicious-login notification feature exists.
+- blast_radius_notes: May require redesigning a magic-link-only login flow to add
+    a second factor.
+  control_id: AUTHSESS-21
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - A human confirms email is not used as an authentication factor.
+- blast_radius_notes: Localized addition to the credential-update handler.
+  control_id: AUTHSESS-22
+  deterministic_tool: null
+  fix_strategy: llm-template-fill
+  human_review_required: false
+  llm_fix_template: "\"Given a credential-update handler {handler} lacking a notification\
+    \ step: add a\n call to the existing notification/email utility after a successful\
+    \ update,\n informing the user of the change; preserve the update logic itself.\"\
+    \n"
+  playbook_version: 1.0.0
+  verification_checks:
+  - Perform a credential update in a test environment and confirm a notification is
+    sent.
+- blast_radius_notes: Touches login, registration, and password-recovery handlers;
+    low functional risk since only error-path messaging changes.
+  control_id: AUTHSESS-23
+  deterministic_tool: null
+  fix_strategy: llm-template-fill
+  human_review_required: true
+  llm_fix_template: "\"Given login/registration/forgot-password handlers that return\
+    \ different error\n messages, status codes, or response times for 'user exists'\
+    \ vs 'user doesn't\n exist': unify the response (same generic message, same status\
+    \ code) for both\n cases, and pad response timing if a measurable difference remains\
+    \ (e.g. always\n perform a dummy hash comparison on the 'not found' path); preserve\
+    \ correct\n behavior on the success path.\"\n"
+  playbook_version: 1.0.0
+  verification_checks:
+  - Compare responses/timing for a valid vs. invalid username on all three flows and
+    confirm no distinguishing signal remains.
+- blast_radius_notes: Localized to the initial-credential generation function.
+  control_id: AUTHSESS-24
+  deterministic_tool: null
+  fix_strategy: llm-template-fill
+  human_review_required: true
+  llm_fix_template: "\"Given initial-password/activation-code generation using {weak_rng}:\
+    \ replace with\n a CSPRNG (e.g. crypto.randomBytes, secrets.token_urlsafe); enforce\
+    \ the same\n password policy on the generated value; set a short expiration and\
+    \ mark it\n unusable as a permanent password (force change on first use); preserve\
+    \ the\n delivery mechanism (email/SMS).\"\n"
+  playbook_version: 1.0.0
+  verification_checks:
+  - Re-run the Semgrep rule and confirm zero findings.
+  - Confirm a newly generated initial password expires or forces a change as expected.
+- blast_radius_notes: Removing a recovery mechanism requires a replacement (e.g. email/SMS-based
+    reset) to avoid locking users out.
+  control_id: AUTHSESS-25
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - A human confirms no password-hint or secret-question feature exists, or plans
+    its removal plus a replacement recovery flow.
+- blast_radius_notes: Touches the password-reset flow's interaction with MFA state.
+  control_id: AUTHSESS-26
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - A human traces the reset flow for an MFA-enabled account and confirms MFA cannot
+    be bypassed via reset.
+- blast_radius_notes: Feature/process design, not a small patch.
+  control_id: AUTHSESS-27
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - A human confirms lost-MFA-factor recovery requires enrollment-equivalent identity
+    proofing.
+- blast_radius_notes: Notification-scheduling feature.
+  control_id: AUTHSESS-28
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: false
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - A human confirms expiring-credential renewal reminders are sent with adequate
+    lead time.
+- blast_radius_notes: Localized to the admin password-management route and its frontend
+    form.
+  control_id: AUTHSESS-29
+  deterministic_tool: null
+  fix_strategy: llm-template-fill
+  human_review_required: true
+  llm_fix_template: "\"Given an admin-facing route {admin_route} that directly sets\
+    \ a target user's\n password: replace it with logic that generates and sends a\
+    \ reset token/link to\n the user instead, so the admin never sees or chooses the\
+    \ new password; preserve\n the admin's ability to initiate the reset.\"\n"
+  playbook_version: 1.0.0
+  verification_checks:
+  - Confirm the admin route no longer accepts or stores a plaintext password for the
+    target user.
+  - Confirm the reset-token flow works end-to-end.
+- blast_radius_notes: Localized to the OTP-verification function; requires a small
+    persistence layer (cache/DB) to track used codes.
+  control_id: AUTHSESS-30
+  deterministic_tool: null
+  fix_strategy: llm-template-fill
+  human_review_required: true
+  llm_fix_template: "\"Given an OTP/TOTP verification function {verify_fn} lacking\
+    \ single-use\n enforcement: after successful verification, mark the code/token\
+    \ as consumed\n (e.g. in a used-codes cache with TTL matching the code's lifetime)\
+    \ and reject\n reuse; preserve the success path for first use.\"\n"
+  playbook_version: 1.0.0
+  verification_checks:
+  - Attempt to reuse a just-validated code and confirm rejection.
+- blast_radius_notes: Touches the lookup-secret storage/verification path; existing
+    stored secrets need a rehash-on-next-use migration.
+  control_id: AUTHSESS-31
+  deterministic_tool: null
+  fix_strategy: llm-template-fill
+  human_review_required: true
+  llm_fix_template: "\"Given lookup-secret storage using {unsalted_or_weak_hash}:\
+    \ replace with an\n approved password-hashing algorithm (bcrypt/argon2/scrypt)\
+    \ using a 32-bit+\n random salt for secrets under 112 bits of entropy; preserve\
+    \ verification logic\n shape, adding a migration path for already-stored secrets.\"\
+    \n"
+  playbook_version: 1.0.0
+  verification_checks:
+  - Re-run the Semgrep rule and confirm zero findings.
+  - Confirm verification still succeeds for a freshly-generated secret.
+- blast_radius_notes: Localized to the generation function.
+  control_id: AUTHSESS-32
+  deterministic_tool: null
+  fix_strategy: llm-template-fill
+  human_review_required: true
+  llm_fix_template: "\"Given MFA secret/code generation using {non_csprng}: replace\
+    \ with a CSPRNG\n (crypto.randomBytes, secrets module); preserve the resulting\
+    \ code format/length.\"\n"
+  playbook_version: 1.0.0
+  verification_checks:
+  - Re-run the Semgrep rule and confirm zero findings.
+- blast_radius_notes: Localized config change; longer codes may need a minor UI adjustment
+    for the input field.
+  control_id: AUTHSESS-33
+  deterministic_tool: increase OTP code length/character set in the generation config
+    to meet the 20-bit entropy minimum
+  fix_strategy: deterministic-autofix
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - Re-run the Semgrep rule and confirm zero findings.
+- blast_radius_notes: Localized config change; shortening a lifetime can increase
+    legitimate user friction if set too aggressively at the boundary.
+  control_id: AUTHSESS-34
+  deterministic_tool: adjust OOB/TOTP validity-window configuration to the specified
+    maximums
+  fix_strategy: deterministic-autofix
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - Attempt to use an OOB code/TOTP after the new expiry window and confirm rejection.
+- blast_radius_notes: Feature addition to account/security settings.
+  control_id: AUTHSESS-35
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - A human confirms a factor-revocation feature exists.
+- blast_radius_notes: May require redesigning a biometric-only login flow.
+  control_id: AUTHSESS-36
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - A human confirms biometric auth is never accepted as a sole factor.
+- blast_radius_notes: Localized to the TOTP verification function.
+  control_id: AUTHSESS-37
+  deterministic_tool: null
+  fix_strategy: llm-template-fill
+  human_review_required: true
+  llm_fix_template: "\"Given TOTP verification accepting a client-supplied timestamp\
+    \ {client_time}:\n remove that parameter and compute the time step from server\
+    \ clock time only,\n synced to a trusted time source (e.g. NTP); preserve the\
+    \ verification window\n tolerance already configured.\"\n"
+  playbook_version: 1.0.0
+  verification_checks:
+  - Re-run the Semgrep rule and confirm zero findings.
+  - Confirm valid TOTP codes still verify correctly under normal clock conditions.
+- blast_radius_notes: Policy/feature-flow review, touching the OTP delivery configuration.
+  control_id: AUTHSESS-38
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - A human confirms SMS/PSTN OTP requires phone verification, offers a stronger alternative,
+    and discloses risk (or is disabled for L3).
+- blast_radius_notes: Localized to the OOB code generation/verification pair.
+  control_id: AUTHSESS-39
+  deterministic_tool: null
+  fix_strategy: llm-template-fill
+  human_review_required: true
+  llm_fix_template: "\"Given OOB code verification {verify_fn} lacking request binding:\
+    \ store a\n request-specific identifier alongside the generated code and require\
+    \ it to\n match at verification time; reject codes presented against a different\
+    \ request;\n preserve the success path for correctly-bound codes.\"\n"
+  playbook_version: 1.0.0
+  verification_checks:
+  - Attempt to use a valid code against a different authentication request and confirm
+    rejection.
+- blast_radius_notes: Localized to the endpoint's middleware chain.
+  control_id: AUTHSESS-40
+  deterministic_tool: rate-limiting middleware applied to the OOB code-verification
+    endpoint
+  fix_strategy: deterministic-autofix
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - Re-run OWASP ZAP's brute-force rule against the endpoint and confirm it is now
+    rate-limited.
+- blast_radius_notes: Touches the MFA push-notification service integration.
+  control_id: AUTHSESS-41
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - A human confirms push-notification MFA has rate limiting or number matching against
+    push bombing.
+- blast_radius_notes: Infrastructure/secrets-management change.
+  control_id: AUTHSESS-42
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - A human confirms certificate storage uses appropriate file permissions/HSM/secret-manager
+    protection against modification.
+- blast_radius_notes: Localized config change.
+  control_id: AUTHSESS-43
+  deterministic_tool: increase challenge-nonce byte length in the generation config
+    to >= 64 bits
+  fix_strategy: deterministic-autofix
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - Re-run the Semgrep rule and confirm zero findings.
+- blast_radius_notes: Identity-linking schema change; may require a data migration
+    if users are currently keyed only by a raw external ID.
+  control_id: AUTHSESS-44
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - A human confirms users are namespaced by IdP-ID plus IdP-internal user-ID, preventing
+    cross-IdP identity spoofing.
+- blast_radius_notes: Localized to the assertion-verification function; critical path,
+    so test against real IdP-issued assertions before deploying.
+  control_id: AUTHSESS-45
+  deterministic_tool: null
+  fix_strategy: llm-template-fill
+  human_review_required: true
+  llm_fix_template: "\"Given assertion-parsing code {parser} that does not verify\
+    \ signatures, or that\n accepts unsigned/invalid-signature assertions: add mandatory\
+    \ signature\n verification against the IdP's known public key/certificate, rejecting\
+    \ any\n assertion that is unsigned or fails verification; preserve processing\
+    \ for\n validly-signed assertions.\"\n"
+  playbook_version: 1.0.0
+  verification_checks:
+  - Re-run the Semgrep rule and confirm zero findings.
+  - Submit a tampered/unsigned assertion in a test environment and confirm rejection.
+- blast_radius_notes: Localized to the SAML assertion-processing path; requires a
+    small persistence layer for the replay cache.
+  control_id: AUTHSESS-46
+  deterministic_tool: null
+  fix_strategy: llm-template-fill
+  human_review_required: true
+  llm_fix_template: "\"Given SAML assertion processing {processor} lacking replay\
+    \ protection: track\n processed assertion IDs (with expiry matching the assertion's\
+    \ validity window)\n and reject any assertion ID seen before; preserve processing\
+    \ for first-seen,\n validly-signed assertions.\"\n"
+  playbook_version: 1.0.0
+  verification_checks:
+  - Replay a previously-used valid assertion in a test environment and confirm rejection.
+- blast_radius_notes: Touches authorization logic for specific sensitive functions
+    relying on federated auth strength.
+  control_id: AUTHSESS-47
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - A human confirms functions requiring specific auth strength check IdP claims (acr/amr/auth_time)
+    and have a documented fallback.
+- blast_radius_notes: Documentation only.
+  control_id: AUTHSESS-48
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: false
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - A human confirms session timeout values are documented with justification.
+- blast_radius_notes: Documentation only.
+  control_id: AUTHSESS-49
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: false
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - A human confirms a documented concurrent-session policy exists.
+- blast_radius_notes: Documentation only.
+  control_id: AUTHSESS-50
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: false
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - A human confirms federated session-management systems are documented with coordination
+    controls.
+- blast_radius_notes: Architectural review of the token-verification path.
+  control_id: AUTHSESS-51
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - A human traces the verification code path and confirms it runs server-side in
+    a trusted service, not client-side or in an untrusted edge component.
+- blast_radius_notes: Architectural change to the session-issuance mechanism; invalidates
+    any tooling relying on the old static value.
+  control_id: AUTHSESS-52
+  deterministic_tool: null
+  fix_strategy: llm-template-fill
+  human_review_required: true
+  llm_fix_template: "\"Given a session mechanism using {static_secret} as a session\
+    \ identifier: replace\n with dynamically generated per-session tokens (see AUTHSESS-53\
+    \ for entropy\n requirements); preserve the session's existing scope/permissions\
+    \ model.\"\n"
+  playbook_version: 1.0.0
+  verification_checks:
+  - Re-run the Semgrep rule and confirm zero findings.
+  - Confirm each new login issues a distinct token.
+- blast_radius_notes: Localized to the token-generation function; deploying invalidates
+    all existing sessions (expected, one-time).
+  control_id: AUTHSESS-53
+  deterministic_tool: null
+  fix_strategy: llm-template-fill
+  human_review_required: true
+  llm_fix_template: "\"Given session-token generation using {weak_source} or producing\
+    \ fewer than 128\n bits of entropy: replace with a CSPRNG generating at least\
+    \ 128 bits (16+ random\n bytes, base64/hex-encoded); preserve the token's existing\
+    \ usage/storage\n mechanism (cookie/header).\"\n"
+  playbook_version: 1.0.0
+  verification_checks:
+  - Re-run the Semgrep rule and confirm zero findings.
+- blast_radius_notes: Localized to the authentication handler's session-issuance step.
+  control_id: AUTHSESS-54
+  deterministic_tool: null
+  fix_strategy: llm-template-fill
+  human_review_required: true
+  llm_fix_template: "\"Given an authentication handler {auth_handler} that does not\
+    \ rotate the session\n token on login/re-authentication: after successful authentication,\
+    \ generate a\n new session token, invalidate the previous one (if any existed\
+    \ pre-auth), and\n set the new token as the active session; preserve the handler's\
+    \ existing\n success-path response.\"\n"
+  playbook_version: 1.0.0
+  verification_checks:
+  - Re-run OWASP ZAP's session-fixation rule and confirm the pre-login and post-login
+    session tokens differ.
+  - Confirm the prior token is no longer valid after login.
+- blast_radius_notes: Global session-config change; verify the timeout value matches
+    documented risk analysis.
+  control_id: AUTHSESS-55
+  deterministic_tool: session middleware inactivity-timeout configuration (e.g. express-session
+    cookie.maxAge combined with a last-activity check, Django SESSION_COOKIE_AGE with
+    idle tracking)
+  fix_strategy: deterministic-autofix
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - Leave a session idle beyond the configured timeout and confirm subsequent requests
+    require re-authentication.
+- blast_radius_notes: Global session-config change.
+  control_id: AUTHSESS-56
+  deterministic_tool: session middleware absolute-expiration configuration
+  fix_strategy: deterministic-autofix
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - Confirm a session created at time T is rejected after the configured absolute
+    lifetime, even if continuously active.
+- blast_radius_notes: For self-contained tokens this requires adding a revocation-check
+    step to the shared token-verification path, affecting every protected route —
+    test broadly.
+  control_id: AUTHSESS-57
+  deterministic_tool: null
+  fix_strategy: llm-template-fill
+  human_review_required: true
+  llm_fix_template: "\"Given a logout/expiration handler {handler} that does not invalidate\
+    \ the\n session server-side: for reference/stateful tokens, delete the server-side\n\
+    \ session record; for self-contained tokens (JWTs), add the token/its ID to a\n\
+    \ revocation list checked on every verification, or rotate the per-user signing\n\
+    \ key; preserve the handler's existing response.\"\n"
+  playbook_version: 1.0.0
+  verification_checks:
+  - Re-run OWASP ZAP's post-logout session-reuse test and confirm the old session/token
+    no longer works.
+- blast_radius_notes: Localized to the account-disable/delete handler.
+  control_id: AUTHSESS-58
+  deterministic_tool: null
+  fix_strategy: llm-template-fill
+  human_review_required: true
+  llm_fix_template: "\"Given an account-disable/delete handler {handler} lacking session\
+    \ revocation:\n add a call to revoke all sessions for the target user (delete\
+    \ server-side\n session records or add to the revocation list per AUTHSESS-57)\
+    \ immediately\n after the disable/delete action; preserve the rest of the handler's\
+    \ logic.\"\n"
+  playbook_version: 1.0.0
+  verification_checks:
+  - Disable a test account with an active session and confirm that session immediately
+    stops working.
+- blast_radius_notes: Feature addition to the credential-change flow.
+  control_id: AUTHSESS-59
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - A human confirms an option to terminate other sessions is offered after a credential
+    change.
+- blast_radius_notes: UI/navigation change.
+  control_id: AUTHSESS-60
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: false
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - A human confirms logout is visible and reachable from every authenticated page.
+- blast_radius_notes: Feature addition to the admin console.
+  control_id: AUTHSESS-61
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - A human confirms an admin capability exists to terminate sessions per-user or
+    globally.
+- blast_radius_notes: Duplicate of API-08's concern from the session-management angle;
+    fix once, satisfies both controls.
+  control_id: AUTHSESS-62
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - A human confirms sensitive-attribute changes require full re-authentication (see
+    backend-api API-08 for the corresponding implementation playbook).
+- blast_radius_notes: Feature addition to account settings.
+  control_id: AUTHSESS-63
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - A human confirms a session-management UI exists letting users view/terminate their
+    own sessions after re-authentication.
+- blast_radius_notes: Feature addition (step-up authentication) for specific sensitive
+    operations.
+  control_id: AUTHSESS-64
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - A human confirms highly sensitive operations require secondary verification beyond
+    an active session.
+- blast_radius_notes: Cross-system review with the IdP integration.
+  control_id: AUTHSESS-65
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - A human confirms federated session lifetime/termination behavior matches documentation.
+- blast_radius_notes: Touches the session-creation entry point, particularly for SSO/federated
+    flows using silent renewal.
+  control_id: AUTHSESS-66
+  deterministic_tool: null
+  fix_strategy: llm-template-fill
+  human_review_required: true
+  llm_fix_template: "\"Given session-creation logic {session_create_fn} that can be\
+    \ triggered without\n user interaction (e.g. a silent background token exchange\
+    \ creating a full\n session): add a requirement for explicit user consent or action\
+    \ (a click,\n confirmed redirect) before finalizing session creation; preserve\
+    \ the flow for\n user-initiated logins.\"\n"
+  playbook_version: 1.0.0
+  verification_checks:
+  - Attempt to trigger session creation without user interaction in a test environment
+    and confirm it no longer succeeds silently.

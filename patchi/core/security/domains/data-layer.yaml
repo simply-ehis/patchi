@@ -1,0 +1,130 @@
+domain_id: "data-layer"
+version: "1.0.0"
+display_name: "Data Layer / Database Security"
+# SOURCE CURRENCY NOTE (verified 2026-07-04):
+# Primary source is OWASP ASVS 5.0.0 (released 30 May 2025, current stable
+# version — 17 chapters, ~350 requirements; a v5.0.1 patch release may follow
+# but was not found as published as of this review). Chapter/section numbers
+# below use the confirmed ASVS 5.0.x numbering (V8 Authorization, V11
+# Cryptography, V13.3 Secret Management, V14 Data Protection, V15.3 Defensive
+# Coding) rather than the older 4.0.3 numbering (which numbered these
+# differently, e.g. old V8 = Data Protection, old V12 = Files and Resources) —
+# do not cross-reference this file's V-numbers against ASVS 4.0.3 documents.
+# Engine-specific sub-controls (DATA-08/09/10) are sourced from the current
+# CIS Benchmarks for PostgreSQL (CIS PostgreSQL 13/14 Benchmark v1.3.0,
+# updated Feb 2026), MySQL (CIS MySQL Benchmark, current GA versions 8.4/9.7),
+# and MongoDB (CIS MongoDB Benchmark, current version not independently
+# confirmed beyond CIS's own benchmark page as of this review — flagged below).
+# SCHEMA NOTE: the three engine-specific controls (DATA-08/09/10) each carry an
+# additional non-standard field, engine_gate, beyond the base schema. This is
+# an intentional, minimal, additive extension to satisfy the task's explicit
+# requirement that engine-specific CIS sub-controls be "gated by their own
+# activation signals" narrower than the domain-level activation_signals block;
+# it does not remove or alter any required schema field.
+source_standard: "OWASP ASVS 5.0.0 (2025-05-30), chapters V8 (Authorization), V11 (Cryptography), V13.3 (Secret Management), V14 (Data Protection), V15.3 (Defensive Coding); supplemented by CIS Benchmarks for PostgreSQL, MySQL, and MongoDB for engine-specific sub-controls — see per-control source_clause"
+component_type: "data-layer"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "codebase imports a database driver or ORM (e.g. psycopg2/asyncpg, mysqlclient/PyMySQL, pymongo/mongoose, SQLAlchemy, Prisma, TypeORM, Sequelize, Django ORM, ActiveRecord)"
+    - signal: "repository contains database migration files, schema definitions, or a connection-string/DSN configuration pointing at a relational or document database"
+  excluded_if:
+    - signal: "component only consumes a fully-managed third-party data API with no direct database connection, credentials, or schema of its own"
+
+controls:
+  - control_id: "DATA-01"
+    name: "Query-level (row/record) authorization enforcement"
+    description: "Authorization must be enforced at the point of data access — filtering query results and validating write targets by the requesting identity's actual permissions — not solely at a higher application layer that a differently-routed code path could bypass. A user must not be able to read or modify another tenant's or user's rows by manipulating an identifier if the query layer itself does not independently verify ownership/permission."
+    source_clause: "OWASP ASVS 5.0.0, V8.2 General Authorization Design and V8.3 Operation Level Authorization"
+    severity: "critical"
+    check_method: "manual-review"
+    detector: "manual-review only; some coverage via automated authorization-testing tools (e.g. OWASP ZAP access-control scripts) exercised against API endpoints backed by the data layer"
+    remediation_ref: "fix-playbook://DATA-01"
+
+  - control_id: "DATA-02"
+    name: "Parameterized queries; no dynamic SQL/NoSQL query construction from unsanitized input"
+    description: "All database queries must use parameterized statements, prepared statements, or an ORM's safe query-builder methods. Raw string concatenation or interpolation of caller-supplied values into a query (SQL or NoSQL query-document construction) must not occur, including within ORM 'raw query' escape hatches."
+    source_clause: "OWASP ASVS 5.0.0, V1.2 Injection Prevention. NOTE: this control is the data-layer instantiation of a general injection-prevention requirement that also belongs to the core backend-api domain; treat as cross-referenced rather than double-scored where both domains activate for the same codebase."
+    severity: "critical"
+    check_method: "static"
+    detector: "Semgrep (sql-injection rulesets), CodeQL (js/sql-injection, py/sql-injection query packs), Bandit (B608) for Python"
+    remediation_ref: "fix-playbook://DATA-02"
+
+  - control_id: "DATA-03"
+    name: "Encryption at rest for sensitive data stores"
+    description: "Databases and their underlying storage volumes holding sensitive data (PII, credentials, financial or health data, or data classified as sensitive by the application's own data-classification policy) must be encrypted at rest using an approved, current encryption algorithm, with keys managed independently of the data they protect."
+    source_clause: "OWASP ASVS 5.0.0, V14.2 General Data Protection, in conjunction with V11.3 Encryption Algorithms"
+    severity: "high"
+    check_method: "manual-review"
+    detector: "cloud-native config scanners (e.g. Checkov, tfsec, Prowler) can verify encryption-at-rest is enabled on managed database services (RDS, Cloud SQL, Atlas, etc.); self-hosted deployments require manual-review of disk/volume encryption configuration"
+    remediation_ref: "fix-playbook://DATA-03"
+
+  - control_id: "DATA-04"
+    name: "Database credentials in a secrets manager, not hardcoded or plaintext-committed"
+    description: "Database connection credentials (usernames, passwords, connection strings, TLS client certificates) must be retrieved at runtime from a secrets manager or equivalent secure store, must never be hardcoded in application source, and must never be committed to version control in plaintext."
+    source_clause: "OWASP ASVS 5.0.0, V13.3 Secret Management"
+    severity: "critical"
+    check_method: "static"
+    detector: "gitleaks, trufflehog (secret scanning for committed credentials/connection strings)"
+    remediation_ref: "fix-playbook://DATA-04"
+
+  - control_id: "DATA-05"
+    name: "Backup encryption and access control"
+    description: "Database backups and exports must be encrypted (in transit during creation/transfer and at rest in storage) and access-controlled to the same standard as the live database, since a backup is a full copy of the data and an equally valid target for exfiltration. Backup storage locations (e.g. object storage buckets) must not be publicly accessible or accessible with weaker credentials than the primary database."
+    source_clause: "Adapted — OWASP ASVS 5.0.0 does not contain a backup-specific numbered requirement as of version 5.0.0; this control extends the general data-protection principle in V14.2 General Data Protection to the backup/export data-at-rest case, which is the same sensitive data in a different storage location. Labeled as adapted, not a direct ASVS clause."
+    severity: "high"
+    check_method: "manual-review"
+    detector: "cloud config scanners (Checkov, tfsec, Prowler, ScoutSuite) can check backup-storage bucket/object public-access settings and encryption configuration for common cloud backup targets"
+    remediation_ref: "fix-playbook://DATA-05"
+
+  - control_id: "DATA-06"
+    name: "Mass-assignment protection on ORM write operations"
+    description: "ORM create/update operations must use an explicit allowlist of fields the caller may set, rather than binding an entire caller-supplied object/dictionary directly to a model's attributes. Sensitive or privileged fields (role, is_admin, account_balance, ownership references) must never be settable via a generic mass-assignment path reachable from user input."
+    source_clause: "OWASP ASVS 5.0.0, V15.3 Defensive Coding (mass assignment)"
+    severity: "high"
+    check_method: "static"
+    detector: "manual-review only; framework-specific static checks exist for some ecosystems (e.g. Rails strong_parameters enforcement linters, Django DRF serializer field-allowlist review)"
+    remediation_ref: "fix-playbook://DATA-06"
+
+  - control_id: "DATA-07"
+    name: "Least-privilege database roles for application service accounts"
+    description: "The database credential/role used by the application must be scoped to only the operations the application actually performs (e.g. SELECT/INSERT/UPDATE on specific schemas/tables), and must not be a superuser, admin, or database-owner role. Separate, more privileged roles used for migrations or administration must not be the same credential the running application uses for normal request handling."
+    source_clause: "OWASP ASVS 5.0.0, V8 Authorization (least-privilege principle applied to the database's own role/grant system), reinforced by the current CIS Benchmarks for PostgreSQL, MySQL, and MongoDB, each of which includes a least-privilege role/grant recommendation as a core benchmark item"
+    severity: "high"
+    check_method: "manual-review"
+    detector: "manual-review only; can be scripted per-engine (e.g. querying pg_roles/information_schema.table_privileges for Postgres, SHOW GRANTS for MySQL, db.getRoles() for MongoDB) to confirm the application role's grants match declared need"
+    remediation_ref: "fix-playbook://DATA-07"
+
+  - control_id: "DATA-08"
+    name: "PostgreSQL: CIS Benchmark connection, logging, and extension hardening"
+    engine_gate: "Only activates if the codebase connects to PostgreSQL (e.g. psycopg2, asyncpg, pg driver, or a PostgreSQL connection string/DSN detected)."
+    description: "A PostgreSQL instance backing the application must enforce SSL/TLS for client connections (ssl = on, and application connection strings requesting sslmode=require or stricter), enable connection/disconnection logging (log_connections, log_disconnections) for audit purposes, and avoid installing or enabling extensions not required by the application (each additional extension is additional attack surface within the CIS PostgreSQL Benchmark's hardening scope)."
+    source_clause: "CIS PostgreSQL 13/14 Benchmark v1.3.0 (updated February 2026) — connection security, logging, and installed-extension recommendations. Exact control numbers vary by benchmark section and are not restated here verbatim; consult the current CIS benchmark document for authoritative numbering."
+    severity: "medium"
+    check_method: "dynamic"
+    detector: "PGDSAT (PostgreSQL Database Security Assessment Tool, open source, implements CIS PostgreSQL Benchmark checks)"
+    remediation_ref: "fix-playbook://DATA-08"
+
+  - control_id: "DATA-09"
+    name: "MySQL: CIS Benchmark authentication and dangerous-feature hardening"
+    engine_gate: "Only activates if the codebase connects to MySQL/MariaDB (e.g. mysqlclient, PyMySQL, mysql2 driver, or a MySQL connection string detected)."
+    description: "A MySQL instance backing the application must have local_infile disabled unless explicitly required (prevents a class of file-read/write abuse via SQL), must require TLS for remote client connections, must not run with skip-grant-tables enabled, and must not retain default/sample accounts or databases (e.g. test database, anonymous user accounts) from initial installation."
+    source_clause: "CIS MySQL Benchmark, current edition covering MySQL Community/Enterprise 8.4 and 9.7 GA releases — authentication and insecure-default-feature recommendations. Exact control numbers vary by benchmark edition and are not restated here verbatim; consult the current CIS benchmark document for authoritative numbering."
+    severity: "medium"
+    check_method: "dynamic"
+    detector: "CIS-CAT Lite (official CIS assessment tool); no independently-verified free/open-source MySQL-specific CIS scanner was identified as of 2026-07-04 beyond CIS's own tooling"
+    remediation_ref: "fix-playbook://DATA-09"
+
+  - control_id: "DATA-10"
+    name: "MongoDB: CIS Benchmark authentication and network-exposure hardening"
+    engine_gate: "Only activates if the codebase connects to MongoDB (e.g. pymongo, mongoose, MongoDB connection string/URI detected)."
+    description: "A MongoDB instance backing the application must have authorization enabled (authorization: enabled, never run with --noauth in any environment reachable beyond localhost), must not expose the deprecated HTTP status interface, and must bind to specific network interfaces rather than 0.0.0.0 unless the instance is behind a properly firewalled network boundary."
+    source_clause: "CIS MongoDB Benchmark (current version per CIS's benchmark catalog) — authentication-enablement and network-binding recommendations. NOTE: this review could not independently confirm the exact current version number of the CIS MongoDB Benchmark beyond its presence in CIS's active benchmark catalog as of 2026-07-04; flagged for re-verification rather than guessed."
+    severity: "medium"
+    check_method: "dynamic"
+    detector: "CIS-CAT Lite (official CIS assessment tool); manual-review as a fallback given no independently-confirmed free open-source MongoDB CIS scanner as of this review"
+    remediation_ref: "fix-playbook://DATA-10"
+
+deprecated_by: null
+last_reviewed: "2026-07-04"

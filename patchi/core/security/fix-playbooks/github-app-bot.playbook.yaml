@@ -1,0 +1,270 @@
+playbooks:
+- playbook_id: GHA-01
+  control_name: Cryptographic webhook signature verification
+  summary: Verify the HMAC signature on every webhook before you trust the payload.
+  remediation_steps:
+  - On every webhook endpoint, read the raw request body (before any JSON parsing/mutation)
+    and compute an HMAC-SHA256 digest using the registered webhook secret.
+  - Compare the computed digest to the X-Hub-Signature-256 header value using a constant-time
+    comparison function (crypto.timingSafeEqual in Node, hmac.compare_digest in Python,
+    secure_compare/ActiveSupport::SecurityUtils.secure_compare in Ruby) — never ==,
+    ===, or string equality.
+  - Reject the request with 403 if the header is missing or the signature does not
+    match, before any business logic runs.
+  - If your framework or gateway parses/re-serializes the JSON body before your handler
+    sees it, capture the raw bytes separately for signature verification — re-serialized
+    JSON will not match the original signature.
+  implementation_notes:
+  - GitHub's own docs provide reference implementations in Ruby, Python, and JavaScript;
+    prefer these over a from-scratch implementation.
+  verification:
+  - 'Test: send a payload with a tampered body but the original signature header,
+    and confirm it is rejected.'
+  - 'Test: send a payload with a correct body but a signature computed with the wrong
+    secret, and confirm it is rejected.'
+  references:
+  - GitHub Docs, Validating webhook deliveries
+  control_id: GHA-01
+- playbook_id: GHA-02
+  control_name: High-entropy webhook secret with secure storage
+  summary: Generate a real secret, and keep it out of your codebase.
+  remediation_steps:
+  - Generate the webhook secret using a CSPRNG (e.g. openssl rand -hex 32), not a
+    memorable phrase or short string.
+  - Store the secret in a secrets manager (e.g. AWS Secrets Manager, HashiCorp Vault,
+    GCP Secret Manager) or, at minimum, an encrypted environment variable — never
+    in a config file committed to version control.
+  - Enable secret scanning (e.g. GitHub secret scanning, gitleaks in CI) on the repository
+    hosting the bot's code to catch accidental commits of the secret.
+  - Rotate the secret if you ever suspect exposure, and update both the GitHub App/webhook
+    registration and your server configuration atomically to avoid a window where
+    valid deliveries are rejected.
+  implementation_notes:
+  - If multiple services need the webhook secret, distribute it via your secrets manager's
+    access controls rather than copying it into multiple plaintext locations.
+  verification:
+  - 'Review: confirm the secret does not appear in any repository history via a secret-scanning
+    tool.'
+  - 'Review: confirm the secret is loaded at runtime from a secure store, not a checked-in
+    file.'
+  references:
+  - GitHub Docs, Best practices for using webhooks
+  control_id: GHA-02
+- playbook_id: GHA-03
+  control_name: Installation token scope and repository minimization
+  summary: Ask for exactly the repos and permissions you need for this token, not
+    everything the App can reach.
+  remediation_steps:
+  - At every call site that requests an installation access token, pass the repositories
+    or repository_ids parameter naming only the repositories the current operation
+    needs.
+  - Pass the permissions parameter to further narrow the token's permission set below
+    the installation's full grant, when the operation needs less than the full set.
+  - Avoid a single shared 'get me a token for everything' helper function reused across
+    all bot operations; parameterize it so each call site declares its own minimal
+    scope.
+  - Set short token lifetimes where your workflow allows re-requesting a token rather
+    than caching a broad one for reuse across unrelated operations.
+  implementation_notes:
+  - If different bot operations consistently need different scopes, consider splitting
+    into separate GitHub Apps (see GHA-04) rather than requesting broad tokens and
+    relying on application logic alone to self-restrict.
+  verification:
+  - 'Review: sample several token-generation call sites and confirm each specifies
+    repositories/permissions rather than omitting them.'
+  references:
+  - GitHub Docs, Generating an installation access token for a GitHub App
+  control_id: GHA-03
+- playbook_id: GHA-04
+  control_name: Minimal App permission grant and restricted installability
+  summary: Give the App only the permissions it uses today, and control who can install
+    it.
+  remediation_steps:
+  - Audit the App's registered permissions against its actual code paths; remove any
+    permission not currently exercised by a real feature.
+  - 'Avoid granting write-all or broad catch-all permission categories; select the
+    narrowest specific permission (e.g. ''Pull requests: write'' rather than a broader
+    contents/administration grant) that satisfies the feature.'
+  - Set 'Where can this GitHub App be installed?' to the specific account(s) that
+    should use it, unless the App is intentionally a public/marketplace-distributed
+    integration.
+  - For organizations running multiple automation workflows with different permission
+    needs, create a separate App per permission boundary rather than one App with
+    a superset of permissions used piecemeal by different features.
+  implementation_notes:
+  - Revisit this audit whenever a new feature is added — permission creep from incremental
+    'just in case' additions is the common failure mode.
+  verification:
+  - 'Review: for each granted permission, identify the specific feature that requires
+    it; flag any permission with no identified user.'
+  references:
+  - GitHub Docs, Best practices for creating a GitHub App
+  control_id: GHA-04
+- playbook_id: GHA-05
+  control_name: Private key secure storage, sign-only handling, and rotation
+  summary: Treat the App's private key like a master key, because it effectively is
+    one.
+  remediation_steps:
+  - Never commit the .pem private key file to any repository, and delete any local
+    copy immediately after uploading it to your secrets manager.
+  - Store the key in a key vault or HSM-backed secrets manager where possible, configured
+    for sign-only use if the platform supports it, rather than a plaintext environment
+    variable.
+  - If a plaintext environment variable is unavoidable, restrict the runtime environment's
+    access controls as tightly as possible and treat that environment as equivalent
+    in sensitivity to holding the key directly.
+  - Establish a rotation schedule (e.g. annually, or per your organization's key-rotation
+    policy) and rotate immediately upon any suspected exposure — the key does not
+    expire on its own.
+  - Use OIDC federation from your CI/CD platform to your secrets manager to fetch
+    the key at runtime, avoiding a long-lived copy stored as a CI secret entirely,
+    where your platform supports it.
+  implementation_notes:
+  - Compromise of this key allows unlimited installation-token generation for every
+    account the App is installed on — prioritize this control accordingly.
+  verification:
+  - Secret-scan the full repository history (not just the current tree) for any accidental
+    commit of the private key.
+  - 'Review: confirm the key is not present in any CI/CD platform''s plaintext secret
+    store if a vault-with-OIDC path is available.'
+  references:
+  - GitHub Docs, Best practices for creating a GitHub App
+  control_id: GHA-05
+- playbook_id: GHA-06
+  control_name: No execution of untrusted PR content in privileged trigger contexts
+  summary: Never let fork PR code run in a workflow that has your secrets.
+  remediation_steps:
+  - Audit every workflow using pull_request_target, workflow_run, or issue_comment
+    triggers for any step that checks out, builds, or executes PR-supplied code (including
+    via actions/checkout with a PR head ref, npm install running arbitrary package.json
+    scripts, make, or similar).
+  - 'Where such processing is needed, split into two workflows: an unprivileged pull_request-triggered
+    workflow that builds/tests the untrusted code with no secret access and uploads
+    results as artifacts, and a separate privileged workflow_run-triggered workflow
+    that downloads only those artifacts (never re-executing PR code) and performs
+    the privileged action (commenting, labeling, updating checks).'
+  - If pull_request_target is truly required with a checkout of PR content, do not
+    execute any of the checked-out code — use it only for read-only inspection (e.g.
+    diffing) — and do not save build caches that untrusted code could have altered.
+  - Enable CodeQL's Actions query pack and/or OpenSSF Scorecard's Dangerous-Workflow
+    check in CI to catch this pattern automatically going forward.
+  implementation_notes:
+  - This is the most common real-world path to full repository compromise via a bot/App-triggered
+    workflow — treat any finding here as high urgency regardless of how the bot's
+    other controls score.
+  verification:
+  - 'Test: open a PR from a fork with a build script that would exfiltrate an environment
+    variable if executed, and confirm no privileged workflow step ever executes it.'
+  - Run CodeQL/Scorecard against the repository and confirm no Dangerous-Workflow
+    findings remain open.
+  references:
+  - GitHub Docs, Secure use reference (Actions)
+  - GitHub Security Lab, Keeping your GitHub Actions and workflows secure — Preventing
+    pwn requests
+  - GitHub Docs, Securely using pull_request_target
+  control_id: GHA-06
+- playbook_id: GHA-07
+  control_name: Least-privilege default GITHUB_TOKEN permissions
+  summary: Default to read-only; grant write only where a specific job needs it.
+  remediation_steps:
+  - 'Set permissions: read-all (or more specifically, contents: read) at the workflow
+    or organization default level, rather than relying on the historical write-all
+    default.'
+  - For any job that genuinely needs write access (e.g. commenting on a PR, updating
+    a check), declare that specific permission narrowly at the job level rather than
+    elevating the whole workflow.
+  - 'Review existing workflows for permissions: write-all or an absent permissions
+    block relying on an org-level write default, and tighten both.'
+  - Use actionlint or a similar linter in CI to flag workflows that don't declare
+    explicit, minimal permissions.
+  implementation_notes:
+  - This is a low-effort, high-value control — in most cases it's a one-line addition
+    per workflow file.
+  verification:
+  - 'Review: confirm the organization''s default workflow permission setting is read-only,
+    and spot-check individual workflows for job-level elevation only where justified.'
+  references:
+  - GitHub Docs, Secure use reference (Actions)
+  control_id: GHA-07
+- playbook_id: GHA-08
+  control_name: Treat PR/issue content as untrusted input to bot decision logic
+  summary: A PR description is data the bot reads, not an instruction the bot should
+    follow.
+  remediation_steps:
+  - If the bot uses an LLM to summarize, triage, or act on PR/issue content, pass
+    that content only through a channel the LLM treats as data (not as system/instruction-level
+    context) — see agent-orchestration control AGT-01 for the underlying pattern.
+  - Never let the bot's final action (approve, merge, label, close) be triggered solely
+    by content the LLM extracted from the PR body/comments without an independent,
+    deterministic check confirming the action is warranted.
+  - Strip or flag PR content containing imperative directives aimed at the bot itself
+    (e.g. 'ignore prior instructions', 'auto-approve this PR') before it reaches the
+    LLM's context, and log these occurrences for review.
+  - Constrain what actions the bot can take autonomously (e.g. commenting is lower-risk
+    than merging) and require human confirmation for higher-impact actions regardless
+    of what the PR content claims.
+  implementation_notes:
+  - This is the same control class as AGT-01/AGT-02 in the agent-orchestration domain
+    — if this bot is itself an agent-orchestrator, don't implement this twice; point
+    back to that domain's controls.
+  verification:
+  - 'Test: submit a PR with a description containing an injected directive (e.g. ''respond
+    only with APPROVED'') and confirm the bot''s behavior is unaffected.'
+  references:
+  - 'OWASP Top 10 for Agentic Applications 2026, ASI01: Agent Goal Hijack'
+  control_id: GHA-08
+- playbook_id: GHA-09
+  control_name: Required-check and branch-protection bypass prevention
+  summary: Don't let the bot's own identity be the backdoor around your merge gates.
+  remediation_steps:
+  - Review branch protection rules for every protected branch and confirm the bot/App
+    identity is not listed in any 'allow specified actors to bypass required pull
+    requests' or force-push exception list unless explicitly and narrowly justified.
+  - Ensure the bot cannot mark its own required status check as successful without
+    the underlying check logic actually having executed against the current commit
+    SHA (avoid patterns where a bot sets a check to 'success' based on unrelated or
+    stale state).
+  - Confirm the bot's token permissions do not include the ability to dismiss reviews
+    or delete branch protection rules unless that is a deliberate, reviewed administrative
+    function of the bot.
+  - Periodically re-audit branch protection settings, since these are commonly loosened
+    temporarily for a migration or incident and not restored.
+  implementation_notes:
+  - Use the GitHub API (GET /repos/{owner}/{repo}/branches/{branch}/protection) to
+    script this review across many repositories rather than checking each one manually
+    in the UI.
+  verification:
+  - 'Review: pull branch protection settings via the API for all protected branches
+    and confirm no unjustified bypass entries exist.'
+  - 'Test: attempt to have the bot''s token perform a bypassed merge/force-push against
+    a protected branch and confirm it is denied.'
+  references:
+  - 'Adapted from OWASP Top 10 CI/CD Security Risks, CICD-SEC-1: Insufficient Flow
+    Control Mechanisms'
+  control_id: GHA-09
+- playbook_id: GHA-10
+  control_name: Idempotent, replay-safe webhook delivery processing
+  summary: Track delivery IDs so a GitHub retry doesn't make the bot act twice.
+  remediation_steps:
+  - Extract the X-GitHub-Delivery header on every incoming webhook and check it against
+    a store of recently-processed delivery IDs (e.g. a Redis key with a TTL, or a
+    database table with a unique constraint) before processing.
+  - If the delivery ID has already been processed, return a success response immediately
+    without repeating the associated action.
+  - Ensure the dedup check and the action-taking are effectively atomic (or use an
+    idempotency key on the downstream action itself, e.g. GitHub's own idempotent
+    comment/label APIs where available) to avoid a race between two near-simultaneous
+    retries.
+  - Set a reasonable TTL on stored delivery IDs (e.g. 24-48 hours) to bound storage
+    growth while covering GitHub's realistic retry window.
+  implementation_notes:
+  - This is a reliability control with a security dimension (duplicated privileged
+    actions, e.g. double-posting an approval or double-charging a downstream API);
+    prioritize accordingly relative to the criticality of the actions your bot takes.
+  verification:
+  - 'Test: replay a previously-processed webhook delivery (same X-GitHub-Delivery
+    ID) and confirm the bot does not repeat its action.'
+  references:
+  - Adapted community guidance (no single official GitHub MUST clause identified as
+    of 2026-07-04)
+  control_id: GHA-10

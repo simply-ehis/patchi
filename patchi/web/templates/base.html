@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Patchi — Security Dashboard</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="/static/htmx.min.js" onerror="var s=document.createElement('script');s.src='https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js';document.head.appendChild(s)"></script>
+  <script src="/static/konva.min.js" onerror="var s=document.createElement('script');s.src='https://unpkg.com/konva@9/konva.min.js';document.head.appendChild(s)"></script>
+  <script src="/static/charts.js"></script>
+  <script src="/static/canvas.js"></script>
+</head>
+<body>
+
+<!-- Top bar -->
+<header class="topbar">
+  <div class="topbar-left">
+    <span class="wordmark">PATCHI</span>
+    <span class="project-name" id="project-name">Security Dashboard</span>
+  </div>
+  <div class="topbar-center">
+    <span class="health-badge" id="topbar-health">—</span>
+    <span class="mode-badge" id="topbar-mode">—</span>
+    <span class="scan-badge" id="topbar-scan">Ready</span>
+  </div>
+  <div class="topbar-right">
+    <span class="ws-status" id="ws-status">Connecting…</span>
+  </div>
+</header>
+
+<!-- Layout -->
+<div class="layout">
+  <!-- Nav rail -->
+  <nav class="rail">
+    <a class="nav-btn active" href="/" hx-get="/" hx-target=".content" hx-push-url="true">
+      <span class="nav-icon">◈</span><span class="nav-label">Dashboard</span>
+    </a>
+    <a class="nav-btn" href="/findings" hx-get="/findings" hx-target=".content" hx-push-url="true">
+      <span class="nav-icon">◎</span><span class="nav-label">Findings</span>
+    </a>
+    <a class="nav-btn" href="/review" hx-get="/review" hx-target=".content" hx-push-url="true">
+      <span class="nav-icon">◪</span><span class="nav-label">Review</span>
+    </a>
+    <a class="nav-btn" href="/guard" hx-get="/guard" hx-target=".content" hx-push-url="true">
+      <span class="nav-icon">◬</span><span class="nav-label">Guard</span>
+    </a>
+    <a class="nav-btn" href="/tokens" hx-get="/tokens" hx-target=".content" hx-push-url="true">
+      <span class="nav-icon">⚷</span><span class="nav-label">Tokens</span>
+    </a>
+    <a class="nav-btn" href="/chat" hx-get="/chat" hx-target=".content" hx-push-url="true">
+      <span class="nav-icon">💬</span><span class="nav-label">Chat</span>
+    </a>
+    <a class="nav-btn" href="/brain" hx-get="/brain" hx-target=".content" hx-push-url="true">
+      <span class="nav-icon">⬡</span><span class="nav-label">Brain</span>
+    </a>
+    <a class="nav-btn" href="/history" hx-get="/history" hx-target=".content" hx-push-url="true">
+      <span class="nav-icon">⏱</span><span class="nav-label">History</span>
+    </a>
+    <a class="nav-btn" href="/settings" hx-get="/settings" hx-target=".content" hx-push-url="true">
+      <span class="nav-icon">⚙</span><span class="nav-label">Settings</span>
+    </a>
+  </nav>
+
+  <!-- Main content -->
+  <main class="content">
+    {% block content %}{% endblock %}
+  </main>
+</div>
+
+<!-- Toast notifications -->
+<div id="toast" class="toast"></div>
+
+<!-- Node detail modal (used by Brain Map) -->
+<div id="node-detail-modal" class="modal-overlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);z-index:1000;align-items:center;justify-content:center" onclick="if(event.target===this)this.style.display='none'">
+  <div class="modal" style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);max-width:500px;width:90%;max-height:80vh;overflow-y:auto">
+    <div class="modal-header" style="display:flex;justify-content:space-between;align-items:center;padding:16px;border-bottom:1px solid var(--border)">
+      <span class="modal-title" style="font-weight:600;font-size:14px">Node Details</span>
+      <button class="modal-close" style="background:none;border:none;color:var(--text-secondary);font-size:20px;cursor:pointer">&times;</button>
+    </div>
+    <div class="modal-body" style="padding:16px;font-size:13px"></div>
+  </div>
+</div>
+
+<script>
+// Re-initialize Brain Map and charts after HTMX content swaps
+document.body.addEventListener('htmx:afterSettle', function(evt) {
+  if (evt.detail.target.querySelector('#brain-map')) {
+    if (window.BrainMap) BrainMap.init('brain-map');
+  }
+  if (evt.detail.target.querySelector('#health-ring')) {
+    // Charts are re-initialized by the inline script in dashboard.html
+  }
+});
+
+// WebSocket connection with exponential backoff reconnect (ADD-02)
+let _wsDelay = 1000;
+let _wsReconnectTimer = null;
+const wsStatus = document.getElementById('ws-status');
+
+function connectWS() {
+  const wsProto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const ws = window._ws = new WebSocket(`${wsProto}//${location.host}/ws`);
+
+  ws.onopen = () => {
+    _wsDelay = 1000; // reset backoff on successful connect
+    wsStatus.textContent = 'Connected';
+    wsStatus.className = 'ws-status connected';
+    // Request current status in case we connected mid-scan
+    ws.send(JSON.stringify({action: 'status.request', data: {}}));
+    // Notify BrainMap to re-attach event listeners after reconnect
+    if (window.BrainMap && window.BrainMap._relistenWs) {
+      window.BrainMap._relistenWs();
+    }
+  };
+
+  ws.onclose = () => {
+    wsStatus.textContent = `Reconnecting in ${Math.round(_wsDelay / 1000)}s…`;
+    wsStatus.className = 'ws-status disconnected';
+    _wsReconnectTimer = setTimeout(() => {
+      _wsDelay = Math.min(_wsDelay * 2, 30000); // cap at 30s
+      connectWS();
+    }, _wsDelay);
+  };
+
+  ws.onerror = () => {
+    ws.close(); // triggers onclose → reconnect loop
+  };
+
+  ws.onmessage = (event) => {
+    try {
+      const msg = JSON.parse(event.data);
+      handleWSEvent(msg.event, msg.data);
+    } catch (_) {}
+  };
+}
+
+connectWS();
+
+function handleWSEvent(event, data) {
+  // Update health badge
+  if (event === 'status.update' && data.health_score !== undefined) {
+    const health = document.getElementById('topbar-health');
+    health.textContent = `${data.health_score}/100`;
+    health.className = `health-badge score-${getGrade(data.health_score)}`;
+  }
+
+  // Scan progress
+  if (event === 'scan.started') {
+    const scan = document.getElementById('topbar-scan');
+    scan.textContent = `Scanning (${data.agent_count} agents)`;
+    scan.className = 'scan-badge scanning';
+  }
+
+  if (event === 'scan.complete') {
+    const scan = document.getElementById('topbar-scan');
+    scan.textContent = `${data.total_findings} findings`;
+    scan.className = 'scan-badge complete';
+  }
+
+  // Toast for findings
+  if (event === 'scan.finding') {
+    if (data.severity === 'critical' || data.severity === 'high') {
+      toast(`${data.severity.toUpperCase()}: ${data.message}`, data.severity);
+    }
+  }
+
+  // Guard alerts
+  if (event === 'guard.alert') {
+    toast(`Guard: ${data.title}`, data.severity);
+  }
+
+  // Dispatch to Brain Map if present
+  if (window.BrainMap && window.BrainMap.handleEvent) {
+    window.BrainMap.handleEvent(event, data);
+  }
+}
+
+function getGrade(score) {
+  if (score >= 90) return 'excellent';
+  if (score >= 70) return 'good';
+  if (score >= 50) return 'fair';
+  if (score >= 30) return 'poor';
+  return 'critical';
+}
+
+function toast(msg, type = 'info') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `toast visible ${type}`;
+  clearTimeout(el._t);
+  el._t = setTimeout(() => { el.className = 'toast'; }, 4000);
+}
+</script>
+
+</body>
+</html>

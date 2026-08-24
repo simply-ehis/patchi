@@ -1,0 +1,122 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "patchi"
+version = "0.6.0"
+description = "An intelligent agent that scans, fixes, secures, and guards your app."
+requires-python = ">=3.11"
+license = {text = "Apache-2.0"}
+classifiers = [
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Environment :: Console",
+    "Topic :: Software Development :: Quality Assurance",
+    "Topic :: Security",
+]
+dependencies = [
+    "rich>=13.0",
+    "watchfiles>=0.21",
+    "vulture>=2.10",
+    "apprise>=1.9",
+    "httpx>=0.25",
+    "tree-sitter>=0.21",
+    "tree-sitter-python>=0.21",
+    "tree-sitter-javascript>=0.21",
+    "tree-sitter-typescript>=0.21",
+    "tree-sitter-rust>=0.24",
+    "tree-sitter-svelte>=1.0",
+    "tree-sitter-java>=0.23",
+    "tree-sitter-go>=0.25",
+    "tree-sitter-c>=0.24",
+    "tree-sitter-cpp>=0.23",
+    "tree-sitter-swift>=0.7",
+    "tree-sitter-ruby>=0.23",
+    "tree-sitter-php>=0.24",
+    "tree-sitter-c-sharp>=0.23",
+    "tree-sitter-kotlin>=1.0",
+    "tree-sitter-dart>=0.1",
+    "tree-sitter-bash>=0.25",
+    "tree-sitter-css>=0.25",
+    "tree-sitter-sql>=0.3",
+    "tree-sitter-html>=0.23",
+    "psutil>=5.9",
+    "pyyaml>=6.0",
+    "loguru>=0.7",
+]
+
+[project.scripts]
+patchi = "patchi.cli.main:main"
+p = "patchi.cli.main:main"
+
+[project.optional-dependencies]
+security = [
+    "bandit>=1.7",
+    "semgrep>=1.0",
+    "pyre-check>=0.9.25",
+    "fb-sapp>=0.5",
+]
+web = [
+    "fastapi>=0.110",
+    "uvicorn>=0.27",
+    "jinja2>=3.1",
+]
+msf = [
+    "pymetasploit3>=1.0",
+]
+browser = [
+    "playwright>=1.40",
+]
+ml = [
+    "scikit-learn>=1.3",
+]
+dev = [
+    "pytest>=7.0",
+    "pytest-timeout>=2.2",
+    "ruff>=0.1.0",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+ignore = ["E501"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+markers = [
+    "slow: slow tests (e.g. instantiates all agents); use -m 'not slow' to skip",
+]
+
+[tool.mypy]
+# fix-playbooks/ and domains/ hold YAML data files with a stray __init__.py
+# each -- the hyphenated fix-playbooks name isn't a valid Python package name,
+# which crashes mypy's package discovery before it analyzes any real code
+# (exit code 2, not just findings). Excluding them lets mypy actually run; it
+# was never meant to type-check data directories anyway.
+exclude = [
+    "fix-playbooks/",
+    "^patchi/core/security/domains/",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["patchi*"]
+
+# The security domain taxonomy and fix-playbook YAML data must ship inside the
+# installed package — DomainLoader reads them at scan time (falling back to the
+# packaged copies when the scanned repo isn't Patchi itself). Without this the
+# wheel is missing every domain and fix playbook.
+[tool.setuptools.package-data]
+"patchi.core.security" = [
+    "domains/*.yaml",
+    "fix-playbooks/*.yaml",
+    "security_patterns.yaml",
+    "owasp_mapping.json",
+    "skills/*.json",
+]

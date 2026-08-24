@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="settings-panel">
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Settings</span>
+    </div>
+
+    <div style="display:grid;gap:16px;padding:16px">
+      <div style="font-size:12px;color:var(--text-secondary);margin-bottom:8px">
+        Framework: <strong>{{ framework }}</strong> &middot;
+        Health: <strong>{{ health_score }}/100</strong> &middot;
+        AI Keys: <strong>{{ ai_keys }}</strong>
+      </div>
+
+      {% for key, value in config.items() %}
+      <div class="setting-row" style="display:flex;align-items:center;gap:12px;padding:8px 12px;background:var(--bg-secondary);border-radius:var(--radius-sm)">
+        <label for="cfg-{{ key }}" style="flex:0 0 180px;font-size:13px;color:var(--text-secondary)">{{ key }}</label>
+        <input id="cfg-{{ key }}" type="text" value="{{ value }}"
+          style="flex:1;padding:6px 10px;background:var(--bg-primary);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text-primary);font-size:13px;font-family:var(--font-mono)">
+        <button class="btn" style="font-size:11px;padding:4px 10px"
+          hx-post="/api/config" hx-vals='js:{key: this.dataset.key, value: document.getElementById("cfg-{{ key }}").value}'
+          data-key="{{ key | replace('"', '\\"') }}"
+          hx-swap="none" onclick="toast('Saved {{ key }}','info')">Save</button>
+      </div>
+      {% else %}
+      <div class="empty-state">
+        <div class="empty-state-text">No config keys available</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:12px">
+    <div class="card-header">
+      <span class="card-title">Actions</span>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;padding:12px">
+      <button class="btn" onclick="if(confirm('Clear all memory?')){fetch('/api/memory/clear',{method:'POST'}).then(r=>r.json()).then(d=>toast(d.ok?'Cleared':'Error',d.ok?'info':'error'))}">
+        Clear Memory
+      </button>
+      <button class="btn" onclick="if(confirm('Clear queue?')){fetch('/api/queue/clear',{method:'POST'}).then(r=>r.json()).then(d=>toast(d.ok?'Queue cleared':'Error',d.ok?'info':'error'))}">
+        Clear Queue
+      </button>
+      <button class="btn" onclick="fetch('/api/doctor').then(r=>r.json()).then(d=>{const err=d.errors||0;const warn=d.warnings||0;toast(err+' errors, '+warn+' warnings',err?'error':warn?'warning':'info')})">
+        Run Doctor
+      </button>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:12px">
+    <div class="card-header">
+      <span class="card-title">File Watcher</span>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;padding:12px">
+      <button class="btn" onclick="fetch('/api/watch/start',{method:'POST'}).then(r=>r.json()).then(d=>toast(d.ok?'Watcher started':'Error',d.ok?'info':'error'))">
+        Start Watcher
+      </button>
+      <button class="btn" onclick="fetch('/api/watch/stop',{method:'POST'}).then(r=>r.json()).then(d=>toast(d.ok?'Watcher stopped':'Error',d.ok?'info':'error'))">
+        Stop Watcher
+      </button>
+      <span style="font-size:12px;color:var(--text-secondary);padding:4px 0">Automatically re-scans on file changes</span>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:12px">
+    <div class="card-header">
+      <span class="card-title">Ollama Model</span>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;padding:12px;align-items:center">
+      <input id="model-name" type="text" placeholder="e.g. llama3.2:3b"
+        style="flex:1;padding:6px 10px;background:var(--bg-primary);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text-primary);font-size:13px;font-family:var(--font-mono)">
+      <button class="btn" onclick="const m=document.getElementById('model-name').value;if(!m){toast('Enter a model name','error');return}fetch('/api/model/set',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:m})}).then(r=>r.json()).then(d=>toast(d.ok?'Model set: '+m:'Error',d.ok?'info':'error'))">
+        Set Model
+      </button>
+      <button class="btn" onclick="fetch('/api/model/status').then(r=>r.json()).then(d=>{if(d.ollama_running){toast('Ollama: '+d.ollama_models.join(', '),'info')}else{toast('Ollama not running','error')}})">
+        Check Status
+      </button>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:12px">
+    <div class="card-header">
+      <span class="card-title">Notifications</span>
+    </div>
+    <div style="padding:12px">
+      <div id="notifications-list"
+        hx-get="/api/notifications"
+        hx-trigger="load"
+        hx-swap="innerHTML">
+      </div>
+      <div style="display:flex;gap:8px;margin-top:8px;align-items:center;flex-wrap:wrap">
+        <select id="notif-type" style="padding:6px 10px;background:var(--bg-primary);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text-primary);font-size:13px">
+          <option value="slack">Slack</option>
+          <option value="email">Email</option>
+          <option value="discord">Discord</option>
+          <option value="telegram">Telegram</option>
+          <option value="webhook">Webhook</option>
+        </select>
+        <input id="notif-url" type="text" placeholder="Apprise URL or webhook URL"
+          style="flex:1;padding:6px 10px;background:var(--bg-primary);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text-primary);font-size:13px;font-family:var(--font-mono)">
+        <input id="notif-name" type="text" placeholder="Label"
+          style="width:120px;padding:6px 10px;background:var(--bg-primary);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text-primary);font-size:13px;font-family:var(--font-mono)">
+        <button class="btn" onclick="addNotification()">Add</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+function addNotification() {
+  const type = document.getElementById('notif-type').value;
+  const url = document.getElementById('notif-url').value;
+  const name = document.getElementById('notif-name').value || type;
+  if (!url) { toast('Enter a URL', 'error'); return; }
+  const apps = { slack: 'slack://', email: 'mailto://', discord: 'discord://', telegram: 'tgram://', webhook: 'json://' };
+  const apprise_url = url.startsWith('http') ? url : (apps[type] || '') + url;
+  fetch('/api/notifications/add', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, type, apprise_url, min_severity: 'medium', in_digest: false })
+  }).then(r => r.json()).then(d => {
+    if (d.ok) { toast('Notification added: ' + name, 'info'); document.getElementById('notif-url').value = ''; }
+    else { toast('Error: ' + (d.error || 'unknown'), 'error'); }
+  });
+}
+</script>
+{% endblock %}

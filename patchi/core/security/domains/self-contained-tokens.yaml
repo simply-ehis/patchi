@@ -1,0 +1,92 @@
+domain_id: "self-contained-tokens"
+version: "1.0.0"
+display_name: "Self-Contained Token Security (JWT/SAML)"
+source_standard: "OWASP Application Security Verification Standard (ASVS) 5.0.0, Chapter V9: Self-contained Tokens (fetched and verified directly from the official ASVS 5.0.0 markdown source, github.com/OWASP/ASVS, July 2026). Cross-referenced against the OWASP JSON Web Token Cheat Sheet, cited directly in the ASVS chapter's own references section."
+component_type: "backend-api"
+cross_cutting: true
+weight: 0.9
+
+# NOTE ON SCOPE: this domain covers the GENERIC integrity/validity mechanics of any
+# self-contained token (JWT, SAML assertion) — signature validation, algorithm
+# allowlisting, audience/purpose checks. It applies whether or not OAuth/OIDC is in use;
+# a plain session-token-as-JWT implementation with no OAuth involved still needs every
+# control here. Where an app also uses OAuth/OIDC, the oauth-oidc domain's controls
+# (V10) layer ON TOP of this domain's controls, not instead of them — ASVS's own V9.2
+# section text explicitly defers OAuth/OIDC-specific token requirements to the
+# dedicated V10 chapter, so use both domains together for an OAuth-token-issuing app,
+# not this domain alone.
+
+activation_signals:
+  required_any:
+    - signal: "has_jwt_library_usage"           # jsonwebtoken, jose, PyJWT, etc.
+    - signal: "has_saml_assertion_handling"      # SAML SP/IdP library usage
+    - signal: "issues_or_validates_signed_tokens"  # any self-contained, signed/MAC'd token scheme
+  excluded_if:
+    - signal: "only_opaque_session_identifiers"  # app uses only server-side-looked-up session IDs, no self-contained tokens anywhere
+
+controls:
+  - control_id: "TOKEN-01"
+    name: "Validate token signature/MAC before trusting contents"
+    description: "Self-contained tokens must be validated using their digital signature or MAC to protect against tampering before the token's contents are accepted or used for any decision."
+    source_clause: "ASVS 5.0.0, V9.1.1"
+    severity: "critical"
+    check_method: "static"
+    detector: "Semgrep/CodeQL rule flagging JWT/token decode calls (e.g. jwt.decode with verify=False, or a decode-only call with no accompanying verify call) where the decoded payload is used before signature verification"
+    remediation_ref: "fix-playbook://TOKEN-01"
+
+  - control_id: "TOKEN-02"
+    name: "Enforce an algorithm allowlist; reject 'none' and prevent algorithm confusion"
+    description: "Only algorithms on an explicit allowlist may be used to create and verify self-contained tokens for a given context; the allowlist must not include the 'None' algorithm, and if both symmetric and asymmetric algorithms are supported, additional controls are needed to prevent key-confusion attacks (an attacker resigning a token with a public key treated as an HMAC secret)."
+    source_clause: "ASVS 5.0.0, V9.1.2"
+    severity: "critical"
+    check_method: "static"
+    detector: "Semgrep/CodeQL rule flagging JWT verification calls that accept the algorithm from the token header itself (algorithm confusion vulnerability) rather than passing an explicit, hardcoded algorithms allowlist to the verify function; also flags any configuration permitting 'none'/'None' as an accepted algorithm"
+    remediation_ref: "fix-playbook://TOKEN-02"
+
+  - control_id: "TOKEN-03"
+    name: "Validate signing-key source headers against a trusted allowlist"
+    description: "Key material used to validate self-contained tokens must come from trusted, pre-configured sources for the token issuer; for JWTs and other JWS structures, headers such as 'jku', 'x5u', and 'jwk' must be validated against an allowlist of trusted sources, preventing an attacker from specifying their own untrusted key source."
+    source_clause: "ASVS 5.0.0, V9.1.3"
+    severity: "critical"
+    check_method: "static"
+    detector: "Semgrep/CodeQL rule flagging JWT verification logic that fetches/trusts a key from a 'jku'/'x5u'/'jwk' header value in the token itself without validating that URL/key against a pre-configured allowlist"
+    remediation_ref: "fix-playbook://TOKEN-03"
+
+  - control_id: "TOKEN-04"
+    name: "Enforce token validity time window"
+    description: "If a validity time span is present in the token data, the token and its content must be accepted only if the verification time falls within that span — for JWTs, the 'nbf' (not before) and 'exp' (expiry) claims must be verified."
+    source_clause: "ASVS 5.0.0, V9.2.1"
+    severity: "critical"
+    check_method: "static"
+    detector: "Semgrep/CodeQL rule confirming JWT verification calls enforce 'exp' and 'nbf' claim checks rather than disabling expiry validation (a common misconfiguration, e.g. jwt.verify with ignoreExpiration:true left enabled from debugging)"
+    remediation_ref: "fix-playbook://TOKEN-04"
+
+  - control_id: "TOKEN-05"
+    name: "Validate token type matches its intended purpose"
+    description: "The service receiving a token must validate the token is of the correct type and intended for the specific purpose before accepting its contents — for example, only an access token may be accepted for authorization decisions, and only an ID Token may be used for proving user authentication; the two must never be interchangeable."
+    source_clause: "ASVS 5.0.0, V9.2.2"
+    severity: "high"
+    check_method: "static"
+    detector: "Semgrep/CodeQL rule flagging authorization-decision logic that accepts any validly-signed token without checking a token-type claim (e.g. 'typ' header, or a custom token-type claim) confirming it's the expected kind for this use"
+    remediation_ref: "fix-playbook://TOKEN-05"
+
+  - control_id: "TOKEN-06"
+    name: "Validate token audience before accepting"
+    description: "The service must only accept tokens intended for use with that specific service (audience) — for JWTs, this is achieved by validating the 'aud' claim against an allowlist defined in the service."
+    source_clause: "ASVS 5.0.0, V9.2.3"
+    severity: "critical"
+    check_method: "static"
+    detector: "Semgrep/CodeQL rule confirming token validation logic checks the 'aud' claim against this service's expected audience identifier, not just signature and expiry"
+    remediation_ref: "fix-playbook://TOKEN-06"
+
+  - control_id: "TOKEN-07"
+    name: "Uniquely restrict audience when a shared signing key issues tokens to multiple audiences"
+    description: "If a token issuer uses the same private key for issuing tokens to different audiences, the issued tokens must contain an audience restriction that uniquely identifies the intended audiences, preventing a token from being reused with an unintended audience; if the audience identifier is dynamically provisioned, the issuer must validate audiences to prevent audience impersonation."
+    source_clause: "ASVS 5.0.0, V9.2.4"
+    severity: "high"
+    check_method: "manual-review"
+    detector: "manual-review only — this concerns the token issuer's key/audience-management architecture rather than a single verifiable code pattern, though a static check can flag a shared signing key configuration serving multiple distinct audiences as a candidate for review"
+    remediation_ref: "fix-playbook://TOKEN-07"
+
+deprecated_by: null
+last_reviewed: "2026-07-09"

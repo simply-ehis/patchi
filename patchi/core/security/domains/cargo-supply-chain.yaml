@@ -1,0 +1,78 @@
+domain_id: "cargo-supply-chain"
+version: "1.0.0"
+display_name: "Cargo Supply Chain Security"
+source_standard: "RustSEC Advisory Database + OpenSSF Scorecard + SLSA v1.0"
+component_type: "library"
+cross_cutting: true
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "infra_files:Cargo.toml,Cargo.lock"
+    - signal: "files_matching:Cargo.toml with [dependencies] section containing >=1 entry"
+  excluded_if:
+    - signal: "cargo_workspace_with_only_dev_dependencies"
+
+controls:
+  - control_id: "CSC-001"
+    name: "Known vulnerable crates (CVE / RustSEC advisory)"
+    description: "Scan Cargo.lock against the RustSEC advisory database and the OSV.dev API to detect crates with known security advisories. The check should parse Cargo.lock, extract each crate name + version, query OSV.dev batch API (POST /v1/querybatch), and surface any matching advisories with severity (low/medium/high/critical), affected version range, and patched version. Pay special attention to unmaintained crates flagged by RustSEC (RUSTSEC-YYYY-NNNN with 'unmaintained' tag) since they often lack fixes for known issues. Run the scan on every CI build and on a weekly schedule."
+    source_clause: "RustSEC Advisory Database"
+    severity: "high"
+    check_method: "dynamic"
+    detector: "cargo-audit + osv-scanner --lockfile Cargo.lock"
+    remediation_ref: "fix-playbook://CSC-001"
+
+  - control_id: "CSC-002"
+    name: "Typo-squatting detection on crate names"
+    description: "Detect crate names in Cargo.toml that are suspiciously close (Levenshtein distance <= 2) to popular crates but are not the popular crate itself. Common typosquats include 'randd' for 'rand', 'serde-json' for 'serde_json' (hyphen vs underscore), 'reqwests' for 'reqwest', 'toklio' for 'tokio'. The check should compare each dependency name against the top 1000 most-downloaded crates (sourced from crates.io API), compute Levenshtein distance, and flag any match with distance 1 or 2 that is not the canonical name. Also flag crates with download counts below 1000 on crates.io and crates less than 30 days old."
+    source_clause: "OpenSSF Scorecard - Typo-squatting"
+    severity: "critical"
+    check_method: "dynamic"
+    detector: "custom script: crates.io API + Levenshtein distance <= 2 against top-1000 list"
+    remediation_ref: "fix-playbook://CSC-002"
+
+  - control_id: "CSC-003"
+    name: "Suspicious dependency declarations (git, path, *)"
+    description: "Detect Cargo.toml dependencies declared with git URLs, branch tags instead of pinned rev, local path dependencies in a published crate, and version requirements using '*' (any version) which prevents deterministic builds and allows an attacker who publishes a new version to inject code. Flag any dependency of the form { git = \"...\" } without rev = \"<sha>\", any { path = \"...\" } in a library crate's [dependencies] section (path deps are fine for workspace members but suspicious otherwise), any version = \"*\" or version = \"0.*\", and any [patch] section pointing at git URLs."
+    source_clause: "OpenSSF Scorecard - Pinned Dependencies"
+    severity: "medium"
+    check_method: "static"
+    detector: "custom Cargo.toml parser + semgrep:rust.cargo-git-without-rev + semgrep:rust.cargo-path-dep-in-published-crate"
+    remediation_ref: "fix-playbook://CSC-003"
+
+  - control_id: "CSC-004"
+    name: "Unmaintained crates (stale release + no security policy)"
+    description: "Detect dependencies whose latest release is older than 24 months, whose crates.io repository URL returns 404, whose GitHub repo has no commit in 12 months, or whose repo has no SECURITY.md. Unmaintained crates are a risk because vulnerabilities will not be patched. The check should query crates.io API for each dependency to get the latest publish date and repo URL, then optionally HEAD the repo and SECURITY.md. Flag any crate with latest release older than 24 months as 'medium' and older than 48 months as 'high'. Exempt crates that are explicitly marked as 'complete' or 'maintenance-only' by the maintainer in the README."
+    source_clause: "OpenSSF Scorecard - Maintained + SLSA Source Integrity"
+    severity: "medium"
+    check_method: "dynamic"
+    detector: "custom script: crates.io API for release date + github API for commit activity"
+    remediation_ref: "fix-playbook://CSC-004"
+
+  - control_id: "CSC-005"
+    name: "Build script (build.rs) with network or filesystem side effects"
+    description: "Detect build.rs files in workspace dependencies that perform network requests (reqwest, ureq, curl), shell out to commands (std::process::Command), or write to paths outside of OUT_DIR. Build scripts run during cargo build with the user's full permissions and can execute arbitrary code from any transitive dependency, even ones that are not directly used. Flag any build.rs containing ::Command::new, ::process::Command, reqwest::, ureq::, curl::easy::, std::net::TcpStream::connect, and any std::fs::write to absolute paths outside of env::var(\"OUT_DIR\")."
+    source_clause: "CWE-494 + Cargo Build Script Security"
+    severity: "high"
+    check_method: "static"
+    detector: "semgrep:rust.build-rs-network-access + semgrep:rust.build-rs-process-spawn + semgrep:rust.build-rs-write-outside-out-dir"
+    remediation_ref: "fix-playbook://CSC-005"
+
+  - control_id: "CSC-006"
+    name: "Workspace dependency audit on lockfile drift"
+    description: "Detect Cargo.lock that is out of sync with Cargo.toml (cargo update has been run without committing Cargo.lock to git, or .gitignore contains Cargo.lock for a binary crate). For binary crates Cargo.lock MUST be committed; for library crates it is conventional to NOT commit it but the project should run cargo-deny in CI to enforce advisories. Flag any binary crate (has [[bin]] section or src/main.rs) without Cargo.lock in git, any project running cargo update in CI without cargo audit afterward, and any Cargo.lock with duplicate versions of the same crate (indicates diamond dependency conflicts)."
+    source_clause: "Cargo.lock Best Practices + cargo-deny"
+    severity: "medium"
+    check_method: "static"
+    detector: "custom git check for Cargo.lock presence + cargo tree --duplicates"
+    remediation_ref: "fix-playbook://CSC-006"
+
+  - control_id: "CSC-007"
+    name: "Proc-macro crate executes arbitrary code at compile time"
+    description: "Detect dependencies declared as proc-macro crates (proc-macro = true in Cargo.toml of a dependency) that are not from the well-known proc-macro ecosystem (syn, quote, proc-macro2, serde_derive, async-trait, thiserror, anyhow, derive_more, derivative, strum, clap_derive). Proc-macros execute arbitrary Rust code at compile time with the developer's full permissions, similar to build.rs. Flag any proc-macro dependency not on the allow-list above, any proc-macro dependency with fewer than 100k downloads, and any proc-macro dependency with a build.rs (which combines both risks)."
+    source_clause: "CWE-494 + Proc-macro Security Considerations"
+    severity: "high"
+    check_method: "dynamic"
+    detector: "custom script: parse dependency Cargo.toml for proc-macro=true + crates.io API for download count"
+    remediation_ref: "fix-playbook://CSC-007"

@@ -1,0 +1,512 @@
+playbooks:
+- blast_radius_notes: Touches the storage-access layer for this data; requires a migration
+    step for existing installs, not an atomic change.
+  control_id: MOBILE-01
+  deterministic_tool: null
+  fix_strategy: llm-template-fill
+  human_review_required: true
+  llm_fix_template: "\"Given sensitive data written to {storage_location} (SharedPreferences,\n\
+    \ SQLite, UserDefaults) via {write_call} without encryption: replace with\n the\
+    \ platform's encrypted storage mechanism (EncryptedSharedPreferences /\n SQLCipher\
+    \ on Android, Keychain on iOS); preserve the read/write interface\n used by callers,\
+    \ adding a one-time migration for already-stored plaintext\n data.\"\n"
+  playbook_version: 1.0.0
+  verification_checks:
+  - Re-run the Semgrep/MobSF rule and confirm zero findings.
+  - Inspect the app's data directory on a test device/emulator and confirm the value
+    is no longer readable in plaintext.
+- blast_radius_notes: Localized to the specific log statement; near-zero functional
+    risk.
+  control_id: MOBILE-02
+  deterministic_tool: null
+  fix_strategy: llm-template-fill
+  human_review_required: false
+  llm_fix_template: "\"Given a logging call {log_call} that includes a sensitive-looking\n\
+    \ argument: remove the sensitive argument from the log statement, or\n replace\
+    \ it with a redacted placeholder; preserve the rest of the log\n message for debugging\
+    \ value.\"\n"
+  playbook_version: 1.0.0
+  verification_checks:
+  - Re-run the Semgrep rule and confirm zero findings.
+  - Trigger the code path in a test build and confirm no sensitive value appears in
+    logcat/console output.
+- blast_radius_notes: Localized to the specific screen/Activity.
+  control_id: MOBILE-03
+  deterministic_tool: null
+  fix_strategy: llm-template-fill
+  human_review_required: false
+  llm_fix_template: "\"Given a sensitive screen/Activity {screen} with no FLAG_SECURE\
+    \ (Android)\n or equivalent screenshot-blur handling (iOS): add the platform-specific\n\
+    \ flag/handling to prevent that screen's content from appearing in\n screenshots,\
+    \ screen recordings, or the app-switcher preview; preserve\n normal rendering\
+    \ of the screen during active use.\"\n"
+  playbook_version: 1.0.0
+  verification_checks:
+  - Attempt a screenshot/screen-recording of the sensitive screen on a test device
+    and confirm content is blocked or blank.
+- blast_radius_notes: Localized to backup configuration; users restoring from an old
+    backup will not have the previously-included sensitive data restored, which is
+    the intended outcome.
+  control_id: MOBILE-04
+  deterministic_tool: null
+  fix_strategy: llm-template-fill
+  human_review_required: true
+  llm_fix_template: "\"Given backup configuration {backup_config} that does not exclude\n\
+    \ sensitive data or enable backup encryption: add explicit exclusion\n rules (Android\
+    \ backup_rules.xml <exclude> entries, iOS\n NSFileProtectionComplete/isExcludedFromBackup)\
+    \ for files/directories\n containing sensitive data; preserve normal backup behavior\
+    \ for\n non-sensitive app data.\"\n"
+  playbook_version: 1.0.0
+  verification_checks:
+  - Perform a device backup in a test environment and confirm the excluded sensitive
+    files/directories are absent from the backup archive.
+- blast_radius_notes: If changing the algorithm for already-stored encrypted data,
+    requires a re-encryption migration, not just a code swap.
+  control_id: MOBILE-05
+  deterministic_tool: null
+  fix_strategy: llm-template-fill
+  human_review_required: true
+  llm_fix_template: "\"Given a cryptographic operation using {weak_algorithm_or_mode}\
+    \ (DES,\n RC4, ECB mode, MD5/SHA-1 for security purposes): replace with a current\n\
+    \ strong equivalent (AES-GCM for authenticated encryption, SHA-256/SHA-3\n for\
+    \ hashing where cryptographic hashing is needed); preserve the\n function's interface,\
+    \ adding a migration path for already-encrypted\n stored data if applicable.\"\
+    \n"
+  playbook_version: 1.0.0
+  verification_checks:
+  - Re-run the Semgrep rule and confirm zero findings.
+  - Confirm encryption/decryption round-trips correctly with the new algorithm in
+    a test.
+- blast_radius_notes: The previously-hardcoded key must be treated as compromised
+    and rotated; touches the key-management layer broadly.
+  control_id: MOBILE-06
+  deterministic_tool: null
+  fix_strategy: llm-template-fill
+  human_review_required: true
+  llm_fix_template: "\"Given a hardcoded cryptographic key {hardcoded_key} in source/resource\n\
+    \ files: remove the literal key; generate/derive the key at runtime using\n the\
+    \ platform Keystore/Keychain (or, if the key must come from a server,\n fetch\
+    \ it over an authenticated channel and store it in Keystore/Keychain\n immediately);\
+    \ preserve the encryption/decryption logic using the new\n key-retrieval path.\"\
+    \n"
+  playbook_version: 1.0.0
+  verification_checks:
+  - Re-run the Gitleaks/Semgrep scan and confirm zero findings.
+  - Confirm the app still encrypts/decrypts correctly using the new key-management
+    approach.
+- blast_radius_notes: Architectural review of the full key-management lifecycle, not
+    a single code change.
+  control_id: MOBILE-07
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - A human confirms key generation/storage/protection follows Android Keystore or
+    iOS Keychain/Secure Enclave best practice throughout the key's lifecycle.
+- blast_radius_notes: Localized to the generation call site.
+  control_id: MOBILE-08
+  deterministic_tool: null
+  fix_strategy: llm-template-fill
+  human_review_required: true
+  llm_fix_template: "\"Given a security-sensitive random value generated via {weak_rng}\n\
+    \ (Math.random(), java.util.Random, arc4random() for cryptographic use):\n replace\
+    \ with a CSPRNG (java.security.SecureRandom on Android,\n SecRandomCopyBytes on\
+    \ iOS); preserve the resulting value's format/length.\"\n"
+  playbook_version: 1.0.0
+  verification_checks:
+  - Re-run the Semgrep rule and confirm zero findings.
+- blast_radius_notes: Architectural review of the auth flow; may surface a need to
+    migrate to PKCE or remove an embedded client secret.
+  control_id: MOBILE-09
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - A human reviewer confirms the authentication/authorization flow matches its underlying
+    protocol specification (OAuth2/OIDC) and best practice (PKCE for mobile, no client
+    secrets embedded in the app).
+- blast_radius_notes: Architectural change requiring a server-side proxy endpoint;
+    larger than a simple code edit.
+  control_id: MOBILE-10
+  deterministic_tool: null
+  fix_strategy: llm-template-fill
+  human_review_required: true
+  llm_fix_template: "\"Given an API key/secret {hardcoded_secret} embedded in the\
+    \ app package:\n remove it from the client; move the operation that required it\
+    \ to a\n server-side proxy the app calls with its own (scoped, revocable) session\n\
+    \ credentials instead; preserve the client-facing feature behavior.\"\n"
+  playbook_version: 1.0.0
+  verification_checks:
+  - Re-run the Gitleaks/MobSF scan and confirm zero findings.
+  - Rotate the previously-embedded key, since it must be treated as compromised.
+- blast_radius_notes: Touches the local-authentication flow; test across all supported
+    biometric/PIN configurations.
+  control_id: MOBILE-11
+  deterministic_tool: null
+  fix_strategy: llm-template-fill
+  human_review_required: true
+  llm_fix_template: "\"Given local authentication code {auth_code} allowing a weak\
+    \ or\n unauthenticated fallback: tighten the fallback policy per platform\n guidance\
+    \ (e.g. require device credential, not just biometric-optional\n success) and\
+    \ ensure the authentication result is cryptographically\n bound to the protected\
+    \ operation (see MOBILE-12 pattern); preserve the\n legitimate authentication\
+    \ success path.\"\n"
+  playbook_version: 1.0.0
+  verification_checks:
+  - Attempt the identified bypass/weak-fallback path in a test build and confirm it
+    no longer succeeds.
+- blast_radius_notes: Meaningful security-architecture change to the biometric-gated
+    operation; test thoroughly on real devices, not just emulators.
+  control_id: MOBILE-12
+  deterministic_tool: null
+  fix_strategy: llm-template-fill
+  human_review_required: true
+  llm_fix_template: "\"Given a BiometricPrompt.AuthenticationCallback.onAuthenticationSucceeded\n\
+    \ (or LAContext.evaluatePolicy completion) that sets an app-level boolean\n flag\
+    \ rather than using a CryptoObject/key operation: refactor to require\n a Keystore-protected\
+    \ key (via CryptoObject) or Keychain-protected\n operation that only succeeds\
+    \ when gated by the actual biometric, so\n success cannot be forged by hooking/instrumenting\
+    \ the callback; preserve\n the feature this authentication protects.\"\n"
+  playbook_version: 1.0.0
+  verification_checks:
+  - Attempt to hook/force the callback in a test environment (e.g. via Frida) and
+    confirm the protected operation still fails without genuine biometric success.
+- blast_radius_notes: Feature addition to the identified sensitive-operation flows.
+  control_id: MOBILE-13
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - A human confirms sensitive operations require step-up authentication beyond the
+    app's normal session.
+- blast_radius_notes: Global networking-config change; verify no legitimate endpoint
+    actually requires an exception before removing it wholesale.
+  control_id: MOBILE-14
+  deterministic_tool: Android Network Security Config (usesCleartextTraffic=false,
+    remove custom trust-all TrustManager) or iOS ATS configuration (remove NSAllowsArbitraryLoads)
+  fix_strategy: deterministic-autofix
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - Re-run the Semgrep rule and confirm zero findings.
+  - Confirm the app still connects successfully to its legitimate HTTPS endpoints.
+- blast_radius_notes: Localized to the specific network call; confirm the server actually
+    supports HTTPS on that endpoint before switching.
+  control_id: MOBILE-15
+  deterministic_tool: null
+  fix_strategy: llm-template-fill
+  human_review_required: false
+  llm_fix_template: "\"Given a network call to {http_url} using plain HTTP: change\
+    \ the URL\n scheme/base URL to HTTPS and confirm the corresponding server endpoint\n\
+    \ supports it; preserve the request/response handling logic.\"\n"
+  playbook_version: 1.0.0
+  verification_checks:
+  - Re-run OWASP ZAP / MobSF dynamic traffic capture during app use and confirm no
+    cleartext HTTP requests remain.
+- blast_radius_notes: May break connectivity if the app was relying on the trust-all
+    override to reach a misconfigured internal endpoint — fix the endpoint's certificate
+    instead of re-adding the override.
+  control_id: MOBILE-16
+  deterministic_tool: null
+  fix_strategy: llm-template-fill
+  human_review_required: true
+  llm_fix_template: "\"Given a TrustManager.checkServerTrusted() or URLSession/NSURLConnection\n\
+    \ delegate that accepts any certificate: remove the trust-all override and\n use\
+    \ the platform's default certificate validation (or a properly\n implemented pinning\
+    \ check per MOBILE-17); preserve connectivity to\n legitimately-trusted endpoints.\"\
+    \n"
+  playbook_version: 1.0.0
+  verification_checks:
+  - Re-run the Semgrep rule and confirm zero findings.
+  - Attempt a connection with an invalid/self-signed certificate in a test environment
+    and confirm it is now rejected.
+- blast_radius_notes: Pinning without a rotation plan can break the app entirely when
+    the server's certificate is renewed — this is the most common way pinning fixes
+    cause outages, so the rotation/backup-pin plan is not optional.
+  control_id: MOBILE-17
+  deterministic_tool: null
+  fix_strategy: llm-template-fill
+  human_review_required: true
+  llm_fix_template: "\"Given a networking client connecting to first-party API host\n\
+    \ {api_host} with no pinning configured: add certificate/public-key\n pinning\
+    \ (Android Network Security Config <pin-set>, or an iOS pinning\n library/manual\
+    \ SPKI comparison) for {api_host}; include a documented\n key-rotation/backup-pin\
+    \ plan to avoid bricking connectivity on\n certificate renewal.\"\n"
+  playbook_version: 1.0.0
+  verification_checks:
+  - Confirm the app connects successfully to the pinned endpoint.
+  - Attempt a MITM interception in a test environment with a different certificate
+    and confirm the connection is rejected.
+- blast_radius_notes: Restricting an exported component can break legitimate inter-app
+    integrations (e.g. share intents, widget providers) — confirm no legitimate external
+    caller depends on unrestricted access first.
+  control_id: MOBILE-18
+  deterministic_tool: null
+  fix_strategy: llm-template-fill
+  human_review_required: true
+  llm_fix_template: "\"Given an exported component {component} (Activity/Service/Receiver/\n\
+    \ ContentProvider) in AndroidManifest.xml with android:exported=\\\"true\\\"\n\
+    \ and no permission check: either set android:exported=\\\"false\\\" if the\n\
+    \ component is not genuinely needed by other apps, or add an appropriate\n android:permission\
+    \ / signature-level protection if external access is\n required; preserve the\
+    \ component's functionality for its legitimate\n callers.\"\n"
+  playbook_version: 1.0.0
+  verification_checks:
+  - Re-run the Semgrep/MobSF rule and confirm zero findings.
+  - Attempt to invoke the component from an unprivileged test app and confirm access
+    is now denied (or requires the expected permission).
+- blast_radius_notes: Localized to the deep-link handler; low risk unless validation
+    is overly strict and breaks legitimate link formats.
+  control_id: MOBILE-19
+  deterministic_tool: null
+  fix_strategy: llm-template-fill
+  human_review_required: true
+  llm_fix_template: "\"Given a deep-link/intent handler {handler} that acts on extracted\n\
+    \ parameters without validation: add validation of the deep link's source\n (where\
+    \ determinable) and parameters against expected schema/allowlist\n before performing\
+    \ any sensitive action; reject or ignore malformed/\n unexpected deep links; preserve\
+    \ behavior for legitimate, well-formed\n deep links.\"\n"
+  playbook_version: 1.0.0
+  verification_checks:
+  - Attempt a crafted malicious deep link in a test environment and confirm the sensitive
+    action is not triggered.
+  - Confirm legitimate deep links still work as expected.
+- blast_radius_notes: Restricting WebView origins can break legitimate embedded content
+    if the allowlist is incomplete — test all real content sources before deploying.
+  control_id: MOBILE-20
+  deterministic_tool: null
+  fix_strategy: llm-template-fill
+  human_review_required: true
+  llm_fix_template: "\"Given a WebView {webview} with setJavaScriptEnabled(true) loading\
+    \ a\n user/externally-supplied URL, or an unrestricted\n addJavascriptInterface()\
+    \ call: restrict content loading to an allowlist\n of trusted origins, disable\
+    \ JavaScript if not genuinely needed, and\n narrow any exposed JavaScript interface\
+    \ to the minimum necessary methods\n (see MOBILE-21); preserve the WebView's legitimate\
+    \ functionality.\"\n"
+  playbook_version: 1.0.0
+  verification_checks:
+  - Attempt to load a non-allowlisted URL in the WebView in a test environment and
+    confirm it is blocked.
+- blast_radius_notes: Localized to the JavaScript-bridge class; may require corresponding
+    changes in the web content calling it.
+  control_id: MOBILE-21
+  deterministic_tool: null
+  fix_strategy: llm-template-fill
+  human_review_required: true
+  llm_fix_template: "\"Given a @JavascriptInterface-annotated class {js_interface}\
+    \ exposing\n broad or sensitive methods to WebView JavaScript: narrow the exposed\n\
+    \ interface to only the specific, minimal methods actually needed by the\n trusted\
+    \ web content, removing or gating any method that reads/writes\n sensitive data\
+    \ or performs privileged operations; preserve the\n legitimate use case.\"\n"
+  playbook_version: 1.0.0
+  verification_checks:
+  - Re-run the Semgrep rule and confirm zero findings.
+  - Confirm the legitimate WebView-based feature still functions with the narrowed
+    interface.
+- blast_radius_notes: Same fix pattern as MOBILE-03; localized to the specific screen.
+  control_id: MOBILE-22
+  deterministic_tool: add FLAG_SECURE (Android) or equivalent screenshot/preview-blur
+    handling (iOS) to the sensitive screen
+  fix_strategy: deterministic-autofix
+  human_review_required: false
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - Attempt a screenshot/app-switcher preview of the sensitive screen and confirm
+    content is blocked.
+- blast_radius_notes: Raising the minimum supported OS version drops support for older
+    devices — a product decision with real user-impact, not purely technical.
+  control_id: MOBILE-23
+  deterministic_tool: raise Android minSdkVersion / iOS deployment target in the build
+    configuration
+  fix_strategy: deterministic-autofix
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - Confirm the app still builds and runs correctly on the new minimum supported OS
+    version.
+- blast_radius_notes: Feature build (remote-config-driven update gate), not a small
+    patch.
+  control_id: MOBILE-24
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: false
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - A human confirms a force-update mechanism exists and is tested end-to-end (e.g.
+    via a remote config flag checked at app launch).
+- blast_radius_notes: Dependency version bumps can introduce breaking API changes
+    — run the full app test suite after upgrading.
+  control_id: MOBILE-25
+  deterministic_tool: OSV-Scanner run against the app's dependency manifest, integrated
+    into CI
+  fix_strategy: deterministic-autofix
+  human_review_required: false
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - Re-run OSV-Scanner and confirm no known-vulnerable dependency versions remain.
+- blast_radius_notes: Broad review that will typically surface specific fixes better
+    handled via MOBILE-27/MOBILE-28's targeted playbooks.
+  control_id: MOBILE-26
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - A human reviewer confirms input-validation coverage across all identified entry
+    points (UI, IPC, network, file system).
+- blast_radius_notes: Localized to the specific query-construction call site.
+  control_id: MOBILE-27
+  deterministic_tool: null
+  fix_strategy: llm-template-fill
+  human_review_required: false
+  llm_fix_template: "\"Given a local database query built via string concatenation\
+    \ of\n {untrusted_input} (including Content Provider URI segments): replace\n\
+    \ with a parameterized query using rawQuery()/query() bind arguments (or\n the\
+    \ platform equivalent), passing {untrusted_input} as a bound\n parameter rather\
+    \ than concatenated SQL text; preserve the query's\n intended logic for well-formed\
+    \ input.\"\n"
+  playbook_version: 1.0.0
+  verification_checks:
+  - Re-run the Semgrep rule and confirm zero findings.
+  - Attempt a SQL-injection-style payload as input in a test environment and confirm
+    it is treated as literal data.
+- blast_radius_notes: Changing the serialization format/mechanism can be a breaking
+    change for any stored or transmitted data using the old format — plan a migration
+    if needed.
+  control_id: MOBILE-28
+  deterministic_tool: null
+  fix_strategy: llm-template-fill
+  human_review_required: true
+  llm_fix_template: "\"Given deserialization of untrusted data via {unsafe_deserializer}\n\
+    \ (ObjectInputStream.readObject / NSKeyedUnarchiver.unarchiveObject\n without\
+    \ a secure-coding allowlist): replace with a safe alternative — a\n schema-validated\
+    \ format (JSON with explicit field mapping) or a\n deserializer configured with\
+    \ an explicit class/type allowlist; preserve\n the data model this deserialization\
+    \ currently produces.\"\n"
+  playbook_version: 1.0.0
+  verification_checks:
+  - Re-run the Semgrep rule and confirm zero findings.
+  - Attempt to deserialize a crafted malicious payload in a test environment and confirm
+    it is rejected.
+- blast_radius_notes: Per OWASP's own MASVS-RESILIENCE framing, absence of this control
+    is not itself a vulnerability — treat as a risk-based product decision, not a
+    mandatory patch.
+  control_id: MOBILE-29
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: false
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - A human confirms whether platform-integrity validation is warranted for this app's
+    threat model, and if so, that it is implemented.
+- blast_radius_notes: Feature addition using established libraries (e.g. Play Integrity
+    API, DeviceCheck); not itself remediating a vulnerability per OWASP's framing.
+  control_id: MOBILE-30
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: false
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - A human confirms root/jailbreak detection is implemented and current, if warranted
+    by the app's threat model.
+- blast_radius_notes: Defense-in-depth feature addition; per OWASP's framing, not
+    itself remediating a vulnerability.
+  control_id: MOBILE-31
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: false
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - A human confirms anti-tampering mechanisms (signature/integrity checks) are implemented,
+    if warranted by the app's threat model.
+- blast_radius_notes: Build-configuration change (e.g. enabling ProGuard/R8 obfuscation);
+    can complicate crash-report symbolication, so ensure a de-obfuscation mapping
+    is retained.
+  control_id: MOBILE-32
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: false
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - A human confirms code/resource obfuscation is applied in the release build configuration,
+    if warranted.
+- blast_radius_notes: Defense-in-depth feature; per OWASP's framing, not itself remediating
+    a vulnerability.
+  control_id: MOBILE-33
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: false
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - A human confirms anti-debugging/anti-instrumentation checks are implemented, if
+    warranted.
+- blast_radius_notes: Removing a permission the app actually silently relies on (e.g.
+    via a third-party SDK) will break that functionality — grep the whole codebase
+    and dependencies before removing.
+  control_id: MOBILE-34
+  deterministic_tool: null
+  fix_strategy: llm-template-fill
+  human_review_required: true
+  llm_fix_template: "\"Given a declared permission {permission} (AndroidManifest.xml)\
+    \ or\n usage-description key (iOS Info.plist) with no corresponding feature\n\
+    \ usage found in the codebase: remove the unused permission declaration;\n preserve\
+    \ permissions genuinely backing an active feature.\"\n"
+  playbook_version: 1.0.0
+  verification_checks:
+  - Re-run the Semgrep/MobSF rule and confirm the permission list matches actual feature
+    usage.
+  - Confirm the app still functions correctly with the reduced permission set.
+- blast_radius_notes: Touches the analytics/tracking integration; may require updating
+    downstream analytics systems expecting the old identifier format.
+  control_id: MOBILE-35
+  deterministic_tool: null
+  fix_strategy: llm-template-fill
+  human_review_required: true
+  llm_fix_template: "\"Given tracking code using a hardware-derived identifier {hardware_id}\n\
+    \ (IMEI, MAC address, Android ID) for user tracking: replace with the\n platform's\
+    \ resettable, user-controllable advertising/tracking\n identifier (Google Advertising\
+    \ ID / iOS IDFA), respecting the user's\n tracking-consent choice; preserve the\
+    \ legitimate analytics/attribution\n use case.\"\n"
+  playbook_version: 1.0.0
+  verification_checks:
+  - Re-run the Semgrep rule and confirm zero findings.
+  - Confirm analytics/attribution still function using the new identifier.
+- blast_radius_notes: Documentation/compliance task; may also require app-store listing
+    updates.
+  control_id: MOBILE-36
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: false
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - A human compares actual data collection/usage in the app against the published
+    privacy policy and app-store data-safety declarations, and updates whichever is
+    inaccurate.
+- blast_radius_notes: Feature addition (data-management UI), not a small patch.
+  control_id: MOBILE-37
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: false
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - A human confirms users have accessible controls to view, export, delete, or restrict
+    collection of their data, consistent with applicable regulations.

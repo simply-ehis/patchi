@@ -1,0 +1,85 @@
+playbooks:
+- blast_radius_notes: Leaked push notification credentials can allow unauthorized notifications
+    to be sent to users; rotating keys requires updating all services that send notifications.
+  control_id: PUSH-01
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - A human runs gitleaks to identify leaked credentials in code and history.
+  - Confirm leaked credentials are rotated and stored in a secrets manager.
+  - Confirm no remaining hardcoded credentials exist in the codebase.
+- blast_radius_notes: Migrating from legacy API keys to service-account keys and v1
+    API may change authentication behavior; test with a subset of users first.
+  control_id: PUSH-02
+  deterministic_tool: 'generate a new service-account key and update FCM/APNs configuration
+    to use v1 API endpoints'
+  fix_strategy: deterministic-autofix
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - Confirm a service-account key is generated and stored securely.
+  - Confirm push notifications are sent via the v1 API.
+  - Confirm legacy API key usage is removed.
+- blast_radius_notes: Migrating from p8 to JWT auth for APNs is a low-risk improvement;
+    old .p8 keys can be revoked after migration.
+  control_id: PUSH-03
+  deterministic_tool: 'generate a new .p8 key and update push service to use JWT-based
+    authentication'
+  fix_strategy: deterministic-autofix
+  human_review_required: false
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - Confirm the new .p8 key is generated and configured.
+  - Confirm push notifications are authenticated via JWT.
+  - Confirm the old authentication mechanism is disabled.
+- blast_radius_notes: Audit logs may contain sensitive user data; redacting before storage
+    requires understanding what fields are sensitive.
+  control_id: PUSH-04
+  deterministic_tool: null
+  fix_strategy: llm-template-fill
+  human_review_required: true
+  llm_fix_template: "\"Given push notification audit logs containing potentially sensitive\
+    \ data:\n implement redaction for PII fields (user IDs, device tokens, message\n\
+    \ content) before storage; store logs with access controls and retention\n policies;\
+    \ preserve the audit trail's forensic value.\"\n"
+  playbook_version: 1.0.0
+  verification_checks:
+  - Confirm sensitive data is redacted from audit logs before storage.
+  - Confirm access controls restrict log access to authorized personnel.
+  - Confirm retention policies are enforced.
+- blast_radius_notes: Switching to data-only/silent payloads may change how the client
+    app handles notifications; coordinate with the mobile development team.
+  control_id: PUSH-05
+  deterministic_tool: null
+  fix_strategy: llm-template-fill
+  human_review_required: true
+  llm_fix_template: "\"Given push notifications containing sensitive data in the notification\
+    \ payload:\n switch to data-only (silent) push notifications where the client\n\
+    \ fetches content from a secure endpoint after receiving the silent push;\n preserve\
+    \ the notification's user-facing functionality.\"\n"
+  playbook_version: 1.0.0
+  verification_checks:
+  - Confirm notifications no longer carry sensitive data in the payload.
+  - Confirm the client app correctly fetches content from the secure endpoint after
+    receiving a silent push.
+- blast_radius_notes: Implementing E2E encryption for push notifications requires client-side
+    decryption support; coordinate with mobile development for rollout.
+  control_id: PUSH-06
+  deterministic_tool: null
+  fix_strategy: llm-template-fill
+  human_review_required: true
+  llm_fix_template: "\"Given push notifications transmitted in plaintext: implement\n\
+    \ application-layer end-to-end encryption for notification payloads using\n a\
+    \ modern algorithm (e.g. AES-256-GCM with per-device keys); key\n exchange should\
+    \ use the device's secure enclave/keychain where\n available; preserve the notification's\
+    \ functionality.\"\n"
+  playbook_version: 1.0.0
+  verification_checks:
+  - Confirm notification payloads are encrypted end-to-end.
+  - Confirm the client app correctly decrypts and displays notifications.
+  - Confirm encryption keys are managed securely and rotated periodically.
