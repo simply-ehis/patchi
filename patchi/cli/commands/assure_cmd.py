@@ -222,24 +222,128 @@ def run(
     # Save all new evidence
     graph.save(r)
 
-    # ── Report ───────────────────────────────────────────────────────────────
+    # ── Build comprehensive report data ──────────────────────────────────────
     coverage = graph.coverage()
+    report_data = _build_report(coverage, run_all)
 
     if json_output:
-        sys.stdout.write(json.dumps(coverage, indent=2, default=str) + "\n")
+        sys.stdout.write(json.dumps(report_data, indent=2, default=str) + "\n")
         has_bad = coverage["by_verdict"].get("disproved", 0) > 0 or (
             coverage["claims_total"] == 0
         )
         return 1 if has_bad else 0
 
+    # ── Render report ────────────────────────────────────────────────────────
+    _render_report(report_data, coverage, graph)
+
+    disproved = coverage["by_verdict"].get("disproved", 0)
+    total = coverage["claims_total"]
+    return 1 if (disproved or total == 0) else 0
+
+
+def _build_report(coverage: dict, run_all: bool) -> dict:
+    """Build comprehensive report data from coverage and graph state."""
+    by_domain = coverage.get("by_domain", {})
+    by_verdict = coverage.get("by_verdict", {})
+    disproved = [c for c in coverage.get("disproved_claims", [])]
+
+    # Count by severity from evidence artifacts
+    severity_counts = {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0}
+    for claim_dict in disproved:
+        for ev in claim_dict.get("evidence", []):
+            sev = ev.get("artifact", {}).get("severity", "info")
+            if sev in severity_counts:
+                severity_counts[sev] += 1
+
+    report = {
+        "summary": {
+            "total_claims": coverage.get("claims_total", 0),
+            "proved": by_verdict.get("proved", 0),
+            "disproved": by_verdict.get("disproved", 0),
+            "not_proved": by_verdict.get("not_proved", 0),
+            "unproven": by_verdict.get("unproven", 0),
+            "status": coverage.get("statement", ""),
+        },
+        "by_domain": {k: v for k, v in by_domain.items()},
+        "by_severity": severity_counts,
+        "disproved_claims": disproved[:20],
+        "domains_tested": len(by_domain),
+        "evidence_total": sum(len(c.get("evidence", [])) for c in disproved),
+    }
+
+    if run_all:
+        report["mode"] = "full_assurance"
+        report["modules_run"] = ["invariants", "attackers", "campaigns", "fuzz"]
+    else:
+        report["mode"] = "invariants_only"
+        report["modules_run"] = ["invariants"]
+
+    return report
+
+
+def _render_report(report_data: dict, coverage: dict, graph) -> None:
+    """Render the assurance report to the console."""
+    from rich.panel import Panel
+    from rich.text import Text
+
+    summary = report_data["summary"]
+
     con.print()
-    con.print("[bold #C8621A]Assurance Status[/bold #C8621A]")
+    con.print("[bold #C8621A]Assurance Report[/bold #C8621A]")
     con.print()
 
     if not graph.claims:
         con.print("[yellow]No claims established.[/yellow]")
-        return 2
+        return
 
+    # ── Summary panel ────────────────────────────────────────────────────────
+    modules = report_data.get("modules_run", [])
+
+    summary_text = Text()
+    summary_text.append(f"Claims: {summary['total_claims']}  ", style="bold")
+    summary_text.append(f"Proved: {summary['proved']}  ", style="green")
+    summary_text.append(f"Violated: {summary['disproved']}  ", style="red" if summary['disproved'] > 0 else "dim")
+    summary_text.append(f"Unproven: {summary['unproven'] + summary['not_proved']}", style="yellow" if summary['unproven'] + summary['not_proved'] > 0 else "dim")
+    con.print(Panel(summary_text, title="Summary", border_style="#C8621A"))
+
+    # ── Severity breakdown ───────────────────────────────────────────────────
+    sev = report_data.get("by_severity", {})
+    has_findings = any(v > 0 for v in sev.values())
+    if has_findings:
+        sev_text = Text()
+        for level in ["critical", "high", "medium", "low", "info"]:
+            count = sev.get(level, 0)
+            if count > 0:
+                style = {"critical": "bold red", "high": "red", "medium": "yellow", "low": "dim", "info": "dim"}.get(level, "dim")
+                sev_text.append(f"{level}: {count}  ", style=style)
+        con.print(Panel(sev_text, title="Findings by Severity", border_style="#C8621A"))
+
+    # ── Domain coverage ──────────────────────────────────────────────────────
+    by_domain = report_data.get("by_domain", {})
+    if by_domain:
+        table = Table(show_header=True, header_style="bold #C8621A", box=None, pad_edge=False)
+        table.add_column("Domain", width=30)
+        table.add_column("Proved", justify="right", width=8)
+        table.add_column("Total", justify="right", width=8)
+        table.add_column("Coverage", width=12)
+
+        for domain, counts in sorted(by_domain.items()):
+            proved = counts.get("proved", 0)
+            total = counts.get("total", 0)
+            pct = (proved / total * 100) if total > 0 else 0
+            bar_len = int(pct / 10)
+            bar = "=" * bar_len + "-" * (10 - bar_len)
+            style = "green" if pct >= 80 else "yellow" if pct >= 50 else "red"
+            table.add_row(
+                domain,
+                f"[green]{proved}[/green]",
+                str(total),
+                f"[{style}][{bar}] {pct:.0f}%[/{style}]",
+            )
+        con.print(table)
+
+    # ── Claim verdicts ───────────────────────────────────────────────────────
+    con.print()
     table = Table(show_header=True, header_style="bold #C8621A", box=None, pad_edge=False)
     table.add_column("Verdict", width=12)
     table.add_column("Property", width=52)
@@ -255,8 +359,9 @@ def run(
             str(len(claim.evidence)),
         )
     con.print(table)
-    con.print()
 
+    # ── Verdict summary ──────────────────────────────────────────────────────
+    con.print()
     disproved = coverage["by_verdict"].get("disproved", 0)
     proved = coverage["by_verdict"].get("proved", 0)
     total = coverage["claims_total"]
@@ -273,4 +378,7 @@ def run(
     )
     con.print()
 
-    return 1 if (disproved or total == 0) else 0
+    # ── Modules run ──────────────────────────────────────────────────────────
+    if modules:
+        con.print(f"[dim]Modules: {', '.join(modules)}[/dim]")
+    con.print()
