@@ -9,21 +9,22 @@ Each project gets isolated:
 - Configuration
 
 The active project is tracked in the server state and can be switched at runtime.
+Supports request-scoped tenant context for concurrent web requests.
 """
 
 from __future__ import annotations
 
 import json
 import logging
-import os
-from dataclasses import dataclass, field
+import threading
+from contextlib import contextmanager
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
-
-from patchi.core import config as cfg
-from patchi.core import memory as mem
 
 _log = logging.getLogger("patchi.tenant")
+
+# Thread-local storage for request-scoped tenant context
+_thread_local = threading.local()
 
 
 @dataclass
@@ -202,3 +203,57 @@ def get_tenant_manager() -> TenantManager:
     if _tenant_manager is None:
         _tenant_manager = TenantManager()
     return _tenant_manager
+
+
+# ── Request-Scoped Tenant Context ───────────────────────────────────────────
+
+@contextmanager
+def tenant_context(root: Path):
+    """Context manager that scopes the active tenant for the current thread.
+
+    Used by web request handlers to ensure each request operates on the
+    correct project's state without global state corruption.
+
+    Usage::
+
+        with tenant_context(project_root):
+            # All memory/config calls use project_root
+            scan_results = mem.get_scan_results(project_root)
+    """
+    previous = getattr(_thread_local, "tenant_root", None)
+    _thread_local.tenant_root = root
+    try:
+        yield root
+    finally:
+        _thread_local.tenant_root = previous
+
+
+def get_current_tenant_root() -> Path | None:
+    """Get the request-scoped tenant root, or None if not in a context."""
+    return getattr(_thread_local, "tenant_root", None)
+
+
+# ── Per-Tenant Cost Tracking ────────────────────────────────────────────────
+
+_tenant_costs: dict[str, float] = {}  # root -> cumulative cost
+tenant_costs_lock = threading.Lock()
+
+
+def track_tenant_cost(root: Path, cost_usd: float) -> None:
+    """Record AI cost for a specific tenant."""
+    key = str(root.resolve())
+    with tenant_costs_lock:
+        _tenant_costs[key] = _tenant_costs.get(key, 0) + cost_usd
+
+
+def get_tenant_cost(root: Path) -> float:
+    """Get cumulative AI cost for a tenant."""
+    key = str(root.resolve())
+    with tenant_costs_lock:
+        return _tenant_costs.get(key, 0.0)
+
+
+def get_all_tenant_costs() -> dict[str, float]:
+    """Get costs for all tenants."""
+    with tenant_costs_lock:
+        return dict(_tenant_costs)

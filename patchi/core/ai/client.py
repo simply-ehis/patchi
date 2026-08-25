@@ -108,6 +108,28 @@ def call_ai(
     _ensure_env_loaded()
     ai_config = config.get("ai", {})
 
+    # ── Cost-aware model routing ───────────────────────────────────────────
+    # Use ModelRouter to select optimal model based on prompt complexity
+    try:
+        from patchi.core.ai.model_router import TaskComplexity, get_model_router
+        _router = get_model_router(config)
+        # Estimate complexity from prompt length
+        total_len = len(system_prompt) + len(user_prompt)
+        if total_len < 500:
+            complexity = TaskComplexity.SIMPLE
+        elif total_len < 2000:
+            complexity = TaskComplexity.MODERATE
+        elif total_len < 5000:
+            complexity = TaskComplexity.COMPLEX
+        else:
+            complexity = TaskComplexity.CRITICAL
+        routed_model = _router.select_model(complexity=complexity)
+        # Override the model in config for this call
+        ai_config = dict(ai_config)
+        ai_config["_routed_model"] = routed_model
+    except Exception:
+        pass  # fall through to default routing
+
     # Try local Ollama first
     local_model = ai_config.get("local_model_name")
     if local_model:
@@ -127,7 +149,8 @@ def call_ai(
 
         fmt = key_cfg.get("format", "openai")
         base_url = key_cfg.get("base_url", "https://api.openai.com/v1")
-        model = key_cfg.get("model", "gpt-4o-mini")
+        # Use routed model if available, else fall back to configured model
+        model = ai_config.get("_routed_model") or key_cfg.get("model", "gpt-4o-mini")
 
         if fmt == "anthropic":
             result = _call_anthropic(
