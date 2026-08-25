@@ -500,6 +500,12 @@ COMMANDS: list[Command] = [
                         args=(Arg("--install", action="store_true",
                               help="Install git hooks"),)),
             )),
+    Command("chains", "Show exploit chains and intent gaps from last scan",
+            "patchi.cli.commands.chains_cmd:run",
+            args=(Arg("--min-score", type=float, default=0,
+                      help="Filter chains by minimum score"),
+                  Arg("--json", dest="json_output", action="store_true",
+                      help="Output as JSON"))),
 
     # ── Batch 6: the last commands off the legacy ladder. ────────────────────
     # notify / hosted / test / security / cross-repo use the self-routing
