@@ -518,6 +518,20 @@ COMMANDS: list[Command] = [
             "patchi.cli.commands.learning_cmd:run",
             args=(Arg("--json", dest="json_output", action="store_true",
                       help="Output as JSON"),)),
+    Command("findings", "View and manage security findings",
+            "patchi.cli.commands.findings_cmd:run",
+            args=(Arg("--summary", action="store_true",
+                      help="Per-agent before/after counts"),
+                  Arg("--save-baseline", action="store_true",
+                      help="Snapshot current counts as baseline"),
+                  Arg("--json", dest="json_output", action="store_true",
+                      help="Output as JSON"),)),
+    Command("rules", "View and validate security rule packs",
+            "patchi.cli.commands.rules_cmd:run",
+            args=(Arg("--validate", action="store_true",
+                      help="Validate all rule packs"),
+                  Arg("--which", type=str, default=None,
+                      help="Map a finding control id to its rule pack"),)),
 
     # â”€â”€ Batch 6: the last commands off the legacy ladder. â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     # notify / hosted / test / security / cross-repo use the self-routing

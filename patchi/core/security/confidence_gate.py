@@ -68,12 +68,14 @@ class ConfidenceGate:
         noise_cfg = self.config.get("confidence_gate", {})
         self.min_agents_for_defend: int = int(noise_cfg.get("min_agents_for_defend", 1))
         self.min_agents_to_keep: int = int(noise_cfg.get("min_agents_to_keep", 0))
-        self.ai_weight: float = float(noise_cfg.get("ai_weight", 0.0))
+        self.ai_weight: float = float(noise_cfg.get("ai_weight", 0.3))  # default 0.3, was 0.0
         self.fp_penalty: float = float(noise_cfg.get("fp_penalty", 0.3))
         self.noise_penalty: float = float(noise_cfg.get("noise_penalty", 0.5))
-        self.fp_auto_discard: bool = bool(noise_cfg.get("fp_auto_discard", False))
+        self.fp_auto_discard: bool = bool(noise_cfg.get("fp_auto_discard", True))  # default True, was False
         self._known_fps: set[tuple] = set()
         self._load_known_fps()
+        # Lazy-load AI validator
+        self._ai_validator = None
 
     # ── Known-FP memory ─────────────────────────────────────────────────────
 
@@ -191,6 +193,68 @@ class ConfidenceGate:
         ]
         return self._build_report(gated_list)
 
+    def gate_with_ai_validation(
+        self,
+        report: SecurityReport,
+        route_context: dict | None = None,
+    ) -> GatedReport:
+        """Full harness pipeline: score → route → AI-validate medium tier.
+
+        For findings routed to ``ai_analyze``, runs the AIValidator with full
+        file context and chain-of-reasoning.  High-confidence false positives
+        are promoted to ``discard``; confirmed true positives are promoted to
+        ``defend``.
+        """
+        from patchi.core.security.ai_validator import AIValidator
+
+        if self._ai_validator is None:
+            self._ai_validator = AIValidator(self.root, self.config)
+
+        # Step 1: Initial gating
+        gated = [self.gate(cf) for cf in report.findings]
+
+        # Step 2: AI-validate the ai_analyze tier
+        ai_analyze = [g for g in gated if g.routing == "ai_analyze"]
+        if ai_analyze:
+            _log.info("AI validating %d medium-confidence findings...", len(ai_analyze))
+            for gf in ai_analyze:
+                result = self._ai_validator.validate(
+                    gf.finding,
+                    route_context=route_context,
+                )
+                # Promote or demote based on AI verdict
+                if result.confidence >= 0.7 and not result.is_true_positive:
+                    # High-confidence FP → discard
+                    gf.routing = "discard"
+                    gf.routing_reason = (
+                        f"AI-validated false positive ({result.confidence:.0%}): "
+                        f"{result.explanation}"
+                    )
+                elif result.confidence >= 0.6 and result.is_true_positive:
+                    # Confirmed true positive → defend
+                    gf.routing = "defend"
+                    gf.routing_reason = (
+                        f"AI-confirmed true positive ({result.confidence:.0%}): "
+                        f"{result.explanation}"
+                    )
+                else:
+                    # Ambiguous — keep as human_review
+                    gf.routing = "human_review"
+                    gf.routing_reason = (
+                        f"AI uncertain ({result.confidence:.0%}): {result.explanation}"
+                    )
+                # Blend AI confidence into score
+                ai_w = min(self.ai_weight, 0.5)
+                gf.confidence_score = (
+                    (1.0 - ai_w) * gf.confidence_score
+                    + ai_w * (1.0 - result.confidence if not result.is_true_positive else result.confidence)
+                )
+
+        # Step 3: Auto-learn from discarded findings
+        self.learn_from_dismissed(self._build_report(gated))
+
+        return self._build_report(gated)
+
     def _build_report(self, gated_list: list[GatedFinding]) -> GatedReport:
         stats = {
             "total": len(gated_list),
@@ -262,7 +326,14 @@ class ConfidenceGate:
         if not f.code_snippet:
             score -= 0.2
 
-        # 7. Noise penalty — findings the NoiseFilter capped (tests,
+        # 7. Heuristic FP detection — catch common false-positive patterns
+        from patchi.core.security.ai_validator import heuristic_pre_filter
+        hp = heuristic_pre_filter(f)
+        if hp:
+            _, penalty = hp
+            score -= penalty * 0.5  # partial penalty (full penalty via AIValidator)
+
+        # 8. Noise penalty — findings the NoiseFilter capped (tests,
         #    lockfiles, generated code, docs) carry ``noise_category``.
         #    They may legitimately look dangerous; they must never score
         #    high enough to auto-defend.
@@ -272,7 +343,7 @@ class ConfidenceGate:
         # Clamp heuristic score first…
         score = max(0.0, min(1.0, score))
 
-        # 8. AI confidence calibration (optional): blend model verdict.
+        # 9. AI confidence calibration (optional): blend model verdict.
         if ai_confidence is not None and self.ai_weight > 0.0:
             w = min(max(self.ai_weight, 0.0), 1.0)
             score = (1.0 - w) * score + w * max(0.0, min(1.0, ai_confidence))
