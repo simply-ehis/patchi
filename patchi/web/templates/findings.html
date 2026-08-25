@@ -69,39 +69,137 @@
   <!-- Exploit Chains tab -->
   <div id="panel-chains" class="tab-panel" style="display:none">
     {% if chains %}
-    <div class="card">
-      <div class="card-header">
-        <span class="card-title">Exploit Chains ({{ chains|length }})</span>
-      </div>
-      <div style="padding:12px">
-        {% for chain in chains %}
-        <div style="border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px;{% if chain.severity == 'critical' %}border-left:3px solid #ef4444{% elif chain.severity == 'high' %}border-left:3px solid #f97316{% else %}border-left:3px solid #eab308{% endif %}">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-            <div>
-              <span class="badge badge-{{ chain.severity }}">{{ chain.severity }}</span>
-              <span style="font-weight:600;margin-left:8px">Score: {{ chain.score }}</span>
-              <span style="color:var(--text-secondary);margin-left:8px">{{ chain.length }} steps</span>
-            </div>
-          </div>
-          <div style="font-family:var(--font-mono);font-size:12px;color:var(--text-secondary);word-break:break-all">
-            {{ chain.narrative }}
-          </div>
-          {% if chain.steps %}
-          <div style="margin-top:8px;font-size:12px">
-            {% for step in chain.steps %}
-            <div style="display:flex;gap:8px;align-items:center;padding:2px 0">
-              <span class="badge badge-{{ step.severity }}" style="font-size:10px;padding:1px 4px">{{ step.severity }}</span>
-              <span style="color:var(--text-secondary);font-size:11px">[{{ step.role }}]</span>
-              <span style="font-family:var(--font-mono);font-size:11px">{{ step.type }}</span>
-              <span style="color:var(--text-secondary);font-size:11px">{{ step.file }}:{{ step.line }}</span>
-            </div>
-            {% endfor %}
-          </div>
-          {% endif %}
+    <div style="display:grid;grid-template-columns:280px 1fr;gap:16px;min-height:500px">
+      <!-- Chain list (sidebar) -->
+      <div class="card" style="overflow-y:auto;max-height:600px">
+        <div class="card-header">
+          <span class="card-title">Chains ({{ chains|length }})</span>
         </div>
-        {% endfor %}
+        <div style="padding:8px">
+          {% for chain in chains %}
+          <div class="chain-list-item" data-idx="{{ loop.index0 }}" onclick="selectChain({{ loop.index0 }})"
+               style="padding:8px 10px;border-radius:6px;cursor:pointer;margin-bottom:4px;border-left:3px solid {% if chain.severity == 'critical' %}#ef4444{% elif chain.severity == 'high' %}#f97316{% elif chain.severity == 'medium' %}#eab308{% else %}var(--border){% endif %};transition:background 0.15s">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <span class="badge badge-{{ chain.severity }}" style="font-size:10px">{{ chain.severity }}</span>
+              <span style="font-size:11px;color:var(--text-secondary)">{{ chain.length }} steps</span>
+            </div>
+            <div style="font-size:12px;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+              {{ chain.steps[0].type if chain.steps else '?' }} → {{ chain.steps[-1].type if chain.steps else '?' }}
+            </div>
+            <div style="font-size:10px;color:var(--text-secondary);margin-top:2px">Score: {{ chain.score }}</div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Explorer (main) -->
+      <div class="card" style="display:flex;flex-direction:column">
+        <div class="card-header" style="justify-content:space-between">
+          <span class="card-title" id="explorer-title">Select a chain</span>
+          <div style="display:flex;gap:6px;align-items:center">
+            <button class="btn" onclick="chainPrev()" id="btn-prev" disabled style="padding:4px 10px;font-size:12px">← Prev</button>
+            <span id="step-counter" style="font-size:12px;color:var(--text-secondary);min-width:50px;text-align:center"></span>
+            <button class="btn" onclick="chainNext()" id="btn-next" disabled style="padding:4px 10px;font-size:12px">Next →</button>
+          </div>
+        </div>
+
+        <!-- Step visualizer -->
+        <div id="chain-visual" style="flex:1;padding:20px;overflow-y:auto">
+          <div style="text-align:center;color:var(--text-secondary);padding:60px 0">Click a chain to explore</div>
+        </div>
+
+        <!-- Narrative footer -->
+        <div id="chain-narrative" style="padding:12px 16px;border-top:1px solid var(--border);font-family:var(--font-mono);font-size:12px;color:var(--text-secondary);display:none"></div>
       </div>
     </div>
+
+    <script>
+    const CHAINS = {{ chains|tojson }};
+    let currentChain = null;
+    let currentStep = 0;
+
+    function selectChain(idx) {
+      currentChain = CHAINS[idx];
+      currentStep = 0;
+      // Highlight sidebar
+      document.querySelectorAll('.chain-list-item').forEach(el => {
+        el.style.background = el.dataset.idx == idx ? 'var(--bg-secondary)' : '';
+      });
+      document.getElementById('explorer-title').textContent =
+        `Chain #${idx + 1} — ${currentChain.severity.toUpperCase()} (score ${currentChain.score})`;
+      document.getElementById('chain-narrative').style.display = '';
+      document.getElementById('chain-narrative').textContent = currentChain.narrative;
+      renderStep();
+    }
+
+    function renderStep() {
+      if (!currentChain || !currentChain.steps) return;
+      const steps = currentChain.steps;
+      const step = steps[currentStep];
+      const total = steps.length;
+
+      document.getElementById('step-counter').textContent = `${currentStep + 1} / ${total}`;
+      document.getElementById('btn-prev').disabled = currentStep === 0;
+      document.getElementById('btn-next').disabled = currentStep === total - 1;
+
+      const roleColors = { entry: '#4ADE80', exploit: '#f97316', pivot: '#eab308', impact: '#ef4444' };
+      const roleColor = roleColors[step.role] || 'var(--text-secondary)';
+
+      let html = '';
+      // Progress dots
+      html += '<div style="display:flex;justify-content:center;gap:8px;margin-bottom:24px">';
+      for (let i = 0; i < total; i++) {
+        const active = i === currentStep;
+        const done = i < currentStep;
+        const s = steps[i];
+        const dotColor = done ? roleColors[s.role] || '#4ADE80'
+          : active ? roleColors[s.role] || 'var(--accent)'
+          : 'var(--bg-tertiary)';
+        html += `<div style="width:${active ? 14 : 10}px;height:${active ? 14 : 10}px;border-radius:50%;background:${dotColor};transition:all 0.2s;${active ? 'box-shadow:0 0 8px ' + dotColor : ''}" title="${s.type} @ ${s.file}:${s.line}"></div>`;
+        if (i < total - 1) {
+          html += `<div style="width:24px;height:2px;background:${done ? dotColor : 'var(--bg-tertiary)'};align-self:center;border-radius:1px"></div>`;
+        }
+      }
+      html += '</div>';
+
+      // Current step card
+      const sevClass = `badge-${step.severity}`;
+      html += `<div style="max-width:500px;margin:0 auto;border:1px solid var(--border);border-radius:10px;padding:20px;background:var(--bg-secondary);border-top:3px solid ${roleColor}">`;
+      html += `<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">`;
+      html += `<div style="width:36px;height:36px;border-radius:50%;background:${roleColor}20;color:${roleColor};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px">${currentStep + 1}</div>`;
+      html += `<div><div style="font-weight:600;font-size:16px">${step.type}</div>`;
+      html += `<div style="font-size:12px;color:var(--text-secondary)">Role: <span style="color:${roleColor};font-weight:500">${step.role}</span></div></div>`;
+      html += `<span class="badge ${sevClass}" style="margin-left:auto">${step.severity}</span>`;
+      html += '</div>';
+
+      html += `<div style="display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:13px">`;
+      html += `<span style="color:var(--text-secondary)">File:</span><span style="font-family:var(--font-mono)">${step.file}</span>`;
+      html += `<span style="color:var(--text-secondary)">Line:</span><span style="font-family:var(--font-mono)">${step.line}</span>`;
+      html += `<span style="color:var(--text-secondary)">Agent:</span><span>${step.agent}</span>`;
+      html += '</div>';
+
+      // Arrow to next
+      if (currentStep < total - 1) {
+        html += `<div style="text-align:center;margin-top:16px;color:var(--text-secondary);font-size:20px">↓</div>`;
+        html += `<div style="text-align:center;font-size:11px;color:var(--text-secondary)">leads to → ${steps[currentStep + 1].type}</div>`;
+      } else {
+        html += `<div style="text-align:center;margin-top:16px;color:#ef4444;font-size:13px;font-weight:600">⚠ Impact reached</div>`;
+      }
+
+      html += '</div>';
+      document.getElementById('chain-visual').innerHTML = html;
+    }
+
+    function chainPrev() { if (currentStep > 0) { currentStep--; renderStep(); } }
+    function chainNext() { if (currentChain && currentStep < currentChain.steps.length - 1) { currentStep++; renderStep(); } }
+
+    // Keyboard navigation
+    document.addEventListener('keydown', e => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      if (e.key === 'ArrowLeft') chainPrev();
+      if (e.key === 'ArrowRight') chainNext();
+    });
+    </script>
     {% else %}
     <div class="empty-state">
       <div class="empty-state-icon">🔗</div>
