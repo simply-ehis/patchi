@@ -29,9 +29,9 @@ templates.env.filters["tojson"] = lambda v: json.dumps(v)
 _log = logging.getLogger("patchi.web.dashboard_v2")
 
 
-@router.get("/v2", response_class=HTMLResponse)
+@router.get("/", response_class=HTMLResponse)
 async def dashboard_v2(request: Request):
-    """Enhanced dashboard with live monitoring."""
+    """Unified landing page — Mission Control."""
     root = request.app.state.root
     from patchi.core import memory as mem
     
@@ -66,11 +66,29 @@ async def dashboard_v2(request: Request):
             "active_security_domains": brain.get("active_security_domains", []),
             "project_purpose": brain.get("project_purpose", ""),
             "project_domain": brain.get("project_domain", ""),
+            "mode": _safe_mode(root),
         },
     )
 
 
-@router.get("/v2/brain-map", response_class=HTMLResponse)
+@router.get("/v2", response_class=HTMLResponse)
+async def dashboard_v2_alias(request: Request):
+    """Backward-compat alias — /v2 forwards to the unified /."""
+    from fastapi.responses import RedirectResponse
+
+    return RedirectResponse(url="/", status_code=307)
+
+
+def _safe_mode(root) -> str:
+    try:
+        from patchi.core import config as cfg
+
+        return cfg.load(root).get("mode", "confirm")
+    except Exception:
+        return "confirm"
+
+
+@router.get("/brain-map", response_class=HTMLResponse)
 async def brain_map_v2(request: Request):
     """Interactive brain map visualization."""
     root = request.app.state.root
@@ -88,7 +106,7 @@ async def brain_map_v2(request: Request):
     )
 
 
-@router.get("/v2/council", response_class=HTMLResponse)
+@router.get("/council", response_class=HTMLResponse)
 async def council_view(request: Request):
     """Council deliberation viewer."""
     root = request.app.state.root
@@ -108,7 +126,7 @@ async def council_view(request: Request):
     )
 
 
-@router.get("/v2/attack-timeline", response_class=HTMLResponse)
+@router.get("/attack-timeline", response_class=HTMLResponse)
 async def attack_timeline(request: Request):
     """Attack simulation timeline."""
     root = request.app.state.root
@@ -127,7 +145,7 @@ async def attack_timeline(request: Request):
     )
 
 
-@router.get("/v2/live-tests", response_class=HTMLResponse)
+@router.get("/live-tests", response_class=HTMLResponse)
 async def live_tests_view(request: Request):
     """Live test session monitor."""
     root = request.app.state.root
@@ -142,6 +160,27 @@ async def live_tests_view(request: Request):
         {
             "request": request,
             "test_data": test_data,
+        },
+    )
+
+
+@router.get("/hosted", response_class=HTMLResponse)
+async def hosted_view(request: Request):
+    """Unified hosted control plane — guard status, compliance, webhooks."""
+    root = request.app.state.root
+    from patchi.core import memory as mem
+
+    brain = mem.get_brain(root)
+    scan_results = mem.get_scan_results(root)
+    attack_data = scan_results.get("RedTeamEngineAgent", {})
+
+    return templates.TemplateResponse(
+        request,
+        "hosted.html",
+        {
+            "request": request,
+            "active_domains": brain.get("active_security_domains", []),
+            "attack_data": attack_data,
         },
     )
 

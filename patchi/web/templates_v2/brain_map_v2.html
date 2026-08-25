@@ -1,8 +1,8 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Brain Map — Patchi Mission Control</title>
+    <title>Brain Map â€” Patchi Mission Control</title>
     <link rel="stylesheet" href="/static/dashboard_v2.css">
     <style>
         .brain-canvas {
@@ -43,10 +43,15 @@
                     <span class="logo-text">Patchi</span>
                 </a>
                 <nav class="main-tabs">
-                    <a href="/v2/brain-map" class="tab active">Brain Map</a>
-                    <a href="/v2/council" class="tab">Council</a>
-                    <a href="/v2/attack-timeline" class="tab">Attacks</a>
-                    <a href="/v2/live-tests" class="tab">Live Tests</a>
+                    <a href="/" class="tab">Overview</a>
+                    <a href="/brain-map" class="tab">Brain</a>
+                    <a href="/council" class="tab">Council</a>
+                    <a href="/attack-timeline" class="tab">Attacks</a>
+                    <a href="/live-tests" class="tab">Tests</a>
+                    <a href="/findings" class="tab">Findings</a>
+                    <a href="/review" class="tab">Review</a>
+                    <a href="/chat" class="tab">Chat</a>
+                    <a href="/hosted" class="tab">Hosted</a>
                 </nav>
             </div>
         </header>
@@ -55,7 +60,7 @@
             <div style="max-width:1200px;margin:0 auto;padding:24px 20px;width:100%">
                 <section class="panel">
                     <header class="panel-header">
-                        <h2 class="panel-title">🧠 Layered Brain — Interactive Map</h2>
+                        <h2 class="panel-title">ðŸ§  Layered Brain â€” Interactive Map</h2>
                         <span class="badge">{{ layers_data.get('layer_count', 0) }} layers</span>
                     </header>
                     <div class="panel-body">
@@ -74,8 +79,8 @@
         </main>
 
         <footer class="footer">
-            <span>Patchi v2.0 — Brain Map</span>
-            <div class="footer-links"><a href="/v2" class="footer-link">← Overview</a></div>
+            <span>Patchi v2.0 â€” Brain Map</span>
+            <div class="footer-links"><a href="/v2" class="footer-link">â† Overview</a></div>
         </footer>
     </div>
 
@@ -135,8 +140,8 @@
                 el.id = 'node-' + name.replace(/[^a-zA-Z0-9_-]/g, '_');
                 el.innerHTML = `
                     <div class="layer-name">${name}</div>
-                    <div class="layer-summary">${(layer.summary||'').slice(0,90)}…</div>
-                    <div class="layer-files">${(layer.files||[]).length} files · L${layer.level}</div>
+                    <div class="layer-summary">${(layer.summary||'').slice(0,90)}â€¦</div>
+                    <div class="layer-files">${(layer.files||[]).length} files Â· L${layer.level}</div>
                 `;
                 el.style.left = positions[name].x + 'px';
                 el.style.top = positions[name].y + 'px';

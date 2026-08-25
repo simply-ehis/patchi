@@ -107,7 +107,14 @@ class SmartAgent:
         return None
 
     async def _council_tools(self, goal: str, timeout: float = 30.0) -> list[str]:
-        """Ask the Council for an advisory plan; best-effort, never blocks."""
+        """Ask the Council for an advisory plan; best-effort, never blocks.
+
+        The Council uses AI personas, so this is skipped entirely in the
+        offline/default path (no ``llm`` supplied). When an LLM is configured
+        it enriches the deterministic plan; otherwise the planner stands alone.
+        """
+        if self.llm is None:
+            return []
         try:
             from patchi.core.brain.council import Council
 

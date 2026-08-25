@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Patchi v2.0 — Mission Control</title>
+    <title>Patchi v2.0 â€” Mission Control</title>
     <link rel="stylesheet" href="/static/dashboard_v2.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -14,7 +14,7 @@
         <!-- Header -->
         <header class="header" role="banner">
             <div class="header-left">
-                <a href="/v2" class="logo" aria-label="Patchi Mission Control">
+                <a href="/" class="logo" aria-label="Patchi Mission Control">
                     <svg class="logo-icon" viewBox="0 0 32 32" fill="none" aria-hidden="true">
                         <rect width="32" height="32" rx="6" fill="currentColor"/>
                         <path d="M8 12h16M8 16h12M8 20h8" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
@@ -24,7 +24,7 @@
                 </a>
                 
                 <nav class="main-tabs" role="tablist" aria-label="Main navigation">
-                    <a href="/v2" class="tab active" role="tab" aria-selected="true" data-tab="overview">
+                    <a href="/" class="tab active" role="tab" aria-selected="true" data-tab="overview">
                         <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <rect x="3" y="3" width="7" height="7" rx="1"/>
                             <rect x="14" y="3" width="7" height="7" rx="1"/>
@@ -33,14 +33,14 @@
                         </svg>
                         <span>Overview</span>
                     </a>
-                    <a href="/v2/brain-map" class="tab" role="tab" aria-selected="false" data-tab="brain">
+                    <a href="/brain-map" class="tab" role="tab" aria-selected="false" data-tab="brain">
                         <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <circle cx="12" cy="12" r="10"/>
                             <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
                         </svg>
                         <span>Brain Map</span>
                     </a>
-                    <a href="/v2/council" class="tab" role="tab" aria-selected="false" data-tab="council">
+                    <a href="/council" class="tab" role="tab" aria-selected="false" data-tab="council">
                         <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
                             <circle cx="9" cy="7" r="4"/>
@@ -49,7 +49,7 @@
                         </svg>
                         <span>Council</span>
                     </a>
-                    <a href="/v2/attack-timeline" class="tab" role="tab" aria-selected="false" data-tab="attacks">
+                    <a href="/attack-timeline" class="tab" role="tab" aria-selected="false" data-tab="attacks">
                         <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2"/>
                             <line x1="12" y1="22" x2="12" y2="15.5"/>
@@ -57,12 +57,24 @@
                         </svg>
                         <span>Attacks</span>
                     </a>
-                    <a href="/v2/live-tests" class="tab" role="tab" aria-selected="false" data-tab="tests">
+                    <a href="/live-tests" class="tab" role="tab" aria-selected="false" data-tab="tests">
                         <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M9 18V5l12-2v13"/>
                             <circle cx="6" cy="6" r="10" stroke-dasharray="50" stroke-dashoffset="30"/>
                         </svg>
                         <span>Live Tests</span>
+                    </a>
+                    <a href="/findings" class="tab" role="tab" aria-selected="false">
+                        <span>Findings</span>
+                    </a>
+                    <a href="/review" class="tab" role="tab" aria-selected="false">
+                        <span>Review</span>
+                    </a>
+                    <a href="/chat" class="tab" role="tab" aria-selected="false">
+                        <span>Chat</span>
+                    </a>
+                    <a href="/hosted" class="tab" role="tab" aria-selected="false">
+                        <span>Hosted</span>
                     </a>
                 </nav>
             </div>
@@ -85,12 +97,12 @@
                     </select>
                 </div>
                 
-                <button class="btn btn-ghost" id="commandPalette" aria-label="Command Palette (⌘K)">
+                <button class="btn btn-ghost" id="commandPalette" aria-label="Command Palette (âŒ˜K)">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="11" cy="11" r="8"/>
                         <path d="M21 21l-4.35-4.35"/>
                     </svg>
-                    <kbd class="kbd-hint">⌘K</kbd>
+                    <kbd class="kbd-hint">âŒ˜K</kbd>
                 </button>
                 
                 <button class="btn btn-primary" id="quickScan" aria-label="Quick Scan">
@@ -293,25 +305,25 @@
                         <div class="panel-body">
                             <div class="tools-list" id="toolsList">
                                 <div class="tool-category">
-                                    <h4>🧠 Brain</h4>
+                                    <h4>ðŸ§  Brain</h4>
                                     <div class="tool-item" data-tool="scan_project">Scan Project</div>
                                     <div class="tool-item" data-tool="impact_analysis">Impact Analysis</div>
                                     <div class="tool-item" data-tool="ask_brain">Ask Brain</div>
                                 </div>
                                 <div class="tool-category">
-                                    <h4>🔒 Security</h4>
+                                    <h4>ðŸ”’ Security</h4>
                                     <div class="tool-item" data-tool="scan_vulnerabilities">Scan Vulnerabilities</div>
                                     <div class="tool-item" data-tool="attack_simulate">Attack Simulate</div>
                                     <div class="tool-item" data-tool="red_team">Red Team</div>
                                 </div>
                                 <div class="tool-category">
-                                    <h4>🧪 Testing</h4>
+                                    <h4>ðŸ§ª Testing</h4>
                                     <div class="tool-item" data-tool="run_tests">Run Tests</div>
                                     <div class="tool-item" data-tool="stress_test">Stress Test</div>
                                     <div class="tool-item" data-tool="screenshot">Screenshot</div>
                                 </div>
                                 <div class="tool-category">
-                                    <h4>🔧 Fix</h4>
+                                    <h4>ðŸ”§ Fix</h4>
                                     <div class="tool-item" data-tool="generate_fix">Generate Fix</div>
                                     <div class="tool-item" data-tool="apply_patch">Apply Patch</div>
                                 </div>
@@ -340,7 +352,7 @@
         <div class="modal" role="document">
             <header class="modal-header">
                 <h2 id="paletteTitle">Command Palette</h2>
-                <kbd class="kbd-hint">⌘K</kbd>
+                <kbd class="kbd-hint">âŒ˜K</kbd>
             </header>
             <div class="modal-body">
                 <div class="palette-search">

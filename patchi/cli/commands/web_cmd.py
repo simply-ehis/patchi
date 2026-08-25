@@ -1,12 +1,18 @@
 """
-`p web` command — archived.
+`p web` command — launch the unified Patchi web UI.
 
-The Web UI has been archived to `.patchi/web_archive/` for focused CLI
-development. The code is preserved but no longer actively maintained.
+One server, one UI:
+  - Mission Control dashboard (/)          — health, live agent feed, tools
+  - Brain map / Council / Attacks / Tests  — intelligence views
+  - Findings / Review / Chat               — workflow pages
+  - Hosted control plane   (/hosted)       — overview, compliance, webhooks
 
-To run it manually:
-    pip install fastapi uvicorn
-    python -m uvicorn patchi.web.app:create_app --host 127.0.0.1 --port 1612
+Usage:
+    p web                 # serve on 127.0.0.1:1612
+    p web --port 8000     # custom port
+    p web --open          # also open the browser
+
+Requires the `web` extra:  pip install patchi[web]
 """
 
 from __future__ import annotations
@@ -17,18 +23,40 @@ from rich.console import Console
 
 console = Console()
 
+DEFAULT_HOST = "127.0.0.1"
+DEFAULT_PORT = 1612
 
-def run(root: Path | None = None) -> None:
-    console.print("[bold yellow]Web UI Archived[/bold yellow]")
+
+def run(root: Path | None = None, host: str = DEFAULT_HOST, port: int = DEFAULT_PORT, open_browser: bool = False) -> None:
+    """Start the unified Patchi web server (blocking)."""
+    from patchi.core.config import find_project_root
+
+    project_root = root or find_project_root()
+    if project_root is None:
+        console.print("[red]No .patchi project found.[/red] Run [bold]p init[/bold] first.")
+        raise SystemExit(1)
+
+    try:
+        import uvicorn  # noqa: F401
+    except ImportError:
+        console.print("[red]Missing dependencies.[/red] Install with: [bold]pip install patchi[web][/bold]")
+        raise SystemExit(1)
+
+    from patchi.web.app import create_app
+
+    url = f"http://{host}:{port}"
     console.print()
-    console.print(
-        "The Patchi Web UI has been [bold]archived[/bold] to focus on CLI development."
-    )
-    console.print("Source code preserved at: [dim].patchi/web_archive/[/dim]")
+    console.print(f"[bold #C8621A]Patchi Web UI[/bold #C8621A] -> [link={url}]{url}[/link]")
+    console.print("[dim]Mission Control · Council · Red Team · Live Tests · Hosted[/dim]")
+    console.print("[dim]Press Ctrl+C to stop.[/dim]")
     console.print()
-    console.print("Use the CLI instead:")
-    console.print("  [cyan]p scan[/cyan]        — scan your project")
-    console.print("  [cyan]p security[/cyan]    — run security agents")
-    console.print("  [cyan]p fix[/cyan]         — apply fixes")
-    console.print("  [cyan]p status[/cyan]      — show health and state")
-    console.print("  [cyan]p chat[/cyan]        — ask questions about your project")
+
+    app = create_app(project_root)
+
+    if open_browser:
+        import threading
+        import webbrowser
+
+        threading.Timer(1.5, webbrowser.open, args=(url,)).start()
+
+    uvicorn.run(app, host=host, port=port, log_level="warning")

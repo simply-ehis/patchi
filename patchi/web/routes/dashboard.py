@@ -1,4 +1,9 @@
-"""Dashboard route — Brain Map + security overview."""
+"""Workflow routes (v1 pages) — linked from the unified v2 nav bar.
+
+The landing page (/) is the v2 Mission Control dashboard
+(see routes/dashboard_v2.py) — the single unified UI. The old v1 overview
+page was merged into Mission Control and removed.
+"""
 
 from __future__ import annotations
 
@@ -13,29 +18,3 @@ router = APIRouter()
 
 templates = _Jinja2Templates(directory=str(Path(__file__).parent.parent / "templates"))
 templates.env.filters["tojson"] = lambda v: json.dumps(v)
-
-
-@router.get("/", response_class=HTMLResponse)
-async def dashboard(request: Request):
-    root = request.app.state.root
-    from patchi.core import memory as mem
-
-    brain = mem.get_brain(root)
-    health = brain.get("health_score", {})
-
-    return templates.TemplateResponse(
-        request,
-        "dashboard.html",
-        {
-            "request": request,
-            "health_score": health.get("total", 0),
-            "health_grade": health.get("grade", "?"),
-            "health_components": health.get("components", {}),
-            "file_count": brain.get("file_count", 0),
-            "route_count": brain.get("route_count", 0),
-            "framework": brain.get("framework", "Unknown"),
-            "languages": brain.get("languages", {}),
-            "dead_files": brain.get("dead_files", []),
-            "scan_time": brain.get("last_scan", "Never"),
-        },
-    )

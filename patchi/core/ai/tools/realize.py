@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import importlib.util
 import json
 import logging
 import statistics
@@ -421,7 +422,8 @@ def run_tests(root: Path, test_types: Optional[list[str]] = None,
     """Run the project's pytest suite and return real pass/fail counts."""
     target = str(root / area) if area else str(root)
     cmd = [sys.executable, "-m", "pytest", target, "-q",
-           "--no-header", "-p", "no:cacheprovider", "--no-cov"]
+           "--no-header", "-p", "no:cacheprovider", "--no-cov" if _HAS_PYTEST_COV else ""]
+    cmd = [c for c in cmd if c]
     _emit("test.suite.started", {"test_type": (test_types or ["unit"])[0],
                                  "test_count": 0})
     try:

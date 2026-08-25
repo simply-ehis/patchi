@@ -1,8 +1,8 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Live Tests — Patchi Mission Control</title>
+    <title>Live Tests â€” Patchi Mission Control</title>
     <link rel="stylesheet" href="/static/dashboard_v2.css">
 </head>
 <body class="theme-dark">
@@ -14,16 +14,21 @@
                     <span class="logo-text">Patchi</span>
                 </a>
                 <nav class="main-tabs">
-                    <a href="/v2/brain-map" class="tab">Brain Map</a>
-                    <a href="/v2/council" class="tab">Council</a>
-                    <a href="/v2/attack-timeline" class="tab">Attacks</a>
-                    <a href="/v2/live-tests" class="tab active">Live Tests</a>
+                    <a href="/" class="tab">Overview</a>
+                    <a href="/brain-map" class="tab">Brain</a>
+                    <a href="/council" class="tab">Council</a>
+                    <a href="/attack-timeline" class="tab">Attacks</a>
+                    <a href="/live-tests" class="tab">Tests</a>
+                    <a href="/findings" class="tab">Findings</a>
+                    <a href="/review" class="tab">Review</a>
+                    <a href="/chat" class="tab">Chat</a>
+                    <a href="/hosted" class="tab">Hosted</a>
                 </nav>
             </div>
             <div class="header-right">
                 <input type="url" id="baseUrlInput" placeholder="http://localhost:3000"
                        style="background:var(--bg-primary);border:1px solid var(--border);border-radius:var(--radius-md);padding:7px 12px;color:var(--text-primary);font-size:13px;width:220px;outline:none">
-                <button class="btn btn-primary" id="runTestsBtn">▶ Run Live Tests</button>
+                <button class="btn btn-primary" id="runTestsBtn">â–¶ Run Live Tests</button>
             </div>
         </header>
 
@@ -32,7 +37,7 @@
                 <!-- Run Controls -->
                 <section class="panel">
                     <header class="panel-header">
-                        <h2 class="panel-title">🧪 Test Configuration</h2>
+                        <h2 class="panel-title">ðŸ§ª Test Configuration</h2>
                     </header>
                     <div class="panel-body">
                         <div style="display:flex;gap:14px;flex-wrap:wrap">
@@ -51,16 +56,16 @@
                     <!-- Browser View -->
                     <section class="panel panel-full">
                         <header class="panel-header">
-                            <h2 class="panel-title">🌐 Browser Session</h2>
+                            <h2 class="panel-title">ðŸŒ Browser Session</h2>
                             <span class="badge" id="browserStatus">idle</span>
                         </header>
                         <div class="panel-body">
                             <div class="browser-frame">
                                 <div class="browser-toolbar">
-                                    <span style="color:var(--danger)">●</span>
-                                    <span style="color:var(--warning)">●</span>
-                                    <span style="color:var(--success)">●</span>
-                                    <div class="browser-url" id="browserUrl">—</div>
+                                    <span style="color:var(--danger)">â—</span>
+                                    <span style="color:var(--warning)">â—</span>
+                                    <span style="color:var(--success)">â—</span>
+                                    <div class="browser-url" id="browserUrl">â€”</div>
                                 </div>
                                 <div class="browser-viewport" id="browserViewport">
                                     <span style="color:var(--text-muted);font-size:13px">Screenshots appear here during test runs</span>
@@ -72,25 +77,25 @@
                     <!-- Stress Metrics -->
                     <section class="panel panel-full">
                         <header class="panel-header">
-                            <h2 class="panel-title">⚡ Stress / Load Metrics</h2>
+                            <h2 class="panel-title">âš¡ Stress / Load Metrics</h2>
                         </header>
                         <div class="panel-body">
                             <canvas class="stress-chart" id="stressChart"></canvas>
                             <div class="metric-cards">
                                 <div class="metric-card">
-                                    <div class="metric-value" id="mRps">—</div>
+                                    <div class="metric-value" id="mRps">â€”</div>
                                     <div class="metric-label">Req/sec</div>
                                 </div>
                                 <div class="metric-card">
-                                    <div class="metric-value" id="mP95">—</div>
+                                    <div class="metric-value" id="mP95">â€”</div>
                                     <div class="metric-label">P95 (ms)</div>
                                 </div>
                                 <div class="metric-card">
-                                    <div class="metric-value" id="mErr">—</div>
+                                    <div class="metric-value" id="mErr">â€”</div>
                                     <div class="metric-label">Error rate</div>
                                 </div>
                                 <div class="metric-card">
-                                    <div class="metric-value" id="mUsers">—</div>
+                                    <div class="metric-value" id="mUsers">â€”</div>
                                     <div class="metric-label">Peak users</div>
                                 </div>
                             </div>
@@ -101,7 +106,7 @@
                 <!-- Previous Results -->
                 <section class="panel">
                     <header class="panel-header">
-                        <h2 class="panel-title">📊 Last Run Summary</h2>
+                        <h2 class="panel-title">ðŸ“Š Last Run Summary</h2>
                     </header>
                     <div class="panel-body">
                         {% if test_data %}
@@ -115,8 +120,8 @@
         </main>
 
         <footer class="footer">
-            <span>Patchi v2.0 — Live Testing Platform</span>
-            <div class="footer-links"><a href="/v2" class="footer-link">← Overview</a></div>
+            <span>Patchi v2.0 â€” Live Testing Platform</span>
+            <div class="footer-links"><a href="/v2" class="footer-link">â† Overview</a></div>
         </footer>
     </div>
 
@@ -130,9 +135,9 @@
             runBtn.addEventListener('click', async () => {
                 const types = Array.from(document.querySelectorAll('.test-type-cb:checked')).map(cb => cb.value);
                 const url = baseUrl.value.trim() || 'http://localhost:3000';
-                document.getElementById('browserStatus').textContent = 'running…';
+                document.getElementById('browserStatus').textContent = 'runningâ€¦';
                 runBtn.disabled = true;
-                runBtn.textContent = '⏳ Running…';
+                runBtn.textContent = 'â³ Runningâ€¦';
 
                 try {
                     const res = await fetch('/api/v2/tools/execute', {
@@ -147,7 +152,7 @@
                     console.log('Test result:', json);
                 } finally {
                     runBtn.disabled = false;
-                    runBtn.textContent = '▶ Run Live Tests';
+                    runBtn.textContent = 'â–¶ Run Live Tests';
                     document.getElementById('browserStatus').textContent = 'idle';
                 }
             });
@@ -157,7 +162,7 @@
                 if (!data || !data.summary) return;
                 const s = data.summary;
                 const el = (id, v) => { const e = document.getElementById(id); if (e && v != null) e.textContent = v; };
-                el('mRps', (s.requests_per_second || 0).toFixed ? s.requests_per_second.toFixed(1) : '—');
+                el('mRps', (s.requests_per_second || 0).toFixed ? s.requests_per_second.toFixed(1) : 'â€”');
                 el('mP95', Math.round(s.latency_p95_ms || 0));
                 el('mErr', ((s.error_rate || 0) * 100).toFixed(1) + '%');
             }).catch(() => {});
