@@ -1,11 +1,11 @@
-"""
-Command registry — the single source of truth §3 Command Unification promises.
+﻿"""
+Command registry â€” the single source of truth Â§3 Command Unification promises.
 
 Every `p <command>` in the system is declared here and nowhere else. The
 incremental migration is complete: the legacy argparse blocks and the elif
 dispatch ladder in main.py are gone, and TestCLIRegistryLinking in
-tests/test_regression_audit.py proves parser ↔ registry exact equality at
-every nesting level — no command can ever live on a hidden ladder again.
+tests/test_regression_audit.py proves parser â†” registry exact equality at
+every nesting level â€” no command can ever live on a hidden ladder again.
 
 Command shapes used:
 
@@ -16,16 +16,16 @@ Command shapes used:
 - Self-routing Namespace handlers (framework namespace_handler=True): the
   handler receives the whole parsed Namespace and routes on the subcommand
   dests itself. Used by notify, hosted (deepest tree: hosted token revoke
-  <id>), test, security, and cross-repo — all dispatch on parsed values a
+  <id>), test, security, and cross-repo â€” all dispatch on parsed values a
   static Arg->kwarg mapping can't express (e.g. `p test generate` routes to a
   different function than `p test unit`).
 
 Every handler's ACTUAL signature was checked against these entries before
-registering — several didn't match the parser's attribute name at first pass
+registering â€” several didn't match the parser's attribute name at first pass
 (scan's --file stores under `file`, handler wants `file_path`; queue's mode
 positional was `mode_name`, handler wants `mode_str`; patch's id args were
 `id`, handlers want `patch_id`; key's remove/test were `name`, handlers want
-`nickname`). All are fixed below, not assumed — and TestCLIRegistryLinking now
+`nickname`). All are fixed below, not assumed â€” and TestCLIRegistryLinking now
 guards the whole set mechanically.
 """
 
@@ -81,10 +81,10 @@ COMMANDS: list[Command] = [
         "Scan the project (full or targeted)",
         "patchi.cli.commands.scan_cmd:run",
         args=(
-            Arg("area", nargs="?", help="Targeted area — plain language or path"),
+            Arg("area", nargs="?", help="Targeted area â€” plain language or path"),
             Arg("--force", action="store_true", help="Re-scan even if brain is fresh"),
             Arg("--offline", dest="offline", action="store_true",
-                help="Skip all AI calls — static analysis only, zero token cost"),
+                help="Skip all AI calls â€” static analysis only, zero token cost"),
             Arg("--dry-run", dest="dry_run", action="store_true",
                 help="Preview what would be scanned without parsing"),
             Arg("--deep", action="store_true",
@@ -101,7 +101,7 @@ COMMANDS: list[Command] = [
                 help="Enable defense pipeline: ConfidenceGate + DefenseLayer auto-fix"),
             Arg("--daemon", action="store_true", help="Start background scan scheduler daemon"),
             Arg("--governor", action="store_true",
-                help="Run Governor v2 pipeline: scan → graph → test → fix → reverify → select"),
+                help="Run Governor v2 pipeline: scan â†’ graph â†’ test â†’ fix â†’ reverify â†’ select"),
             Arg("--with-attackers", dest="with_attackers", action="store_true",
                 help="Run adversarial attacker hypotheses against the assurance graph"),
             Arg("--with-campaigns", dest="with_campaigns", action="store_true",
@@ -121,7 +121,7 @@ COMMANDS: list[Command] = [
     ),
     Command(
         "cockpit",
-        "Live session dashboard — health, drift, fix list, blast radius",
+        "Live session dashboard â€” health, drift, fix list, blast radius",
         "patchi.cli.commands.cockpit_cmd:run",
         args=(
             Arg("--area", dest="area", default=None, help="Scope the fix list to this area/path"),
@@ -163,7 +163,7 @@ COMMANDS: list[Command] = [
             Command("show", "Show diff for a patch", "patchi.cli.commands.patch_cmd:run_show",
                      args=(Arg("patch_id"),
                            Arg("--json", dest="json_output", action="store_true",
-                               help="Output as JSON"))),
+                               help="Output as JSON"),)),
             Command("apply", "Apply a pending patch", "patchi.cli.commands.patch_cmd:run_apply",
                      args=(Arg("patch_id"),)),
             Command("reject", "Reject a patch", "patchi.cli.commands.patch_cmd:run_reject",
@@ -211,24 +211,24 @@ COMMANDS: list[Command] = [
         ),
     ),
 
-    # ── Batch 3: 22 more commands. Every handler signature checked directly
+    # â”€â”€ Batch 3: 22 more commands. Every handler signature checked directly
     # against the real code, not assumed from the parser's attribute names --
     # 7 more drift fixes found this batch (running total: 11 across the whole
     # migration): undo/redo/rollback's `id`->`patch_id`, explain's `type`->
-    # `finding_type`, blast's `all`->`show_all`. ────────────────────────────
+    # `finding_type`, blast's `all`->`show_all`. â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     Command("fix", "Fix issues in the project", "patchi.cli.commands.fix_cmd:run",
             args=(Arg("area", nargs="?", help="Targeted area"),
                   Arg("--dry-run", dest="dry_run", action="store_true",
                       help="Preview fixes without applying"))),
     Command("review", "Review pending changes", "patchi.cli.commands.review_cmd:run"),
-    Command("undo", "Undo last applied fix or specific patch (compat — prefer p patch undo)",
+    Command("undo", "Undo last applied fix or specific patch (compat â€” prefer p patch undo)",
             "patchi.cli.commands.undo_cmd:run_undo",
             args=(Arg("patch_id", nargs="?", help="Specific patch ID"),)),
-    Command("redo", "Redo last undone fix or specific patch (compat — prefer p patch redo)",
+    Command("redo", "Redo last undone fix or specific patch (compat â€” prefer p patch redo)",
             "patchi.cli.commands.undo_cmd:run_redo",
             args=(Arg("patch_id", nargs="?", help="Specific patch ID"),)),
-    Command("rollback", "Roll back to a specific patch (compat — prefer p patch rollback)",
+    Command("rollback", "Roll back to a specific patch (compat â€” prefer p patch rollback)",
             "patchi.cli.commands.undo_cmd:run_rollback",
             args=(Arg("patch_id"),)),
     Command("ask", "Ask the Brain a natural-language question", "patchi.cli.commands.reason_cmd:run_ask",
@@ -242,7 +242,7 @@ COMMANDS: list[Command] = [
                   Arg("--all", dest="show_all", action="store_true",
                       help="Show blast radius for all files (absorbed from p blast)"),
                   Arg("--json", dest="json_output", action="store_true",
-                      help="Output as JSON"))),
+                      help="Output as JSON"),)),
     Command("auto", "Propose/apply safe fixes for changed files", "patchi.cli.commands.auto_cmd:run",
             args=(Arg("files", nargs="+", help="One or more changed file paths"),
                   Arg("--apply", action="store_true", help="Apply safe fixes automatically"),
@@ -274,16 +274,16 @@ COMMANDS: list[Command] = [
                   Arg("--outdated", action="store_true", help="Check for outdated packages"),
                   Arg("--cve", action="store_true", help="Check for known CVEs"),
                   Arg("--json", dest="json_output", action="store_true",
-                      help="Output as JSON"))),
+                      help="Output as JSON"),)),
     Command("explain", "Explain findings in plain English", "patchi.cli.commands.explain_cmd:run",
             args=(Arg("finding_id", nargs="?", help="Specific finding ID to explain"),
                   # drift fix: parser used --type (dest "type"), handler wants finding_type
                   Arg("--type", dest="finding_type", type=str, help="Explain a category of findings"),
                   Arg("--json", dest="json_output", action="store_true",
-                      help="Output as JSON"))),
+                      help="Output as JSON"),)),
     # `p blast` was merged into `p impact` (--all + alias). One blast-radius
     # implementation, one command.
-    Command("brain", "Brain knowledge → readable markdown", "patchi.cli.commands.brain_cmd:run",
+    Command("brain", "Brain knowledge â†’ readable markdown", "patchi.cli.commands.brain_cmd:run",
             args=(Arg("--show", action="store_true", help="Print BRAIN.md to terminal"),
                   Arg("--force", action="store_true", help="Force regeneration"))),
     Command("trend", "Health and quality trend over time", "patchi.cli.commands.trend_cmd:run",
@@ -292,7 +292,7 @@ COMMANDS: list[Command] = [
                   Arg("--last", dest="last_n", type=int, default=20,
                       help="Number of recent entries to show"),
                   Arg("--json", dest="json_output", action="store_true",
-                      help="Output as JSON"))),
+                      help="Output as JSON"),)),
     Command("blame", "Show git blame for a file", "patchi.cli.commands.blame_cmd:run",
             args=(Arg("file_path", help="File path to blame"),
                   Arg("line", nargs="?", type=int, help="Specific line number"))),
@@ -307,7 +307,7 @@ COMMANDS: list[Command] = [
                       help="Relearn even if conventions already stored"),
                   Arg("sub", nargs="?", choices=("patterns",), help="Show fix patterns"))),
 
-    # ── Batch 4: agents, model, memory, plan, restrict. ─────────────────────
+    # â”€â”€ Batch 4: agents, model, memory, plan, restrict. â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     # `restrict` needed the new `fixed_kwargs` framework feature -- add/
     # scan-only/sensitive all call the SAME run_add(path, rtype, reason) with
     # a different hardcoded RestrictionType per subcommand, not something
@@ -350,7 +350,7 @@ COMMANDS: list[Command] = [
         ),
     ),
     Command("plan", "Plan changes before making them", "patchi.cli.commands.plan_cmd:run",
-            args=(Arg("area", nargs="?", help="Targeted area — plain language or path"),
+            args=(Arg("area", nargs="?", help="Targeted area â€” plain language or path"),
                   Arg("--format", dest="include_format", action="store_true",
                       help="Include formatting-only changes"),
                   Arg("--missing-import", dest="include_missing_import", action="store_true",
@@ -381,7 +381,7 @@ COMMANDS: list[Command] = [
         ),
     ),
 
-    # ── Batch 5: Legacy ladder commands migrated last ──────────────────────
+    # â”€â”€ Batch 5: Legacy ladder commands migrated last â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     Command("report", "Generate a structured analysis report",
             "patchi.cli.commands.report_cmd:run",
@@ -406,7 +406,7 @@ COMMANDS: list[Command] = [
                       help="JSON output"),),
             ),
 
-    Command("assure", "Assurance campaigns — prove properties, record evidence",
+    Command("assure", "Assurance campaigns â€” prove properties, record evidence",
             "patchi.cli.commands.assure_cmd:run",
             args=(Arg("--json", dest="json_output", action="store_true",
                       help="JSON output"),
@@ -505,25 +505,25 @@ COMMANDS: list[Command] = [
             args=(Arg("--min-score", type=float, default=0,
                       help="Filter chains by minimum score"),
                   Arg("--json", dest="json_output", action="store_true",
-                      help="Output as JSON"))),
+                      help="Output as JSON"),)),
     Command("profile", "Show agent profiler stats (latency, accuracy, cost)",
             "patchi.cli.commands.profile_cmd:run",
             args=(Arg("agent_name", nargs="?", default=None,
                       help="Show details for a specific agent"),
                   Arg("--json", dest="json_output", action="store_true",
-                      help="Output as JSON"))),
+                      help="Output as JSON"),)),
     Command("learning", "Show learning brain state (accept/reject patterns, trust)",
             "patchi.cli.commands.learning_cmd:run",
             args=(Arg("--json", dest="json_output", action="store_true",
-                      help="Output as JSON"))),
+                      help="Output as JSON"),)),
 
-    # ── Batch 6: the last commands off the legacy ladder. ────────────────────
+    # â”€â”€ Batch 6: the last commands off the legacy ladder. â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     # notify / hosted / test / security / cross-repo use the self-routing
     # Namespace-handler shape (framework namespace_handler=True): the handler
     # receives the whole parsed Namespace and routes on the subcommand dests
     # itself, so the subcommand tree below is parsing/help sugar only. `help`
     # is a plain kwarg command backed by help_cmd.py. With these six, main.py
-    # has zero elif-dispatch left — the registry IS the router.
+    # has zero elif-dispatch left â€” the registry IS the router.
 
     Command(
         "notify", "Configure notifications",
@@ -544,7 +544,7 @@ COMMANDS: list[Command] = [
         ),
     ),
     Command(
-        "hosted", "Hosted mode — monitor live apps",
+        "hosted", "Hosted mode â€” monitor live apps",
         "patchi.cli.commands.hosted_cmd:run",
         namespace_handler=True,
         subcommands=(
@@ -613,7 +613,7 @@ COMMANDS: list[Command] = [
             args=(Arg("group", nargs="?", help="Command group"),)),
     Command(
         "smart",
-        "Smart agent — goal-driven AI tool-calling over real tools",
+        "Smart agent â€” goal-driven AI tool-calling over real tools",
         "patchi.cli.commands.smart_cmd:run",
         namespace_handler=True,
         args=(
