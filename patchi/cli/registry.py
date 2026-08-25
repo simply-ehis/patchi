@@ -104,6 +104,8 @@ COMMANDS: list[Command] = [
                 help="Generate fuzz inputs for discovered endpoints"),
             Arg("--red-team", dest="red_team", action="store_true",
                 help="Run Red Team Engine: live attack simulation + auto-fix generation"),
+            Arg("--dast", action="store_true",
+                help="Run DAST scanner: Playwright-based dynamic security testing with screenshots"),
             Arg("--quiet", dest="quiet", global_flag=True),
         ),
     ),

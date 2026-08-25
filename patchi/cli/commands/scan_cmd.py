@@ -64,6 +64,7 @@ def run(
     with_campaigns: bool = False,
     with_fuzz: bool = False,
     red_team: bool = False,
+    dast: bool = False,
     root: Path | None = None,
 ) -> None:
     """Entry point for `p scan [area]`."""
@@ -350,6 +351,58 @@ def run(
         except Exception as e:
             import traceback
             con.print(f"  [red]Red team error: {e}[/red]")
+            con.print(traceback.format_exc())
+
+    # ── DAST (Dynamic Application Security Testing) ──────────────────────────
+    if dast:
+        con.print()
+        con.print("[bold #C8621A]─ DAST Scanner ─[/bold #C8621A]")
+        try:
+            import asyncio
+            from patchi.core.security.dast_scanner import DastScanner
+
+            # Auto-detect target URL
+            target_url = None
+            try:
+                import urllib.request
+                urllib.request.urlopen("http://127.0.0.1:1612/api/health", timeout=2)
+                target_url = "http://127.0.0.1:1612"
+                con.print(f"  [dim]Target: {target_url} (detected running server)[/dim]")
+            except Exception:
+                con.print("  [yellow]No running web server detected on :1612[/yellow]")
+                con.print("  [dim]Start the web server first: p web[/dim]")
+
+            if target_url:
+                scanner = DastScanner(
+                    root=r,
+                    target_url=target_url,
+                    on_progress=lambda msg: con.print(f"  [dim]{msg}[/dim]"),
+                )
+                report = asyncio.run(scanner.run())
+
+                con.print(f"  Pages tested: [bold]{report.pages_tested}[/bold]")
+                con.print(f"  Findings: [bold]{len(report.findings)}[/bold]")
+                con.print(f"  Screenshots: [bold]{len(report.screenshots)}[/bold]")
+
+                if report.findings:
+                    sev_counts = {}
+                    for f in report.findings:
+                        sev_counts[f.severity] = sev_counts.get(f.severity, 0) + 1
+                    sev_str = ", ".join(f"{k}={v}" for k, v in sorted(sev_counts.items()))
+                    con.print(f"  By severity: {sev_str}")
+                    con.print()
+                    for f in report.findings[:10]:
+                        sev_color = {"critical": "red", "high": "red", "medium": "yellow", "low": "dim"}.get(f.severity, "dim")
+                        con.print(f"    [{sev_color}] [{f.severity}] {f.test}: {f.evidence[:60]}[/{sev_color}]")
+                else:
+                    con.print("  [green]No security issues found.[/green]")
+
+                if report.errors:
+                    con.print(f"  [dim]Errors: {len(report.errors)}[/dim]")
+
+        except Exception as e:
+            import traceback
+            con.print(f"  [red]DAST error: {e}[/red]")
             con.print(traceback.format_exc())
 
     # ── Pipeline / defense mode ───────────────────────────────────────────────
