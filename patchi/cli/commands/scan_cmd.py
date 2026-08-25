@@ -301,6 +301,73 @@ def run(
     except Exception as e:
         _log.debug("Threat model generation failed: %s", e)
 
+    # ── Chain & Intent Analysis ─────────────────────────────────────────────
+    try:
+        from patchi.core.agents.coordinator import merge_results as _cir
+        from patchi.core.agents.base import AgentGroup, list_agents as _la
+        _sec_names = {a.name for a in _la(AgentGroup.SECURITY)}
+        _sec_agents = [
+            a for a in (agent_results or [])
+            if getattr(a, "agent_name", "") in _sec_names
+        ]
+        if _sec_agents:
+            from patchi.core.security.orchestrator import SecurityOrchestrator
+            _sec_report = SecurityOrchestrator().correlate(_sec_agents)
+
+            # ── Exploit Chains ──────────────────────────────────────
+            if _sec_report.chains:
+                con.print()
+                con.print("[bold #C8621A]─ Exploit Chains ─[/bold #C8621A]")
+                con.print(f"  [bold]{len(_sec_report.chains)}[/bold] cross-file attack paths discovered")
+                for chain in _sec_report.chains[:5]:
+                    sev_color = {"critical": "red", "high": "red", "medium": "yellow"}.get(chain.severity, "dim")
+                    con.print(
+                        f"    [{sev_color}]●[{chain.severity}] score={chain.score:.0f} "
+                        f"length={chain.length}[/{sev_color}]"
+                    )
+                    con.print(f"      [dim]{chain.narrative[:100]}[/dim]")
+                if len(_sec_report.chains) > 5:
+                    con.print(f"    [dim]… and {len(_sec_report.chains) - 5} more[/dim]")
+
+            # ── Intent Gaps ─────────────────────────────────────────
+            intent = _sec_report.intent_report
+            if intent and intent.gap_count > 0:
+                con.print()
+                con.print("[bold #C8621A]─ Intent Gaps ─[/bold #C8621A]")
+                con.print(
+                    f"  [bold]{intent.gap_count}[/bold] logic gaps across "
+                    f"[bold]{len(intent.routes)}[/bold] routes"
+                )
+                if intent.unauthenticated_state_changing:
+                    con.print(
+                        f"    [red]● {len(intent.unauthenticated_state_changing)}[/red] "
+                        f"state-changing routes without auth"
+                    )
+                    for r in intent.unauthenticated_state_changing[:3]:
+                        con.print(f"      [dim]{r.method} {r.path} @ {r.file}:{r.line}[/dim]")
+                if intent.admin_without_strict_guard:
+                    con.print(
+                        f"    [yellow]● {len(intent.admin_without_strict_guard)}[/yellow] "
+                        f"admin routes without strict guard"
+                    )
+                    for r in intent.admin_without_strict_guard[:3]:
+                        con.print(f"      [dim]{r.method} {r.path} @ {r.file}:{r.line}[/dim]")
+                if intent.unprotected_among_protected:
+                    con.print(
+                        f"    [yellow]● {len(intent.unprotected_among_protected)}[/yellow] "
+                        f"unprotected routes among protected peers"
+                    )
+                    for r in intent.unprotected_among_protected[:3]:
+                        con.print(f"      [dim]{r.method} {r.path} @ {r.file}:{r.line}[/dim]")
+
+            # Persist for web UI
+            import json as _cjson
+            _ci_path = r / ".patchi" / "chain_intent.json"
+            _ci_path.parent.mkdir(parents=True, exist_ok=True)
+            _ci_path.write_text(_cjson.dumps(_sec_report.to_dict(), indent=2), encoding="utf-8")
+    except Exception as e:
+        _log.debug("Chain/intent analysis failed: %s", e)
+
     # ── Assurance analysis (attackers, campaigns, fuzz) ─────────────────────
     if with_attackers or with_campaigns or with_fuzz:
         con.print()

@@ -2,56 +2,210 @@
 
 {% block content %}
 <div class="findings-panel">
-  <div class="card">
-    <div class="card-header">
-      <span class="card-title">Security Findings ({{ total }})</span>
-      <div style="display:flex;gap:8px">
-        <select id="filter-severity" onchange="filterFindings()" class="btn" style="padding:4px 8px">
-          <option value="">All Severity</option>
-          <option value="critical">Critical</option>
-          <option value="high">High</option>
-          <option value="medium">Medium</option>
-          <option value="low">Low</option>
-        </select>
-        <select id="filter-agent" onchange="filterFindings()" class="btn" style="padding:4px 8px">
-          <option value="">All Agents</option>
-        </select>
+  <!-- Tab bar -->
+  <div style="display:flex;gap:0;margin-bottom:16px;border-bottom:1px solid var(--border)">
+    <button class="tab-btn active" onclick="showTab('findings')" id="tab-findings">
+      Findings <span class="tab-count">{{ total }}</span>
+    </button>
+    <button class="tab-btn" onclick="showTab('chains')" id="tab-chains">
+      Exploit Chains <span class="tab-count">{{ chains|length }}</span>
+    </button>
+    <button class="tab-btn" onclick="showTab('intent')" id="tab-intent">
+      Intent Gaps <span class="tab-count">{{ intent.gap_count if intent else 0 }}</span>
+    </button>
+  </div>
+
+  <!-- Findings tab -->
+  <div id="panel-findings" class="tab-panel active">
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Security Findings ({{ total }})</span>
+        <div style="display:flex;gap:8px">
+          <select id="filter-severity" onchange="filterFindings()" class="btn" style="padding:4px 8px">
+            <option value="">All Severity</option>
+            <option value="critical">Critical</option>
+            <option value="high">High</option>
+            <option value="medium">Medium</option>
+            <option value="low">Low</option>
+          </select>
+          <select id="filter-agent" onchange="filterFindings()" class="btn" style="padding:4px 8px">
+            <option value="">All Agents</option>
+          </select>
+        </div>
+      </div>
+
+      {% if findings %}
+      <table class="data-table" id="findings-table">
+        <thead>
+          <tr>
+            <th>Severity</th>
+            <th>File</th>
+            <th>Line</th>
+            <th>Message</th>
+            <th>Agent</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for f in findings %}
+          <tr data-severity="{{ f.severity }}" data-agent="{{ f.agent }}">
+            <td><span class="badge badge-{{ f.severity }}">{{ f.severity }}</span></td>
+            <td style="font-family:var(--font-mono);font-size:12px">{{ f.file }}</td>
+            <td>{{ f.line if f.line is not none else '' }}</td>
+            <td>{{ (f.message or '')[:80] }}</td>
+            <td style="color:var(--text-secondary)">{{ f.agent }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="empty-state">
+        <div class="empty-state-icon">✅</div>
+        <div class="empty-state-text">No findings yet. Run a scan first.</div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Exploit Chains tab -->
+  <div id="panel-chains" class="tab-panel" style="display:none">
+    {% if chains %}
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Exploit Chains ({{ chains|length }})</span>
+      </div>
+      <div style="padding:12px">
+        {% for chain in chains %}
+        <div style="border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px;{% if chain.severity == 'critical' %}border-left:3px solid #ef4444{% elif chain.severity == 'high' %}border-left:3px solid #f97316{% else %}border-left:3px solid #eab308{% endif %}">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <div>
+              <span class="badge badge-{{ chain.severity }}">{{ chain.severity }}</span>
+              <span style="font-weight:600;margin-left:8px">Score: {{ chain.score }}</span>
+              <span style="color:var(--text-secondary);margin-left:8px">{{ chain.length }} steps</span>
+            </div>
+          </div>
+          <div style="font-family:var(--font-mono);font-size:12px;color:var(--text-secondary);word-break:break-all">
+            {{ chain.narrative }}
+          </div>
+          {% if chain.steps %}
+          <div style="margin-top:8px;font-size:12px">
+            {% for step in chain.steps %}
+            <div style="display:flex;gap:8px;align-items:center;padding:2px 0">
+              <span class="badge badge-{{ step.severity }}" style="font-size:10px;padding:1px 4px">{{ step.severity }}</span>
+              <span style="color:var(--text-secondary);font-size:11px">[{{ step.role }}]</span>
+              <span style="font-family:var(--font-mono);font-size:11px">{{ step.type }}</span>
+              <span style="color:var(--text-secondary);font-size:11px">{{ step.file }}:{{ step.line }}</span>
+            </div>
+            {% endfor %}
+          </div>
+          {% endif %}
+        </div>
+        {% endfor %}
       </div>
     </div>
-
-    {% if findings %}
-    <table class="data-table" id="findings-table">
-      <thead>
-        <tr>
-          <th>Severity</th>
-          <th>File</th>
-          <th>Line</th>
-          <th>Message</th>
-          <th>Agent</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for f in findings %}
-        <tr data-severity="{{ f.severity }}" data-agent="{{ f.agent }}">
-          <td><span class="badge badge-{{ f.severity }}">{{ f.severity }}</span></td>
-          <td style="font-family:var(--font-mono);font-size:12px">{{ f.file }}</td>
-          <td>{{ f.line if f.line is not none else '' }}</td>
-          <td>{{ (f.message or '')[:80] }}</td>
-          <td style="color:var(--text-secondary)">{{ f.agent }}</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
     {% else %}
     <div class="empty-state">
-      <div class="empty-state-icon">✅</div>
-      <div class="empty-state-text">No findings yet. Run a scan first.</div>
+      <div class="empty-state-icon">🔗</div>
+      <div class="empty-state-text">No exploit chains discovered. Run a scan to detect cross-file attack paths.</div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Intent Gaps tab -->
+  <div id="panel-intent" class="tab-panel" style="display:none">
+    {% if intent and intent.gap_count > 0 %}
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Intent Gaps ({{ intent.gap_count }} across {{ intent.routes_total }} routes)</span>
+      </div>
+      <div style="padding:12px">
+        {% if intent.unauthenticated_state_changing %}
+        <div style="margin-bottom:16px">
+          <h4 style="color:#ef4444;margin-bottom:8px">🔓 Unauthenticated State-Changing Routes ({{ intent.unauthenticated_state_changing|length }})</h4>
+          {% for r in intent.unauthenticated_state_changing %}
+          <div style="display:flex;gap:8px;align-items:center;padding:4px 8px;border-left:2px solid #ef4444;margin-bottom:4px;font-size:13px">
+            <span class="badge" style="background:#ef444420;color:#ef4444">{{ r.method }}</span>
+            <span style="font-family:var(--font-mono)">{{ r.path }}</span>
+            <span style="color:var(--text-secondary);font-size:11px">{{ r.file }}:{{ r.line }}</span>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if intent.admin_without_strict_guard %}
+        <div style="margin-bottom:16px">
+          <h4 style="color:#f97316;margin-bottom:8px">👑 Admin Routes Without Strict Guard ({{ intent.admin_without_strict_guard|length }})</h4>
+          {% for r in intent.admin_without_strict_guard %}
+          <div style="display:flex;gap:8px;align-items:center;padding:4px 8px;border-left:2px solid #f97316;margin-bottom:4px;font-size:13px">
+            <span class="badge" style="background:#f9731620;color:#f97316">{{ r.method }}</span>
+            <span style="font-family:var(--font-mono)">{{ r.path }}</span>
+            <span style="color:var(--text-secondary);font-size:11px">{{ r.file }}:{{ r.line }}</span>
+            {% if r.has_auth_guard %}<span style="color:#22c55e;font-size:11px">✓ guard</span>{% else %}<span style="color:#ef4444;font-size:11px">✗ no guard</span>{% endif %}
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if intent.unprotected_among_protected %}
+        <div style="margin-bottom:16px">
+          <h4 style="color:#eab308;margin-bottom:8px">⚠️ Unprotected Routes Among Protected Peers ({{ intent.unprotected_among_protected|length }})</h4>
+          {% for r in intent.unprotected_among_protected %}
+          <div style="display:flex;gap:8px;align-items:center;padding:4px 8px;border-left:2px solid #eab308;margin-bottom:4px;font-size:13px">
+            <span class="badge" style="background:#eab30820;color:#eab308">{{ r.method }}</span>
+            <span style="font-family:var(--font-mono)">{{ r.path }}</span>
+            <span style="color:var(--text-secondary);font-size:11px">{{ r.file }}:{{ r.line }}</span>
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <div class="empty-state-icon">🎯</div>
+      <div class="empty-state-text">No intent gaps detected. Run a scan to analyze route authorization.</div>
     </div>
     {% endif %}
   </div>
 </div>
 
+<style>
+  .tab-btn {
+    background: none;
+    border: none;
+    padding: 10px 20px;
+    cursor: pointer;
+    color: var(--text-secondary);
+    border-bottom: 2px solid transparent;
+    font-size: 14px;
+    transition: all 0.15s;
+  }
+  .tab-btn:hover { color: var(--text-primary); }
+  .tab-btn.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+    font-weight: 600;
+  }
+  .tab-count {
+    background: var(--bg-tertiary);
+    padding: 1px 6px;
+    border-radius: 10px;
+    font-size: 11px;
+    margin-left: 4px;
+  }
+  .tab-btn.active .tab-count {
+    background: var(--accent);
+    color: white;
+  }
+</style>
+
 <script>
+function showTab(name) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.style.display = 'none');
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('panel-' + name).style.display = '';
+  document.getElementById('tab-' + name).classList.add('active');
+}
+
 function filterFindings() {
   const sev = document.getElementById('filter-severity').value;
   const agent = document.getElementById('filter-agent').value;
