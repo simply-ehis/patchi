@@ -17,6 +17,8 @@ from pathlib import Path
 from typing import Any, Callable, Optional
 
 from patchi.core.brain.layered_brain import Layer, layers_from_dict
+# Import the personas package (not just base) so @register_persona decorators run
+import patchi.core.brain.personas as _persona_registry  # noqa: F401
 from patchi.core.brain.personas.base import (
     BasePersona,
     PersonaDecision,
@@ -147,10 +149,23 @@ class Council:
         }
     
     def _initialize_personas(self) -> None:
-        """Create all persona instances."""
-        for name in list_personas():
+        """Create all persona instances, keyed by short rule names."""
+        # Map registered class names (e.g. "SecurityOfficerPersona") to the
+        # short rule keys used in PERSONA_SELECTION_RULES ("security_officer").
+        short_name = {
+            "ArchitectPersona": "architect",
+            "SecurityOfficerPersona": "security_officer",
+            "TestEngineerPersona": "test_engineer",
+            "PerformanceAnalystPersona": "performance_analyst",
+            "DevOpsEngineerPersona": "devops_engineer",
+            "CodeReviewerPersona": "code_reviewer",
+            "ProductOwnerPersona": "product_owner",
+            "IncidentResponderPersona": "incident_responder",
+        }
+        for cls_name in list_personas():
+            key = short_name.get(cls_name, cls_name.lower())
             persona = create_persona(
-                name=name,
+                name=cls_name,
                 root=self.root,
                 brain_layers=self.brain_layers,
                 project_context=self.project_context,
@@ -158,33 +173,76 @@ class Council:
                 on_progress=self.on_progress,
             )
             if persona:
-                self.personas[name] = persona
-                _log.info(f"Initialized persona: {name}")
+                self.personas[key] = persona
+                _log.info(f"Initialized persona: {key} ({cls_name})")
             else:
-                _log.warning(f"Failed to initialize persona: {name}")
+                _log.warning(f"Failed to initialize persona: {cls_name}")
     
-    def _select_personas(self, issue: str) -> list[str]:
-        """Select relevant personas based on issue keywords."""
+    def _select_personas(self, issue: str, context: dict = None) -> list[str]:
+        """Select relevant personas using domain relevance scoring.
+        
+        Scoring factors:
+        1. Keyword match (0-5 points per persona)
+        2. Expertise area alignment (0-3 points)
+        3. Historical success rate for similar issues (0-2 points)
+        4. Context-based relevance (file types, code patterns)
+        """
+        context = context or {}
         issue_lower = issue.lower()
-        scores: dict[str, int] = {}
+        scores: dict[str, float] = {}
         
         for persona_name, keywords in self.PERSONA_SELECTION_RULES.items():
             if persona_name not in self.personas:
                 continue
-            score = sum(1 for kw in keywords if kw in issue_lower)
+            
+            score = 0.0
+            
+            # Factor 1: Keyword match (0-5 points)
+            keyword_hits = sum(1 for kw in keywords if kw in issue_lower)
+            score += min(keyword_hits, 5)
+            
+            # Factor 2: Expertise area alignment (0-3 points)
+            persona = self.personas[persona_name]
+            expertise = persona.get_expertise_areas()
+            expertise_overlap = sum(1 for e in expertise if e.lower() in issue_lower)
+            score += min(expertise_overlap * 1.5, 3.0)
+            
+            # Factor 3: Historical success rate (0-2 points)
+            if hasattr(persona, 'memory') and persona.memory.success_rates:
+                # Get success rate for similar issue types
+                rates = persona.memory.success_rates
+                avg_success = sum(rates.values()) / len(rates)
+                score += avg_success * 2.0
+            
+            # Factor 4: Context-based relevance
+            # Check if issue mentions files/types this persona handles
+            context_files = context.get('files', [])
+            if context_files:
+                # Security persona gets bonus for security-related files
+                if persona_name == 'security_officer':
+                    sec_kws = ['auth', 'crypto', 'secret', 'token']
+                    sec_files = [f for f in context_files
+                                 if any(k in f.lower() for k in sec_kws)]
+                    score += min(len(sec_files) * 0.5, 2.0)
+                # DevOps for infrastructure files
+                elif persona_name == 'devops_engineer':
+                    infra_kws = ['docker', 'ci', 'deploy', 'k8s']
+                    infra_files = [f for f in context_files
+                                   if any(k in f.lower() for k in infra_kws)]
+                    score += min(len(infra_files) * 0.5, 2.0)
+            
             if score > 0:
                 scores[persona_name] = score
         
-        # Always include Architect for structural perspective
+        # Always include Architect for structural perspective (bonus +2)
         if "architect" in self.personas:
-            scores["architect"] = scores.get("architect", 0) + 1
+            scores["architect"] = scores.get("architect", 0) + 2.0
         
         # Sort by score descending
         selected = sorted(scores.keys(), key=lambda p: scores[p], reverse=True)
         
         # Minimum 3, maximum 5 personas for balanced deliberation
         if len(selected) < 3:
-            # Add default personas
             defaults = ["architect", "security_officer", "test_engineer"]
             for d in defaults:
                 if d in self.personas and d not in selected:
@@ -203,8 +261,8 @@ class Council:
         
         self.on_progress(f"🏛️ Council convened for: {issue[:80]}...")
         
-        # Select personas
-        selected_names = self._select_personas(issue)
+        # Select personas with domain relevance scoring
+        selected_names = self._select_personas(issue, context)
         self.on_progress(f"👥 Selected personas: {', '.join(selected_names)}")
         
         session = CouncilSession(issue=issue, context=context)
@@ -335,19 +393,114 @@ Provide synthesis in this JSON format:
         return steps
     
     def _check_consensus(self, session: CouncilSession) -> bool:
-        """Check if personas reached consensus."""
+        """Check if personas reached weighted consensus.
+        
+        Uses weighted confidence based on:
+        1. Persona expertise relevance to the issue
+        2. Historical accuracy of each persona
+        3. Style-based weight adjustments
+        """
         if len(session.persona_decisions) < 2:
             return True
         
-        # Check confidence alignment
-        confidences = [d.confidence for d in session.persona_decisions]
-        avg_confidence = sum(confidences) / len(confidences)
+        # Calculate weights for each persona
+        weights = []
+        weighted_confidences = []
         
-        # Check for major disagreements (confidence spread)
-        confidence_spread = max(confidences) - min(confidences)
+        for decision in session.persona_decisions:
+            weight = self._calculate_persona_weight(decision, session.issue)
+            weights.append(weight)
+            weighted_confidences.append(decision.confidence * weight)
         
-        # Consensus if average confidence > 0.6 and spread < 0.4
-        return avg_confidence > 0.6 and confidence_spread < 0.4
+        total_weight = sum(weights)
+        if total_weight == 0:
+            return False
+        
+        # Weighted average confidence
+        weighted_avg = sum(weighted_confidences) / total_weight
+        
+        # Weighted standard deviation (measures agreement)
+        weighted_variance = sum(
+            w * (c - weighted_avg) ** 2 
+            for w, c in zip(weights, [d.confidence for d in session.persona_decisions])
+        ) / total_weight
+        weighted_std = weighted_variance ** 0.5
+        
+        # Check for semantic agreement (recommendations align)
+        semantic_agreement = self._check_semantic_agreement(session)
+        
+        # Consensus criteria:
+        # 1. Weighted confidence > 0.6
+        # 2. Weighted std < 0.25 (low disagreement)
+        # 3. At least 60% semantic agreement on recommendations
+        consensus = (
+            weighted_avg > 0.6 and
+            weighted_std < 0.25 and
+            semantic_agreement >= 0.6
+        )
+        
+        return consensus
+    
+    def _calculate_persona_weight(self, decision: 'PersonaDecision', issue: str) -> float:
+        """Calculate weight for a persona based on expertise and history."""
+        weight = 1.0  # Base weight
+        
+        persona = self.personas.get(decision.persona_name)
+        if not persona:
+            return weight
+        
+        # Factor 1: Expertise relevance (0-1 bonus)
+        expertise = persona.get_expertise_areas()
+        issue_lower = issue.lower()
+        expertise_matches = sum(1 for e in expertise if e.lower() in issue_lower)
+        if expertise_matches > 0:
+            weight += min(expertise_matches * 0.25, 1.0)
+        
+        # Factor 2: Historical accuracy (0-1 bonus)
+        if hasattr(persona, 'memory') and persona.memory.success_rates:
+            rates = persona.memory.success_rates
+            avg_success = sum(rates.values()) / len(rates)
+            weight += avg_success * 1.0
+        
+        # Factor 3: Style-based adjustments
+        style = persona.get_style()
+        if style == PersonaStyle.CAUTIOUS:
+            # Cautious personas get bonus for risk-related issues
+            if any(kw in issue_lower for kw in ['risk', 'safety', 'security', 'regression']):
+                weight += 0.3
+        elif style == PersonaStyle.AGGRESSIVE:
+            # Aggressive personas get bonus for edge cases
+            if any(kw in issue_lower for kw in ['edge case', 'boundary', '极限', 'corner']):
+                weight += 0.3
+        elif style == PersonaStyle.PRAGMATIC:
+            # Pragmatic personas get bonus for implementation issues
+            if any(kw in issue_lower for kw in ['implement', 'fix', 'deploy', 'ship']):
+                weight += 0.3
+        
+        return weight
+    
+    def _check_semantic_agreement(self, session: CouncilSession) -> float:
+        """Check if persona recommendations semantically agree."""
+        if len(session.persona_decisions) < 2:
+            return 1.0
+        
+        recommendations = [d.recommendation.lower() for d in session.persona_decisions]
+        
+        # Simple semantic check: count common action keywords
+        action_keywords = ['fix', 'refactor', 'test', 'deploy', 'monitor', 'review', 'audit']
+        
+        keyword_counts = {}
+        for rec in recommendations:
+            for kw in action_keywords:
+                if kw in rec:
+                    keyword_counts[kw] = keyword_counts.get(kw, 0) + 1
+        
+        if not keyword_counts:
+            return 0.5  # Neutral if no clear actions
+        
+        # Agreement is max keyword count / total personas
+        max_agreement = max(keyword_counts.values()) / len(session.persona_decisions)
+        return max_agreement
     
     async def execute_action_plan(
         self,
