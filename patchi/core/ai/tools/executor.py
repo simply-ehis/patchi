@@ -43,6 +43,13 @@ class ToolInvocation:
     error: str | None = None
     confirmation_given: bool = False
 
+    @property
+    def duration_ms(self) -> int:
+        """Wall-clock duration of the invocation in milliseconds."""
+        if not self.completed_at:
+            return 0
+        return int((self.completed_at - self.started_at) * 1000)
+
 
 @dataclass
 class ExecutionResult:
@@ -95,6 +102,14 @@ class CLIConfirmationProvider(ConfirmationProvider):
             return response in ("y", "yes")
 
 
+@dataclass
+class StateSnapshot:
+    """Snapshot of file system state for rollback."""
+    id: str
+    files: dict[str, bytes] = field(default_factory=dict)  # path -> content
+    created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+
 class ToolExecutor:
     """
     Executes tool calls with full validation, confirmation, and error handling.
@@ -106,6 +121,8 @@ class ToolExecutor:
     - Structured error handling
     - Audit logging
     - Result normalization for AI consumption
+    - State snapshots and rollback on failure
+    - Tool chain execution with automatic rollback
     """
     
     def __init__(
@@ -125,6 +142,11 @@ class ToolExecutor:
         self.invocation_log: list[ToolInvocation] = []
         self._log_path = root / ".patchi" / "logs" / "tool_invocations.jsonl"
         self._log_path.parent.mkdir(parents=True, exist_ok=True)
+        
+        # Rollback state
+        self._snapshots: dict[str, StateSnapshot] = {}
+        self._snapshot_dir = root / ".patchi" / "snapshots"
+        self._snapshot_dir.mkdir(parents=True, exist_ok=True)
     
     async def execute(
         self,
@@ -355,6 +377,201 @@ class ToolExecutor:
             }
             for t in tools
         ]
+
+    # ── Snapshot & Rollback ─────────────────────────────────────────────────
+
+    def create_snapshot(self, description: str = "") -> str:
+        """Create a snapshot of files that might be modified.
+        
+        Snapshots key project files (config, source, etc.) so they can be
+        restored if a tool chain fails.
+        
+        Returns:
+            Snapshot ID for later rollback.
+        """
+        snapshot_id = str(uuid.uuid4())[:8]
+        files: dict[str, bytes] = {}
+        
+        # Snapshot common tool targets
+        patterns = [
+            "**/*.py",
+            "**/*.yaml",
+            "**/*.yml",
+            "**/*.json",
+            "**/*.toml",
+            "**/*.cfg",
+            "**/*.ini",
+        ]
+        
+        for pattern in patterns:
+            for path in self.root.glob(pattern):
+                # Skip .patchi, .git, __pycache__, node_modules, venv
+                rel = path.relative_to(self.root)
+                parts = rel.parts
+                if any(p.startswith('.') or p in ('__pycache__', 'node_modules', '.venv', 'venv') for p in parts):
+                    continue
+                try:
+                    content = path.read_bytes()
+                    # Only snapshot small files (< 100KB)
+                    if len(content) < 100_000:
+                        files[str(rel)] = content
+                except Exception:
+                    pass
+        
+        snapshot = StateSnapshot(id=snapshot_id, files=files)
+        self._snapshots[snapshot_id] = snapshot
+        
+        # Persist to disk for cross-session rollback
+        snapshot_path = self._snapshot_dir / f"{snapshot_id}.json"
+        try:
+            import base64
+            data = {
+                "id": snapshot_id,
+                "description": description,
+                "created_at": snapshot.created_at,
+                "files": {k: base64.b64encode(v).decode() for k, v in files.items()},
+            }
+            snapshot_path.write_text(json.dumps(data), encoding="utf-8")
+        except Exception as e:
+            _log.warning(f"Failed to persist snapshot: {e}")
+        
+        self.on_progress(f"📸 Snapshot {snapshot_id} created ({len(files)} files)")
+        return snapshot_id
+    
+    def rollback(self, snapshot_id: str) -> bool:
+        """Restore files from a snapshot.
+        
+        Returns:
+            True if rollback succeeded.
+        """
+        snapshot = self._snapshots.get(snapshot_id)
+        if not snapshot:
+            # Try loading from disk
+            snapshot = self._load_snapshot(snapshot_id)
+        
+        if not snapshot:
+            _log.error(f"Snapshot {snapshot_id} not found")
+            return False
+        
+        restored = 0
+        for rel_path, content in snapshot.files.items():
+            full_path = self.root / rel_path
+            try:
+                full_path.parent.mkdir(parents=True, exist_ok=True)
+                full_path.write_bytes(content)
+                restored += 1
+            except Exception as e:
+                _log.warning(f"Failed to restore {rel_path}: {e}")
+        
+        self.on_progress(f"↩️ Rollback {snapshot_id} restored {restored} files")
+        _log.info(f"Rollback {snapshot_id}: restored {restored}/{len(snapshot.files)} files")
+        return True
+    
+    def _load_snapshot(self, snapshot_id: str) -> StateSnapshot | None:
+        """Load a snapshot from disk."""
+        snapshot_path = self._snapshot_dir / f"{snapshot_id}.json"
+        if not snapshot_path.exists():
+            return None
+        
+        try:
+            import base64
+            data = json.loads(snapshot_path.read_text(encoding="utf-8"))
+            files = {k: base64.b64decode(v) for k, v in data["files"].items()}
+            return StateSnapshot(
+                id=data["id"],
+                files=files,
+                created_at=data["created_at"],
+            )
+        except Exception as e:
+            _log.warning(f"Failed to load snapshot {snapshot_id}: {e}")
+            return None
+    
+    async def execute_with_rollback(
+        self,
+        tool_name: str,
+        parameters: dict,
+        invoked_by: str = "user",
+        persona_name: str | None = None,
+    ) -> ExecutionResult:
+        """Execute a tool with automatic snapshot and rollback on failure.
+        
+        Creates a state snapshot before execution, and rolls back if the
+        tool fails.
+        """
+        # Create snapshot before execution
+        snapshot_id = self.create_snapshot(f"pre-{tool_name}")
+        
+        # Execute the tool
+        result = await self.execute(
+            tool_name, parameters, invoked_by, persona_name
+        )
+        
+        # Rollback on failure
+        if not result.success:
+            self.on_progress(f"⚠️ {tool_name} failed, rolling back...")
+            self.rollback(snapshot_id)
+        else:
+            # Clean up old snapshot on success
+            self._cleanup_snapshot(snapshot_id)
+        
+        return result
+    
+    def _cleanup_snapshot(self, snapshot_id: str) -> None:
+        """Remove a snapshot after successful use."""
+        self._snapshots.pop(snapshot_id, None)
+        snapshot_path = self._snapshot_dir / f"{snapshot_id}.json"
+        try:
+            snapshot_path.unlink(missing_ok=True)
+        except Exception:
+            pass
+    
+    async def execute_chain(
+        self,
+        steps: list[dict],
+        invoked_by: str = "user",
+        stop_on_failure: bool = True,
+    ) -> list[ExecutionResult]:
+        """Execute a chain of tools with rollback on failure.
+        
+        Args:
+            steps: List of {"tool": name, "parameters": {...}} dicts
+            invoked_by: Who is invoking the chain
+            stop_on_failure: If True, stop and rollback on first failure
+        
+        Returns:
+            List of ExecutionResult for each step
+        """
+        results = []
+        snapshot_id = self.create_snapshot("chain-pre-execution")
+        
+        for i, step in enumerate(steps):
+            tool_name = step.get("tool")
+            parameters = step.get("parameters", {})
+            
+            self.on_progress(f"🔗 Chain step {i+1}/{len(steps)}: {tool_name}")
+            
+            result = await self.execute(
+                tool_name, parameters, invoked_by
+            )
+            results.append(result)
+            
+            if not result.success and stop_on_failure:
+                self.on_progress(f"❌ Chain failed at step {i+1}, rolling back...")
+                self.rollback(snapshot_id)
+                # Mark remaining steps as skipped
+                for j in range(i + 1, len(steps)):
+                    results.append(ExecutionResult(
+                        success=False,
+                        error=f"Skipped: chain stopped at step {i+1}",
+                    ))
+                break
+        
+        # Clean up snapshot if chain succeeded
+        all_success = all(r.success for r in results)
+        if all_success:
+            self._cleanup_snapshot(snapshot_id)
+        
+        return results
 
 
 # Convenience function for synchronous execution (for non-async contexts)

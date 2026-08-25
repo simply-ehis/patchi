@@ -31,6 +31,7 @@ class ToolParameter:
     required: bool = False
     default: Any = None
     enum: list[str] | None = None
+    items: dict | None = None  # JSON schema for array item types
 
 
 @dataclass
@@ -56,6 +57,8 @@ class ToolDefinition:
             }
             if p.enum:
                 prop["enum"] = p.enum
+            if p.items:
+                prop["items"] = p.items
             if p.default is not None:
                 prop["default"] = p.default
             properties[p.name] = prop
@@ -458,6 +461,127 @@ class ToolRegistry:
             category="web",
             examples=[{"include_charts": True}],
         ), self._handle_get_dashboard_data)
+
+        # ── CLI Command Tools ──────────────────────────────────────────────
+
+        self.register(ToolDefinition(
+            name="p_scan",
+            description="Run 'p scan' — full or targeted brain scan of the project.",
+            parameters=[
+                ToolParameter("area", "string", "Subdirectory to scan (relative to root)", required=False),
+                ToolParameter("deep", "boolean", "Include LLM analysis of changed files", required=False, default=False),
+                ToolParameter("pipeline", "boolean", "Enable detection pipeline (defense actions)", required=False, default=False),
+                ToolParameter("json_output", "boolean", "Output as JSON", required=False, default=False),
+            ],
+            returns="ScanReport with findings, agents run, duration",
+            category="cli",
+            side_effects="Writes scan results to .patchi/",
+            examples=[{"area": "src/auth", "deep": True}],
+        ), self._handle_p_scan)
+
+        self.register(ToolDefinition(
+            name="p_security",
+            description="Run 'p security' — security scan with all agents.",
+            parameters=[
+                ToolParameter("area", "string", "Subdirectory to scan", required=False),
+                ToolParameter("domains", "array", "Specific security domains to run", required=False, items={"type": "string"}),
+                ToolParameter("pipeline", "boolean", "Enable auto-fix pipeline", required=False, default=False),
+                ToolParameter("json_output", "boolean", "Output as JSON", required=False, default=False),
+            ],
+            returns="Security report with correlated findings",
+            category="cli",
+            side_effects="May apply fixes in pipeline mode",
+            examples=[{"domains": ["secrets", "auth"], "pipeline": True}],
+        ), self._handle_p_security)
+
+        self.register(ToolDefinition(
+            name="p_fix",
+            description="Run 'p fix' — apply auto-fixes for findings.",
+            parameters=[
+                ToolParameter("finding_ids", "array", "Specific finding IDs to fix", required=False, items={"type": "string"}),
+                ToolParameter("auto", "boolean", "Auto-apply all safe fixes", required=False, default=False),
+                ToolParameter("dry_run", "boolean", "Preview fixes without applying", required=False, default=False),
+            ],
+            returns="Fix results with applied/failed/skipped counts",
+            category="cli",
+            requires_confirmation=True,
+            side_effects="Modifies source files",
+            examples=[{"auto": True}],
+        ), self._handle_p_fix)
+
+        self.register(ToolDefinition(
+            name="p_test",
+            description="Run 'p test' — run the test suite.",
+            parameters=[
+                ToolParameter("area", "string", "Specific test file or directory", required=False),
+                ToolParameter("type", "string", "Test type: unit, integration, e2e, all", required=False, default="all"),
+                ToolParameter("json_output", "boolean", "Output as JSON", required=False, default=False),
+            ],
+            returns="Test results with pass/fail counts",
+            category="cli",
+            examples=[{"type": "unit"}],
+        ), self._handle_p_test)
+
+        self.register(ToolDefinition(
+            name="p_assure",
+            description="Run 'p assure' — assurance analysis with attackers, campaigns, fuzz.",
+            parameters=[
+                ToolParameter("run_attackers", "boolean", "Run adversarial attackers", required=False, default=False),
+                ToolParameter("run_campaigns", "boolean", "Run state transition campaigns", required=False, default=False),
+                ToolParameter("run_all", "boolean", "Run full assurance suite", required=False, default=False),
+                ToolParameter("json_output", "boolean", "Output as JSON", required=False, default=False),
+            ],
+            returns="Assurance report with claims, attackers, campaigns",
+            category="cli",
+            examples=[{"run_all": True}],
+        ), self._handle_p_assure)
+
+        self.register(ToolDefinition(
+            name="p_deps",
+            description="Run 'p deps' — dependency analysis.",
+            parameters=[
+                ToolParameter("json_output", "boolean", "Output as JSON", required=False, default=False),
+            ],
+            returns="Dependency report with vulnerabilities, outdated packages",
+            category="cli",
+            examples=[{}],
+        ), self._handle_p_deps)
+
+        self.register(ToolDefinition(
+            name="p_findings",
+            description="Run 'p findings' — query and manage findings.",
+            parameters=[
+                ToolParameter("action", "string", "Action: list, summary, save-baseline, compare", required=False, default="list"),
+                ToolParameter("severity", "string", "Filter by severity", required=False),
+                ToolParameter("json_output", "boolean", "Output as JSON", required=False, default=False),
+            ],
+            returns="Findings list or summary",
+            category="cli",
+            examples=[{"action": "summary"}],
+        ), self._handle_p_findings)
+
+        self.register(ToolDefinition(
+            name="p_dev_check",
+            description="Run 'p dev check' — ruff + pytest gate for CI.",
+            parameters=[
+                ToolParameter("json_output", "boolean", "Output as JSON", required=False, default=False),
+            ],
+            returns="Check results with ruff and pytest status",
+            category="cli",
+            examples=[{"json_output": True}],
+        ), self._handle_p_dev_check)
+
+        self.register(ToolDefinition(
+            name="p_report",
+            description="Run 'p report' — generate security report.",
+            parameters=[
+                ToolParameter("format", "string", "Output format: text, json, html, markdown", required=False, default="text"),
+                ToolParameter("output", "string", "Output file path", required=False),
+            ],
+            returns="Security report in requested format",
+            category="cli",
+            examples=[{"format": "json"}],
+        ), self._handle_p_report)
     
     def register(self, definition: ToolDefinition, handler: Callable) -> None:
         """Register a tool with its handler."""
@@ -690,6 +814,119 @@ class ToolRegistry:
             "route_count": brain.get("route_count", 0),
             "framework": brain.get("framework", "Unknown"),
         }
+
+    # ── CLI Command Handlers ────────────────────────────────────────────────
+
+    def _run_cli(self, root: Path, args: list[str], timeout: int = 600) -> dict:
+        """Helper to run a p CLI command."""
+        import subprocess
+        cmd = ["python", "-m", "patchi.cli.main"] + args
+        result = subprocess.run(
+            cmd, capture_output=True, text=True,
+            cwd=str(root), timeout=timeout,
+        )
+        return {
+            "success": result.returncode == 0,
+            "output": result.stdout[:5000],
+            "error": result.stderr[:2000] if result.returncode != 0 else None,
+            "exit_code": result.returncode,
+        }
+
+    def _handle_p_scan(self, root: Path, area: str = None, deep: bool = False,
+                       pipeline: bool = False, json_output: bool = False) -> dict:
+        args = ["scan"]
+        if area:
+            args.append(area)
+        if deep:
+            args.append("--deep")
+        if pipeline:
+            args.append("--pipeline")
+        if json_output:
+            args.append("--json")
+        return self._run_cli(root, args)
+
+    def _handle_p_security(self, root: Path, area: str = None, domains: list[str] = None,
+                           pipeline: bool = False, json_output: bool = False) -> dict:
+        args = ["security"]
+        if area:
+            args.append(area)
+        if pipeline:
+            args.append("--pipeline")
+        if json_output:
+            args.append("--json")
+        return self._run_cli(root, args)
+
+    def _handle_p_fix(self, root: Path, finding_ids: list[str] = None,
+                      auto: bool = False, dry_run: bool = False) -> dict:
+        args = ["fix"]
+        if auto:
+            args.append("--auto")
+        if dry_run:
+            args.append("--dry-run")
+        if finding_ids:
+            for fid in finding_ids:
+                args.extend(["--id", fid])
+        return self._run_cli(root, args)
+
+    def _handle_p_test(self, root: Path, area: str = None, type: str = "all",
+                       json_output: bool = False) -> dict:
+        args = ["test"]
+        if area:
+            args.append(area)
+        if json_output:
+            args.append("--json")
+        return self._run_cli(root, args)
+
+    def _handle_p_assure(self, root: Path, run_attackers: bool = False,
+                         run_campaigns: bool = False, run_all: bool = False,
+                         json_output: bool = False) -> dict:
+        args = ["assure"]
+        if run_all:
+            args.append("--run-all")
+        elif run_attackers or run_campaigns:
+            if run_attackers:
+                args.append("--run-attackers")
+            if run_campaigns:
+                args.append("--run-campaigns")
+        if json_output:
+            args.append("--json")
+        return self._run_cli(root, args)
+
+    def _handle_p_deps(self, root: Path, json_output: bool = False) -> dict:
+        args = ["deps"]
+        if json_output:
+            args.append("--json")
+        return self._run_cli(root, args, timeout=120)
+
+    def _handle_p_findings(self, root: Path, action: str = "list",
+                           severity: str = None, json_output: bool = False) -> dict:
+        args = ["findings"]
+        if action == "summary":
+            args.append("--summary")
+        elif action == "save-baseline":
+            args.append("--save-baseline")
+        elif action == "compare":
+            args.append("--compare")
+        if severity:
+            args.extend(["--severity", severity])
+        if json_output:
+            args.append("--json")
+        return self._run_cli(root, args, timeout=120)
+
+    def _handle_p_dev_check(self, root: Path, json_output: bool = False) -> dict:
+        args = ["dev", "check"]
+        if json_output:
+            args.append("--json")
+        return self._run_cli(root, args)
+
+    def _handle_p_report(self, root: Path, format: str = "text",
+                         output: str = None) -> dict:
+        args = ["report"]
+        if format != "text":
+            args.extend(["--format", format])
+        if output:
+            args.extend(["--output", output])
+        return self._run_cli(root, args, timeout=120)
 
 
 # Global registry instance
