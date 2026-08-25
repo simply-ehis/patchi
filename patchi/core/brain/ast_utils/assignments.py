@@ -8,13 +8,13 @@ value (e.g. a secret, a user-controlled string) flows into code.
 
 from __future__ import annotations
 
-from .config import Lang
-from .helpers import child_by_field, children, node_text
-from .scan import _slice, scan_python
+import logging
+
 from patchi.core.brain.languages import get_parser
 
+from .config import Lang
+from .helpers import child_by_field, children, node_text
 
-import logging
 _log = logging.getLogger("patchi.brain.assignments")
 
 def find_assignments(content: str, lang: Lang) -> list[dict]:
@@ -48,18 +48,32 @@ def find_assignments(content: str, lang: Lang) -> list[dict]:
 # ── Python ────────────────────────────────────────────────────────────────────
 
 def _find_assignments_python(content: str) -> list[dict]:
-    """Filter the cached single-pass scan; same nodes/fields as the old walker."""
-    scan = scan_python(content)
-    lines = scan["lines"]
+    """Walk the AST for variable assignments."""
+    import ast
+
+    try:
+        tree = ast.parse(content)
+    except SyntaxError:
+        return []
+
+    src_lines = content.splitlines()
     results: list[dict] = []
-    for a in scan["assignments"]:
-        value = _slice(lines, a["value_start"], a["value_end"]).strip() if a["value_start"] else ""
-        results.append({
-            "target": a["target"],
-            "value": value,
-            "line": a["line"],
-            "full_text": _slice(lines, a["start"], a["end"]),
-        })
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Assign):
+            for target in node.targets:
+                if isinstance(target, ast.Name):
+                    line_no = node.lineno
+                    full_text = src_lines[line_no - 1] if 0 < line_no <= len(src_lines) else ""
+                    try:
+                        value = ast.unparse(node.value)
+                    except Exception:
+                        value = ""
+                    results.append({
+                        "target": target.id,
+                        "value": value,
+                        "line": line_no,
+                        "full_text": full_text,
+                    })
     return results
 
 

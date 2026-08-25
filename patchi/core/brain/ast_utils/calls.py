@@ -4,15 +4,15 @@ AST utilities — function/method call finding across languages.
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
-from .config import CALL_NODE_TYPES
-from .helpers import child_by_field, children, node_text, _leaf_name
-from .scan import _slice, scan_python
 from patchi.core.brain.languages import Lang, get_parser
 
+from .config import CALL_NODE_TYPES
+from .helpers import _leaf_name, child_by_field, children, node_text
+from .scan import scan_python
 
-import logging
 _log = logging.getLogger("patchi.brain.calls")
 
 def find_calls(content: str, lang: Lang, names: set[str]) -> list[dict]:
@@ -42,19 +42,26 @@ def find_calls(content: str, lang: Lang, names: set[str]) -> list[dict]:
 
 
 def _find_calls_python(content: str, names: set[str]) -> list[dict]:
-    """Filter the cached single-pass scan; same nodes/fields as the old walker."""
-    scan = scan_python(content)
-    lines = scan["lines"]
+    """Filter the single-pass scan for matching call names."""
+    from pathlib import Path as _Path
+    scan = scan_python(content, file_path=_Path("<ast_utils>"))
     results: list[dict] = []
-    for call in scan["calls"]:
-        fn = call["name"]
+    for call in scan.get("calls", []):
+        fn = call.get("function", call.get("name", ""))
         leaf = _leaf_name(fn)
         if fn in names or leaf in names:
+            # Compute full text from source lines
+            line_no = call.get("line", 0)
+            full_text = ""
+            if content and line_no > 0:
+                src_lines = content.splitlines()
+                if 0 < line_no <= len(src_lines):
+                    full_text = src_lines[line_no - 1]
             results.append({
                 "name": fn,
-                "line": call["line"],
-                "col": call["col"],
-                "full_text": _slice(lines, call["start"], call["end"]) if content else "",
+                "line": line_no,
+                "col": call.get("col", 0),
+                "full_text": full_text,
             })
     return results
 
