@@ -206,6 +206,38 @@ def run(
                 scope = list(report.import_graph.nodes) if report.import_graph else []
                 agent_results = coord.run_all_scanners(scope=scope if area else None, side=side)
 
+                # ── Self-profiling: record per-agent latency/cost ──────────
+                try:
+                    from patchi.core.ai.agent_profiler import record_run, record_tokens
+                    from patchi.core.agents.coordinator import merge_results as _pmr
+                    _pm = _pmr(agent_results)
+                    for ar in (agent_results or []):
+                        aname = getattr(ar, 'agent_name', type(ar).__name__)
+                        acount = getattr(ar, 'finding_count', 0)
+                        with record_run(r, aname, files_scanned=acount) as run:
+                            run.findings_produced = acount
+                except Exception:
+                    pass  # profiling is best-effort
+
+                # ── Attack feedback loop: feed findings into learning ──────
+                try:
+                    from patchi.core.security.attack_feedback import (
+                        record_confirmed_attack, record_false_positive,
+                    )
+                    from patchi.core.agents.coordinator import merge_results as _fbr
+                    _fb = _fbr(agent_results)
+                    for f in _fb.get('findings', []):
+                        if f.get('severity') in ('critical', 'high'):
+                            record_confirmed_attack(r, {
+                                'tool': f.get('agent', 'unknown'),
+                                'payload': f.get('message', ''),
+                                'endpoint': f.get('file', ''),
+                                'severity': f.get('severity', 'medium'),
+                                'evidence': f.get('message', ''),
+                            })
+                except Exception:
+                    pass  # feedback is best-effort
+
                 # Mark all tasks complete
                 for tid in tasks.values():
                     progress.update(tid, completed=100, total=100)
@@ -238,11 +270,14 @@ def run(
     _scan_elapsed = time.monotonic() - _scan_start
     _show_report_summary(report, agent_results, wall_time=_scan_elapsed, root=r)
 
-    # ── Threat Model Generation ─────────────────────────────────────────────
+    # ── Threat Model Generation (auto-updated from findings) ────────────────
     try:
-        from patchi.core.security.threat_model_generator import ThreatModelGenerator
-        tm_gen = ThreatModelGenerator(r)
-        threat_model = tm_gen.generate()
+        from patchi.core.security.threat_model_updater import update_threat_model
+        from patchi.core.agents.coordinator import merge_results as _mr
+        _findings_for_tm = (
+            _mr(agent_results).get("findings", []) if agent_results else []
+        )
+        threat_model = update_threat_model(r, _findings_for_tm)
         if threat_model.applicable_scenarios > 0:
             con.print()
             con.print("[bold #C8621A]─ Threat Model ─[/bold #C8621A]")
