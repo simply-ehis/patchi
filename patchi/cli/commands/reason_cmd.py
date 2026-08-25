@@ -73,17 +73,36 @@ def run_why(path: str, root: Path | None = None) -> None:
     con.print()
 
 
-def run_impact(files: list[str], root: Path | None = None) -> None:
-    """p impact <file> [<file> ...] — change-impact / blast-radius report."""
+def run_impact(
+    files: list[str] | None = None,
+    show_all: bool = False,
+    root: Path | None = None,
+) -> None:
+    """p impact <file> [<file> ...] — change-impact / blast-radius report.
+
+    Canonical home of blast-radius analysis (absorbs the former
+    `p blast` command: --all lists every file's radius).
+    """
     try:
         r = root or require_project_root()
     except RuntimeError as e:
         con.print(f"[red]{e}[/red]")
         return
 
+    if show_all:
+        from patchi.cli.commands.blast_cmd import _build_graph, _show_all_blast_radii
+
+        graph = _build_graph(r)
+        if not graph.nodes:
+            con.print("[yellow]No import graph data. Run `p scan` first.[/yellow]")
+            return
+        _show_all_blast_radii(graph, r)
+        return
+
     if not files:
         con.print("[red]Provide at least one changed file, e.g.[/red] "
-                  "[bold]p impact src/api/routes.py[/bold]")
+                  "[bold]p impact src/api/routes.py[/bold] "
+                  "[dim](or p impact --all)[/dim]")
         return
 
     engine = ReasoningEngine(r)
