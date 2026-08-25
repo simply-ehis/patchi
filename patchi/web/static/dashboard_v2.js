@@ -375,9 +375,27 @@
 
         const quickScan = $('#quickScan');
         if (quickScan) {
-            quickScan.addEventListener('click', () => {
-                send({ action: 'start_scan', data: {} });
-                addFeedEntry('brain', 'Quick scan started...', '');
+            quickScan.addEventListener('click', async () => {
+                quickScan.disabled = true;
+                quickScan.querySelector('span').textContent = 'Scanning…';
+                try {
+                    const resp = await fetch('/api/scan/quick', { method: 'POST' });
+                    const data = await resp.json();
+                    if (data.ok) {
+                        const n = data.agents_queued ? data.agents_queued.length : 0;
+                        const d = data.domains ? Object.keys(data.domains).length : 0;
+                        addFeedEntry('brain',
+                            `Quick scan: ${n} agents, ${d} domains, ${data.changed_files ? data.changed_files.length : 0} files changed`,
+                            '');
+                    } else {
+                        addFeedEntry('brain', `Quick scan failed: ${data.error}`, '');
+                    }
+                } catch (e) {
+                    addFeedEntry('brain', `Quick scan error: ${e.message}`, '');
+                } finally {
+                    quickScan.disabled = false;
+                    quickScan.querySelector('span').textContent = 'Scan';
+                }
             });
         }
 

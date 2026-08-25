@@ -72,6 +72,70 @@ async def trigger_scan(request: Request, scan_type: str = "all") -> JSONResponse
     return JSONResponse({"ok": True, "message": f"Scan started with {len(to_run)} agents"})
 
 
+@router.post("/scan/quick")
+async def quick_scan(request: Request) -> JSONResponse:
+    """On-demand scan: runs only agents relevant to git-diff changed files."""
+    root = request.app.state.root
+
+    try:
+        import patchi.core.agents.scanners  # noqa: F401
+        from patchi.core.agents.base import AgentGroup, list_agents
+        from patchi.core.security.domain_activator_v2 import DomainActivatorV2
+        from patchi.core.security.git_diff_activator import activate_from_diff
+
+        # 1. Activate domains from git diff
+        diff_result = activate_from_diff(root, commits=1)
+        if diff_result.error:
+            return JSONResponse({"ok": False, "error": diff_result.error})
+
+        # 2. Map domains to agents
+        activator = DomainActivatorV2(root)
+        relevant = activator.get_relevant_agents(
+            list(diff_result.activated_domains.keys())
+        )
+        relevant.extend(["PreCheckAgent", "PlanAuditorAgent"])
+        relevant = list(dict.fromkeys(relevant))
+
+        all_agents = {a.name: a for a in list_agents(AgentGroup.SCANNER)}
+        to_run = [all_agents[n] for n in relevant if n in all_agents]
+
+        if not to_run:
+            return JSONResponse({
+                "ok": True,
+                "message": "No agents match changed files",
+                "changed_files": diff_result.changed_files,
+                "domains": diff_result.activated_domains,
+                "agents_run": 0,
+            })
+
+        # 3. Run filtered agents
+        from patchi.core import config as cfg
+        from patchi.core import memory as mem
+        config = cfg.load(root) if root.exists() else {}
+        brain = mem.get_brain(root)
+
+        async def _run():
+            results = []
+            for agent_cls in to_run:
+                inp = AgentInput(root=root, scope=[], brain=brain, config=config)
+                result = await asyncio.to_thread(agent_cls().run, inp)
+                results.append(result)
+            total = sum(r.finding_count for r in results)
+            await evt_scan_complete(total, 0)
+
+        asyncio.create_task(_run())
+
+        return JSONResponse({
+            "ok": True,
+            "message": f"Quick scan started: {len(to_run)} agents",
+            "changed_files": diff_result.changed_files[:20],
+            "domains": diff_result.activated_domains,
+            "agents_queued": [a.name for a in to_run],
+        })
+
+    except Exception as e:
+        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
 @router.get("/findings-table")
 async def get_findings(request: Request, limit: int = 20) -> HTMLResponse:
     """Get recent findings as HTML fragment."""
