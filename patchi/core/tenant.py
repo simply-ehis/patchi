@@ -136,15 +136,35 @@ class TenantManager:
           - one level of children of the parent (workspace folders)
 
         Only directories containing .patchi/ count. Bounded scan — never
-        walks the whole filesystem.
+        walks the whole filesystem, and never scans the system temp tree
+        (test fixtures would flood the results).
         """
+        import tempfile
+
         base = (near or Path.cwd()).resolve()
         candidates: dict[str, Path] = {}
         roots_to_scan: list[Path] = []
 
         for candidate_base in (base, base.parent, base.parent.parent):
-            if candidate_base.is_dir() and candidate_base not in roots_to_scan:
+            if not candidate_base.is_dir():
+                continue
+            if candidate_base not in roots_to_scan:
                 roots_to_scan.append(candidate_base)
+
+        # The system temp tree is full of throwaway test fixtures — exclude it
+        # and everything beneath it from discovery.
+        try:
+            sys_temp = Path(tempfile.gettempdir()).resolve()
+
+            def _in_temp(p: Path) -> bool:
+                try:
+                    return p == sys_temp or sys_temp in p.parents
+                except OSError:
+                    return False
+
+            roots_to_scan = [r for r in roots_to_scan if not _in_temp(r)]
+        except Exception:
+            pass
 
         for scan_root in roots_to_scan:
             try:
@@ -152,6 +172,8 @@ class TenantManager:
                     if len(candidates) >= limit:
                         break
                     if not child.is_dir() or child.name.startswith("."):
+                        continue
+                    if _in_temp(child):
                         continue
                     if (child / ".patchi").is_dir():
                         key = str(child.resolve())
@@ -295,3 +317,42 @@ def get_all_tenant_costs() -> dict[str, float]:
     """Get costs for all tenants."""
     with tenant_costs_lock:
         return dict(_tenant_costs)
+
+
+def check_tenant_cost_alert(root: Path, config: dict | None = None) -> dict | None:
+    """Check if per-tenant spending exceeds the configured limit.
+
+    Returns a dict with alert info if threshold exceeded, None otherwise.
+
+    Config keys (under ``ai``):
+      cost_limit          — dollar amount that triggers the alert (default 10.0)
+      cost_warn_pct       — percentage of limit that triggers warning (default 80)
+    """
+    cfg = config or {}
+    ai_cfg = cfg.get("ai", {})
+    limit = float(ai_cfg.get("cost_limit", 10.0))
+    warn_pct = float(ai_cfg.get("cost_warn_pct", 80))
+
+    if limit <= 0:
+        return None
+
+    spent = get_tenant_cost(root)
+    pct = (spent / limit) * 100 if limit > 0 else 0
+
+    if pct >= 100:
+        return {
+            "level": "critical",
+            "message": f"AI budget exhausted: ${spent:.2f} / ${limit:.2f}",
+            "spent": spent,
+            "limit": limit,
+            "pct": round(pct, 1),
+        }
+    elif pct >= warn_pct:
+        return {
+            "level": "warning",
+            "message": f"AI spending at {pct:.0f}% of budget: ${spent:.2f} / ${limit:.2f}",
+            "spent": spent,
+            "limit": limit,
+            "pct": round(pct, 1),
+        }
+    return None

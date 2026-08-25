@@ -37,6 +37,16 @@ async def dashboard_v2(request: Request):
     brain = mem.get_brain(root)
     health = brain.get("health_score", {})
 
+    # Check cost threshold alert
+    cost_alert = None
+    try:
+        from patchi.core.config import load as load_config
+        from patchi.core.tenant import check_tenant_cost_alert
+        cfg = load_config(root)
+        cost_alert = check_tenant_cost_alert(root, cfg)
+    except Exception:
+        pass
+
     # Get recent scan results for live feed
     scan_results = mem.get_scan_results(root)
     recent_findings = []
@@ -66,6 +76,7 @@ async def dashboard_v2(request: Request):
             "project_purpose": brain.get("project_purpose", ""),
             "project_domain": brain.get("project_domain", ""),
             "mode": _safe_mode(root),
+            "cost_alert": cost_alert,
         },
     )
 
@@ -284,18 +295,33 @@ async def _handle_ws_message(ws: WebSocket, root: Path, raw: str):
             })
 
         elif action == "start_scan":
-            # Trigger a scan
-            from patchi.core.brain.brain import Brain
-            brain = Brain(root)
-            report = brain.scan()
-            await ws.send_json({
-                "event": "scan_completed",
-                "data": {
-                    "file_count": report.file_count,
-                    "route_count": report.route_count,
-                    "duration": report.duration_seconds,
-                },
-            })
+            # 1:1 with the CLI: run the actual `p scan` pipeline, not a
+            # stripped-down Brain.scan(). Results are read back from memory
+            # because the CLI handler reports via rich console instead of
+            # returning values. Offloaded to a thread so the socket stays live.
+            import asyncio as _asyncio
+
+            def _cli_scan():
+                from patchi.cli.commands.scan_cmd import run as cli_scan
+
+                cli_scan(root=root, quiet=True, no_logo=True)
+
+            try:
+                await _asyncio.to_thread(_cli_scan)
+                brain_mem = mem.get_brain(root)
+                scans = mem.get_scan_results(root)
+                brain_meta = scans.get("Brain", {})
+                await ws.send_json({
+                    "event": "scan_completed",
+                    "data": {
+                        "file_count": brain_mem.get("file_count", 0),
+                        "route_count": brain_mem.get("route_count", 0),
+                        "duration": brain_meta.get("duration", 0),
+                    },
+                })
+            except Exception as e:
+                _log.error("CLI scan failed: %s", e)
+                await ws.send_json({"event": "error", "data": {"message": f"Scan failed: {e}"}})
 
         elif action == "start_red_team":
             # Trigger red team assessment

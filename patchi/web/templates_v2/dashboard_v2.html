@@ -80,6 +80,19 @@
             </div>
             
             <div class="header-center">
+                {% if cost_alert %}
+                <div style="display:flex;align-items:center;gap:8px;padding:6px 14px;border-radius:8px;font-size:12px;font-weight:600;{% if cost_alert.level == 'critical' %}background:#ef444420;color:#ef4444;border:1px solid #ef444440{% else %}background:#eab30820;color:#eab308;border:1px solid #eab30840{% endif %}" id="costAlert" role="alert">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;flex-shrink:0">
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                        <line x1="12" y1="9" x2="12" y2="13"/>
+                        <line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                    {{ cost_alert.message }}
+                    <div style="width:80px;height:4px;background:var(--bg-tertiary);border-radius:2px;overflow:hidden">
+                        <div style="width:{{ cost_alert.pct }}%;height:100%;background:{% if cost_alert.level == 'critical' %}#ef4444{% else %}#eab308{% endif %};border-radius:2px"></div>
+                    </div>
+                </div>
+                {% endif %}
                 <div class="health-indicator" id="healthIndicator">
                     <div class="health-score" id="healthScore">{{ health_score }}</div>
                     <div class="health-grade" id="healthGrade">{{ health_grade }}</div>
