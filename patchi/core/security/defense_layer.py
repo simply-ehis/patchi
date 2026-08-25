@@ -133,6 +133,11 @@ class DefenseLayer:
         self.config = config or {}
         self.risk_gate = RiskGate(root)
 
+    @classmethod
+    def _finding_to_action_map(cls) -> dict[str, str]:
+        """Return the finding-type → action-type mapping."""
+        return _FINDING_TYPE_TO_ACTION.copy()
+
     def defend_all(self, findings: list) -> list[DefendResult]:
         """Defend against all high-confidence findings. Returns results list."""
         results: list[DefendResult] = []

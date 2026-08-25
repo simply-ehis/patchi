@@ -358,8 +358,12 @@ def run(
         con.print("[bold #C8621A]─ Defense Pipeline ─[/bold #C8621A]")
         try:
             from patchi.core.security.defense_layer import DefenseLayer
+            from patchi.core.security.defenders import ADAPTER_REGISTRY, DefenseAction, get_adapter
             from patchi.core.security.detection_pipeline import DetectionPipeline
             from patchi.core.security.orchestrator import SecurityOrchestrator
+
+            con.print(f"  [dim]Adapter registry: {len(ADAPTER_REGISTRY)} adapters loaded[/dim]")
+
             sec_group_names = {a.name for a in list_agents(AgentGroup.SECURITY)}
             sec_group_names.update({
                 "DependencyScanner",
@@ -392,14 +396,51 @@ def run(
                     + (f" ({cats})" if cats else "")
                 )
             if gated.defend:
-                defense = DefenseLayer(r, cfg.load(r))
-                results = defense.defend_all(gated.defend)
+                # Use adapter registry directly for each finding
+                from patchi.core.fix.risk_gate import RiskGate
+                risk_gate = RiskGate(r)
+                results = []
+                action_counts = {"applied": 0, "queued": 0, "blocked": 0, "skipped": 0}
+                for gf in gated.defend:
+                    f = gf.finding
+                    ftype = f.type.lower()
+                    # Map finding type to action type
+                    action_type = None
+                    for key, val in DefenseLayer._finding_to_action_map().items():
+                        if key in ftype or ftype in key:
+                            action_type = val
+                            break
+                    if action_type is None:
+                        action_type = "escalate"
+
+                    target = f.file
+                    if action_type == "block_ip":
+                        target = f.extra.get("ip", "") if hasattr(f, "extra") and isinstance(f.extra, dict) else ""
+
+                    action = DefenseAction(
+                        type=action_type,
+                        target=target,
+                        finding=f,
+                        severity=f.severity.value if hasattr(f.severity, "value") else str(f.severity),
+                        fix_code=f.suggestion or "",
+                    )
+                    adapter = get_adapter(action_type, root=r, risk_gate=risk_gate)
+                    result = adapter.execute(action)
+                    results.append(result)
+                    action_counts[result.action] = action_counts.get(result.action, 0) + 1
+
                 con.print(
-                    f"  Defense actions applied: [bold]{sum(1 for d in results if d.status == 'applied')}/{len(results)}[/bold]"
+                    f"  Defense actions: [bold]{action_counts['applied']}[/bold] applied, "
+                    f"[bold]{action_counts['queued']}[/bold] queued, "
+                    f"[bold]{action_counts['blocked']}[/bold] blocked, "
+                    f"[bold]{action_counts['skipped']}[/bold] skipped"
                 )
                 for d in results:
-                    if d.status == "applied":
-                        con.print(f"    [green]✓[/green] {d.action} → {d.target}")
+                    if d.action == "applied":
+                        adapter_name = type(d.defense_action).__name__ if d.defense_action else "?"
+                        con.print(f"    [green]✓[/green] {d.defense_action.type} → {d.defense_action.target} (via {adapter_name})")
+                    elif d.action == "queued":
+                        con.print(f"    [yellow]⏳[/yellow] {d.defense_action.type} → queued for review")
             else:
                 con.print("  [dim]No actionable defense findings.[/dim]")
         except Exception as e:
