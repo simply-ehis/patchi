@@ -96,8 +96,13 @@ def run(
             con.print()
 
     # ── Dry run ───────────────────────────────────────────────────────────────
-    if dry_run:
+    if dry_run and not changed:
         _show_dry_run(r, area)
+        return
+
+    # ── Changed dry-run mode ──────────────────────────────────────────────
+    if changed and dry_run:
+        _show_changed_dry_run(r, changed_commits)
         return
 
     # ── Handle file-specific deep scan ────────────────────────────────────────
@@ -1314,6 +1319,79 @@ def _run_contract_confirmation(root: Path, report: BrainReport, all_flows: bool 
         f"[bold]{len(confirmed)}[/bold] flow(s) protected."
     )
     con.print("[dim]Every fix will check against this contract before applying.[/dim]")
+
+def _show_changed_dry_run(root: Path, commits: int) -> None:
+    """Show what --changed would activate without actually scanning."""
+    from patchi.core.agents.base import AgentGroup
+    from patchi.core.agents.base import list_agents as _la
+    from patchi.core.security.domain_activator_v2 import DomainActivatorV2
+    from patchi.core.security.git_diff_activator import activate_from_diff
+
+    con.print()
+    con.print("[bold #C8621A]── Changed Dry-Run ──[/bold #C8621A]")
+    con.print()
+
+    # 1. Show changed files
+    diff_result = activate_from_diff(root, commits=commits)
+    if diff_result.error:
+        con.print(f"  [yellow]{diff_result.error}[/yellow]")
+        return
+
+    con.print(f"  [bold]Changed files:[/bold] {len(diff_result.changed_files)} (from last {commits} commit{'s' if commits > 1 else ''})")
+    con.print()
+
+    # Group changed files by extension
+    ext_groups: dict[str, list[str]] = {}
+    for fp in diff_result.changed_files:
+        ext = Path(fp).suffix or "(no ext)"
+        ext_groups.setdefault(ext, []).append(fp)
+    for ext in sorted(ext_groups, key=lambda e: -len(ext_groups[e])):
+        con.print(f"    [dim]{ext}:[/dim] {len(ext_groups[ext])} files")
+    con.print()
+
+    # 2. Show activated domains
+    if diff_result.activated_domains:
+        con.print(f"  [bold]Activated domains:[/bold] {len(diff_result.activated_domains)}")
+        con.print()
+        table = Table(show_header=True, header_style="bold #C8621A", box=None)
+        table.add_column("Domain")
+        table.add_column("Score", justify="right")
+        table.add_column("Agents", style="dim")
+        for domain, score in sorted(diff_result.activated_domains.items(), key=lambda x: -x[1]):
+            try:
+                activator = DomainActivatorV2(root)
+                agents = activator.get_relevant_agents([domain])
+                agent_str = ", ".join(agents[:4])
+                if len(agents) > 4:
+                    agent_str += f" +{len(agents) - 4}"
+            except Exception:
+                agent_str = "(unknown)"
+            score_color = "red" if score >= 0.8 else "yellow" if score >= 0.5 else "dim"
+            table.add_row(domain, f"[{score_color}]{score:.1f}[/{score_color}]", agent_str)
+        con.print(table)
+    else:
+        con.print("  [dim]No domain-relevant changes detected.[/dim]")
+    con.print()
+
+    # 3. Show total agent count
+    all_scanner_agents = _la(AgentGroup.SCANNER)
+    if diff_result.activated_domains:
+        try:
+            activator = DomainActivatorV2(root)
+            relevant = activator.get_relevant_agents(list(diff_result.activated_domains.keys()))
+            relevant.extend(["PreCheckAgent", "PlanAuditorAgent"])
+            relevant = list(dict.fromkeys(relevant))  # dedupe preserving order
+            would_run = [a for a in all_scanner_agents if getattr(a, "name", "") in relevant]
+            skipped = len(all_scanner_agents) - len(would_run)
+            con.print(f"  [bold]Would run:[/bold] {len(would_run)} agents [dim](skipping {skipped})[/dim]")
+            con.print()
+            con.print("  [dim]Run without --dry-run to execute the scan.[/dim]")
+        except Exception:
+            con.print(f"  [dim]Would run all {len(all_scanner_agents)} agents (activation failed)[/dim]")
+    else:
+        con.print(f"  [dim]Would run all {len(all_scanner_agents)} agents (no diff match)[/dim]")
+    con.print()
+
 
 def _show_dry_run(root: Path, area: str | None) -> None:
     """Show what would be scanned without actually scanning."""
