@@ -79,9 +79,10 @@ async def quick_scan(request: Request) -> JSONResponse:
 
     try:
         import patchi.core.agents.scanners  # noqa: F401
-        from patchi.core.agents.base import AgentGroup, list_agents
+        from patchi.core.agents.base import AgentGroup, AgentInput, list_agents
         from patchi.core.security.domain_activator_v2 import DomainActivatorV2
         from patchi.core.security.git_diff_activator import activate_from_diff
+        from patchi.web.ws import evt_scan_complete
 
         # 1. Activate domains from git diff
         diff_result = activate_from_diff(root, commits=1)

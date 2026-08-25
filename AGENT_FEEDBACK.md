@@ -31,3 +31,30 @@
 - `fix/verify_loop.py`: governor imported `recheck_test_file` which did not
   exist anywhere — implemented per the call contract in
   `governor._recheck_applied_patches` and the mocks in `test_governor_v2.py`.
+
+### ENV-03: Concurrent external writes to this repo (IMPORTANT)
+- **Symptom:** Files reverted/rewritten mid-session multiple times:
+  `constants.py` lost AI_HORDE_* constants (20:04), `dashboard_v2.py` and
+  `web_cmd.py` + templates reverted to pre-merge state (20:27), while
+  `registry.py`, `app.py` kept newer content - leaving mismatched pairs that
+  crashed (`p web` args vs archived stub).
+  New externally-authored modules also appeared mid-session
+  (`ai/tools/realize.py`, `routes/live_testing.py`, `routes/self_improvement.py`,
+  `api/cicd.py`, `api/assurance*`, tenant router).
+- **Impact:** Verification flip-flopped between runs; several broken imports
+  and 500s traced to these partial reverts, not to merge code.
+- **Likely cause:** Another agent/editor session or a file-sync tool running
+  against this directory simultaneously.
+- **Recommendation:** Close other sessions/sync before further changes; this
+  session's final state was verified green AFTER the last observed revert.
+
+### Fixed during verification round 2
+- registry.py `learning` command: `args=Arg(...)` single value instead of
+  tuple -> argparse build crash for EVERY CLI invocation.
+- api/cicd.py called nonexistent `mem.load_scan_results` -> `get_scan_results`.
+- routes/self_improvement.py 500: profiler summary missing keys on empty
+  state -> agent_profiler.get_profile_summary now returns full key set.
+- POST /api/hosted/init duplicate definition (legacy shadowed module API)
+  -> legacy copy removed, canonical one in api/hosted.py.
+- /live-testing page had invalid TemplateResponse signature (never worked)
+  -> now redirects to unified /live-tests.

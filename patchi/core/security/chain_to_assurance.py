@@ -69,7 +69,7 @@ def feed_chains_to_graph(root: Path) -> int:
             f"({len(steps)} steps, severity={severity}, score={score:.0f})"
         )
 
-        claim = graph.upsert_claim(
+        graph.upsert_claim(
             claim_id=claim_id,
             statement=statement,
             domain="exploit-chain",
@@ -130,7 +130,7 @@ def feed_chains_to_graph(root: Path) -> int:
             claim_id = f"intent-gap-{cat_key}"
             statement = f"{description} ({len(routes)} routes)"
 
-            claim = graph.upsert_claim(
+            graph.upsert_claim(
                 claim_id=claim_id,
                 statement=statement,
                 domain="intent-gap",

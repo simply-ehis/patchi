@@ -127,6 +127,44 @@ class TenantManager:
             return True
         return False
 
+    def discover_projects(self, near: Path | None = None, max_depth: int = 2, limit: int = 25) -> list[Path]:
+        """Find Patchi projects on disk near a reference directory.
+
+        Search bases (deduplicated):
+          - the reference dir itself and its parent (siblings pattern:
+            ~/repos/project-a while viewing project-b)
+          - one level of children of the parent (workspace folders)
+
+        Only directories containing .patchi/ count. Bounded scan — never
+        walks the whole filesystem.
+        """
+        base = (near or Path.cwd()).resolve()
+        candidates: dict[str, Path] = {}
+        roots_to_scan: list[Path] = []
+
+        for candidate_base in (base, base.parent, base.parent.parent):
+            if candidate_base.is_dir() and candidate_base not in roots_to_scan:
+                roots_to_scan.append(candidate_base)
+
+        for scan_root in roots_to_scan:
+            try:
+                for child in sorted(scan_root.iterdir()):
+                    if len(candidates) >= limit:
+                        break
+                    if not child.is_dir() or child.name.startswith("."):
+                        continue
+                    if (child / ".patchi").is_dir():
+                        key = str(child.resolve())
+                        candidates.setdefault(key, child)
+                # Also the scan root itself may be a project
+                if (scan_root / ".patchi").is_dir():
+                    key = str(scan_root.resolve())
+                    candidates.setdefault(key, scan_root)
+            except (PermissionError, OSError):
+                continue
+
+        return list(candidates.values())
+
     def update_stats(self, root: Path, **kwargs) -> None:
         """Update tenant statistics."""
         key = str(root.resolve())

@@ -17,14 +17,10 @@ from patchi.core.ai.smart import run_smart_agent
 
 
 def _resolve_root() -> Path:
-    try:
-        from patchi.core.config import find_project_root
-
-        root = find_project_root()
-        if root is not None:
-            return root
-    except Exception:
-        pass
+    # `p smart` analyzes the project you are standing in. We deliberately use
+    # the current working directory rather than find_project_root(): a global
+    # ~/.patchi (or a stray ancestor .patchi, e.g. the user's home dir) would
+    # otherwise pull the *entire* home tree into a tool like run_tests and hang.
     return Path.cwd()
 
 

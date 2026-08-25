@@ -102,13 +102,32 @@ def main() -> int:
     if not ready:
         return _summary()
 
-    # 1-3: pages render
+    # 1: MERGED UI - / is the unified Mission Control; /v2 aliases forward to it
+    status, landing = http_get("/")
+    check(
+        "GET / -> unified Mission Control",
+        status == 200 and "Mission Control" in landing,
+        f"status={status}",
+    )
     status, body = http_get("/v2")
-    check("GET /v2 dashboard", status == 200 and "Mission Control" in body, f"status={status}")
-    status, body = http_get("/v2/council")
-    check("GET /v2/council", status == 200 and "Council" in body, f"status={status}")
-    status, body = http_get("/v2/brain-map")
-    check("GET /v2/brain-map", status == 200, f"status={status}")
+    alias_ok = status in (200, 307) and ("Mission Control" in body or body == "")
+    check("GET /v2 -> forwards to /", alias_ok, f"status={status}")
+
+    # v1 workflow pages + v2 intelligence pages + hosted, all under one nav
+    for path, marker in (
+        ("/findings", None), ("/review", None), ("/chat", None), ("/guard", None),
+        ("/brain-map", None), ("/council", "Council"), ("/attack-timeline", None),
+        ("/live-tests", None), ("/hosted", "Hosted"),
+    ):
+        status, body = http_get(path)
+        ok = status == 200 and (marker is None or marker in body)
+        check(f"GET {path}", ok, f"status={status}")
+
+    nav_ok = all(f'href="{p}"' in landing for p in (
+        "/brain-map", "/council", "/attack-timeline", "/live-tests",
+        "/findings", "/review", "/chat", "/hosted",
+    ))
+    check("unified nav links all sections", nav_ok)
 
     # Static assets
     status, css = http_get("/static/dashboard_v2.css")

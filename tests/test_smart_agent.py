@@ -28,18 +28,21 @@ def _vuln_project(tmp_path: Path) -> Path:
 def test_planner_security_goal():
     agent = SmartAgent(Path("/nonexistent"))
     plan = agent._plan("audit this project for security vulnerabilities")
-    assert "scan_vulnerabilities" in plan
+    tools = [s["tool"] for s in plan]
+    assert "scan_vulnerabilities" in tools
     # security goals should NOT trigger a test run or stress test by default
-    assert "run_tests" not in plan
+    assert "run_tests" not in tools
 
 
 def test_planner_test_goal():
     agent = SmartAgent(Path("/nonexistent"))
     plan = agent._plan("run the test suite and tell me what failed")
-    assert "run_tests" in plan
+    tools = [s["tool"] for s in plan]
+    assert "run_tests" in tools
 
 
-def test_run_emits_events_and_runs_tools(tmp_path):
+def test_run_emits_events_and_runs_tools(tmp_path, monkeypatch):
+    monkeypatch.setenv("PATCHI_AGENT_TIMEOUT", "8")
     root = _vuln_project(tmp_path)
     events: list[dict] = []
 
@@ -54,9 +57,10 @@ def test_run_emits_events_and_runs_tools(tmp_path):
     executed = {s["tool"] for s in report["steps_executed"]}
     # The planner must have actually run the security scan.
     assert "scan_vulnerabilities" in executed
-    # Live events must have been produced.
+    # Live events must have been produced (sink captures them in event_sample).
     assert len(events) > 0
-    assert any(e["event"].startswith("security.") for e in report.get("events_log", events))
+    emitted = report.get("event_sample", events)
+    assert any(e["event"].startswith("security.") for e in emitted)
 
 
 def test_offline_no_openai_required(tmp_path):

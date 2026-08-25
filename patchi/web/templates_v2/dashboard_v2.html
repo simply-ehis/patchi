@@ -88,6 +88,15 @@
             </div>
             
             <div class="header-right">
+                <div class="project-switcher" id="projectSwitcher" title="Active project">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;flex-shrink:0">
+                        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                    </svg>
+                    <select id="projectSelect" class="mode-select" aria-label="Active project" style="max-width:180px;text-overflow:ellipsis">
+                        <option value="">Loading…</option>
+                    </select>
+                </div>
+
                 <div class="mode-selector">
                     <label for="modeSelect" class="sr-only">Operation Mode</label>
                     <select id="modeSelect" class="mode-select" aria-label="Operation Mode">

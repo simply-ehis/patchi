@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
+from pathlib import Path
 
 from patchi.core.ai import cost_tracker
 
@@ -111,13 +112,13 @@ class ModelRouter:
         max_cost_per_1k: float | None = None,
     ) -> str:
         """Select the best model for the given requirements.
-        
+
         Args:
             complexity: Task complexity level
             require_tools: Whether the model needs function calling
             require_vision: Whether the model needs vision capabilities
             max_cost_per_1k: Maximum cost per 1k tokens (input + output averaged)
-        
+
         Returns:
             Model name string
         """

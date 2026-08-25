@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 
 {% block content %}
 <div style="max-width:1200px;margin:0 auto;padding:20px">
@@ -23,7 +23,7 @@
       <div style="font-size:12px;color:var(--text-secondary)">Findings Produced</div>
     </div>
     <div class="card" style="padding:16px;text-align:center">
-      <div style="font-size:28px;font-weight:700;color:#4ADE80">{{ "%.1f"|format(profile_summary.avg_accuracy * 100) }}%</div>
+      <div style="font-size:28px;font-weight:700;color:#4ADE80">{{ "%.1f"|format((profile_summary.avg_accuracy or 0) * 100) }}%</div>
       <div style="font-size:12px;color:var(--text-secondary)">Avg Accuracy</div>
     </div>
     <div class="card" style="padding:16px;text-align:center">
@@ -76,7 +76,7 @@
               {% else %}<span style="color:var(--text-secondary)">n/a</span>{% endif %}
             </td>
             <td style="text-align:right;font-family:var(--font-mono)">${{ "%.4f"|format(p.total_cost_usd) }}</td>
-            <td style="font-size:12px;color:var(--text-secondary)">{{ p.most_used_model or '—' }}</td>
+            <td style="font-size:12px;color:var(--text-secondary)">{{ p.most_used_model or 'â€”' }}</td>
           </tr>
           {% endfor %}
         </tbody>
@@ -96,7 +96,7 @@
     {% endif %}
     {% else %}
     <div class="empty-state">
-      <div class="empty-state-icon">📊</div>
+      <div class="empty-state-icon">ðŸ“Š</div>
       <div class="empty-state-text">No agent profiles yet. Run a scan to start collecting data.</div>
     </div>
     {% endif %}
@@ -107,7 +107,7 @@
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
       <!-- Acceptances -->
       <div class="card" style="padding:16px">
-        <h4 style="margin-bottom:12px;color:#4ADE80">✅ Accepted Findings</h4>
+        <h4 style="margin-bottom:12px;color:#4ADE80">âœ… Accepted Findings</h4>
         {% if learning.acceptances %}
         {% for ftype, count in learning.acceptances|dictsort(by='value', reverse=true) %}
         <div style="display:flex;justify-content:space-between;padding:3px 0;font-size:13px">
@@ -122,7 +122,7 @@
 
       <!-- Rejections -->
       <div class="card" style="padding:16px">
-        <h4 style="margin-bottom:12px;color:#ef4444">❌ Rejected Findings</h4>
+        <h4 style="margin-bottom:12px;color:#ef4444">âŒ Rejected Findings</h4>
         {% if learning.rejections %}
         {% for ftype, count in learning.rejections|dictsort(by='value', reverse=true) %}
         <div style="display:flex;justify-content:space-between;padding:3px 0;font-size:13px">
@@ -137,7 +137,7 @@
 
       <!-- Agent Trust -->
       <div class="card" style="padding:16px">
-        <h4 style="margin-bottom:12px;color:var(--accent)">🤝 Agent Trust Scores</h4>
+        <h4 style="margin-bottom:12px;color:var(--accent)">ðŸ¤ Agent Trust Scores</h4>
         {% if learning.agent_trust %}
         {% for agent, score in learning.agent_trust|dictsort(by='value', reverse=true) %}
         <div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;font-size:13px">
@@ -157,7 +157,7 @@
 
       <!-- Skip Types -->
       <div class="card" style="padding:16px">
-        <h4 style="margin-bottom:12px;color:#f97316">🚫 Auto-Skipped Types</h4>
+        <h4 style="margin-bottom:12px;color:#f97316">ðŸš« Auto-Skipped Types</h4>
         {% if learning.skip_types %}
         {% for ftype in learning.skip_types %}
         <div style="padding:3px 0;font-size:13px;color:#f97316">{{ ftype }}</div>
@@ -170,7 +170,7 @@
 
     <!-- Ignore Learner -->
     <div class="card" style="margin-top:16px;padding:16px">
-      <h4 style="margin-bottom:8px">🛡 Ignore Learner</h4>
+      <h4 style="margin-bottom:8px">ðŸ›¡ Ignore Learner</h4>
       <div style="font-size:13px;color:var(--text-secondary)">
         {{ ignore_count }} learned ignore patterns active.
         The ignore learner automatically suppresses noisy finding paths based on false-positive history.
@@ -238,7 +238,7 @@
 
     {% if threat_model.recommendations %}
     <div class="card" style="margin-top:16px;padding:16px">
-      <h4 style="margin-bottom:8px">💡 Recommendations</h4>
+      <h4 style="margin-bottom:8px">ðŸ’¡ Recommendations</h4>
       {% for rec in threat_model.recommendations %}
       <div style="padding:4px 0;font-size:13px;border-bottom:1px solid var(--border)">
         {{ rec }}
@@ -249,7 +249,7 @@
 
     {% else %}
     <div class="empty-state">
-      <div class="empty-state-icon">🎯</div>
+      <div class="empty-state-icon">ðŸŽ¯</div>
       <div class="empty-state-text">No threat model data. Run a scan to generate threat analysis.</div>
     </div>
     {% endif %}

@@ -101,20 +101,32 @@ class BanditAgent(BaseAgent):
         return findings
 
     def _parse_bandit_output(self, data: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """Parse Bandit JSON output into findings."""
+        """Parse Bandit JSON output into findings (full fidelity)."""
         findings = []
 
         for result in data.get("results", []):
             findings.append({
                 "type": result.get("test_id", "bandit_finding"),
-                "severity": result.get("severity", "MEDIUM").upper(),
+                "severity": result.get("severity", "MEDIUM"),
                 "file": result.get("filename", ""),
                 "line": result.get("line_number", 0),
                 "message": result.get("issue_text", ""),
-                "cwe": result.get("cwe", {}).get("id", ""),
+                # Bandit embeds CWE as {"id": "CWE-78"} (newer) or plain text
+                "cwe": self._extract_cwe(result),
                 "confidence": self._map_confidence(result.get("confidence", "MEDIUM")),
+                "snippet": (result.get("code") or "").strip(),
+                "more_info": result.get("more_info", ""),
             })
         return findings
+
+    def _extract_cwe(self, result: Dict[str, Any]) -> str:
+        cwe = result.get("issue_cwe") or result.get("cwe")
+        if isinstance(cwe, dict):
+            return str(cwe.get("id", "") or "")
+        if cwe:
+            return str(cwe)
+        # Older bandit: derive from test_id via issue metadata link
+        return ""
 
     def _map_confidence(self, confidence: str) -> float:
         """Map Bandit confidence to float."""
@@ -127,17 +139,19 @@ class BanditAgent(BaseAgent):
 
     def _create_finding(self, finding_data: Dict[str, Any]):
         """Create a Finding object from Bandit output."""
+        from patchi.core.security.tool_adapters import make_tool_finding
 
-
-        return Finding(
+        return make_tool_finding(
             agent="BanditAgent",
-            type=finding_data.get("type", "bandit_finding"),
-            severity=Severity(finding_data.get("severity", "MEDIUM")),
+            ftype=finding_data.get("type", "bandit_finding"),
+            raw_severity=finding_data.get("severity", "MEDIUM"),
             file=finding_data.get("file", ""),
             line=finding_data.get("line", 0),
             message=finding_data.get("message", ""),
             cwe=finding_data.get("cwe", ""),
-            confidence=finding_data.get("confidence", 0.5),
+            snippet=finding_data.get("snippet", ""),
+            confidence_raw=finding_data.get("confidence"),
+            extra={"more_info": finding_data.get("more_info", "")},
         )
 
 

@@ -105,19 +105,75 @@
             const conveneBtn = document.getElementById('conveneBtn');
             const liveResult = document.getElementById('liveResult');
 
-            function deliberate() {
+            async function deliberate() {
                 const issue = issueInput.value.trim();
                 if (!issue) return;
                 conveneBtn.disabled = true;
-                conveneBtn.textContent = 'Deliberatingâ€¦';
-                liveResult.innerHTML = '<div class="feed-empty">Personas analyzingâ€¦</div>';
-                // Send via WebSocket (dashboard_v2.js manages the connection)
-                setTimeout(() => {
+                conveneBtn.textContent = 'Deliberating…';
+                try {
+                    const res = await fetch('/api/v2/council/deliberate', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ issue }),
+                    });
+                    const data = await res.json();
+                    if (!res.ok || data.error) {
+                        renderError(data.error || `HTTP ${res.status}`);
+                        return;
+                    }
+                    renderSession(data);
+                } catch (e) {
+                    renderError(e.message);
+                } finally {
                     conveneBtn.disabled = false;
                     conveneBtn.textContent = 'Deliberate';
-                }, 30000);
-                if (window.PATCHI_WS) window.PATCHI_WS.send(JSON.stringify({action:'council_query', data:{issue}}));
+                }
             }
+
+            function renderError(msg) {
+                liveResult.innerHTML =
+                    `<div class="confirm-side-effects">Deliberation failed: ${msg}</div>`;
+            }
+
+            function renderSession(d) {
+                const badges = (d.decisions || []).map(dec => `
+                    <div class="persona-card ${dec.persona_name.toLowerCase()}">
+                        <div class="persona-content">
+                            <div class="persona-name">${dec.persona_name.replace(/_/g, ' ')}</div>
+                            <div class="persona-analysis">${escapeHtmlDec(dec.analysis)}</div>
+                            <div class="persona-confidence">
+                                confidence ${Math.round((dec.confidence||0)*100)}%
+                                <span class="confidence-bar"><span class="confidence-fill" style="width:${Math.round((dec.confidence||0)*100)}%"></span></span>
+                                → ${escapeHtmlDec(dec.recommendation)}
+                            </div>
+                        </div>
+                    </div>`).join('');
+
+                liveResult.innerHTML = `
+                    <div class="council-session">
+                        <div class="council-header">
+                            <span class="consensus-badge ${d.consensus ? 'reached' : 'not-reached'}">
+                                ${d.consensus ? 'Consensus Reached' : 'No Consensus'} · ${d.duration_ms ?? 0}ms
+                            </span>
+                        </div>
+                        ${badges}
+                        <div class="council-synthesis"><strong>Synthesis:</strong> ${escapeHtmlDec(d.synthesis)}</div>
+                        ${(d.action_plan && d.action_plan.length) ? `
+                            <h4 style="margin-top:14px;margin-bottom:8px;font-size:12px;color:var(--text-muted);text-transform:uppercase;">
+                                Action Plan (${d.action_plan.length})
+                            </h4>
+                            <ol style="padding-left:20px;font-size:13px;color:var(--text-secondary)">
+                                ${d.action_plan.map(s => `<li><code style="color:var(--accent)">${escapeHtmlDec(s.tool||'')}</code> — ${escapeHtmlDec((s.rationale||'').slice(0,120))}</li>`).join('')}
+                            </ol>` : ''}
+                    </div>`;
+            }
+
+            function escapeHtmlDec(str) {
+                const div = document.createElement('div');
+                div.textContent = String(str == null ? '' : str);
+                return div.innerHTML;
+            }
+
             conveneBtn.addEventListener('click', deliberate);
             issueInput.addEventListener('keydown', e => { if (e.key === 'Enter') deliberate(); });
         });

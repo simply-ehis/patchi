@@ -82,7 +82,7 @@ def test_scan_finds_hardcoded_secret(tmp_path, sink):
             "def f():\n    return 1\n"
         ),
     })
-    res = realize.scan_vulnerabilities(proj, goal="find hardcoded secrets")
+    res = realize.scan_vulnerabilities(proj, domains=["SensitiveDataAgent"])
     assert isinstance(res, dict)
     assert "total_findings" in res
     # A real secret scan MUST surface at least one finding on this input.
@@ -97,7 +97,7 @@ def test_scan_finds_hardcoded_secret(tmp_path, sink):
 
 def test_stress_test_unreachable_is_honest(tmp_path):
     res = realize.stress_test(
-        Path(tmp_path), base_url="http://127.0.0.1:1/", duration=1, users=2
+        Path(tmp_path), base_url="http://127.0.0.1:1/", duration_seconds=1, users=2
     )
     # No server there -> must NOT claim success / must report connectivity.
     assert res["success"] is False
@@ -115,7 +115,7 @@ def test_stress_test_real_load(tmp_path):
         res = realize.stress_test(
             Path(tmp_path),
             base_url=f"http://127.0.0.1:{port}/",
-            duration=2,
+            duration_seconds=2,
             users=4,
         )
         assert res["success"] is True

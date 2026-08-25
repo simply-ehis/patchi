@@ -442,5 +442,77 @@ async def list_tools(request: Request):
     }
 
 
+@router.post("/api/v2/council/deliberate")
+async def deliberate(request: Request):
+    """Run a full Council deliberation on an issue (REST form of the WS action).
+
+    Persists the session into memory so /council history shows it.
+    Body: {"issue": "..."}
+    """
+    from fastapi.responses import JSONResponse
+
+    root = request.app.state.root
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse({"error": "JSON body required"}, status_code=400)
+
+    issue = (body.get("issue") or "").strip()
+    if not issue:
+        return JSONResponse({"error": "issue is required"}, status_code=400)
+
+    try:
+        from patchi.core.brain.council import run_council
+
+        session = await run_council(root, issue)
+    except Exception as e:
+        _log.error("Council deliberation failed: %s", e)
+        return JSONResponse({"error": f"Deliberation failed: {e}"}, status_code=500)
+
+    # Persist so the history panel on /council shows it
+    try:
+        from patchi.core import memory as mem
+
+        mem.save_issue(
+            {
+                "type": "council_session",
+                "issue": issue,
+                "synthesis": session.synthesis,
+                "consensus": session.consensus_reached,
+                "timestamp": session.started_at,
+                "decisions": [
+                    {
+                        "persona_name": d.persona_name,
+                        "analysis": d.analysis,
+                        "recommendation": d.recommendation,
+                        "confidence": d.confidence,
+                    }
+                    for d in session.persona_decisions
+                ],
+                "action_plan": session.action_plan,
+            },
+            root,
+        )
+    except Exception as e:
+        _log.warning("Failed to persist council session: %s", e)
+
+    return {
+        "issue": issue,
+        "synthesis": session.synthesis,
+        "consensus": session.consensus_reached,
+        "action_plan": session.action_plan,
+        "decisions": [
+            {
+                "persona_name": d.persona_name,
+                "analysis": d.analysis,
+                "recommendation": d.recommendation,
+                "confidence": d.confidence,
+            }
+            for d in session.persona_decisions
+        ],
+        "duration_ms": session.duration_ms,
+    }
+
+
 # Import asyncio for streaming
 import asyncio

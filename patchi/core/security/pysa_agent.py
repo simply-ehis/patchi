@@ -122,17 +122,19 @@ class PysaAgent(BaseAgent):
 
     def _create_finding(self, finding_data: Dict[str, Any]):
         """Create a Finding object from Pysa output."""
+        from patchi.core.security.tool_adapters import make_tool_finding
 
-
-        return Finding(
+        return make_tool_finding(
             agent="PysaAgent",
-            type=finding_data.get("type", "pysa_finding"),
-            severity=Severity(finding_data.get("severity", "MEDIUM")),
+            ftype=finding_data.get("type", "pysa_finding"),
+            raw_severity=finding_data.get("severity", "MEDIUM"),
             file=finding_data.get("file", ""),
             line=finding_data.get("line", 0),
             message=finding_data.get("message", ""),
             cwe=finding_data.get("cwe", ""),
-            confidence=0.8,
+            snippet=finding_data.get("snippet", ""),
+            confidence_raw=0.8,  # taint-path findings: tool asserts a full flow
+            extra={"flow": finding_data.get("flow", [])},
         )
 
 

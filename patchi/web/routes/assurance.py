@@ -27,7 +27,7 @@ async def assurance(request: Request):
         from patchi.core.attackers import AttackPlanner
 
         planner = AttackPlanner(graph)
-        plan = planner.plan()
+        planner.plan()
         attack_results = planner.run_all()
         confirmed = [r for r in attack_results if r.confirmed]
         attacker_results = [r.to_dict() for r in confirmed[:20]]

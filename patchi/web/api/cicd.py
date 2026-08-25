@@ -1,14 +1,14 @@
-"""CI/CD REST API — trigger scans, retrieve results, health checks.
+﻿"""CI/CD REST API â€” trigger scans, retrieve results, health checks.
 
 Endpoints:
-  POST /api/cicd/scan          — trigger scan and wait for results (sync)
-  POST /api/cicd/scan/async    — trigger scan, return immediately (async)
-  GET  /api/cicd/scan/status   — get current scan status
-  GET  /api/cicd/scan/results  — get latest scan results
-  GET  /api/cicd/health        — health check
-  GET  /api/cicd/assurance     — get assurance graph data
-  GET  /api/cicd/findings      — get findings with filters
-  GET  /api/cicd/summary       — project summary (findings, agents, health)
+  POST /api/cicd/scan          â€” trigger scan and wait for results (sync)
+  POST /api/cicd/scan/async    â€” trigger scan, return immediately (async)
+  GET  /api/cicd/scan/status   â€” get current scan status
+  GET  /api/cicd/scan/results  â€” get latest scan results
+  GET  /api/cicd/health        â€” health check
+  GET  /api/cicd/assurance     â€” get assurance graph data
+  GET  /api/cicd/findings      â€” get findings with filters
+  GET  /api/cicd/summary       â€” project summary (findings, agents, health)
 
 Usage from CI/CD:
   curl -X POST http://localhost:1612/api/cicd/scan -d '{"scan_type":"all"}'
@@ -29,7 +29,7 @@ from pydantic import BaseModel
 router = APIRouter(prefix="/api/cicd")
 
 
-# ── Models ──────────────────────────────────────────────────────────────────
+# â”€â”€ Models â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class ScanRequest(BaseModel):
@@ -38,7 +38,7 @@ class ScanRequest(BaseModel):
     pipeline: bool = False
 
 
-# ── Scan status (shared state) ──────────────────────────────────────────────
+# â”€â”€ Scan status (shared state) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 _scan_state = {
     "running": False,
@@ -51,7 +51,7 @@ _scan_state = {
 }
 
 
-# ── Endpoints ───────────────────────────────────────────────────────────────
+# â”€â”€ Endpoints â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 @router.get("/health")
@@ -69,7 +69,7 @@ async def health(request: Request) -> JSONResponse:
     scan_results_exist = False
     try:
         from patchi.core import memory as mem
-        results = mem.load_scan_results(root)
+        results = mem.get_scan_results(root)
         scan_results_exist = bool(results)
     except Exception:
         pass
@@ -187,7 +187,7 @@ async def scan_results(request: Request) -> JSONResponse:
     # Load from memory
     try:
         from patchi.core import memory as mem
-        results = mem.load_scan_results(root)
+        results = mem.get_scan_results(root)
         findings = []
         for agent_name, data in (results or {}).items():
             for f in data.get("findings", []):
@@ -223,7 +223,7 @@ async def findings(
 
     try:
         from patchi.core import memory as mem
-        results = mem.load_scan_results(root)
+        results = mem.get_scan_results(root)
         all_findings = []
         for agent_name, data in (results or {}).items():
             for f in data.get("findings", []):
@@ -299,7 +299,7 @@ async def summary(request: Request) -> JSONResponse:
         route_count = brain.get("route_count", 0)
 
         # Findings
-        results = mem.load_scan_results(root)
+        results = mem.get_scan_results(root)
         all_findings = []
         for agent_name, data in (results or {}).items():
             for f in data.get("findings", []):
@@ -341,7 +341,7 @@ async def summary(request: Request) -> JSONResponse:
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
 
-# ── Helpers ─────────────────────────────────────────────────────────────────
+# â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 async def _run_scan(root: Path, scan_type: str, deep: bool, pipeline: bool) -> dict:

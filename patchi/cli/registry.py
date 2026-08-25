@@ -464,6 +464,8 @@ COMMANDS: list[Command] = [
                 Arg("--port", help="Port to listen on", default=1612, type=int),
                 Arg("--open", help="Open the browser after start", action="store_true",
                     dest="open_browser"),
+                Arg("--project", help="Path to the project to view (default: nearest .patchi up from cwd)",
+                    default=None),
             )),
 
     Command("ai", "AI configuration and status",

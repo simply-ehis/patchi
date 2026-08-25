@@ -314,12 +314,17 @@ class ToolExecutor:
         if inspect.iscoroutinefunction(handler):
             return await asyncio.wait_for(handler(**parameters), timeout=timeout)
         else:
-            # Run sync handler in thread pool
-            loop = asyncio.get_event_loop()
-            return await asyncio.wait_for(
-                loop.run_in_executor(None, lambda: handler(**parameters)),
-                timeout=timeout,
-            )
+            # Run sync handlers directly in the event loop's thread.
+            #
+            # We deliberately do NOT use loop.run_in_executor here: many security
+            # agents call signal.signal() / rely on main-thread-only behavior, and
+            # tools like scan_vulnerabilities spawn their own thread pools — both
+            # break or deadlock when the handler runs in a worker thread (every
+            # agent raises -> the scan reports 0 findings). The agent loop is
+            # single-purpose, so blocking it briefly is acceptable; per-tool
+            # internal timeouts (e.g. realize's PATCHI_AGENT_TIMEOUT) still bound
+            # any individual tool that would otherwise hang.
+            return handler(**parameters)
     
     def _normalize_result(self, result: Any) -> dict:
         """Normalize tool result to a standard dict format."""

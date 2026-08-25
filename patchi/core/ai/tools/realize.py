@@ -20,9 +20,11 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import concurrent.futures as _cf
 import importlib.util
 import json
 import logging
+import os
 import statistics
 import subprocess
 import sys
@@ -31,6 +33,10 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Optional
+
+# Only pass --no-cov if pytest-cov is actually installed; otherwise pytest
+# rejects the unknown flag and exits with code 4 (no tests run).
+_HAS_PYTEST_COV = importlib.util.find_spec("pytest_cov") is not None
 
 _log = logging.getLogger("patchi.ai.realize")
 
@@ -131,9 +137,28 @@ def _build_agent_input(root: Path, scope: Optional[list[str]] = None,
 
 
 def _run_agent_class(cls, root: Path, scope: Optional[list[str]] = None) -> Any:
-    """Instantiate and run one agent class, returning its AgentResult."""
+    """Instantiate and run one agent class, returning its AgentResult.
+
+    A per-agent timeout (``PATCHI_AGENT_TIMEOUT``, default 60s) bounds any
+    agent that shells out to an external tool (e.g. ``codeql``) and would
+    otherwise hang the whole scan indefinitely when that binary is missing or
+    unresponsive. On timeout the agent is treated as failed by the caller, so
+    the scan still completes and reports the failure gracefully.
+    """
+    timeout = float(os.environ.get("PATCHI_AGENT_TIMEOUT", "60"))
     inp = _build_agent_input(root, scope=scope)
-    result = cls().run(inp)
+
+    def _go() -> Any:
+        return cls().run(inp)
+
+    try:
+        with _cf.ThreadPoolExecutor(max_workers=1) as ex:
+            fut = ex.submit(_go)
+            result = fut.result(timeout=timeout)
+    except _cf.TimeoutError:
+        raise TimeoutError(
+            f"{cls.__name__} exceeded {timeout:g}s and was aborted"
+        )
     try:
         from patchi.core.security.pattern_context import suppress_findings
 

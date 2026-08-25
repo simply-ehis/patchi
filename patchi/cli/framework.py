@@ -91,7 +91,16 @@ class Command:
 
 
 def _add_args(parser: argparse.ArgumentParser, cmd: Command) -> None:
-    for a in cmd.args:
+    args = cmd.args
+    # Normalize: accept a single Arg or None as well as a list/tuple so a
+    # mis-registered command can never crash parser construction.
+    if args is None:
+        return
+    if isinstance(args, (list, tuple)):
+        arg_list = args
+    else:
+        arg_list = [args]
+    for a in arg_list:
         if a.global_flag:
             continue  # already defined on the top-level parser
         is_positional = not a.name.startswith("-")

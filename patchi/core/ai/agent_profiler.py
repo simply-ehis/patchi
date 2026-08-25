@@ -1,5 +1,5 @@
-"""
-Agent Profiler — self-profiling for latency, cost, and accuracy optimization.
+﻿"""
+Agent Profiler â€” self-profiling for latency, cost, and accuracy optimization.
 
 Tracks per-agent execution metrics across scan cycles:
   - Latency (wall time, p50/p95)
@@ -129,7 +129,7 @@ def record_run(
         # Peak RSS (Linux/macOS only; returns 0 on Windows)
         try:
             usage = resource.getrusage(resource.RUSAGE_SELF)
-            run.peak_rss_mb = usage.ru_maxrss / 1024  # KB → MB
+            run.peak_rss_mb = usage.ru_maxrss / 1024  # KB â†’ MB
         except Exception:
             pass
         _persist_run(root, run)
@@ -245,7 +245,16 @@ def get_profile_summary(root: Path) -> dict:
     """Summary for display."""
     profiles = get_all_profiles(root)
     if not profiles:
-        return {"agents": 0, "total_runs": 0, "total_cost": 0}
+        # Full key set — consumers (self-improvement dashboard) read these
+        # unconditionally, so the empty case must carry every key.
+        return {
+            "agents": 0,
+            "total_runs": 0,
+            "total_cost": 0,
+            "total_findings": 0,
+            "avg_accuracy": 0,
+            "slowest": [],
+        }
     return {
         "agents": len(profiles),
         "total_runs": sum(p.run_count for p in profiles.values()),

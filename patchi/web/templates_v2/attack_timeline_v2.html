@@ -63,7 +63,7 @@
                         <div class="attack-timeline">
                             {% for finding in attack_data.findings[:30] %}
                             <div class="timeline-event {{ 'success' if finding.type and 'attack' in finding.type else '' }}">
-                                <div class="event-time">{{ finding.timestamp[:19] if finding.timestamp else '' }}</div>
+                                <div class="event-time">{{ (finding.get('timestamp') or '')[:19] }}</div>
                                 <div class="event-title">
                                     <span class="finding-severity severity-{{ finding.severity }}">{{ finding.severity }}</span>
                                     {{ finding.message }}

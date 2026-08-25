@@ -614,24 +614,59 @@ async def post_full_security_scan(request: Request) -> JSONResponse:
 
 
 @router.get("/security/report")
-async def get_security_report(request: Request) -> JSONResponse:
-    """Orchestrated security report: deduplicated, correlated, OWASP-mapped."""
+async def get_security_report(request: Request, fresh: str = "0") -> JSONResponse:
+    """Orchestrated security report: deduplicated, correlated, OWASP-mapped.
+
+    Cached-first: by default this correlates the findings already stored in
+    memory (instant). A plain GET used to run all ~54 security agents
+    synchronously — 3 minutes of freeze per request. Pass ?fresh=1 to force a
+    live agent run instead (still synchronous; prefer POST /security/scan for
+    the background variant).
+    """
     root = _root(request)
     try:
-        import patchi.core.security.security_agents  # noqa
-        from patchi.core.agents.base import AgentGroup
-        from patchi.core.agents.coordinator import Coordinator
+        from patchi.core.agents.base import AgentGroup, AgentResult, Finding
         from patchi.core.security.orchestrator import SecurityOrchestrator
+
+        orch = SecurityOrchestrator()
+
+        if fresh != "1":
+            results = memory_mod.get_scan_results(root)
+            synthesized: list[AgentResult] = []
+            last_scan = ""
+            for agent_name, data in results.items():
+                if not isinstance(data, dict):
+                    continue
+                ts = data.get("timestamp", "")
+                if ts > last_scan:
+                    last_scan = ts
+                agent_result = AgentResult(agent_name=agent_name, agent_group=AgentGroup.SECURITY)
+                for f in data.get("findings", []):
+                    if isinstance(f, dict):
+                        agent_result.findings.append(Finding.from_dict(f))
+                synthesized.append(agent_result)
+
+            if synthesized:
+                report = orch.correlate(synthesized)
+                payload = report.to_dict()
+                payload["cached"] = True
+                payload["last_scan"] = last_scan
+                payload["hint"] = "Pass ?fresh=1 to re-run agents live."
+                return JSONResponse(payload)
+
+        # Fresh run (explicit) or nothing cached yet
+        import patchi.core.security.security_agents  # noqa
+        from patchi.core.agents.coordinator import Coordinator
+        from patchi.core.security.pattern_context import suppress_findings
 
         coord = Coordinator(root)
         results = coord.run_group(AgentGroup.SECURITY)
-        from patchi.core.security.pattern_context import suppress_findings
-
         for r in results:
             suppress_findings(r)
-        orch = SecurityOrchestrator()
         report = orch.correlate(results)
-        return JSONResponse(report.to_dict())
+        payload = report.to_dict()
+        payload["cached"] = False
+        return JSONResponse(payload)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -858,36 +893,9 @@ async def resolve_issue(request: Request) -> JSONResponse:
 
 
 # ── Hosted ────────────────────────────────────────────────────────────────────
-
-
-@router.post("/hosted/init")
-async def post_hosted_init(request: Request) -> JSONResponse:
-    """Initialize hosted mode with provided config."""
-    try:
-        body = await request.json()
-        log_path = body.get("log_path", "/var/log/nginx/access.log")
-        log_format = body.get("log_format", "nginx")
-        escalate = body.get("escalate", True)
-
-        root = _root(request)
-        cfg_mod.set_value("hosted.log_path", log_path, root)
-        cfg_mod.set_value("hosted.log_format", log_format, root)
-        cfg_mod.set_value("hosted.escalate", escalate, root)
-        cfg_mod.set_value("hosted.enabled", True, root)
-
-        hosted_dir = root / ".patchi" / "hosted"
-        hosted_dir.mkdir(parents=True, exist_ok=True)
-
-        return JSONResponse(
-            {
-                "ok": True,
-                "message": "Hosted mode configured",
-                "log_path": log_path,
-                "log_format": log_format,
-            }
-        )
-    except Exception as e:
-        return _error_response(str(e))
+# POST /hosted/init was removed — it duplicated api/hosted.py's /init
+# (identical body) and shadowed it depending on router registration order.
+# The canonical endpoint is POST /api/hosted/init (api/hosted.py).
 
 
 # ── Scan lifecycle (activates/deactivates tap-to-spawn) ───────────────────────

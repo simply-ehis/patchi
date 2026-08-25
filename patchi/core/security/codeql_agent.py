@@ -137,17 +137,19 @@ class CodeqlAgent(BaseAgent):
 
     def _create_finding(self, finding_data: Dict[str, Any]):
         """Create a Finding object from CodeQL output."""
+        from patchi.core.security.tool_adapters import make_tool_finding
 
-
-        return Finding(
+        return make_tool_finding(
             agent="CodeqlAgent",
-            type=finding_data.get("type", "codeql_finding"),
-            severity=Severity(finding_data.get("severity", "MEDIUM")),
+            ftype=finding_data.get("type", "codeql_finding"),
+            raw_severity=finding_data.get("severity", "MEDIUM"),
             file=finding_data.get("file", ""),
             line=finding_data.get("line", 0),
             message=finding_data.get("message", ""),
             cwe=finding_data.get("cwe", ""),
-            confidence=0.8,
+            snippet=finding_data.get("snippet", ""),
+            confidence_raw=0.8,  # database-query findings: semantic, not pattern
+            extra={"rule_id": finding_data.get("rule_id", "")},
         )
 
 

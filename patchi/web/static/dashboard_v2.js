@@ -495,11 +495,64 @@
         const modeSelect = $('#modeSelect');
         if (modeSelect) {
             modeSelect.addEventListener('change', () => {
-                fetch('/api/config/set', {
+                fetch('/api/config', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ key: 'mode', value: modeSelect.value }),
+                }).then(r => r.json()).then(j => {
+                    if (!j.ok) addFeedEntry('config', `Failed to save mode: ${j.error || '?'}`, 'error');
                 }).catch(() => addFeedEntry('config', 'Failed to save mode', 'error'));
+            });
+        }
+
+        // Project switcher — multi-project support
+        const projectSelect = $('#projectSelect');
+        if (projectSelect) {
+            (async () => {
+                try {
+                    const [disc, list] = await Promise.all([
+                        fetch('/api/tenant/discover').then(r => r.json()),
+                        fetch('/api/tenant/list').then(r => r.json()),
+                    ]);
+                    const options = new Map(); // path -> name
+                    const currentPath = disc.current ? disc.current.root : (init.projectRoot || '');
+                    for (const p of list.projects || []) options.set(p.root, p.name);
+                    for (const d of disc.discovered || []) options.set(d.path, d.name);
+                    if (currentPath && !options.has(currentPath)) {
+                        options.set(currentPath, disc.current ? disc.current.name : currentPath);
+                    }
+                    projectSelect.innerHTML = '';
+                    for (const [path, name] of options) {
+                        const opt = document.createElement('option');
+                        opt.value = path;
+                        opt.textContent = name + (path === currentPath ? ' ●' : '');
+                        opt.selected = path === currentPath;
+                        projectSelect.appendChild(opt);
+                    }
+                } catch (e) {
+                    projectSelect.innerHTML = '<option value="">project?</option>';
+                }
+            })();
+
+            projectSelect.addEventListener('change', async () => {
+                const target = projectSelect.value;
+                if (!target) return;
+                addFeedEntry('system', `Switching project → ${target.split(/[\\/]/).pop()}…`, '');
+                try {
+                    const res = await fetch('/api/tenant/switch', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ path: target }),
+                    });
+                    const json = await res.json();
+                    if (json.success) {
+                        location.reload(); // re-render everything against the new root
+                    } else {
+                        addFeedEntry('system', `Switch failed: ${json.error || res.status}`, 'error');
+                    }
+                } catch (e) {
+                    addFeedEntry('system', `Switch failed: ${e.message}`, 'error');
+                }
             });
         }
 
