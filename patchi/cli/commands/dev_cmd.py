@@ -8,6 +8,7 @@ Usage:
   p dev playwright             — show Playwright/browser testing docs
   p dev security               — show security pipeline status
   p dev docs                   — show all CLI commands reference
+  p dev hook                   — install pre-commit hook (ruff + pytest + scan --changed)
 """
 
 from __future__ import annotations
@@ -34,6 +35,8 @@ def run(action: str | None = None, verbose: bool = False) -> None:
         _show_security_status(con)
     elif action == "docs":
         _show_cli_reference(con)
+    elif action == "hook":
+        _install_hook(con)
     else:
         _show_dev_overview(con, verbose)
 
@@ -309,3 +312,43 @@ def _get_version() -> str:
     except Exception as e:
         _log.warning("_get_version failed: %s", e)
         return "unknown"
+
+
+def _install_hook(con: Console) -> None:
+    """Install the Patchi pre-commit hook."""
+    from patchi.core.config import require_project_root
+    from patchi.core.security.precommit_hook import install_hook, read_hook_status
+
+    try:
+        root = require_project_root()
+    except RuntimeError as e:
+        con.print(f"[red]{e}[/red]")
+        return
+
+    # Show current status
+    status = read_hook_status(root)
+    if status.get("installed"):
+        con.print(f"[dim]Current hook:[/dim] {status.get('path', '?')}")
+        parts = []
+        if status.get("has_ruff"):
+            parts.append("ruff")
+        if status.get("has_pytest"):
+            parts.append("pytest")
+        if status.get("has_scan"):
+            parts.append("scan --changed")
+        con.print(f"  Gates: {', '.join(parts) or 'none'}")
+        con.print()
+
+    # Install
+    try:
+        hook_path = install_hook(root, strict=False, with_tests=True, with_scan=True)
+        con.print(f"[#4ADE80]✓[/#4ADE80] Pre-commit hook installed: [bold]{hook_path}[/bold]")
+        con.print()
+        con.print("  Gates on every commit:")
+        con.print("    1. [dim]ruff check patchi/[/dim] — lint")
+        con.print("    2. [dim]pytest tests/[/dim] — tests")
+        con.print("    3. [dim]p scan --changed[/dim] — security scan of changed files")
+        con.print()
+        con.print("[dim]Run [bold]p dev hook --strict[/bold] to fail commits on violations.[/dim]")
+    except Exception as e:
+        con.print(f"[red]Failed to install hook: {e}[/red]")

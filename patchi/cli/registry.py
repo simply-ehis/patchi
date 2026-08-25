@@ -265,7 +265,7 @@ COMMANDS: list[Command] = [
             args=(Arg("message", nargs="?", help="Single message (non-interactive)"),)),
     Command("dev", "Developer utilities, testing docs, and diagnostics", "patchi.cli.commands.dev_cmd:run",
             args=(Arg("action", nargs="?", default=None,
-                      help="Dev action: info | test | security | playwright | docs"),
+                      help="Dev action: info | test | security | playwright | docs | hook"),
                   # dev has its own --verbose, separate from the global one
                   Arg("--verbose", dest="verbose", action="store_true", help="Show detailed output"))),
     Command("deps", "Supply chain security scan", "patchi.cli.commands.deps_cmd:run",
@@ -457,8 +457,14 @@ COMMANDS: list[Command] = [
                         args=(Arg("name"),)),
             )),
 
-    Command("web", "Web UI (archived)",
-            "patchi.cli.commands.web_cmd:run"),
+    Command("web", "Launch the unified Patchi web UI (dashboard, council, red team, tests, hosted)",
+            "patchi.cli.commands.web_cmd:run",
+            args=(
+                Arg("--host", help="Bind address", default="127.0.0.1"),
+                Arg("--port", help="Port to listen on", default=1612, type=int),
+                Arg("--open", help="Open the browser after start", action="store_true",
+                    dest="open_browser"),
+            )),
 
     Command("ai", "AI configuration and status",
             "patchi.cli.commands.ai_cmd:run_status",  # no subcommand -> status
@@ -467,8 +473,6 @@ COMMANDS: list[Command] = [
                         "patchi.cli.commands.ai_cmd:run_status"),
                 Command("test", "Send test prompt to active AI provider",
                         "patchi.cli.commands.ai_cmd:run_test"),
-                Command("horde", "Test AI Horde community endpoint",
-                        "patchi.cli.commands.ai_cmd:run_horde_test"),
                 Command("add", "Add a new API key interactively",
                         "patchi.cli.commands.ai_cmd:run_add"),
                 Command("remove", "Remove an API key by name",
