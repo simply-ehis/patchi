@@ -506,6 +506,16 @@ COMMANDS: list[Command] = [
                       help="Filter chains by minimum score"),
                   Arg("--json", dest="json_output", action="store_true",
                       help="Output as JSON"))),
+    Command("profile", "Show agent profiler stats (latency, accuracy, cost)",
+            "patchi.cli.commands.profile_cmd:run",
+            args=(Arg("agent_name", nargs="?", default=None,
+                      help="Show details for a specific agent"),
+                  Arg("--json", dest="json_output", action="store_true",
+                      help="Output as JSON"))),
+    Command("learning", "Show learning brain state (accept/reject patterns, trust)",
+            "patchi.cli.commands.learning_cmd:run",
+            args=(Arg("--json", dest="json_output", action="store_true",
+                      help="Output as JSON"))),
 
     # ── Batch 6: the last commands off the legacy ladder. ────────────────────
     # notify / hosted / test / security / cross-repo use the self-routing
