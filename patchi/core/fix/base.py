@@ -2,9 +2,12 @@
 Base functionality for fix agents.
 """
 
+import logging
 import os
 import re
 from pathlib import Path
+
+_log = logging.getLogger("patchi.fix")
 
 from patchi.core.fix.patch import (
     FileChange,
