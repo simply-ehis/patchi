@@ -330,7 +330,7 @@ def activate_from_diff(
                 capture_output=True, text=True, cwd=str(root), timeout=5,
             )
             if u.returncode == 0:
-                uncommitted = len([l for l in u.stdout.strip().splitlines() if l.strip()])
+                uncommitted = len([line for line in u.stdout.strip().splitlines() if line.strip()])
         except Exception:
             pass
         cache = _load_cache(root)
