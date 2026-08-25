@@ -185,6 +185,114 @@ def _apply_fix_pattern(line: str, finding_type: str) -> str | None:
     return None
 
 
+def _build_fix_prompt(
+    finding_type: str,
+    file_path: str,
+    original: str,
+    line_num: int,
+    suggestion: str,
+    playbook: dict | None,
+    message: str = "",
+) -> str:
+    """Build the AI prompt for fix generation."""
+    # Extract context around the vulnerable line
+    lines = original.splitlines()
+    start = max(0, line_num - 5) if line_num else 0
+    end = min(len(lines), line_num + 10) if line_num else min(20, len(lines))
+    context = "\n".join(f"{i+1:4d} | {l}" for i, l in enumerate(lines[start:end], start))
+
+    prompt = f"""You are a security expert. Fix the following vulnerability.
+
+## Finding
+- Type: {finding_type}
+- File: {file_path}
+- Line: {line_num or 'unknown'}
+- Message: {message or suggestion or finding_type}
+"""
+
+    if playbook:
+        prompt += f"- Control ID: {playbook.get('control_id', 'unknown')}\n"
+        prompt += f"- Fix strategy: {playbook.get('fix_strategy', 'unknown')}\n"
+        if playbook.get("llm_template"):
+            prompt += f"- Template hint: {playbook['llm_template']}\n"
+
+    prompt += f"""
+## Code Context (lines {start+1}-{end})
+```python
+{context}
+```
+
+## Requirements
+1. Fix the vulnerability with minimal changes
+2. Preserve the original code style and indentation
+3. Do NOT add comments explaining the fix
+4. Do NOT change unrelated code
+5. Output ONLY the fixed line(s), no explanation
+
+## Fixed code
+```python
+"""
+
+    return prompt
+
+
+def _generate_fix_with_ai(
+    root: Path,
+    file_path: str,
+    original: str,
+    finding_type: str,
+    line_num: int,
+    suggestion: str,
+    playbook: dict | None,
+    config: dict,
+    message: str = "",
+) -> FileChange | None:
+    """Use AI to generate a fix for the vulnerability."""
+    prompt = _build_fix_prompt(
+        finding_type, file_path, original, line_num, suggestion, playbook, message
+    )
+
+    system_prompt = (
+        "You are a security engineer fixing vulnerabilities in Python/JS/Go code. "
+        "Output only the fixed code in a code block. No explanations. "
+        "Make minimal changes to fix the security issue."
+    )
+
+    try:
+        response = _call_ai(prompt, config, max_tokens=500, system_prompt=system_prompt)
+    except Exception as e:
+        _log.warning("AI fix generation failed: %s", e)
+        return None
+
+    if not response:
+        return None
+
+    # Extract the fixed code from AI response
+    fixed_code = _extract_code_block(response)
+    if not fixed_code or fixed_code.strip() == "":
+        return None
+
+    # Find the vulnerable line to replace
+    lines = original.splitlines()
+    if line_num and 0 < line_num <= len(lines):
+        original_line = lines[line_num - 1]
+        # Use the first non-empty line from the AI response
+        fixed_lines = [l for l in fixed_code.strip().splitlines() if l.strip()]
+        if fixed_lines:
+            proposed_line = fixed_lines[0]
+            # Preserve original indentation
+            indent = len(original_line) - len(original_line.lstrip())
+            proposed_line = " " * indent + proposed_line.strip()
+            if proposed_line != original_line:
+                return FileChange(
+                    path=file_path,
+                    original=original_line,
+                    proposed=proposed_line,
+                )
+
+    return None
+
+
 def generate_fix(
     root: Path,
     finding_dict: dict,
@@ -192,16 +300,21 @@ def generate_fix(
 ) -> Patch | None:
     """Generate a fix patch for a finding.
 
-    Reads the actual file, finds the vulnerable line, and applies a
-    domain-specific fix pattern. Falls back to suggestion-based patch
-    if no pattern matches.
-    """
+    Strategy:
+    1. AI-powered fix generation (calls LLM with file context)
+    2. Pattern-based fix (regex replacements)
+    3. Playbook template fix
+    4. Suggestion-based fallback
 
+    The generated patch passes through RiskGate for mode-based approval.
+    """
+    config = config or {}
     suggestion = finding_dict.get("suggestion", "")
     file_path = finding_dict.get("file", "")
     finding_type = finding_dict.get("type", "unknown")
     line_num = finding_dict.get("line", 0)
     playbook = finding_dict.get("playbook")
+    message = finding_dict.get("message", "")
 
     if not file_path:
         return None
@@ -217,23 +330,18 @@ def generate_fix(
 
     lines = original.splitlines()
     changes: list[FileChange] = []
+    ai_fix_used = False
 
-    # Strategy 1: Use playbook template if available
-    if playbook and playbook.get("llm_template"):
-        # Find the relevant line using the playbook's control_id
-        control_id = playbook.get("control_id", finding_type)
-        found = _find_vulnerable_line(original, control_id, file_path)
-        if found:
-            line_idx, old_line = found
-            fixed_line = _apply_fix_pattern(old_line, control_id)
-            if fixed_line and fixed_line != old_line:
-                changes.append(FileChange(
-                    path=file_path,
-                    original=old_line,
-                    proposed=fixed_line,
-                ))
+    # Strategy 1: AI-powered fix generation
+    ai_change = _generate_fix_with_ai(
+        root, file_path, original, finding_type, line_num,
+        suggestion, playbook, config, message,
+    )
+    if ai_change:
+        changes.append(ai_change)
+        ai_fix_used = True
 
-    # Strategy 2: Pattern-based fix
+    # Strategy 2: Pattern-based fix (fallback)
     if not changes:
         found = _find_vulnerable_line(original, finding_type, file_path)
         if found:
@@ -246,7 +354,21 @@ def generate_fix(
                     proposed=fixed_line,
                 ))
 
-    # Strategy 3: Line-number targeted fix
+    # Strategy 3: Playbook template fix (fallback)
+    if not changes and playbook and playbook.get("llm_template"):
+        control_id = playbook.get("control_id", finding_type)
+        found = _find_vulnerable_line(original, control_id, file_path)
+        if found:
+            line_idx, old_line = found
+            fixed_line = _apply_fix_pattern(old_line, control_id)
+            if fixed_line and fixed_line != old_line:
+                changes.append(FileChange(
+                    path=file_path,
+                    original=old_line,
+                    proposed=fixed_line,
+                ))
+
+    # Strategy 4: Line-number targeted fix (fallback)
     if not changes and line_num and 0 < line_num <= len(lines):
         old_line = lines[line_num - 1]
         fixed_line = _apply_fix_pattern(old_line, finding_type)
@@ -257,9 +379,8 @@ def generate_fix(
                 proposed=fixed_line,
             ))
 
-    # Strategy 4: Suggestion-based fallback (add comment)
+    # Strategy 5: Suggestion-based fallback (last resort)
     if not changes and suggestion:
-        # Add a TODO comment at the top of the file
         changes.append(FileChange(
             path=file_path,
             original=lines[0] if lines else "",
@@ -269,14 +390,31 @@ def generate_fix(
     if not changes:
         return None
 
-    return _make_patch(
+    # Build the patch
+    patch = _make_patch(
         agent_name="auto_fixer",
         patch_type=PatchType.SECURITY,
         changes=changes,
-        description=f"Auto-fix for {finding_type}",
-        ai_explanation=suggestion or f"Fixed {finding_type} in {file_path}",
+        description=f"{'AI-generated' if ai_fix_used else 'Pattern-based'} fix for {finding_type}",
+        ai_explanation=suggestion or message or f"Fixed {finding_type} in {file_path}",
         finding_id=finding_type,
         blast_radius=compute_blast_radius(file_path, root),
-        agent_certainty=0.6,
+        agent_certainty=0.8 if ai_fix_used else 0.6,
         source_finding=finding_dict,
     )
+
+    # Pass through RiskGate
+    try:
+        from patchi.core.fix.risk_gate import RiskGate
+        gate = RiskGate(root)
+        gate_result = gate.evaluate(patch)
+        _log.info(
+            "RiskGate for %s: %s (risk=%d)",
+            finding_type,
+            "auto" if gate_result.is_auto else "blocked" if gate_result.is_blocked else "review",
+            patch.risk_score,
+        )
+    except Exception as e:
+        _log.warning("RiskGate evaluation failed: %s", e)
+
+    return patch
