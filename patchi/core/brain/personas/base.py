@@ -173,7 +173,7 @@ class BasePersona(ABC):
     ) -> dict | None:
         """Call AI with persona-specific system prompt."""
         if system_prompt is None:
-            base_prompt = get_system_prompt(Skill.REASONING)
+            base_prompt = get_system_prompt(Skill.DEEP_ANALYSIS)
             system_prompt = f"{base_prompt}\n\n{self.get_system_prompt_additions()}"
         
         try:
@@ -331,7 +331,14 @@ def create_persona(
         _log.warning(f"Unknown persona: {name}")
         return None
     try:
-        return cls(root, brain_layers, project_context, config, on_progress)
+        return cls(
+            name=name,
+            root=root,
+            brain_layers=brain_layers,
+            project_context=project_context,
+            config=config,
+            on_progress=on_progress,
+        )
     except Exception as e:
         _log.error(f"Failed to create persona {name}: {e}")
         return None

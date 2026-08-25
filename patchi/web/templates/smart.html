@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="smart-console">
+  <div class="smart-header">
+    <h1>🧠 Smart Agent</h1>
+    <p class="muted">Goal-driven AI tool-calling. The agent plans with its Council,
+       then runs <em>real</em> tools (security scan, live tests, attack simulation,
+       stress test) and streams every step here, live.</p>
+  </div>
+
+  <div class="smart-controls">
+    <input id="smart-goal" class="smart-input" type="text"
+           placeholder="e.g. audit this project for security vulnerabilities"
+           value="audit this project for security vulnerabilities" />
+    <label class="smart-steps-label">steps
+      <input id="smart-steps" class="smart-steps" type="number" min="1" max="12" value="6" />
+    </label>
+    <button id="smart-run" class="btn btn-primary">▶ Run Agent</button>
+  </div>
+
+  <div class="smart-status" id="smart-status">Idle. Press Run to start.</div>
+
+  <div class="smart-progress">
+    <div class="smart-progress-bar" id="smart-progress-bar"></div>
+  </div>
+
+  <div class="smart-stream" id="smart-stream">
+    <div class="smart-stream-empty muted">Live event stream will appear here…</div>
+  </div>
+</div>
+
+<style>
+  .smart-console { padding: 24px 28px; max-width: 1100px; margin: 0 auto; }
+  .smart-header h1 { font-size: 26px; margin: 0 0 6px; }
+  .muted { color: var(--text-secondary); }
+  .smart-controls { display: flex; gap: 10px; align-items: center; margin: 18px 0 12px; flex-wrap: wrap; }
+  .smart-input { flex: 1; min-width: 320px; padding: 10px 12px; background: var(--bg-card);
+                 border: 1px solid var(--border); border-radius: var(--radius); color: var(--text-primary); }
+  .smart-steps-label { color: var(--text-secondary); font-size: 12px; }
+  .smart-steps { width: 56px; padding: 8px; background: var(--bg-card); border: 1px solid var(--border);
+                 border-radius: var(--radius); color: var(--text-primary); }
+  .smart-status { font-size: 13px; color: var(--text-secondary); margin-bottom: 8px; }
+  .smart-progress { height: 6px; background: var(--bg-card); border-radius: 999px; overflow: hidden; margin-bottom: 14px; }
+  .smart-progress-bar { height: 100%; width: 0%; background: linear-gradient(90deg, #C8621A, #FACC15); transition: width .3s; }
+  .smart-stream { background: #0d0f12; border: 1px solid var(--border); border-radius: var(--radius);
+                  padding: 14px; height: 460px; overflow-y: auto; font-family: ui-monospace, Menlo, monospace; font-size: 12.5px; }
+  .smart-stream-empty { padding: 20px; }
+  .ev { padding: 4px 8px; border-bottom: 1px solid rgba(255,255,255,0.04); display: flex; gap: 10px; }
+  .ev .tag { color: #6b7280; min-width: 170px; }
+  .ev.finding .tag { color: #FACC15; }
+  .ev.finding-critical .tag { color: #FF4D6D; }
+  .ev.finding-high .tag { color: #FF8C42; }
+  .ev.test .tag { color: #4ADE80; }
+  .ev.agent .tag { color: #C8621A; }
+  .ev.brain .tag { color: #60a5fa; }
+  .ev.stress .tag { color: #c084fc; }
+</style>
+
+<script>
+(function () {
+  const goalEl = document.getElementById('smart-goal');
+  const stepsEl = document.getElementById('smart-steps');
+  const runBtn = document.getElementById('smart-run');
+  const statusEl = document.getElementById('smart-status');
+  const barEl = document.getElementById('smart-progress-bar');
+  const streamEl = document.getElementById('smart-stream');
+
+  function addEvent(event, data) {
+    const empty = streamEl.querySelector('.smart-stream-empty');
+    if (empty) empty.remove();
+    const row = document.createElement('div');
+    let cls = 'ev';
+    if (event.startsWith('security.finding')) cls += ' finding finding-' + (data.severity || '');
+    else if (event.startsWith('test.')) cls += ' test';
+    else if (event.startsWith('agent.')) cls += ' agent';
+    else if (event.startsWith('brain.')) cls += ' brain';
+    else if (event.startsWith('test.stress')) cls += ' stress';
+    row.className = cls;
+
+    let text = '';
+    if (event === 'security.finding') text = `${data.severity?.toUpperCase()}  ${data.description || data.type || ''}  (${data.file || ''})`;
+    else if (event === 'test.suite.completed') text = `tests passed=${data.passed} failed=${data.failed}`;
+    else if (event === 'test.stress.update') text = `stress ${data.rps} rps  p95=${data.p95}ms  err=${data.error_rate}`;
+    else if (event === 'brain.scan.completed') text = `brain ${data.file_count} files, ${data.route_count} routes`;
+    else if (event === 'agent.progress') { text = `step: ${data.current_file} (${data.progress_pct}%)`; if (barEl) barEl.style.width = (data.progress_pct || 0) + '%'; }
+    else if (event === 'agent.completed') text = `agent done — ${data.findings_count} findings, ${data.steps} steps`;
+    else if (event === 'security.scan.started') text = `security scan started (${data.agent_count} agents)`;
+    else if (event === 'security.scan.completed') text = `security scan done — crit=${data.critical_count} high=${data.high_count} med=${data.medium_count}`;
+    else text = JSON.stringify(data).slice(0, 200);
+
+    row.innerHTML = `<span class="tag">${event}</span><span class="msg">${escapeHtml(text)}</span>`;
+    streamEl.appendChild(row);
+    streamEl.scrollTop = streamEl.scrollHeight;
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  runBtn.addEventListener('click', async () => {
+    const goal = goalEl.value.trim();
+    if (!goal) return;
+    runBtn.disabled = true;
+    statusEl.textContent = 'Agent running…';
+    barEl.style.width = '0%';
+    streamEl.innerHTML = '';
+    try {
+      const resp = await fetch('/api/smart/run', {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ goal, max_steps: parseInt(stepsEl.value || '6', 10) })
+      });
+      const j = await resp.json();
+      statusEl.textContent = j.success ? 'Agent started — streaming live events…' : ('Error: ' + (j.message || ''));
+    } catch (e) {
+      statusEl.textContent = 'Failed to start: ' + e;
+    } finally {
+      setTimeout(() => { runBtn.disabled = false; }, 1500);
+    }
+  });
+
+  // Hook into the global WS handler so agent events show up live.
+  const orig = window.handleWSEvent;
+  window.handleWSEvent = function (event, data) {
+    if (event && (event.startsWith('security.') || event.startsWith('test.')
+        || event.startsWith('agent.') || event.startsWith('brain.'))) {
+      addEvent(event, data);
+    }
+    if (orig) orig(event, data);
+  };
+
+  // If the WS isn't connected yet, wait for it.
+  if (!window._ws) {
+    const iv = setInterval(() => { if (window._ws) { clearInterval(iv); } }, 500);
+  }
+})();
+</script>
+{% endblock %}

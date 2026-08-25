@@ -20,7 +20,8 @@ from pathlib import Path
 from typing import Any, Callable, Optional
 
 from patchi.core.agents.base import Finding, Severity
-from patchi.core.fix.patch import Patch, PatchState
+from patchi.core.fix.patch import Patch, PatchState, list_patches, save_patch, save_patch_state
+from patchi.core.fix.applier import PatchApplier
 from patchi.core.fix.base import generate_fix as base_generate_fix
 from patchi.core.security.domain_loader import DomainLoader, FixPlaybook
 from patchi.core.security.orchestrator import CorrelatedFinding

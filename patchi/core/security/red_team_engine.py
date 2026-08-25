@@ -610,46 +610,61 @@ class RedTeamEngine:
         component_type = project_context.get("component_type", "")
         
         # Score scenarios
+        # Active domains use compound ids ("injection-sql"); scenario categories
+        # are simple tokens ("injection", "sql"). Match on both the full id and
+        # its hyphen-split parts so a domain activates its whole family.
+        domain_tokens: set[str] = set()
+        for d in project_context.get("active_security_domains", []):
+            domain_tokens.update(str(d).lower().split("-"))
+
         scored = []
         for scenario_id, scenario in all_scenarios.items():
             score = 0
-            
-            # Domain match
+
+            # Domain match (full id beats individual token)
+            sid_lower = scenario_id.lower()
+            for d in project_context.get("active_security_domains", []):
+                if str(d).lower() == sid_lower:
+                    score += 15
+                    break
+
             category = scenario.get("category", "")
             subcategory = scenario.get("subcategory", "")
-            if category in active_domains:
-                score += 10
-            if subcategory in active_domains:
-                score += 5
-            
+            if category and category in domain_tokens:
+                score += 6
+            if subcategory and subcategory in domain_tokens:
+                score += 8  # subcategory is a precise match — weight it highest
+
             # Framework match
             for fw in frameworks:
                 if fw in scenario_id.lower() or fw in category:
                     score += 3
-            
+
             # Component type match
             if component_type:
                 if "frontend" in component_type and "xss" in scenario_id:
                     score += 5
-                if "backend" in component_type and "sql" in scenario_id:
+                if "backend" in component_type and "sqli" in scenario_id:
+                    score += 5
+                if "backend" in component_type and "sql" in subcategory:
                     score += 5
                 if "api" in component_type and "auth" in scenario_id:
                     score += 5
-            
+
             # Scope filter
             if scope == "api" and "browser" in scenario_id:
                 score -= 10
             if scope == "web" and "sql" in scenario_id:
                 score -= 5
-            
+
             # Intensity filter
             if intensity == "passive" and scenario.get("severity") == "critical":
                 score -= 5
-            
+
             # Forced scenarios get high score
             if scenario_id in forced_scenarios:
                 score += 100
-            
+
             if score > 0:
                 scored.append((score, scenario))
         

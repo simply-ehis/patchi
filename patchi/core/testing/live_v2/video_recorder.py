@@ -17,7 +17,7 @@ import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing | Any, Optional
+from typing import Any, Callable, Optional
 
 _log = logging.getLogger("patchi.testing.video_recorder")
 

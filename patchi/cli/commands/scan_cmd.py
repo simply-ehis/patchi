@@ -37,7 +37,7 @@ from rich.text import Text
 from patchi.cli.console import con
 from patchi.core import config as cfg
 from patchi.core import memory as mem
-from patchi.core.agents.base import AgentGroup, list_agents
+from patchi.core.agents.base import list_agents
 from patchi.core.brain.brain import Brain, BrainReport, ScanProgress
 from patchi.core.brain.freshness import check_freshness
 from patchi.core.config import require_project_root
@@ -208,8 +208,8 @@ def run(
 
                 # ── Self-profiling: record per-agent latency/cost ──────────
                 try:
-                    from patchi.core.ai.agent_profiler import record_run, record_tokens
                     from patchi.core.agents.coordinator import merge_results as _pmr
+                    from patchi.core.ai.agent_profiler import record_run
                     _pm = _pmr(agent_results)
                     for ar in (agent_results or []):
                         aname = getattr(ar, 'agent_name', type(ar).__name__)
@@ -221,10 +221,10 @@ def run(
 
                 # ── Attack feedback loop: feed findings into learning ──────
                 try:
-                    from patchi.core.security.attack_feedback import (
-                        record_confirmed_attack, record_false_positive,
-                    )
                     from patchi.core.agents.coordinator import merge_results as _fbr
+                    from patchi.core.security.attack_feedback import (
+                        record_confirmed_attack,
+                    )
                     _fb = _fbr(agent_results)
                     for f in _fb.get('findings', []):
                         if f.get('severity') in ('critical', 'high'):
@@ -272,8 +272,8 @@ def run(
 
     # ── Threat Model Generation (auto-updated from findings) ────────────────
     try:
-        from patchi.core.security.threat_model_updater import update_threat_model
         from patchi.core.agents.coordinator import merge_results as _mr
+        from patchi.core.security.threat_model_updater import update_threat_model
         _findings_for_tm = (
             _mr(agent_results).get("findings", []) if agent_results else []
         )
@@ -303,8 +303,8 @@ def run(
 
     # ── Chain & Intent Analysis ─────────────────────────────────────────────
     try:
-        from patchi.core.agents.coordinator import merge_results as _cir
-        from patchi.core.agents.base import AgentGroup, list_agents as _la
+        from patchi.core.agents.base import AgentGroup
+        from patchi.core.agents.base import list_agents as _la
         _sec_names = {a.name for a in _la(AgentGroup.SECURITY)}
         _sec_agents = [
             a for a in (agent_results or [])
@@ -489,6 +489,7 @@ def run(
         con.print("[bold #C8621A]─ DAST Scanner ─[/bold #C8621A]")
         try:
             import asyncio
+
             from patchi.core.security.dast_scanner import DastScanner
 
             # Auto-detect target URL
@@ -540,8 +541,8 @@ def run(
         con.print()
         con.print("[bold #C8621A]─ Defense Pipeline ─[/bold #C8621A]")
         try:
-            from patchi.core.security.defense_layer import DefenseLayer
             from patchi.core.security.defenders import ADAPTER_REGISTRY, DefenseAction, get_adapter
+            from patchi.core.security.defense_layer import DefenseLayer
             from patchi.core.security.detection_pipeline import DetectionPipeline
             from patchi.core.security.orchestrator import SecurityOrchestrator
 

@@ -18,6 +18,7 @@ from patchi.core import config as cfg
 from patchi.core import memory as mem
 from patchi.core.brain.brain import Brain, ScanProgress
 from patchi.core.brain.reasoning import ReasoningEngine
+from patchi.core.ai.tools import realize as _realize
 
 _log = logging.getLogger("patchi.ai.tools")
 
@@ -641,70 +642,34 @@ class ToolRegistry:
         return {"success": True, "answer": answer}
     
     def _handle_scan_vulns(self, root: Path, area: str = None, domains: list[str] = None, include_red_team: bool = False) -> dict:
-        # This would integrate with the security orchestrator
-        # For now, return a placeholder
-        return {
-            "success": True,
-            "message": "Security scan initiated. Check scan results via get_scan_results.",
-            "scan_id": f"sec-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}",
-        }
+        return _realize.scan_vulnerabilities(root, area=area, domains=domains, include_red_team=include_red_team)
     
     def _handle_attack_simulate(self, root: Path, scenarios: list[str] = None, target_url: str = None, safe_mode: bool = True) -> dict:
-        return {
-            "success": True,
-            "message": "Attack simulation initiated. Check results via get_scan_results.",
-            "simulation_id": f"atk-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}",
-        }
-    
+        return _realize.attack_simulate(root, scenarios=scenarios, target_url=target_url, safe_mode=safe_mode)
+
     def _handle_red_team(self, root: Path, scope: str = "full", intensity: str = "active") -> dict:
-        return {
-            "success": True,
-            "message": "Red team assessment initiated.",
-            "assessment_id": f"rt-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}",
-        }
-    
+        return _realize.red_team(root, scope=scope, intensity=intensity)
+
     def _handle_check_compliance(self, root: Path, standard: str, level: int = 1) -> dict:
-        return {
-            "success": True,
-            "message": f"Compliance check for {standard} level {level} initiated.",
-        }
-    
+        return _realize.check_compliance(root, standard=standard, level=level)
+
     def _handle_run_tests(self, root: Path, test_types: list[str] = None, area: str = None, base_url: str = None, parallel: bool = False) -> dict:
-        return {
-            "success": True,
-            "message": f"Test run initiated with types: {test_types or ['unit', 'regression']}",
-        }
-    
+        return _realize.run_tests(root, test_types=test_types, area=area, base_url=base_url, parallel=parallel)
+
     def _handle_generate_tests(self, root: Path, target_files: list[str], test_type: str = "unit", framework: str = None) -> dict:
-        return {
-            "success": True,
-            "message": f"Test generation for {len(target_files)} files initiated.",
-        }
-    
+        return _realize.generate_tests(root, target_files=target_files, test_type=test_type, framework=framework)
+
     def _handle_stress_test(self, root: Path, base_url: str, scenario: str = "load", users: int = 10, duration_seconds: int = 60, ramp_up_seconds: int = 10) -> dict:
-        return {
-            "success": True,
-            "message": f"Stress test ({scenario}) initiated against {base_url} with {users} users.",
-        }
-    
+        return _realize.stress_test(root, base_url=base_url, scenario=scenario, users=users, duration_seconds=duration_seconds, ramp_up_seconds=ramp_up_seconds)
+
     def _handle_screenshot(self, root: Path, url: str, selector: str = None, full_page: bool = True, wait_for: str = None) -> dict:
-        return {
-            "success": True,
-            "message": f"Screenshot captured for {url}",
-            "screenshot_base64": "placeholder",
-        }
-    
+        return _realize.screenshot(root, url=url, selector=selector, full_page=full_page, wait_for=wait_for)
+
     def _handle_browser_test(self, root: Path, script: str, base_url: str = None, headless: bool = True, record_video: bool = False) -> dict:
-        return {
-            "success": True,
-            "message": "Browser test executed.",
-        }
-    
+        return _realize.browser_test(root, script=script, base_url=base_url, headless=headless, record_video=record_video)
+
     def _handle_visual_regression(self, root: Path, urls: list[str], threshold: float = 0.1) -> dict:
-        return {
-            "success": True,
-            "message": f"Visual regression check for {len(urls)} URLs completed.",
-        }
+        return _realize.visual_regression(root, urls=urls, threshold=threshold)
     
     def _handle_generate_fix(self, root: Path, finding_id: str, strategy: str = "llm-template") -> dict:
         return {
@@ -797,11 +762,7 @@ class ToolRegistry:
         return {"success": True, "findings": all_findings[:limit], "total": len(all_findings)}
     
     def _handle_start_web_server(self, root: Path, port: int = 8000, host: str = "127.0.0.1") -> dict:
-        return {
-            "success": True,
-            "message": f"Web server started at http://{host}:{port}",
-            "url": f"http://{host}:{port}",
-        }
+        return _realize.start_web_server(root, port=port, host=host)
     
     def _handle_get_dashboard_data(self, root: Path, include_charts: bool = True) -> dict:
         brain = mem.get_brain(root)

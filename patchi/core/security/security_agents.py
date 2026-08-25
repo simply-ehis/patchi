@@ -69,6 +69,7 @@ _AGENT_MODULES: dict[str, str] = {
     "PysaAgent": ".pysa_agent",
     "RateLimitAuditor": ".security_config",
     "RedTeamAgent": ".red_team_agent",
+    "RedTeamEngineAgent": ".red_team_engine",
     "RuntimeValidatorAgent": ".runtime_validator",
     "SamlSSOAgent": ".saml_sso_agent",
     "SecretsGuard": ".secrets_guard",

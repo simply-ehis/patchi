@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Brain Map — Patchi Mission Control</title>
+    <link rel="stylesheet" href="/static/dashboard_v2.css">
+    <style>
+        .brain-canvas {
+            position: relative;
+            height: 560px;
+            background: var(--bg-primary);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+        .layer-node {
+            position: absolute;
+            padding: 10px 14px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--accent);
+            border-radius: var(--radius-md);
+            font-size: 12px;
+            cursor: grab;
+            user-select: none;
+            transition: box-shadow 0.15s ease;
+            max-width: 240px;
+        }
+        .layer-node:hover { box-shadow: 0 0 0 3px rgba(88,166,255,.2); z-index: 10; }
+        .layer-node.lvl2 { border-color: var(--info); }
+        .layer-node.lvl4 { border-color: var(--success); border-width: 2px; }
+        .layer-name { font-weight: 700; margin-bottom: 2px; }
+        .layer-summary { color: var(--text-muted); font-size: 11px; line-height: 1.4; }
+        .layer-files { font-family: var(--font-mono); color: var(--accent); font-size: 11px; margin-top: 4px; }
+        .edge-line { stroke: var(--border); stroke-width: 1.5; }
+    </style>
+</head>
+<body class="theme-dark">
+    <div class="app-shell">
+        <header class="header">
+            <div class="header-left">
+                <a href="/v2" class="logo">
+                    <svg class="logo-icon" viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="6" fill="currentColor"/><path d="M8 12h16M8 16h12M8 20h8" stroke="white" stroke-width="2.5" stroke-linecap="round"/></svg>
+                    <span class="logo-text">Patchi</span>
+                </a>
+                <nav class="main-tabs">
+                    <a href="/v2/brain-map" class="tab active">Brain Map</a>
+                    <a href="/v2/council" class="tab">Council</a>
+                    <a href="/v2/attack-timeline" class="tab">Attacks</a>
+                    <a href="/v2/live-tests" class="tab">Live Tests</a>
+                </nav>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <div style="max-width:1200px;margin:0 auto;padding:24px 20px;width:100%">
+                <section class="panel">
+                    <header class="panel-header">
+                        <h2 class="panel-title">🧠 Layered Brain — Interactive Map</h2>
+                        <span class="badge">{{ layers_data.get('layer_count', 0) }} layers</span>
+                    </header>
+                    <div class="panel-body">
+                        {% if layers_data and layers_data.get('layers') %}
+                        <div class="brain-canvas" id="brainCanvas"></div>
+                        <p style="margin-top:10px;font-size:12px;color:var(--text-muted)">
+                            Drag nodes to rearrange. Blue = subsystem (L2), green = project (L4), default = module (L1).
+                            Lines show dependency edges.
+                        </p>
+                        {% else %}
+                        <div class="feed-empty">No layered brain data. Run <code>p scan</code> first to build the brain.</div>
+                        {% endif %}
+                    </div>
+                </section>
+            </div>
+        </main>
+
+        <footer class="footer">
+            <span>Patchi v2.0 — Brain Map</span>
+            <div class="footer-links"><a href="/v2" class="footer-link">← Overview</a></div>
+        </footer>
+    </div>
+
+    <script src="/static/dashboard_v2.js"></script>
+    <script>
+        // Simple force-ish layout + draggable nodes
+        const layersData = {{ layers_data|tojson }};
+        const canvas = document.getElementById('brainCanvas');
+        if (canvas && layersData && layersData.layers) {
+            const layers = Object.entries(layersData.layers).filter(([n, l]) => l.level <= 2 || n === '__project__');
+            const W = canvas.clientWidth, H = 560;
+            const positions = {};
+            let i = 0;
+            for (const [name, layer] of layers) {
+                if (name === '__project__') continue;
+                const cols = Math.ceil(Math.sqrt(layers.length));
+                const col = i % cols, row = Math.floor(i / cols);
+                positions[name] = {
+                    x: 40 + col * ((W - 260) / cols),
+                    y: 30 + row * 110,
+                };
+                i++;
+            }
+
+            const svgNS = 'http://www.w3.org/2000/svg';
+            const svg = document.createElementNS(svgNS, 'svg');
+            svg.setAttribute('width', W);
+            svg.setAttribute('height', H);
+            svg.style.position = 'absolute';
+            svg.style.inset = '0';
+            canvas.appendChild(svg);
+
+            function drawEdges() {
+                svg.innerHTML = '';
+                for (const [name, pos] of Object.entries(positions)) {
+                    const node = document.getElementById('node-' + CSS.escape(name));
+                    if (!node) continue;
+                    const x1 = pos.x + node.offsetWidth / 2, y1 = pos.y + node.offsetHeight / 2;
+                    for (const dep of (layersData.layers[name].depends_on || [])) {
+                        const dpos = positions[dep];
+                        const dnode = document.getElementById('node-' + CSS.escape(dep));
+                        if (!dnode || !dpos) continue;
+                        const line = document.createElementNS(svgNS, 'line');
+                        line.setAttribute('x1', x1); line.setAttribute('y1', y1);
+                        line.setAttribute('x2', dpos.x + dnode.offsetWidth / 2);
+                        line.setAttribute('y2', dpos.y + dnode.offsetHeight / 2);
+                        line.classList.add('edge-line');
+                        svg.appendChild(line);
+                    }
+                }
+            }
+
+            for (const [name, layer] of layers) {
+                if (name === '__project__') continue;
+                const el = document.createElement('div');
+                el.className = 'layer-node' + (layer.level === 2 ? ' lvl2' : '');
+                el.id = 'node-' + name.replace(/[^a-zA-Z0-9_-]/g, '_');
+                el.innerHTML = `
+                    <div class="layer-name">${name}</div>
+                    <div class="layer-summary">${(layer.summary||'').slice(0,90)}…</div>
+                    <div class="layer-files">${(layer.files||[]).length} files · L${layer.level}</div>
+                `;
+                el.style.left = positions[name].x + 'px';
+                el.style.top = positions[name].y + 'px';
+                makeDraggable(el, name);
+                canvas.appendChild(el);
+            }
+            requestAnimationFrame(drawEdges);
+
+            function makeDraggable(el, name) {
+                let startX, startY, origX, origY, dragging = false;
+                el.addEventListener('mousedown', e => {
+                    dragging = true; startX = e.clientX; startY = e.clientY;
+                    origX = positions[name].x; origY = positions[name].y;
+                    el.style.cursor = 'grabbing';
+                    e.preventDefault();
+                });
+                window.addEventListener('mousemove', e => {
+                    if (!dragging) return;
+                    positions[name].x = origX + (e.clientX - startX);
+                    positions[name].y = origY + (e.clientY - startY);
+                    el.style.left = positions[name].x + 'px';
+                    el.style.top = positions[name].y + 'px';
+                    drawEdges();
+                });
+                window.addEventListener('mouseup', () => { dragging = false; el.style.cursor = 'grab'; });
+            }
+        }
+    </script>
+</body>
+</html>

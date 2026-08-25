@@ -20,6 +20,14 @@ from .ui_layout_agent import UILayoutAgent
 from .unit_test_agent import TestCase, TestSuite, UnitTestAgent, _run
 from .visual_regression_agent import VisualRegressionAgent
 
+# Live v2 runner registers its agent on import (additive — never breaks v1)
+try:
+    from .live_v2.runner import LiveTestRunnerV2Agent  # noqa: F401
+except Exception as _e:  # pragma: no cover — playwright-less envs still work
+    import logging as _logging
+
+    _logging.getLogger("patchi.testing").warning("LiveTestRunnerV2Agent unavailable: %s", _e)
+
 __all__ = [
     "AccessibilityAgent",
     "APIContractAgent",

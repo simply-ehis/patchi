@@ -52,6 +52,17 @@ def create_app(root: Path) -> FastAPI:
         import logging
         logging.getLogger("patchi.web").warning("Cost tracker init failed: %s", e)
 
+    # Initialize tenant manager for multi-project isolation
+    try:
+        from patchi.core.tenant import get_tenant_manager
+        tenant_mgr = get_tenant_manager()
+        tenant_mgr.register_project(root)
+        tenant_mgr.switch_project(root)
+        app.state.tenant_manager = tenant_mgr
+    except Exception as e:
+        import logging
+        logging.getLogger("patchi.web").warning("Tenant manager init failed: %s", e)
+
     # Initialize SpawnManager (was only in dead server.py — now wired here)
     try:
         from patchi.web.spawn import SpawnManager
@@ -108,6 +119,12 @@ def create_app(root: Path) -> FastAPI:
     from patchi.web.api.fix import router as fix_router
     from patchi.web.api.guard import router as guard_api_router
     from patchi.web.api.hosted import router as hosted_router
+    try:
+        from patchi.web.api.hosted_v2 import router as hosted_v2_router
+    except Exception as e:
+        _logging = __import__("logging")
+        _logging.getLogger("patchi.web").warning("Hosted v2 API not available: %s", e)
+        hosted_v2_router = None
     from patchi.web.api.scan import router as scan_router
     from patchi.web.api_legacy import router as legacy_router
     from patchi.web.routes.brain import router as brain_router
@@ -130,6 +147,8 @@ def create_app(root: Path) -> FastAPI:
     from patchi.web.routes.live_testing import router as live_testing_router
     from patchi.web.api.cicd import router as cicd_router
     from patchi.web.api.live_testing import router as live_testing_api_router
+    from patchi.web.api.smart import router as smart_api_router
+    from patchi.web.api.tenant import router as tenant_router
 
     app.include_router(legacy_router)
     app.include_router(dashboard_router)
@@ -145,6 +164,8 @@ def create_app(root: Path) -> FastAPI:
     app.include_router(charts_router)
     app.include_router(fix_router)
     app.include_router(hosted_router)
+    if hosted_v2_router is not None:
+        app.include_router(hosted_v2_router)
     app.include_router(assurance_router)
     app.include_router(chat_api_router)
     app.include_router(guard_api_router)
@@ -152,6 +173,8 @@ def create_app(root: Path) -> FastAPI:
     app.include_router(live_testing_router)
     app.include_router(cicd_router)
     app.include_router(live_testing_api_router)
+    app.include_router(smart_api_router)
+    app.include_router(tenant_router)
     if dashboard_v2_router is not None:
         app.include_router(dashboard_v2_router)
 

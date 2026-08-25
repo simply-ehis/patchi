@@ -115,24 +115,24 @@ scenarios:
         description: "Find DOM sources (location.hash, search, URL params)"
         tool: "code_scan"
         patterns:
-          - "location\.hash"
-          - "location\.search"
-          - "document\.URL"
-          - "window\.name"
-          - "document\.referrer"
+          - 'location\.hash'
+          - 'location\.search'
+          - 'document\.URL'
+          - 'window\.name'
+          - 'document\.referrer'
       - step: 2
         action: "identify_sinks"
         description: "Find unsafe DOM sinks"
         tool: "code_scan"
         patterns:
-          - "innerHTML\s*="
-          - "outerHTML\s*="
-          - "document\.write"
-          - "eval\s*\("
-          - "setTimeout\s*\("
-          - "setInterval\s*\("
-          - "\.html\s*\("
-          - "dangerouslySetInnerHTML"
+          - 'innerHTML\s*='
+          - 'outerHTML\s*='
+          - 'document\.write'
+          - 'eval\s*\('
+          - 'setTimeout\s*\('
+          - 'setInterval\s*\('
+          - '\.html\s*\('
+          - 'dangerouslySetInnerHTML'
       - step: 3
         action: "craft_exploit_url"
         description: "Create URL with payload in source"
@@ -198,8 +198,8 @@ scenarios:
         tool: "code_scan"
         patterns:
           - "render_template_string"
-          - "Template\s*\("
-          - "jinja2\.Environment.*autoescape\s*=\s*False"
+          - 'Template\s*\('
+          - 'jinja2\.Environment.*autoescape\s*=\s*False'
           - "twig.*render"
           - "freemarker.*process"
       - step: 2

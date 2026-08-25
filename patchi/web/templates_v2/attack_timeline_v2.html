@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Attack Timeline — Patchi Mission Control</title>
+    <link rel="stylesheet" href="/static/dashboard_v2.css">
+</head>
+<body class="theme-dark">
+    <div class="app-shell">
+        <header class="header">
+            <div class="header-left">
+                <a href="/v2" class="logo">
+                    <svg class="logo-icon" viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="6" fill="currentColor"/><path d="M8 12h16M8 16h12M8 20h8" stroke="white" stroke-width="2.5" stroke-linecap="round"/></svg>
+                    <span class="logo-text">Patchi</span>
+                </a>
+                <nav class="main-tabs">
+                    <a href="/v2/brain-map" class="tab">Brain Map</a>
+                    <a href="/v2/council" class="tab">Council</a>
+                    <a href="/v2/attack-timeline" class="tab active">Attacks</a>
+                    <a href="/v2/live-tests" class="tab">Live Tests</a>
+                </nav>
+            </div>
+            <div class="header-right">
+                <button class="btn btn-primary" id="launchRedTeam">⚔ Launch Red Team</button>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <div style="max-width:900px;margin:0 auto;padding:24px 20px;width:100%">
+                {% if attack_data and attack_data.findings %}
+                <!-- Summary Cards -->
+                <div class="metric-cards" style="margin-bottom:20px">
+                    <div class="metric-card">
+                        <div class="metric-value">{{ attack_data.summary.total_findings if attack_data.summary else attack_data.findings|length }}</div>
+                        <div class="metric-label">Findings</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">{{ attack_data.summary.by_severity.critical|default(0) if attack_data.summary else '—' }}</div>
+                        <div class="metric-label">Critical</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">{{ attack_data.summary.scenarios_run if attack_data.summary else '—' }}</div>
+                        <div class="metric-label">Scenarios Run</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">{{ (attack_data.summary.duration_ms / 1000)|round(1)|default('—') if attack_data.summary else '—' }}s</div>
+                        <div class="metric-label">Duration</div>
+                    </div>
+                </div>
+
+                <!-- Timeline -->
+                <section class="panel">
+                    <header class="panel-header">
+                        <h2 class="panel-title">🎯 Attack Simulation Timeline</h2>
+                        <span class="badge">Latest assessment</span>
+                    </header>
+                    <div class="panel-body">
+                        <div class="attack-timeline">
+                            {% for finding in attack_data.findings[:30] %}
+                            <div class="timeline-event {{ 'success' if finding.type and 'attack' in finding.type else '' }}">
+                                <div class="event-time">{{ finding.timestamp[:19] if finding.timestamp else '' }}</div>
+                                <div class="event-title">
+                                    <span class="finding-severity severity-{{ finding.severity }}">{{ finding.severity }}</span>
+                                    {{ finding.message }}
+                                </div>
+                                <div class="event-detail">
+                                    {{ finding.detail or '' }}
+                                    {% if finding.file %}<br><code>{{ finding.file }}:{{ finding.line }}</code>{% endif %}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </section>
+                {% else %}
+                <section class="panel">
+                    <div class="panel-body">
+                        <div class="feed-empty">
+                            No red team assessments yet.<br><br>
+                            Click <strong>⚔ Launch Red Team</strong> to run attack simulations against your app.
+                        </div>
+                    </div>
+                </section>
+                {% endif %}
+            </div>
+        </main>
+
+        <footer class="footer">
+            <span>Patchi v2.0 — Red Team Engine</span>
+            <div class="footer-links"><a href="/v2" class="footer-link">← Overview</a></div>
+        </footer>
+    </div>
+
+    <script src="/static/dashboard_v2.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const btn = document.getElementById('launchRedTeam');
+            if (btn) {
+                btn.addEventListener('click', () => {
+                    btn.disabled = true;
+                    btn.textContent = '⚔ Running…';
+                    // Trigger via tool execution API
+                    fetch('/api/v2/tools/execute', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({tool: 'red_team', parameters: {scope: 'full', intensity: 'active'}})
+                    }).then(r => r.json()).then(json => {
+                        btn.disabled = false;
+                        btn.textContent = '⚔ Launch Red Team';
+                        setTimeout(() => location.reload(), 1500);
+                    }).catch(e => {
+                        btn.disabled = false;
+                        btn.textContent = '⚔ Launch Red Team';
+                        alert('Failed to launch: ' + e.message);
+                    });
+                });
+            }
+        });
+    </script>
+</body>
+</html>

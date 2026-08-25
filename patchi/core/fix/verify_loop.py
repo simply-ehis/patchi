@@ -105,6 +105,24 @@ def _rerun_failing_test(
         return False, f"could not launch test runner: {exc}"
 
 
+def recheck_test_file(root: Path, test_file: str) -> dict:
+    """Re-run one previously-verified test file (REVERIFY phase helper).
+
+    Contract used by governor._recheck_applied_patches:
+      {"passed": True}   — test ran and passed
+      {"passed": False}  — test ran and failed (regression)
+      {"passed": None}   — could not run (file missing, runner error, timeout)
+    Always includes "output" (tail of runner output) and "error" (message).
+    """
+    if not test_file or not is_test_path(test_file):
+        return {"passed": None, "output": "", "error": f"not a runnable test path: {test_file}"}
+
+    passed, output = _rerun_failing_test(Path(root), test_file)
+    if "cannot re-run" in output or "could not launch" in output or "timed out" in output:
+        return {"passed": None, "output": output, "error": output}
+    return {"passed": bool(passed), "output": output, "error": "" if passed else output}
+
+
 def run_verify_loop(
     patch,
     root: Path,

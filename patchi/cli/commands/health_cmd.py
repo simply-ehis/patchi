@@ -26,7 +26,7 @@ from patchi.core.config import require_project_root
 
 _log = logging.getLogger("patchi.cli.health_cmd")
 
-def run(root: Path | None = None) -> None:
+def run(root: Path | None = None, json_output: bool = False) -> None:
     """Entry point for `p health`."""
     try:
         r = root or require_project_root()
@@ -36,10 +36,24 @@ def run(root: Path | None = None) -> None:
 
     brain = mem.get_brain(r)
     if not brain or not brain.get("file_count"):
-        con.print("[yellow]No scan data yet. Run 'p scan' first.[/yellow]")
+        if json_output:
+            import json as _json
+
+            con.print(_json.dumps({"error": "no scan data yet"}))
+        else:
+            con.print("[yellow]No scan data yet. Run 'p scan' first.[/yellow]")
         return
 
     score = hm.compute(r)
+    if json_output:
+        import json as _json
+        from dataclasses import asdict, is_dataclass
+
+        payload = asdict(score) if is_dataclass(score) else (
+            score.__dict__ if hasattr(score, "__dict__") else {"score": str(score)}
+        )
+        con.print(_json.dumps(payload, indent=2, default=str))
+        return
     _show_health(score, brain, r)
 
 def _show_health(score: hm.HealthScore, brain: dict, root: Path) -> None:

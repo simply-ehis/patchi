@@ -61,11 +61,12 @@ import logging
 
 _log = logging.getLogger("patchi.cli.doctor_cmd")
 
-def run(verbose: bool = False) -> None:
+def run(verbose: bool = False, json_output: bool = False) -> None:
     """Entry point for `p doctor`."""
-    con.print()
-    con.print("[bold #C8621A]Patchi Doctor[/bold #C8621A]  [dim]system health check[/dim]")
-    con.print()
+    if not json_output:
+        con.print()
+        con.print("[bold #C8621A]Patchi Doctor[/bold #C8621A]  [dim]system health check[/dim]")
+        con.print()
 
     checks: list[tuple[str, str, str, str]] = []  # (label, status, note, color)
     warnings = 0
@@ -284,6 +285,20 @@ def run(verbose: bool = False) -> None:
         checks.append((f"[dim]opt:[/dim] {cmd}", status, note, color))
 
     # ── Render results ────────────────────────────────────────────────────────
+    if json_output:
+        import json as _json
+
+        con.print(_json.dumps({
+            "ok": errors == 0,
+            "errors": errors,
+            "warnings": warnings,
+            "checks": [
+                {"label": label, "status": status.strip(), "note": note}
+                for label, status, note, _color in checks
+            ],
+        }, indent=2))
+        return
+
     _render_table(checks)
 
     # ── Summary ───────────────────────────────────────────────────────────────

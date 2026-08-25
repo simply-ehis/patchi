@@ -24,6 +24,7 @@ def run(
     licenses: bool = False,
     outdated: bool = False,
     cve: bool = False,
+    json_output: bool = False,
     root: Path | None = None,
 ) -> None:
     try:
@@ -77,3 +78,21 @@ def run(
 
     total_findings = sum(r.finding_count for r in results)
     lp.stop(summary=f"{len(results)} agents - {total_findings} findings")
+
+    if json_output:
+        import json as _json
+
+        con.print(_json.dumps({
+            "agents": [
+                {
+                    "agent": getattr(res, "agent_name", ""),
+                    "status": getattr(getattr(res, "status", None), "value", ""),
+                    "findings": [
+                        f.to_dict() if hasattr(f, "to_dict") else dict(f)
+                        for f in (getattr(res, "findings", []) or [])
+                    ],
+                }
+                for res in results
+            ],
+            "total_findings": total_findings,
+        }, indent=2, default=str))

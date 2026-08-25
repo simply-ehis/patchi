@@ -19,11 +19,8 @@ import json
 import logging
 import time
 from contextlib import contextmanager
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Any
-
-from patchi.core.ai import cost_tracker
 
 _log = logging.getLogger("patchi.ai.agent_profiler")
 

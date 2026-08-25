@@ -51,6 +51,8 @@ def _find_assignments_python(content: str) -> list[dict]:
     """Walk the AST for variable assignments."""
     import ast
 
+    from .helpers import _py_assign_target_name
+
     try:
         tree = ast.parse(content)
     except SyntaxError:
@@ -58,22 +60,30 @@ def _find_assignments_python(content: str) -> list[dict]:
 
     src_lines = content.splitlines()
     results: list[dict] = []
+
+    def _record(target_node: ast.AST, value_node: ast.AST | None, line_no: int) -> None:
+        target = _py_assign_target_name(target_node)
+        if not target:
+            return
+        full_text = src_lines[line_no - 1] if 0 < line_no <= len(src_lines) else ""
+        try:
+            value = ast.unparse(value_node) if value_node is not None else ""
+        except Exception:
+            value = ""
+        results.append({
+            "target": target,
+            "value": value,
+            "line": line_no,
+            "full_text": full_text,
+        })
+
     for node in ast.walk(tree):
         if isinstance(node, ast.Assign):
             for target in node.targets:
-                if isinstance(target, ast.Name):
-                    line_no = node.lineno
-                    full_text = src_lines[line_no - 1] if 0 < line_no <= len(src_lines) else ""
-                    try:
-                        value = ast.unparse(node.value)
-                    except Exception:
-                        value = ""
-                    results.append({
-                        "target": target.id,
-                        "value": value,
-                        "line": line_no,
-                        "full_text": full_text,
-                    })
+                _record(target, node.value, node.lineno)
+        elif isinstance(node, ast.AnnAssign):
+            # Annotated assignment: config.debug: bool = True (value may be None)
+            _record(node.target, node.value, node.lineno)
     return results
 
 

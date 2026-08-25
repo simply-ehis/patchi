@@ -57,9 +57,12 @@ DOMAIN_SIGNALS: dict[str, dict[str, list[tuple[str, float, str]]]] = {
     "injection-sql": {
         "code": [
             (r"\.execute\s*\([^)]*%[sf]", 0.9, "String formatting in SQL execute"),
-            (r"cursor\.execute\s*\([^)]*\+", 0.8, "String concatenation in SQL"),
+            # Any `.execute(...)` / `.executemany(...)` built with `+` string
+            # concatenation — catches conn/cursor/session variants alike.
+            (r"\.execute(?:many)?\s*\([^)]*['\"]\s*\+", 0.85, "String concatenation in SQL execute"),
+            (r"cursor\.execute\s*\([^)]*\+", 0.8, "String concatenation in cursor SQL"),
             (r"SELECT.*FROM.*WHERE.*\{", 0.7, "Template-style SQL"),
-            (r"f\".*SELECT", 0.7, "F-string SQL query"),
+            (r"f['\"].*SELECT", 0.7, "F-string SQL query"),
             (r"\.raw\s*\([^)]*SELECT", 0.8, "Raw SQL usage"),
         ],
         "config": [
@@ -134,7 +137,7 @@ DOMAIN_SIGNALS: dict[str, dict[str, list[tuple[str, float, str]]]] = {
             (r"passport\.authenticate", 0.8, "Passport.js usage"),
             (r"flask_login|django\.contrib\.auth", 0.7, "Auth framework"),
             (r"bcrypt|argon2|scrypt|PBKDF2", 0.6, "Password hashing"),
-            (r"session\[""|session\.get\(", 0.7, "Session usage"),
+            (r"session\[|session\.get\(", 0.7, "Session usage"),
         ],
         "config": [
             (r"SECRET_KEY|JWT_SECRET", 0.5, "Auth secret configured"),

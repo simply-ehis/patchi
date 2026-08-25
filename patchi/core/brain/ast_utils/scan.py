@@ -79,11 +79,12 @@ def scan_python(
                     "line": node.lineno,
                 })
         elif isinstance(node, ast.Call):
-            func_name = ""
-            if isinstance(node.func, ast.Name):
-                func_name = node.func.id
-            elif isinstance(node.func, ast.Attribute):
-                func_name = node.func.attr
+            # Full dotted name via the shared helper (single source of truth
+            # with calls.find_calls) — leaf-only names broke deep dotted
+            # matching like a.b.c.execute().
+            from .helpers import _py_call_name
+
+            func_name = _py_call_name(node)
             calls.append({
                 "function": func_name,
                 "line": node.lineno,

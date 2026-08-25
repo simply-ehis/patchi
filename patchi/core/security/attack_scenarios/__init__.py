@@ -1,0 +1,1 @@
+"""Attack scenario YAML library."""

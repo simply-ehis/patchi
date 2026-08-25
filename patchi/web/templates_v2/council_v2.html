@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Council — Patchi Mission Control</title>
+    <link rel="stylesheet" href="/static/dashboard_v2.css">
+</head>
+<body class="theme-dark">
+    <div class="app-shell">
+        <header class="header">
+            <div class="header-left">
+                <a href="/v2" class="logo">
+                    <svg class="logo-icon" viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="6" fill="currentColor"/><path d="M8 12h16M8 16h12M8 20h8" stroke="white" stroke-width="2.5" stroke-linecap="round"/></svg>
+                    <span class="logo-text">Patchi</span>
+                </a>
+                <nav class="main-tabs">
+                    <a href="/v2/brain-map" class="tab">Brain Map</a>
+                    <a href="/v2/council" class="tab active">Council</a>
+                    <a href="/v2/attack-timeline" class="tab">Attacks</a>
+                    <a href="/v2/live-tests" class="tab">Live Tests</a>
+                </nav>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <div style="max-width:900px;margin:0 auto;padding:24px 20px;width:100%">
+                <!-- Council Convene Form -->
+                <section class="panel">
+                    <header class="panel-header">
+                        <h2 class="panel-title">🏛️ Convene the Council</h2>
+                    </header>
+                    <div class="panel-body">
+                        <p style="color:var(--text-secondary);font-size:13px;margin-bottom:12px">
+                            Ask a question or describe an issue. Relevant personas will analyze it in parallel
+                            and synthesize a unified recommendation with an action plan.
+                        </p>
+                        <div style="display:flex;gap:10px">
+                            <input type="text" id="councilIssue" placeholder="e.g. How do we secure the auth layer? Should we refactor the data module?"
+                                   style="flex:1;background:var(--bg-primary);border:1px solid var(--border);border-radius:var(--radius-md);padding:10px 14px;color:var(--text-primary);font-size:14px;font-family:inherit;outline:none">
+                            <button class="btn btn-primary" id="conveneBtn">Deliberate</button>
+                        </div>
+                        <div id="liveResult"></div>
+                    </div>
+                </section>
+
+                <!-- Session History -->
+                <section class="panel">
+                    <header class="panel-header">
+                        <h2 class="panel-title">📜 Session History</h2>
+                        <span class="badge">{{ council_sessions|length }} sessions</span>
+                    </header>
+                    <div class="panel-body">
+                        {% if council_sessions %}
+                            {% for session in council_sessions %}
+                            <div class="council-session">
+                                <div class="council-header">
+                                    <span class="council-issue">{{ session.issue }}</span>
+                                    <span class="council-meta">{{ session.timestamp[:19] }}</span>
+                                </div>
+                                {% for decision in session.decisions %}
+                                <div class="persona-card {{ decision.persona_name|lower }}">
+                                    <div class="persona-avatar">{{ loop.index }}</div>
+                                    <div class="persona-content">
+                                        <div class="persona-name">{{ decision.persona_name.replace('_', ' ').title() }}</div>
+                                        <div class="persona-analysis">{{ decision.analysis }}</div>
+                                        <div class="persona-confidence">
+                                            confidence {{ (decision.confidence * 100)|round(0)|int }}%
+                                            <span class="confidence-bar"><span class="confidence-fill" style="width: {{ (decision.confidence * 100)|round(0)|int }}%"></span></span>
+                                            → {{ decision.recommendation }}
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                                <div class="council-synthesis">
+                                    <strong>Synthesis:</strong> {{ session.synthesis }}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="feed-empty">No council sessions yet. Convene one above.</div>
+                        {% endif %}
+                    </div>
+                </section>
+            </div>
+        </main>
+
+        <footer class="footer">
+            <span>Patchi v2.0 — Council of Personas</span>
+            <div class="footer-links">
+                <a href="/v2" class="footer-link">← Overview</a>
+            </div>
+        </footer>
+    </div>
+
+    <script src="/static/dashboard_v2.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const issueInput = document.getElementById('councilIssue');
+            const conveneBtn = document.getElementById('conveneBtn');
+            const liveResult = document.getElementById('liveResult');
+
+            function deliberate() {
+                const issue = issueInput.value.trim();
+                if (!issue) return;
+                conveneBtn.disabled = true;
+                conveneBtn.textContent = 'Deliberating…';
+                liveResult.innerHTML = '<div class="feed-empty">Personas analyzing…</div>';
+                // Send via WebSocket (dashboard_v2.js manages the connection)
+                setTimeout(() => {
+                    conveneBtn.disabled = false;
+                    conveneBtn.textContent = 'Deliberate';
+                }, 30000);
+                if (window.PATCHI_WS) window.PATCHI_WS.send(JSON.stringify({action:'council_query', data:{issue}}));
+            }
+            conveneBtn.addEventListener('click', deliberate);
+            issueInput.addEventListener('keydown', e => { if (e.key === 'Enter') deliberate(); });
+        });
+    </script>
+</body>
+</html>

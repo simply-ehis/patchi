@@ -32,7 +32,7 @@ def _health_bar(score: int, width: int = 20) -> str:
     bar = f"[{color}]{'█' * filled}[/{color}][dim]{'░' * empty}[/dim]"
     return f"{bar} {score}/100"
 
-def run(root: Path | None = None) -> None:
+def run(root: Path | None = None, json_output: bool = False) -> None:
     """p status"""
     try:
         config = cfg.load(root)
@@ -42,6 +42,26 @@ def run(root: Path | None = None) -> None:
         qmode = cfg.get_queue_mode(root)
     except RuntimeError as e:
         con.print(f"[red]{e}[/red]")
+        return
+
+    if json_output:
+        import json as _json
+
+        health_score = brain.get("health_score", {}) if brain else {}
+        stack = (brain or {}).get("stack", {}) or {}
+        con.print(_json.dumps({
+            "mode": mode,
+            "queue_mode": qmode,
+            "queue": qstats,
+            "health_score": health_score,
+            "brain": {
+                "ready": bool(brain and not brain.get("stale") and not brain.get("error")),
+                "stale": bool((brain or {}).get("stale")),
+                "file_count": (brain or {}).get("file_count", 0),
+                "route_count": (brain or {}).get("route_count", 0),
+                "frameworks": [f.get("name", "") for f in stack.get("frameworks", [])[:3]],
+            },
+        }, indent=2, default=str))
         return
 
     con.print()

@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Live Tests — Patchi Mission Control</title>
+    <link rel="stylesheet" href="/static/dashboard_v2.css">
+</head>
+<body class="theme-dark">
+    <div class="app-shell">
+        <header class="header">
+            <div class="header-left">
+                <a href="/v2" class="logo">
+                    <svg class="logo-icon" viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="6" fill="currentColor"/><path d="M8 12h16M8 16h12M8 20h8" stroke="white" stroke-width="2.5" stroke-linecap="round"/></svg>
+                    <span class="logo-text">Patchi</span>
+                </a>
+                <nav class="main-tabs">
+                    <a href="/v2/brain-map" class="tab">Brain Map</a>
+                    <a href="/v2/council" class="tab">Council</a>
+                    <a href="/v2/attack-timeline" class="tab">Attacks</a>
+                    <a href="/v2/live-tests" class="tab active">Live Tests</a>
+                </nav>
+            </div>
+            <div class="header-right">
+                <input type="url" id="baseUrlInput" placeholder="http://localhost:3000"
+                       style="background:var(--bg-primary);border:1px solid var(--border);border-radius:var(--radius-md);padding:7px 12px;color:var(--text-primary);font-size:13px;width:220px;outline:none">
+                <button class="btn btn-primary" id="runTestsBtn">▶ Run Live Tests</button>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <div style="max-width:1200px;margin:0 auto;padding:24px 20px;width:100%">
+                <!-- Run Controls -->
+                <section class="panel">
+                    <header class="panel-header">
+                        <h2 class="panel-title">🧪 Test Configuration</h2>
+                    </header>
+                    <div class="panel-body">
+                        <div style="display:flex;gap:14px;flex-wrap:wrap">
+                            {% for t in ['unit','regression','browser','visual','stress','e2e'] %}
+                            <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-secondary);cursor:pointer">
+                                <input type="checkbox" class="test-type-cb" value="{{ t }}" {{ 'checked' if t in ['unit','browser','visual'] }}>
+                                {{ t }}
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Results Grid -->
+                <div class="dashboard-grid" style="grid-template-columns:1fr 1fr;padding:0">
+                    <!-- Browser View -->
+                    <section class="panel panel-full">
+                        <header class="panel-header">
+                            <h2 class="panel-title">🌐 Browser Session</h2>
+                            <span class="badge" id="browserStatus">idle</span>
+                        </header>
+                        <div class="panel-body">
+                            <div class="browser-frame">
+                                <div class="browser-toolbar">
+                                    <span style="color:var(--danger)">●</span>
+                                    <span style="color:var(--warning)">●</span>
+                                    <span style="color:var(--success)">●</span>
+                                    <div class="browser-url" id="browserUrl">—</div>
+                                </div>
+                                <div class="browser-viewport" id="browserViewport">
+                                    <span style="color:var(--text-muted);font-size:13px">Screenshots appear here during test runs</span>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Stress Metrics -->
+                    <section class="panel panel-full">
+                        <header class="panel-header">
+                            <h2 class="panel-title">⚡ Stress / Load Metrics</h2>
+                        </header>
+                        <div class="panel-body">
+                            <canvas class="stress-chart" id="stressChart"></canvas>
+                            <div class="metric-cards">
+                                <div class="metric-card">
+                                    <div class="metric-value" id="mRps">—</div>
+                                    <div class="metric-label">Req/sec</div>
+                                </div>
+                                <div class="metric-card">
+                                    <div class="metric-value" id="mP95">—</div>
+                                    <div class="metric-label">P95 (ms)</div>
+                                </div>
+                                <div class="metric-card">
+                                    <div class="metric-value" id="mErr">—</div>
+                                    <div class="metric-label">Error rate</div>
+                                </div>
+                                <div class="metric-card">
+                                    <div class="metric-value" id="mUsers">—</div>
+                                    <div class="metric-label">Peak users</div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+
+                <!-- Previous Results -->
+                <section class="panel">
+                    <header class="panel-header">
+                        <h2 class="panel-title">📊 Last Run Summary</h2>
+                    </header>
+                    <div class="panel-body">
+                        {% if test_data %}
+                        <pre style="font-family:var(--font-mono);font-size:12px;color:var(--text-secondary);overflow-x:auto">{{ test_data|tojson(indent=2) }}</pre>
+                        {% else %}
+                        <div class="feed-empty">No test runs yet. Configure and run tests above.</div>
+                        {% endif %}
+                    </div>
+                </section>
+            </div>
+        </main>
+
+        <footer class="footer">
+            <span>Patchi v2.0 — Live Testing Platform</span>
+            <div class="footer-links"><a href="/v2" class="footer-link">← Overview</a></div>
+        </footer>
+    </div>
+
+    <script src="/static/dashboard_v2.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const runBtn = document.getElementById('runTestsBtn');
+            const baseUrl = document.getElementById('baseUrlInput');
+
+            runBtn.addEventListener('click', async () => {
+                const types = Array.from(document.querySelectorAll('.test-type-cb:checked')).map(cb => cb.value);
+                const url = baseUrl.value.trim() || 'http://localhost:3000';
+                document.getElementById('browserStatus').textContent = 'running…';
+                runBtn.disabled = true;
+                runBtn.textContent = '⏳ Running…';
+
+                try {
+                    const res = await fetch('/api/v2/tools/execute', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({
+                            tool: 'run_tests',
+                            parameters: {test_types: types, base_url: url}
+                        })
+                    });
+                    const json = await res.json();
+                    console.log('Test result:', json);
+                } finally {
+                    runBtn.disabled = false;
+                    runBtn.textContent = '▶ Run Live Tests';
+                    document.getElementById('browserStatus').textContent = 'idle';
+                }
+            });
+
+            // Render stress chart from last saved results
+            fetch('/api/v2/live-tests/status').then(r => r.json()).then(data => {
+                if (!data || !data.summary) return;
+                const s = data.summary;
+                const el = (id, v) => { const e = document.getElementById(id); if (e && v != null) e.textContent = v; };
+                el('mRps', (s.requests_per_second || 0).toFixed ? s.requests_per_second.toFixed(1) : '—');
+                el('mP95', Math.round(s.latency_p95_ms || 0));
+                el('mErr', ((s.error_rate || 0) * 100).toFixed(1) + '%');
+            }).catch(() => {});
+        });
+    </script>
+</body>
+</html>

@@ -181,11 +181,11 @@ scenarios:
         description: "Find raw SQL or unsafe ORM calls in codebase"
         tool: "code_scan"
         patterns:
-          - "\.raw\s*\("
-          - "\.extra\s*\("
-          - "\.whereRaw\s*\("
-          - "RawSQL|text\(|execute\s*\("
-          - "\.FromSqlRaw|FromSqlInterpolated"
+          - '\.raw\s*\('
+          - '\.extra\s*\('
+          - '\.whereRaw\s*\('
+          - 'RawSQL|text\(|execute\s*\('
+          - 'FromSqlRaw|FromSqlInterpolated'
       - step: 2
         action: "exploit_orm_injection"
         description: "Inject through ORM raw methods"

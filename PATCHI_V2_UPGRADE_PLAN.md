@@ -1,5 +1,28 @@
 # Patchi v2.0 Upgrade Plan — Smart Testing & Security Platform
 
+## Implementation Status (2026-08-25)
+
+| Component | Status | Where |
+|---|---|---|
+| Council of Personas (8 personas, deliberation, synthesis, action plans, learning memory) | ✅ Done | `patchi/core/brain/council.py`, `patchi/core/brain/personas/` |
+| AI Tool Calling (37 tools, schema validation, confirmation gates, audit log) | ✅ Done | `patchi/core/ai/tools/`, `patchi/core/ai/tool_executor.py` |
+| Dynamic Security Domain Activation (signal-based scoring, 20+ domains) | ✅ Done | `patchi/core/security/domain_activator_v2.py` |
+| Red Team Engine (YAML attack scenarios: SQLi/XSS/Auth families, safe mode, reporting) | ✅ Done | `patchi/core/security/red_team_engine.py`, `attack_scenarios/*.yaml` |
+| Auto-Fixer (playbook matching, patch generation, verification hooks) | ✅ Done | `patchi/core/security/auto_fixer.py` |
+| Live Testing v2 (browser pool, stress orchestrator load/spike/soak/breakpoint, screenshots, video) | ✅ Done | `patchi/core/testing/live_v2/` |
+| Web Dashboard v2 (mission control, council view, brain map, attack timeline, live tests, command palette, WS streaming) | ✅ Done | `patchi/web/routes/dashboard_v2.py`, `templates_v2/`, `static/dashboard_v2.*` |
+| Hosted Mode v2 (overview API, compliance evidence packs, signed webhooks, usage/budget) | ✅ Done | `patchi/web/api/hosted_v2.py`, `patchi/core/hosted/{webhooks,compliance_report}.py` |
+| Agent Audit (registry integrity: all agents instantiate, unique names, metadata, 0 import failures) | ✅ Done | `tests/test_v2_agent_audit.py` |
+| Pre-existing bug fixes (dotted call names, attribute assignments, missing recheck_test_file, tenant mem.init) | ✅ Done | see AGENT_FEEDBACK.md |
+| End-to-end verification (real server boot → pages, tools API, hosted APIs, WS handshake) | ✅ 13/13 | `tools/e2e_web_v2.py` |
+
+**Known blocker (environmental):** the packaged security-domain taxonomy in this
+checkout is a subset (48 of ~300 YAMLs) so 3 data-integrity tests fail. The code
+is correct; the data files need to be restored from the full export. See
+AGENT_FEEDBACK.md ENV-01.
+
+---
+
 ## Executive Summary
 
 Transform Patchi from a static analysis tool into a **fully autonomous, AI-driven testing and security platform** with:

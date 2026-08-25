@@ -140,6 +140,7 @@ _EXPLANATIONS: dict[str, dict] = {
 def run(
     finding_id: str | None = None,
     finding_type: str | None = None,
+    json_output: bool = False,
     root=None,
 ) -> None:
     """Entry point for `p explain`."""
@@ -147,6 +148,37 @@ def run(
         r = root or require_project_root()
     except RuntimeError as e:
         con.print(f"[red]{e}[/red]")
+        return
+
+    if json_output:
+        import json as _json
+
+        if finding_type:
+            key = finding_type.lower().replace("-", "_").replace(" ", "_")
+            entry = _EXPLANATIONS.get(key)
+            payload = (
+                {"type": key, "explanation": entry}
+                if entry
+                else {"type": key, "error": "no explanation available",
+                      "available": sorted(_EXPLANATIONS.keys())}
+            )
+            con.print(_json.dumps(payload, indent=2))
+            return
+
+        issues = mem.list_issues(r)
+        matched = (
+            [i for i in issues if i.get("id") == finding_id or i.get("type") == finding_id]
+            if finding_id else issues
+        )
+        con.print(_json.dumps({
+            "findings": [
+                {
+                    **{k: v for k, v in issue.items() if k != "detail"},
+                    "explanation": _EXPLANATIONS.get(issue.get("type", "unknown")),
+                }
+                for issue in matched
+            ],
+        }, indent=2, default=str))
         return
 
     con.print()
