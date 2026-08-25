@@ -395,6 +395,16 @@ def run(
             _ci_path = r / ".patchi" / "chain_intent.json"
             _ci_path.parent.mkdir(parents=True, exist_ok=True)
             _ci_path.write_text(_cjson.dumps(_sec_report.to_dict(), indent=2), encoding="utf-8")
+
+            # ── Feed chains + intent into assurance graph ──────────────
+            try:
+                from patchi.core.security.chain_to_assurance import feed_chains_to_graph
+                _fed = feed_chains_to_graph(r)
+                if _fed:
+                    con.print(f"  [dim]Fed {_fed} evidence items into assurance graph[/dim]")
+            except Exception as e:
+                _log.debug("Chain-to-assurance bridge failed: %s", e)
+
     except Exception as e:
         _log.debug("Chain/intent analysis failed: %s", e)
 

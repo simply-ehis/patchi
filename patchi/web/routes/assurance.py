@@ -64,19 +64,36 @@ async def assurance(request: Request):
     verdict_order = {"disproved": 0, "not_proved": 1, "unproven": 2, "proved": 3}
     claims_data.sort(key=lambda c: verdict_order.get(c["verdict"], 4))
 
+    # Chain/intent claims (from chain_to_assurance bridge)
+    chain_claims = [c for c in claims_data if c["domain"] in ("exploit-chain", "intent-gap")]
+    invariant_claims = [c for c in claims_data if c["domain"] not in ("exploit-chain", "intent-gap")]
+
+    # Load raw chain data for the chain explorer tab
+    chain_raw = []
+    try:
+        ci_path = root / ".patchi" / "chain_intent.json"
+        if ci_path.is_file():
+            import json
+            ci = json.loads(ci_path.read_text(encoding="utf-8"))
+            chain_raw = ci.get("chains", [])
+    except Exception:
+        pass
+
     return templates.TemplateResponse(
         request,
         "assurance.html",
         {
             "request": request,
             "coverage": coverage,
-            "claims": claims_data,
+            "claims": invariant_claims,
+            "chain_claims": chain_claims,
             "total_claims": len(claims_data),
             "attacker_results": attacker_results,
             "attacker_count": len(attacker_results),
             "campaign_results": campaign_results,
             "campaign_count": len(campaign_results),
             "fuzz_endpoints": fuzz_endpoints,
+            "chain_raw": chain_raw,
         },
     )
 
@@ -84,7 +101,6 @@ async def assurance(request: Request):
 @router.get("/api/assurance", response_class=HTMLResponse)
 async def assurance_api(request: Request):
     """JSON API for assurance data (for AJAX updates)."""
-    import json
     from fastapi.responses import JSONResponse
 
     root = request.app.state.root

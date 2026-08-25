@@ -81,6 +81,7 @@
     <button class="tab-btn" onclick="showTab('campaigns')">Campaigns ({{ campaign_count }})</button>
     <button class="tab-btn" onclick="showTab('attackers')">Attackers ({{ attacker_count }})</button>
     <button class="tab-btn" onclick="showTab('domains')">Domains</button>
+    <button class="tab-btn" onclick="showTab('chainclaims')">Chains ({{ chain_claims|length }})</button>
   </div>
 
   <!-- Claims Tab -->
@@ -163,6 +164,55 @@
       </div>
     </div>
     {% endfor %}
+  </div>
+
+  <!-- Chain Claims Tab -->
+  <div id="tab-chainclaims" class="tab-content">
+    {% if chain_claims %}
+    <div class="card" style="margin-bottom:16px;padding:16px">
+      <h3 style="margin-bottom:8px">🔗 Exploit Chain Claims</h3>
+      <p style="font-size:13px;color:var(--text-secondary)">{{ chain_claims|length }} claims from cross-file attack paths and intent gaps.</p>
+    </div>
+    <table class="claims-table">
+      <thead>
+        <tr>
+          <th>Verdict</th>
+          <th>Property</th>
+          <th>Domain</th>
+          <th>Evidence</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for claim in chain_claims %}
+        <tr style="border-left:3px solid {% if claim.domain == 'exploit-chain' %}#ef4444{% else %}#f97316{% endif %}">
+          <td><span class="verdict-badge verdict-{{ claim.verdict }}">{{ claim.verdict|upper }}</span></td>
+          <td>{{ claim.statement[:100] }}{% if claim.statement|length > 100 %}...{% endif %}</td>
+          <td><span style="font-size:11px;padding:2px 6px;border-radius:4px;background:{% if claim.domain == 'exploit-chain' %}#ef444420;color:#ef4444{% else %}#f9731620;color:#f97316{% endif %}">{{ claim.domain }}</span></td>
+          <td>{{ claim.evidence_count }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% if chain_raw %}
+    <div class="card" style="margin-top:16px;padding:16px">
+      <h3 style="margin-bottom:8px">Attack Path Visualizations</h3>
+      {% for chain in chain_raw %}
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">
+        <span class="badge badge-{{ chain.severity }}" style="font-size:10px">{{ chain.severity }}</span>
+        <span style="font-size:12px;color:var(--text-secondary)">score={{ chain.score }}</span>
+        <span style="font-family:var(--font-mono);font-size:12px">
+          {% for step in chain.steps %}{% if not loop.first %} → {% endif %}{{ step.type }}{% endfor %}
+        </span>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+    {% else %}
+    <div class="empty-state">
+      <div class="empty-state-icon">🔗</div>
+      <div class="empty-state-text">No chain claims yet. Run <code>p scan</code> to generate exploit chains.</div>
+    </div>
+    {% endif %}
   </div>
 
   <script>
