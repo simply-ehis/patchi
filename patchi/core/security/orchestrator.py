@@ -14,6 +14,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from patchi.core.agents.base import AgentResult, Finding
+from patchi.core.security.chain_analyzer import ChainAnalyzer, Chain
+from patchi.core.security.intent_analyzer import IntentAnalyzer, IntentReport
 
 # ── Security Report ───────────────────────────────────────────────────────────
 
@@ -47,16 +49,32 @@ class SecurityReport:
     by_owasp: dict[str, int] = field(default_factory=dict)
     agents_run: list[str] = field(default_factory=list)
     correlation_count: int = 0
+    chains: list[Chain] = field(default_factory=list)
+    intent_report: IntentReport | None = None
 
     def to_dict(self) -> dict:
-        return {
+        d = {
             "total_findings": self.total_findings,
             "by_severity": self.by_severity,
             "by_owasp": self.by_owasp,
             "agents_run": self.agents_run,
             "correlation_count": self.correlation_count,
             "findings": [f.to_dict() for f in self.findings],
+            "chains": [
+                {
+                    "steps": [
+                        {"file": n.finding.file, "line": n.finding.line,
+                         "type": n.finding.type, "label": lbl}
+                        for n, lbl in zip(c.nodes, c.labels)
+                    ],
+                    "total_severity": c.total_severity,
+                }
+                for c in self.chains
+            ],
         }
+        if self.intent_report:
+            d["intent_report"] = self.intent_report.to_dict()
+        return d
 
 
 # ── OWASP Top 10 2021 mapping (CWE ranges) ──────────────────────────────────
@@ -214,6 +232,29 @@ class SecurityOrchestrator:
             by_sev[sev] = by_sev.get(sev, 0) + 1
             by_owasp[c.owasp_category] = by_owasp.get(c.owasp_category, 0) + 1
 
+        # ── Chain analysis (cross-file exploit chains) ──────────────────────
+        chains: list[Chain] = []
+        import_edges: dict[str, set[str]] = {}
+        try:
+            from patchi.core.brain.import_graph import build_import_graph
+            ig = build_import_graph(Path("."))
+            import_edges = dict(ig.edges)
+        except Exception:
+            pass
+        try:
+            chain_analyzer = ChainAnalyzer(all_findings, import_edges=import_edges)
+            chains = chain_analyzer.find_chains(max_chains=20)
+        except Exception:
+            pass
+
+        # ── Intent analysis (route ↔ code gap detection) ──────────────────────
+        intent_report: IntentReport | None = None
+        try:
+            intent_analyzer = IntentAnalyzer()
+            intent_report = intent_analyzer.analyze_root(Path("."))
+        except Exception:
+            pass
+
         return SecurityReport(
             findings=correlated,
             total_findings=len(correlated),
@@ -221,4 +262,6 @@ class SecurityOrchestrator:
             by_owasp=by_owasp,
             agents_run=agents_run,
             correlation_count=sum(1 for c in correlated if len(c.confirmed_by) > 1),
+            chains=chains,
+            intent_report=intent_report,
         )
