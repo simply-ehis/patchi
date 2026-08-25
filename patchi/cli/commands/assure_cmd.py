@@ -40,6 +40,7 @@ def run(
     run_attackers: bool = False,
     run_campaigns: bool = False,
     run_all: bool = False,
+    chain_report: bool = False,
 ) -> int:
     """Entry point for `p assure`."""
     try:
@@ -104,6 +105,11 @@ def run(
             )
             if not already:
                 claim.record_repair(detail, outcome="awaiting-fix")
+
+    # ── Chain report (if requested) ──────────────────────────────────────
+    if chain_report:
+        _show_chain_report(r, con, json_output)
+        return 0
 
     # ── Run attackers (if requested) ────────────────────────────────────────
     if run_attackers or run_all:
@@ -382,3 +388,115 @@ def _render_report(report_data: dict, coverage: dict, graph) -> None:
     if modules:
         con.print(f"[dim]Modules: {', '.join(modules)}[/dim]")
     con.print()
+
+
+def _show_chain_report(root, con, json_output=False):
+    """Show chain-sourced assurance claims separately."""
+    import json as _json
+
+    ci_path = root / ".patchi" / "chain_intent.json"
+    if not ci_path.is_file():
+        con.print("[yellow]No chain/intent data found. Run `p scan` first.[/yellow]")
+        return
+
+    try:
+        ci_data = _json.loads(ci_path.read_text(encoding="utf-8"))
+    except Exception:
+        con.print("[red]Failed to parse chain_intent.json[/red]")
+        return
+
+    chains = ci_data.get("chains", [])
+    intent = ci_data.get("intent_report")
+
+    if not chains and not intent:
+        con.print("[dim]No chains or intent gaps found in last scan.[/dim]")
+        return
+
+    # Build chain-sourced claims
+    chain_claims = []
+    for i, chain in enumerate(chains):
+        steps = chain.get("steps", [])
+        if len(steps) < 2:
+            continue
+        entry = steps[0].get("type", "?")
+        impact = steps[-1].get("type", "?")
+        severity = chain.get("severity", "medium")
+        score = chain.get("score", 0)
+
+        # Get remediations
+        try:
+            from patchi.core.security.remediation import get_remediation_for_step
+            rems = [get_remediation_for_step(s) for s in steps]
+        except ImportError:
+            rems = [None] * len(steps)
+
+        chain_claims.append({
+            "id": f"chain-{i+1}",
+            "statement": f"{entry} → {impact} ({len(steps)} steps)",
+            "severity": severity,
+            "score": score,
+            "steps": steps,
+            "remediations": rems,
+            "narrative": chain.get("narrative", ""),
+        })
+
+    # Build intent gap claims
+    intent_claims = []
+    if intent:
+        gaps = intent.get("gaps", [])
+        for gap in gaps:
+            intent_claims.append({
+                "id": gap.get("route", "?"),
+                "statement": gap.get("description", "Missing auth"),
+                "severity": gap.get("severity", "high"),
+                "route": gap.get("route", ""),
+                "method": gap.get("method", ""),
+            })
+
+    if json_output:
+        con.print(_json.dumps({
+            "chain_claims": chain_claims,
+            "intent_claims": intent_claims,
+        }, indent=2, default=str))
+        return
+
+    # ── Display ──────────────────────────────────────────────────────────
+    con.print()
+    con.print("[bold #C8621A]Chain-Sourced Assurance Claims[/bold #C8621A]")
+    con.print()
+
+    if chain_claims:
+        con.print(f"[bold]Exploit Chains[/bold] ({len(chain_claims)} claims)")
+        con.print()
+        for cc in chain_claims:
+            sev = cc["severity"]
+            sev_style = {
+                "critical": "bold red", "high": "red",
+                "medium": "yellow", "low": "dim",
+            }.get(sev, "")
+            con.print(f"  [{'#C8621A'}]{cc['id']}[/'#C8621A'] [{sev_style}]{sev}[/{sev_style}] (score {cc['score']:.0f})")
+            con.print(f"    {cc['statement']}")
+
+            # Show steps with remediation
+            for j, (step, rem) in enumerate(zip(cc["steps"], cc["remediations"])):
+                role = step.get("role", "?")
+                ftype = step.get("type", "?")
+                ffile = step.get("file", "?")
+                line = step.get("line", 0)
+                con.print(f"    [{j+1}] [{role}] {ftype} @ {ffile}:{line}")
+                if rem:
+                    con.print(f"        [green]Fix:[/green] {rem['action']}")
+                    if rem.get("auto_fixable"):
+                        con.print("        [dim]⚡ auto-fixable[/dim]")
+            con.print()
+
+    if intent_claims:
+        con.print(f"[bold]Intent Gaps[/bold] ({len(intent_claims)} claims)")
+        con.print()
+        for ic in intent_claims:
+            con.print(f"  [yellow]●[/yellow] {ic['method']} {ic['route']}")
+            con.print(f"    {ic['statement']}")
+        con.print()
+
+    total = len(chain_claims) + len(intent_claims)
+    con.print(f"[dim]{total} chain-sourced claims in assurance graph[/dim]")

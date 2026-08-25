@@ -417,7 +417,9 @@ COMMANDS: list[Command] = [
                   Arg("--run-campaigns", dest="run_campaigns", action="store_true",
                       help="Run state transition + data flow abuse campaigns"),
                   Arg("--run-all", dest="run_all", action="store_true",
-                      help="Run attackers + campaigns + fuzz in sequence")),
+                      help="Run attackers + campaigns + fuzz in sequence"),
+                  Arg("--chain-report", dest="chain_report", action="store_true",
+                      help="Show chain-sourced assurance claims with remediation")),
             ),
 
     Command("audit", "Full project audit + Plan-vs-Built drift",

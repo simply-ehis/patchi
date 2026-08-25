@@ -43,16 +43,28 @@
             <th>Line</th>
             <th>Message</th>
             <th>Agent</th>
+            <th>Chain</th>
           </tr>
         </thead>
         <tbody>
           {% for f in findings %}
-          <tr data-severity="{{ f.severity }}" data-agent="{{ f.agent }}">
+          {% set fkey = f.file|default('') ~ ':' ~ (f.line|default(0)|string) ~ ':' ~ f.type|default('') %}
+          {% set in_chains = chain_members.get(fkey, []) %}
+          <tr data-severity="{{ f.severity }}" data-agent="{{ f.agent }}"
+              data-finding-id="{{ fkey }}"
+              {% if in_chains %}style="cursor:pointer" onclick="jumpToChain({{ in_chains[0] }}, '{{ fkey }}')"{% endif %}>
             <td><span class="badge badge-{{ f.severity }}">{{ f.severity }}</span></td>
             <td style="font-family:var(--font-mono);font-size:12px">{{ f.file }}</td>
             <td>{{ f.line if f.line is not none else '' }}</td>
             <td>{{ (f.message or '')[:80] }}</td>
             <td style="color:var(--text-secondary)">{{ f.agent }}</td>
+            <td>
+              {% if in_chains %}
+              <span style="color:var(--accent);font-size:11px;cursor:pointer" title="Chain #{{ in_chains|join(', #') }}">
+                🔗 {{ in_chains|length }}
+              </span>
+              {% endif %}
+            </td>
           </tr>
           {% endfor %}
         </tbody>
@@ -194,12 +206,16 @@
         html += '</div>';
       }
 
+      // View finding link
+      const fkey = `${step.file}:${step.line}:${step.type}`;
+      html += `<div style="text-align:right;margin-top:10px"><a href="#" onclick="event.preventDefault();highlightFinding('${fkey}')" style="font-size:11px;color:var(--accent);text-decoration:none">📋 View in findings table</a></div>`;
+
       // Arrow to next
       if (currentStep < total - 1) {
-        html += `<div style="text-align:center;margin-top:16px;color:var(--text-secondary);font-size:20px">↓</div>`;
+        html += `<div style="text-align:center;margin-top:12px;color:var(--text-secondary);font-size:20px">↓</div>`;
         html += `<div style="text-align:center;font-size:11px;color:var(--text-secondary)">leads to → ${steps[currentStep + 1].type}</div>`;
       } else {
-        html += `<div style="text-align:center;margin-top:16px;color:#ef4444;font-size:13px;font-weight:600">⚠ Impact reached</div>`;
+        html += `<div style="text-align:center;margin-top:12px;color:#ef4444;font-size:13px;font-weight:600">⚠ Impact reached</div>`;
       }
 
       html += '</div>';
@@ -208,6 +224,39 @@
 
     function chainPrev() { if (currentStep > 0) { currentStep--; renderStep(); } }
     function chainNext() { if (currentChain && currentStep < currentChain.steps.length - 1) { currentStep++; renderStep(); } }
+
+    // Cross-linking: jump from finding row to chain explorer
+    function jumpToChain(chainIdx, findingKey) {
+      showTab('chains');
+      selectChain(chainIdx);
+      // Find the step that matches this finding
+      if (currentChain && currentChain.steps) {
+        for (let i = 0; i < currentChain.steps.length; i++) {
+          const s = currentChain.steps[i];
+          if (`${s.file}:${s.line}:${s.type}` === findingKey) {
+            currentStep = i;
+            renderStep();
+            break;
+          }
+        }
+      }
+    }
+
+    // Cross-linking: highlight finding row from chain step
+    function highlightFinding(fkey) {
+      // Switch to findings tab
+      showTab('findings');
+      // Find and scroll to the row
+      const rows = document.querySelectorAll('#findings-table tbody tr');
+      rows.forEach(r => {
+        r.style.background = '';
+        if (r.dataset.findingId === fkey) {
+          r.style.background = 'var(--accent)15';
+          r.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          setTimeout(() => { r.style.background = ''; }, 2000);
+        }
+      });
+    }
 
     // Keyboard navigation
     document.addEventListener('keydown', e => {

@@ -58,6 +58,13 @@ async def findings(request: Request):
     except ImportError:
         pass
 
+    # Build chain-membership map: (file, line, type) -> list of chain indices
+    chain_members: dict[str, list[int]] = {}
+    for ci, chain in enumerate(chains):
+        for step in chain.get("steps", []):
+            key = f"{step.get('file', '')}:{step.get('line', 0)}:{step.get('type', '')}"
+            chain_members.setdefault(key, []).append(ci)
+
     return templates.TemplateResponse(
         request,
         "findings.html",
@@ -67,6 +74,7 @@ async def findings(request: Request):
             "total": len(all_findings),
             "chains": chains,
             "intent": intent,
+            "chain_members": chain_members,
         },
     )
 
