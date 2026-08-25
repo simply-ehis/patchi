@@ -22,10 +22,11 @@ from __future__ import annotations
 
 import logging
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 from patchi.core import config as cfg
 from patchi.core import memory as mem
@@ -153,7 +154,9 @@ class BrainReport:
 class ScanProgress:
     """Emitted during scan for CLI progress bars and Web UI live feed."""
 
-    phase: str  # "discovery" | "parsing" | "framework" | "routes" | "graph" | "context" | "contract"
+    phase: (
+        str  # "discovery" | "parsing" | "framework" | "routes" | "graph" | "context" | "contract"
+    )
     current: int = 0
     total: int = 0
     message: str = ""
@@ -190,7 +193,7 @@ class Brain:
         """
         start_time = time.monotonic()
         report = BrainReport(
-            scanned_at=datetime.now(timezone.utc).isoformat(),
+            scanned_at=datetime.now(UTC).isoformat(),
             area=area,
         )
 
@@ -242,9 +245,7 @@ class Brain:
             fp_path = self.root / ".patchi/memory/known_false_positives.json"
             if fp_path.is_file():
                 try:
-                    known_fps = _json.loads(
-                        fp_path.read_text(encoding="utf-8")
-                    )
+                    known_fps = _json.loads(fp_path.read_text(encoding="utf-8"))
                 except Exception:  # noqa: BLE001
                     known_fps = []
             scan_cfg = {}
@@ -276,9 +277,7 @@ class Brain:
                 corpus.prune_with(learner)
                 learner.promote_to_global()
             except Exception as _pe:  # noqa: BLE001
-                logging.getLogger("patchi.brain").debug(
-                    "learner second pass failed: %s", _pe
-                )
+                logging.getLogger("patchi.brain").debug("learner second pass failed: %s", _pe)
 
         scanner = FileScanner(
             root=self.root,
@@ -371,9 +370,7 @@ class Brain:
             from patchi.core.brain.layered_brain import layers_from_dict
 
             _old_data = mem.read(mem.MemoryCategory.LAYERS, self.root) or {}
-            _old_layers = (
-                layers_from_dict(_old_data) if _old_data.get("layers") else {}
-            )
+            _old_layers = layers_from_dict(_old_data) if _old_data.get("layers") else {}
             _old_snap = _old_data.get("file_snapshot")
             report.layers, _rebuilt, _changes = build_or_update(
                 _old_layers,
@@ -438,7 +435,9 @@ class Brain:
             )
         )
         # ── Context phase: discover docs, infrastructure, dependencies ────────
-        self._emit(ScanProgress(phase="context", message="Discovering documentation and infrastructure…"))
+        self._emit(
+            ScanProgress(phase="context", message="Discovering documentation and infrastructure…")
+        )
         context_data = self._discover_project_context(self.root, file_infos, report, stack)
         report.project_context = context_data["context"]
         report.active_security_domains = context_data["active_domains"]
@@ -480,7 +479,9 @@ class Brain:
         save_freshness_snapshot(self.root, [fi.path for fi in file_infos])
 
         # ── Documentation validation ──────────────────────────────────────────
-        self._emit(ScanProgress(phase="doc-validation", message="Validating documentation against code…"))
+        self._emit(
+            ScanProgress(phase="doc-validation", message="Validating documentation against code…")
+        )
         doc_result = self._run_doc_validation(self.root, file_infos, routes, config, brain_mem)
         report.doc_validation = doc_result
         brain_mem["doc_validation"] = doc_result
@@ -511,7 +512,11 @@ class Brain:
                 import_graph_data=graph.to_dict() if graph else None,
             )
             assurance_graph.save(self.root)
-            report.assurance_graph = assurance_graph.to_dict() if hasattr(report, "assurance_graph") else assurance_graph.to_dict()
+            report.assurance_graph = (
+                assurance_graph.to_dict()
+                if hasattr(report, "assurance_graph")
+                else assurance_graph.to_dict()
+            )
         except Exception as e:
             logger.debug("Assurance graph build skipped: %s", e)
 
@@ -556,7 +561,7 @@ class Brain:
             # Flatten findings from scan results for history
             scan_results = mem.get_scan_results(self.root)
             all_findings = []
-            for agent_name, data in scan_results.items():
+            for _agent_name, data in scan_results.items():
                 for f in data.get("findings", []):
                     if isinstance(f, dict):
                         all_findings.append(f)
@@ -737,7 +742,7 @@ class Brain:
         file_infos: list[FileInfo],
         stack: StackInfo,
         config: dict,
-        routes: "list[RouteInfo] | None" = None,
+        routes: list[RouteInfo] | None = None,
     ) -> str | None:
         """Use AI to generate a one-sentence project purpose."""
         from patchi.core.ai.prompts import Skill, get_system_prompt
@@ -849,13 +854,32 @@ class Brain:
         doc_patterns = {".md", ".rst", ".txt", ".adoc"}
         config_patterns = {".toml", ".json", ".cfg", ".conf", ".ini", ".env"}
         infra_keywords = [
-            "dockerfile", "docker-compose", "kubernetes", "k8s", "deployment",
-            "service.yaml", "terraform", "cloudformation", "pulumi",
-            "github/", "gitlab-ci", "jenkinsfile", "circleci",
-            "package-lock.json", "yarn.lock", "pnpm-lock.yaml",
-            "requirements.txt", "Pipfile", "poetry.lock", "go.sum",
-            "Cargo.lock", "Gemfile.lock", "serverless.yml", "template.yaml",
-            "wrangler.toml", "manifest.json",
+            "dockerfile",
+            "docker-compose",
+            "kubernetes",
+            "k8s",
+            "deployment",
+            "service.yaml",
+            "terraform",
+            "cloudformation",
+            "pulumi",
+            "github/",
+            "gitlab-ci",
+            "jenkinsfile",
+            "circleci",
+            "package-lock.json",
+            "yarn.lock",
+            "pnpm-lock.yaml",
+            "requirements.txt",
+            "Pipfile",
+            "poetry.lock",
+            "go.sum",
+            "Cargo.lock",
+            "Gemfile.lock",
+            "serverless.yml",
+            "template.yaml",
+            "wrangler.toml",
+            "manifest.json",
         ]
 
         for fi in file_infos:
@@ -885,6 +909,7 @@ class Brain:
                     text = mf_path.read_text(encoding="utf-8", errors="replace")
                     if mf == "package.json":
                         import json
+
                         pkg = json.loads(text)
                         for section in ("dependencies", "devDependencies", "peerDependencies"):
                             for name in pkg.get(section, {}):
@@ -916,8 +941,7 @@ class Brain:
             for f in stack.frameworks
         )
         has_mobile = any(
-            ext in (".kt", ".kts", ".swift", ".dart", ".java", ".gradle")
-            for ext in file_extensions
+            ext in (".kt", ".kts", ".swift", ".dart", ".java", ".gradle") for ext in file_extensions
         )
 
         route_paths = [r.path for r in report.routes if hasattr(r, "path")]

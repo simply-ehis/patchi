@@ -69,8 +69,17 @@ class SSRFProtectionAgent(BaseAgent):
 
     # ── Source patterns for multi-language scanning ─────────────────────────
     _SOURCE_PATTERNS = [
-        "*.py", "*.js", "*.jsx", "*.ts", "*.tsx", "*.java",
-        "*.php", "*.rb", "*.go", "*.rs", "*.cs",
+        "*.py",
+        "*.js",
+        "*.jsx",
+        "*.ts",
+        "*.tsx",
+        "*.java",
+        "*.php",
+        "*.rb",
+        "*.go",
+        "*.rs",
+        "*.cs",
     ]
 
     # ── Dangerous protocol handlers (merged from YAML + defaults) ────────────
@@ -129,13 +138,30 @@ class SSRFProtectionAgent(BaseAgent):
 
     # ── URL construction patterns (where user input flows to URL) ───────────
     _URL_VAR_NAMES = {
-        "url", "endpoint", "target", "host", "base_url", "baseUri",
-        "requestUrl", "fetchUrl", "request_url",
+        "url",
+        "endpoint",
+        "target",
+        "host",
+        "base_url",
+        "baseUri",
+        "requestUrl",
+        "fetchUrl",
+        "request_url",
     } | _YAML_URL_VARS
 
     _USER_INPUT_MARKERS = {
-        "request.", "req.", "params.", "args.", "input", "data[", "form[",
-        "query.", "body.", "headers.", "c.Query", "r.URL",
+        "request.",
+        "req.",
+        "params.",
+        "args.",
+        "input",
+        "data[",
+        "form[",
+        "query.",
+        "body.",
+        "headers.",
+        "c.Query",
+        "r.URL",
     } | _YAML_USER_INPUT
 
     # ── Redirect/forward patterns (merged from YAML + defaults) ─────────────

@@ -25,6 +25,7 @@ from patchi.core.constants import OLLAMA_BASE_URL
 
 _log = logging.getLogger("patchi.cli.model_cmd")
 
+
 def run_set(model_name: str, root: Path | None = None) -> None:
     """Set the local model Patchi will use."""
     try:
@@ -47,6 +48,7 @@ def run_set(model_name: str, root: Path | None = None) -> None:
     else:
         con.print(f"  [#FACC15]⚠ {note}[/#FACC15]")
     con.print()
+
 
 def run_list(root: Path | None = None) -> None:
     """List models available from local Ollama instance."""
@@ -97,6 +99,7 @@ def run_list(root: Path | None = None) -> None:
     con.print(table)
     con.print()
 
+
 def run_status(root: Path | None = None) -> None:
     """Show Ollama connection health and current model."""
     con.print()
@@ -133,7 +136,9 @@ def run_status(root: Path | None = None) -> None:
 
     con.print()
 
+
 # ── Ollama API helpers ─────────────────────────────────────────────────────────
+
 
 def _fetch_models() -> list[dict] | None:
     """Return list of pulled model objects, or None if Ollama is unreachable."""
@@ -147,6 +152,7 @@ def _fetch_models() -> list[dict] | None:
     except Exception as e:
         _log.warning("_fetch_models failed: %s", e)
         return None
+
 
 def _check_ollama() -> tuple[bool, str]:
     try:
@@ -162,6 +168,7 @@ def _check_ollama() -> tuple[bool, str]:
         _log.debug("_check_ollama failed: %s", e)
         return False, "Not running — start with: ollama serve"
 
+
 def _model_available(model_name: str) -> tuple[bool, str]:
     models = _fetch_models()
     if models is None:
@@ -170,6 +177,7 @@ def _model_available(model_name: str) -> tuple[bool, str]:
     if any(m.get("name", "").split(":")[0] == stem for m in models):
         return True, "Model is available locally"
     return False, f"Not pulled — run: ollama pull {model_name}"
+
 
 def _ping_model(model_name: str) -> int | None:
     """Send a minimal generation request to measure first-token latency."""
@@ -189,6 +197,7 @@ def _ping_model(model_name: str) -> int | None:
     except Exception as e:
         _log.debug("_ping_model failed: %s", e)
         return None
+
 
 def _fmt_size(size_bytes: int) -> str:
     if size_bytes >= 1_073_741_824:

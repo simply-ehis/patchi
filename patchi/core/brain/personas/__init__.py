@@ -11,8 +11,8 @@ Focuses on:
 
 from __future__ import annotations
 
-from patchi.core.brain.personas.base import BasePersona, PersonaStyle, register_persona
 from patchi.core.brain.layered_brain import Layer
+from patchi.core.brain.personas.base import BasePersona, PersonaStyle, register_persona
 
 
 @register_persona
@@ -75,7 +75,7 @@ Your voice: Precise, structural, forward-looking. Use architectural terminology.
             "get_config",
         ]
 
-    def analyze(self, issue: str, context: dict = None) -> "PersonaDecision":
+    def analyze(self, issue: str, context: dict = None) -> PersonaDecision:
         # Enhance context with architectural view
         arch_context = self._get_architectural_context(issue)
         if context:
@@ -104,6 +104,7 @@ Your voice: Precise, structural, forward-looking. Use architectural terminology.
 
         # Add circular dependencies if any
         from patchi.core import memory as mem
+
         brain = mem.get_brain(self.root)
         circular = brain.get("circular_deps", [])
         if circular:

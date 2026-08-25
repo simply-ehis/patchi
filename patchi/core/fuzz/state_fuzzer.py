@@ -129,24 +129,28 @@ class StateFuzzer:
             legal_targets = set(self._legal_map.get(from_s, []))
             for to_s in self._states:
                 if to_s != from_s and to_s not in legal_targets:
-                    results.append(FuzzPath(
-                        label=f"illegal_{from_s}_to_{to_s}",
-                        transitions=[StateTransition(from_s, to_s, "test_illegal")],
-                        strategy="illegal",
-                        description=f"Attempt illegal transition: {from_s} → {to_s}",
-                    ))
+                    results.append(
+                        FuzzPath(
+                            label=f"illegal_{from_s}_to_{to_s}",
+                            transitions=[StateTransition(from_s, to_s, "test_illegal")],
+                            strategy="illegal",
+                            description=f"Attempt illegal transition: {from_s} → {to_s}",
+                        )
+                    )
         return results
 
     def _replay_attacks(self) -> list[FuzzPath]:
         """Replay the same transition multiple times."""
         results: list[FuzzPath] = []
         for t in self._transitions:
-            results.append(FuzzPath(
-                label=f"replay_{t.from_state}_{t.to_state}_x3",
-                transitions=[t, t, t],
-                strategy="replay",
-                description=f"Replay {t.action} ({t.from_state}→{t.to_state}) 3 times",
-            ))
+            results.append(
+                FuzzPath(
+                    label=f"replay_{t.from_state}_{t.to_state}_x3",
+                    transitions=[t, t, t],
+                    strategy="replay",
+                    description=f"Replay {t.action} ({t.from_state}→{t.to_state}) 3 times",
+                )
+            )
         return results
 
     def _boundary_paths(self) -> list[FuzzPath]:
@@ -165,12 +169,14 @@ class StateFuzzer:
         for start in start_states:
             paths = self._dfs_paths(start, max_depth=6, max_results=5)
             for path in paths:
-                results.append(FuzzPath(
-                    label=f"boundary_path_{'_'.join(t.from_state for t in path)}",
-                    transitions=path,
-                    strategy="boundary",
-                    description=f"Path: {' → '.join(t.from_state for t in path)} → {path[-1].to_state}",
-                ))
+                results.append(
+                    FuzzPath(
+                        label=f"boundary_path_{'_'.join(t.from_state for t in path)}",
+                        transitions=path,
+                        strategy="boundary",
+                        description=f"Path: {' → '.join(t.from_state for t in path)} → {path[-1].to_state}",
+                    )
+                )
         return results
 
     def _dfs_paths(
@@ -178,9 +184,7 @@ class StateFuzzer:
     ) -> list[list[StateTransition]]:
         """DFS to find paths through the state machine."""
         results: list[list[StateTransition]] = []
-        stack: list[tuple[str, list[StateTransition], set[str]]] = [
-            (start, [], {start})
-        ]
+        stack: list[tuple[str, list[StateTransition], set[str]]] = [(start, [], {start})]
 
         while stack and len(results) < max_results:
             state, path, visited = stack.pop()
@@ -189,7 +193,11 @@ class StateFuzzer:
                 if target in visited:
                     continue
                 transition = next(
-                    (t for t in self._transitions if t.from_state == state and t.to_state == target),
+                    (
+                        t
+                        for t in self._transitions
+                        if t.from_state == state and t.to_state == target
+                    ),
                     StateTransition(state, target, "unknown"),
                 )
                 new_path = path + [transition]
@@ -208,15 +216,21 @@ class StateFuzzer:
                 # Try all outgoing transitions in sequence
                 transitions = [
                     next(
-                        (t for t in self._transitions if t.from_state == state and t.to_state == tgt),
+                        (
+                            t
+                            for t in self._transitions
+                            if t.from_state == state and t.to_state == tgt
+                        ),
                         StateTransition(state, tgt, "unknown"),
                     )
                     for tgt in targets
                 ]
-                results.append(FuzzPath(
-                    label=f"unguarded_{state}",
-                    transitions=transitions,
-                    strategy="boundary",
-                    description=f"State '{state}' has {len(targets)} outgoing transitions — test all",
-                ))
+                results.append(
+                    FuzzPath(
+                        label=f"unguarded_{state}",
+                        transitions=transitions,
+                        strategy="boundary",
+                        description=f"State '{state}' has {len(targets)} outgoing transitions — test all",
+                    )
+                )
         return results

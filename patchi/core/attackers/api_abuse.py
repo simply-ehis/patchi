@@ -18,36 +18,44 @@ class ApiAbuseAttacker(BaseAttacker):
             # Injection risks
             if any(kw in claim.statement.lower() for kw in ["inject", "sanitiz", "validat"]):
                 if claim.verdict.value in ("not_proved", "unproven"):
-                    hypotheses.append(Hypothesis(
-                        attacker=self.name,
-                        objective=self.objective,
-                        target=claim.id,
-                        risk="high",
-                        confidence=0.7,
-                        description=f"Injection risk unverified: {claim.statement}",
-                    ))
+                    hypotheses.append(
+                        Hypothesis(
+                            attacker=self.name,
+                            objective=self.objective,
+                            target=claim.id,
+                            risk="high",
+                            confidence=0.7,
+                            description=f"Injection risk unverified: {claim.statement}",
+                        )
+                    )
 
             # Rate limiting
             if "rate" in claim.statement.lower() and "limit" in claim.statement.lower():
-                hypotheses.append(Hypothesis(
-                    attacker=self.name,
-                    objective=self.objective,
-                    target=claim.id,
-                    risk="medium",
-                    confidence=0.5,
-                    description=f"Rate limiting unverified: {claim.statement}",
-                ))
+                hypotheses.append(
+                    Hypothesis(
+                        attacker=self.name,
+                        objective=self.objective,
+                        target=claim.id,
+                        risk="medium",
+                        confidence=0.5,
+                        description=f"Rate limiting unverified: {claim.statement}",
+                    )
+                )
 
             # Information disclosure
-            if "error" in claim.statement.lower() and ("detail" in claim.statement.lower() or "disclose" in claim.statement.lower()):
-                hypotheses.append(Hypothesis(
-                    attacker=self.name,
-                    objective=self.objective,
-                    target=claim.id,
-                    risk="medium",
-                    confidence=0.4,
-                    description=f"Info disclosure unverified: {claim.statement}",
-                ))
+            if "error" in claim.statement.lower() and (
+                "detail" in claim.statement.lower() or "disclose" in claim.statement.lower()
+            ):
+                hypotheses.append(
+                    Hypothesis(
+                        attacker=self.name,
+                        objective=self.objective,
+                        target=claim.id,
+                        risk="medium",
+                        confidence=0.4,
+                        description=f"Info disclosure unverified: {claim.statement}",
+                    )
+                )
 
         return hypotheses
 

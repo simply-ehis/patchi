@@ -45,6 +45,7 @@ import logging
 
 _log = logging.getLogger("patchi.cli.update_cmd")
 
+
 def run(
     check: bool = False,
     force: bool = False,
@@ -232,7 +233,9 @@ def _print_release_info(info: dict) -> None:
     url = info.get("release_url", "")
 
     con.print()
-    con.print(f"[bold #A78BFA]Update available:[/bold #A78BFA] v{__version__} [dim]→[/dim] [bold]v{version}[/bold]")
+    con.print(
+        f"[bold #A78BFA]Update available:[/bold #A78BFA] v{__version__} [dim]→[/dim] [bold]v{version}[/bold]"
+    )
     if body:
         con.print()
         for line in body.splitlines()[:8]:
@@ -276,7 +279,9 @@ def _do_install(root: Path, info: dict) -> None:
 
         result = subprocess.run(
             [sys.executable, "-m", "pip", "install", "--upgrade", pip_name],
-            capture_output=True, text=True, timeout=120,
+            capture_output=True,
+            text=True,
+            timeout=120,
         )
         if result.returncode == 0:
             lp.log("  [#4ADE80]Update complete![/#4ADE80]")
@@ -324,7 +329,9 @@ def _force_reinstall(root: Path) -> None:
 
         result = subprocess.run(
             [sys.executable, "-m", "pip", "install", "--force-reinstall", pip_name],
-            capture_output=True, text=True, timeout=120,
+            capture_output=True,
+            text=True,
+            timeout=120,
         )
         if result.returncode == 0:
             lp.stop(summary=f"Reinstalled v{__version__}")

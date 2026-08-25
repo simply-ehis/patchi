@@ -31,6 +31,7 @@ import logging
 
 _log = logging.getLogger("patchi.core.ip_reputation")
 
+
 def _load(root: Path) -> dict:
     path = root / _REPUTATION_FILE
     if not path.exists():

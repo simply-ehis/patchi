@@ -13,6 +13,7 @@ After review, accepted patches are applied via PatchApplier.
 from __future__ import annotations
 
 import logging
+from datetime import UTC
 from pathlib import Path
 
 from rich.panel import Panel
@@ -26,6 +27,7 @@ from patchi.core.fix.applier import PatchApplier
 from patchi.core.fix.patch import Patch, PatchState
 
 _log = logging.getLogger("patchi.cli.review_cmd")
+
 
 def run(root: Path | None = None) -> None:
     """p review — show all pending patches."""
@@ -107,7 +109,9 @@ def run(root: Path | None = None) -> None:
     con.print(f"[dim]Review complete: {accepted} applied, {rejected} rejected.[/dim]")
     con.print()
 
+
 # ── Patch card renderer ────────────────────────────────────────────────────────
+
 
 def _show_patch_card(patch: Patch) -> None:
     """Render a single patch with diff, scores, and metadata."""
@@ -161,7 +165,9 @@ def _show_patch_card(patch: Patch) -> None:
         )
         con.print(diff_syntax)
 
+
 # ── Bulk actions ───────────────────────────────────────────────────────────────
+
 
 def _apply_all(patches: list[Patch], root: Path) -> None:
     applier = PatchApplier(root)
@@ -177,22 +183,24 @@ def _apply_all(patches: list[Patch], root: Path) -> None:
     con.print(f"[dim]Applied {applied}/{len(patches)} patches.[/dim]")
     con.print()
 
+
 def _reject_all(patches: list[Patch], root: Path) -> None:
     for patch in patches:
         _reject_patch(patch, root)
     con.print(f"[dim]Rejected {len(patches)} patches.[/dim]")
     con.print()
 
+
 def _reject_patch(patch: Patch, root: Path) -> None:
     """Mark a patch as rejected in memory + track rejection count for learning."""
     try:
-        from datetime import datetime, timezone
+        from datetime import datetime
 
         patches_raw = mem.list_patches(root)
         for p in patches_raw:
             if p.get("id") == patch.id:
                 p["state"] = PatchState.REJECTED.value
-                p["rejected_at"] = datetime.now(timezone.utc).isoformat()
+                p["rejected_at"] = datetime.now(UTC).isoformat()
                 break
         import json
 
@@ -210,6 +218,8 @@ def _reject_patch(patch: Patch, root: Path) -> None:
             type_str = patch_type.value if hasattr(patch_type, "value") else str(patch_type)
             count = mem.record_rejection(type_str, root)
             if count == 3:
-                con.print(f"\n[#C8621A]ℹ You've rejected [bold]{type_str}[/bold] patches 3 times.[/#C8621A]")
+                con.print(
+                    f"\n[#C8621A]ℹ You've rejected [bold]{type_str}[/bold] patches 3 times.[/#C8621A]"
+                )
     except Exception as e:
         _log.warning("_reject_patch failed: %s", e)

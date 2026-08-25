@@ -22,7 +22,7 @@ from __future__ import annotations
 
 import json
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from rich.panel import Panel
@@ -32,6 +32,7 @@ from patchi.cli.console import con
 from patchi.core.config import require_project_root
 
 # ── Entry point ────────────────────────────────────────────────────────────────
+
 
 def run(
     report_cmd: str | None = None,
@@ -70,7 +71,9 @@ def run(
     else:
         _print_report(report_data, score)
 
+
 # ── Report builder ─────────────────────────────────────────────────────────────
+
 
 def _build_report(
     root: Path,
@@ -80,7 +83,7 @@ def _build_report(
     score,
 ) -> dict:
     """Build the structured report dict from in-memory data."""
-    now = datetime.now(timezone.utc).isoformat(timespec="seconds") + "Z"
+    now = datetime.now(UTC).isoformat(timespec="seconds") + "Z"
 
     framework = brain.get("framework", "Unknown")
     file_count = brain.get("file_count", 0)
@@ -135,6 +138,7 @@ def _build_report(
         "recommendations": recommendations,
     }
 
+
 def _build_recommendations(
     score, findings_by_severity: dict, brain: dict, scans: dict
 ) -> list[str]:
@@ -186,7 +190,9 @@ def _build_recommendations(
 
     return recs[:5]
 
+
 # ── Terminal renderer ──────────────────────────────────────────────────────────
+
 
 def _print_report(data: dict, score) -> None:
     con.print()
@@ -266,7 +272,9 @@ def _print_report(data: dict, score) -> None:
     con.print("  [dim]Run `p report export` to save this as a Markdown file.[/dim]")
     con.print()
 
+
 # ── Export ────────────────────────────────────────────────────────────────────
+
 
 def _export_report(root: Path, data: dict, fmt: str) -> None:
     report_dir = root / ".patchi"
@@ -290,6 +298,7 @@ def _export_report(root: Path, data: dict, fmt: str) -> None:
     con.print()
     con.print(f"[#4ADE80]✓[/#4ADE80] Report saved → [bold]{out_path}[/bold]")
     con.print()
+
 
 def _render_markdown(data: dict) -> str:
     lines: list[str] = []
@@ -350,9 +359,10 @@ def _render_markdown(data: dict) -> str:
 
     return "\n".join(lines)
 
+
 def _send_weekly(root: Path) -> None:
     """Generate and send weekly health report (MISS-09)."""
-    from datetime import datetime, timezone
+    from datetime import datetime
 
     from patchi.core import config as cfg
     from patchi.core import health
@@ -367,7 +377,7 @@ def _send_weekly(root: Path) -> None:
     report_data = _build_report(root, brain, scans, patches, score)
     markdown = _render_markdown(report_data)
     out_path = (
-        root / ".patchi" / f"weekly_report_{datetime.now(timezone.utc).strftime('%Y%m%d')}.md"
+        root / ".patchi" / f"weekly_report_{datetime.now(UTC).strftime('%Y%m%d')}.md"
     )
     out_path.write_text(markdown, encoding="utf-8")
 
@@ -387,7 +397,7 @@ def _send_weekly(root: Path) -> None:
             digest._queue = [
                 {
                     "event": "weekly_report",
-                    "title": f"Patchi Weekly Report — {datetime.now(timezone.utc).strftime('%Y-%m-%d')}",
+                    "title": f"Patchi Weekly Report — {datetime.now(UTC).strftime('%Y-%m-%d')}",
                     "body": markdown[:10000],
                     "severity": "info",
                     "timestamp": time.time(),

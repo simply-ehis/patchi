@@ -29,10 +29,10 @@ import logging
 import re
 import threading
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Callable
 
 from loguru import logger
 
@@ -75,7 +75,7 @@ class ScheduleResult:
     status: str  # "started" | "completed" | "skipped" | "failed"
     duration_ms: int = 0
     message: str = ""
-    timestamp: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    timestamp: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
 
 
 class ScanScheduler:

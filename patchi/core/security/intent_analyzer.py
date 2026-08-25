@@ -27,17 +27,40 @@ _log = logging.getLogger("patchi.core.security.intent_analyzer")
 # Route decorator patterns per framework
 _ROUTE_DECORATORS = {
     # Python
-    "route", "get", "post", "put", "delete", "patch", "api_view",
-    "app.route", "router.get", "router.post", "router.put",
-    "app.get", "app.post", "app.put", "app.delete",
-    "get", "post",  # FastAPI
+    "route",
+    "get",
+    "post",
+    "put",
+    "delete",
+    "patch",
+    "api_view",
+    "app.route",
+    "router.get",
+    "router.post",
+    "router.put",
+    "app.get",
+    "app.post",
+    "app.put",
+    "app.delete",  # FastAPI
     # Java annotations handled textually below
 }
 
 _AUTH_GUARD_HINTS = (
-    "auth", "login_required", "permission", "jwt", "token", "session",
-    "current_user", "require_admin", "admin_required", "is_authenticated",
-    "protected", "authorize", "guard", "principal", "identity",
+    "auth",
+    "login_required",
+    "permission",
+    "jwt",
+    "token",
+    "session",
+    "current_user",
+    "require_admin",
+    "admin_required",
+    "is_authenticated",
+    "protected",
+    "authorize",
+    "guard",
+    "principal",
+    "identity",
 )
 
 _ADMIN_HINTS = ("admin", "superuser", "root", "manage", "internal", "privileged")
@@ -51,12 +74,12 @@ class RouteInfo:
 
     file: str
     line: int
-    method: str            # GET/POST/... or "?"
-    path: str              # URL pattern
-    function_name: str     # handler name
-    has_auth_guard: bool   # auth signal found on/near the handler
-    is_admin_path: bool    # path suggests privileged surface
-    framework: str         # best-guess framework tag
+    method: str  # GET/POST/... or "?"
+    path: str  # URL pattern
+    function_name: str  # handler name
+    has_auth_guard: bool  # auth signal found on/near the handler
+    is_admin_path: bool  # path suggests privileged surface
+    framework: str  # best-guess framework tag
 
 
 @dataclass
@@ -80,7 +103,9 @@ class IntentReport:
         return {
             "routes_total": len(self.routes),
             "gaps_total": self.gap_count,
-            "unauthenticated_state_changing": [self._r2d(r) for r in self.unauthenticated_state_changing],
+            "unauthenticated_state_changing": [
+                self._r2d(r) for r in self.unauthenticated_state_changing
+            ],
             "admin_without_strict_guard": [self._r2d(r) for r in self.admin_without_strict_guard],
             "unprotected_among_protected": [self._r2d(r) for r in self.unprotected_among_protected],
         }
@@ -119,9 +144,7 @@ class IntentAnalyzer:
                 continue
 
             src_segment = self._function_source(node, source).lower()
-            has_guard = deco_info["auth"] or any(
-                h in src_segment for h in _AUTH_GUARD_HINTS
-            )
+            has_guard = deco_info["auth"] or any(h in src_segment for h in _AUTH_GUARD_HINTS)
             url = deco_info["path"] or ""
             routes.append(
                 RouteInfo(
@@ -137,9 +160,7 @@ class IntentAnalyzer:
             )
         return routes
 
-    def analyze_root(
-        self, root: Path, max_files: int = 400
-    ) -> IntentReport:
+    def analyze_root(self, root: Path, max_files: int = 400) -> IntentReport:
         """Analyze all Python files under root (bounded)."""
         report = IntentReport()
         scanned = 0
@@ -202,8 +223,7 @@ class IntentAnalyzer:
                     for kw in deco.keywords:
                         if kw.arg == "methods" and isinstance(kw.value, (ast.List, ast.Tuple)):
                             methods = [
-                                e.value for e in kw.value.elts
-                                if isinstance(e, ast.Constant)
+                                e.value for e in kw.value.elts if isinstance(e, ast.Constant)
                             ]
                             if methods:
                                 out["method"] = str(methods[0]).upper()
@@ -270,23 +290,37 @@ def findings_from_report(report: IntentReport, root: Path) -> list[dict[str, Any
     out: list[dict[str, Any]] = []
 
     def add(r: RouteInfo, ftype: str, sev: str, msg: str) -> None:
-        out.append({
-            "agent": "IntentAnalyzer",
-            "type": ftype,
-            "severity": sev,
-            "file": r.file,
-            "line": r.line,
-            "message": msg,
-            "cwe": "",
-        })
+        out.append(
+            {
+                "agent": "IntentAnalyzer",
+                "type": ftype,
+                "severity": sev,
+                "file": r.file,
+                "line": r.line,
+                "message": msg,
+                "cwe": "",
+            }
+        )
 
     for r in report.unauthenticated_state_changing[:30]:
-        add(r, "missing_auth", "high",
-            f"State-changing {r.method} {r.path} has no authentication guard")
+        add(
+            r,
+            "missing_auth",
+            "high",
+            f"State-changing {r.method} {r.path} has no authentication guard",
+        )
     for r in report.admin_without_strict_guard[:20]:
-        add(r, "auth_bypass_surface", "medium",
-            f"Admin-surface route {r.path} lacks strict admin-level guard")
+        add(
+            r,
+            "auth_bypass_surface",
+            "medium",
+            f"Admin-surface route {r.path} lacks strict admin-level guard",
+        )
     for r in report.unprotected_among_protected[:30]:
-        add(r, "missing_auth", "medium",
-            f"Handler {r.function_name} unguarded while siblings require auth")
+        add(
+            r,
+            "missing_auth",
+            "medium",
+            f"Handler {r.function_name} unguarded while siblings require auth",
+        )
     return out

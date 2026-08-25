@@ -123,28 +123,30 @@ class MisconfigAgent(BaseAgent):
 
         result.status = AgentStatus.SUCCEEDED
         result.findings = findings
-        result.data.update({
-            "misconfig_findings": len(
-                [
-                    f
-                    for f in findings
-                    if any(
-                        word in f.title.lower()
-                        for word in [
-                            "misconfig",
-                            "debug",
-                            "cors",
-                            "header",
-                            "tls",
-                            "error",
-                            "upload",
-                            "rate",
-        ]
+        result.data.update(
+            {
+                "misconfig_findings": len(
+                    [
+                        f
+                        for f in findings
+                        if any(
+                            word in f.title.lower()
+                            for word in [
+                                "misconfig",
+                                "debug",
+                                "cors",
+                                "header",
+                                "tls",
+                                "error",
+                                "upload",
+                                "rate",
+                            ]
+                        )
+                    ]
+                ),
+                "needs_ai": False,
+            }
         )
-        ]
-            ),
-            "needs_ai": False,
-        })
         return
 
     def _should_skip_file(self, file_path: str, inp: AgentInput) -> bool:

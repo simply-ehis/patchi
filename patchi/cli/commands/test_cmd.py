@@ -42,6 +42,7 @@ import logging
 
 _log = logging.getLogger("patchi.cli.test_cmd")
 
+
 def _load_test_type_map() -> dict[str, list[str]]:
     """Load test type mapping from external JSON config."""
     maps_file = _MAPS_DIR / "agent_maps.json"
@@ -52,8 +53,10 @@ def _load_test_type_map() -> dict[str, list[str]]:
         con.print(f"[yellow]Warning: could not load agent_maps.json: {e}[/yellow]")
         return {}
 
+
 TEST_TYPE_MAP = _load_test_type_map()
 VALID_TYPES = sorted(TEST_TYPE_MAP.keys())
+
 
 def run(
     test_type: str | None = None,
@@ -190,6 +193,7 @@ def run(
     # Save to test history
     _save_to_history(results, test_type or "default", area, r)
 
+
 def run_test(args) -> None:
     """Namespace-shaped entry for the CLI registry (self-routing).
 
@@ -215,6 +219,7 @@ def run_test(args) -> None:
             area=getattr(args, "area", None),
             attack=getattr(args, "attack", False),
         )
+
 
 def run_generate(test_type: str | None = None, root: Path | None = None) -> None:
     """Entry point for `p test generate [type]`."""
@@ -337,13 +342,12 @@ Rules:
             con.print("[dim]Run with: p test unit[/dim]")
         else:
             lp.stop(summary="AI returned empty response")
-            con.print(
-                "[yellow]AI returned empty response. Try again or check your key.[/yellow]"
-            )
+            con.print("[yellow]AI returned empty response. Try again or check your key.[/yellow]")
 
     except Exception as e:
         lp.stop(summary=f"Failed: {e}")
         con.print(f"[red]Generation failed: {e}[/red]")
+
 
 def run_report(last_n: int = 20, root: Path | None = None) -> None:
     """Entry point for `p test report`."""
@@ -423,6 +427,7 @@ def run_report(last_n: int = 20, root: Path | None = None) -> None:
             )
     con.print()
 
+
 def run_config(
     action: str | None = None,
     key: str | None = None,
@@ -474,6 +479,7 @@ def run_config(
     con.print(f"[yellow]Unknown config action: {action!r}[/yellow]")
     con.print("[dim]Valid: show, set, flows[/dim]")
 
+
 def _manage_flows(sub_action: str | None, name: str | None, root: Path) -> None:
     """Manage custom test flows."""
     from patchi.core.testing import test_config as tc
@@ -516,7 +522,9 @@ def _manage_flows(sub_action: str | None, name: str | None, root: Path) -> None:
         con.print(f"[yellow]Unknown flows action: {sub_action!r}[/yellow]")
         con.print("[dim]Valid: add, remove, list[/dim]")
 
+
 # ── Helpers ────────────────────────────────────────────────────────────────────
+
 
 def _import_all_agents():
     """Import all test agent modules to trigger registration."""
@@ -526,6 +534,7 @@ def _import_all_agents():
     import patchi.core.testing.ui_button_agent  # noqa: F401
     import patchi.core.testing.ui_layout_agent  # noqa: F401
     import patchi.core.testing.visual_regression_agent  # noqa: F401
+
 
 def _extract_skeleton(filepath: str) -> str:
     """Extract function/class signatures and imports — no bodies, no hallucination."""
@@ -558,6 +567,7 @@ def _extract_skeleton(filepath: str) -> str:
 
     return "\n".join(lines)
 
+
 def _verify_test(test_code: str, root: Path) -> str | None:
     """Try to compile+import the test. Returns error string or None if OK."""
     import importlib.util
@@ -578,6 +588,7 @@ def _verify_test(test_code: str, root: Path) -> str | None:
             _log.warning("_verify_test failed: %s", e)
         return str(e)
 
+
 def _discover_project_files(root: Path) -> list[str]:
     """Discover Python source files in the project."""
     from patchi.core.agents.base import safe_rglob
@@ -591,6 +602,7 @@ def _discover_project_files(root: Path) -> list[str]:
             continue
         files.append(rel)
     return sorted(files)[:50]
+
 
 def _save_to_history(results: list, test_type: str, area: str | None, root: Path) -> None:
     """Save test run to history for reporting."""
@@ -616,7 +628,9 @@ def _save_to_history(results: list, test_type: str, area: str | None, root: Path
     append_test_history(entry, root)
     update_coverage(entry, root)
 
+
 # ── Results display ────────────────────────────────────────────────────────────
+
 
 def _show_results(results: list) -> None:
     from patchi.core.agents.base import AgentStatus
@@ -700,7 +714,9 @@ def _show_results(results: list) -> None:
 
     con.print()
 
+
 # ── Attack mode ────────────────────────────────────────────────────────────────
+
 
 def _run_attack(root: Path | None) -> None:
     """Run the AttackAgent (Metasploit auxiliary/scanner probe)."""
@@ -724,7 +740,9 @@ def _run_attack(root: Path | None) -> None:
     brain = mem.get_brain(r)
 
     con.print()
-    con.print("[bold #C8621A]Attack Scan[/bold #C8621A]  [dim]Metasploit auxiliary/scanner probes against localhost[/dim]")
+    con.print(
+        "[bold #C8621A]Attack Scan[/bold #C8621A]  [dim]Metasploit auxiliary/scanner probes against localhost[/dim]"
+    )
     con.print()
 
     inp = AgentInput(
@@ -745,6 +763,7 @@ def _run_attack(root: Path | None) -> None:
     result = AttackAgent().run(inp)
     lp.stop(summary=f"{result.finding_count} findings")
     _show_attack_results(result, msf_target)
+
 
 def _show_attack_results(result, default_target: str = "127.0.0.1:8000") -> None:
     """Display Metasploit attack scan results."""
@@ -816,7 +835,9 @@ def _show_attack_results(result, default_target: str = "127.0.0.1:8000") -> None
             con.print(f"  [dim]— {err}[/dim]")
         con.print()
 
+
 # ── Scope helper ───────────────────────────────────────────────────────────────
+
 
 def _scope_from_area(root: Path, area: str | None) -> list[str]:
     if not area:

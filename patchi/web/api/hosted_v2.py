@@ -61,26 +61,30 @@ async def hosted_overview(request: Request) -> JSONResponse:
     except Exception:
         ai = {}
 
-    return JSONResponse({
-        "enabled": hosted_conf.get("enabled", False),
-        "health_score": (brain.get("health_score") or {}).get("total"),
-        "last_scan": brain.get("last_scan", ""),
-        "file_count": brain.get("file_count", 0),
-        "active_agents": active_agents,
-        "findings_by_severity": sev_totals,
-        "active_domains": brain.get("active_security_domains", []),
-        "guard": {
-            "interceptor_enabled": conf.get("pipeline", {}).get("interceptor", {}).get("enabled", False),
-            "tokens": _safe_count(token_count, root),
-            "top_threats": threats,
-        },
-        "webhooks": len(hooks_mod.list_webhooks(root)),
-        "recent_activity": [
-            {"ts": e.get("ts"), "event": e.get("event"), "actor": e.get("actor")}
-            for e in recent_audit[:10]
-        ],
-        "ai_usage": ai if isinstance(ai, dict) else {},
-    })
+    return JSONResponse(
+        {
+            "enabled": hosted_conf.get("enabled", False),
+            "health_score": (brain.get("health_score") or {}).get("total"),
+            "last_scan": brain.get("last_scan", ""),
+            "file_count": brain.get("file_count", 0),
+            "active_agents": active_agents,
+            "findings_by_severity": sev_totals,
+            "active_domains": brain.get("active_security_domains", []),
+            "guard": {
+                "interceptor_enabled": conf.get("pipeline", {})
+                .get("interceptor", {})
+                .get("enabled", False),
+                "tokens": _safe_count(token_count, root),
+                "top_threats": threats,
+            },
+            "webhooks": len(hooks_mod.list_webhooks(root)),
+            "recent_activity": [
+                {"ts": e.get("ts"), "event": e.get("event"), "actor": e.get("actor")}
+                for e in recent_audit[:10]
+            ],
+            "ai_usage": ai if isinstance(ai, dict) else {},
+        }
+    )
 
 
 @router.get("/compliance/report")
@@ -183,12 +187,14 @@ async def usage(request: Request) -> JSONResponse:
     except Exception:
         tokens = []
 
-    return JSONResponse({
-        "scans": {"agents_run": len(scan_events), "detail": scan_events},
-        "ai_usage": ai if isinstance(ai, dict) else {},
-        "active_tokens": sum(1 for t in tokens if not t.get("revoked")),
-        "budget": _budget_status(root),
-    })
+    return JSONResponse(
+        {
+            "scans": {"agents_run": len(scan_events), "detail": scan_events},
+            "ai_usage": ai if isinstance(ai, dict) else {},
+            "active_tokens": sum(1 for t in tokens if not t.get("revoked")),
+            "budget": _budget_status(root),
+        }
+    )
 
 
 # ── helpers ───────────────────────────────────────────────────────────────────

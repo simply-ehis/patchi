@@ -375,7 +375,7 @@ class DependencyCVEChecker(BaseAgent):
                 data = json.loads(proc.get("stdout") or "")
             except Exception as e:
                 _log.warning("DependencyCVEChecker._run_osv_scanner failed: %s", e)
-                with open(report_path, "r", encoding="utf-8") as f:
+                with open(report_path, encoding="utf-8") as f:
                     data = json.load(f)
 
             affected_packages = data.get("results", [])

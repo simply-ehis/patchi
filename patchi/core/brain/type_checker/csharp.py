@@ -10,6 +10,7 @@ from .base import BaseTypeChecker, _node_text, make_finding
 
 _log = logging.getLogger("patchi.brain.csharp")
 
+
 class CSharpTypeChecker(BaseTypeChecker):
     language = "c_sharp"
 
@@ -29,16 +30,25 @@ class CSharpTypeChecker(BaseTypeChecker):
         ntype = node.type
         if ntype == "method_declaration":
             line = node.start_point[0] + 1
-            name = _node_text(source, self._child_by_type(node, "identifier")) if self._child_by_type(node, "identifier") else ""
-            return_type = self._child_by_type(node, "predefined_type") or self._child_by_type(node, "identifier")
+            name = (
+                _node_text(source, self._child_by_type(node, "identifier"))
+                if self._child_by_type(node, "identifier")
+                else ""
+            )
+            return_type = self._child_by_type(node, "predefined_type") or self._child_by_type(
+                node, "identifier"
+            )
             if return_type and _node_text(source, return_type) in ("object", "dynamic"):
-                findings.append(make_finding(
-                    finding_type="untyped_return",
-                    file=file_path, line=line,
-                    title=f"Method returns '{_node_text(source, return_type)}'",
-                    description=f"Method '{name}' returns untyped '{_node_text(source, return_type)}' — consider a specific type",
-                    severity="medium",
-                ))
+                findings.append(
+                    make_finding(
+                        finding_type="untyped_return",
+                        file=file_path,
+                        line=line,
+                        title=f"Method returns '{_node_text(source, return_type)}'",
+                        description=f"Method '{name}' returns untyped '{_node_text(source, return_type)}' — consider a specific type",
+                        severity="medium",
+                    )
+                )
         for child in node.children:
             self._walk(child, source, file_path, findings)
 

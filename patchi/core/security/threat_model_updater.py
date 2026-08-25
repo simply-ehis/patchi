@@ -67,19 +67,18 @@ def update_threat_model(
             scenario.relevance_score = min(scenario.relevance_score + boost, _MAX_SCORE)
             _log.debug(
                 "Boosted %s by %.2f (category=%s, findings=%d)",
-                scenario.id, boost, scenario.category, cat_count,
+                scenario.id,
+                boost,
+                scenario.category,
+                cat_count,
             )
         else:
             # Decay scenarios that produced zero findings
-            scenario.relevance_score = max(
-                scenario.relevance_score - _ZERO_FINDING_DECAY, 0.0
-            )
+            scenario.relevance_score = max(scenario.relevance_score - _ZERO_FINDING_DECAY, 0.0)
 
         # Extra boost for CWE matches
         if scenario.cwe and cwe_counts.get(scenario.cwe, 0) > 0:
-            scenario.relevance_score = min(
-                scenario.relevance_score + 0.2, _MAX_SCORE
-            )
+            scenario.relevance_score = min(scenario.relevance_score + 0.2, _MAX_SCORE)
 
     # Re-sort by updated relevance
     model.scenarios.sort(key=lambda s: (-s.relevance_score, s.severity))
@@ -105,7 +104,9 @@ def update_threat_model(
     tm_path.write_text(json.dumps(model.to_dict(), indent=2), encoding="utf-8")
     _log.info(
         "Threat model updated: %d scenarios, %d applicable, %d categories",
-        model.total_scenarios, model.applicable_scenarios, len(model.by_category),
+        model.total_scenarios,
+        model.applicable_scenarios,
+        len(model.by_category),
     )
     return model
 
@@ -188,6 +189,8 @@ def _generate_updated_recommendations(
     covered = set(model.by_category.keys())
     for cat in category_counts:
         if cat not in covered and category_counts[cat] >= 2:
-            recs.append(f"Add threat scenarios for '{cat}' — {category_counts[cat]} findings detected")
+            recs.append(
+                f"Add threat scenarios for '{cat}' — {category_counts[cat]} findings detected"
+            )
 
     return recs[:10]

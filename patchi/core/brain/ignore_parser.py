@@ -36,6 +36,7 @@ import logging
 
 _log = logging.getLogger("patchi.brain.ignore_parser")
 
+
 @dataclass
 class IgnoreDirective:
     """A single patchi-ignore directive found in source."""
@@ -58,11 +59,31 @@ def scan_ignore_directives(root: Path) -> list[IgnoreDirective]:
     today = date.today()
 
     source_patterns = [
-        "*.py", "*.js", "*.jsx", "*.ts", "*.tsx",
-        "*.java", "*.go", "*.rs", "*.c", "*.h",
-        "*.cpp", "*.cxx", "*.cc", "*.hpp", "*.rb",
-        "*.swift", "*.kt", "*.kts", "*.yaml", "*.yml",
-        "*.json", "*.toml", "*.html", "*.css", "*.scss",
+        "*.py",
+        "*.js",
+        "*.jsx",
+        "*.ts",
+        "*.tsx",
+        "*.java",
+        "*.go",
+        "*.rs",
+        "*.c",
+        "*.h",
+        "*.cpp",
+        "*.cxx",
+        "*.cc",
+        "*.hpp",
+        "*.rb",
+        "*.swift",
+        "*.kt",
+        "*.kts",
+        "*.yaml",
+        "*.yml",
+        "*.json",
+        "*.toml",
+        "*.html",
+        "*.css",
+        "*.scss",
     ]
 
     for pattern in source_patterns:

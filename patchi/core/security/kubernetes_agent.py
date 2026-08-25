@@ -258,11 +258,12 @@ _log = logging.getLogger("patchi.security.kubernetes_agent")
 class KubernetesAgent(BaseAgent):
     name = "KubernetesAgent"
     group = AgentGroup.SECURITY
-    description = "Kubernetes cluster hardening: CIS Benchmark controls, RBAC, pod security, network policies"
+    description = (
+        "Kubernetes cluster hardening: CIS Benchmark controls, RBAC, pod security, network policies"
+    )
 
     def _run(self, inp: AgentInput, result: AgentResult) -> None:
         with trace_agent(self.name, inp.root) as trace:
-
             findings: list[Finding] = []
             files_scanned = 0
             k8s_manifests = 0
@@ -293,15 +294,17 @@ class KubernetesAgent(BaseAgent):
             # Phase 4: Aggregate analysis
             # Check for missing network policies
             if namespaces_seen and not has_network_policy:
-                findings.append(make_finding(
-                    Severity.MEDIUM,
-                    "",
-                    0,
-                    "K8S-20: No NetworkPolicy found",
-                    f"Found {len(namespaces_seen)} namespace(s) but no NetworkPolicy. Network segmentation not enforced.",
-                    suggestion="Add NetworkPolicy to restrict pod-to-pod communication",
-                    control_id="K8S-20",
-                ))
+                findings.append(
+                    make_finding(
+                        Severity.MEDIUM,
+                        "",
+                        0,
+                        "K8S-20: No NetworkPolicy found",
+                        f"Found {len(namespaces_seen)} namespace(s) but no NetworkPolicy. Network segmentation not enforced.",
+                        suggestion="Add NetworkPolicy to restrict pod-to-pod communication",
+                        control_id="K8S-20",
+                    )
+                )
 
             # Phase 5: Try external tools
             # Try kube-bench (CIS Benchmark scanner)
@@ -316,19 +319,22 @@ class KubernetesAgent(BaseAgent):
                     )
                     if proc.stdout:
                         import json
+
                         try:
                             data = json.loads(proc.stdout)
                             for check in data.get("tests", []):
                                 for result_item in check.get("results", []):
                                     if result_item.get("status") == "FAIL":
-                                        findings.append(make_finding(
-                                            Severity.HIGH,
-                                            "",
-                                            0,
-                                            f"kube-bench: {result_item.get('test_desc', 'Unknown')}",
-                                            f"CIS Benchmark check failed: {result_item.get('test_desc', '')}",
-                                            suggestion="Fix kube-bench finding per CIS Kubernetes Benchmark",
-                                        ))
+                                        findings.append(
+                                            make_finding(
+                                                Severity.HIGH,
+                                                "",
+                                                0,
+                                                f"kube-bench: {result_item.get('test_desc', 'Unknown')}",
+                                                f"CIS Benchmark check failed: {result_item.get('test_desc', '')}",
+                                                suggestion="Fix kube-bench finding per CIS Kubernetes Benchmark",
+                                            )
+                                        )
                         except json.JSONDecodeError:
                             pass
                 except (subprocess.TimeoutExpired, Exception):
@@ -347,6 +353,7 @@ class KubernetesAgent(BaseAgent):
                     )
                     if proc.returncode == 0 and proc.stdout:
                         import json
+
                         try:
                             data = json.loads(proc.stdout)
                             for item in data.get("items", []):
@@ -354,16 +361,18 @@ class KubernetesAgent(BaseAgent):
                                 if role_ref.get("name") == "cluster-admin":
                                     subjects = item.get("subjects", [])
                                     for subject in subjects:
-                                        findings.append(make_finding(
-                                            Severity.HIGH,
-                                            "",
-                                            0,
-                                            "K8S-16: cluster-admin binding via kubectl",
-                                            f"cluster-admin bound to: {subject.get('name', 'unknown')} ({subject.get('kind', 'unknown')})",
-                                            suggestion="Review and remove unnecessary cluster-admin bindings",
-                                            cwe="CWE-269",
-                                            control_id="K8S-16",
-                                        ))
+                                        findings.append(
+                                            make_finding(
+                                                Severity.HIGH,
+                                                "",
+                                                0,
+                                                "K8S-16: cluster-admin binding via kubectl",
+                                                f"cluster-admin bound to: {subject.get('name', 'unknown')} ({subject.get('kind', 'unknown')})",
+                                                suggestion="Review and remove unnecessary cluster-admin bindings",
+                                                cwe="CWE-269",
+                                                control_id="K8S-16",
+                                            )
+                                        )
                         except json.JSONDecodeError:
                             pass
                 except (subprocess.TimeoutExpired, Exception):
@@ -381,20 +390,32 @@ class KubernetesAgent(BaseAgent):
                     )
                     if proc.stdout:
                         import json
+
                         try:
                             data = json.loads(proc.stdout)
                             for item in data.get("objects", []):
                                 for diag in item.get("diagnostics", []):
                                     check = diag.get("check", "")
-                                    if any(kw in check.lower() for kw in ["privileged", "hostpath", "network", "rbac", "capability"]):
-                                        findings.append(make_finding(
-                                            Severity.MEDIUM,
-                                            item.get("metadata", {}).get("filePath", ""),
-                                            0,
-                                            f"kube-linter: {check}",
-                                            diag.get("message", ""),
-                                            suggestion="Review kube-linter finding for Kubernetes security impact",
-                                        ))
+                                    if any(
+                                        kw in check.lower()
+                                        for kw in [
+                                            "privileged",
+                                            "hostpath",
+                                            "network",
+                                            "rbac",
+                                            "capability",
+                                        ]
+                                    ):
+                                        findings.append(
+                                            make_finding(
+                                                Severity.MEDIUM,
+                                                item.get("metadata", {}).get("filePath", ""),
+                                                0,
+                                                f"kube-linter: {check}",
+                                                diag.get("message", ""),
+                                                suggestion="Review kube-linter finding for Kubernetes security impact",
+                                            )
+                                        )
                         except json.JSONDecodeError:
                             pass
                 except (subprocess.TimeoutExpired, Exception):
@@ -413,7 +434,14 @@ class KubernetesAgent(BaseAgent):
 
             return
 
-    def _scan_yaml(self, fpath: Path, root: Path, findings: list, namespaces_seen: set, network_policy_flag: str) -> None:
+    def _scan_yaml(
+        self,
+        fpath: Path,
+        root: Path,
+        findings: list,
+        namespaces_seen: set,
+        network_policy_flag: str,
+    ) -> None:
         """Scan a YAML/YML file for Kubernetes manifests."""
         try:
             content = fpath.read_text(encoding="utf-8", errors="replace")
@@ -440,83 +468,95 @@ class KubernetesAgent(BaseAgent):
             namespaces_seen.add(ns_match.group(1))
 
         # CIS Benchmark checks for kube-apiserver/kubelet configs
-        for check_id, check_info in CIS_PATTERNS.items():
+        for _check_id, check_info in CIS_PATTERNS.items():
             if re.search(check_info["pattern"], content, re.IGNORECASE):
-                findings.append(make_finding(
-                    check_info["severity"],
-                    rel,
-                    0,
-                    f"{check_info['control']}: {check_info['title']}",
-                    check_info["description"],
-                    suggestion=check_info.get("suggestion", ""),
-                    control_id=check_info["control"],
-                ))
+                findings.append(
+                    make_finding(
+                        check_info["severity"],
+                        rel,
+                        0,
+                        f"{check_info['control']}: {check_info['title']}",
+                        check_info["description"],
+                        suggestion=check_info.get("suggestion", ""),
+                        control_id=check_info["control"],
+                    )
+                )
 
         # Pod security checks
-        for check_id, check_info in POD_SECURITY_PATTERNS.items():
+        for _check_id, check_info in POD_SECURITY_PATTERNS.items():
             if re.search(check_info["pattern"], content, re.IGNORECASE):
-                findings.append(make_finding(
-                    check_info["severity"],
-                    rel,
-                    0,
-                    f"{check_info['control']}: {check_info['title']}",
-                    check_info["description"],
-                    suggestion=check_info.get("suggestion", ""),
-                    cwe=check_info.get("cwe", ""),
-                    control_id=check_info["control"],
-                ))
+                findings.append(
+                    make_finding(
+                        check_info["severity"],
+                        rel,
+                        0,
+                        f"{check_info['control']}: {check_info['title']}",
+                        check_info["description"],
+                        suggestion=check_info.get("suggestion", ""),
+                        cwe=check_info.get("cwe", ""),
+                        control_id=check_info["control"],
+                    )
+                )
 
         # RBAC checks
-        for check_id, check_info in RBAC_PATTERNS.items():
+        for _check_id, check_info in RBAC_PATTERNS.items():
             if re.search(check_info["pattern"], content, re.IGNORECASE):
-                findings.append(make_finding(
-                    check_info["severity"],
-                    rel,
-                    0,
-                    f"{check_info['control']}: {check_info['title']}",
-                    check_info["description"],
-                    suggestion=check_info.get("suggestion", ""),
-                    cwe=check_info.get("cwe", ""),
-                    control_id=check_info["control"],
-                ))
+                findings.append(
+                    make_finding(
+                        check_info["severity"],
+                        rel,
+                        0,
+                        f"{check_info['control']}: {check_info['title']}",
+                        check_info["description"],
+                        suggestion=check_info.get("suggestion", ""),
+                        cwe=check_info.get("cwe", ""),
+                        control_id=check_info["control"],
+                    )
+                )
 
         # Network policy checks
-        for check_id, check_info in NETWORK_POLICY_PATTERNS.items():
+        for _check_id, check_info in NETWORK_POLICY_PATTERNS.items():
             if re.search(check_info["pattern"], content, re.IGNORECASE):
-                findings.append(make_finding(
-                    check_info["severity"],
-                    rel,
-                    0,
-                    f"{check_info['control']}: {check_info['title']}",
-                    check_info["description"],
-                    suggestion=check_info.get("suggestion", ""),
-                    control_id=check_info["control"],
-                ))
+                findings.append(
+                    make_finding(
+                        check_info["severity"],
+                        rel,
+                        0,
+                        f"{check_info['control']}: {check_info['title']}",
+                        check_info["description"],
+                        suggestion=check_info.get("suggestion", ""),
+                        control_id=check_info["control"],
+                    )
+                )
 
         # Check for missing securityContext
         if kind in ("Pod", "Deployment", "StatefulSet", "DaemonSet", "Job", "CronJob"):
             if "securityContext" not in content and kind in ("Pod",):
-                findings.append(make_finding(
-                    Severity.MEDIUM,
-                    rel,
-                    0,
-                    "K8S-06: No securityContext defined",
-                    "Pod does not define securityContext. Default settings may be permissive.",
-                    suggestion="Add securityContext with runAsNonRoot, readOnlyRootFilesystem, and drop ALL capabilities",
-                    control_id="K8S-06",
-                ))
+                findings.append(
+                    make_finding(
+                        Severity.MEDIUM,
+                        rel,
+                        0,
+                        "K8S-06: No securityContext defined",
+                        "Pod does not define securityContext. Default settings may be permissive.",
+                        suggestion="Add securityContext with runAsNonRoot, readOnlyRootFilesystem, and drop ALL capabilities",
+                        control_id="K8S-06",
+                    )
+                )
 
         # Check for missing resource limits
         if kind in ("Pod", "Deployment", "StatefulSet", "DaemonSet", "Job", "CronJob"):
             if "resources:" not in content:
-                findings.append(make_finding(
-                    Severity.LOW,
-                    rel,
-                    0,
-                    "K8S-12: No resource limits defined",
-                    "Container does not define resource limits. May consume unlimited cluster resources.",
-                    suggestion="Add resource limits (cpu, memory) to prevent resource exhaustion",
-                ))
+                findings.append(
+                    make_finding(
+                        Severity.LOW,
+                        rel,
+                        0,
+                        "K8S-12: No resource limits defined",
+                        "Container does not define resource limits. May consume unlimited cluster resources.",
+                        suggestion="Add resource limits (cpu, memory) to prevent resource exhaustion",
+                    )
+                )
 
     def _scan_helm_chart(self, fpath: Path, root: Path, findings: list) -> None:
         """Scan Helm chart metadata."""
@@ -531,14 +571,16 @@ class KubernetesAgent(BaseAgent):
         # Check for deprecated API versions
         api_version = re.search(r"apiVersion:\s*(\S+)", content)
         if api_version and api_version.group(1) == "v1":
-            findings.append(make_finding(
-                Severity.LOW,
-                rel,
-                0,
-                "K8S-13: Deprecated Helm chart API version",
-                "Helm chart uses apiVersion: v1 (deprecated). Upgrade to v2.",
-                suggestion="Migrate to Helm v3 (apiVersion: v2)",
-            ))
+            findings.append(
+                make_finding(
+                    Severity.LOW,
+                    rel,
+                    0,
+                    "K8S-13: Deprecated Helm chart API version",
+                    "Helm chart uses apiVersion: v1 (deprecated). Upgrade to v2.",
+                    suggestion="Migrate to Helm v3 (apiVersion: v2)",
+                )
+            )
 
     def _scan_dockerfile(self, fpath: Path, root: Path, findings: list) -> None:
         """Scan Dockerfile for Kubernetes-relevant security issues."""
@@ -552,35 +594,43 @@ class KubernetesAgent(BaseAgent):
 
         # Check for running as root
         if not re.search(r"USER\s+\w+", content):
-            findings.append(make_finding(
-                Severity.HIGH,
-                rel,
-                0,
-                "K8S-10: Dockerfile runs as root",
-                "Dockerfile does not set a non-root USER. Container will run as root.",
-                suggestion="Add 'USER nonroot' before the ENTRYPOINT/CMD",
-                cwe="CWE-250",
-                control_id="K8S-10",
-            ))
+            findings.append(
+                make_finding(
+                    Severity.HIGH,
+                    rel,
+                    0,
+                    "K8S-10: Dockerfile runs as root",
+                    "Dockerfile does not set a non-root USER. Container will run as root.",
+                    suggestion="Add 'USER nonroot' before the ENTRYPOINT/CMD",
+                    cwe="CWE-250",
+                    control_id="K8S-10",
+                )
+            )
 
         # Check for ADD instead of COPY
         if re.search(r"^ADD\s+", content, re.MULTILINE):
-            findings.append(make_finding(
-                Severity.LOW,
-                rel,
-                0,
-                "K8S-12: Dockerfile uses ADD instead of COPY",
-                "ADD instruction may unpack archives or fetch URLs. COPY is more predictable.",
-                suggestion="Use COPY unless ADD functionality is specifically needed",
-            ))
+            findings.append(
+                make_finding(
+                    Severity.LOW,
+                    rel,
+                    0,
+                    "K8S-12: Dockerfile uses ADD instead of COPY",
+                    "ADD instruction may unpack archives or fetch URLs. COPY is more predictable.",
+                    suggestion="Use COPY unless ADD functionality is specifically needed",
+                )
+            )
 
         # Check for apt-get without cleanup
-        if re.search(r"apt-get\s+install", content) and not re.search(r"apt-get\s+clean|rm\s+-rf\s+/var/lib/apt", content):
-            findings.append(make_finding(
-                Severity.LOW,
-                rel,
-                0,
-                "K8S-12: apt-get install without cleanup",
-                "Package manager cache not cleaned. Increases image size and may contain vulnerabilities.",
-                suggestion="Add 'RUN apt-get clean && rm -rf /var/lib/apt/lists/*' after install",
-            ))
+        if re.search(r"apt-get\s+install", content) and not re.search(
+            r"apt-get\s+clean|rm\s+-rf\s+/var/lib/apt", content
+        ):
+            findings.append(
+                make_finding(
+                    Severity.LOW,
+                    rel,
+                    0,
+                    "K8S-12: apt-get install without cleanup",
+                    "Package manager cache not cleaned. Increases image size and may contain vulnerabilities.",
+                    suggestion="Add 'RUN apt-get clean && rm -rf /var/lib/apt/lists/*' after install",
+                )
+            )

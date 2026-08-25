@@ -10,7 +10,7 @@ parsing. All other languages use tree-sitter AST."""
 
 from __future__ import annotations
 
-from enum import Enum
+from enum import StrEnum
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 # ── Language enum ──────────────────────────────────────────────────────────────
 
 
-class Lang(str, Enum):
+class Lang(StrEnum):
     PYTHON = "python"
     JAVASCRIPT = "javascript"
     TYPESCRIPT = "typescript"
@@ -100,10 +100,27 @@ EXTENSION_MAP: dict[str, Lang] = {
 }
 
 # Languages where tree-sitter gives us real AST parsing
-TREE_SITTER_LANGS = {Lang.PYTHON, Lang.JAVASCRIPT, Lang.TYPESCRIPT, Lang.RUST, Lang.SVELTE,
-                     Lang.JAVA, Lang.GO, Lang.C, Lang.CPP, Lang.SWIFT, Lang.RUBY,
-                     Lang.PHP, Lang.C_SHARP, Lang.KOTLIN, Lang.DART,
-                     Lang.BASH, Lang.CSS, Lang.SQL, Lang.HTML}
+TREE_SITTER_LANGS = {
+    Lang.PYTHON,
+    Lang.JAVASCRIPT,
+    Lang.TYPESCRIPT,
+    Lang.RUST,
+    Lang.SVELTE,
+    Lang.JAVA,
+    Lang.GO,
+    Lang.C,
+    Lang.CPP,
+    Lang.SWIFT,
+    Lang.RUBY,
+    Lang.PHP,
+    Lang.C_SHARP,
+    Lang.KOTLIN,
+    Lang.DART,
+    Lang.BASH,
+    Lang.CSS,
+    Lang.SQL,
+    Lang.HTML,
+}
 
 # Config-style files detected by filename (not extension)
 FILENAME_LANG_MAP: dict[str, Lang] = {
@@ -125,10 +142,10 @@ def detect_language(path: Path) -> Lang:
 
 # ── Parser registry ────────────────────────────────────────────────────────────
 
-_parsers: dict[Lang, "Parser"] = {}
+_parsers: dict[Lang, Parser] = {}
 
 
-def get_parser(lang: Lang) -> "Parser | None":
+def get_parser(lang: Lang) -> Parser | None:
     """
     Return a cached tree-sitter Parser for the given language.
     Returns None for languages handled by regex (not tree-sitter).
@@ -142,7 +159,7 @@ def get_parser(lang: Lang) -> "Parser | None":
     return _parsers[lang]
 
 
-def _build_parser(lang: Lang) -> "Parser":
+def _build_parser(lang: Lang) -> Parser:
     from tree_sitter import Language, Parser
 
     if lang == Lang.PYTHON:
@@ -260,12 +277,12 @@ def _build_parser(lang: Lang) -> "Parser":
 
 _CACHE_LIMIT = 512  # max cached trees; bounded so long sweeps don't balloon
 
-_source_tree_cache: dict[tuple[str, str], "Tree"] = {}  # (lang, sha256) -> Tree
+_source_tree_cache: dict[tuple[str, str], Tree] = {}  # (lang, sha256) -> Tree
 _cache_hits = 0
 _cache_misses = 0
 
 
-def parse_source(lang: Lang, source: str | bytes) -> "Tree | None":
+def parse_source(lang: Lang, source: str | bytes) -> Tree | None:
     """Parse `source` with the cached tree-sitter parser for `lang`.
 
     Returns the SAME tree object for identical (lang, content) pairs within

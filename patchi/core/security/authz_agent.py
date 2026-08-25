@@ -91,19 +91,21 @@ class AuthZAgent(BaseAgent):
 
         result.status = AgentStatus.SUCCEEDED
         result.findings = findings
-        result.data.update({
-            "authz_findings": len(
-                [
-                    f
-                    for f in findings
-                    if any(
-                        word in f.title.lower()
-                        for word in ["authorization", "auth", "privilege", "idor"]
+        result.data.update(
+            {
+                "authz_findings": len(
+                    [
+                        f
+                        for f in findings
+                        if any(
+                            word in f.title.lower()
+                            for word in ["authorization", "auth", "privilege", "idor"]
+                        )
+                    ]
+                ),
+                "needs_ai": False,
+            }
         )
-        ]
-            ),
-            "needs_ai": False,
-        })
         return
 
     def _should_skip_file(self, file_path: str, inp: AgentInput) -> bool:
@@ -261,7 +263,9 @@ class AuthZAgent(BaseAgent):
 
         return findings
 
-    def _scan_javascript_authz(self, content: str, rel_path: str, lang: Lang = Lang.JAVASCRIPT) -> list[Finding]:
+    def _scan_javascript_authz(
+        self, content: str, rel_path: str, lang: Lang = Lang.JAVASCRIPT
+    ) -> list[Finding]:
         """Scan JavaScript/TypeScript code for authorization vulnerabilities.
 
         Uses tree-sitter to locate route-definition call expressions (e.g.
@@ -278,9 +282,18 @@ class AuthZAgent(BaseAgent):
         lines = content.splitlines()
         route_verbs = {"get", "post", "put", "delete", "patch"}
         auth_words = {
-            "authenticate", "authorize", "jwt", "session", "login",
-            "requireauth", "isloggedin", "permission", "hasrole",
-            "hasauthority", "secured", "preauthorize",
+            "authenticate",
+            "authorize",
+            "jwt",
+            "session",
+            "login",
+            "requireauth",
+            "isloggedin",
+            "permission",
+            "hasrole",
+            "hasauthority",
+            "secured",
+            "preauthorize",
         }
         sensitive_re = re.compile(
             r"/api/.*(?:/users?|/admin|/settings|/profile|/account)", re.IGNORECASE
@@ -341,7 +354,9 @@ class AuthZAgent(BaseAgent):
                             evidence=line.strip(),
                         )
                     )
-        sensitive_re = re.compile(r"/api/.*(?:/users?|/admin|/settings|/profile|/account)", re.IGNORECASE)
+        sensitive_re = re.compile(
+            r"/api/.*(?:/users?|/admin|/settings|/profile|/account)", re.IGNORECASE
+        )
         for i, line in enumerate(lines, 1):
             if sensitive_re.search(line) and not any(
                 w in line.lower() for w in ["auth", "login", "jwt", "session", "verify"]
@@ -441,7 +456,7 @@ class AuthZAgent(BaseAgent):
         for i, line in enumerate(lines, 1):
             for pattern in php_auth_patterns:
                 matches = re.finditer(pattern, line, re.IGNORECASE)
-                for match in matches:
+                for _match in matches:
                     # Check if this line has authentication
                     if not any(
                         auth_word in content[max(0, i - 10) : i + 10]
@@ -493,7 +508,7 @@ class AuthZAgent(BaseAgent):
             for i, line in enumerate(lines, 1):
                 for pattern in ruby_auth_patterns:
                     matches = re.finditer(pattern, line)
-                    for match in matches:
+                    for _match in matches:
                         findings.append(
                             make_finding(
                                 severity=Severity.MEDIUM,
@@ -556,7 +571,7 @@ class AuthZAgent(BaseAgent):
         for i, line in enumerate(lines, 1):
             for pattern, description, severity in authz_patterns:
                 matches = re.finditer(pattern, line, re.IGNORECASE)
-                for match in matches:
+                for _match in matches:
                     # Only flag if there's no obvious auth check in the vicinity
                     context = " ".join(lines[max(0, i - 3) : min(len(lines), i + 3)])
                     if not any(

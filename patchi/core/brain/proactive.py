@@ -49,6 +49,7 @@ import logging
 
 _log = logging.getLogger("patchi.brain.proactive")
 
+
 @dataclass
 class ProposedFix:
     """A single safe/proposed fix for one changed file."""
@@ -57,10 +58,10 @@ class ProposedFix:
     file: str
     description: str
     safe: bool
-    name: str = ""          # symbol involved (function/class/import name)
-    suggested: str = ""     # e.g. the import line to add, or replacement text
+    name: str = ""  # symbol involved (function/class/import name)
+    suggested: str = ""  # e.g. the import line to add, or replacement text
     callers: list[str] = field(default_factory=list)
-    line: int = 0           # line of the symbol (for UI/debug)
+    line: int = 0  # line of the symbol (for UI/debug)
 
     def to_dict(self) -> dict:
         return {
@@ -90,8 +91,8 @@ class ProactiveAgent:
     def analyze_change(
         self,
         changed_files: list[str],
-        file_infos: list["FileInfo"],
-        graph: "ImportGraph | None" = None,
+        file_infos: list[FileInfo],
+        graph: ImportGraph | None = None,
         charter: object | None = None,
         include_format: bool = True,
     ) -> list[ProposedFix]:
@@ -131,20 +132,27 @@ class ProactiveAgent:
 
             if fi.language == "python":
                 fixes += self._check_imports(path, src, fi, public_api)
-                fixes += self._check_dead_code(path, src, fi, file_infos, fi_map, src_cache=src_cache)
+                fixes += self._check_dead_code(
+                    path, src, fi, file_infos, fi_map, src_cache=src_cache
+                )
                 fixes += self._check_signature(path, src, fi)
             if charter is not None:
                 fixes += self._check_charter(path, fi, graph, charter)
             if include_format and self._formatter():
-                fixes.append(ProposedFix(
-                    "format", path, "File can be auto-formatted", True,
-                ))
+                fixes.append(
+                    ProposedFix(
+                        "format",
+                        path,
+                        "File can be auto-formatted",
+                        True,
+                    )
+                )
         return fixes
 
     # ── Import analysis (Python AST) ──────────────────────────────────────────────
 
     def _check_imports(
-        self, path: str, src: str, fi: "FileInfo", public_api: dict[str, str]
+        self, path: str, src: str, fi: FileInfo, public_api: dict[str, str]
     ) -> list[ProposedFix]:
         try:
             tree = ast.parse(src)
@@ -163,9 +171,7 @@ class ProactiveAgent:
                     imported_names.add(alias.asname or alias.name)
                     import_lines[alias.asname or alias.name] = node.lineno
 
-        defined_names: set[str] = {fn.name for fn in fi.functions} | {
-            cl.name for cl in fi.classes
-        }
+        defined_names: set[str] = {fn.name for fn in fi.functions} | {cl.name for cl in fi.classes}
 
         used_names: set[str] = set()
         for node in ast.walk(tree):
@@ -180,26 +186,39 @@ class ProactiveAgent:
             definer = public_api.get(name)
             if definer and definer != path:
                 module = definer.rsplit(".py", 1)[0].replace("/", ".")
-                fixes.append(ProposedFix(
-                    "missing_import", path,
-                    f"'{name}' is used but not imported; define it in '{definer}'",
-                    True, name=name,
-                    suggested=f"from {module} import {name}",
-                ))
+                fixes.append(
+                    ProposedFix(
+                        "missing_import",
+                        path,
+                        f"'{name}' is used but not imported; define it in '{definer}'",
+                        True,
+                        name=name,
+                        suggested=f"from {module} import {name}",
+                    )
+                )
         # Unused imports
         for name in sorted(imported_names - used_names - defined_names):
-            fixes.append(ProposedFix(
-                "unused_import", path,
-                f"Import '{name}' is never referenced",
-                True, name=name, line=import_lines.get(name, 0),
-            ))
+            fixes.append(
+                ProposedFix(
+                    "unused_import",
+                    path,
+                    f"Import '{name}' is never referenced",
+                    True,
+                    name=name,
+                    line=import_lines.get(name, 0),
+                )
+            )
         return fixes
 
     # ── Dead code (referenced nowhere in the project) ─────────────────────────────
 
     def _check_dead_code(
-        self, path: str, src: str, fi: "FileInfo",
-        file_infos: list["FileInfo"], fi_map: dict[str, "FileInfo"],
+        self,
+        path: str,
+        src: str,
+        fi: FileInfo,
+        file_infos: list[FileInfo],
+        fi_map: dict[str, FileInfo],
         src_cache: dict[str, str] | None = None,
     ) -> list[ProposedFix]:
         fixes: list[ProposedFix] = []
@@ -255,16 +274,21 @@ class ProactiveAgent:
                 for cl in fi.classes:
                     if cl.name == name:
                         line = getattr(cl, "line", 0)
-                fixes.append(ProposedFix(
-                    "dead_code", path,
-                    f"'{name}' is defined but referenced nowhere in the project",
-                    True, name=name, line=line,
-                ))
+                fixes.append(
+                    ProposedFix(
+                        "dead_code",
+                        path,
+                        f"'{name}' is defined but referenced nowhere in the project",
+                        True,
+                        name=name,
+                        line=line,
+                    )
+                )
         return fixes
 
     # ── Signature change → caller update ───────────────────────────────────────────
 
-    def _check_signature(self, path: str, src: str, fi: "FileInfo") -> list[ProposedFix]:
+    def _check_signature(self, path: str, src: str, fi: FileInfo) -> list[ProposedFix]:
         try:
             tree = ast.parse(src)
         except SyntaxError:
@@ -291,12 +315,17 @@ class ProactiveAgent:
         for name, params in current.items():
             if name in baseline and baseline[name] != params:
                 callers = self._find_callers(path, name)
-                fixes.append(ProposedFix(
-                    "signature_callers", path,
-                    f"'{name}' signature changed ({baseline[name]} → {params}); "
-                    f"review {len(callers)} caller(s)",
-                    False, name=name, callers=callers,
-                ))
+                fixes.append(
+                    ProposedFix(
+                        "signature_callers",
+                        path,
+                        f"'{name}' signature changed ({baseline[name]} → {params}); "
+                        f"review {len(callers)} caller(s)",
+                        False,
+                        name=name,
+                        callers=callers,
+                    )
+                )
         # Update baseline for next run.
         self._store_baseline({path: current})
         return fixes
@@ -333,7 +362,7 @@ class ProactiveAgent:
     # ── Charter check on the changed file ──────────────────────────────────────────
 
     def _check_charter(
-        self, path: str, fi: "FileInfo", graph: "ImportGraph | None", charter: object
+        self, path: str, fi: FileInfo, graph: ImportGraph | None, charter: object
     ) -> list[ProposedFix]:
         from patchi.core.brain.charter import _matches_boundary
 
@@ -350,12 +379,16 @@ class ProactiveAgent:
         for b in boundaries:
             for imp in sorted(imported_subs):
                 if _matches_boundary(sub, imp, b):
-                    fixes.append(ProposedFix(
-                        "charter_violation", path,
-                        f"Change makes '{sub}' import '{imp}', violating charter "
-                        f"'{b.get('from')} must not import {b.get('to')}'",
-                        False, name=f"{sub}→{imp}",
-                    ))
+                    fixes.append(
+                        ProposedFix(
+                            "charter_violation",
+                            path,
+                            f"Change makes '{sub}' import '{imp}', violating charter "
+                            f"'{b.get('from')} must not import {b.get('to')}'",
+                            False,
+                            name=f"{sub}→{imp}",
+                        )
+                    )
         return fixes
 
     # ── Application ────────────────────────────────────────────────────────────────
@@ -461,7 +494,10 @@ def _apply_unused_import(path: Path, name: str, line: int) -> bool:
         return _write_guarded(path, "\n".join(lines) + "\n")
     # Fallback: remove first import line containing the name.
     for i, line in enumerate(lines):
-        if re.search(rf"(^|\b)(import\s+.*\b{re.escape(name)}\b|from\s+\S+\s+import\s+.*\b{re.escape(name)}\b)", line):
+        if re.search(
+            rf"(^|\b)(import\s+.*\b{re.escape(name)}\b|from\s+\S+\s+import\s+.*\b{re.escape(name)}\b)",
+            line,
+        ):
             del lines[i]
             return _write_guarded(path, "\n".join(lines) + "\n")
     return False
@@ -476,7 +512,10 @@ def _apply_dead_code(path: Path, name: str, line: int) -> bool:
         return False
     target = None
     for node in tree.body:
-        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)) and node.name == name:
+        if (
+            isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))
+            and node.name == name
+        ):
             target = node
             break
     if target is None:
@@ -486,8 +525,7 @@ def _apply_dead_code(path: Path, name: str, line: int) -> bool:
     lines = src.splitlines()
     # Safety: never remove the only top-level definition in a file.
     top_level_defs = [
-        n for n in tree.body
-        if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))
+        n for n in tree.body if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))
     ]
     if len(top_level_defs) <= 1:
         return False
@@ -503,8 +541,7 @@ def _apply_format(path: Path) -> bool:
     if not tool:
         return False
     try:
-        subprocess.run([tool, "format", str(path)], check=False,
-                       capture_output=True, timeout=30)
+        subprocess.run([tool, "format", str(path)], check=False, capture_output=True, timeout=30)
         return True
     except Exception as e:
         _log.warning("_apply_format failed: %s", e)
@@ -570,7 +607,7 @@ def run_proactive(
     }
 
 
-def escalate_to_governor(root: Path, fix: "ProposedFix") -> None:
+def escalate_to_governor(root: Path, fix: ProposedFix) -> None:
     """
     Surface an unsafe fix (e.g. charter violation) to human review by recording
     it as an open issue. This is the lightweight Governor escalation sink — the
@@ -605,7 +642,7 @@ _FIX_PRIORITY: dict[str, int] = {
 }
 
 
-def rank_fixes(fixes: list["ProposedFix"]) -> list["ProposedFix"]:
+def rank_fixes(fixes: list[ProposedFix]) -> list[ProposedFix]:
     """Return fixes sorted by priority (high→low), then safe-before-unsafe."""
     return sorted(
         fixes,
@@ -618,7 +655,7 @@ def build_fix_list(
     area: str | None = None,
     include_format: bool = False,
     include_missing_import: bool = False,
-) -> list["ProposedFix"]:
+) -> list[ProposedFix]:
     """
     Propose fixes across the whole project (or an area) and return them ranked
     — the standalone "Prioritized Fix List" view.
@@ -641,18 +678,16 @@ def build_fix_list(
     if area:
         area_rel = str(area).rstrip("/\\")
         files = [
-            fi.path for fi in file_infos
+            fi.path
+            for fi in file_infos
             if fi.path == area_rel or fi.path.startswith(area_rel + "/")
         ]
     else:
         files = [fi.path for fi in file_infos]
 
-    fixes = agent.analyze_change(
-        files, file_infos, graph, charter, include_format=include_format
-    )
+    fixes = agent.analyze_change(files, file_infos, graph, charter, include_format=include_format)
     # Honour learned rejections (Phase 5) for the list too.
     visible = [f for f in fixes if learning.should_suggest(f.fix_type, root)]
     if not include_missing_import:
         visible = [f for f in visible if f.fix_type != "missing_import"]
     return rank_fixes(visible)
-

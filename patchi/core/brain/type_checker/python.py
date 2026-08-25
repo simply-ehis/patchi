@@ -26,45 +26,62 @@ class PythonTypeChecker(BaseTypeChecker):
 
         return findings
 
-    def _check_function_def(self, node: ast.FunctionDef | ast.AsyncFunctionDef, lines: list[str], file_path: str, findings: list[dict]) -> None:
+    def _check_function_def(
+        self,
+        node: ast.FunctionDef | ast.AsyncFunctionDef,
+        lines: list[str],
+        file_path: str,
+        findings: list[dict],
+    ) -> None:
         line = node.lineno
 
         # Missing return type annotation
         if node.returns is None:
             if node.name not in ("__init__", "__new__", "__post_init__"):
-                findings.append(make_finding(
-                    finding_type="missing_return_type",
-                    file=file_path, line=line,
-                    title="Missing return type annotation",
-                    description=f"Function '{node.name}' is missing a return type annotation",
-                    evidence=f"def {node.name}",
-                    severity="low",
-                ))
+                findings.append(
+                    make_finding(
+                        finding_type="missing_return_type",
+                        file=file_path,
+                        line=line,
+                        title="Missing return type annotation",
+                        description=f"Function '{node.name}' is missing a return type annotation",
+                        evidence=f"def {node.name}",
+                        severity="low",
+                    )
+                )
 
         # Parameters without type annotations
         for arg in node.args.args:
             if arg.arg == "self":
                 continue
             if arg.annotation is None:
-                findings.append(make_finding(
-                    finding_type="missing_param_type",
-                    file=file_path, line=line,
-                    title="Missing parameter type annotation",
-                    description=f"Parameter '{arg.arg}' in function '{node.name}' is missing a type annotation",
-                    evidence=f"{arg.arg}: ?",
-                    severity="low",
-                ))
+                findings.append(
+                    make_finding(
+                        finding_type="missing_param_type",
+                        file=file_path,
+                        line=line,
+                        title="Missing parameter type annotation",
+                        description=f"Parameter '{arg.arg}' in function '{node.name}' is missing a type annotation",
+                        evidence=f"{arg.arg}: ?",
+                        severity="low",
+                    )
+                )
 
-    def _check_annotation(self, node: ast.AnnAssign, lines: list[str], file_path: str, findings: list[dict]) -> None:
+    def _check_annotation(
+        self, node: ast.AnnAssign, lines: list[str], file_path: str, findings: list[dict]
+    ) -> None:
         line = node.lineno
         ann = node.annotation
         if isinstance(ann, ast.Name) and ann.id == "Any":
             target = ast.unparse(node.target) if hasattr(ast, "unparse") else ""
-            findings.append(make_finding(
-                finding_type="explicit_any",
-                file=file_path, line=line,
-                title="Variable typed as 'Any'",
-                description=f"Variable '{target}' is typed as 'Any' (bypasses type checking)",
-                evidence=f"{target}: Any",
-                severity="medium",
-            ))
+            findings.append(
+                make_finding(
+                    finding_type="explicit_any",
+                    file=file_path,
+                    line=line,
+                    title="Variable typed as 'Any'",
+                    description=f"Variable '{target}' is typed as 'Any' (bypasses type checking)",
+                    evidence=f"{target}: Any",
+                    severity="medium",
+                )
+            )

@@ -26,13 +26,24 @@ from patchi.core.agents.base import Finding, Severity
 
 _WORD_MAP: dict[str, str] = {
     # bandit / generic uppercase
-    "LOW": "low", "MEDIUM": "medium", "HIGH": "high", "CRITICAL": "critical",
+    "LOW": "low",
+    "MEDIUM": "medium",
+    "HIGH": "high",
+    "CRITICAL": "critical",
     # already-lowercase passthrough
-    "low": "low", "medium": "medium", "high": "high",
-    "critical": "critical", "info": "info", "informational": "info",
+    "low": "low",
+    "medium": "medium",
+    "high": "high",
+    "critical": "critical",
+    "info": "info",
+    "informational": "info",
     # compiler-style levels (pysa/codeql text output)
-    "ERROR": "high", "WARNING": "medium", "WARN": "medium",
-    "NOTE": "info", "NOTICE": "info", "SEGMENT": "info",
+    "ERROR": "high",
+    "WARNING": "medium",
+    "WARN": "medium",
+    "NOTE": "info",
+    "NOTICE": "info",
+    "SEGMENT": "info",
 }
 
 _DEFAULT = "medium"
@@ -80,6 +91,7 @@ def tool_confidence(raw: Any, default: float = 0.5) -> float:
 
 # ── Finding construction ─────────────────────────────────────────────────────
 
+
 def make_tool_finding(
     agent: str,
     ftype: str,
@@ -101,6 +113,11 @@ def make_tool_finding(
     if extra:
         payload_extra.update(extra)
 
+    # Normalize bare-number / int CWEs ("89", 89) to "CWE-89"
+    cwe_str = str(cwe or "").strip()
+    if cwe_str and cwe_str.isdigit():
+        cwe_str = f"CWE-{int(cwe_str)}"
+
     kwargs: dict[str, Any] = {}
     if snippet:
         kwargs["code_snippet"] = str(snippet)[:500]
@@ -112,7 +129,7 @@ def make_tool_finding(
         file=file or "",
         line=int(line or 0),
         message=str(message or "")[:400],
-        cwe=str(cwe or ""),
+        cwe=cwe_str,
         extra=payload_extra,
         **kwargs,
     )

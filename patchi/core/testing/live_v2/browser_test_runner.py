@@ -14,12 +14,13 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 from patchi.core.agents.base import Finding
-from patchi.core.testing.live_v2.browser_pool import BrowserPool, BrowserConfig, get_browser_pool
+from patchi.core.testing.live_v2.browser_pool import BrowserConfig, BrowserPool, get_browser_pool
 from patchi.core.testing.live_v2.screenshot_manager import ScreenshotManager
 
 _log = logging.getLogger("patchi.testing.browser_runner")
@@ -28,6 +29,7 @@ _log = logging.getLogger("patchi.testing.browser_runner")
 @dataclass
 class TestStep:
     """A single step in a browser test."""
+
     action: str  # navigate, click, fill, screenshot, assert
     target: str = ""  # URL, selector, or assertion
     value: str = ""  # input value for fill
@@ -38,6 +40,7 @@ class TestStep:
 @dataclass
 class TestResult:
     """Result of a single test."""
+
     name: str
     passed: bool
     steps_completed: int = 0
@@ -51,6 +54,7 @@ class TestResult:
 @dataclass
 class TestSuiteResult:
     """Result of a full test suite run."""
+
     total_tests: int = 0
     passed: int = 0
     failed: int = 0
@@ -115,13 +119,11 @@ class BrowserTestRunner:
                     result.steps_completed = i + 1
                 except Exception as e:
                     result.passed = False
-                    result.errors.append(f"Step {i+1} ({step.action}): {e}")
+                    result.errors.append(f"Step {i + 1} ({step.action}): {e}")
                     _log.warning("Test step failed: %s", e)
                     # Capture error screenshot
                     try:
-                        ss_path = await screenshot_mgr.capture(
-                            page, f"{name}_error_step{i+1}"
-                        )
+                        ss_path = await screenshot_mgr.capture(page, f"{name}_error_step{i + 1}")
                         if ss_path:
                             result.screenshots.append(str(ss_path))
                     except Exception:
@@ -217,9 +219,7 @@ class BrowserTestRunner:
             for r in results:
                 if isinstance(r, Exception):
                     suite.failed += 1
-                    suite.results.append(TestResult(
-                        name="unknown", passed=False, errors=[str(r)]
-                    ))
+                    suite.results.append(TestResult(name="unknown", passed=False, errors=[str(r)]))
                 else:
                     if r.passed:
                         suite.passed += 1
@@ -233,8 +233,7 @@ class BrowserTestRunner:
 
         suite.duration_ms = int((time.monotonic() - start) * 1000)
         self.on_progress(
-            f"🏁 Test suite: {suite.passed}/{suite.total_tests} passed "
-            f"({suite.duration_ms}ms)"
+            f"🏁 Test suite: {suite.passed}/{suite.total_tests} passed ({suite.duration_ms}ms)"
         )
         return suite
 

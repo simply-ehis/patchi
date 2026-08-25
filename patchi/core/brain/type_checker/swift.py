@@ -10,6 +10,7 @@ from .base import BaseTypeChecker, _node_text, make_finding
 
 _log = logging.getLogger("patchi.brain.swift")
 
+
 class SwiftTypeChecker(BaseTypeChecker):
     language = "swift"
 
@@ -29,18 +30,25 @@ class SwiftTypeChecker(BaseTypeChecker):
         ntype = node.type
         if ntype == "function_declaration":
             line = node.start_point[0] + 1
-            name = _node_text(source, self._child_by_type(node, "identifier")) if self._child_by_type(node, "identifier") else ""
+            name = (
+                _node_text(source, self._child_by_type(node, "identifier"))
+                if self._child_by_type(node, "identifier")
+                else ""
+            )
             return_type = self._child_by_type(node, "return_type")
             if return_type:
                 rt_text = _node_text(source, return_type).replace("-> ", "")
                 if rt_text == "Any":
-                    findings.append(make_finding(
-                        finding_type="any_type",
-                        file=file_path, line=line,
-                        title="Function returns 'Any'",
-                        description=f"Function '{name}' returns 'Any' — consider a specific type",
-                        severity="medium",
-                    ))
+                    findings.append(
+                        make_finding(
+                            finding_type="any_type",
+                            file=file_path,
+                            line=line,
+                            title="Function returns 'Any'",
+                            description=f"Function '{name}' returns 'Any' — consider a specific type",
+                            severity="medium",
+                        )
+                    )
         for child in node.children:
             self._walk(child, source, file_path, findings)
 

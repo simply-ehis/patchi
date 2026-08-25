@@ -32,6 +32,7 @@ from patchi.core.config import require_project_root
 
 _log = logging.getLogger("patchi.cli.charter_cmd")
 
+
 def run_show(root: Path | None = None) -> None:
     """p charter show — display the current charter."""
     try:
@@ -45,7 +46,7 @@ def run_show(root: Path | None = None) -> None:
         con.print()
         con.print(
             "[dim]No charter set yet. Define guard rails with:[/dim]\n"
-            "  [bold]p charter set \"Frontend must not import from backend\"[/bold]"
+            '  [bold]p charter set "Frontend must not import from backend"[/bold]'
         )
         con.print()
         return
@@ -62,8 +63,10 @@ def run_set(text: str, use_ai: bool = False, root: Path | None = None) -> None:
         return
 
     if not text or not text.strip():
-        con.print("[red]Provide a charter sentence, e.g.[/red] "
-                  "[bold]p charter set \"Backend must not import from tests\"[/bold]")
+        con.print(
+            "[red]Provide a charter sentence, e.g.[/red] "
+            '[bold]p charter set "Backend must not import from tests"[/bold]'
+        )
         return
 
     con.print()
@@ -85,8 +88,10 @@ def run_set(text: str, use_ai: bool = False, root: Path | None = None) -> None:
     con.print()
     _print_charter(charter)
     con.print()
-    con.print("[dim]Run [bold]p scan[/bold] to let Patchi enforce these guard rails, "
-              "then [bold]p charter check[/bold] to see any drift.[/dim]")
+    con.print(
+        "[dim]Run [bold]p scan[/bold] to let Patchi enforce these guard rails, "
+        "then [bold]p charter check[/bold] to see any drift.[/dim]"
+    )
     con.print()
 
 
@@ -100,8 +105,9 @@ def run_check(rebuild: bool = False, root: Path | None = None) -> None:
 
     charter = load_charter(r)
     if charter is None:
-        con.print("[yellow]No charter set.[/yellow] Define one with "
-                  "[bold]p charter set \"…\"[/bold] first.")
+        con.print(
+            '[yellow]No charter set.[/yellow] Define one with [bold]p charter set "…"[/bold] first.'
+        )
         return
 
     if rebuild:
@@ -114,8 +120,10 @@ def run_check(rebuild: bool = False, root: Path | None = None) -> None:
         layers = mem.get_layers(r)
 
     if not layers:
-        con.print("[yellow]No layered brain available.[/yellow] Run [bold]p scan[/bold] "
-                  "(or [bold]p charter check --rebuild[/bold]) to build it.")
+        con.print(
+            "[yellow]No layered brain available.[/yellow] Run [bold]p scan[/bold] "
+            "(or [bold]p charter check --rebuild[/bold]) to build it."
+        )
         return
 
     detected_fw = []
@@ -137,12 +145,14 @@ def run_check(rebuild: bool = False, root: Path | None = None) -> None:
 
     con.print()
     if not violations:
-        con.print(Panel(
-            "[#4ADE80]✓ No charter violations.[/#4ADE80]\n"
-            "[dim]Project structure respects all defined guard rails.[/dim]",
-            title="[bold #C8621A]Charter Check[/bold #C8621A]",
-            border_style="#2A3D28",
-        ))
+        con.print(
+            Panel(
+                "[#4ADE80]✓ No charter violations.[/#4ADE80]\n"
+                "[dim]Project structure respects all defined guard rails.[/dim]",
+                title="[bold #C8621A]Charter Check[/bold #C8621A]",
+                border_style="#2A3D28",
+            )
+        )
         con.print()
         return
 
@@ -157,11 +167,13 @@ def run_check(rebuild: bool = False, root: Path | None = None) -> None:
             v.rule,
             v.message,
         )
-    con.print(Panel(
-        table,
-        title=f"[bold #C8621A]Charter Violations ({len(violations)})[/bold #C8621A]",
-        border_style="#FF4D6D",
-    ))
+    con.print(
+        Panel(
+            table,
+            title=f"[bold #C8621A]Charter Violations ({len(violations)})[/bold #C8621A]",
+            border_style="#FF4D6D",
+        )
+    )
     con.print()
 
 
@@ -202,17 +214,20 @@ def run_hooks(install: bool = False, root: Path | None = None) -> None:
 
     con.print()
     con.print(f"[#4ADE80]✓[/#4ADE80] Pre-commit hook written to [bold]{hook_path}[/bold]")
-    con.print("[dim]It runs [bold]patchi charter check[/bold] on every commit. "
-              "Run [bold]p scan[/bold] first so the layered brain is current.[/dim]")
+    con.print(
+        "[dim]It runs [bold]patchi charter check[/bold] on every commit. "
+        "Run [bold]p scan[/bold] first so the layered brain is current.[/dim]"
+    )
     con.print()
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
 
+
 def _print_charter(charter: Charter) -> None:
     lines = []
     if charter.raw_text:
-        lines.append(f"[dim italic]\"{charter.raw_text}\"[/dim italic]")
+        lines.append(f'[dim italic]"{charter.raw_text}"[/dim italic]')
         lines.append("")
     if charter.boundaries:
         lines.append("[bold #F2EDD6]Boundaries (guard rails):[/bold #F2EDD6]")
@@ -248,9 +263,11 @@ def _print_charter(charter: Charter) -> None:
         lines.append("[dim]No specific rules parsed. The raw sentence is kept as intent.[/dim]")
 
     con.print()
-    con.print(Panel(
-        "\n".join(lines).rstrip(),
-        title="[bold #C8621A]Project Charter[/bold #C8621A]",
-        border_style="#2A3D28",
-    ))
+    con.print(
+        Panel(
+            "\n".join(lines).rstrip(),
+            title="[bold #C8621A]Project Charter[/bold #C8621A]",
+            border_style="#2A3D28",
+        )
+    )
     con.print()

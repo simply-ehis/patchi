@@ -5,7 +5,7 @@ Provides tree-sitter based code scanning capabilities.
 
 import logging
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 def _slice(node: Any, source: str) -> str:
     """Extract source code slice for a tree-sitter node."""
     try:
-        return source[node.start_byte:node.end_byte]
+        return source[node.start_byte : node.end_byte]
     except Exception:
         return ""
 
@@ -21,10 +21,10 @@ def _slice(node: Any, source: str) -> str:
 def scan_python(
     source: str,
     file_path: Path,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Scan Python source code and extract structured information.
-    
+
     Returns a dictionary with:
     - functions: list of function definitions
     - classes: list of class definitions
@@ -50,34 +50,42 @@ def scan_python(
 
     for node in ast.walk(tree):
         if isinstance(node, ast.FunctionDef):
-            functions.append({
-                "name": node.name,
-                "line": node.lineno,
-                "end_line": getattr(node, 'end_lineno', node.lineno),
-                "args": [a.arg for a in node.args.args],
-                "returns": ast.unparse(node.returns) if node.returns else None,
-            })
+            functions.append(
+                {
+                    "name": node.name,
+                    "line": node.lineno,
+                    "end_line": getattr(node, "end_lineno", node.lineno),
+                    "args": [a.arg for a in node.args.args],
+                    "returns": ast.unparse(node.returns) if node.returns else None,
+                }
+            )
         elif isinstance(node, ast.ClassDef):
-            classes.append({
-                "name": node.name,
-                "line": node.lineno,
-                "end_line": getattr(node, 'end_lineno', node.lineno),
-                "bases": [ast.unparse(b) for b in node.bases],
-            })
+            classes.append(
+                {
+                    "name": node.name,
+                    "line": node.lineno,
+                    "end_line": getattr(node, "end_lineno", node.lineno),
+                    "bases": [ast.unparse(b) for b in node.bases],
+                }
+            )
         elif isinstance(node, ast.Import):
             for alias in node.names:
-                imports.append({
-                    "name": alias.name,
-                    "alias": alias.asname,
-                    "line": node.lineno,
-                })
+                imports.append(
+                    {
+                        "name": alias.name,
+                        "alias": alias.asname,
+                        "line": node.lineno,
+                    }
+                )
         elif isinstance(node, ast.ImportFrom):
             for alias in node.names:
-                imports.append({
-                    "name": f"{node.module}.{alias.name}" if node.module else alias.name,
-                    "alias": alias.asname,
-                    "line": node.lineno,
-                })
+                imports.append(
+                    {
+                        "name": f"{node.module}.{alias.name}" if node.module else alias.name,
+                        "alias": alias.asname,
+                        "line": node.lineno,
+                    }
+                )
         elif isinstance(node, ast.Call):
             # Full dotted name via the shared helper (single source of truth
             # with calls.find_calls) — leaf-only names broke deep dotted
@@ -85,10 +93,12 @@ def scan_python(
             from .helpers import _py_call_name
 
             func_name = _py_call_name(node)
-            calls.append({
-                "function": func_name,
-                "line": node.lineno,
-            })
+            calls.append(
+                {
+                    "function": func_name,
+                    "line": node.lineno,
+                }
+            )
 
     return {
         "functions": functions,
@@ -98,7 +108,7 @@ def scan_python(
     }
 
 
-def scan_generic(source: str, file_path: Path) -> Dict[str, Any]:
+def scan_generic(source: str, file_path: Path) -> dict[str, Any]:
     """
     Generic scanner for non-Python files.
     Returns basic structural information.
@@ -111,7 +121,7 @@ def scan_generic(source: str, file_path: Path) -> Dict[str, Any]:
     }
 
 
-def scan_file(file_path: Path) -> Dict[str, Any]:
+def scan_file(file_path: Path) -> dict[str, Any]:
     """
     Scan a file and return structured information.
     """
@@ -128,6 +138,6 @@ def scan_file(file_path: Path) -> Dict[str, Any]:
         return scan_generic(source, file_path)
 
 
-def scan_python_file(file_path: Path) -> Dict[str, Any]:
+def scan_python_file(file_path: Path) -> dict[str, Any]:
     """Convenience function to scan a Python file."""
     return scan_python(file_path.read_text(encoding="utf-8"), file_path)

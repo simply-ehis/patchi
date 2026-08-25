@@ -18,6 +18,7 @@ import logging
 
 _log = logging.getLogger("patchi.brain.java")
 
+
 @register_detector("java")
 class JavaRouteDetector(BaseRouteDetector):
     def detect(self, content: str, file_path: str) -> list[dict]:
@@ -40,15 +41,19 @@ class JavaRouteDetector(BaseRouteDetector):
         self._walk(tree.root_node, bytes(content, "utf-8"), content, file_path, routes)
         return routes
 
-    def _walk(self, node: object, buf: bytes, content: str, file_path: str, routes: list[dict]) -> None:
+    def _walk(
+        self, node: object, buf: bytes, content: str, file_path: str, routes: list[dict]
+    ) -> None:
         ntype = getattr(node, "type", "")
         if ntype in ("marker_annotation", "annotation"):
             self._check_annotation(node, buf, content, file_path, routes)
 
-        for child in (getattr(node, "named_children", None) or getattr(node, "children", [])):
+        for child in getattr(node, "named_children", None) or getattr(node, "children", []):
             self._walk(child, buf, content, file_path, routes)
 
-    def _check_annotation(self, node: object, buf: bytes, content: str, file_path: str, routes: list[dict]) -> None:
+    def _check_annotation(
+        self, node: object, buf: bytes, content: str, file_path: str, routes: list[dict]
+    ) -> None:
         name_node = self._child_by_field(node, "name") or node
         try:
             ann_name = self._node_text(name_node).lower()
@@ -64,10 +69,12 @@ class JavaRouteDetector(BaseRouteDetector):
         args_node = self._child_by_field(node, "arguments")
         if args_node:
             try:
-                for child in (getattr(args_node, "named_children", None) or getattr(args_node, "children", [])):
+                for child in getattr(args_node, "named_children", None) or getattr(
+                    args_node, "children", []
+                ):
                     if child.type in ("string_literal", "string"):
                         raw = self._node_text(child)
-                        path = raw.strip("\"")
+                        path = raw.strip('"')
                         break
             except Exception as e:
                 _log.warning("JavaRouteDetector._check_annotation failed: %s", e)
@@ -80,7 +87,17 @@ class JavaRouteDetector(BaseRouteDetector):
 
         auth = self._check_auth_annotations(node)
 
-        routes.append(self._make_route(method, path, handler, file_path, line, framework="Spring Boot", auth_required=auth if auth else None))
+        routes.append(
+            self._make_route(
+                method,
+                path,
+                handler,
+                file_path,
+                line,
+                framework="Spring Boot",
+                auth_required=auth if auth else None,
+            )
+        )
 
     def _find_method_name(self, node: object) -> str:
         cur = node
@@ -101,16 +118,18 @@ class JavaRouteDetector(BaseRouteDetector):
             if cur is None:
                 break
             if getattr(cur, "type", "") == "class_declaration":
-                for child in (getattr(cur, "named_children", None) or getattr(cur, "children", [])):
+                for child in getattr(cur, "named_children", None) or getattr(cur, "children", []):
                     if child.type in ("marker_annotation", "annotation"):
                         try:
-                            name = self._node_text(self._child_by_field(child, "name") or child).lower()
+                            name = self._node_text(
+                                self._child_by_field(child, "name") or child
+                            ).lower()
                             if any(a in name for a in _SPRING_AUTH_ANNOTATIONS):
                                 return True
                         except Exception as e:
                             _log.warning("JavaRouteDetector._check_auth_annotations failed: %s", e)
                 break
-        for child in (getattr(node, "named_children", None) or getattr(node, "children", [])):
+        for child in getattr(node, "named_children", None) or getattr(node, "children", []):
             if child.type in ("marker_annotation", "annotation"):
                 try:
                     name = self._node_text(self._child_by_field(child, "name") or child).lower()
@@ -160,8 +179,18 @@ class JavaRouteDetector(BaseRouteDetector):
                     handler = hm.group(1)
                     break
 
-            ctx = "\n".join(lines[i:min(i + 5, len(lines))])
+            ctx = "\n".join(lines[i : min(i + 5, len(lines))])
             auth = bool(auth_pat.search(ctx))
 
-            routes.append(self._make_route(method, path, handler, file_path, i, framework="Spring Boot", auth_required=auth if auth else None))
+            routes.append(
+                self._make_route(
+                    method,
+                    path,
+                    handler,
+                    file_path,
+                    i,
+                    framework="Spring Boot",
+                    auth_required=auth if auth else None,
+                )
+            )
         return routes

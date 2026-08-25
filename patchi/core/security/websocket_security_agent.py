@@ -80,7 +80,9 @@ class WebSocketSecurityAgent(BaseAgent):
             )
 
         # ── Missing origin validation ───────────────────────────────────────
-        if not re.search(r"(?i)(?:\borigin\b|check_origin|allowed_origins|validate_origin)", content):
+        if not re.search(
+            r"(?i)(?:\borigin\b|check_origin|allowed_origins|validate_origin)", content
+        ):
             result.add_finding(
                 Finding(
                     agent=self.name,
@@ -166,7 +168,8 @@ class WebSocketSecurityAgent(BaseAgent):
 
         # ── Sensitive data sent over WebSocket ─────────────────────────────
         for m in re.finditer(
-            r'(?i)(?:send|emit)\(.*["\']?(?:\bpassword\b|\btoken\b|\bsecret\b|api_key|secret_key|\bssn\b|\bcredit\b)', content
+            r'(?i)(?:send|emit)\(.*["\']?(?:\bpassword\b|\btoken\b|\bsecret\b|api_key|secret_key|\bssn\b|\bcredit\b)',
+            content,
         ):
             result.add_finding(
                 Finding(

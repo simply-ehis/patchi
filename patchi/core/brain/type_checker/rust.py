@@ -10,6 +10,7 @@ from .base import BaseTypeChecker, _node_text, make_finding
 
 _log = logging.getLogger("patchi.brain.rust")
 
+
 class RustTypeChecker(BaseTypeChecker):
     language = "rust"
 
@@ -29,21 +30,28 @@ class RustTypeChecker(BaseTypeChecker):
         ntype = node.type
         if ntype == "function_item":
             line = node.start_point[0] + 1
-            name = _node_text(source, self._child_by_type(node, "identifier")) if self._child_by_type(node, "identifier") else ""
+            name = (
+                _node_text(source, self._child_by_type(node, "identifier"))
+                if self._child_by_type(node, "identifier")
+                else ""
+            )
             return_type = self._child_by_type(node, "return_type")
             if return_type:
                 for child in return_type.children:
                     if child.type == "type_identifier" and _node_text(source, child) == "Box":
                         inner = self._child_by_type(child, "type_arguments")
                         if inner and _node_text(source, inner).find("dyn") >= 0:
-                            findings.append(make_finding(
-                                finding_type="trait_object",
-                                file=file_path, line=line,
-                                title="Returns Box<dyn Trait> — consider generics",
-                                description=f"Function '{name}' returns Box<dyn ...> — consider `impl Trait` or generics",
-                                evidence=f"{name}: Box<dyn ...>",
-                                severity="low",
-                            ))
+                            findings.append(
+                                make_finding(
+                                    finding_type="trait_object",
+                                    file=file_path,
+                                    line=line,
+                                    title="Returns Box<dyn Trait> — consider generics",
+                                    description=f"Function '{name}' returns Box<dyn ...> — consider `impl Trait` or generics",
+                                    evidence=f"{name}: Box<dyn ...>",
+                                    severity="low",
+                                )
+                            )
             # Check for unwrap() calls
             for child in node.children:
                 self._walk(child, source, file_path, findings)
@@ -51,14 +59,17 @@ class RustTypeChecker(BaseTypeChecker):
             line = node.start_point[0] + 1
             fn_name = _node_text(source, node).split("(")[0].strip()
             if fn_name == "unwrap" or fn_name.endswith(".unwrap"):
-                findings.append(make_finding(
-                    finding_type="unwrap_call",
-                    file=file_path, line=line,
-                    title="Unwrap call — may panic",
-                    description="Call to .unwrap() may panic on None/Err — handle with match or ?",
-                    evidence=fn_name,
-                    severity="medium",
-                ))
+                findings.append(
+                    make_finding(
+                        finding_type="unwrap_call",
+                        file=file_path,
+                        line=line,
+                        title="Unwrap call — may panic",
+                        description="Call to .unwrap() may panic on None/Err — handle with match or ?",
+                        evidence=fn_name,
+                        severity="medium",
+                    )
+                )
         else:
             for child in node.children:
                 self._walk(child, source, file_path, findings)

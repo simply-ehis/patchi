@@ -18,37 +18,43 @@ class PrivEscAttacker(BaseAttacker):
             # Authorization boundary claims
             if "admin" in claim.statement.lower() or "escalat" in claim.statement.lower():
                 if claim.verdict.value in ("not_proved", "unproven"):
-                    hypotheses.append(Hypothesis(
+                    hypotheses.append(
+                        Hypothesis(
+                            attacker=self.name,
+                            objective=self.objective,
+                            target=claim.id,
+                            risk="critical",
+                            confidence=0.6,
+                            description=f"Privilege boundary unverified: {claim.statement}",
+                        )
+                    )
+
+            # Missing tenant isolation
+            if "tenant" in claim.statement.lower() or "isolation" in claim.statement.lower():
+                hypotheses.append(
+                    Hypothesis(
                         attacker=self.name,
                         objective=self.objective,
                         target=claim.id,
                         risk="critical",
-                        confidence=0.6,
-                        description=f"Privilege boundary unverified: {claim.statement}",
-                    ))
-
-            # Missing tenant isolation
-            if "tenant" in claim.statement.lower() or "isolation" in claim.statement.lower():
-                hypotheses.append(Hypothesis(
-                    attacker=self.name,
-                    objective=self.objective,
-                    target=claim.id,
-                    risk="critical",
-                    confidence=0.7,
-                    description=f"Tenant isolation unverified: {claim.statement}",
-                ))
+                        confidence=0.7,
+                        description=f"Tenant isolation unverified: {claim.statement}",
+                    )
+                )
 
             # Shared endpoints with different privilege levels
             if "role" in claim.statement.lower() and "check" in claim.statement.lower():
                 if claim.verdict.value == "unproven":
-                    hypotheses.append(Hypothesis(
-                        attacker=self.name,
-                        objective=self.objective,
-                        target=claim.id,
-                        risk="high",
-                        confidence=0.5,
-                        description=f"Role-based access unverified: {claim.statement}",
-                    ))
+                    hypotheses.append(
+                        Hypothesis(
+                            attacker=self.name,
+                            objective=self.objective,
+                            target=claim.id,
+                            risk="high",
+                            confidence=0.5,
+                            description=f"Role-based access unverified: {claim.statement}",
+                        )
+                    )
 
         return hypotheses
 

@@ -26,8 +26,14 @@ from typing import Any
 _log = logging.getLogger("patchi.ai.agent_audit")
 
 _STUB_MARKERS = (
-    "not implemented", "notimplemented", "placeholder", "todo", "fixme",
-    "initiated", "coming soon", "stub",
+    "not implemented",
+    "notimplemented",
+    "placeholder",
+    "todo",
+    "fixme",
+    "initiated",
+    "coming soon",
+    "stub",
 )
 
 
@@ -66,16 +72,16 @@ class AuditReport:
 def _all_groups():
     from patchi.core.agents.base import AgentGroup
 
-    return [g for g in AgentGroup]
+    return list(AgentGroup)
 
 
 def audit(root: Path | None = None) -> AuditReport:
     """Inspect all registered agents and return a structured report."""
     report = AuditReport()
     try:
-        import patchi.core.security.security_agents  # noqa: F401
-        import patchi.core.agents.test_agents  # noqa: F401
         import patchi.core.agents.fix_agents  # noqa: F401
+        import patchi.core.agents.test_agents  # noqa: F401
+        import patchi.core.security.security_agents  # noqa: F401
     except Exception:
         pass
 
@@ -100,15 +106,19 @@ def _audit_class(cls: Any, group: str, report: AuditReport) -> None:
 
     # 1. NotImplementedError
     if "notimplementederror" in low and "raise notimplementederror" in low.replace(" ", ""):
-        report.issues.append(AuditIssue(name, group, "raises NotImplementedError",
-                                        "high", "raise NotImplementedError"))
+        report.issues.append(
+            AuditIssue(
+                name, group, "raises NotImplementedError", "high", "raise NotImplementedError"
+            )
+        )
         return  # definitive, stop here
 
     # 2. Placeholder / stub markers
     for marker in _STUB_MARKERS:
         if marker in low:
-            report.issues.append(AuditIssue(
-                name, group, f"possible stub marker '{marker}'", "medium", marker))
+            report.issues.append(
+                AuditIssue(name, group, f"possible stub marker '{marker}'", "medium", marker)
+            )
             break
 
     # 3. Old-style _run signature
@@ -120,19 +130,23 @@ def _audit_class(cls: Any, group: str, report: AuditReport) -> None:
             # New style: _run(self, inp, result) -> None  (2 params beyond self)
             # Old style: _run(self, inp) -> AgentResult     (1 param beyond self)
             if len(params) == 1:
-                report.issues.append(AuditIssue(
-                    name, group, "old-style _run(self, inp) signature", "low",
-                    "expected _run(self, inp, result)"))
+                report.issues.append(
+                    AuditIssue(
+                        name,
+                        group,
+                        "old-style _run(self, inp) signature",
+                        "low",
+                        "expected _run(self, inp, result)",
+                    )
+                )
         except (ValueError, TypeError):
             pass
 
 
 def main() -> None:
     rep = audit()
-    print(f"Scanned {rep.total_agents} agents across {rep.groups_scanned}")
-    print(f"Issues: {rep.by_severity}")
-    for i in rep.issues[:50]:
-        print(f"  [{i.severity.upper()}] {i.group}/{i.agent}: {i.issue}")
+    for _i in rep.issues[:50]:
+        pass
 
 
 if __name__ == "__main__":

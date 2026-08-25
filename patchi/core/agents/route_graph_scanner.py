@@ -49,6 +49,7 @@ from .base import (
 
 _log = logging.getLogger("patchi.agents.route_graph_scanner")
 
+
 @register
 class RouteGraphScanner(BaseAgent):
     """Scanner for web framework routes."""
@@ -130,12 +131,14 @@ class RouteGraphScanner(BaseAgent):
         if not route_findings:
             result.status = AgentStatus.SUCCEEDED
             result.findings = findings
-            result.data.update({
-                "routes_found": 0,
-                "route_map": {},
-                "framework_detected": self._detect_framework(inp),
-                "needs_ai": False,
-            })
+            result.data.update(
+                {
+                    "routes_found": 0,
+                    "route_map": {},
+                    "framework_detected": self._detect_framework(inp),
+                    "needs_ai": False,
+                }
+            )
             return
 
         findings.extend(self._detect_sensitive_routes(route_findings))
@@ -143,12 +146,14 @@ class RouteGraphScanner(BaseAgent):
 
         result.status = AgentStatus.SUCCEEDED
         result.findings = findings
-        result.data.update({
-            "routes_found": len(route_findings),
-            "route_map": route_map,
-            "framework_detected": self._detect_framework(inp),
-            "needs_ai": False,
-        })
+        result.data.update(
+            {
+                "routes_found": len(route_findings),
+                "route_map": route_map,
+                "framework_detected": self._detect_framework(inp),
+                "needs_ai": False,
+            }
+        )
         return
 
     def _should_skip_file(self, file_path: str, inp: AgentInput) -> bool:
@@ -510,17 +515,36 @@ class RouteGraphScanner(BaseAgent):
         """Regex fallback for JS/TS routes."""
         findings = []
         for pattern, framework in [
-            (r'app\.(get|post|put|delete|patch|options|head)\s*\(\s*["\']([^"\']*)["\']', "Express.js"),
-            (r'router\.(get|post|put|delete|patch|options|head)\s*\(\s*["\']([^"\']*)["\']', "Express.js Router"),
-            (r'fastify\.(get|post|put|delete|patch|options|head)\s*\(\s*["\']([^"\']*)["\']', "Fastify"),
+            (
+                r'app\.(get|post|put|delete|patch|options|head)\s*\(\s*["\']([^"\']*)["\']',
+                "Express.js",
+            ),
+            (
+                r'router\.(get|post|put|delete|patch|options|head)\s*\(\s*["\']([^"\']*)["\']',
+                "Express.js Router",
+            ),
+            (
+                r'fastify\.(get|post|put|delete|patch|options|head)\s*\(\s*["\']([^"\']*)["\']',
+                "Fastify",
+            ),
         ]:
             for m in re.finditer(pattern, content, re.MULTILINE):
-                findings.append(self._make_route_finding(
-                    rel_path, content, m, m.group(1).upper(), m.group(2), framework))
+                findings.append(
+                    self._make_route_finding(
+                        rel_path, content, m, m.group(1).upper(), m.group(2), framework
+                    )
+                )
         return findings
 
-    def _walk_js_route_node(self, node: Any, buf: bytes, content: str, rel_path: str,
-                            findings: list[Finding], current_obj: str | None) -> None:
+    def _walk_js_route_node(
+        self,
+        node: Any,
+        buf: bytes,
+        content: str,
+        rel_path: str,
+        findings: list[Finding],
+        current_obj: str | None,
+    ) -> None:
         ntype = node.type
 
         if ntype == "call_expression":
@@ -532,22 +556,46 @@ class RouteGraphScanner(BaseAgent):
                 if child.type == "member_expression":
                     for sub in child.children:
                         if sub.type == "identifier":
-                            obj = (buf[sub.start_byte:sub.end_byte].decode() if hasattr(sub, 'start_byte') else "")
+                            obj = (
+                                buf[sub.start_byte : sub.end_byte].decode()
+                                if hasattr(sub, "start_byte")
+                                else ""
+                            )
                         elif sub.type == "property_identifier":
-                            method = (buf[sub.start_byte:sub.end_byte].decode() if hasattr(sub, 'start_byte') else "")
+                            method = (
+                                buf[sub.start_byte : sub.end_byte].decode()
+                                if hasattr(sub, "start_byte")
+                                else ""
+                            )
                 elif child.type == "arguments":
                     for arg in child.children:
                         if arg.type == "string":
-                            path = (buf[arg.start_byte:arg.end_byte].decode() if hasattr(arg, 'start_byte') else "")
+                            path = (
+                                buf[arg.start_byte : arg.end_byte].decode()
+                                if hasattr(arg, "start_byte")
+                                else ""
+                            )
                             path = path.strip("'\"")
                             break
 
             if method.lower() in ("get", "post", "put", "delete", "patch", "options", "head"):
                 if obj in ("app", "router", "fastify"):
-                    framework = {"app": "Express.js", "router": "Express.js Router", "fastify": "Fastify"}.get(obj, "")
-                    findings.append(self._make_route_finding(
-                        rel_path, content, None, method.upper(), path, framework,
-                        line=node.start_point[0] + 1 if node.start_point else 0))
+                    framework = {
+                        "app": "Express.js",
+                        "router": "Express.js Router",
+                        "fastify": "Fastify",
+                    }.get(obj, "")
+                    findings.append(
+                        self._make_route_finding(
+                            rel_path,
+                            content,
+                            None,
+                            method.upper(),
+                            path,
+                            framework,
+                            line=node.start_point[0] + 1 if node.start_point else 0,
+                        )
+                    )
                 elif method.lower() == "get" and obj:
                     # Could be a route declaration
                     pass
@@ -555,13 +603,23 @@ class RouteGraphScanner(BaseAgent):
         for child in node.children:
             self._walk_js_route_node(child, buf, content, rel_path, findings, current_obj)
 
-    def _make_route_finding(self, rel_path: str, content: str, match: Any | None,
-                            method: str, path: str, framework: str, line: int = 0) -> Finding:
+    def _make_route_finding(
+        self,
+        rel_path: str,
+        content: str,
+        match: Any | None,
+        method: str,
+        path: str,
+        framework: str,
+        line: int = 0,
+    ) -> Finding:
         if match:
             line = content[: match.start()].count("\n") + 1
         evidence = f"{method} {path}"
         return make_finding(
-            severity=Severity.INFO, file=rel_path, line_start=line,
+            severity=Severity.INFO,
+            file=rel_path,
+            line_start=line,
             title=f"Route: {method} {path} ({framework})",
             description=f"HTTP {method} route: {path}",
             evidence=evidence,
@@ -588,21 +646,33 @@ class RouteGraphScanner(BaseAgent):
     def _scan_java_routes_regex(self, content: str, rel_path: str) -> list[Finding]:
         """Regex fallback for Java routes."""
         findings = []
-        for m in re.finditer(r'@(GetMapping|PostMapping|PutMapping|DeleteMapping|PatchMapping|RequestMapping)\s*\(\s*["\']([^"\']*)["\']', content):
+        for m in re.finditer(
+            r'@(GetMapping|PostMapping|PutMapping|DeleteMapping|PatchMapping|RequestMapping)\s*\(\s*["\']([^"\']*)["\']',
+            content,
+        ):
             annotation = m.group(1).replace("Mapping", "").upper()
             if annotation == "REQUEST":
                 annotation = "GET"
-            findings.append(self._make_route_finding(rel_path, content, m, annotation, m.group(2), "Spring Boot"))
+            findings.append(
+                self._make_route_finding(
+                    rel_path, content, m, annotation, m.group(2), "Spring Boot"
+                )
+            )
         return findings
 
-    def _walk_java_route_node(self, node: Any, buf: bytes, rel_path: str, findings: list[Finding]) -> None:
+    def _walk_java_route_node(
+        self, node: Any, buf: bytes, rel_path: str, findings: list[Finding]
+    ) -> None:
         ntype = node.type
 
         if ntype == "marker_annotation":
             ann_text = _node_text_buf(node, buf)
             route_methods = {
-                "GetMapping": "GET", "PostMapping": "POST", "PutMapping": "PUT",
-                "DeleteMapping": "DELETE", "PatchMapping": "PATCH",
+                "GetMapping": "GET",
+                "PostMapping": "POST",
+                "PutMapping": "PUT",
+                "DeleteMapping": "DELETE",
+                "PatchMapping": "PATCH",
             }
             for ann_name, method in route_methods.items():
                 if ann_text.startswith("@" + ann_name):
@@ -616,9 +686,17 @@ class RouteGraphScanner(BaseAgent):
                                     if p:
                                         path = p
                                         break
-                    findings.append(self._make_route_finding(
-                        rel_path, "", None, method, path or "/", "Spring Boot",
-                        line=node.start_point[0] + 1))
+                    findings.append(
+                        self._make_route_finding(
+                            rel_path,
+                            "",
+                            None,
+                            method,
+                            path or "/",
+                            "Spring Boot",
+                            line=node.start_point[0] + 1,
+                        )
+                    )
                     return
             # Handle @RequestMapping with value=
             if ann_text.startswith("@RequestMapping"):
@@ -631,9 +709,17 @@ class RouteGraphScanner(BaseAgent):
                                 if p:
                                     path = p
                                     break
-                findings.append(self._make_route_finding(
-                    rel_path, "", None, "GET", path or "/", "Spring Boot",
-                    line=node.start_point[0] + 1))
+                findings.append(
+                    self._make_route_finding(
+                        rel_path,
+                        "",
+                        None,
+                        "GET",
+                        path or "/",
+                        "Spring Boot",
+                        line=node.start_point[0] + 1,
+                    )
+                )
 
         for child in node.children if hasattr(node, "children") else []:
             self._walk_java_route_node(child, buf, rel_path, findings)
@@ -660,12 +746,20 @@ class RouteGraphScanner(BaseAgent):
         """Regex fallback for Ruby routes."""
         findings = []
         for m in re.finditer(r'(get|post|put|patch|delete)\s+["\']([^"\']*)["\']', content):
-            findings.append(self._make_route_finding(rel_path, content, m, m.group(1).upper(), m.group(2), "Rails"))
+            findings.append(
+                self._make_route_finding(
+                    rel_path, content, m, m.group(1).upper(), m.group(2), "Rails"
+                )
+            )
         for m in re.finditer(r"resources\s+:(\w+)", content):
-            findings.append(self._make_route_finding(rel_path, content, m, "RESOURCE", m.group(1), "Rails"))
+            findings.append(
+                self._make_route_finding(rel_path, content, m, "RESOURCE", m.group(1), "Rails")
+            )
         return findings
 
-    def _walk_ruby_route_node(self, node: Any, buf: bytes, rel_path: str, findings: list[Finding]) -> None:
+    def _walk_ruby_route_node(
+        self, node: Any, buf: bytes, rel_path: str, findings: list[Finding]
+    ) -> None:
         ntype = node.type
         if ntype == "call":
             method_name = ""
@@ -688,10 +782,20 @@ class RouteGraphScanner(BaseAgent):
                                 path = _node_text_buf(arg, buf).strip("\"'")
                                 break
                 if path:
-                    method_display = method_name.upper() if method_name.lower() != "resources" else "RESOURCE"
-                    findings.append(self._make_route_finding(
-                        rel_path, "", None, method_display, path, "Rails",
-                        line=node.start_point[0] + 1))
+                    method_display = (
+                        method_name.upper() if method_name.lower() != "resources" else "RESOURCE"
+                    )
+                    findings.append(
+                        self._make_route_finding(
+                            rel_path,
+                            "",
+                            None,
+                            method_display,
+                            path,
+                            "Rails",
+                            line=node.start_point[0] + 1,
+                        )
+                    )
 
         for child in node.children if hasattr(node, "children") else []:
             self._walk_ruby_route_node(child, buf, rel_path, findings)
@@ -717,15 +821,25 @@ class RouteGraphScanner(BaseAgent):
     def _scan_php_routes_regex(self, content: str, rel_path: str) -> list[Finding]:
         """Regex fallback for PHP routes."""
         findings = []
-        for m in re.finditer(r"Route::(get|post|put|patch|delete)\s*\(\s*['\"]([^'\"]*)['\"]\s*,", content):
-            findings.append(self._make_route_finding(rel_path, content, m, m.group(1).upper(), m.group(2), "Laravel"))
+        for m in re.finditer(
+            r"Route::(get|post|put|patch|delete)\s*\(\s*['\"]([^'\"]*)['\"]\s*,", content
+        ):
+            findings.append(
+                self._make_route_finding(
+                    rel_path, content, m, m.group(1).upper(), m.group(2), "Laravel"
+                )
+            )
         return findings
 
-    def _walk_php_route_node(self, node: Any, buf: bytes, rel_path: str, findings: list[Finding]) -> None:
+    def _walk_php_route_node(
+        self, node: Any, buf: bytes, rel_path: str, findings: list[Finding]
+    ) -> None:
         ntype = node.type
         if ntype == "function_call_expression" or ntype == "scoped_call_expression":
             call_text = _node_text_buf(node, buf)
-            route_match = __import__("re").match(r"Route::(get|post|put|patch|delete)\s*\(", call_text)
+            route_match = __import__("re").match(
+                r"Route::(get|post|put|patch|delete)\s*\(", call_text
+            )
             if route_match:
                 method = route_match.group(1).upper()
                 path = ""
@@ -737,9 +851,17 @@ class RouteGraphScanner(BaseAgent):
                                 break
                         break
                 if path:
-                    findings.append(self._make_route_finding(
-                        rel_path, "", None, method, path, "Laravel",
-                        line=node.start_point[0] + 1))
+                    findings.append(
+                        self._make_route_finding(
+                            rel_path,
+                            "",
+                            None,
+                            method,
+                            path,
+                            "Laravel",
+                            line=node.start_point[0] + 1,
+                        )
+                    )
 
         for child in node.children if hasattr(node, "children") else []:
             self._walk_php_route_node(child, buf, rel_path, findings)
@@ -773,16 +895,25 @@ class RouteGraphScanner(BaseAgent):
             (r'\[Route\(["\']([^"\']*)["\']\s*\)\]', "ROUTE"),
         ]:
             for m in re.finditer(pattern, content):
-                findings.append(self._make_route_finding(rel_path, content, m, method, m.group(1), "ASP.NET Core"))
+                findings.append(
+                    self._make_route_finding(
+                        rel_path, content, m, method, m.group(1), "ASP.NET Core"
+                    )
+                )
         return findings
 
-    def _walk_cs_route_node(self, node: Any, buf: bytes, rel_path: str, findings: list[Finding]) -> None:
+    def _walk_cs_route_node(
+        self, node: Any, buf: bytes, rel_path: str, findings: list[Finding]
+    ) -> None:
         ntype = node.type
         if ntype == "attribute":
             attr_text = _node_text_buf(node, buf)
             route_methods = {
-                "HttpGet": "GET", "HttpPost": "POST", "HttpPut": "PUT",
-                "HttpDelete": "DELETE", "Route": "ROUTE",
+                "HttpGet": "GET",
+                "HttpPost": "POST",
+                "HttpPut": "PUT",
+                "HttpDelete": "DELETE",
+                "Route": "ROUTE",
             }
             for attr_name, method in route_methods.items():
                 if attr_text.startswith("[" + attr_name) or attr_text.startswith(attr_name):
@@ -794,9 +925,17 @@ class RouteGraphScanner(BaseAgent):
                                     path = _node_text_buf(arg, buf).strip("\"'")
                                     break
                             break
-                    findings.append(self._make_route_finding(
-                        rel_path, "", None, method, path or "/", "ASP.NET Core",
-                        line=node.start_point[0] + 1))
+                    findings.append(
+                        self._make_route_finding(
+                            rel_path,
+                            "",
+                            None,
+                            method,
+                            path or "/",
+                            "ASP.NET Core",
+                            line=node.start_point[0] + 1,
+                        )
+                    )
                     return
 
         for child in node.children if hasattr(node, "children") else []:

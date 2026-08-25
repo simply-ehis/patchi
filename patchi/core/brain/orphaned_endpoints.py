@@ -30,9 +30,13 @@ _FRONTEND_PATTERNS: list[re.Pattern] = [
     # ky.get/post('/path')
     re.compile(r"""ky\.(?:get|post|put|delete|patch)\s*\(\s*['"`]([^'"`]+)['"`]"""),
     # new XMLHttpRequest() with .open('GET', '/path')
-    re.compile(r"""\.open\s*\(\s*['"`](?:GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS)['"`]\s*,\s*['"`]([^'"`]+)['"`]"""),
+    re.compile(
+        r"""\.open\s*\(\s*['"`](?:GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS)['"`]\s*,\s*['"`]([^'"`]+)['"`]"""
+    ),
     # urql / graphql-request — useQuery/useMutation with string URL
-    re.compile(r"""(?:useQuery|useMutation|client\.query|client\.mutation)\s*\(.*?['"`]([^'"`]+\/api\/[^'"`]+)['"`]"""),
+    re.compile(
+        r"""(?:useQuery|useMutation|client\.query|client\.mutation)\s*\(.*?['"`]([^'"`]+\/api\/[^'"`]+)['"`]"""
+    ),
     # TanStack / React Query — queryKey or url in object
     re.compile(r"""url\s*:\s*['"`]([^'"`]+)['"`]"""),
     # app Router server action imports
@@ -41,14 +45,24 @@ _FRONTEND_PATTERNS: list[re.Pattern] = [
 
 # File extensions to scan for frontend calls
 _FRONTEND_EXTENSIONS = (
-    ".js", ".jsx", ".ts", ".tsx", ".vue", ".svelte",
-    ".html", ".htm", ".ejs", ".hbs", ".njk",
+    ".js",
+    ".jsx",
+    ".ts",
+    ".tsx",
+    ".vue",
+    ".svelte",
+    ".html",
+    ".htm",
+    ".ejs",
+    ".hbs",
+    ".njk",
 )
 
 
 import logging
 
 _log = logging.getLogger("patchi.brain.orphaned_endpoints")
+
 
 @dataclass
 class FrontendCall:
@@ -211,7 +225,7 @@ def find_orphaned_endpoints(root: Path) -> OrphanedEndpointResult:
         if (method, norm) not in frontend_norms and norm not in any_method_patterns:
             # Check if any frontend call matches with different method
             matched = False
-            for front_method, front_norm in frontend_norms:
+            for _front_method, front_norm in frontend_norms:
                 if front_norm == norm:
                     matched = True
                     break

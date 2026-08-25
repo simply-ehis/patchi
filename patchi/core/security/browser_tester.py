@@ -165,7 +165,7 @@ def _test_xss_in_forms(page, url: str, app_map: dict | None) -> list[dict]:
     else:
         pages_to_test = [(url, [])]
 
-    for page_url, forms in pages_to_test:
+    for page_url, _forms in pages_to_test:
         try:
             page.goto(page_url, timeout=10000)
         except Exception as e:
@@ -225,7 +225,7 @@ def _test_sqli_in_forms(page, url: str, app_map: dict | None) -> list[dict]:
         "microsoft odbc",
     ]
 
-    for page_url, forms in pages_to_test:
+    for page_url, _forms in pages_to_test:
         try:
             page.goto(page_url, timeout=10000)
         except Exception as e:

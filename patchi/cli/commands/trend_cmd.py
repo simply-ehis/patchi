@@ -33,8 +33,10 @@ from patchi.core.config import require_project_root
 
 _log = logging.getLogger("patchi.cli.trend_cmd")
 
-def run(metric: str | None = None, last_n: int = 20, root: Path | None = None,
-        json_output: bool = False) -> None:
+
+def run(
+    metric: str | None = None, last_n: int = 20, root: Path | None = None, json_output: bool = False
+) -> None:
     """Entry point for `p trend`."""
     try:
         r = root or require_project_root()
@@ -56,7 +58,9 @@ def run(metric: str | None = None, last_n: int = 20, root: Path | None = None,
 
             con.print(_json.dumps({"trend": [], "note": "no scan history yet"}))
         else:
-            con.print("[dim]No scan history yet. Run `p scan` a few times to build trend data.[/dim]")
+            con.print(
+                "[dim]No scan history yet. Run `p scan` a few times to build trend data.[/dim]"
+            )
         return
 
     if json_output:
@@ -71,6 +75,7 @@ def run(metric: str | None = None, last_n: int = 20, root: Path | None = None,
         _show_test_trend(trend_data, last_n)
     else:
         _show_health_trend(trend_data, last_n)
+
 
 def _build_trend_data(scans: dict, brain: dict) -> list[dict]:
     """Extract trend data from scan results."""
@@ -107,6 +112,7 @@ def _build_trend_data(scans: dict, brain: dict) -> list[dict]:
     # Sort by timestamp
     entries.sort(key=lambda x: x.get("timestamp", ""))
     return entries
+
 
 def _show_health_trend(trend_data: list[dict], last_n: int) -> None:
     """Show overall health trend."""
@@ -178,9 +184,11 @@ def _show_health_trend(trend_data: list[dict], last_n: int) -> None:
         )
     con.print()
 
+
 def _show_security_trend(trend_data: list[dict], last_n: int) -> None:
     """Show security-specific trend."""
     from patchi.core.agents.base import AgentGroup, list_agents
+
     security_agents = {a.name for a in list_agents(AgentGroup.SECURITY)}
 
     entries = [e for e in trend_data if e.get("agent") in security_agents][-last_n:]
@@ -227,9 +235,11 @@ def _show_security_trend(trend_data: list[dict], last_n: int) -> None:
     con.print(Panel(table, title="🛡 Security Trend", border_style="#C8621A"))
     con.print()
 
+
 def _show_test_trend(trend_data: list[dict], last_n: int) -> None:
     """Show test-related trend."""
     from patchi.core.agents.base import AgentGroup, list_agents
+
     test_agents = {a.name for a in list_agents(AgentGroup.TEST)}
 
     entries = [e for e in trend_data if e.get("agent") in test_agents][-last_n:]
@@ -270,6 +280,7 @@ def _show_test_trend(trend_data: list[dict], last_n: int) -> None:
     con.print()
     con.print(Panel(table, title="🧪 Test Trend", border_style="#C8621A"))
     con.print()
+
 
 def _sparkline(values: list[int], width: int = 40) -> str:
     """Create a text sparkline from numeric values."""

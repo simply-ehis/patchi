@@ -66,12 +66,14 @@ def run(
         )
         con.print(f"  [dim]{len(brain_md.splitlines())} lines, {len(brain_md)} bytes[/dim]")
 
+
 def _extract_scan_time(md_content: str) -> str:
     """Extract scan timestamp from existing BRAIN.md."""
     for line in md_content.splitlines():
         if line.startswith("<!-- scan_time:") and line.endswith("-->"):
             return line.split(":", 1)[1].strip().removesuffix("-->").strip()
     return ""
+
 
 def _generate_brain_md(brain: dict, root: Path) -> str:
     """Generate a plain English markdown document from brain data."""

@@ -37,6 +37,7 @@ from .base import (
 
 _log = logging.getLogger("patchi.agents.duplicate_scanner")
 
+
 def _ts_node_text(node: Any, buf: bytes) -> str:
     try:
         if hasattr(node, "start_byte") and hasattr(node, "end_byte"):
@@ -144,13 +145,15 @@ class DuplicateScanner(BaseAgent):
 
         result.status = AgentStatus.SUCCEEDED
         result.findings = findings
-        result.data.update({
-            "duplicate_pairs_found": len(duplicate_pairs),
-            "duplicate_pairs": duplicate_pairs,
-            "total_functions_analyzed": len(all_functions),
-            "functions_scanned": len(all_functions),
-            "needs_ai": True,  # Refactoring suggestions require AI
-        })
+        result.data.update(
+            {
+                "duplicate_pairs_found": len(duplicate_pairs),
+                "duplicate_pairs": duplicate_pairs,
+                "total_functions_analyzed": len(all_functions),
+                "functions_scanned": len(all_functions),
+                "needs_ai": True,  # Refactoring suggestions require AI
+            }
+        )
         return
 
     def _find_source_files(self, inp: AgentInput) -> list[str]:
@@ -302,6 +305,7 @@ class DuplicateScanner(BaseAgent):
     def _extract_svelte_functions(self, file_path: str, content: str) -> list[dict]:
         """Extract functions from a Svelte file by parsing its <script> block as JavaScript."""
         import re
+
         m = re.search(r"<script[^>]*>(.*?)</script>", content, re.DOTALL)
         if not m:
             return self._extract_functions_basic(file_path, content)
@@ -313,7 +317,9 @@ class DuplicateScanner(BaseAgent):
             return self._extract_functions_basic(file_path, content)
         tree = parse_source(Lang.JAVASCRIPT, script_src)
         functions = []
-        self._walk_tree_for_functions(tree.root_node, file_path, script_src, functions, Lang.JAVASCRIPT)
+        self._walk_tree_for_functions(
+            tree.root_node, file_path, script_src, functions, Lang.JAVASCRIPT
+        )
         return functions
 
     def _walk_tree_for_functions(
@@ -334,7 +340,12 @@ class DuplicateScanner(BaseAgent):
             case Lang.C | Lang.CPP:
                 func_types = {"function_definition"}
             case Lang.SWIFT:
-                func_types = {"function_declaration", "initializer_declaration", "deinitializer_declaration", "subscript_declaration"}
+                func_types = {
+                    "function_declaration",
+                    "initializer_declaration",
+                    "deinitializer_declaration",
+                    "subscript_declaration",
+                }
             case Lang.RUBY:
                 func_types = {"method", "singleton_method"}
             case Lang.PHP:
@@ -359,7 +370,9 @@ class DuplicateScanner(BaseAgent):
                 body = _ts_child_by_field(node, "body")
             elif lang == Lang.RUBY:
                 name = _ts_node_text(_ts_child_by_field(node, "name"), buf)
-                body = next((c for c in _ts_children(node) if _ts_node_type(c) == "body_statement"), None)
+                body = next(
+                    (c for c in _ts_children(node) if _ts_node_type(c) == "body_statement"), None
+                )
             else:
                 name = _ts_node_text(_ts_child_by_field(node, "name"), buf)
                 body = _ts_child_by_field(node, "body")
@@ -367,13 +380,15 @@ class DuplicateScanner(BaseAgent):
             body_text = _ts_node_text(body, buf) if body else ""
             line_start = (node.start_point.row + 1) if hasattr(node, "start_point") else 0
 
-            functions.append({
-                "file": file_path,
-                "name": name or f"<anonymous>:{line_start}",
-                "line": line_start,
-                "body": body_text,
-                "normalized_body": self._normalize_code(body_text),
-            })
+            functions.append(
+                {
+                    "file": file_path,
+                    "name": name or f"<anonymous>:{line_start}",
+                    "line": line_start,
+                    "body": body_text,
+                    "normalized_body": self._normalize_code(body_text),
+                }
+            )
 
         for child in _ts_children(node):
             self._walk_tree_for_functions(child, file_path, content, functions, lang)
@@ -382,13 +397,21 @@ class DuplicateScanner(BaseAgent):
         declarator = _ts_child_by_field(func_def_node, "declarator")
         if declarator is None:
             return func_def_node
-        for candidate in [_ts_child_by_field(declarator, "declarator"), _ts_child_by_field(declarator, "name")]:
+        for candidate in [
+            _ts_child_by_field(declarator, "declarator"),
+            _ts_child_by_field(declarator, "name"),
+        ]:
             if candidate is None:
                 continue
             ct = _ts_node_type(candidate)
             if ct == "identifier":
                 return candidate
-            if ct in ("function_declarator", "pointer_declarator", "array_declarator", "initializer_pair"):
+            if ct in (
+                "function_declarator",
+                "pointer_declarator",
+                "array_declarator",
+                "initializer_pair",
+            ):
                 found = self._find_c_identifier(candidate)
                 if found is not None and _ts_node_type(found) == "identifier":
                     return found

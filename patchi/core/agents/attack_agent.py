@@ -108,7 +108,9 @@ class AttackAgent(BaseAgent):
 
         with ThreadPoolExecutor(max_workers=1) as pool:
             for module_name in modules:
-                future = pool.submit(self._run_module, client, module_name, target_ip, target_port, modules, result)
+                future = pool.submit(
+                    self._run_module, client, module_name, target_ip, target_port, modules, result
+                )
                 try:
                     finding = future.result(timeout=msf_module_timeout)
                     if finding:

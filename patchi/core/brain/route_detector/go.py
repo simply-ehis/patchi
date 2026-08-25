@@ -20,6 +20,7 @@ import logging
 
 _log = logging.getLogger("patchi.brain.go")
 
+
 @register_detector("go")
 class GoRouteDetector(BaseRouteDetector):
     def detect(self, content: str, file_path: str) -> list[dict]:
@@ -42,14 +43,18 @@ class GoRouteDetector(BaseRouteDetector):
         self._walk(tree.root_node, bytes(content, "utf-8"), content, file_path, routes)
         return routes
 
-    def _walk(self, node: object, buf: bytes, content: str, file_path: str, routes: list[dict]) -> None:
+    def _walk(
+        self, node: object, buf: bytes, content: str, file_path: str, routes: list[dict]
+    ) -> None:
         ntype = getattr(node, "type", "")
         if ntype == "call_expression":
             self._check_call(node, buf, content, file_path, routes)
-        for child in (getattr(node, "named_children", None) or getattr(node, "children", [])):
+        for child in getattr(node, "named_children", None) or getattr(node, "children", []):
             self._walk(child, buf, content, file_path, routes)
 
-    def _check_call(self, node: object, buf: bytes, content: str, file_path: str, routes: list[dict]) -> None:
+    def _check_call(
+        self, node: object, buf: bytes, content: str, file_path: str, routes: list[dict]
+    ) -> None:
         func = self._child_by_field(node, "function")
         if func is None or getattr(func, "type", "") != "selector_expression":
             return
@@ -77,9 +82,13 @@ class GoRouteDetector(BaseRouteDetector):
         path = ""
         if args and getattr(args, "named_child_count", 0) > 0:
             first = args.named_child(0)
-            if first and first.type in ("interpreted_string_literal", "raw_string_literal", "string_literal"):
+            if first and first.type in (
+                "interpreted_string_literal",
+                "raw_string_literal",
+                "string_literal",
+            ):
                 raw = self._node_text(first)
-                path = raw.strip("\"`")
+                path = raw.strip('"`')
 
         if not path:
             return
@@ -91,7 +100,11 @@ class GoRouteDetector(BaseRouteDetector):
                 handler = self._node_text(second)
 
         line = getattr(node, "start_point", (0, 0))[0] + 1
-        routes.append(self._make_route(method_name.upper(), path, handler, file_path, line, framework=framework))
+        routes.append(
+            self._make_route(
+                method_name.upper(), path, handler, file_path, line, framework=framework
+            )
+        )
 
     def _child_by_field(self, node: object, field: str) -> object | None:
         if hasattr(node, "child_by_field_name"):
@@ -122,8 +135,19 @@ class GoRouteDetector(BaseRouteDetector):
                     if not m:
                         continue
                     handler = ""
-                    hm = re.search(r""",\s*(\w+)\s*\)""", line[m.end():] if m.end() < len(line) else line)
+                    hm = re.search(
+                        r""",\s*(\w+)\s*\)""", line[m.end() :] if m.end() < len(line) else line
+                    )
                     if hm:
                         handler = hm.group(1)
-                    routes.append(self._make_route(m.group(1).upper(), m.group(2), handler, file_path, i, framework=framework))
+                    routes.append(
+                        self._make_route(
+                            m.group(1).upper(),
+                            m.group(2),
+                            handler,
+                            file_path,
+                            i,
+                            framework=framework,
+                        )
+                    )
         return routes

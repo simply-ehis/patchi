@@ -48,11 +48,11 @@ _LANG_FW_MAP: dict[str, set[str]] = {
 
 
 class RouteMapper:
-    def __init__(self, root: Path, stack: "StackInfo"):
+    def __init__(self, root: Path, stack: StackInfo):
         self.root = root
         self.stack = stack
 
-    def extract(self, file_infos: "list[FileInfo]") -> list[RouteInfo]:
+    def extract(self, file_infos: list[FileInfo]) -> list[RouteInfo]:
         from patchi.core.brain.route_detector.csharp import CSharpRouteDetector
         from patchi.core.brain.route_detector.file_based import (
             NextJsRouteDetector,
@@ -120,16 +120,18 @@ class RouteMapper:
             for _fw_prefix, detector in detectors:
                 dicts = detector.detect(content, str(fi.path))
                 for d in dicts:
-                    routes.append(RouteInfo(
-                        method=d.get("method", "GET"),
-                        path=d.get("path", "/"),
-                        handler=d.get("handler", ""),
-                        file=d.get("file", str(fi.path)),
-                        line=d.get("line", 0),
-                        middleware=d.get("middleware", []),
-                        auth_required=d.get("auth_required"),
-                        framework=d.get("framework", _fw_prefix),
-                    ))
+                    routes.append(
+                        RouteInfo(
+                            method=d.get("method", "GET"),
+                            path=d.get("path", "/"),
+                            handler=d.get("handler", ""),
+                            file=d.get("file", str(fi.path)),
+                            line=d.get("line", 0),
+                            middleware=d.get("middleware", []),
+                            auth_required=d.get("auth_required"),
+                            framework=d.get("framework", _fw_prefix),
+                        )
+                    )
 
         seen: set[tuple] = set()
         unique: list[RouteInfo] = []
@@ -143,63 +145,76 @@ class RouteMapper:
 
 # ── Backward-compat extractors for tests ─────────────────────────────────────
 
+
 def _extract_fastapi(content: str, file_path: str) -> list[RouteInfo]:
     from patchi.core.brain.route_detector.python import PythonRouteDetector
+
     return [RouteInfo(**d) for d in PythonRouteDetector().detect(content, file_path)]
 
 
 def _extract_flask(content: str, file_path: str) -> list[RouteInfo]:
     from patchi.core.brain.route_detector.python import PythonRouteDetector
+
     return [RouteInfo(**d) for d in PythonRouteDetector().detect(content, file_path)]
 
 
 def _extract_django(content: str, file_path: str) -> list[RouteInfo]:
     from patchi.core.brain.route_detector.python import PythonRouteDetector
+
     return [RouteInfo(**d) for d in PythonRouteDetector().detect(content, file_path)]
 
 
 def _extract_express(content: str, file_path: str) -> list[RouteInfo]:
     from patchi.core.brain.route_detector.javascript import JavaScriptRouteDetector
+
     return [RouteInfo(**d) for d in JavaScriptRouteDetector().detect(content, file_path)]
 
 
 def _extract_fastify(content: str, file_path: str) -> list[RouteInfo]:
     from patchi.core.brain.route_detector.javascript import JavaScriptRouteDetector
+
     return [RouteInfo(**d) for d in JavaScriptRouteDetector().detect(content, file_path)]
 
 
 def _extract_laravel(content: str, file_path: str) -> list[RouteInfo]:
     from patchi.core.brain.route_detector.php import PhpRouteDetector
+
     return [RouteInfo(**d) for d in PhpRouteDetector().detect(content, file_path)]
 
 
 def _extract_spring(content: str, file_path: str) -> list[RouteInfo]:
     from patchi.core.brain.route_detector.java import JavaRouteDetector
+
     return [RouteInfo(**d) for d in JavaRouteDetector().detect(content, file_path)]
 
 
 def _extract_gin(content: str, file_path: str) -> list[RouteInfo]:
     from patchi.core.brain.route_detector.go import GoRouteDetector
+
     return [RouteInfo(**d) for d in GoRouteDetector().detect(content, file_path)]
 
 
 def _extract_echo(content: str, file_path: str) -> list[RouteInfo]:
     from patchi.core.brain.route_detector.go import GoRouteDetector
+
     return [RouteInfo(**d) for d in GoRouteDetector().detect(content, file_path)]
 
 
 def _extract_fiber(content: str, file_path: str) -> list[RouteInfo]:
     from patchi.core.brain.route_detector.go import GoRouteDetector
+
     return [RouteInfo(**d) for d in GoRouteDetector().detect(content, file_path)]
 
 
 def _extract_actix(content: str, file_path: str) -> list[RouteInfo]:
     from patchi.core.brain.route_detector.rust import RustRouteDetector
+
     return [RouteInfo(**d) for d in RustRouteDetector().detect(content, file_path)]
 
 
 def _extract_axum(content: str, file_path: str) -> list[RouteInfo]:
     from patchi.core.brain.route_detector.rust import RustRouteDetector
+
     return [RouteInfo(**d) for d in RustRouteDetector().detect(content, file_path)]
 
 
@@ -212,16 +227,19 @@ def _extract_rocket(content: str, file_path: str) -> list[RouteInfo]:
 
 def _extract_vapor(content: str, file_path: str) -> list[RouteInfo]:
     from patchi.core.brain.route_detector.swift import SwiftRouteDetector
+
     return [RouteInfo(**d) for d in SwiftRouteDetector().detect(content, file_path)]
 
 
 def _extract_rails(content: str, file_path: str) -> list[RouteInfo]:
     from patchi.core.brain.route_detector.ruby import RubyRouteDetector
+
     return [RouteInfo(**d) for d in RubyRouteDetector().detect(content, file_path)]
 
 
 def _extract_sinatra(content: str, file_path: str) -> list[RouteInfo]:
     from patchi.core.brain.route_detector.ruby import RubyRouteDetector
+
     return [RouteInfo(**d) for d in RubyRouteDetector().detect(content, file_path)]
 
 
@@ -231,14 +249,17 @@ def _extract_grape(content: str, file_path: str) -> list[RouteInfo]:
 
 def _extract_nextjs_file_routes(file_path: str, root: Path | None = None) -> list[RouteInfo]:
     from patchi.core.brain.route_detector.file_based import NextJsRouteDetector
+
     return [RouteInfo(**d) for d in NextJsRouteDetector().detect("", file_path)]
 
 
 def _extract_nuxt_file_routes(file_path: str, root: Path | None = None) -> list[RouteInfo]:
     from patchi.core.brain.route_detector.file_based import NuxtRouteDetector
+
     return [RouteInfo(**d) for d in NuxtRouteDetector().detect("", file_path)]
 
 
 def _extract_sveltekit_file_routes(file_path: str) -> list[RouteInfo]:
     from patchi.core.brain.route_detector.file_based import SvelteKitRouteDetector
+
     return [RouteInfo(**d) for d in SvelteKitRouteDetector().detect("", file_path)]

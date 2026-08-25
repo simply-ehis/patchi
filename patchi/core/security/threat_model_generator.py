@@ -17,13 +17,13 @@ import logging
 from dataclasses import dataclass, field
 from pathlib import Path
 
-
 _log = logging.getLogger("patchi.security.threat_model")
 
 
 @dataclass
 class AttackScenario:
     """A single attack scenario from YAML."""
+
     id: str
     name: str
     category: str
@@ -43,6 +43,7 @@ class AttackScenario:
 @dataclass
 class ThreatModel:
     """Generated threat model for the project."""
+
     project_root: str
     total_scenarios: int = 0
     applicable_scenarios: int = 0
@@ -81,47 +82,91 @@ class ThreatModel:
 # Maps YAML scenario categories to code signals that indicate applicability
 _CATEGORY_SIGNALS: dict[str, list[tuple[str, float]]] = {
     "authentication": [
-        ("login", 0.8), ("auth", 0.9), ("session", 0.7),
-        ("jwt", 0.9), ("cookie", 0.6), ("password", 0.8),
-        ("bcrypt", 0.8), ("argon2", 0.8),
+        ("login", 0.8),
+        ("auth", 0.9),
+        ("session", 0.7),
+        ("jwt", 0.9),
+        ("cookie", 0.6),
+        ("password", 0.8),
+        ("bcrypt", 0.8),
+        ("argon2", 0.8),
     ],
     "authorization": [
-        ("permission", 0.8), ("role", 0.7), ("admin", 0.8),
-        ("access_control", 0.9), ("guard", 0.6), ("protect", 0.5),
+        ("permission", 0.8),
+        ("role", 0.7),
+        ("admin", 0.8),
+        ("access_control", 0.9),
+        ("guard", 0.6),
+        ("protect", 0.5),
     ],
     "injection": [
-        ("execute", 0.7), ("query", 0.6), ("raw_sql", 0.9),
-        ("cursor", 0.7), ("database", 0.5), ("orm", 0.4),
-        ("subprocess", 0.8), ("shell", 0.8), ("eval", 0.9),
+        ("execute", 0.7),
+        ("query", 0.6),
+        ("raw_sql", 0.9),
+        ("cursor", 0.7),
+        ("database", 0.5),
+        ("orm", 0.4),
+        ("subprocess", 0.8),
+        ("shell", 0.8),
+        ("eval", 0.9),
     ],
     "xss": [
-        ("render", 0.5), ("template", 0.5), ("innerHTML", 0.9),
-        ("dangerouslySetInnerHTML", 0.9), ("markup", 0.6),
-        ("html", 0.4), ("response", 0.4),
+        ("render", 0.5),
+        ("template", 0.5),
+        ("innerHTML", 0.9),
+        ("dangerouslySetInnerHTML", 0.9),
+        ("markup", 0.6),
+        ("html", 0.4),
+        ("response", 0.4),
     ],
     "csrf": [
-        ("form", 0.5), ("post", 0.4), ("state_change", 0.8),
-        ("mutate", 0.7), ("PUT", 0.6), ("DELETE", 0.6),
+        ("form", 0.5),
+        ("post", 0.4),
+        ("state_change", 0.8),
+        ("mutate", 0.7),
+        ("PUT", 0.6),
+        ("DELETE", 0.6),
     ],
     "secrets": [
-        ("api_key", 0.9), ("secret", 0.8), ("token", 0.7),
-        ("password", 0.7), ("credential", 0.8), ("env", 0.5),
+        ("api_key", 0.9),
+        ("secret", 0.8),
+        ("token", 0.7),
+        ("password", 0.7),
+        ("credential", 0.8),
+        ("env", 0.5),
     ],
     "dependencies": [
-        ("requirements", 0.7), ("package.json", 0.7), ("Cargo.toml", 0.7),
-        ("go.mod", 0.7), ("Gemfile", 0.7), ("composer.json", 0.7),
+        ("requirements", 0.7),
+        ("package.json", 0.7),
+        ("Cargo.toml", 0.7),
+        ("go.mod", 0.7),
+        ("Gemfile", 0.7),
+        ("composer.json", 0.7),
     ],
     "configuration": [
-        ("config", 0.5), ("settings", 0.5), ("debug", 0.8),
-        ("verbose", 0.6), ("cors", 0.8), ("ssl", 0.7),
+        ("config", 0.5),
+        ("settings", 0.5),
+        ("debug", 0.8),
+        ("verbose", 0.6),
+        ("cors", 0.8),
+        ("ssl", 0.7),
     ],
     "crypto": [
-        ("encrypt", 0.8), ("decrypt", 0.8), ("hash", 0.7),
-        ("md5", 0.9), ("sha1", 0.8), ("aes", 0.7), ("rsa", 0.7),
+        ("encrypt", 0.8),
+        ("decrypt", 0.8),
+        ("hash", 0.7),
+        ("md5", 0.9),
+        ("sha1", 0.8),
+        ("aes", 0.7),
+        ("rsa", 0.7),
     ],
     "network": [
-        ("http", 0.5), ("request", 0.4), ("fetch", 0.4),
-        ("axios", 0.5), ("websocket", 0.7), ("ssrf", 0.9),
+        ("http", 0.5),
+        ("request", 0.4),
+        ("fetch", 0.4),
+        ("axios", 0.5),
+        ("websocket", 0.7),
+        ("ssrf", 0.9),
     ],
 }
 
@@ -166,7 +211,8 @@ class ThreatModelGenerator:
 
         _log.info(
             "Threat model: %d/%d scenarios applicable",
-            model.applicable_scenarios, model.total_scenarios,
+            model.applicable_scenarios,
+            model.total_scenarios,
         )
         return model
 
@@ -179,25 +225,28 @@ class ThreatModelGenerator:
         for yaml_file in self._scenarios_dir.glob("*.yaml"):
             try:
                 import yaml
+
                 with open(yaml_file, encoding="utf-8") as f:
                     data = yaml.safe_load(f)
                 if not data or "scenarios" not in data:
                     continue
                 for s in data["scenarios"]:
-                    scenarios.append(AttackScenario(
-                        id=s.get("id", "unknown"),
-                        name=s.get("name", "Unknown"),
-                        category=s.get("category", "unknown"),
-                        severity=s.get("severity", "medium"),
-                        cwe=s.get("cwe", ""),
-                        owasp=s.get("owasp", ""),
-                        description=s.get("description", ""),
-                        prerequisites=s.get("prerequisites", []),
-                        attack_steps=s.get("attack_steps", []),
-                        detection_signatures=s.get("detection_signatures", []),
-                        remediation_playbook=s.get("remediation_playbook", ""),
-                        tags=s.get("tags", []),
-                    ))
+                    scenarios.append(
+                        AttackScenario(
+                            id=s.get("id", "unknown"),
+                            name=s.get("name", "Unknown"),
+                            category=s.get("category", "unknown"),
+                            severity=s.get("severity", "medium"),
+                            cwe=s.get("cwe", ""),
+                            owasp=s.get("owasp", ""),
+                            description=s.get("description", ""),
+                            prerequisites=s.get("prerequisites", []),
+                            attack_steps=s.get("attack_steps", []),
+                            detection_signatures=s.get("detection_signatures", []),
+                            remediation_playbook=s.get("remediation_playbook", ""),
+                            tags=s.get("tags", []),
+                        )
+                    )
             except Exception as e:
                 _log.warning("Failed to load %s: %s", yaml_file.name, e)
         return scenarios
@@ -219,11 +268,14 @@ class ThreatModelGenerator:
         for fp in source_files:
             # Skip vendor/node_modules/venv
             parts = fp.relative_to(self.root).parts
-            if any(p.startswith('.') or p in ('node_modules', '__pycache__', '.venv', 'venv') for p in parts):
+            if any(
+                p.startswith(".") or p in ("node_modules", "__pycache__", ".venv", "venv")
+                for p in parts
+            ):
                 continue
             try:
                 content = fp.read_text(encoding="utf-8", errors="ignore").lower()
-                for category, kws in _CATEGORY_SIGNALS.items():
+                for _category, kws in _CATEGORY_SIGNALS.items():
                     for kw, _ in kws:
                         if kw.lower() in content:
                             keyword_counts[kw] = keyword_counts.get(kw, 0) + 1
@@ -236,15 +288,28 @@ class ThreatModelGenerator:
             signals[kw] = min(count / max(max_count, 1), 1.0)
 
         # Check for dependency files
-        dep_files = ["requirements.txt", "package.json", "Cargo.toml",
-                     "go.mod", "Gemfile", "composer.json", "Pipfile"]
+        dep_files = [
+            "requirements.txt",
+            "package.json",
+            "Cargo.toml",
+            "go.mod",
+            "Gemfile",
+            "composer.json",
+            "Pipfile",
+        ]
         for df in dep_files:
             if (self.root / df).exists():
                 signals[df] = 1.0
 
         # Check for config files
-        config_files = ["config.py", "settings.py", ".env", "config.yaml",
-                        "config.json", "application.properties"]
+        config_files = [
+            "config.py",
+            "settings.py",
+            ".env",
+            "config.yaml",
+            "config.json",
+            "application.properties",
+        ]
         for cf in config_files:
             if list(self.root.rglob(cf)):
                 signals[cf] = 1.0
@@ -284,7 +349,9 @@ class ThreatModelGenerator:
         recs = []
 
         # High-severity applicable scenarios
-        high_sev = [s for s in model.scenarios if s.applicable and s.severity in ("critical", "high")]
+        high_sev = [
+            s for s in model.scenarios if s.applicable and s.severity in ("critical", "high")
+        ]
         if high_sev:
             recs.append(
                 f"Address {len(high_sev)} high/critical scenarios: "
@@ -302,7 +369,9 @@ class ThreatModelGenerator:
             recs.append("Audit authentication flows — auth scenarios are relevant")
 
         # Dependency warnings
-        dep_scenarios = [s for s in model.scenarios if s.category == "dependencies" and s.applicable]
+        dep_scenarios = [
+            s for s in model.scenarios if s.category == "dependencies" and s.applicable
+        ]
         if dep_scenarios:
             recs.append("Run dependency vulnerability scan — project has dependency files")
 

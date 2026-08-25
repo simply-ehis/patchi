@@ -87,28 +87,30 @@ class ComplianceAgent(BaseAgent):
 
         result.status = AgentStatus.SUCCEEDED
         result.findings = findings
-        result.data.update({
-            "compliance_findings": len(
-                [
-                    f
-                    for f in findings
-                    if any(
-                        word in f.title.lower()
-                        for word in [
-                            "compliance",
-                            "pci",
-                            "hipaa",
-                            "gdpr",
-                            "sox",
-                            "audit",
-                            "logging",
-                            "access",
-        ]
+        result.data.update(
+            {
+                "compliance_findings": len(
+                    [
+                        f
+                        for f in findings
+                        if any(
+                            word in f.title.lower()
+                            for word in [
+                                "compliance",
+                                "pci",
+                                "hipaa",
+                                "gdpr",
+                                "sox",
+                                "audit",
+                                "logging",
+                                "access",
+                            ]
+                        )
+                    ]
+                ),
+                "needs_ai": False,
+            }
         )
-        ]
-            ),
-            "needs_ai": False,
-        })
         return
 
     def _should_skip_file(self, file_path: str, inp: AgentInput) -> bool:
@@ -185,7 +187,7 @@ class ComplianceAgent(BaseAgent):
         for i, line in enumerate(lines, 1):
             for pattern, description, severity in compliance_patterns:
                 matches = re.finditer(pattern, line, re.IGNORECASE)
-                for match in matches:
+                for _match in matches:
                     findings.append(
                         make_finding(
                             severity=severity,
@@ -218,7 +220,7 @@ class ComplianceAgent(BaseAgent):
         for i, line in enumerate(lines, 1):
             for pattern, description, severity in audit_patterns:
                 matches = re.finditer(pattern, line, re.IGNORECASE)
-                for match in matches:
+                for _match in matches:
                     findings.append(
                         make_finding(
                             severity=severity,
@@ -267,7 +269,7 @@ class ComplianceAgent(BaseAgent):
         for i, line in enumerate(lines, 1):
             for pattern, description, severity in logging_patterns:
                 matches = re.finditer(pattern, line, re.IGNORECASE)
-                for match in matches:
+                for _match in matches:
                     findings.append(
                         make_finding(
                             severity=severity,
@@ -300,7 +302,7 @@ class ComplianceAgent(BaseAgent):
         for i, line in enumerate(lines, 1):
             for pattern, description, severity in access_control_patterns:
                 matches = re.finditer(pattern, line, re.IGNORECASE)
-                for match in matches:
+                for _match in matches:
                     findings.append(
                         make_finding(
                             severity=severity,
@@ -329,7 +331,7 @@ class ComplianceAgent(BaseAgent):
         for i, line in enumerate(lines, 1):
             for pattern, description, severity in compliance_config_patterns:
                 matches = re.finditer(pattern, line, re.IGNORECASE)
-                for match in matches:
+                for _match in matches:
                     findings.append(
                         make_finding(
                             severity=severity,

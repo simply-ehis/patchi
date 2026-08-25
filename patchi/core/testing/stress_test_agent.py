@@ -36,6 +36,7 @@ from ..agents.base import (
 
 _log = logging.getLogger("patchi.testing.stress_test_agent")
 
+
 @register
 class StressTestAgent(BaseAgent):
     """Agent for running stress/load tests with Locust."""
@@ -139,7 +140,7 @@ class StressTestAgent(BaseAgent):
                     cols = row.split(",")
                     if len(cols) < max(len(header), 5):
                         continue
-                    row_map = dict(zip(header, cols)) if len(header) >= len(cols) else {}
+                    row_map = dict(zip(header, cols, strict=False)) if len(header) >= len(cols) else {}
                     try:
                         nr = int(row_map.get("# requests", row_map.get("requests", 0)))
                         nf = int(row_map.get("# failures", row_map.get("failures", 0)))
@@ -288,7 +289,7 @@ export default function () {
                 results_file = root / "results.json"
                 if results_file.exists():
                     try:
-                        with open(results_file, "r") as f:
+                        with open(results_file) as f:
                             k6_results = [json.loads(line) for line in f if line.strip()]
 
                         # Extract metrics from k6 output
@@ -361,7 +362,7 @@ export default function () {
                 results_file = root / "results.json"
                 if results_file.exists():
                     try:
-                        with open(results_file, "r") as f:
+                        with open(results_file) as f:
                             k6_results = [json.loads(line) for line in f if line.strip()]
 
                         # Extract metrics from k6 output

@@ -10,6 +10,7 @@ from .base import BaseTypeChecker, _node_text, make_finding
 
 _log = logging.getLogger("patchi.brain.dart")
 
+
 class DartTypeChecker(BaseTypeChecker):
     language = "dart"
 
@@ -29,16 +30,25 @@ class DartTypeChecker(BaseTypeChecker):
         ntype = node.type
         if ntype in ("method_declaration", "function_declaration"):
             line = node.start_point[0] + 1
-            name = _node_text(source, self._child_by_type(node, "identifier")) if self._child_by_type(node, "identifier") else ""
-            return_type = self._child_by_type(node, "type_identifier") or self._child_by_type(node, "generic_type")
+            name = (
+                _node_text(source, self._child_by_type(node, "identifier"))
+                if self._child_by_type(node, "identifier")
+                else ""
+            )
+            return_type = self._child_by_type(node, "type_identifier") or self._child_by_type(
+                node, "generic_type"
+            )
             if return_type and _node_text(source, return_type) == "dynamic":
-                findings.append(make_finding(
-                    finding_type="dynamic_type",
-                    file=file_path, line=line,
-                    title="Function returns 'dynamic'",
-                    description=f"Function '{name}' returns 'dynamic' — prefer a specific type for sound null safety",
-                    severity="medium",
-                ))
+                findings.append(
+                    make_finding(
+                        finding_type="dynamic_type",
+                        file=file_path,
+                        line=line,
+                        title="Function returns 'dynamic'",
+                        description=f"Function '{name}' returns 'dynamic' — prefer a specific type for sound null safety",
+                        severity="medium",
+                    )
+                )
         for child in node.children:
             self._walk(child, source, file_path, findings)
 

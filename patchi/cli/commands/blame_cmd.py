@@ -17,6 +17,7 @@ from patchi.core.config import require_project_root
 
 _log = logging.getLogger("patchi.cli.blame_cmd")
 
+
 def run(file_path: str, line: int | None = None, root: Path | None = None) -> None:
     try:
         r = root or require_project_root()

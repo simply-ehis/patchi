@@ -38,6 +38,7 @@ from ..agents.base import (
 
 _log = logging.getLogger("patchi.testing.accessibility_agent")
 
+
 @register
 class AccessibilityAgent(BaseAgent):
     """Agent for running accessibility tests with axe-core."""
@@ -95,9 +96,7 @@ class AccessibilityAgent(BaseAgent):
         # Process results
         # Note: loop targets use `r`, never `result` — `result` is the
         # AgentResult this _run mutates (it is NOT a local here).
-        total_violations = sum(
-            len(r.get("violations", [])) for r in test_results.values()
-        )
+        total_violations = sum(len(r.get("violations", [])) for r in test_results.values())
 
         if total_violations == 0:
             findings.append(
@@ -144,12 +143,14 @@ class AccessibilityAgent(BaseAgent):
 
         result.status = AgentStatus.SUCCEEDED if total_violations == 0 else AgentStatus.FAILED
         result.findings = findings
-        result.data.update({
-            "urls_tested": len(urls_to_test),
-            "total_violations": total_violations,
-            "duration": round(duration, 2),
-            "needs_ai": False,  # Accessibility checks don't require AI
-        })
+        result.data.update(
+            {
+                "urls_tested": len(urls_to_test),
+                "total_violations": total_violations,
+                "duration": round(duration, 2),
+                "needs_ai": False,  # Accessibility checks don't require AI
+            }
+        )
         return
 
     def _find_urls_to_test(self, inp: AgentInput) -> list[str]:
@@ -163,7 +164,7 @@ class AccessibilityAgent(BaseAgent):
             brain = mem.get_brain(inp.root)
             if brain and "confirmed_flows" in brain:
                 # Extract URLs from confirmed app flows
-                for flow in brain["confirmed_flows"]:
+                for _flow in brain["confirmed_flows"]:
                     # This would parse the flow to extract URLs
                     # For now, we'll use a placeholder approach
                     pass

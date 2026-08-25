@@ -137,6 +137,7 @@ _EXPLANATIONS: dict[str, dict] = {
     },
 }
 
+
 def run(
     finding_id: str | None = None,
     finding_type: str | None = None,
@@ -159,8 +160,11 @@ def run(
             payload = (
                 {"type": key, "explanation": entry}
                 if entry
-                else {"type": key, "error": "no explanation available",
-                      "available": sorted(_EXPLANATIONS.keys())}
+                else {
+                    "type": key,
+                    "error": "no explanation available",
+                    "available": sorted(_EXPLANATIONS.keys()),
+                }
             )
             con.print(_json.dumps(payload, indent=2))
             return
@@ -168,17 +172,24 @@ def run(
         issues = mem.list_issues(r)
         matched = (
             [i for i in issues if i.get("id") == finding_id or i.get("type") == finding_id]
-            if finding_id else issues
+            if finding_id
+            else issues
         )
-        con.print(_json.dumps({
-            "findings": [
+        con.print(
+            _json.dumps(
                 {
-                    **{k: v for k, v in issue.items() if k != "detail"},
-                    "explanation": _EXPLANATIONS.get(issue.get("type", "unknown")),
-                }
-                for issue in matched
-            ],
-        }, indent=2, default=str))
+                    "findings": [
+                        {
+                            **{k: v for k, v in issue.items() if k != "detail"},
+                            "explanation": _EXPLANATIONS.get(issue.get("type", "unknown")),
+                        }
+                        for issue in matched
+                    ],
+                },
+                indent=2,
+                default=str,
+            )
+        )
         return
 
     con.print()
@@ -198,6 +209,7 @@ def run(
     # Show all findings with explanations
     _explain_all(r)
 
+
 def _explain_by_id(finding_id: str, root) -> None:
     """Explain a specific finding by its ID."""
     issues = mem.list_issues(root)
@@ -207,6 +219,7 @@ def _explain_by_id(finding_id: str, root) -> None:
             return
     con.print(f"[yellow]Finding {finding_id!r} not found in known issues.[/yellow]")
     con.print("[dim]Run `p explain` to see all findings with explanations.[/dim]")
+
 
 def _explain_by_type(finding_type: str) -> None:
     """Explain a category of findings."""
@@ -218,6 +231,7 @@ def _explain_by_type(finding_type: str) -> None:
         con.print("[dim]Available types:[/dim]")
         for k in sorted(_EXPLANATIONS.keys()):
             con.print(f"  [dim]  {k}[/dim]")
+
 
 def _explain_all(root) -> None:
     """Explain all unresolved findings."""
@@ -245,6 +259,7 @@ def _explain_all(root) -> None:
     con.print()
     con.print(f"[dim]{explained}/{len(issues)} findings explained.[/dim]")
 
+
 def _render_explanation(finding_type: str, issue: dict) -> None:
     """Render a single finding explanation."""
     info = _EXPLANATIONS.get(finding_type)
@@ -269,9 +284,7 @@ def _render_explanation(finding_type: str, issue: dict) -> None:
 
     cwe_tag = f"  [dim]({info['cwe']})[/dim]" if info.get("cwe") else ""
 
-    panel_content = (
-        f"[bold]What:[/bold]  {info['what']}\n\n{info['how']}"
-    )
+    panel_content = f"[bold]What:[/bold]  {info['what']}\n\n{info['how']}"
 
     con.print(
         Panel(
@@ -282,6 +295,7 @@ def _render_explanation(finding_type: str, issue: dict) -> None:
         )
     )
     con.print()
+
 
 def _ask_feedback(finding_type: str, root) -> None:
     """Ask if the explanation was helpful and record the answer (WIRE-06 / M-03)."""

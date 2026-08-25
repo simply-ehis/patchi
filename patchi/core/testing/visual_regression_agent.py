@@ -40,6 +40,7 @@ import logging
 
 _log = logging.getLogger("patchi.testing.visual_regression_agent")
 
+
 @register
 class VisualRegressionAgent(BaseAgent):
     """Screenshot comparison testing for visual regressions."""

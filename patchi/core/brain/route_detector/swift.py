@@ -10,6 +10,7 @@ import logging
 
 _log = logging.getLogger("patchi.brain.swift")
 
+
 @register_detector("swift")
 class SwiftRouteDetector(BaseRouteDetector):
     def detect(self, content: str, file_path: str) -> list[dict]:
@@ -32,14 +33,18 @@ class SwiftRouteDetector(BaseRouteDetector):
         self._walk(tree.root_node, bytes(content, "utf-8"), content, file_path, routes)
         return routes
 
-    def _walk(self, node: object, buf: bytes, content: str, file_path: str, routes: list[dict]) -> None:
+    def _walk(
+        self, node: object, buf: bytes, content: str, file_path: str, routes: list[dict]
+    ) -> None:
         ntype = getattr(node, "type", "")
         if ntype == "function_call_expression":
             self._check_call(node, buf, content, file_path, routes)
-        for child in (getattr(node, "named_children", None) or getattr(node, "children", [])):
+        for child in getattr(node, "named_children", None) or getattr(node, "children", []):
             self._walk(child, buf, content, file_path, routes)
 
-    def _check_call(self, node: object, buf: bytes, content: str, file_path: str, routes: list[dict]) -> None:
+    def _check_call(
+        self, node: object, buf: bytes, content: str, file_path: str, routes: list[dict]
+    ) -> None:
         func = self._child_by_field(node, "function") or self._child_by_field(node, "name")
         if func is None:
             return
@@ -67,16 +72,18 @@ class SwiftRouteDetector(BaseRouteDetector):
         args = self._child_by_field(node, "arguments")
         path = ""
         if args:
-            for child in (getattr(args, "named_children", None) or getattr(args, "children", [])):
+            for child in getattr(args, "named_children", None) or getattr(args, "children", []):
                 if child.type == "string_literal":
-                    path = self._node_text(child).strip("\"")
+                    path = self._node_text(child).strip('"')
                     break
 
         if not path:
             return
 
         line = getattr(node, "start_point", (0, 0))[0] + 1
-        routes.append(self._make_route(method_name.upper(), path, "", file_path, line, framework="Vapor"))
+        routes.append(
+            self._make_route(method_name.upper(), path, "", file_path, line, framework="Vapor")
+        )
 
     def _child_by_field(self, node: object, field: str) -> object | None:
         if hasattr(node, "child_by_field_name"):
@@ -104,5 +111,9 @@ class SwiftRouteDetector(BaseRouteDetector):
             m = pat.search(line)
             if not m:
                 continue
-            routes.append(self._make_route(m.group(1).upper(), m.group(2), "", file_path, i, framework="Vapor"))
+            routes.append(
+                self._make_route(
+                    m.group(1).upper(), m.group(2), "", file_path, i, framework="Vapor"
+                )
+            )
         return routes

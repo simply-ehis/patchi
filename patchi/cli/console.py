@@ -26,6 +26,7 @@ import logging
 
 _log = logging.getLogger("patchi.cli.console")
 
+
 def _ensure_utf8():
     global _encoding_fixed
     if _encoding_fixed:
@@ -69,6 +70,7 @@ def configure_theme(
     config_theme = None
     try:
         from patchi.core import config as cfg
+
         config_theme = cfg.get("theme", root)
     except Exception as e:
         _log.debug("configure_theme: could not read config theme, using default: %s", e)
@@ -77,8 +79,11 @@ def configure_theme(
     is_tty = con.is_terminal
 
     name = resolve_palette_name(
-        explicit=explicit, config_theme=config_theme,
-        no_color_env=no_color_env, is_tty=is_tty, json_mode=json_mode,
+        explicit=explicit,
+        config_theme=config_theme,
+        no_color_env=no_color_env,
+        is_tty=is_tty,
+        json_mode=json_mode,
     )
     palette = PALETTES[name]
     con.push_theme(palette["theme"])
@@ -93,5 +98,6 @@ def symbol(key: str) -> str:
     the dark palette's Unicode glyphs if configure_theme() was never called."""
     if not _active_symbols:
         from patchi.cli.themes import PALETTES
+
         return PALETTES["dark"]["symbols"].get(key, "")
     return _active_symbols.get(key, "")

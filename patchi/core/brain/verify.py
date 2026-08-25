@@ -23,7 +23,7 @@ import shutil
 import subprocess
 import time
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 _BASELINE_FILE = ".patchi/verify_baseline.json"
@@ -32,6 +32,7 @@ _BASELINE_FILE = ".patchi/verify_baseline.json"
 import logging
 
 _log = logging.getLogger("patchi.brain.verify")
+
 
 @dataclass
 class TestRun:
@@ -58,7 +59,7 @@ class TestRun:
 class VerifyReport:
     __test__ = False
     scanned_at: str = ""
-    test_run: "TestRun | None" = None
+    test_run: TestRun | None = None
     findings_count: int = 0
     charter_violations: int = 0
     scan_error: str | None = None
@@ -225,16 +226,12 @@ def verify_project(
     baseline = load_baseline(root)
     regression = compute_regression(baseline, test_run, findings_count, charter_violations)
 
-    truthful = (
-        test_run.truthful
-        and not regression.get("new_failures")
-        and charter_violations == 0
-    )
+    truthful = test_run.truthful and not regression.get("new_failures") and charter_violations == 0
 
     save_baseline(
         root,
         {
-            "scanned_at": datetime.now(timezone.utc).isoformat(),
+            "scanned_at": datetime.now(UTC).isoformat(),
             "failed_names": test_run.failed_names,
             "findings_count": findings_count,
             "charter_violations": charter_violations,
@@ -243,7 +240,7 @@ def verify_project(
 
     summary = _build_summary(truthful, test_run, regression, charter_violations, scan_error)
     return VerifyReport(
-        scanned_at=datetime.now(timezone.utc).isoformat(),
+        scanned_at=datetime.now(UTC).isoformat(),
         test_run=test_run,
         findings_count=findings_count,
         charter_violations=charter_violations,
@@ -288,8 +285,11 @@ def _build_summary(truthful, test_run, regression, charter_violations, scan_erro
         return (
             f"VERIFIED ✅ — tests: {test_run.passed} passed"
             + (f", {test_run.skipped} skipped" if test_run.skipped else "")
-            + (f"; {regression.get('new_findings', 0)} new scan finding(s)"
-               if regression.get("new_findings") else "; no new scan findings")
+            + (
+                f"; {regression.get('new_findings', 0)} new scan finding(s)"
+                if regression.get("new_findings")
+                else "; no new scan findings"
+            )
             + "."
         )
     parts = ["UNVERIFIED ❌ — mismatch between claim and reality:"]

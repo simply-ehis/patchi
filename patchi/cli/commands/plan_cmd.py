@@ -24,8 +24,14 @@ from patchi.cli.console import con
 from patchi.core.brain.proactive import _FIX_PRIORITY, build_fix_list
 from patchi.core.config import require_project_root
 
-_PRIORITY_LABEL = {1: "contract", 2: "breaking", 3: "missing-import",
-                   4: "dead-code", 5: "unused-import", 6: "format"}
+_PRIORITY_LABEL = {
+    1: "contract",
+    2: "breaking",
+    3: "missing-import",
+    4: "dead-code",
+    5: "unused-import",
+    6: "format",
+}
 
 
 def run(
@@ -75,8 +81,9 @@ def run(
         label = _PRIORITY_LABEL.get(pri, "other")
         safe = "[#4ADE80]safe[/#4ADE80]" if f.safe else "[#FACC15]review[/#FACC15]"
         table.add_row(str(i), label, safe, f.fix_type, f.file, f.description)
-    con.print(f"[bold #C8621A]Prioritized Fix List[/bold #C8621A]  "
-              f"[dim]({len(fixes)} item(s))[/dim]")
+    con.print(
+        f"[bold #C8621A]Prioritized Fix List[/bold #C8621A]  [dim]({len(fixes)} item(s))[/dim]"
+    )
     con.print(table)
     con.print()
 
@@ -110,7 +117,7 @@ def _write_html(path: Path, fixes) -> None:
 <p class="muted">{len(fixes)} item(s) ranked by priority.</p>
 <table>
 <tr><th>#</th><th>Priority</th><th>Safe</th><th>Type</th><th>File</th><th>Fix</th></tr>
-{''.join(rows)}
+{"".join(rows)}
 </table>
 </body></html>"""
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -118,4 +125,4 @@ def _write_html(path: Path, fixes) -> None:
 
 
 def _esc(s: str) -> str:
-    return (s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;"))
+    return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")

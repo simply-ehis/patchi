@@ -41,14 +41,62 @@ class FaultInjectionPoint:
 # Patterns that indicate missing fault handling
 _FAULT_PATTERNS: list[tuple[str, str, str, str, str]] = [
     # (regex pattern, fault_type, description, recovery, severity)
-    (r"\.read\(|\.write\(", "disk", "File I/O without try/except", "Add try/except with IOError handling", "medium"),
-    (r"requests\.(get|post|put|delete)\(", "network", "HTTP request without timeout/retry", "Add timeout and retry with backoff", "high"),
-    (r"subprocess\.run\(|subprocess\.Popen\(", "network", "Subprocess without error handling", "Add try/except and check returncode", "medium"),
-    (r"\.execute\(|\.commit\(", "database", "DB operation without rollback", "Add try/except with rollback in finally", "high"),
-    (r"json\.loads\(", "disk", "JSON parse without try/except", "Add try/except for JSONDecodeError", "medium"),
-    (r"open\(", "disk", "File open without context manager", "Use with-statement for guaranteed close", "medium"),
-    (r"pickle\.loads?\(", "memory", "Unsafe deserialization", "Use safe deserialization or json", "high"),
-    (r"eval\(|exec\(", "memory", "Dynamic code execution", "Replace with safe alternatives", "high"),
+    (
+        r"\.read\(|\.write\(",
+        "disk",
+        "File I/O without try/except",
+        "Add try/except with IOError handling",
+        "medium",
+    ),
+    (
+        r"requests\.(get|post|put|delete)\(",
+        "network",
+        "HTTP request without timeout/retry",
+        "Add timeout and retry with backoff",
+        "high",
+    ),
+    (
+        r"subprocess\.run\(|subprocess\.Popen\(",
+        "network",
+        "Subprocess without error handling",
+        "Add try/except and check returncode",
+        "medium",
+    ),
+    (
+        r"\.execute\(|\.commit\(",
+        "database",
+        "DB operation without rollback",
+        "Add try/except with rollback in finally",
+        "high",
+    ),
+    (
+        r"json\.loads\(",
+        "disk",
+        "JSON parse without try/except",
+        "Add try/except for JSONDecodeError",
+        "medium",
+    ),
+    (
+        r"open\(",
+        "disk",
+        "File open without context manager",
+        "Use with-statement for guaranteed close",
+        "medium",
+    ),
+    (
+        r"pickle\.loads?\(",
+        "memory",
+        "Unsafe deserialization",
+        "Use safe deserialization or json",
+        "high",
+    ),
+    (
+        r"eval\(|exec\(",
+        "memory",
+        "Dynamic code execution",
+        "Replace with safe alternatives",
+        "high",
+    ),
 ]
 
 
@@ -68,7 +116,11 @@ class FaultInjector:
             return results
 
         lines = content.splitlines()
-        rel_path = str(file_path.relative_to(self._root)) if self._root in file_path.parents else str(file_path)
+        rel_path = (
+            str(file_path.relative_to(self._root))
+            if self._root in file_path.parents
+            else str(file_path)
+        )
 
         for line_num, line in enumerate(lines, 1):
             stripped = line.strip()
@@ -77,17 +129,20 @@ class FaultInjector:
 
             for pattern, fault_type, description, recovery, severity in _FAULT_PATTERNS:
                 import re
+
                 if re.search(pattern, line):
                     # Check if already has try/except nearby
                     if not self._has_error_handling(lines, line_num - 1):
-                        results.append(FaultInjectionPoint(
-                            file=rel_path,
-                            line=line_num,
-                            fault_type=fault_type,
-                            pattern=description,
-                            recovery_strategy=recovery,
-                            severity=severity,
-                        ))
+                        results.append(
+                            FaultInjectionPoint(
+                                file=rel_path,
+                                line=line_num,
+                                fault_type=fault_type,
+                                pattern=description,
+                                recovery_strategy=recovery,
+                                severity=severity,
+                            )
+                        )
                         break  # one finding per line
 
         return results

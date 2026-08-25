@@ -59,36 +59,59 @@ class EnvVarValidator(BaseAgent):
         (r"os\.environ\.get\s*\(\s*['\"](\w+)['\"]", "os.environ.get('{}')", "Python"),
         (r"os\.environ\[\s*['\"](\w+)['\"]\s*\]", "os.environ['{}']", "Python"),
         # Rust
-        (r"env::var\s*\(\s*['\"](\w+)['\"]", "env::var(\"{}\")", "Rust"),
-        (r"env!\(\s*['\"](\w+)['\"]", "env!(\"{}\")", "Rust"),
+        (r"env::var\s*\(\s*['\"](\w+)['\"]", 'env::var("{}")', "Rust"),
+        (r"env!\(\s*['\"](\w+)['\"]", 'env!("{}")', "Rust"),
         # Go
-        (r"os\.Getenv\s*\(\s*['\"](\w+)['\"]", "os.Getenv(\"{}\")", "Go"),
-        (r"os\.LookupEnv\s*\(\s*['\"](\w+)['\"]", "os.LookupEnv(\"{}\")", "Go"),
+        (r"os\.Getenv\s*\(\s*['\"](\w+)['\"]", 'os.Getenv("{}")', "Go"),
+        (r"os\.LookupEnv\s*\(\s*['\"](\w+)['\"]", 'os.LookupEnv("{}")', "Go"),
         # Java
-        (r"System\.getenv\s*\(\s*['\"](\w+)['\"]", "System.getenv(\"{}\")", "Java"),
+        (r"System\.getenv\s*\(\s*['\"](\w+)['\"]", 'System.getenv("{}")', "Java"),
         # Ruby
-        (r"ENV\[\s*['\"](\w+)['\"]\s*\]", "ENV[\"{}\"]", "Ruby"),
-        (r"ENV\.fetch\s*\(\s*['\"](\w+)['\"]", "ENV.fetch(\"{}\")", "Ruby"),
+        (r"ENV\[\s*['\"](\w+)['\"]\s*\]", 'ENV["{}"]', "Ruby"),
+        (r"ENV\.fetch\s*\(\s*['\"](\w+)['\"]", 'ENV.fetch("{}")', "Ruby"),
         # Swift
-        (r"ProcessInfo\.processInfo\.environment\[\s*['\"](\w+)['\"]\s*\]", "ProcessInfo.environment[\"{}\"]", "Swift"),
+        (
+            r"ProcessInfo\.processInfo\.environment\[\s*['\"](\w+)['\"]\s*\]",
+            'ProcessInfo.environment["{}"]',
+            "Swift",
+        ),
         # C / C++ (getenv)
-        (r"getenv\s*\(\s*['\"](\w+)['\"]", "getenv(\"{}\")", "C/C++"),
+        (r"getenv\s*\(\s*['\"](\w+)['\"]", 'getenv("{}")', "C/C++"),
         # PHP
-        (r"getenv\s*\(\s*['\"](\w+)['\"]", "getenv(\"{}\")", "PHP"),
+        (r"getenv\s*\(\s*['\"](\w+)['\"]", 'getenv("{}")', "PHP"),
         # Kotlin
-        (r"System\.getenv\s*\(\s*['\"](\w+)['\"]", "System.getenv(\"{}\")", "Kotlin"),
+        (r"System\.getenv\s*\(\s*['\"](\w+)['\"]", 'System.getenv("{}")', "Kotlin"),
         # C#
-        (r"Environment\.GetEnvironmentVariable\s*\(\s*['\"](\w+)['\"]", "Environment.GetEnvironmentVariable(\"{}\")", "C#"),
+        (
+            r"Environment\.GetEnvironmentVariable\s*\(\s*['\"](\w+)['\"]",
+            'Environment.GetEnvironmentVariable("{}")',
+            "C#",
+        ),
     ]
 
     def _run(self, inp: AgentInput, result: AgentResult) -> None:
         findings = []
 
         source_patterns = [
-            "*.py", "*.js", "*.jsx", "*.ts", "*.tsx",
-            "*.java", "*.go", "*.rs", "*.c", "*.h",
-            "*.cpp", "*.cxx", "*.cc", "*.hpp", "*.rb",
-            "*.swift", "*.php", "*.kt", "*.cs",
+            "*.py",
+            "*.js",
+            "*.jsx",
+            "*.ts",
+            "*.tsx",
+            "*.java",
+            "*.go",
+            "*.rs",
+            "*.c",
+            "*.h",
+            "*.cpp",
+            "*.cxx",
+            "*.cc",
+            "*.hpp",
+            "*.rb",
+            "*.swift",
+            "*.php",
+            "*.kt",
+            "*.cs",
         ]
 
         # Step 1: Collect all env vars used in source code
@@ -167,16 +190,19 @@ class EnvVarValidator(BaseAgent):
 
         result.status = AgentStatus.SUCCEEDED
         result.findings = findings
-        result.data.update({
-            "used_env_vars": len(used_env_vars),
-            "documented_vars": len(documented_vars),
-            "env_findings": len(findings),
-            "needs_ai": False,
-        })
+        result.data.update(
+            {
+                "used_env_vars": len(used_env_vars),
+                "documented_vars": len(documented_vars),
+                "env_findings": len(findings),
+                "needs_ai": False,
+            }
+        )
         return
 
     def _should_skip_file(self, file_path: str, inp: AgentInput) -> bool:
         from pathlib import PurePosixPath
+
         restrictions = inp.config.get("restrictions", [])
         for r in restrictions:
             if r.get("enabled", True):
@@ -195,9 +221,7 @@ class EnvVarValidator(BaseAgent):
             _log.warning("EnvVarValidator._safe_read failed: %s", e)
             return None
 
-    def _collect_env_vars(
-        self, content: str, rel_path: str, acc: dict[str, list[dict]]
-    ) -> None:
+    def _collect_env_vars(self, content: str, rel_path: str, acc: dict[str, list[dict]]) -> None:
         lines = content.splitlines()
         for pattern, _fmt, _lang in self.ENV_READ_PATTERNS:
             for match in re.finditer(pattern, content):
@@ -230,13 +254,15 @@ class EnvVarValidator(BaseAgent):
                 )
                 if var_name not in acc:
                     acc[var_name] = []
-                acc[var_name].append({
-                    "file": rel_path,
-                    "line": line_num,
-                    "snippet": line.strip(),
-                    "has_default": has_default,
-                    "is_bare_access": is_bare_access,
-                })
+                acc[var_name].append(
+                    {
+                        "file": rel_path,
+                        "line": line_num,
+                        "snippet": line.strip(),
+                        "has_default": has_default,
+                        "is_bare_access": is_bare_access,
+                    }
+                )
 
     def _find_env_example(self, root: Path) -> Path | None:
         candidates = [
@@ -252,7 +278,11 @@ class EnvVarValidator(BaseAgent):
         # Also search one level deep
         for p in root.iterdir():
             if p.is_file() and p.name.lower() in (
-                ".env.example", ".env.sample", ".env.dist", "env.example", ".env.template"
+                ".env.example",
+                ".env.sample",
+                ".env.dist",
+                "env.example",
+                ".env.template",
             ):
                 return p
         return None

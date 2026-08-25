@@ -40,6 +40,7 @@ from ..agents.base import (
 
 _log = logging.getLogger("patchi.testing.api_contract_agent")
 
+
 @register
 class APIContractAgent(BaseAgent):
     """Agent for running API contract tests."""
@@ -129,13 +130,15 @@ class APIContractAgent(BaseAgent):
         # .patchi state — see _find_api_contracts).
         result.status = AgentStatus.SUCCEEDED if total_errors == 0 else AgentStatus.FAILED
         result.findings = findings
-        result.data.update({
-            "contracts_found": len(contract_files),
-            "endpoints_tested": len(validation_results),
-            "total_violations": total_errors,
-            "duration": round(duration, 2),
-            "needs_ai": False,  # Contract validation doesn't require AI
-        })
+        result.data.update(
+            {
+                "contracts_found": len(contract_files),
+                "endpoints_tested": len(validation_results),
+                "total_violations": total_errors,
+                "duration": round(duration, 2),
+                "needs_ai": False,  # Contract validation doesn't require AI
+            }
+        )
         return
 
     def _find_api_contracts(self, root: Path) -> list[Path]:

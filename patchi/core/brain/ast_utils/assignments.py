@@ -17,6 +17,7 @@ from .helpers import child_by_field, children, node_text
 
 _log = logging.getLogger("patchi.brain.assignments")
 
+
 def find_assignments(content: str, lang: Lang) -> list[dict]:
     """
     Find all variable assignments in `content`.
@@ -47,6 +48,7 @@ def find_assignments(content: str, lang: Lang) -> list[dict]:
 
 # ── Python ────────────────────────────────────────────────────────────────────
 
+
 def _find_assignments_python(content: str) -> list[dict]:
     """Walk the AST for variable assignments."""
     import ast
@@ -70,12 +72,14 @@ def _find_assignments_python(content: str) -> list[dict]:
             value = ast.unparse(value_node) if value_node is not None else ""
         except Exception:
             value = ""
-        results.append({
-            "target": target,
-            "value": value,
-            "line": line_no,
-            "full_text": full_text,
-        })
+        results.append(
+            {
+                "target": target,
+                "value": value,
+                "line": line_no,
+                "full_text": full_text,
+            }
+        )
 
     for node in ast.walk(tree):
         if isinstance(node, ast.Assign):
@@ -123,12 +127,14 @@ def _walk_assignments(node: object, results: list[dict], lang: Lang) -> None:
             except Exception as e:
                 _log.warning("_walk_assignments failed: %s", e)
                 line = 0
-            results.append({
-                "target": target,
-                "value": value,
-                "line": line,
-                "full_text": node_text(node),
-            })
+            results.append(
+                {
+                    "target": target,
+                    "value": value,
+                    "line": line,
+                    "full_text": node_text(node),
+                }
+            )
 
     for child in children(node):
         _walk_assignments(child, results, lang)
@@ -153,7 +159,8 @@ def _extract_assignment(node: object, lang: Lang) -> tuple[str, str]:
         val = child_by_field(node, "value")
         return node_text(pat), node_text(val)
     if lang in (Lang.JAVA, Lang.C_SHARP) and getattr(node, "type", "") in (
-        "local_variable_declaration", "local_declaration_statement"
+        "local_variable_declaration",
+        "local_declaration_statement",
     ):
         decl = children(node)
         # Find the declarator child holding name/value

@@ -11,12 +11,12 @@ Supported types: email, slack, discord, webhook, telegram
 from __future__ import annotations
 
 from dataclasses import dataclass
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 from urllib.parse import quote
 
 
-class ChannelType(str, Enum):
+class ChannelType(StrEnum):
     EMAIL = "email"
     SLACK = "slack"
     DISCORD = "discord"

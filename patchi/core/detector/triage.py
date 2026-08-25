@@ -52,10 +52,10 @@ class EWMAMeter:
     Alpha controls how quickly old data decays (lower = smoother).
     """
 
-    alpha: float = 0.1       # Smoothing factor (0.0–1.0)
-    min_samples: int = 5     # Min observations before z-score is meaningful
+    alpha: float = 0.1  # Smoothing factor (0.0–1.0)
+    min_samples: int = 5  # Min observations before z-score is meaningful
     _mean: float = 0.0
-    _m2: float = 0.0         # Sum of squared differences (for variance)
+    _m2: float = 0.0  # Sum of squared differences (for variance)
     _count: int = 0
     _last_update: float = 0.0
     _current_value: float = 0.0
@@ -89,7 +89,7 @@ class EWMAMeter:
 
     @property
     def std(self) -> float:
-        return self.variance ** 0.5
+        return self.variance**0.5
 
     def z_score(self, value: float) -> float:
         s = self.std
@@ -108,6 +108,7 @@ class EWMAMeter:
 @dataclass
 class SourceStats:
     """Per-source statistics for anomaly detection."""
+
     rate_meter: EWMAMeter = field(default_factory=lambda: EWMAMeter(alpha=0.05))
     severity_meter: EWMAMeter = field(default_factory=lambda: EWMAMeter(alpha=0.1))
     technique_ids: set[str] = field(default_factory=set)
@@ -138,9 +139,9 @@ class TriageAgent(BaseAgent):
         super().__init__()
         self._sources: dict[str, SourceStats] = defaultdict(SourceStats)
         self._subscription: Subscription | None = None
-        self._z_score_threshold = 3.0       # Events >3σ are anomalous
-        self._silence_timeout_s = 300.0      # 5 min silence = anomaly
-        self._rate_spike_threshold = 10.0    # 10x normal rate = spike
+        self._z_score_threshold = 3.0  # Events >3σ are anomalous
+        self._silence_timeout_s = 300.0  # 5 min silence = anomaly
+        self._rate_spike_threshold = 10.0  # 10x normal rate = spike
         self._last_finding_time: dict[str, float] = {}
 
     # ── Detached runner (long-lived coroutine) ────────────────────────────────
@@ -168,7 +169,11 @@ class TriageAgent(BaseAgent):
         stats.last_seen = time.monotonic()
 
         # Track seen technique IDs
-        tid = event.technique_id.value if isinstance(event.technique_id, TechniqueID) else event.technique_id
+        tid = (
+            event.technique_id.value
+            if isinstance(event.technique_id, TechniqueID)
+            else event.technique_id
+        )
         stats.technique_ids.add(tid)
 
         # Update rate meter (increment by 1)
@@ -215,15 +220,17 @@ class TriageAgent(BaseAgent):
             elapsed = now - stats.last_seen
             if elapsed > self._silence_timeout_s:
                 last_seen_str = datetime.fromtimestamp(stats.last_seen).isoformat()
-                findings.append(Finding(
-                    agent=self.name,
-                    type="source_silent",
-                    severity=Severity.MEDIUM,
-                    file="",
-                    line=0,
-                    message=f"Source {source_key} has been silent for {elapsed:.0f}s (last seen: {last_seen_str})",
-                    suggestion="Check if the detector pipeline is healthy or if this source was intentionally removed",
-                ))
+                findings.append(
+                    Finding(
+                        agent=self.name,
+                        type="source_silent",
+                        severity=Severity.MEDIUM,
+                        file="",
+                        line=0,
+                        message=f"Source {source_key} has been silent for {elapsed:.0f}s (last seen: {last_seen_str})",
+                        suggestion="Check if the detector pipeline is healthy or if this source was intentionally removed",
+                    )
+                )
         return findings
 
     # ── Novelty check ─────────────────────────────────────────────────────────

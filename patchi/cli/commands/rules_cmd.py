@@ -63,6 +63,7 @@ def _list_rules(root: Path, con: Console) -> None:
     for pack_file in sorted(rules_dir.glob("*.yaml")):
         try:
             import yaml
+
             data = yaml.safe_load(pack_file.read_text(encoding="utf-8"))
             name = data.get("name", pack_file.stem)
             lang = data.get("language", "all")
@@ -104,7 +105,8 @@ def _list_agent_patterns(root: Path, con: Console) -> None:
     table.add_column("Detection", max_width=50)
 
     try:
-        from patchi.core.agents.base import list_agents, AgentGroup
+        from patchi.core.agents.base import AgentGroup, list_agents
+
         agents = list_agents(AgentGroup.SECURITY)
         for agent_cls in agents:
             table.add_row(
@@ -127,6 +129,7 @@ def _validate_rules(root: Path, con: Console) -> None:
     if validator_path.exists():
         con.print(f"  Running: python {validator_path}")
         import subprocess
+
         result = subprocess.run(
             ["python", str(validator_path)],
             capture_output=True,
@@ -153,6 +156,7 @@ def _validate_rules(root: Path, con: Console) -> None:
     for pack_file in sorted(rules_dir.glob("*.yaml")):
         try:
             import yaml
+
             data = yaml.safe_load(pack_file.read_text(encoding="utf-8"))
             if not isinstance(data, dict):
                 con.print(f"  [red]✗ {pack_file.name}: not a dict[/red]")
@@ -183,6 +187,7 @@ def _which_rule(root: Path, con: Console, finding_id: str) -> None:
         for pack_file in sorted(rules_dir.rglob("*.yaml")):
             try:
                 import yaml
+
                 data = yaml.safe_load(pack_file.read_text(encoding="utf-8"))
                 rules = data.get("rules", []) if isinstance(data, dict) else []
                 for rule in rules:
@@ -207,6 +212,7 @@ def _which_rule(root: Path, con: Console, finding_id: str) -> None:
     # Also search in agent pattern loaders
     try:
         from patchi.core.security.pattern_loader import load_patterns
+
         patterns = load_patterns()
         for section, rules in patterns.items():
             if isinstance(rules, list):

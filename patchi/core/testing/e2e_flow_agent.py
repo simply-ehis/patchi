@@ -340,7 +340,7 @@ if __name__ == "__main__":
         brain = inp.brain or {}
         route_map = brain.get("route_map", {})
         routes = []
-        for key, val in route_map.items():
+        for _key, val in route_map.items():
             if isinstance(val, dict) and "path" in val:
                 routes.append(val["path"])
             elif isinstance(val, str):

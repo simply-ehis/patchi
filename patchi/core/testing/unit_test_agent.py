@@ -37,6 +37,7 @@ from .flake_detector_agent import record_test_run
 
 _log = logging.getLogger("patchi.testing.unit_test_agent")
 
+
 @dataclass
 class TestCase:
     """Represents a single test case result."""
@@ -254,17 +255,17 @@ class UnitTestAgent(BaseAgent):
         for test_dir in ["tests", "test", "__tests__", "spec", "specs"]:
             td = root / test_dir
             if td.exists():
-                for p in td.rglob("*.py"):
+                for _p in td.rglob("*.py"):
                     return "pytest"
-                for p in td.rglob("*.js"):
+                for _p in td.rglob("*.js"):
                     return "jest"
-                for p in td.rglob("*.ts"):
+                for _p in td.rglob("*.ts"):
                     return "jest"
-                for p in td.rglob("*_test.go"):
+                for _p in td.rglob("*_test.go"):
                     return "go_test"
-                for p in td.rglob("*_spec.rb"):
+                for _p in td.rglob("*_spec.rb"):
                     return "rspec"
-                for p in td.rglob("*Test.php"):
+                for _p in td.rglob("*Test.php"):
                     return "phpunit"
 
         return None
@@ -294,15 +295,23 @@ class UnitTestAgent(BaseAgent):
         try:
             suite = fn(root)
             return {
-                "passed": suite.passed, "failed": suite.failed,
-                "skipped": suite.skipped, "errors": suite.errors,
-                "total": suite.total, "success": suite.success,
+                "passed": suite.passed,
+                "failed": suite.failed,
+                "skipped": suite.skipped,
+                "errors": suite.errors,
+                "total": suite.total,
+                "success": suite.success,
                 "test_details": [c.to_dict() for c in suite.cases],
             }
         except Exception as e:
             return {
-                "success": False, "error": str(e),
-                "total": 0, "passed": 0, "failed": 0, "skipped": 0, "test_details": [],
+                "success": False,
+                "error": str(e),
+                "total": 0,
+                "passed": 0,
+                "failed": 0,
+                "skipped": 0,
+                "test_details": [],
             }
 
     def _run_pytest(self, root: Path, scope: list[str] | None = None) -> TestSuite:
@@ -456,7 +465,9 @@ class UnitTestAgent(BaseAgent):
                 suite.cases.append(TestCase(name=test_name, passed=True))
             elif action == "fail":
                 suite.failed += 1
-                suite.cases.append(TestCase(name=test_name, passed=False, error=rec.get("Output", "")))
+                suite.cases.append(
+                    TestCase(name=test_name, passed=False, error=rec.get("Output", ""))
+                )
             elif action == "skip":
                 suite.skipped += 1
         suite.total = suite.passed + suite.failed + suite.skipped
@@ -590,7 +601,9 @@ class UnitTestAgent(BaseAgent):
         output = f"{proc.get('stdout', '')}\n{proc.get('stderr', '')}"
         suite = TestSuite(runner="minitest")
         for line in output.splitlines():
-            m = re.search(r"(\d+)\s+runs.*(\d+)\s+assertions.*(\d+)\s+failures.*(\d+)\s+errors", line)
+            m = re.search(
+                r"(\d+)\s+runs.*(\d+)\s+assertions.*(\d+)\s+failures.*(\d+)\s+errors", line
+            )
             if m:
                 suite.total = int(m.group(1))
                 suite.failed = int(m.group(3)) + int(m.group(4))
@@ -604,8 +617,12 @@ class UnitTestAgent(BaseAgent):
     def _run_phpunit(self, root: Path) -> TestSuite:
         phpunit = root / "vendor" / "bin" / "phpunit"
         if not phpunit.exists():
-            return TestSuite(runner="phpunit", success=True, errors=1,
-                             cases=[TestCase(name="phpunit not found at vendor/bin/phpunit", passed=False)])
+            return TestSuite(
+                runner="phpunit",
+                success=True,
+                errors=1,
+                cases=[TestCase(name="phpunit not found at vendor/bin/phpunit", passed=False)],
+            )
         cmd = [str(phpunit), "--log-junit", str(root / ".patchi" / "phpunit.xml")]
         proc = _run(cmd, root, timeout=180)
         junit_file = root / ".patchi" / "phpunit.xml"
@@ -622,6 +639,7 @@ class UnitTestAgent(BaseAgent):
         suite = TestSuite(runner="phpunit")
         try:
             import xml.etree.ElementTree as ET
+
             root = ET.fromstring(xml_content)
             for ts in root.findall(".//testsuite"):
                 try:

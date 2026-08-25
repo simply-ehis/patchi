@@ -27,9 +27,11 @@ from typing import Any
 
 try:
     from loguru import logger as _logger
+
     _HAS_LOGURU = True
 except ImportError:
     import logging
+
     _logger = logging.getLogger("patchi.trace")
     _HAS_LOGURU = False
 
@@ -37,6 +39,7 @@ except ImportError:
 @dataclass
 class AgentTrace:
     """Record of a single agent execution."""
+
     agent_name: str
     root: Path
     start_time: float = 0.0
@@ -122,8 +125,7 @@ def format_trace_summary() -> str:
         total_findings += t.findings
         status_icon = "ok" if t.status == "ok" else "FAIL"
         lines.append(
-            f"  {t.agent_name:25s} {t.duration_ms:6d}ms  "
-            f"{t.findings:3d} findings  [{status_icon}]"
+            f"  {t.agent_name:25s} {t.duration_ms:6d}ms  {t.findings:3d} findings  [{status_icon}]"
         )
     lines.append("-" * 60)
     lines.append(f"  {'TOTAL':25s} {total_ms:6d}ms  {total_findings:3d} findings")

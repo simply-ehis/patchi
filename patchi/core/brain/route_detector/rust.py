@@ -3,12 +3,24 @@ import re
 from patchi.core.brain.route_detector.base import BaseRouteDetector
 from patchi.core.brain.route_detector.registry import register_detector
 
-_RUST_HTTP_METHODS = {"get", "post", "put", "delete", "patch", "head", "options", "connect", "trace", "any"}
+_RUST_HTTP_METHODS = {
+    "get",
+    "post",
+    "put",
+    "delete",
+    "patch",
+    "head",
+    "options",
+    "connect",
+    "trace",
+    "any",
+}
 
 
 import logging
 
 _log = logging.getLogger("patchi.brain.rust")
+
 
 @register_detector("rust")
 class RustRouteDetector(BaseRouteDetector):
@@ -32,17 +44,21 @@ class RustRouteDetector(BaseRouteDetector):
         self._walk(tree.root_node, bytes(content, "utf-8"), content, file_path, routes)
         return routes
 
-    def _walk(self, node: object, buf: bytes, content: str, file_path: str, routes: list[dict]) -> None:
+    def _walk(
+        self, node: object, buf: bytes, content: str, file_path: str, routes: list[dict]
+    ) -> None:
         ntype = getattr(node, "type", "")
         if ntype == "attribute_item":
             self._check_actix_attr(node, buf, content, file_path, routes)
         elif ntype == "call_expression":
             self._check_axum_call(node, buf, content, file_path, routes)
 
-        for child in (getattr(node, "named_children", None) or getattr(node, "children", [])):
+        for child in getattr(node, "named_children", None) or getattr(node, "children", []):
             self._walk(child, buf, content, file_path, routes)
 
-    def _check_actix_attr(self, node: object, buf: bytes, content: str, file_path: str, routes: list[dict]) -> None:
+    def _check_actix_attr(
+        self, node: object, buf: bytes, content: str, file_path: str, routes: list[dict]
+    ) -> None:
         attr = self._child_by_field(node, "attribute")
         if attr is None:
             return
@@ -65,18 +81,22 @@ class RustRouteDetector(BaseRouteDetector):
         args = self._child_by_field(attr, "arguments")
         path = ""
         if args:
-            for child in (getattr(args, "named_children", None) or getattr(args, "children", [])):
+            for child in getattr(args, "named_children", None) or getattr(args, "children", []):
                 if child.type in ("string_literal", "raw_string_literal"):
                     raw = self._node_text(child)
-                    path = raw.strip("\"")
+                    path = raw.strip('"')
                     break
 
         handler = self._find_fn_name(node)
         line = getattr(node, "start_point", (0, 0))[0] + 1
 
-        routes.append(self._make_route(raw.upper(), path, handler, file_path, line, framework="Actix Web"))
+        routes.append(
+            self._make_route(raw.upper(), path, handler, file_path, line, framework="Actix Web")
+        )
 
-    def _check_axum_call(self, node: object, buf: bytes, content: str, file_path: str, routes: list[dict]) -> None:
+    def _check_axum_call(
+        self, node: object, buf: bytes, content: str, file_path: str, routes: list[dict]
+    ) -> None:
         func = self._child_by_field(node, "function")
         if func is None:
             return
@@ -93,7 +113,7 @@ class RustRouteDetector(BaseRouteDetector):
         path = ""
         first = args.named_child(0)
         if first and first.type in ("string_literal", "raw_string_literal"):
-            path = self._node_text(first).strip("\"")
+            path = self._node_text(first).strip('"')
         if not path:
             return
 
@@ -115,7 +135,9 @@ class RustRouteDetector(BaseRouteDetector):
             return
 
         line = getattr(node, "start_point", (0, 0))[0] + 1
-        routes.append(self._make_route(http_method.upper(), path, handler, file_path, line, framework="Axum"))
+        routes.append(
+            self._make_route(http_method.upper(), path, handler, file_path, line, framework="Axum")
+        )
 
     def _find_fn_name(self, node: object) -> str:
         cur = node
@@ -168,7 +190,9 @@ class RustRouteDetector(BaseRouteDetector):
                 if hm:
                     handler = hm.group(1)
                     break
-            routes.append(self._make_route(method, path, handler, file_path, i, framework="Actix Web"))
+            routes.append(
+                self._make_route(method, path, handler, file_path, i, framework="Actix Web")
+            )
 
         axum_pat = re.compile(
             rf"""\.route\s*\(\s*["']([^"']+)["']\s*,\s*({http})\s*\(""",
@@ -181,7 +205,11 @@ class RustRouteDetector(BaseRouteDetector):
             path = m.group(1)
             method = m.group(2).upper()
             handler = ""
-            hm = re.search(rf"""({http})\s*\(\s*(\w+)""", line[m.end():] if m.end() < len(line) else line, re.IGNORECASE)
+            hm = re.search(
+                rf"""({http})\s*\(\s*(\w+)""",
+                line[m.end() :] if m.end() < len(line) else line,
+                re.IGNORECASE,
+            )
             if hm:
                 handler = hm.group(2)
             routes.append(self._make_route(method, path, handler, file_path, i, framework="Axum"))

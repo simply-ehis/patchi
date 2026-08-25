@@ -79,27 +79,29 @@ class CryptoAgent(BaseAgent):
 
         result.status = AgentStatus.SUCCEEDED
         result.findings = findings
-        result.data.update({
-            "crypto_findings": len(
-                [
-                    f
-                    for f in findings
-                    if any(
-                        word in f.title.lower()
-                        for word in [
-                            "crypto",
-                            "hash",
-                            "encrypt",
-                            "random",
-                            "salt",
-                            "key",
-                            "prng",
-        ]
+        result.data.update(
+            {
+                "crypto_findings": len(
+                    [
+                        f
+                        for f in findings
+                        if any(
+                            word in f.title.lower()
+                            for word in [
+                                "crypto",
+                                "hash",
+                                "encrypt",
+                                "random",
+                                "salt",
+                                "key",
+                                "prng",
+                            ]
+                        )
+                    ]
+                ),
+                "needs_ai": False,
+            }
         )
-        ]
-            ),
-            "needs_ai": False,
-        })
         return
 
     def _should_skip_file(self, file_path: str, inp: AgentInput) -> bool:
@@ -273,7 +275,7 @@ class CryptoAgent(BaseAgent):
         for i, line in enumerate(lines, 1):
             for pattern, description, severity in salt_patterns:
                 matches = re.finditer(pattern, line, re.IGNORECASE)
-                for match in matches:
+                for _match in matches:
                     findings.append(
                         make_finding(
                             severity=severity,
@@ -298,7 +300,7 @@ class CryptoAgent(BaseAgent):
         for i, line in enumerate(lines, 1):
             for pattern, description, severity in hardcoded_salt_patterns:
                 matches = re.finditer(pattern, line, re.IGNORECASE)
-                for match in matches:
+                for _match in matches:
                     findings.append(
                         make_finding(
                             severity=severity,

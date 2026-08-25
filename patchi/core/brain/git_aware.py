@@ -19,6 +19,7 @@ from patchi.core.agents.base import Finding
 
 _log = logging.getLogger("patchi.brain.git_aware")
 
+
 def _git(args: list[str], root: Path) -> str | None:
     """Run a git command and return stdout, or None on failure."""
     try:
@@ -117,9 +118,7 @@ def blame_line(file_path: str, line: int, root: Path) -> dict | None:
     return result if result.get("commit") else None
 
 
-def annotate_findings_with_blame(
-    findings: list, root: Path, max_workers: int = 4
-) -> int:
+def annotate_findings_with_blame(findings: list, root: Path, max_workers: int = 4) -> int:
     """
     Enrich findings with git blame information.
 

@@ -13,11 +13,12 @@ from __future__ import annotations
 import json
 import logging
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable, Optional
+from typing import Any
 
 from patchi.core.ai.client import call_ai_structured
 from patchi.core.ai.prompts import Skill, get_system_prompt
@@ -28,16 +29,18 @@ _log = logging.getLogger("patchi.brain.personas")
 
 class PersonaStyle(Enum):
     """Decision-making style of the persona."""
-    CAUTIOUS = "cautious"          # Prefers safe, proven approaches
-    AGGRESSIVE = "aggressive"      # Pushes boundaries, finds edge cases
-    BALANCED = "balanced"          # Weighs tradeoffs carefully
-    INNOVATIVE = "innovative"      # Seeks novel solutions
-    PRAGMATIC = "pragmatic"        # Focuses on practical outcomes
+
+    CAUTIOUS = "cautious"  # Prefers safe, proven approaches
+    AGGRESSIVE = "aggressive"  # Pushes boundaries, finds edge cases
+    BALANCED = "balanced"  # Weighs tradeoffs carefully
+    INNOVATIVE = "innovative"  # Seeks novel solutions
+    PRAGMATIC = "pragmatic"  # Focuses on practical outcomes
 
 
 @dataclass
 class PersonaDecision:
     """A single decision from a persona."""
+
     persona_name: str
     issue: str
     analysis: str
@@ -45,23 +48,24 @@ class PersonaDecision:
     confidence: float  # 0.0 - 1.0
     tools_needed: list[str] = field(default_factory=list)
     risks: list[str] = field(default_factory=list)
-    timestamp: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    timestamp: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
     reasoning_trace: list[str] = field(default_factory=list)
 
 
 @dataclass
 class PersonaMemory:
     """Long-term memory for a persona."""
+
     decisions: list[PersonaDecision] = field(default_factory=list)
     patterns_learned: dict[str, Any] = field(default_factory=dict)
     success_rates: dict[str, float] = field(default_factory=dict)
-    last_updated: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    last_updated: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
 
 
 class BasePersona(ABC):
     """
     Abstract base class for all Council personas.
-    
+
     Each persona must implement:
     - analyze(): Core analysis logic
     - get_tool_permissions(): Which tools this persona can call
@@ -75,7 +79,7 @@ class BasePersona(ABC):
         brain_layers: dict[str, Layer],
         project_context: dict,
         config: dict,
-        on_progress: Optional[Callable[[str], None]] = None,
+        on_progress: Callable[[str], None] | None = None,
     ):
         self.name = name
         self.root = root
@@ -130,7 +134,7 @@ class BasePersona(ABC):
             "decisions": [d.__dict__ for d in self.memory.decisions[-100:]],  # Keep last 100
             "patterns_learned": self.memory.patterns_learned,
             "success_rates": self.memory.success_rates,
-            "last_updated": datetime.now(timezone.utc).isoformat(),
+            "last_updated": datetime.now(UTC).isoformat(),
         }
         try:
             mem_path.write_text(json.dumps(data, indent=2), encoding="utf-8")
@@ -150,7 +154,7 @@ class BasePersona(ABC):
         ]
 
         # Add relevant layer summaries
-        for layer_name, layer in self.layers.items():
+        for _layer_name, layer in self.layers.items():
             if layer.level <= 2:  # Project and subsystem levels
                 ctx_parts.append(f"[{layer.name}] {layer.summary}")
 
@@ -191,20 +195,20 @@ class BasePersona(ABC):
     def analyze(self, issue: str, context: dict = None) -> PersonaDecision:
         """
         Analyze an issue and produce a decision.
-        
+
         This is the main entry point called by the Council.
         """
         self._decision_count += 1
         self.on_progress(f"[{self.name}] Analyzing: {issue[:80]}...")
 
         # Build context
-        full_context = self._build_context(issue, context)
+        self._build_context(issue, context)
 
         # Create analysis prompt
         analysis_prompt = f"""
 Analyze the following issue from your perspective as {self.name}.
 
-Your expertise: {', '.join(self.get_expertise_areas())}
+Your expertise: {", ".join(self.get_expertise_areas())}
 Your style: {self.get_style().value}
 
 Issue: {issue}
@@ -241,7 +245,9 @@ Provide your analysis in this JSON format:
         self.memory.decisions.append(decision)
         self._save_memory()
 
-        self.on_progress(f"[{self.name}] Decision: {decision.recommendation[:80]}... (confidence: {decision.confidence:.0%})")
+        self.on_progress(
+            f"[{self.name}] Decision: {decision.recommendation[:80]}... (confidence: {decision.confidence:.0%})"
+        )
         return decision
 
     def _heuristic_decision(self, issue: str, context: dict = None) -> PersonaDecision:
@@ -266,7 +272,7 @@ Provide your analysis in this JSON format:
         self.memory.patterns_learned[key] = {
             "last_outcome": "success" if success else "failure",
             "details": details,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         }
         self._save_memory()
 
@@ -275,7 +281,7 @@ Provide your analysis in this JSON format:
         # Use reasoning engine to find relevant layers
         from patchi.core.brain.reasoning import ReasoningEngine
 
-        engine = ReasoningEngine(self.root)
+        ReasoningEngine(self.root)
         relevant = {}
 
         # Find layers matching issue keywords

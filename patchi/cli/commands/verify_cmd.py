@@ -47,8 +47,10 @@ def run(
         ok = claim_holds(claim, report)
         verdict = "[#4ADE80]TRUE[/#4ADE80]" if ok else "[#FACC15]FALSE[/#FACC15]"
         con.print()
-        con.print(f"[bold]Claim:[/bold] \"{claim}\"  →  holds: {verdict}")
+        con.print(f'[bold]Claim:[/bold] "{claim}"  →  holds: {verdict}')
         if not ok:
-            con.print("[dim]Do not report this as done. Fix and re-run [bold]p verify[/bold].[/dim]")
+            con.print(
+                "[dim]Do not report this as done. Fix and re-run [bold]p verify[/bold].[/dim]"
+            )
 
     con.print()

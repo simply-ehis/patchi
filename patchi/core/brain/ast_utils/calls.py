@@ -15,6 +15,7 @@ from .scan import scan_python
 
 _log = logging.getLogger("patchi.brain.calls")
 
+
 def find_calls(content: str, lang: Lang, names: set[str]) -> list[dict]:
     """
     Find all function/method calls in source whose name matches one of `names`.
@@ -44,6 +45,7 @@ def find_calls(content: str, lang: Lang, names: set[str]) -> list[dict]:
 def _find_calls_python(content: str, names: set[str]) -> list[dict]:
     """Filter the single-pass scan for matching call names."""
     from pathlib import Path as _Path
+
     scan = scan_python(content, file_path=_Path("<ast_utils>"))
     results: list[dict] = []
     for call in scan.get("calls", []):
@@ -57,12 +59,14 @@ def _find_calls_python(content: str, names: set[str]) -> list[dict]:
                 src_lines = content.splitlines()
                 if 0 < line_no <= len(src_lines):
                     full_text = src_lines[line_no - 1]
-            results.append({
-                "name": fn,
-                "line": line_no,
-                "col": call.get("col", 0),
-                "full_text": full_text,
-            })
+            results.append(
+                {
+                    "name": fn,
+                    "line": line_no,
+                    "col": call.get("col", 0),
+                    "full_text": full_text,
+                }
+            )
     return results
 
 
@@ -101,12 +105,14 @@ def _walk_calls(node: Any, call_types: set[str], names: set[str], results: list[
                 except Exception as e:
                     _log.warning("_walk_calls failed: %s", e)
                     line, col = 0, 0
-                results.append({
-                    "name": fn,
-                    "line": line,
-                    "col": col,
-                    "full_text": node_text(node),
-                })
+                results.append(
+                    {
+                        "name": fn,
+                        "line": line,
+                        "col": col,
+                        "full_text": node_text(node),
+                    }
+                )
 
         # For Ruby: also check call method name (avoid duplicate of existing match)
         if ntype == "call" and not any(r["name"] == fn for r in results):
@@ -120,12 +126,14 @@ def _walk_calls(node: Any, call_types: set[str], names: set[str], results: list[
                     except Exception as e:
                         _log.warning("_walk_calls failed: %s", e)
                         line = 0
-                    results.append({
-                        "name": fn_name,
-                        "line": line,
-                        "col": 0,
-                        "full_text": node_text(node),
-                    })
+                    results.append(
+                        {
+                            "name": fn_name,
+                            "line": line,
+                            "col": 0,
+                            "full_text": node_text(node),
+                        }
+                    )
 
     for child in children(node):
         _walk_calls(child, call_types, names, results)

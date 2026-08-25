@@ -44,9 +44,27 @@ from ..brain.ast_utils import find_calls
 
 # Source extensions to scan (language parity).
 _SCAN_EXTENSIONS = [
-    ".py", ".js", ".jsx", ".ts", ".tsx", ".java", ".rb", ".php", ".go",
-    ".rs", ".cpp", ".cxx", ".cc", ".c", ".h", ".hpp", ".cs", ".kt", ".kts",
-    ".swift", ".dart",
+    ".py",
+    ".js",
+    ".jsx",
+    ".ts",
+    ".tsx",
+    ".java",
+    ".rb",
+    ".php",
+    ".go",
+    ".rs",
+    ".cpp",
+    ".cxx",
+    ".cc",
+    ".c",
+    ".h",
+    ".hpp",
+    ".cs",
+    ".kt",
+    ".kts",
+    ".swift",
+    ".dart",
 ]
 
 # Hash function call names that are weak (detected structurally via AST).
@@ -55,7 +73,10 @@ _WEAK_HASH_NAMES = {"md5", "sha1", "sha256", "sha512", "crypt"}
 _WEAK_HASH_INFO = {
     "md5": (Severity.CRITICAL, "MD5 used for password hashing — cryptographically broken"),
     "sha1": (Severity.CRITICAL, "SHA1 used for password hashing — cryptographically weak"),
-    "sha256": (Severity.HIGH, "SHA-256 used for password hashing — use bcrypt/scrypt/argon2 instead"),
+    "sha256": (
+        Severity.HIGH,
+        "SHA-256 used for password hashing — use bcrypt/scrypt/argon2 instead",
+    ),
     "sha512": (Severity.MEDIUM, "SHA-512 used for password hashing — prefer bcrypt/scrypt/argon2"),
     "crypt": (Severity.MEDIUM, "Unix crypt() for password hashing — use modern alternatives"),
 }
@@ -65,19 +86,57 @@ _GOOD_HASH_PATTERNS = [
 
 # ── Weak password hashing literal patterns (regex fallback / unsupported langs) ──
 _WEAK_HASH_PATTERNS = [
-    (re.compile(r"(?:hashlib\.)?md5\s*\(", re.I), Severity.CRITICAL, "MD5 used for password hashing — cryptographically broken"),
-    (re.compile(r"(?:hashlib\.)?sha1\s*\(", re.I), Severity.CRITICAL, "SHA1 used for password hashing — cryptographically weak"),
-    (re.compile(r"(?:hashlib\.)?sha256\s*\(", re.I), Severity.HIGH, "SHA-256 used for password hashing — use bcrypt/scrypt/argon2 instead"),
-    (re.compile(r"hashlib\.sha512\s*\(", re.I), Severity.MEDIUM, "SHA-512 used for password hashing — prefer bcrypt/scrypt/argon2"),
-    (re.compile(r"crypt\s*\(", re.I), Severity.MEDIUM, "Unix crypt() for password hashing — use modern alternatives"),
+    (
+        re.compile(r"(?:hashlib\.)?md5\s*\(", re.I),
+        Severity.CRITICAL,
+        "MD5 used for password hashing — cryptographically broken",
+    ),
+    (
+        re.compile(r"(?:hashlib\.)?sha1\s*\(", re.I),
+        Severity.CRITICAL,
+        "SHA1 used for password hashing — cryptographically weak",
+    ),
+    (
+        re.compile(r"(?:hashlib\.)?sha256\s*\(", re.I),
+        Severity.HIGH,
+        "SHA-256 used for password hashing — use bcrypt/scrypt/argon2 instead",
+    ),
+    (
+        re.compile(r"hashlib\.sha512\s*\(", re.I),
+        Severity.MEDIUM,
+        "SHA-512 used for password hashing — prefer bcrypt/scrypt/argon2",
+    ),
+    (
+        re.compile(r"crypt\s*\(", re.I),
+        Severity.MEDIUM,
+        "Unix crypt() for password hashing — use modern alternatives",
+    ),
 ]
 
 # ── Session patterns ────────────────────────────────────────────────────
 _SESSION_PATTERNS = [
-    (re.compile(r"session\[.*?\]\s*=", re.I), Severity.LOW, "Session assignment — verify secure configuration"),
-    (re.compile(r'(?:session\.secret|SECRET_KEY|session_secret)\s*[:=]\s*["\'][^"\']{4,}["\']', re.I), Severity.CRITICAL, "Hardcoded session secret in source code"),
-    (re.compile(r"(?:cookie_httponly|httponly.*cookie|Secure.*cookie)", re.I), Severity.LOW, "Cookie security configuration found — verify all flags set"),
-    (re.compile(r"(?:set_cookie|set_cookie_attr|response\.set_cookie)", re.I), Severity.LOW, "Cookie being set — verify httponly, secure, and samesite flags"),
+    (
+        re.compile(r"session\[.*?\]\s*=", re.I),
+        Severity.LOW,
+        "Session assignment — verify secure configuration",
+    ),
+    (
+        re.compile(
+            r'(?:session\.secret|SECRET_KEY|session_secret)\s*[:=]\s*["\'][^"\']{4,}["\']', re.I
+        ),
+        Severity.CRITICAL,
+        "Hardcoded session secret in source code",
+    ),
+    (
+        re.compile(r"(?:cookie_httponly|httponly.*cookie|Secure.*cookie)", re.I),
+        Severity.LOW,
+        "Cookie security configuration found — verify all flags set",
+    ),
+    (
+        re.compile(r"(?:set_cookie|set_cookie_attr|response\.set_cookie)", re.I),
+        Severity.LOW,
+        "Cookie being set — verify httponly, secure, and samesite flags",
+    ),
 ]
 
 # ── Auth endpoint patterns ──────────────────────────────────────────────
@@ -93,9 +152,21 @@ _RATE_LIMIT_PATTERNS = [
 
 # ── OAuth patterns ──────────────────────────────────────────────────────
 _OAUTH_PATTERNS = [
-    (re.compile(r"(?:oauth|openid|oidc)", re.I), Severity.INFO, "OAuth/OIDC code found — verify implementation security"),
-    (re.compile(r'(?:redirect_uri|callback_url)\s*[:=]\s*["\'][^"\']*["\']', re.I), Severity.MEDIUM, "OAuth redirect URI — verify it's not open redirect"),
-    (re.compile(r'(?:client_secret|client_id)\s*[:=]\s*["\'][^"\']{8,}["\']', re.I), Severity.CRITICAL, "OAuth client secret hardcoded in source"),
+    (
+        re.compile(r"(?:oauth|openid|oidc)", re.I),
+        Severity.INFO,
+        "OAuth/OIDC code found — verify implementation security",
+    ),
+    (
+        re.compile(r'(?:redirect_uri|callback_url)\s*[:=]\s*["\'][^"\']*["\']', re.I),
+        Severity.MEDIUM,
+        "OAuth redirect URI — verify it's not open redirect",
+    ),
+    (
+        re.compile(r'(?:client_secret|client_id)\s*[:=]\s*["\'][^"\']{8,}["\']', re.I),
+        Severity.CRITICAL,
+        "OAuth client secret hardcoded in source",
+    ),
 ]
 
 _SKIP_DIRS = DEFAULT_IGNORE_DIRS
@@ -151,7 +222,9 @@ class AuthenticationAuditAgent(BaseAgent):
 
     # ── Password hashing (AST + regex) ─────────────────────────────────────
 
-    def _check_password_hashing(self, content: str, rel_path: str, lang: Lang | None) -> list[Finding]:
+    def _check_password_hashing(
+        self, content: str, rel_path: str, lang: Lang | None
+    ) -> list[Finding]:
         findings = []
         lines = content.splitlines()
 
@@ -198,12 +271,22 @@ class AuthenticationAuditAgent(BaseAgent):
     # ── Literal-pattern checks (multi-language) ─────────────────────────────
 
     def _check_session_security(self, content: str, rel_path: str) -> list[Finding]:
-        return self._line_scan(content, rel_path, _SESSION_PATTERNS, "session_security",
-                               "Ensure session cookies use httponly, secure, and samesite flags.")
+        return self._line_scan(
+            content,
+            rel_path,
+            _SESSION_PATTERNS,
+            "session_security",
+            "Ensure session cookies use httponly, secure, and samesite flags.",
+        )
 
     def _check_oauth(self, content: str, rel_path: str) -> list[Finding]:
-        return self._line_scan(content, rel_path, _OAUTH_PATTERNS, "oauth_security",
-                               "Verify OAuth implementation follows security best practices.")
+        return self._line_scan(
+            content,
+            rel_path,
+            _OAUTH_PATTERNS,
+            "oauth_security",
+            "Verify OAuth implementation follows security best practices.",
+        )
 
     def _line_scan(self, content, rel_path, patterns, finding_type, suggestion) -> list[Finding]:
         findings = []

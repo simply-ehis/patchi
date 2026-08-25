@@ -5,9 +5,10 @@ from __future__ import annotations
 from pathlib import Path
 
 from fastapi import APIRouter, Request
-from patchi.core.tenant import tenant_context
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
+
+from patchi.core.tenant import tenant_context
 
 router = APIRouter()
 templates = Jinja2Templates(directory=str(Path(__file__).parent.parent / "templates"))
@@ -54,14 +55,16 @@ async def assurance(request: Request):
     # Build claims data for the template
     claims_data = []
     for claim in graph.claims.values():
-        claims_data.append({
-            "id": claim.id,
-            "statement": claim.statement,
-            "domain": claim.domain,
-            "verdict": claim.verdict.value,
-            "severity": claim.severity_if_disproved,
-            "evidence_count": len(claim.evidence),
-        })
+        claims_data.append(
+            {
+                "id": claim.id,
+                "statement": claim.statement,
+                "domain": claim.domain,
+                "verdict": claim.verdict.value,
+                "severity": claim.severity_if_disproved,
+                "evidence_count": len(claim.evidence),
+            }
+        )
 
     # Sort by verdict (disproved first)
     verdict_order = {"disproved": 0, "not_proved": 1, "unproven": 2, "proved": 3}
@@ -69,7 +72,9 @@ async def assurance(request: Request):
 
     # Chain/intent claims (from chain_to_assurance bridge)
     chain_claims = [c for c in claims_data if c["domain"] in ("exploit-chain", "intent-gap")]
-    invariant_claims = [c for c in claims_data if c["domain"] not in ("exploit-chain", "intent-gap")]
+    invariant_claims = [
+        c for c in claims_data if c["domain"] not in ("exploit-chain", "intent-gap")
+    ]
 
     # Load raw chain data for the chain explorer tab
     chain_raw = []
@@ -77,6 +82,7 @@ async def assurance(request: Request):
         ci_path = root / ".patchi" / "chain_intent.json"
         if ci_path.is_file():
             import json
+
             ci = json.loads(ci_path.read_text(encoding="utf-8"))
             chain_raw = ci.get("chains", [])
     except Exception:
@@ -137,9 +143,11 @@ async def assurance_api(request: Request):
     except Exception:
         pass
 
-    return JSONResponse({
-        "coverage": coverage,
-        "attacker": {"total": attacker_count, "confirmed": confirmed_count},
-        "campaigns": campaign_data,
-        "fuzz_endpoints": len([c for c in graph.claims.values() if "endpoint" in c.domain]),
-    })
+    return JSONResponse(
+        {
+            "coverage": coverage,
+            "attacker": {"total": attacker_count, "confirmed": confirmed_count},
+            "campaigns": campaign_data,
+            "fuzz_endpoints": len([c for c in graph.claims.values() if "endpoint" in c.domain]),
+        }
+    )

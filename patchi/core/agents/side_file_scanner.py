@@ -38,6 +38,7 @@ from .base import (
 
 _log = logging.getLogger("patchi.agents.side_file_scanner")
 
+
 @register
 class SideFileScanner(BaseAgent):
     """Scanner for configuration and side files."""

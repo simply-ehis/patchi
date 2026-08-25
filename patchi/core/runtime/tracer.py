@@ -24,13 +24,12 @@ import sys
 import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional
 
 _log = logging.getLogger("patchi.core.runtime.tracer")
 
 # The child-side tracer source. Injected as a file so we don't fight
 # shell quoting; kept as one string so it stays reviewable.
-_CHILD_TRACER = r'''
+_CHILD_TRACER = r"""
 import json
 import sys
 import time
@@ -122,7 +121,7 @@ def main():
         json.dump(out, fh, default=str)
 
 main()
-'''
+"""
 
 
 @dataclass
@@ -159,9 +158,7 @@ class TraceReport:
             "call_count": self.call_count,
             "truncated": self.truncated,
             "crashed": self.crashed,
-            "hot_functions": [
-                {"fn": fn, "calls": n} for fn, n in self.hot_functions()
-            ],
+            "hot_functions": [{"fn": fn, "calls": n} for fn, n in self.hot_functions()],
             "exceptions": self.exceptions,
             "error": self.error,
         }
@@ -171,7 +168,7 @@ def trace_file(
     script: str | Path,
     timeout: float = 60.0,
     max_calls: int = 5000,
-    args: Optional[list[str]] = None,
+    args: list[str] | None = None,
 ) -> TraceReport:
     """
     Run *script* under the tracer; returns a TraceReport.

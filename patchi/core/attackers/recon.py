@@ -22,28 +22,32 @@ class ReconAttacker(BaseAttacker):
             # Unprotected endpoints
             if "endpoint" in claim.domain.lower() and "auth" in claim.statement.lower():
                 if claim.verdict.value in ("not_proved", "unproven"):
-                    hypotheses.append(Hypothesis(
-                        attacker=self.name,
-                        objective=self.objective,
-                        target=claim.id,
-                        risk="medium",
-                        confidence=0.6,
-                        description=f"Endpoint may be unprotected: {claim.statement}",
-                        evidence_required=["route scan", "auth check"],
-                    ))
+                    hypotheses.append(
+                        Hypothesis(
+                            attacker=self.name,
+                            objective=self.objective,
+                            target=claim.id,
+                            risk="medium",
+                            confidence=0.6,
+                            description=f"Endpoint may be unprotected: {claim.statement}",
+                            evidence_required=["route scan", "auth check"],
+                        )
+                    )
 
             # Excess permissions
             if "permission" in claim.statement.lower() or "access" in claim.statement.lower():
                 if claim.verdict.value == "unproven":
-                    hypotheses.append(Hypothesis(
-                        attacker=self.name,
-                        objective=self.objective,
-                        target=claim.id,
-                        risk="medium",
-                        confidence=0.5,
-                        description=f"Permission boundary unverified: {claim.statement}",
-                        evidence_required=["access control check"],
-                    ))
+                    hypotheses.append(
+                        Hypothesis(
+                            attacker=self.name,
+                            objective=self.objective,
+                            target=claim.id,
+                            risk="medium",
+                            confidence=0.5,
+                            description=f"Permission boundary unverified: {claim.statement}",
+                            evidence_required=["access control check"],
+                        )
+                    )
 
         return hypotheses
 

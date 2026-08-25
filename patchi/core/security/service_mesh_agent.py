@@ -126,7 +126,6 @@ class ServiceMeshAgent(BaseAgent):
 
     def _run(self, inp: AgentInput, result: AgentResult) -> None:
         with trace_agent(self.name, inp.root) as trace:
-
             findings: list[Finding] = []
             files_scanned = 0
 
@@ -161,39 +160,45 @@ class ServiceMeshAgent(BaseAgent):
 
             # Check for missing PeerAuthentication
             if crd_types and not has_peer_auth:
-                findings.append(make_finding(
-                    Severity.MEDIUM,
-                    "",
-                    0,
-                    "MESH-02: No PeerAuthentication found",
-                    "Service mesh CRDs detected but no PeerAuthentication policy. mTLS may not be enforced.",
-                    suggestion="Add PeerAuthentication with mode=STRICT for all namespaces",
-                    control_id="MESH-02",
-                ))
+                findings.append(
+                    make_finding(
+                        Severity.MEDIUM,
+                        "",
+                        0,
+                        "MESH-02: No PeerAuthentication found",
+                        "Service mesh CRDs detected but no PeerAuthentication policy. mTLS may not be enforced.",
+                        suggestion="Add PeerAuthentication with mode=STRICT for all namespaces",
+                        control_id="MESH-02",
+                    )
+                )
 
             # Check for missing AuthorizationPolicy
             if crd_types and not has_authz_policy:
-                findings.append(make_finding(
-                    Severity.MEDIUM,
-                    "",
-                    0,
-                    "MESH-04: No AuthorizationPolicy (default allow)",
-                    "Service mesh CRDs detected but no AuthorizationPolicy. All traffic may be allowed by default.",
-                    suggestion="Implement default-deny AuthorizationPolicy and explicit ALLOW rules",
-                    control_id="MESH-04",
-                ))
+                findings.append(
+                    make_finding(
+                        Severity.MEDIUM,
+                        "",
+                        0,
+                        "MESH-04: No AuthorizationPolicy (default allow)",
+                        "Service mesh CRDs detected but no AuthorizationPolicy. All traffic may be allowed by default.",
+                        suggestion="Implement default-deny AuthorizationPolicy and explicit ALLOW rules",
+                        control_id="MESH-04",
+                    )
+                )
 
             # Check for missing default-deny
             if crd_types and not has_default_deny:
-                findings.append(make_finding(
-                    Severity.MEDIUM,
-                    "",
-                    0,
-                    "MESH-05: No default-deny policy detected",
-                    "No DENY action policy found. Consider implementing default-deny for least privilege.",
-                    suggestion="Create default-deny AuthorizationPolicy in each namespace",
-                    control_id="MESH-05",
-                ))
+                findings.append(
+                    make_finding(
+                        Severity.MEDIUM,
+                        "",
+                        0,
+                        "MESH-05: No default-deny policy detected",
+                        "No DENY action policy found. Consider implementing default-deny for least privilege.",
+                        suggestion="Create default-deny AuthorizationPolicy in each namespace",
+                        control_id="MESH-05",
+                    )
+                )
 
             # Phase 5: Try external tools
             # Try istioctl analyze
@@ -211,14 +216,16 @@ class ServiceMeshAgent(BaseAgent):
                         for line in output.split("\n"):
                             if "Error" in line or "Warning" in line:
                                 severity = Severity.HIGH if "Error" in line else Severity.MEDIUM
-                                findings.append(make_finding(
-                                    severity,
-                                    "",
-                                    0,
-                                    f"istioctl: {line.strip()[:80]}",
-                                    line.strip(),
-                                    suggestion="Fix istioctl analysis finding",
-                                ))
+                                findings.append(
+                                    make_finding(
+                                        severity,
+                                        "",
+                                        0,
+                                        f"istioctl: {line.strip()[:80]}",
+                                        line.strip(),
+                                        suggestion="Fix istioctl analysis finding",
+                                    )
+                                )
                 except (subprocess.TimeoutExpired, Exception):
                     pass
 
@@ -234,20 +241,26 @@ class ServiceMeshAgent(BaseAgent):
                     )
                     if proc.stdout:
                         import json
+
                         try:
                             data = json.loads(proc.stdout)
                             for item in data.get("objects", []):
                                 for diag in item.get("diagnostics", []):
                                     check = diag.get("check", "")
-                                    if any(kw in check.lower() for kw in ["mtls", "auth", "mesh", "sidecar"]):
-                                        findings.append(make_finding(
-                                            Severity.MEDIUM,
-                                            item.get("metadata", {}).get("filePath", ""),
-                                            0,
-                                            f"kube-linter: {check}",
-                                            diag.get("message", ""),
-                                            suggestion="Review kube-linter finding for mesh security impact",
-                                        ))
+                                    if any(
+                                        kw in check.lower()
+                                        for kw in ["mtls", "auth", "mesh", "sidecar"]
+                                    ):
+                                        findings.append(
+                                            make_finding(
+                                                Severity.MEDIUM,
+                                                item.get("metadata", {}).get("filePath", ""),
+                                                0,
+                                                f"kube-linter: {check}",
+                                                diag.get("message", ""),
+                                                suggestion="Review kube-linter finding for mesh security impact",
+                                            )
+                                        )
                         except json.JSONDecodeError:
                             pass
                 except (subprocess.TimeoutExpired, Exception):
@@ -275,70 +288,80 @@ class ServiceMeshAgent(BaseAgent):
         for crd_name, patterns in ISTIO_CRDS.items():
             if re.search(patterns["kind"], content):
                 found_crds.setdefault(crd_name, []).append(rel)
-                findings.append(make_finding(
-                    Severity.INFO,
-                    rel,
-                    0,
-                    f"MESH-07: Istio CRD detected: {crd_name}",
-                    f"Found {crd_name} custom resource. Verify security configuration.",
-                    control_id="MESH-07",
-                ))
+                findings.append(
+                    make_finding(
+                        Severity.INFO,
+                        rel,
+                        0,
+                        f"MESH-07: Istio CRD detected: {crd_name}",
+                        f"Found {crd_name} custom resource. Verify security configuration.",
+                        control_id="MESH-07",
+                    )
+                )
 
                 # Check mTLS configuration in PeerAuthentication
                 if crd_name == "PeerAuthentication":
                     for pattern, desc, severity in MTLS_PATTERNS:
                         if re.search(pattern, content):
                             if severity != Severity.INFO:
-                                findings.append(make_finding(
-                                    severity,
-                                    rel,
-                                    0,
-                                    f"MESH-01: {desc}",
-                                    f"PeerAuthentication {desc}. All mesh traffic should use mTLS STRICT.",
-                                    suggestion="Set mTLS mode to STRICT for all PeerAuthentication policies",
-                                    control_id="MESH-01",
-                                ))
+                                findings.append(
+                                    make_finding(
+                                        severity,
+                                        rel,
+                                        0,
+                                        f"MESH-01: {desc}",
+                                        f"PeerAuthentication {desc}. All mesh traffic should use mTLS STRICT.",
+                                        suggestion="Set mTLS mode to STRICT for all PeerAuthentication policies",
+                                        control_id="MESH-01",
+                                    )
+                                )
 
                 # Check for sidecar injection in Deployment/Service
                 if crd_name in ("VirtualService", "DestinationRule"):
                     for pattern, desc in SIDECAR_PATTERNS:
                         if re.search(pattern, content):
                             if "disabled" in desc.lower() or "false" in desc.lower():
-                                findings.append(make_finding(
-                                    Severity.MEDIUM,
-                                    rel,
-                                    0,
-                                    "MESH-03: Sidecar injection disabled",
-                                    desc,
-                                    suggestion="Enable sidecar injection for mesh security benefits",
-                                    control_id="MESH-03",
-                                ))
+                                findings.append(
+                                    make_finding(
+                                        Severity.MEDIUM,
+                                        rel,
+                                        0,
+                                        "MESH-03: Sidecar injection disabled",
+                                        desc,
+                                        suggestion="Enable sidecar injection for mesh security benefits",
+                                        control_id="MESH-03",
+                                    )
+                                )
 
         # Check for Linkerd CRDs
         for crd_name, patterns in LINKERD_CRDS.items():
             if re.search(patterns["kind"], content):
                 found_crds.setdefault(crd_name, []).append(rel)
-                findings.append(make_finding(
-                    Severity.INFO,
-                    rel,
-                    0,
-                    f"MESH-07: Linkerd CRD detected: {crd_name}",
-                    f"Found {crd_name} custom resource. Verify security configuration.",
-                    control_id="MESH-07",
-                ))
+                findings.append(
+                    make_finding(
+                        Severity.INFO,
+                        rel,
+                        0,
+                        f"MESH-07: Linkerd CRD detected: {crd_name}",
+                        f"Found {crd_name} custom resource. Verify security configuration.",
+                        control_id="MESH-07",
+                    )
+                )
 
         # Check for default-deny patterns
         for pattern, desc in DEFAULT_DENY_PATTERNS:
             if re.search(pattern, content, re.DOTALL):
                 if "DENY" in desc:
-                    findings.append(make_finding(
-                        Severity.INFO,
-                        rel,
-                        0,
-                        f"MESH-05: {desc}",
-                        desc,
-                        control_id="MESH-05",
-                    ))
+                    findings.append(
+                        make_finding(
+                            Severity.INFO,
+                            rel,
+                            0,
+                            f"MESH-05: {desc}",
+                            desc,
+                            control_id="MESH-05",
+                        )
+                    )
 
     def _scan_helm_values(self, fpath: Path, root: Path, findings: list) -> None:
         """Scan Helm values files for mesh configuration."""
@@ -357,25 +380,31 @@ class ServiceMeshAgent(BaseAgent):
             if mtls_match:
                 mode = mtls_match.group(1)
                 if mode.lower() not in ("strict", "true"):
-                    findings.append(make_finding(
+                    findings.append(
+                        make_finding(
+                            Severity.MEDIUM,
+                            rel,
+                            0,
+                            "MESH-01: mTLS not in strict mode in Helm values",
+                            f"Helm values specify mTLS mode={mode}. Use STRICT for production.",
+                            suggestion="Set mtls.enabled=true or mtls.mode=STRICT",
+                            control_id="MESH-01",
+                        )
+                    )
+
+            # Check sidecar injection
+            injection_match = re.search(
+                r"sidecar.*inject(?:ion)?:\s*\n\s*enabled:\s*(\w+)", content
+            )
+            if injection_match and injection_match.group(1).lower() == "false":
+                findings.append(
+                    make_finding(
                         Severity.MEDIUM,
                         rel,
                         0,
-                        "MESH-01: mTLS not in strict mode in Helm values",
-                        f"Helm values specify mTLS mode={mode}. Use STRICT for production.",
-                        suggestion="Set mtls.enabled=true or mtls.mode=STRICT",
-                        control_id="MESH-01",
-                    ))
-
-            # Check sidecar injection
-            injection_match = re.search(r"sidecar.*inject(?:ion)?:\s*\n\s*enabled:\s*(\w+)", content)
-            if injection_match and injection_match.group(1).lower() == "false":
-                findings.append(make_finding(
-                    Severity.MEDIUM,
-                    rel,
-                    0,
-                    "MESH-03: Sidecar injection disabled in Helm values",
-                    "Helm values have sidecar injection disabled. Services won't get mesh security.",
-                    suggestion="Enable sidecar injection in Helm values",
-                    control_id="MESH-03",
-                ))
+                        "MESH-03: Sidecar injection disabled in Helm values",
+                        "Helm values have sidecar injection disabled. Services won't get mesh security.",
+                        suggestion="Enable sidecar injection in Helm values",
+                        control_id="MESH-03",
+                    )
+                )

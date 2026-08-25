@@ -33,6 +33,7 @@ from ..agents.base import (
 
 _log = logging.getLogger("patchi.testing.regression_agent")
 
+
 @register
 class RegressionAgent(BaseAgent):
     """Agent for running regression tests with snapshots."""

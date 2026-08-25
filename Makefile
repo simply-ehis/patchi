@@ -1,7 +1,10 @@
-.PHONY: venv install dev install-web clean lint typecheck test audit smoke pipeline manifest
+.PHONY: venv install dev install-web clean lint typecheck test test-fast test-full audit smoke pipeline manifest
 
 SHELL := /bin/bash
 PYTHON := python3
+PYTEST := .venv/bin/python -m pytest
+PYTEST_FAST := $(PYTEST) tests/ -q --tb=short -k "not slow and not integration"
+PYTEST_FULL := $(PYTEST) tests/ -q --tb=short --timeout=120
 
 venv:
 	$(PYTHON) -m venv .venv
@@ -30,10 +33,15 @@ lint:
 	.venv/bin/ruff check patchi/ tests/
 
 typecheck:
-	@echo "  -> Run mypy or pyright when configured"
+	.venv/bin/mypy patchi/ tests/ || true
 
-test:
-	.venv/bin/python -m pytest tests/ -q --tb=short
+test: test-fast
+
+test-fast:
+	$(PYTEST_FAST)
+
+test-full:
+	$(PYTEST_FULL)
 
 audit:
 	./scripts/ci-audit.sh

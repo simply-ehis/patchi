@@ -58,7 +58,7 @@ class PythonDebugAdapter:
                 prefix = "PATCHI_DEBUG_CAPTURE:"
                 if stripped.startswith(prefix):
                     try:
-                        return json.loads(stripped[len(prefix):])
+                        return json.loads(stripped[len(prefix) :])
                     except json.JSONDecodeError:
                         _LOG.warning("PATCHI_DEBUG_CAPTURE JSON parse error: %.200s", stripped)
                         return None
@@ -88,7 +88,7 @@ class PythonDebugAdapter:
                 prefix = "PATCHI_DEBUG_CAPTURE:"
                 if stripped.startswith(prefix):
                     try:
-                        return json.loads(stripped[len(prefix):])
+                        return json.loads(stripped[len(prefix) :])
                     except json.JSONDecodeError:
                         _LOG.warning("PATCHI_DEBUG_CAPTURE JSON parse error: %.200s", stripped)
                         return None

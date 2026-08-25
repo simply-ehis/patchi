@@ -35,6 +35,7 @@ import logging
 
 _log = logging.getLogger("patchi.cli.chat_cmd")
 
+
 def _load_chat_history(root: Path) -> list[dict]:
     path = root / CHAT_HISTORY_FILE
     if path.exists():
@@ -44,10 +45,12 @@ def _load_chat_history(root: Path) -> list[dict]:
             _log.warning("_load_chat_history failed: %s", e)
     return []
 
+
 def _save_chat_history(root: Path, history: list[dict]) -> None:
     path = root / CHAT_HISTORY_FILE
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(history[-MAX_HISTORY:], indent=2), encoding="utf-8")
+
 
 BASE_PROMPT = """You are Patchi, an intelligent code assistant integrated into a project analysis tool.
 
@@ -62,6 +65,7 @@ Your role:
 
 You are NOT a general-purpose AI assistant. You are a specialized code assistant for the project in the current directory."""
 
+
 def _build_injected_context(brain: dict, message: str) -> str:
     """Build relevant context from the brain based on what the user is asking about."""
     m_lower = message.lower()
@@ -74,7 +78,9 @@ def _build_injected_context(brain: dict, message: str) -> str:
     health = brain.get("health_score", {})
     health_total = health.get("total", 0) if isinstance(health, dict) else health
 
-    parts.append(f"Project: {file_count} files, {route_count} routes, framework: {framework}, health: {health_total}/100")
+    parts.append(
+        f"Project: {file_count} files, {route_count} routes, framework: {framework}, health: {health_total}/100"
+    )
 
     # Routes
     if any(w in m_lower for w in ["route", "endpoint", "api", "path"]):
@@ -83,14 +89,19 @@ def _build_injected_context(brain: dict, message: str) -> str:
             samples = []
             for r in routes[:15]:
                 if isinstance(r, dict):
-                    samples.append(f"  {r.get('method', '?')} {r.get('path', '?')} ({r.get('file', '?')})")
+                    samples.append(
+                        f"  {r.get('method', '?')} {r.get('path', '?')} ({r.get('file', '?')})"
+                    )
                 else:
                     samples.append(f"  {r}")
             if samples:
                 parts.append(f"Routes ({len(routes)} total):\n" + "\n".join(samples[:15]))
 
     # Findings / issues
-    if any(w in m_lower for w in ["finding", "issue", "vulnerability", "bug", "critical", "high", "error"]):
+    if any(
+        w in m_lower
+        for w in ["finding", "issue", "vulnerability", "bug", "critical", "high", "error"]
+    ):
         issues = brain.get("issues", []) or brain.get("findings", [])
         if issues:
             by_sev: dict[str, int] = {}
@@ -101,21 +112,33 @@ def _build_injected_context(brain: dict, message: str) -> str:
             if by_sev:
                 sev_str = ", ".join(f"{c} {s}" for s, c in sorted(by_sev.items()))
                 parts.append(f"Issues ({len(issues)} total): {sev_str}")
-                top = [f for f in issues if isinstance(f, dict) and f.get("severity") in ("critical", "high")][:5]
+                top = [
+                    f
+                    for f in issues
+                    if isinstance(f, dict) and f.get("severity") in ("critical", "high")
+                ][:5]
                 for f in top:
-                    parts.append(f"  [{f.get('severity','info')}] {f.get('file','')}:{f.get('line',0)} — {f.get('message','')[:80]}")
+                    parts.append(
+                        f"  [{f.get('severity', 'info')}] {f.get('file', '')}:{f.get('line', 0)} — {f.get('message', '')[:80]}"
+                    )
 
     # Security
     if any(w in m_lower for w in ["security", "cve", "secret", "injection", "xss", "sqli", "auth"]):
         sec_str = brain.get("security_str", brain.get("security_report", {}))
         if isinstance(sec_str, dict):
-            parts.append(f"Security: {sec_str.get('critical', 0)} critical, {sec_str.get('high', 0)} high, {sec_str.get('medium', 0)} medium")
+            parts.append(
+                f"Security: {sec_str.get('critical', 0)} critical, {sec_str.get('high', 0)} high, {sec_str.get('medium', 0)} medium"
+            )
 
     # Patches / fixes
     if any(w in m_lower for w in ["patch", "fix", "apply", "change", "modify", "edit"]):
         patches = brain.get("patches", [])
         if patches:
-            applied = sum(1 for p in patches if isinstance(p, dict) and p.get("state") in ("applied", "auto_applied"))
+            applied = sum(
+                1
+                for p in patches
+                if isinstance(p, dict) and p.get("state") in ("applied", "auto_applied")
+            )
             pending = sum(1 for p in patches if isinstance(p, dict) and p.get("state") == "pending")
             parts.append(f"Patches: {applied} applied, {pending} pending")
 
@@ -123,7 +146,9 @@ def _build_injected_context(brain: dict, message: str) -> str:
     if any(w in m_lower for w in ["test", "coverage", "pytest"]):
         test_info = brain.get("test_results", {})
         if test_info:
-            parts.append(f"Tests: {test_info.get('passed', 0)} passed, {test_info.get('failed', 0)} failed")
+            parts.append(
+                f"Tests: {test_info.get('passed', 0)} passed, {test_info.get('failed', 0)} failed"
+            )
 
     # Dead code / architecture
     if any(w in m_lower for w in ["dead", "unused", "circular", "import", "dependency", "dep"]):
@@ -143,6 +168,7 @@ def _build_injected_context(brain: dict, message: str) -> str:
             parts.append(f"Import graph: {node_count} nodes, {edge_count} edges")
 
     return "\n".join(parts) if parts else ""
+
 
 def run(
     message: str | None = None,

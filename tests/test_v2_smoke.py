@@ -133,11 +133,13 @@ def test_tool_executor_memory_tool(patchi_project):
 
     from patchi.core.ai.tool_executor import ToolExecutor
 
-    executor = ToolExecutor(patchi_project, confirmation_provider=None)
-    result = asyncio.get_event_loop().run_until_complete(
-        executor.execute("get_brain", {}, invoked_by="test", skip_confirmation=True)
-    )
-    # CLIConfirmationProvider(None default=False) — but skip_confirmation bypasses.
+    async def _go():
+        executor = ToolExecutor(patchi_project, confirmation_provider=None)
+        return await executor.execute(
+            "get_brain", {}, invoked_by="test", skip_confirmation=True
+        )
+
+    result = asyncio.run(_go())
     assert result.success is True or result.error == "User declined confirmation"
 
 

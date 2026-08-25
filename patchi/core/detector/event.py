@@ -16,25 +16,29 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from enum import Enum
+from datetime import UTC, datetime
+from enum import StrEnum
 from typing import Any
 
 # ── Event severity (extends the Finding severity model) ──────────────────────
 
 
-class EventSeverity(str, Enum):
-    DEBUG = "debug"          # No alerting, diagnostics only
-    INFO = "info"            # Informational, never alerts
-    LOW = "low"              # Digest-only, no immediate action
-    MEDIUM = "medium"        # Worthy of investigation
-    HIGH = "high"            # Requires prompt attention
-    CRITICAL = "critical"    # Immediate action required
+class EventSeverity(StrEnum):
+    DEBUG = "debug"  # No alerting, diagnostics only
+    INFO = "info"  # Informational, never alerts
+    LOW = "low"  # Digest-only, no immediate action
+    MEDIUM = "medium"  # Worthy of investigation
+    HIGH = "high"  # Requires prompt attention
+    CRITICAL = "critical"  # Immediate action required
 
     def sort_key(self) -> int:
         return {
-            "debug": 5, "info": 4, "low": 3,
-            "medium": 2, "high": 1, "critical": 0,
+            "debug": 5,
+            "info": 4,
+            "low": 3,
+            "medium": 2,
+            "high": 1,
+            "critical": 0,
         }[self.value]
 
     def to_enum(self) -> str:
@@ -44,20 +48,21 @@ class EventSeverity(str, Enum):
 # ── Event source types ──────────────────────────────────────────────────────
 
 
-class EventSource(str, Enum):
+class EventSource(StrEnum):
     """Where the event originated. Each maps to a signal source type."""
-    AGENT = "agent"                 # A Patchi agent produced a finding
-    HTTP_TRAFFIC = "http_traffic"   # Ingress/egress HTTP request
-    LOG_LINE = "log_line"           # Application or access log
-    SYSCALL = "syscall"             # Host/container syscall (Falco)
-    NETWORK_FLOW = "network_flow"   # Network protocol event (Suricata/Zeek)
+
+    AGENT = "agent"  # A Patchi agent produced a finding
+    HTTP_TRAFFIC = "http_traffic"  # Ingress/egress HTTP request
+    LOG_LINE = "log_line"  # Application or access log
+    SYSCALL = "syscall"  # Host/container syscall (Falco)
+    NETWORK_FLOW = "network_flow"  # Network protocol event (Suricata/Zeek)
     DEPENDENCY_SCAN = "dependency"  # Dependency manifest / CVE scan
-    SECRET_SCAN = "secret"          # Secret scanning hit
-    GIT_EVENT = "git_event"         # Commit, PR, diff, push
-    CONFIG_CHANGE = "config"        # Config file or env var change
-    HEARTBEAT = "heartbeat"         # System health / uptime check
-    USER_ACTION = "user_action"     # Explicit user command or override
-    ANOMALY = "anomaly"             # Detected by the anomaly layer
+    SECRET_SCAN = "secret"  # Secret scanning hit
+    GIT_EVENT = "git_event"  # Commit, PR, diff, push
+    CONFIG_CHANGE = "config"  # Config file or env var change
+    HEARTBEAT = "heartbeat"  # System health / uptime check
+    USER_ACTION = "user_action"  # Explicit user command or override
+    ANOMALY = "anomaly"  # Detected by the anomaly layer
 
 
 # ── MITRE ATT&CK technique / tactic IDs ──────────────────────────────────────
@@ -67,31 +72,31 @@ class EventSource(str, Enum):
 # v14+ stable IDs; see https://attack.mitre.org/techniques/enterprise/
 
 
-class TechniqueID(str, Enum):
-    INITIAL_ACCESS = "T1190"            # Exploit Public-Facing Application
-    EXECUTION = "T1203"                 # Exploitation for Client Execution
-    PERSISTENCE = "T1505"               # Server Software Component
-    DEFENSE_EVASION = "T1562"           # Impair Defenses
-    CREDENTIAL_ACCESS = "T1552"         # Unsecured Credentials
-    DISCOVERY = "T1046"                 # Network Service Discovery
-    COLLECTION = "T1567"                # Exfiltration Over Web Service
-    COMMAND_AND_CONTROL = "T1071"       # Application Layer Protocol
-    EXFILTRATION = "T1048"              # Exfiltration Over Alternative Protocol
-    IMPACT = "T1499"                    # Endpoint Denial of Service
-    RESOURCE_DEVELOPMENT = "T1583"      # Acquire Infrastructure
-    INJECTION = "T1055"                 # Process Injection
-    VALID_ACCOUNTS = "T1078"            # Valid Accounts
-    BRUTE_FORCE = "T1110"               # Brute Force
-    INPUT_CAPTURE = "T1056"             # Input Capture
-    MODIFY_AUTH_PROCESS = "T1556"       # Modify Authentication Process
+class TechniqueID(StrEnum):
+    INITIAL_ACCESS = "T1190"  # Exploit Public-Facing Application
+    EXECUTION = "T1203"  # Exploitation for Client Execution
+    PERSISTENCE = "T1505"  # Server Software Component
+    DEFENSE_EVASION = "T1562"  # Impair Defenses
+    CREDENTIAL_ACCESS = "T1552"  # Unsecured Credentials
+    DISCOVERY = "T1046"  # Network Service Discovery
+    COLLECTION = "T1567"  # Exfiltration Over Web Service
+    COMMAND_AND_CONTROL = "T1071"  # Application Layer Protocol
+    EXFILTRATION = "T1048"  # Exfiltration Over Alternative Protocol
+    IMPACT = "T1499"  # Endpoint Denial of Service
+    RESOURCE_DEVELOPMENT = "T1583"  # Acquire Infrastructure
+    INJECTION = "T1055"  # Process Injection
+    VALID_ACCOUNTS = "T1078"  # Valid Accounts
+    BRUTE_FORCE = "T1110"  # Brute Force
+    INPUT_CAPTURE = "T1056"  # Input Capture
+    MODIFY_AUTH_PROCESS = "T1556"  # Modify Authentication Process
     STEAL_APPLICATION_ACCESS = "T1528"  # Steal Application Access Token
-    SECRETS_FROM_STORE = "T1552.001"    # Credentials in Files / Keychains
-    EXPLOIT_PUBLIC_APP = "T1190"        # Exploit Public-Facing Application
-    MAN_IN_MIDDLE = "T1557"             # Adversary-in-the-Middle
-    TRAFFIC_SIGNALING = "T1573"         # Encrypted Channel
-    PROXY = "T1090"                     # Proxy
-    UNKNOWN = "T9999"                   # Unclassified / needs triage
-    NONE = "T0000"                      # No technique mapping (info/heartbeat)
+    SECRETS_FROM_STORE = "T1552.001"  # Credentials in Files / Keychains
+    EXPLOIT_PUBLIC_APP = "T1190"  # Exploit Public-Facing Application
+    MAN_IN_MIDDLE = "T1557"  # Adversary-in-the-Middle
+    TRAFFIC_SIGNALING = "T1573"  # Encrypted Channel
+    PROXY = "T1090"  # Proxy
+    UNKNOWN = "T9999"  # Unclassified / needs triage
+    NONE = "T0000"  # No technique mapping (info/heartbeat)
 
     @classmethod
     def for_agent_type(cls, agent_type: str) -> TechniqueID:
@@ -159,22 +164,22 @@ class Event:
     technique_id: TechniqueID | str
 
     # Core payload
-    summary: str                      # One-line human-readable description
+    summary: str  # One-line human-readable description
     severity: EventSeverity = EventSeverity.INFO
     payload: dict[str, Any] = field(default_factory=dict)  # Signal-specific data
 
     # Routing hints — populated by the detector, consumed by the dispatcher
-    suggested_agent: str | None = None   # e.g. "InjectionAgent"
-    confidence: float = 0.5              # 0.0–1.0, how sure the detector is
+    suggested_agent: str | None = None  # e.g. "InjectionAgent"
+    confidence: float = 0.5  # 0.0–1.0, how sure the detector is
 
     # Enrichment
-    agent_name: str | None = None        # Which agent produced this (if from an agent)
-    finding_id: str | None = None         # Link back to a specific Finding if applicable
+    agent_name: str | None = None  # Which agent produced this (if from an agent)
+    finding_id: str | None = None  # Link back to a specific Finding if applicable
     cwe_ids: list[str] = field(default_factory=list)
     owasp_category: str = ""
 
     # Metadata
-    timestamp: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    timestamp: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
     event_id: str = field(default_factory=lambda: uuid.uuid4().hex[:16])
     source_details: dict[str, str] = field(default_factory=dict)  # host, container, file, repo
 
@@ -186,8 +191,8 @@ class Event:
             "event_id": self.event_id,
             "source": self.source.value,
             "technique_id": self.technique_id.value
-                if isinstance(self.technique_id, TechniqueID)
-                else self.technique_id,
+            if isinstance(self.technique_id, TechniqueID)
+            else self.technique_id,
             "summary": self.summary,
             "severity": self.severity.value,
             "payload": self.payload,
@@ -204,7 +209,11 @@ class Event:
 
     @property
     def technique_display(self) -> str:
-        tid = self.technique_id.value if isinstance(self.technique_id, TechniqueID) else self.technique_id
+        tid = (
+            self.technique_id.value
+            if isinstance(self.technique_id, TechniqueID)
+            else self.technique_id
+        )
         return f"{tid} — {TechniqueID.display_name(tid)}"
 
 
@@ -214,9 +223,10 @@ class Event:
 @dataclass
 class EventBatch:
     """A time-windowed batch of events for bulk dispatch/audit."""
+
     events: list[Event] = field(default_factory=list)
     batch_id: str = field(default_factory=lambda: uuid.uuid4().hex[:16])
-    created: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    created: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
 
     def by_severity(self) -> dict[str, list[Event]]:
         groups: dict[str, list[Event]] = {}
@@ -227,7 +237,11 @@ class EventBatch:
     def by_technique(self) -> dict[str, list[Event]]:
         groups: dict[str, list[Event]] = {}
         for ev in self.events:
-            tid = ev.technique_id.value if isinstance(ev.technique_id, TechniqueID) else ev.technique_id
+            tid = (
+                ev.technique_id.value
+                if isinstance(ev.technique_id, TechniqueID)
+                else ev.technique_id
+            )
             groups.setdefault(tid, []).append(ev)
         return groups
 

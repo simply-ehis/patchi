@@ -245,12 +245,14 @@ def _try_load_yaml(path: Path) -> dict | None:
         return None
     try:
         import yaml
-        with open(path, "r", encoding="utf-8") as f:
+
+        with open(path, encoding="utf-8") as f:
             return yaml.safe_load(f)
     except ImportError:
         try:
             import json
-            with open(path, "r", encoding="utf-8") as f:
+
+            with open(path, encoding="utf-8") as f:
                 return json.load(f)
         except Exception as e:
             _log.debug("_try_load_yaml failed: %s", e)
@@ -623,9 +625,7 @@ class DomainLoader:
                 llm_fix_template=llm_template if isinstance(llm_template, str) else None,
                 verification_checks=_to_str_list(verification),
                 blast_radius_notes=str(pb.get("blast_radius_notes", "")),
-                human_review_required=_to_bool(
-                    pb.get("human_review_required"), True
-                ),
+                human_review_required=_to_bool(pb.get("human_review_required"), True),
                 raw=pb,
             )
         return result
@@ -664,28 +664,111 @@ class DomainLoader:
     @staticmethod
     def _domain_keywords() -> dict[str, set[str]]:
         return {
-            "injection": {"sql", "nosql", "ldap", "command", "orm", "eval", "deserialization", "hql", "injection"},
-            "cryptography": {"crypto", "encryption", "cipher", "hash", "tls", "ssl", "certificate", "cryptographic"},
-            "authentication": {"auth", "authentication", "login", "password", "oauth", "session", "token", "jwt", "sso", "identity", "authenticate"},
-            "xss": {"xss", "cross-site", "cross site", "script injection", "dom xss", "reflected xss", "stored xss"},
+            "injection": {
+                "sql",
+                "nosql",
+                "ldap",
+                "command",
+                "orm",
+                "eval",
+                "deserialization",
+                "hql",
+                "injection",
+            },
+            "cryptography": {
+                "crypto",
+                "encryption",
+                "cipher",
+                "hash",
+                "tls",
+                "ssl",
+                "certificate",
+                "cryptographic",
+            },
+            "authentication": {
+                "auth",
+                "authentication",
+                "login",
+                "password",
+                "oauth",
+                "session",
+                "token",
+                "jwt",
+                "sso",
+                "identity",
+                "authenticate",
+            },
+            "xss": {
+                "xss",
+                "cross-site",
+                "cross site",
+                "script injection",
+                "dom xss",
+                "reflected xss",
+                "stored xss",
+            },
             "sqli": {"sql injection", "sqli"},
             "ssrf": {"ssrf", "server-side request forgery", "server side request forgery"},
-            "path_traversal": {"path traversal", "directory traversal", "path injection", "file inclusion", "local file"},
+            "path_traversal": {
+                "path traversal",
+                "directory traversal",
+                "path injection",
+                "file inclusion",
+                "local file",
+            },
             "xxe": {"xxe", "xml external", "xml entity"},
             "rce": {"rce", "remote code", "code execution", "code injection", "command injection"},
             "idor": {"idor", "insecure direct", "authorization bypass", "access control"},
             "cors": {"cors", "cross-origin", "cross origin", "wildcard origin"},
             "csrf": {"csrf", "xsrf", "cross-site request", "cross site request", "request forgery"},
-            "open_redirect": {"open redirect", "url redirect", "redirect injection", "unvalidated redirect"},
-            "misconfiguration": {"misconfig", "security header", "hardening", "insecure default", "security config", "missing header"},
-            "sensitive_data": {"sensitive data", "pii", "personal information", "secret exposure", "credential leakage"},
-            "dependency": {"dependency", "cve", "supply chain", "third party", "vulnerable package", "sbom"},
+            "open_redirect": {
+                "open redirect",
+                "url redirect",
+                "redirect injection",
+                "unvalidated redirect",
+            },
+            "misconfiguration": {
+                "misconfig",
+                "security header",
+                "hardening",
+                "insecure default",
+                "security config",
+                "missing header",
+            },
+            "sensitive_data": {
+                "sensitive data",
+                "pii",
+                "personal information",
+                "secret exposure",
+                "credential leakage",
+            },
+            "dependency": {
+                "dependency",
+                "cve",
+                "supply chain",
+                "third party",
+                "vulnerable package",
+                "sbom",
+            },
             "dos": {"dos", "denial of service", "rate limit", "resource exhaustion", "ddos"},
-            "secrets": {"secret", "hardcoded", "credential", "api key", "token exposure", "password in code", "secret scanning"},
+            "secrets": {
+                "secret",
+                "hardcoded",
+                "credential",
+                "api key",
+                "token exposure",
+                "password in code",
+                "secret scanning",
+            },
             "runtime": {"runtime", "container", "kubernetes", "docker", "orchestration", "falco"},
             "network": {"network", "firewall", "dns", "tcp", "port", "egress"},
             "compliance": {"compliance", "regulatory", "gdpr", "hipaa", "pci", "sox", "audit"},
-            "supply_chain": {"supply chain", "dependency confusion", "malicious package", "typosquatting"},
+            "supply_chain": {
+                "supply chain",
+                "dependency confusion",
+                "malicious package",
+                "typosquatting",
+            },
         }
 
     def _classify_domains(self, text: str) -> set[str]:
@@ -699,7 +782,9 @@ class DomainLoader:
                     break
         return matched
 
-    def match_finding_to_controls(self, finding_type: str, file_path: str, message: str) -> list[DomainControl]:
+    def match_finding_to_controls(
+        self, finding_type: str, file_path: str, message: str
+    ) -> list[DomainControl]:
         """Match a finding to domain controls by structured domain classification.
 
         On a scoped loader only loaded (in-scope) domains are matched — the
@@ -723,9 +808,13 @@ class DomainLoader:
                 score = 0
                 if overlap:
                     score += 2
-                if file_path and any(seg in file_path.lower() for seg in ctrl.name.lower().split() if len(seg) > 3):
+                if file_path and any(
+                    seg in file_path.lower() for seg in ctrl.name.lower().split() if len(seg) > 3
+                ):
                     score += 1
-                if message and any(w in ctrl.description.lower() for w in message.lower().split() if len(w) > 4):
+                if message and any(
+                    w in ctrl.description.lower() for w in message.lower().split() if len(w) > 4
+                ):
                     score += 1
 
                 if score >= 2:

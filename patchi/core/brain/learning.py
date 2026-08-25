@@ -28,6 +28,7 @@ import logging
 
 _log = logging.getLogger("patchi.brain.learning")
 
+
 def _load(root: Path) -> dict:
     path = root / _LEARNING_FILE
     if not path.exists():
@@ -153,6 +154,7 @@ def get_summary(root: Path) -> dict:
 
 # ── Fix-pattern memory ─────────────────────────────────────────────────────────
 
+
 def record_fix_pattern(
     finding_type: str,
     file_pattern: str,
@@ -163,13 +165,15 @@ def record_fix_pattern(
     """Record a successful fix pattern so it can be reused for similar findings."""
     data = _load(root)
     patterns = data.setdefault("fix_patterns", [])
-    patterns.append({
-        "finding_type": finding_type,
-        "file_pattern": file_pattern,
-        "fix_strategy": fix_strategy,
-        "fix_summary": fix_summary,
-        "timestamp": time.time(),
-    })
+    patterns.append(
+        {
+            "finding_type": finding_type,
+            "file_pattern": file_pattern,
+            "fix_strategy": fix_strategy,
+            "fix_summary": fix_summary,
+            "timestamp": time.time(),
+        }
+    )
     # Keep last 500 patterns to avoid unbounded growth
     data["fix_patterns"] = patterns[-500:]
     _save(root, data)

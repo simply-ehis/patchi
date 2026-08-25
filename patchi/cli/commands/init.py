@@ -18,8 +18,11 @@ from rich.table import Table
 try:
     from patchi.cli.logo import draw as draw_logo
 except ImportError:
+
     def draw_logo(*a, **kw):  # noqa: ARG001
         return None
+
+
 from patchi.core import config as cfg
 from patchi.core.constants import PROVIDERS, DeviceTier
 
@@ -30,6 +33,7 @@ STEP_PENDING = "[dim] ... [/dim]"
 import logging
 
 _log = logging.getLogger("patchi.cli.init")
+
 
 def run(no_logo: bool = False) -> None:
     """Entry point for `p init` / `patchi init`."""
@@ -132,6 +136,7 @@ def run(no_logo: bool = False) -> None:
     # ── Done ───────────────────────────────────────────────────────────────────
     _show_complete_panel(project_root)
 
+
 def _show_complete_panel(root: Path) -> None:
     """Show the completion panel with next steps."""
     # Build a status table
@@ -180,7 +185,9 @@ def _show_complete_panel(root: Path) -> None:
     con.print("  [bold]p doctor[/bold]        [dim]Validate setup and dependencies[/dim]")
     con.print()
 
+
 # ── Alias install (cross-platform) ───────────────────────────────────────────
+
 
 def _install_alias() -> dict:
     """Install `p` as a short alias for `patchi`. Cross-platform."""
@@ -191,6 +198,7 @@ def _install_alias() -> dict:
         return _install_alias_windows(home)
     else:
         return _install_alias_unix(home)
+
 
 def _install_alias_windows(home: Path) -> dict:
     """Windows: create a batch file wrapper in a PATH-friendly location."""
@@ -203,7 +211,7 @@ def _install_alias_windows(home: Path) -> dict:
 
     try:
         bat_file.write_text(
-"@echo off\npatchi %*\n",
+            "@echo off\npatchi %*\n",
             encoding="utf-8",
         )
 
@@ -216,6 +224,7 @@ def _install_alias_windows(home: Path) -> dict:
         return {"success": True, "file": str(bat_file)}
     except OSError as e:
         return {"success": False, "file": str(bat_file), "reason": str(e)}
+
 
 def _install_alias_unix(home: Path) -> dict:
     """Unix: write alias to .bashrc or .zshrc."""
@@ -239,7 +248,9 @@ def _install_alias_unix(home: Path) -> dict:
     except OSError as e:
         return {"success": False, "file": str(rc_file), "reason": str(e)}
 
+
 # ── AI setup helpers ───────────────────────────────────────────────────────────
+
 
 def _setup_local_model(root: Path) -> None:
     model_name = Prompt.ask(
@@ -250,6 +261,7 @@ def _setup_local_model(root: Path) -> None:
     con.print(
         f"    [dim]Model set to [bold]{model_name}[/bold]. Make sure Ollama is running.[/dim]"
     )
+
 
 def _setup_api_key(root: Path) -> None:
     con.print()
@@ -304,6 +316,7 @@ def _setup_api_key(root: Path) -> None:
 
     con.print("    [dim]Key stored. Never leaves your machine.[/dim]")
 
+
 def _store_key(
     root: Path,
     provider: str,
@@ -349,6 +362,7 @@ def _store_key(
     cfg.set_value("ai.keys", existing_keys, root)
     con.print(f"    [dim]Env var: {env_var}[/dim]")
 
+
 def _show_free_key_links() -> None:
     con.print()
     con.print("[bold #F2EDD6]Free API keys - get one in 2 minutes:[/bold #F2EDD6]")
@@ -365,13 +379,16 @@ def _show_free_key_links() -> None:
         con.print(f"  [bold]{name:<14}[/bold] [dim]{url}[/dim]  [dim italic]{note}[/dim italic]")
     con.print()
 
+
 # ── Gitignore helpers ──────────────────────────────────────────────────────────
+
 
 def _update_gitignore(project_root: Path) -> None:
     """Add .patchi/ entries to .gitignore if not already present."""
     entries = [".patchi/", ".patchi/.env", ".patchi/keys.json"]
     comment = "# Patchi local config"
     _ensure_gitignore(project_root, entries, comment)
+
 
 def _ensure_gitignore(project_root: Path, entries: list[str], comment: str) -> None:
     gitignore = project_root / ".gitignore"
@@ -389,10 +406,13 @@ def _ensure_gitignore(project_root: Path, entries: list[str], comment: str) -> N
             for entry in entries:
                 f.write(f"{entry}\n")
 
+
 def _ensure_gitignore_entry(project_root: Path, entry: str, comment: str) -> None:
     _ensure_gitignore(project_root, [entry], comment)
 
+
 # ── Device tier detection ──────────────────────────────────────────────────────
+
 
 def _detect_device_tier() -> DeviceTier:
     try:
@@ -406,6 +426,7 @@ def _detect_device_tier() -> DeviceTier:
         return DeviceTier.HIGH
     except ImportError:
         return DeviceTier.MID
+
 
 def _tier_description(tier: DeviceTier) -> str:
     return {

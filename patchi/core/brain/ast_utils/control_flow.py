@@ -16,10 +16,22 @@ from .helpers import children
 
 # Tree-sitter node types that open a new scope / block
 _SCOPE_NODE_TYPES = {
-    "block", "function_declaration", "function_item", "method_declaration",
-    "function_definition", "lambda_expression", "arrow_function", "class_declaration",
-    "class_definition", "do_statement", "while_statement", "for_statement",
-    "for_in_statement", "if_statement", "compound_statement", "method_definition",
+    "block",
+    "function_declaration",
+    "function_item",
+    "method_declaration",
+    "function_definition",
+    "lambda_expression",
+    "arrow_function",
+    "class_declaration",
+    "class_definition",
+    "do_statement",
+    "while_statement",
+    "for_statement",
+    "for_in_statement",
+    "if_statement",
+    "compound_statement",
+    "method_definition",
 }
 
 

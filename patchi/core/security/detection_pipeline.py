@@ -48,18 +48,30 @@ class DetectionPipeline:
     def _get_sigma_set(self):
         if self._sigma_set is None:
             from patchi.core.detector.sigma_engine import SigmaRuleSet
-            sigma_dir = self.root / (self.config.get("pipeline", {}).get("sigma_rules_dir", ".patchi/sigma"))
+
+            sigma_dir = self.root / (
+                self.config.get("pipeline", {}).get("sigma_rules_dir", ".patchi/sigma")
+            )
             self._sigma_set = SigmaRuleSet.load_directory(sigma_dir)
             if self._sigma_set.count > 0:
                 import logging
-                logging.getLogger("patchi.detection").info("Loaded %d Sigma rules from %s", self._sigma_set.count, sigma_dir)
+
+                logging.getLogger("patchi.detection").info(
+                    "Loaded %d Sigma rules from %s", self._sigma_set.count, sigma_dir
+                )
         return self._sigma_set
 
     def _findings_to_events(self, findings):
         from patchi.core.detector.event import Event, EventSeverity, EventSource
+
         events = []
         for cf in findings:
-            sev_map = {"critical": EventSeverity.CRITICAL, "high": EventSeverity.HIGH, "medium": EventSeverity.MEDIUM, "low": EventSeverity.LOW}
+            sev_map = {
+                "critical": EventSeverity.CRITICAL,
+                "high": EventSeverity.HIGH,
+                "medium": EventSeverity.MEDIUM,
+                "low": EventSeverity.LOW,
+            }
             event = Event(
                 title=cf.finding.message[:200] if cf.finding.message else cf.finding.type,
                 severity=sev_map.get(cf.finding.severity, EventSeverity.INFO),
@@ -87,6 +99,7 @@ class DetectionPipeline:
         noise_stats = None
         try:
             from patchi.core.security.noise_filter import NoiseFilter
+
             if self._noise_filter is None:
                 self._noise_filter = NoiseFilter(self.root, self.config)
             if self._noise_filter.enabled:
@@ -97,6 +110,7 @@ class DetectionPipeline:
                 gated_list = [self.gate.gate(cf) for cf in report.findings]
         except Exception as e:
             import logging
+
             logging.getLogger("patchi.detection").warning(
                 "Noise filter failed (non-fatal, scanning all): %s", e
             )
@@ -105,10 +119,9 @@ class DetectionPipeline:
         # Stage 1a: Domain taxonomy matching — enrich findings with ASVS/domain context
         try:
             from patchi.core.security.domain_loader import DomainLoader
+
             if self._domain_loader is None:
-                self._domain_loader = DomainLoader(
-                    self.root, component_types=self._component_types
-                )
+                self._domain_loader = DomainLoader(self.root, component_types=self._component_types)
             loader = self._domain_loader
             for gf in gated_list:
                 ctrl_matches = loader.match_finding_to_controls(
@@ -125,7 +138,10 @@ class DetectionPipeline:
                         gf.fix_strategy = playbook.fix_strategy
         except Exception as e:
             import logging
-            logging.getLogger("patchi.detection").warning("Domain taxonomy enrichment failed: %s", e)
+
+            logging.getLogger("patchi.detection").warning(
+                "Domain taxonomy enrichment failed: %s", e
+            )
 
         # Stage 1b: Sigma rule matching — boosts confidence for known attack patterns
         sigma_set = self._get_sigma_set()
@@ -141,13 +157,18 @@ class DetectionPipeline:
                         if getattr(gf.finding, "noise_category", None):
                             continue
                         if match.technique_id and str(match.technique_id) != "unknown":
-                            tid = match.technique_id.value if hasattr(match.technique_id, 'value') else str(match.technique_id)
-                            if tid in gf.finding.message or \
-                               (gf.finding.cwe and tid in gf.finding.cwe):
+                            tid = (
+                                match.technique_id.value
+                                if hasattr(match.technique_id, "value")
+                                else str(match.technique_id)
+                            )
+                            if tid in gf.finding.message or (
+                                gf.finding.cwe and tid in gf.finding.cwe
+                            ):
                                 gf.confidence_tier = "high"
                                 gf.routing = "defend"
                                 gf.routing_reason = f"Sigma rule match: {match.rule_name} ({tid})"
-                                gf.sigma_matches = getattr(gf, 'sigma_matches', []) + [match]
+                                gf.sigma_matches = getattr(gf, "sigma_matches", []) + [match]
 
         # Stage 2: Partition
         high = [g for g in gated_list if g.routing == "defend"]
@@ -158,18 +179,14 @@ class DetectionPipeline:
         # Stage 3: AI analysis for medium-confidence findings
         if medium:
             ai_results = self.layer2.analyze(medium)
-            for gf, ai_res in zip(medium, ai_results):
+            for gf, ai_res in zip(medium, ai_results, strict=False):
                 if ai_res.confirmed:
                     # Graded calibration: blend the model's confidence
                     # adjustment into the heuristic score, not just a binary
                     # yes/no. adjustment is roughly [-1, 1] -> map to [0, 1].
                     if ai_res.confidence_adjustment:
-                        ai_conf = max(0.0, min(
-                            1.0, 0.5 + float(ai_res.confidence_adjustment) / 2
-                        ))
-                        recalc = self.gate.gate(
-                            _as_correlated(gf.finding), ai_confidence=ai_conf
-                        )
+                        ai_conf = max(0.0, min(1.0, 0.5 + float(ai_res.confidence_adjustment) / 2))
+                        recalc = self.gate.gate(_as_correlated(gf.finding), ai_confidence=ai_conf)
                         gf.confidence_score = recalc.confidence_score
                         if recalc.confidence_score >= 0.7:
                             gf.confidence_tier = "high"
@@ -188,16 +205,16 @@ class DetectionPipeline:
         # fp_auto_discard, drop it outright). This is what stops the same
         # noise from resurfacing thousands of times.
         try:
-            learned = self.gate.learn_from_dismissed(
-                GatedReport(findings=discarded, stats={})
-            )
+            learned = self.gate.learn_from_dismissed(GatedReport(findings=discarded, stats={}))
             if learned:
                 import logging
+
                 logging.getLogger("patchi.detection").info(
                     "Learned %d new false positive(s) from rejected findings", learned
                 )
         except Exception as e:
             import logging
+
             logging.getLogger("patchi.detection").warning(
                 "FP learning loop failed (non-fatal): %s", e
             )

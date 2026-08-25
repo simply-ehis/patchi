@@ -9,7 +9,7 @@ Deterministic: built entirely from data already on disk (no AI required).
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 _log = logging.getLogger("patchi.hosted.compliance")
@@ -18,7 +18,12 @@ _log = logging.getLogger("patchi.hosted.compliance")
 _FRAMEWORK_MAPS: dict[str, dict[str, list[str]]] = {
     "owasp-asvs": {
         "V1: Architecture": ["AppMapperAgent", "BlastRadiusAgent", "PlanAuditorAgent"],
-        "V2: Authentication": ["AuthenticationAuditAgent", "JWTSecurityAgent", "SessionManagementAgent", "SecretScanner"],
+        "V2: Authentication": [
+            "AuthenticationAuditAgent",
+            "JWTSecurityAgent",
+            "SessionManagementAgent",
+            "SecretScanner",
+        ],
         "V3: Session Management": ["SessionManagementAgent", "JWTSecurityAgent"],
         "V4: Access Control": ["AuthZAgent", "InjectionAgent"],
         "V5: Validation & Encoding": ["InjectionAgent", "TaintAnalyzer", "SensitiveDataAgent"],
@@ -28,14 +33,23 @@ _FRAMEWORK_MAPS: dict[str, dict[str, list[str]]] = {
         "V9: Communications": ["NetworkAgent", "SSRFProtectionAgent", "CORSAuditor"],
         "V10: Malicious Code": ["SupplyChainAgent", "DependencyVulnerabilityAgent"],
         "V12: Files & Resources": ["MisconfigAgent", "ConfigAuditAgent"],
-        "V14: Configuration": ["ConfigAuditAgent", "HeaderAuditAgent", "RateLimitAuditor", "EnvVarValidator"],
+        "V14: Configuration": [
+            "ConfigAuditAgent",
+            "HeaderAuditAgent",
+            "RateLimitAuditor",
+            "EnvVarValidator",
+        ],
     },
     "pci-dss": {
         "Req 2: Secure Configs": ["ConfigAuditAgent", "MisconfigAgent", "HeaderAuditAgent"],
         "Req 3: Protect Stored Data": ["SecretScanner", "SensitiveDataAgent", "CryptoAgent"],
         "Req 4: Encrypt Transmission": ["NetworkAgent", "CryptoAgent"],
         "Req 5: Malware Protection": ["SupplyChainAgent"],
-        "Req 6: Secure Development": ["TaintAnalyzer", "InjectionAgent", "DependencyVulnerabilityAgent"],
+        "Req 6: Secure Development": [
+            "TaintAnalyzer",
+            "InjectionAgent",
+            "DependencyVulnerabilityAgent",
+        ],
         "Req 8: Identify & Auth": ["AuthenticationAuditAgent", "JWTSecurityAgent"],
         "Req 10: Log & Monitor": ["HistoryAgent", "GovernanceAgent", "EnvVarValidator"],
     },
@@ -102,13 +116,18 @@ def generate_report(root: Path, standard: str = "owasp-asvs") -> dict:
 
             rows.append({"control_agent": agent, "status": status, "evidence": evidence})
 
-        sections.append({"section": section_name, "controls": rows,
-                         "failed": sum(1 for r in rows if r["status"] == "fail"),
-                         "total": len(rows)})
+        sections.append(
+            {
+                "section": section_name,
+                "controls": rows,
+                "failed": sum(1 for r in rows if r["status"] == "fail"),
+                "total": len(rows),
+            }
+        )
 
     return {
         "standard": standard,
-        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "generated_at": datetime.now(UTC).isoformat(),
         "project": {
             "purpose": brain.get("project_purpose", ""),
             "domain": brain.get("project_domain", ""),

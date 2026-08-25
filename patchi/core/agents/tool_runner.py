@@ -10,6 +10,7 @@ from typing import Any
 
 _log = logging.getLogger("patchi.agents.tool_runner")
 
+
 def is_tool_available(name: str) -> bool:
     """Return True if an executable `name` is available on PATH."""
     return shutil.which(name) is not None

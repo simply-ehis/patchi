@@ -18,8 +18,8 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from enum import Enum
+from datetime import UTC, datetime
+from enum import StrEnum
 from pathlib import Path
 from typing import Any
 
@@ -28,25 +28,23 @@ _log = logging.getLogger("patchi.core.assurance.graph")
 ASSURANCE_FILE = ".patchi/assurance.json"
 
 
-class Verdict(str, Enum):
+class Verdict(StrEnum):
     """Outcome of verifying a claim. No evidence => UNPROVEN, never 'proved'."""
 
     PROVED = "proved"
-    NOT_PROVED = "not_proved"      # couldn't establish (insufficient evidence)
-    DISPROVED = "disproved"        # positive counter-evidence found
-    UNPROVEN = "unproven"          # never checked
+    NOT_PROVED = "not_proved"  # couldn't establish (insufficient evidence)
+    DISPROVED = "disproved"  # positive counter-evidence found
+    UNPROVEN = "unproven"  # never checked
 
 
 @dataclass
 class Evidence:
     """One piece of supporting/refuting observation for a claim."""
 
-    source: str            # what produced it: "intent_scan", "secret_scan", ...
-    detail: str            # human-readable observation
-    supports: bool         # True = supports claim; False = refutes
-    timestamp: str = field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
-    )
+    source: str  # what produced it: "intent_scan", "secret_scan", ...
+    detail: str  # human-readable observation
+    supports: bool  # True = supports claim; False = refutes
+    timestamp: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
     artifact: dict = field(default_factory=dict)  # machine-checkable payload
 
     def to_dict(self) -> dict:
@@ -59,7 +57,7 @@ class Evidence:
         }
 
     @classmethod
-    def from_dict(cls, d: dict) -> "Evidence":
+    def from_dict(cls, d: dict) -> Evidence:
         return cls(
             source=d.get("source", "?"),
             detail=d.get("detail", ""),
@@ -73,9 +71,9 @@ class Evidence:
 class Claim:
     """A property asserted about the project, with its evidence trail."""
 
-    id: str                              # stable slug, e.g. "auth-all-writes"
-    statement: str                       # human-readable property
-    domain: str                          # owning domain tag, e.g. "auth-session"
+    id: str  # stable slug, e.g. "auth-all-writes"
+    statement: str  # human-readable property
+    domain: str  # owning domain tag, e.g. "auth-session"
     severity_if_disproved: str = "high"
     verdict: Verdict = Verdict.UNPROVEN
     evidence: list[Evidence] = field(default_factory=list)
@@ -98,11 +96,13 @@ class Claim:
 
     def record_repair(self, description: str, outcome: str) -> None:
         """Record one loop of the adversarial repair chain."""
-        self.repairs.append({
-            "at": datetime.now(timezone.utc).isoformat(),
-            "description": description,
-            "outcome": outcome,
-        })
+        self.repairs.append(
+            {
+                "at": datetime.now(UTC).isoformat(),
+                "description": description,
+                "outcome": outcome,
+            }
+        )
         # A repair attempt resets the verdict until re-verified.
         self.verdict = Verdict.NOT_PROVED
 
@@ -119,7 +119,7 @@ class Claim:
         }
 
     @classmethod
-    def from_dict(cls, d: dict) -> "Claim":
+    def from_dict(cls, d: dict) -> Claim:
         c = cls(
             id=d.get("id", "?"),
             statement=d.get("statement", ""),
@@ -175,9 +175,7 @@ class AssuranceGraph:
             if c.verdict == Verdict.PROVED:
                 dom["proved"] += 1
 
-        disproved = [
-            c for c in self.claims.values() if c.verdict == Verdict.DISPROVED
-        ]
+        disproved = [c for c in self.claims.values() if c.verdict == Verdict.DISPROVED]
         return {
             "claims_total": total,
             "by_verdict": by_verdict,
@@ -193,7 +191,7 @@ class AssuranceGraph:
 
     # ── Diff ─────────────────────────────────────────────────────────────────
 
-    def diff(self, other: "AssuranceGraph") -> dict[str, Any]:
+    def diff(self, other: AssuranceGraph) -> dict[str, Any]:
         """Compute difference between two assurance graphs.
 
         Returns a dict with:
@@ -242,14 +240,12 @@ class AssuranceGraph:
             "claims": [c.to_dict() for c in self.claims.values()],
         }
         tmp = path.with_suffix(".json.tmp")
-        tmp.write_text(
-            json_dumps(payload), encoding="utf-8"
-        )
+        tmp.write_text(json_dumps(payload), encoding="utf-8")
         tmp.replace(path)
         return path
 
     @classmethod
-    def load(cls, root: Path) -> "AssuranceGraph":
+    def load(cls, root: Path) -> AssuranceGraph:
         path = root / ASSURANCE_FILE
         g = cls()
         if not path.is_file():

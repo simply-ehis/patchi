@@ -14,10 +14,9 @@ from __future__ import annotations
 
 import logging
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Callable
-
 
 _log = logging.getLogger("patchi.security.dast")
 
@@ -154,9 +153,18 @@ class DastScanner:
 
         # Try common paths
         common_paths = [
-            "/", "/login", "/admin", "/api", "/dashboard",
-            "/settings", "/profile", "/users", "/health",
-            "/api/health", "/api/status", "/static/",
+            "/",
+            "/login",
+            "/admin",
+            "/api",
+            "/dashboard",
+            "/settings",
+            "/profile",
+            "/users",
+            "/health",
+            "/api/health",
+            "/api/status",
+            "/static/",
         ]
 
         for path in common_paths:
@@ -216,30 +224,49 @@ class DastScanner:
             headers = {k.lower(): v for k, v in resp.headers.items()}
 
             checks = [
-                ("x-content-type-options", "nosniff", "Missing X-Content-Type-Options header", "medium"),
-                ("x-frame-options", None, "Missing X-Frame-Options header (clickjacking risk)", "medium"),
+                (
+                    "x-content-type-options",
+                    "nosniff",
+                    "Missing X-Content-Type-Options header",
+                    "medium",
+                ),
+                (
+                    "x-frame-options",
+                    None,
+                    "Missing X-Frame-Options header (clickjacking risk)",
+                    "medium",
+                ),
                 ("strict-transport-security", None, "Missing HSTS header", "medium"),
                 ("x-xss-protection", None, "Missing X-XSS-Protection header", "low"),
-                ("content-security-policy", None, "Missing Content-Security-Policy header", "medium"),
+                (
+                    "content-security-policy",
+                    None,
+                    "Missing Content-Security-Policy header",
+                    "medium",
+                ),
             ]
 
             for header, expected_value, message, severity in checks:
                 if header not in headers:
-                    findings.append(DastFinding(
-                        test="missing_security_header",
-                        severity=severity,
-                        url=url,
-                        evidence=message,
-                        recommendation=f"Add {header} header",
-                    ))
+                    findings.append(
+                        DastFinding(
+                            test="missing_security_header",
+                            severity=severity,
+                            url=url,
+                            evidence=message,
+                            recommendation=f"Add {header} header",
+                        )
+                    )
                 elif expected_value and headers[header] != expected_value:
-                    findings.append(DastFinding(
-                        test="weak_security_header",
-                        severity="low",
-                        url=url,
-                        evidence=f"{header} = {headers[header]} (expected {expected_value})",
-                        recommendation=f"Set {header} to {expected_value}",
-                    ))
+                    findings.append(
+                        DastFinding(
+                            test="weak_security_header",
+                            severity="low",
+                            url=url,
+                            evidence=f"{header} = {headers[header]} (expected {expected_value})",
+                            recommendation=f"Set {header} to {expected_value}",
+                        )
+                    )
 
         except Exception as e:
             _log.debug("Security header test failed: %s", e)
@@ -265,13 +292,15 @@ class DastScanner:
 
                 content = await page.content()
                 if payload in content:
-                    findings.append(DastFinding(
-                        test="xss_reflected",
-                        severity="high",
-                        url=test_url,
-                        evidence=f"Payload reflected in response: {payload[:50]}",
-                        recommendation="Sanitize user input and use Content-Security-Policy",
-                    ))
+                    findings.append(
+                        DastFinding(
+                            test="xss_reflected",
+                            severity="high",
+                            url=test_url,
+                            evidence=f"Payload reflected in response: {payload[:50]}",
+                            recommendation="Sanitize user input and use Content-Security-Policy",
+                        )
+                    )
                     break  # one finding per endpoint
 
             except Exception:
@@ -291,19 +320,28 @@ class DastScanner:
 
             content = await page.content()
             has_login = bool(await page.query_selector("input[type=password]"))
-            has_protected = any(kw in content.lower() for kw in [
-                "dashboard", "admin", "settings", "profile", "logout",
-            ])
+            has_protected = any(
+                kw in content.lower()
+                for kw in [
+                    "dashboard",
+                    "admin",
+                    "settings",
+                    "profile",
+                    "logout",
+                ]
+            )
 
             if has_protected and not has_login:
                 # Page has protected content but no login form — possible bypass
-                findings.append(DastFinding(
-                    test="auth_bypass",
-                    severity="critical",
-                    url=url,
-                    evidence="Protected content accessible without authentication",
-                    recommendation="Add authentication middleware to this endpoint",
-                ))
+                findings.append(
+                    DastFinding(
+                        test="auth_bypass",
+                        severity="critical",
+                        url=url,
+                        evidence="Protected content accessible without authentication",
+                        recommendation="Add authentication middleware to this endpoint",
+                    )
+                )
 
         except Exception as e:
             _log.debug("Auth bypass test failed: %s", e)
@@ -324,25 +362,29 @@ class DastScanner:
 
             # Check for stack traces
             if any(kw in content_lower for kw in ["traceback", "stack trace", "exception in"]):
-                findings.append(DastFinding(
-                    test="info_disclosure_stack_trace",
-                    severity="high",
-                    url=url,
-                    evidence="Stack trace exposed in response",
-                    recommendation="Disable debug mode in production",
-                ))
+                findings.append(
+                    DastFinding(
+                        test="info_disclosure_stack_trace",
+                        severity="high",
+                        url=url,
+                        evidence="Stack trace exposed in response",
+                        recommendation="Disable debug mode in production",
+                    )
+                )
 
             # Check for version disclosure
             if any(kw in content_lower for kw in ["x-powered-by", "server:"]):
                 headers = {k.lower(): v for k, v in resp.headers.items()}
                 if "x-powered-by" in headers:
-                    findings.append(DastFinding(
-                        test="info_disclosure_version",
-                        severity="low",
-                        url=url,
-                        evidence=f"X-Powered-By: {headers['x-powered-by']}",
-                        recommendation="Remove X-Powered-By header",
-                    ))
+                    findings.append(
+                        DastFinding(
+                            test="info_disclosure_version",
+                            severity="low",
+                            url=url,
+                            evidence=f"X-Powered-By: {headers['x-powered-by']}",
+                            recommendation="Remove X-Powered-By header",
+                        )
+                    )
 
         except Exception as e:
             _log.debug("Info disclosure test failed: %s", e)
@@ -365,13 +407,15 @@ class DastScanner:
                 if resp and page.url.startswith("http"):
                     current = page.url
                     if "evil.com" in current:
-                        findings.append(DastFinding(
-                            test="open_redirect",
-                            severity="high",
-                            url=test_url,
-                            evidence=f"Redirected to {current}",
-                            recommendation="Validate redirect URLs against allowlist",
-                        ))
+                        findings.append(
+                            DastFinding(
+                                test="open_redirect",
+                                severity="high",
+                                url=test_url,
+                                evidence=f"Redirected to {current}",
+                                recommendation="Validate redirect URLs against allowlist",
+                            )
+                        )
                         break
 
             except Exception:

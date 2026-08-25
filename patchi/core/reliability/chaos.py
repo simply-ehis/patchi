@@ -80,15 +80,17 @@ class ChaosScenario:
                 if "sink" in artifact and "source" in artifact:
                     source = artifact["source"]
                     sink = artifact["sink"]
-                    experiments.append(ChaosExperiment(
-                        name=f"partition_{source}_to_{sink}",
-                        target=source,
-                        fault_type="network_partition",
-                        description=f"Simulate network partition between {source} and {sink}",
-                        blast_radius="medium",
-                        expected_impact=f"Requests from {source} to {sink} should timeout gracefully",
-                        recovery_check=f"Verify {sink} returns 503 or cached response",
-                    ))
+                    experiments.append(
+                        ChaosExperiment(
+                            name=f"partition_{source}_to_{sink}",
+                            target=source,
+                            fault_type="network_partition",
+                            description=f"Simulate network partition between {source} and {sink}",
+                            blast_radius="medium",
+                            expected_impact=f"Requests from {source} to {sink} should timeout gracefully",
+                            recovery_check=f"Verify {sink} returns 503 or cached response",
+                        )
+                    )
 
         return experiments
 
@@ -105,15 +107,17 @@ class ChaosScenario:
         # For each source with multiple outgoing flows, test dependency failure
         for source, flows in by_source.items():
             if len(flows) >= 2:
-                experiments.append(ChaosExperiment(
-                    name=f"dependency_failure_{source}",
-                    target=source,
-                    fault_type="dependency_failure",
-                    description=f"Simulate failure of one dependency of {source} (has {len(flows)} outgoing flows)",
-                    blast_radius="medium",
-                    expected_impact=f"{source} should degrade gracefully when one dependency fails",
-                    recovery_check="Verify partial results are returned, not a crash",
-                ))
+                experiments.append(
+                    ChaosExperiment(
+                        name=f"dependency_failure_{source}",
+                        target=source,
+                        fault_type="dependency_failure",
+                        description=f"Simulate failure of one dependency of {source} (has {len(flows)} outgoing flows)",
+                        blast_radius="medium",
+                        expected_impact=f"{source} should degrade gracefully when one dependency fails",
+                        recovery_check="Verify partial results are returned, not a crash",
+                    )
+                )
 
         return experiments
 

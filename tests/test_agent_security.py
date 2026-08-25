@@ -130,6 +130,7 @@ class TestZiranCampaign:
         except (FileNotFoundError, subprocess.TimeoutExpired):
             return False
 
+    @pytest.mark.integration
     def test_ziran_scan(self, ziran_available: bool = True) -> None:
         if not ziran_available or not self._ziran_available():
             pytest.skip("ziran CLI not found — install from github.com/taoq-ai/ziran")

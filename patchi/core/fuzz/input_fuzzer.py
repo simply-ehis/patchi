@@ -32,15 +32,19 @@ class FuzzInput:
 # ── Boundary values per type ────────────────────────────────────────────────
 
 _BOUNDARY_STRINGS = [
-    "",                        # empty
-    " ",                       # whitespace
-    "a" * 10_000,              # long
-    "\x00",                    # null byte
-    "🔥" * 100,                # emoji
-    "\n\r\t",                  # control chars
-    "true", "false", "null",   # type confusion
-    "-1", "0", "2147483647",   # numeric boundaries
-    "99999999999999999999",    # overflow
+    "",  # empty
+    " ",  # whitespace
+    "a" * 10_000,  # long
+    "\x00",  # null byte
+    "🔥" * 100,  # emoji
+    "\n\r\t",  # control chars
+    "true",
+    "false",
+    "null",  # type confusion
+    "-1",
+    "0",
+    "2147483647",  # numeric boundaries
+    "99999999999999999999",  # overflow
 ]
 
 _INJECTION_STRINGS = [
@@ -59,13 +63,13 @@ _INJECTION_STRINGS = [
 ]
 
 _ENCODING_STRINGS = [
-    "%27%20OR%201%3D1",        # URL-encoded
-    "&lt;script&gt;",           # HTML entities
-    "JCBhbGVydCgxKQ==",        # base64
-    "%00",                      # null byte URL
-    "\\u0027",                  # unicode escape
-    "%EF%BC%87",                # fullwidth apostrophe
-    ".LogInformation",          # log injection
+    "%27%20OR%201%3D1",  # URL-encoded
+    "&lt;script&gt;",  # HTML entities
+    "JCBhbGVydCgxKQ==",  # base64
+    "%00",  # null byte URL
+    "\\u0027",  # unicode escape
+    "%EF%BC%87",  # fullwidth apostrophe
+    ".LogInformation",  # log injection
     "\r\nSet-Cookie: admin=1",  # CRLF injection
 ]
 
@@ -90,59 +94,70 @@ class InputFuzzer:
 
         # Boundary values
         for val in _BOUNDARY_STRINGS:
-            results.append(FuzzInput(label=f"boundary_{val[:10]!r}", value=val, strategy="boundary"))
+            results.append(
+                FuzzInput(label=f"boundary_{val[:10]!r}", value=val, strategy="boundary")
+            )
 
         # Injection payloads
         for val in _INJECTION_STRINGS:
-            results.append(FuzzInput(
-                label=f"injection_{val[:10]!r}",
-                value=val,
-                strategy="injection",
-                expected_impact="injection",
-            ))
+            results.append(
+                FuzzInput(
+                    label=f"injection_{val[:10]!r}",
+                    value=val,
+                    strategy="injection",
+                    expected_impact="injection",
+                )
+            )
 
         # Encoding bypasses
         for val in _ENCODING_STRINGS:
-            results.append(FuzzInput(
-                label=f"encoding_{val[:10]!r}",
-                value=val,
-                strategy="encoding",
-                expected_impact="bypass",
-            ))
+            results.append(
+                FuzzInput(
+                    label=f"encoding_{val[:10]!r}",
+                    value=val,
+                    strategy="encoding",
+                    expected_impact="bypass",
+                )
+            )
 
         # Format strings
         for val in _FORMAT_STRINGS:
-            results.append(FuzzInput(
-                label=f"format_{val[:10]!r}",
-                value=val,
-                strategy="format",
-                expected_impact="error",
-            ))
+            results.append(
+                FuzzInput(
+                    label=f"format_{val[:10]!r}",
+                    value=val,
+                    strategy="format",
+                    expected_impact="error",
+                )
+            )
 
         # Random mutations of the original
         for i in range(max(0, count - len(results))):
             mutated = self._mutate_string(original)
-            results.append(FuzzInput(
-                label=f"random_{i}",
-                value=mutated,
-                strategy="random",
-            ))
+            results.append(
+                FuzzInput(
+                    label=f"random_{i}",
+                    value=mutated,
+                    strategy="random",
+                )
+            )
 
         return results[:count]
 
     def fuzz_numeric(self, original: int, count: int = 10) -> list[FuzzInput]:
         """Generate mutated numeric variants."""
-        boundaries = [0, -1, 1, 2**31 - 1, 2**31, 2**63 - 1, -2**31, -2**63]
+        boundaries = [0, -1, 1, 2**31 - 1, 2**31, 2**63 - 1, -(2**31), -(2**63)]
         results = [
-            FuzzInput(label=f"boundary_{v}", value=v, strategy="boundary")
-            for v in boundaries
+            FuzzInput(label=f"boundary_{v}", value=v, strategy="boundary") for v in boundaries
         ]
         for i in range(max(0, count - len(results))):
-            results.append(FuzzInput(
-                label=f"random_{i}",
-                value=self._rng.randint(-10_000, 10_000),
-                strategy="random",
-            ))
+            results.append(
+                FuzzInput(
+                    label=f"random_{i}",
+                    value=self._rng.randint(-10_000, 10_000),
+                    strategy="random",
+                )
+            )
         return results[:count]
 
     def fuzz_dict(self, original: dict, count: int = 15) -> list[FuzzInput]:
@@ -150,49 +165,59 @@ class InputFuzzer:
         results: list[FuzzInput] = []
 
         # Extra keys
-        results.append(FuzzInput(
-            label="extra_admin_key",
-            value={**original, "admin": True, "is_admin": True, "role": "admin"},
-            strategy="boundary",
-            expected_impact="privilege_escalation",
-        ))
+        results.append(
+            FuzzInput(
+                label="extra_admin_key",
+                value={**original, "admin": True, "is_admin": True, "role": "admin"},
+                strategy="boundary",
+                expected_impact="privilege_escalation",
+            )
+        )
 
         # Null values
-        results.append(FuzzInput(
-            label="null_values",
-            value={k: None for k in original},
-            strategy="boundary",
-        ))
+        results.append(
+            FuzzInput(
+                label="null_values",
+                value=dict.fromkeys(original),
+                strategy="boundary",
+            )
+        )
 
         # Nested depth bomb
         nested: Any = "leaf"
         for _ in range(100):
             nested = {"a": nested}
-        results.append(FuzzInput(
-            label="nested_depth_100",
-            value={"__proto__": nested},
-            strategy="overflow",
-            expected_impact="crash",
-        ))
+        results.append(
+            FuzzInput(
+                label="nested_depth_100",
+                value={"__proto__": nested},
+                strategy="overflow",
+                expected_impact="crash",
+            )
+        )
 
         # Prototype pollution
-        results.append(FuzzInput(
-            label="proto_pollution",
-            value={**original, "__proto__": {"admin": True}},
-            strategy="injection",
-            expected_impact="privilege_escalation",
-        ))
+        results.append(
+            FuzzInput(
+                label="proto_pollution",
+                value={**original, "__proto__": {"admin": True}},
+                strategy="injection",
+                expected_impact="privilege_escalation",
+            )
+        )
 
         # Type confusion
         for key in list(original.keys())[:3]:
             confused = {**original}
             confused[key] = [original[key]]
             confused[f"{key}_array"] = original[key]
-            results.append(FuzzInput(
-                label=f"type_confusion_{key}",
-                value=confused,
-                strategy="injection",
-            ))
+            results.append(
+                FuzzInput(
+                    label=f"type_confusion_{key}",
+                    value=confused,
+                    strategy="injection",
+                )
+            )
 
         return results[:count]
 

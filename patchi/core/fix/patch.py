@@ -39,14 +39,14 @@ import difflib
 import re as _re
 import uuid
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from enum import Enum
+from datetime import UTC, datetime
+from enum import StrEnum
 
 # ── Helpers (must be defined before class field defaults reference them) ────────
 
 
 def _now() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 def _compute_diff(path: str, original: str, proposed: str) -> str:
@@ -65,7 +65,7 @@ def _compute_diff(path: str, original: str, proposed: str) -> str:
 # ── Patch states ───────────────────────────────────────────────────────────────
 
 
-class PatchState(str, Enum):
+class PatchState(StrEnum):
     PROPOSED = "proposed"  # created by fix agent, not yet gated
     PENDING = "pending"  # passed risk gate, waiting for user
     AUTO_APPLIED = "auto_applied"  # applied automatically (AUTO/AUTOPILOT mode, low risk)
@@ -80,7 +80,7 @@ class PatchState(str, Enum):
 # ── Patch types ────────────────────────────────────────────────────────────────
 
 
-class PatchType(str, Enum):
+class PatchType(StrEnum):
     BUG_FIX = "bug_fix"
     SECURITY = "security"
     DEAD_CODE = "dead_code"
@@ -240,7 +240,7 @@ class Patch:
         }
 
     @staticmethod
-    def from_dict(d: dict) -> "Patch":
+    def from_dict(d: dict) -> Patch:
         changes = [
             FileChange(
                 path=c["path"],
@@ -398,6 +398,7 @@ def compute_confidence(
 
 
 # ── PatchApplier (for auto_fixer integration) ─────────────────────────────────
+
 
 def list_patches(root: Path) -> list[dict]:
     """List all patches in .patchi/patches/."""

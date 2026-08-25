@@ -79,9 +79,23 @@ class InjectionAgent(BaseAgent):
     def _run(self, inp: AgentInput, result: AgentResult) -> None:
         findings = []
         source_patterns = [
-            "*.py", "*.js", "*.jsx", "*.ts", "*.tsx", "*.java",
-            "*.php", "*.rb", "*.go", "*.rs", "*.cpp", "*.cxx",
-            "*.cc", "*.c", "*.h", "*.hpp", "*.cs",
+            "*.py",
+            "*.js",
+            "*.jsx",
+            "*.ts",
+            "*.tsx",
+            "*.java",
+            "*.php",
+            "*.rb",
+            "*.go",
+            "*.rs",
+            "*.cpp",
+            "*.cxx",
+            "*.cc",
+            "*.c",
+            "*.h",
+            "*.hpp",
+            "*.cs",
         ]
         with trace_agent(self.name, inp.root) as trace:
             for pattern in source_patterns:
@@ -94,10 +108,12 @@ class InjectionAgent(BaseAgent):
             trace.files_scanned = len(list(inp.root.rglob("*.py")))
         result.status = AgentStatus.SUCCEEDED
         result.findings = findings
-        result.data.update({
-            "injection_findings": len([f for f in findings if "injection" in f.title.lower()]),
-            "needs_ai": False,
-        })
+        result.data.update(
+            {
+                "injection_findings": len([f for f in findings if "injection" in f.title.lower()]),
+                "needs_ai": False,
+            }
+        )
         return
 
     def _should_skip_file(self, file_path: str, inp: AgentInput) -> bool:

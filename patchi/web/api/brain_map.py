@@ -27,7 +27,7 @@ async def get_nodes(request: Request) -> JSONResponse:
     scan_results = mem.get_scan_results(root)
     finding_counts: dict[str, int] = Counter()
     finding_severities: dict[str, str] = {}
-    for agent_name, data in scan_results.items():
+    for _agent_name, data in scan_results.items():
         for f in data.get("findings", []):
             file_path = f.get("file", "")
             if file_path:
@@ -40,7 +40,7 @@ async def get_nodes(request: Request) -> JSONResponse:
 
     # Build node list with metadata
     nodes = []
-    for i, node_id in enumerate(nodes_raw):
+    for _i, node_id in enumerate(nodes_raw):
         # Determine type (maps to BrainMap node shape/color)
         if any(x in node_id for x in ["main.py", "app.py", "server.py", "__main__.py"]):
             node_type = "entry_point"

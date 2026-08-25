@@ -14,10 +14,11 @@ from __future__ import annotations
 import base64
 import hashlib
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Callable, Optional
+from typing import Any
 
 _log = logging.getLogger("patchi.testing.screenshot_manager")
 
@@ -25,6 +26,7 @@ _log = logging.getLogger("patchi.testing.screenshot_manager")
 @dataclass
 class ScreenshotConfig:
     """Configuration for screenshot capture."""
+
     viewport: dict = field(default_factory=lambda: {"width": 1280, "height": 720})
     full_page: bool = True
     wait_for: str | None = None  # CSS selector to wait for
@@ -38,6 +40,7 @@ class ScreenshotConfig:
 @dataclass
 class ScreenshotResult:
     """Result of a screenshot capture."""
+
     url: str
     selector: str | None
     timestamp: str
@@ -51,6 +54,7 @@ class ScreenshotResult:
 @dataclass
 class VisualDiffResult:
     """Result of visual comparison."""
+
     baseline_path: str
     current_path: str
     diff_path: str | None
@@ -64,13 +68,13 @@ class VisualDiffResult:
 class ScreenshotManager:
     """
     Manages screenshot capture and visual regression testing.
-    
+
     Usage:
         manager = ScreenshotManager(baseline_dir="baselines")
-        
+
         # Capture screenshot
         result = await manager.capture(page, "https://example.com")
-        
+
         # Compare with baseline
         diff = await manager.compare("homepage", result.image_base64)
     """
@@ -79,7 +83,7 @@ class ScreenshotManager:
         self,
         baseline_dir: str | Path = ".patchi/visual_baselines",
         threshold: float = 0.1,  # 10% difference allowed
-        on_progress: Optional[Callable[[str], None]] = None,
+        on_progress: Callable[[str], None] | None = None,
     ):
         self.baseline_dir = Path(baseline_dir)
         self.baseline_dir.mkdir(parents=True, exist_ok=True)
@@ -92,10 +96,12 @@ class ScreenshotManager:
         if self._pixelmatch is None:
             try:
                 import pixelmatch
+
                 self._pixelmatch = pixelmatch
             except ImportError:
                 try:
                     from PIL import Image, ImageChops
+
                     self._pixelmatch = "PIL"
                 except ImportError:
                     _log.warning("Neither pixelmatch nor PIL available for image comparison")
@@ -111,14 +117,14 @@ class ScreenshotManager:
     ) -> ScreenshotResult:
         """
         Capture a screenshot of a page or element.
-        
+
         Args:
             page: Playwright page object
             url: URL to navigate to (or current page if already there)
             name: Optional name for the screenshot
             config: Screenshot configuration
             selector: Optional CSS selector for element screenshot
-        
+
         Returns:
             ScreenshotResult with base64 image and metadata
         """
@@ -140,22 +146,26 @@ class ScreenshotManager:
 
         # Disable animations if configured
         if config.animations == "disabled":
-            await page.add_style_tag(content="""
+            await page.add_style_tag(
+                content="""
                 *, *::before, *::after {
                     animation-duration: 0s !important;
                     animation-delay: 0s !important;
                     transition-duration: 0s !important;
                     transition-delay: 0s !important;
                 }
-            """)
+            """
+            )
 
         # Mask elements if specified
         for mask_selector in config.mask:
-            await page.add_style_tag(content=f"""
+            await page.add_style_tag(
+                content=f"""
                 {mask_selector} {{
                     visibility: hidden !important;
                 }}
-            """)
+            """
+            )
 
         # Capture screenshot
         screenshot_options = {
@@ -175,7 +185,7 @@ class ScreenshotManager:
             screenshot_bytes = await page.screenshot(**screenshot_options)
 
         # Save to file
-        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S-%f")
+        timestamp = datetime.now(UTC).strftime("%Y%m%d-%H%M%S-%f")
         safe_name = name.replace("/", "_").replace(":", "_")
         filename = f"{safe_name}-{timestamp}.png"
         image_path = self.baseline_dir / "current" / filename
@@ -188,14 +198,20 @@ class ScreenshotManager:
         # Get dimensions
         if selector:
             box = await element.bounding_box()
-            dimensions = {"width": box["width"], "height": box["height"]} if box else {"width": 0, "height": 0}
+            dimensions = (
+                {"width": box["width"], "height": box["height"]}
+                if box
+                else {"width": 0, "height": 0}
+            )
         else:
-            dimensions = await page.evaluate("() => ({ width: document.documentElement.scrollWidth, height: document.documentElement.scrollHeight })")
+            dimensions = await page.evaluate(
+                "() => ({ width: document.documentElement.scrollWidth, height: document.documentElement.scrollHeight })"
+            )
 
         return ScreenshotResult(
             url=url,
             selector=selector,
-            timestamp=datetime.now(timezone.utc).isoformat(),
+            timestamp=datetime.now(UTC).isoformat(),
             image_base64=image_base64,
             image_path=str(image_path),
             dimensions=dimensions,
@@ -206,6 +222,7 @@ class ScreenshotManager:
     def _generate_name(self, url: str, selector: str = None) -> str:
         """Generate a safe name from URL and selector."""
         from urllib.parse import urlparse
+
         parsed = urlparse(url)
         name = parsed.netloc + parsed.path.replace("/", "-")
         if selector:
@@ -223,11 +240,16 @@ class ScreenshotManager:
         # Also save metadata
         meta_path = baseline_path.with_suffix(".json")
         import json
-        meta_path.write_text(json.dumps({
-            "name": name,
-            "created_at": datetime.now(timezone.utc).isoformat(),
-            "hash": hashlib.sha256(image_bytes).hexdigest(),
-        }))
+
+        meta_path.write_text(
+            json.dumps(
+                {
+                    "name": name,
+                    "created_at": datetime.now(UTC).isoformat(),
+                    "hash": hashlib.sha256(image_bytes).hexdigest(),
+                }
+            )
+        )
 
         return str(baseline_path)
 
@@ -248,12 +270,12 @@ class ScreenshotManager:
     ) -> VisualDiffResult:
         """
         Compare current screenshot with baseline.
-        
+
         Args:
             name: Baseline name
             current_base64: Current screenshot as base64
             threshold: Difference threshold (0-1), overrides default
-        
+
         Returns:
             VisualDiffResult with comparison details
         """
@@ -281,7 +303,9 @@ class ScreenshotManager:
         if pixelmatch == "PIL":
             return await self._compare_pil(baseline_bytes, current_bytes, threshold, name)
         elif pixelmatch:
-            return await self._compare_pixelmatch(baseline_bytes, current_bytes, threshold, name, pixelmatch)
+            return await self._compare_pixelmatch(
+                baseline_bytes, current_bytes, threshold, name, pixelmatch
+            )
         else:
             # Fallback: simple hash comparison
             return self._compare_hash(baseline_bytes, current_bytes, threshold, name)
@@ -294,8 +318,9 @@ class ScreenshotManager:
         name: str,
     ) -> VisualDiffResult:
         """Compare using PIL."""
-        from PIL import Image, ImageChops
         import io
+
+        from PIL import Image, ImageChops
 
         baseline_img = Image.open(io.BytesIO(baseline_bytes)).convert("RGBA")
         current_img = Image.open(io.BytesIO(current_bytes)).convert("RGBA")
@@ -306,7 +331,9 @@ class ScreenshotManager:
 
         # Calculate difference
         diff = ImageChops.difference(baseline_img, current_img)
-        diff_pixels = sum(1 for pixel in diff.getdata() if pixel[3] > 0)  # Alpha > 0 means different
+        diff_pixels = sum(
+            1 for pixel in diff.getdata() if pixel[3] > 0
+        )  # Alpha > 0 means different
         total_pixels = baseline_img.width * baseline_img.height
         difference_percent = diff_pixels / total_pixels
 
@@ -384,7 +411,7 @@ class ScreenshotManager:
         """Capture screenshots for multiple URLs."""
         results = []
         for i, url in enumerate(urls):
-            self.on_progress(f"📸 [{i+1}/{len(urls)}] {url}")
+            self.on_progress(f"📸 [{i + 1}/{len(urls)}] {url}")
             result = await self.capture(page, url, config=config)
             results.append(result)
         return results
@@ -415,9 +442,11 @@ class VisualRegressionAgent:
             threshold=config.get("visual_threshold", 0.1),
         )
 
-    async def run(self, urls: list[str], base_url: str = None, update_baselines: bool = False) -> dict:
+    async def run(
+        self, urls: list[str], base_url: str = None, update_baselines: bool = False
+    ) -> dict:
         """Run visual regression test on URLs."""
-        from patchi.core.testing.live_v2.browser_pool import get_browser_pool, BrowserConfig
+        from patchi.core.testing.live_v2.browser_pool import BrowserConfig, get_browser_pool
 
         pool = await get_browser_pool(BrowserConfig(headless=True))
         page = await pool.get_page()

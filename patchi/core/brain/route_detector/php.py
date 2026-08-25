@@ -10,6 +10,7 @@ import logging
 
 _log = logging.getLogger("patchi.brain.php")
 
+
 @register_detector("php")
 class PhpRouteDetector(BaseRouteDetector):
     def detect(self, content: str, file_path: str) -> list[dict]:
@@ -32,14 +33,18 @@ class PhpRouteDetector(BaseRouteDetector):
         self._walk(tree.root_node, bytes(content, "utf-8"), content, file_path, routes)
         return routes
 
-    def _walk(self, node: object, buf: bytes, content: str, file_path: str, routes: list[dict]) -> None:
+    def _walk(
+        self, node: object, buf: bytes, content: str, file_path: str, routes: list[dict]
+    ) -> None:
         ntype = getattr(node, "type", "")
         if ntype in ("scoped_call_expression", "function_call_expression"):
             self._check_call(node, buf, content, file_path, routes)
-        for child in (getattr(node, "named_children", None) or getattr(node, "children", [])):
+        for child in getattr(node, "named_children", None) or getattr(node, "children", []):
             self._walk(child, buf, content, file_path, routes)
 
-    def _check_call(self, node: object, buf: bytes, content: str, file_path: str, routes: list[dict]) -> None:
+    def _check_call(
+        self, node: object, buf: bytes, content: str, file_path: str, routes: list[dict]
+    ) -> None:
         func = self._child_by_field(node, "function")
         if func is None:
             return
@@ -68,7 +73,7 @@ class PhpRouteDetector(BaseRouteDetector):
         handler = ""
 
         if args:
-            for child in (getattr(args, "named_children", None) or getattr(args, "children", [])):
+            for child in getattr(args, "named_children", None) or getattr(args, "children", []):
                 if child.type in ("string", "string_literal", "encapsed_string"):
                     raw = self._node_text(child).strip("'\"")
                     if not path:
@@ -85,7 +90,17 @@ class PhpRouteDetector(BaseRouteDetector):
 
         auth = self._check_auth(node, buf, content)
 
-        routes.append(self._make_route(method.upper(), path, handler, file_path, line, framework="Laravel", auth_required=auth if auth else None))
+        routes.append(
+            self._make_route(
+                method.upper(),
+                path,
+                handler,
+                file_path,
+                line,
+                framework="Laravel",
+                auth_required=auth if auth else None,
+            )
+        )
 
     def _check_auth(self, node: object, buf: bytes, content: str) -> bool:
         try:
@@ -130,5 +145,15 @@ class PhpRouteDetector(BaseRouteDetector):
             hm = re.search(r"""['"](\w+@\w+)['"]|(\w+Controller)::class""", line)
             if hm:
                 handler = hm.group(1) or hm.group(2)
-            routes.append(self._make_route(method, path, handler, file_path, i, framework="Laravel", auth_required=auth if auth else None))
+            routes.append(
+                self._make_route(
+                    method,
+                    path,
+                    handler,
+                    file_path,
+                    i,
+                    framework="Laravel",
+                    auth_required=auth if auth else None,
+                )
+            )
         return routes

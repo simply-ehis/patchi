@@ -15,6 +15,7 @@ from .helpers import child_by_field, children, node_text
 
 _log = logging.getLogger("patchi.brain.imports")
 
+
 def find_imports(content: str, lang: Lang, names: set[str]) -> list[dict]:
     """
     Find all import statements matching one of `names`.
@@ -46,18 +47,22 @@ def _find_imports_python(content: str, names: set[str]) -> list[dict]:
         if isinstance(node, _py_ast.Import):
             for alias in node.names:
                 if alias.name in names:
-                    results.append({
-                        "name": alias.name,
-                        "line": getattr(node, "lineno", 0),
-                        "full_text": _ast_text(node, content),
-                    })
+                    results.append(
+                        {
+                            "name": alias.name,
+                            "line": getattr(node, "lineno", 0),
+                            "full_text": _ast_text(node, content),
+                        }
+                    )
         elif isinstance(node, _py_ast.ImportFrom):
             if node.module and node.module in names:
-                results.append({
-                    "name": node.module,
-                    "line": getattr(node, "lineno", 0),
-                    "full_text": _ast_text(node, content),
-                })
+                results.append(
+                    {
+                        "name": node.module,
+                        "line": getattr(node, "lineno", 0),
+                        "full_text": _ast_text(node, content),
+                    }
+                )
     return results
 
 
@@ -66,13 +71,15 @@ def _ast_text(node: _py_ast.AST, source: str) -> str:
         lines = source.splitlines()
         start = getattr(node, "lineno", 1) - 1
         end = getattr(node, "end_lineno", start + 1) - 1
-        return "\n".join(lines[start:end + 1])
+        return "\n".join(lines[start : end + 1])
     except Exception as e:
         _log.debug("_ast_text failed: %s", e)
         return ""
 
 
-def _walk_imports(node: Any, import_types: set[str], names: set[str], results: list[dict], lang: Lang) -> None:
+def _walk_imports(
+    node: Any, import_types: set[str], names: set[str], results: list[dict], lang: Lang
+) -> None:
     try:
         ntype = node.type if hasattr(node, "type") else ""
     except Exception as e:
@@ -87,11 +94,13 @@ def _walk_imports(node: Any, import_types: set[str], names: set[str], results: l
             except Exception as e:
                 _log.warning("_walk_imports failed: %s", e)
                 line = 0
-            results.append({
-                "name": imp_name,
-                "line": line,
-                "full_text": node_text(node),
-            })
+            results.append(
+                {
+                    "name": imp_name,
+                    "line": line,
+                    "full_text": node_text(node),
+                }
+            )
 
     for child in children(node):
         _walk_imports(child, import_types, names, results, lang)
@@ -105,7 +114,11 @@ def _extract_import_name(node: Any, lang: Lang) -> str:
         return ""
     if lang in (Lang.RUST, Lang.JAVA, Lang.GO, Lang.SWIFT, Lang.C_SHARP, Lang.KOTLIN, Lang.DART):
         # Try named fields first
-        src = child_by_field(node, "source") or child_by_field(node, "name") or child_by_field(node, "alias")
+        src = (
+            child_by_field(node, "source")
+            or child_by_field(node, "name")
+            or child_by_field(node, "alias")
+        )
         if src:
             return node_text(src).strip("\"'<>")
         # Walk children for identifier / scoped_identifier / string
@@ -118,7 +131,7 @@ def _extract_import_name(node: Any, lang: Lang) -> str:
             if lang == Lang.GO and ct == "import_spec":
                 for c2 in children(child):
                     if c2.type == "interpreted_string_literal":
-                        return node_text(c2).strip("\"")
+                        return node_text(c2).strip('"')
             if lang in (Lang.C_SHARP,) and ct == "string_literal":
                 return node_text(child).strip("\"'")
             if lang == Lang.C_SHARP and ct == "alias_qualified_name":
@@ -129,7 +142,7 @@ def _extract_import_name(node: Any, lang: Lang) -> str:
     if lang in (Lang.C, Lang.CPP):
         for child in children(node):
             if child.type == "string_literal":
-                return node_text(child).strip("\"<>")
+                return node_text(child).strip('"<>')
         return ""
     if lang == Lang.RUBY:
         for child in children(node):

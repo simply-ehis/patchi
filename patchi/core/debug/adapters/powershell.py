@@ -53,7 +53,7 @@ class PowerShellDebugAdapter:
             prefix = "PATCHI_DEBUG_CAPTURE:"
             if stripped.startswith(prefix):
                 try:
-                    return json.loads(stripped[len(prefix):])
+                    return json.loads(stripped[len(prefix) :])
                 except json.JSONDecodeError:
                     _log.warning("PATCHI_DEBUG_CAPTURE JSON parse error: %.200s", stripped)
                     return None
@@ -72,7 +72,9 @@ def _find_pwsh() -> Path | None:
     try:
         result = subprocess.run(
             ["where", "pwsh"],
-            capture_output=True, text=True, timeout=10,
+            capture_output=True,
+            text=True,
+            timeout=10,
         )
         if result.returncode == 0:
             for line in result.stdout.splitlines():

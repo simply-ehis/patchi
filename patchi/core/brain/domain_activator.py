@@ -18,10 +18,12 @@ from __future__ import annotations
 # ---------------------------------------------------------------------------
 import logging
 import re
+from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
-from typing import Any, Callable, Iterable, Sequence
+from typing import Any
 
 _log = logging.getLogger("patchi.brain.domain_activator")
+
 
 @dataclass(frozen=True)
 class _DomainContext:
@@ -54,11 +56,9 @@ class _DomainContext:
     exts: Sequence[str]
 
     @classmethod
-    def from_args(cls, args: Sequence) -> "_DomainContext":
+    def from_args(cls, args: Sequence) -> _DomainContext:
         if len(args) != 11:
-            raise ValueError(
-                f"Expected 11-element args tuple, got {len(args)}: {args!r}"
-            )
+            raise ValueError(f"Expected 11-element args tuple, got {len(args)}: {args!r}")
         (
             language,
             framework,
@@ -90,6 +90,7 @@ class _DomainContext:
 # ---------------------------------------------------------------------------
 # Matching helpers
 # ---------------------------------------------------------------------------
+
 
 def _compile_pattern(pat: str) -> re.Pattern:
     """Compile a substring pattern into a regex with word-boundary awareness.
@@ -150,30 +151,25 @@ def _has_ext(exts: Iterable[str], patterns: Iterable[str]) -> bool:
     both ``".go"`` and ``".GO"`` (rare, but legacy Windows tooling produces it).
     """
     exts_lower = [e.lower() for e in exts]
-    return any(
-        ext.lower().endswith(pat.lower()) for pat in patterns for ext in exts_lower
-    )
+    return any(ext.lower().endswith(pat.lower()) for pat in patterns for ext in exts_lower)
 
 
 def _has_infra_file(infra_files: Iterable[str], patterns: Iterable[str]) -> bool:
     """Return True if any infra file path matches any pattern (case-insensitive)."""
     infra_lower = [f.lower() for f in infra_files]
-    return any(
-        pat.lower() in f for pat in patterns for f in infra_lower
-    )
+    return any(pat.lower() in f for pat in patterns for f in infra_lower)
 
 
 def _has_config_key(config_keys: Iterable[str], patterns: Iterable[str]) -> bool:
     """Return True if any config key matches any pattern (case-insensitive)."""
     keys_lower = [k.lower() for k in config_keys]
-    return any(
-        pat.lower() in k for pat in patterns for k in keys_lower
-    )
+    return any(pat.lower() in k for pat in patterns for k in keys_lower)
 
 
 # ---------------------------------------------------------------------------
 # Domain checkers
 # ---------------------------------------------------------------------------
+
 
 def _check_native_code_safety(*args) -> bool:
     """Activate for C/C++/Rust codebases with native-unsafe patterns."""
@@ -181,17 +177,20 @@ def _check_native_code_safety(*args) -> bool:
 
     ncs_exts = [".c", ".cpp", ".cc", ".cxx", ".h", ".hpp", ".hh", ".hxx", ".rs"]
     ncs_imports = [
-        "unsafe",                       # Rust unsafe blocks (lexically detectable)
-        "std::ptr",                     # Rust raw pointer module
-        "std::mem::transmute",          # Rust transmute
-        "libc::",                       # Rust libc FFI
-        "extern \"C\"",                 # Rust FFI
-        "Box::into_raw",                # Rust manual lifetime
+        "unsafe",  # Rust unsafe blocks (lexically detectable)
+        "std::ptr",  # Rust raw pointer module
+        "std::mem::transmute",  # Rust transmute
+        "libc::",  # Rust libc FFI
+        'extern "C"',  # Rust FFI
+        "Box::into_raw",  # Rust manual lifetime
         "Box::from_raw",
-        "<stdlib.h>",                   # C/C++ malloc family
-        "<string.h>",                   # C/C++ strcpy family
-        "<stdio.h>",                    # C/C++ printf family
-        "strcpy", "strcat", "sprintf", "gets",  # CWE-119 classics
+        "<stdlib.h>",  # C/C++ malloc family
+        "<string.h>",  # C/C++ strcpy family
+        "<stdio.h>",  # C/C++ printf family
+        "strcpy",
+        "strcat",
+        "sprintf",
+        "gets",  # CWE-119 classics
     ]
     ncs_deps: list[str] = []  # C/C++/Rust do not use dep manifests we scan here
 
@@ -208,16 +207,16 @@ def _check_go_concurrency(*args) -> bool:
 
     gco_exts = [".go"]
     gco_imports = [
-        "go func",                      # goroutine spawn (lexical)
-        "sync",                         # sync.Mutex / sync.RWMutex / sync.WaitGroup
-        "sync/atomic",                  # atomic primitives
-        "context",                      # context.Context for cancellation
-        "sync.Map",                     # concurrent map
-        "errgroup",                     # golang.org/x/sync/errgroup
-        "runtime.Goexit",              # goroutine exit
+        "go func",  # goroutine spawn (lexical)
+        "sync",  # sync.Mutex / sync.RWMutex / sync.WaitGroup
+        "sync/atomic",  # atomic primitives
+        "context",  # context.Context for cancellation
+        "sync.Map",  # concurrent map
+        "errgroup",  # golang.org/x/sync/errgroup
+        "runtime.Goexit",  # goroutine exit
     ]
     gco_deps = [
-        "golang.org/x/sync",            # errgroup, semaphore
+        "golang.org/x/sync",  # errgroup, semaphore
         "github.com/sourcegraph/conc",  # modern concurrency helpers
     ]
 
@@ -234,21 +233,21 @@ def _check_jvm_hardening(*args) -> bool:
 
     jvm_exts = [".java", ".kt", ".kts", ".scala"]
     jvm_imports = [
-        "org.springframework",          # Spring Framework
-        "org.springframework.boot",     # Spring Boot
-        "javax.servlet",                # Servlet API
-        "jakarta.servlet",              # Jakarta EE (Spring Boot 3+)
-        "java.io.ObjectInputStream",    # CWE-502 deserialization
-        "java.lang.Runtime",            # CWE-78 command exec
-        "java.lang.reflect",            # CWE-470 reflection
-        "com.fasterxml.jackson",        # Jackson (default typing risk)
-        "com.alibaba.fastjson",         # Fastjson (autoType risk)
+        "org.springframework",  # Spring Framework
+        "org.springframework.boot",  # Spring Boot
+        "javax.servlet",  # Servlet API
+        "jakarta.servlet",  # Jakarta EE (Spring Boot 3+)
+        "java.io.ObjectInputStream",  # CWE-502 deserialization
+        "java.lang.Runtime",  # CWE-78 command exec
+        "java.lang.reflect",  # CWE-470 reflection
+        "com.fasterxml.jackson",  # Jackson (default typing risk)
+        "com.alibaba.fastjson",  # Fastjson (autoType risk)
         "org.apache.commons.collections",  # ysoserial gadget
     ]
     jvm_deps = [
         "spring-boot-starter",
-        "spring-boot-actuator",         # CWE-526 actuator exposure
-        "spring-boot-devtools",         # CWE-489 debug code
+        "spring-boot-actuator",  # CWE-526 actuator exposure
+        "spring-boot-devtools",  # CWE-489 debug code
         "spring-web",
         "spring-webmvc",
         "spring-webflux",
@@ -273,24 +272,24 @@ def _check_mobile_native(*args) -> bool:
 
     mob_exts = [".swift", ".kt", ".kts", ".m", ".mm"]
     mob_imports = [
-        "UIKit",                        # iOS UI framework
-        "SwiftUI",                      # iOS modern UI
-        "Foundation",                   # iOS core (often co-located)
-        "Security",                     # iOS Keychain
-        "androidx.",                    # AndroidX
-        "android.app",                  # Android app framework
-        "android.content",              # Android Intent / Context
-        "android.security.keystore",    # Android Keystore
-        "com.android",                  # Android tooling
-        "java.security.KeyStore",       # Java/Android Keystore
+        "UIKit",  # iOS UI framework
+        "SwiftUI",  # iOS modern UI
+        "Foundation",  # iOS core (often co-located)
+        "Security",  # iOS Keychain
+        "androidx.",  # AndroidX
+        "android.app",  # Android app framework
+        "android.content",  # Android Intent / Context
+        "android.security.keystore",  # Android Keystore
+        "com.android",  # Android tooling
+        "java.security.KeyStore",  # Java/Android Keystore
     ]
     mob_deps = [
-        "com.android.tools.build:gradle",       # Android Gradle plugin
-        "io.realm:realm",                       # Realm mobile DB
-        "androidx.compose",                     # Jetpack Compose
-        "io.coil-kt:coil",                      # Coil (Android image lib)
-        "com.google.firebase",                  # Firebase mobile SDK
-        "platform-ui",                          # iOS package alias
+        "com.android.tools.build:gradle",  # Android Gradle plugin
+        "io.realm:realm",  # Realm mobile DB
+        "androidx.compose",  # Jetpack Compose
+        "io.coil-kt:coil",  # Coil (Android image lib)
+        "com.google.firebase",  # Firebase mobile SDK
+        "platform-ui",  # iOS package alias
     ]
     mob_infra = [
         "info.plist",
@@ -318,31 +317,31 @@ def _check_ruby_rails(*args) -> bool:
 
     rrs_exts = [".rb", ".erb", ".rhtml", ".rjs", ".rake", ".gemspec"]
     rrs_imports = [
-        "ActiveRecord",                 # ORM
-        "ActionController",             # controllers
-        "ActionView",                   # views
-        "ActionDispatch",               # routing
-        "Rails",                        # Rails constant
+        "ActiveRecord",  # ORM
+        "ActionController",  # controllers
+        "ActionView",  # views
+        "ActionDispatch",  # routing
+        "Rails",  # Rails constant
         "ApplicationController",
         "ApplicationRecord",
         "ActiveModel",
         "ActiveJob",
         "ActiveSupport",
-        "protect_from_forgery",         # CSRF config
-        "params.permit",                # strong params
-        "attr_accessible",              # legacy mass-assignment
+        "protect_from_forgery",  # CSRF config
+        "params.permit",  # strong params
+        "attr_accessible",  # legacy mass-assignment
     ]
     rrs_deps = [
-        "rails",                        # the framework
+        "rails",  # the framework
         "activerecord",
         "actionpack",
         "activesupport",
         "actionview",
         "railties",
-        "pg",                           # Postgres adapter (often Rails)
+        "pg",  # Postgres adapter (often Rails)
         "mysql2",
-        "puma",                         # Rails app server
-        "devise",                       # Rails auth
+        "puma",  # Rails app server
+        "devise",  # Rails auth
     ]
     rrs_infra = [
         "config/routes.rb",
@@ -369,19 +368,19 @@ def _check_svelte_ssr(*args) -> bool:
 
     ssr_exts = [".svelte", ".svelte.js", ".svelte.ts"]
     ssr_imports = [
-        "@sveltejs/kit",                # SvelteKit core
-        "$app/store",                   # SvelteKit $app module
+        "@sveltejs/kit",  # SvelteKit core
+        "$app/store",  # SvelteKit $app module
         "$app/environment",
         "$app/navigation",
-        "$env/static/private",          # private env (server-only)
+        "$env/static/private",  # private env (server-only)
         "$env/dynamic/private",
         "$env/static/public",
         "$env/dynamic/public",
-        "$lib/server",                  # server-only lib
-        "import { redirect }",          # SvelteKit redirect helper
-        "import { error }",             # SvelteKit error helper
-        "cookies.set",                  # SvelteKit cookies API (called inside actions/load)
-        "cookies.get",                  # SvelteKit cookies API (read)
+        "$lib/server",  # server-only lib
+        "import { redirect }",  # SvelteKit redirect helper
+        "import { error }",  # SvelteKit error helper
+        "cookies.set",  # SvelteKit cookies API (called inside actions/load)
+        "cookies.get",  # SvelteKit cookies API (read)
     ]
     ssr_deps = [
         "@sveltejs/kit",
@@ -416,9 +415,8 @@ def _check_cargo_supply_chain(*args) -> bool:
     """Activate for Rust codebases that declare any Cargo dependencies."""
     ctx = _DomainContext.from_args(args)
 
-
     csc_infra = [
-        "cargo.toml",                   # case-insensitive
+        "cargo.toml",  # case-insensitive
         "cargo.lock",
     ]
 
@@ -448,37 +446,37 @@ def _check_nodejs_runtime(*args) -> bool:
 
     njs_exts = [".js", ".mjs", ".cjs", ".ts", ".mts", ".cts"]
     njs_imports = [
-        "require(",                     # CommonJS require
-        "child_process",                # CWE-78 command exec
+        "require(",  # CommonJS require
+        "child_process",  # CWE-78 command exec
         "node:child_process",
-        "eval(",                        # CWE-95 code injection
-        "new Function(",                # CWE-95 dynamic function
-        "vm.runInNewContext",           # CWE-95 vm sandbox (not a security boundary)
+        "eval(",  # CWE-95 code injection
+        "new Function(",  # CWE-95 dynamic function
+        "vm.runInNewContext",  # CWE-95 vm sandbox (not a security boundary)
         "vm.runInThisContext",
         "node:vm",
-        "fs.readFile",                  # CWE-22 path traversal (fs family)
+        "fs.readFile",  # CWE-22 path traversal (fs family)
         "fs.writeFile",
         "fs.createReadStream",
         "fs.createWriteStream",
-        "path.join",                    # often misused for path traversal
+        "path.join",  # often misused for path traversal
         "path.resolve",
-        "process.env",                  # env var access (CWE-200 if leaked to client)
-        "__proto__",                    # CWE-1321 prototype pollution
-        "Object.assign",                # CWE-1321 if source is user input
-        "RegExp(",                      # CWE-1333 ReDoS if user-controlled pattern
+        "process.env",  # env var access (CWE-200 if leaked to client)
+        "__proto__",  # CWE-1321 prototype pollution
+        "Object.assign",  # CWE-1321 if source is user input
+        "RegExp(",  # CWE-1333 ReDoS if user-controlled pattern
     ]
     njs_deps = [
-        "express",                      # Express framework (overlaps with express-web)
+        "express",  # Express framework (overlaps with express-web)
         "fastify",
         "koa",
-        "lodash",                       # CWE-1321 prototype pollution in old versions
-        "jquery",                       # CWE-1321 $.extend
-        "ejs",                          # CWE-1336 SSTI
+        "lodash",  # CWE-1321 prototype pollution in old versions
+        "jquery",  # CWE-1321 $.extend
+        "ejs",  # CWE-1336 SSTI
         "pug",
         "nunjucks",
         "handlebars",
-        "vm2",                          # deprecated, vulnerable sandbox
-        "isolated-vm",                  # safer sandbox (positive signal)
+        "vm2",  # deprecated, vulnerable sandbox
+        "isolated-vm",  # safer sandbox (positive signal)
     ]
     njs_infra = [
         "package.json",
@@ -501,8 +499,8 @@ def _check_express_web(*args) -> bool:
     ctx = _DomainContext.from_args(args)
 
     exp_imports = [
-        "express",                      # the framework
-        "app.use(",                     # Express middleware mounting
+        "express",  # the framework
+        "app.use(",  # Express middleware mounting
         "app.get(",
         "app.post(",
         "app.put(",
@@ -513,9 +511,9 @@ def _check_express_web(*args) -> bool:
         "express.json",
         "express.urlencoded",
         "express.static",
-        "res.render",                   # template rendering (SSTI risk)
-        "res.cookie",                   # cookie setting (insecure flag risk)
-        "req.body",                     # body access (validation risk)
+        "res.render",  # template rendering (SSTI risk)
+        "res.cookie",  # cookie setting (insecure flag risk)
+        "req.body",  # body access (validation risk)
     ]
     exp_deps = [
         "express",
@@ -523,15 +521,15 @@ def _check_express_web(*args) -> bool:
         "cookie-parser",
         "express-session",
         "cookie-session",
-        "csurf",                        # deprecated but still used
-        "csrf-csrf",                    # modern replacement
-        "helmet",                       # security headers (positive signal)
-        "cors",                         # CORS config (misconfig risk)
-        "ejs",                          # template engines
+        "csurf",  # deprecated but still used
+        "csrf-csrf",  # modern replacement
+        "helmet",  # security headers (positive signal)
+        "cors",  # CORS config (misconfig risk)
+        "ejs",  # template engines
         "pug",
         "nunjucks",
         "handlebars",
-        "multer",                       # file upload
+        "multer",  # file upload
     ]
     exp_infra = [
         "app.js",
@@ -553,21 +551,21 @@ def _check_nextjs_app(*args) -> bool:
     ctx = _DomainContext.from_args(args)
 
     nxt_imports = [
-        "next/server",                  # Next.js server utilities
+        "next/server",  # Next.js server utilities
         "next/navigation",
         "next/headers",
-        "next/image",                   # Image optimization (SSRF risk)
+        "next/image",  # Image optimization (SSRF risk)
         "next/link",
         "next/router",
         "next/document",
         "next/script",
-        "NextResponse",                 # Next.js response class
+        "NextResponse",  # Next.js response class
         "NextRequest",
-        "getServerSideProps",           # Pages Router SSR (data leak risk)
+        "getServerSideProps",  # Pages Router SSR (data leak risk)
         "getStaticProps",
         "getInitialProps",
-        "use server",                   # Server Actions (Next.js 14+)
-        "searchParams",                 # App Router searchParams
+        "use server",  # Server Actions (Next.js 14+)
+        "searchParams",  # App Router searchParams
     ]
     nxt_deps = [
         "next",
@@ -606,34 +604,34 @@ def _check_python_runtime(*args) -> bool:
 
     pyr_exts = [".py", ".pyw", ".pyi"]
     pyr_imports = [
-        "import os",                    # os.system (CWE-78)
-        "import subprocess",            # subprocess shell=True (CWE-78)
+        "import os",  # os.system (CWE-78)
+        "import subprocess",  # subprocess shell=True (CWE-78)
         "from subprocess",
-        "import pickle",                # pickle.loads (CWE-502)
-        "import cPickle",               # Python 2 pickle (CWE-502)
-        "import yaml",                  # yaml.load (CWE-502)
-        "import marshal",               # marshal.loads (CWE-502)
-        "import shelve",                # shelve uses pickle (CWE-502)
-        "import ctypes",                # ctypes abuse (CWE-78)
-        "import requests",              # SSRF risk
-        "import urllib",                # SSRF risk
+        "import pickle",  # pickle.loads (CWE-502)
+        "import cPickle",  # Python 2 pickle (CWE-502)
+        "import yaml",  # yaml.load (CWE-502)
+        "import marshal",  # marshal.loads (CWE-502)
+        "import shelve",  # shelve uses pickle (CWE-502)
+        "import ctypes",  # ctypes abuse (CWE-78)
+        "import requests",  # SSRF risk
+        "import urllib",  # SSRF risk
         "from urllib",
-        "import httpx",                 # SSRF risk
-        "import aiohttp",               # SSRF risk
-        "eval(",                        # CWE-95 code injection
-        "exec(",                        # CWE-95
-        "compile(",                     # CWE-95
-        "import re",                    # ReDoS risk
-        "tempfile.mktemp",              # CWE-377 race condition
+        "import httpx",  # SSRF risk
+        "import aiohttp",  # SSRF risk
+        "eval(",  # CWE-95 code injection
+        "exec(",  # CWE-95
+        "compile(",  # CWE-95
+        "import re",  # ReDoS risk
+        "tempfile.mktemp",  # CWE-377 race condition
     ]
     pyr_deps = [
         "requests",
         "urllib3",
         "httpx",
         "aiohttp",
-        "pyyaml",                       # yaml.load risk
-        "pickle",                       # stdlib but listed for clarity
-        "google-re2",                   # positive signal (ReDoS mitigation)
+        "pyyaml",  # yaml.load risk
+        "pickle",  # stdlib but listed for clarity
+        "google-re2",  # positive signal (ReDoS mitigation)
     ]
     pyr_infra = [
         "setup.py",
@@ -659,7 +657,7 @@ def _check_django_hardening(*args) -> bool:
     ctx = _DomainContext.from_args(args)
 
     djg_imports = [
-        "django",                       # the framework
+        "django",  # the framework
         "from django",
         "import django",
         "django.http",
@@ -671,10 +669,10 @@ def _check_django_hardening(*args) -> bool:
         "django.db.models",
         "django.template",
         "django.urls",
-        "Model.objects.raw",            # SQL injection risk
+        "Model.objects.raw",  # SQL injection risk
         "cursor.execute",
-        "csrf_exempt",                  # CSRF bypass risk
-        "autoescape off",               # XSS risk in templates
+        "csrf_exempt",  # CSRF bypass risk
+        "autoescape off",  # XSS risk in templates
     ]
     djg_deps = [
         "django",
@@ -682,11 +680,11 @@ def _check_django_hardening(*args) -> bool:
         "django-rest-framework",
         "djangorestframework",
         "django-cors-headers",
-        "django-debug-toolbar",         # debug code risk
+        "django-debug-toolbar",  # debug code risk
         "django-extensions",
-        "celery",                       # often paired with Django
-        "gunicorn",                     # Django app server
-        "whitenoise",                   # Django static files
+        "celery",  # often paired with Django
+        "gunicorn",  # Django app server
+        "whitenoise",  # Django static files
     ]
     djg_infra = [
         "manage.py",
@@ -711,35 +709,35 @@ def _check_flask_hardening(*args) -> bool:
     ctx = _DomainContext.from_args(args)
 
     flk_imports = [
-        "from flask",                   # the framework
+        "from flask",  # the framework
         "import flask",
         "flask.Flask",
         "flask.request",
         "flask.session",
         "flask.render_template",
-        "flask.render_template_string", # SSTI risk
+        "flask.render_template_string",  # SSTI risk
         "flask.redirect",
         "flask.url_for",
         "flask.abort",
-        "flask.send_file",              # path traversal risk
+        "flask.send_file",  # path traversal risk
         "flask.send_from_directory",
-        "app.run(",                     # debug mode risk
+        "app.run(",  # debug mode risk
         "app.debug",
-        "app.config[",                  # config access (SECRET_KEY risk)
-        "cursor.execute",               # SQL injection risk (raw SQL)
-        "db.session.execute",           # SQLAlchemy raw SQL
+        "app.config[",  # config access (SECRET_KEY risk)
+        "cursor.execute",  # SQL injection risk (raw SQL)
+        "db.session.execute",  # SQLAlchemy raw SQL
     ]
     flk_deps = [
         "flask",
         "Flask",
-        "flask-wtf",                    # CSRF protection (positive signal)
-        "flask-sqlalchemy",              # ORM
-        "flask-login",                   # auth
-        "flask-session",                 # server-side sessions
+        "flask-wtf",  # CSRF protection (positive signal)
+        "flask-sqlalchemy",  # ORM
+        "flask-login",  # auth
+        "flask-session",  # server-side sessions
         "flask-jwt-extended",
         "flask-cors",
         "flask-limiter",
-        "werkzeug",                     # Flask's WSGI lib (debugger RCE risk)
+        "werkzeug",  # Flask's WSGI lib (debugger RCE risk)
     ]
     flk_infra = [
         "app.py",
@@ -767,7 +765,16 @@ def _check_cdn_cache_security(*args) -> bool:
     """Activate for projects using a CDN/edge cache layer."""
     ctx = _DomainContext.from_args(args)
 
-    cdn_infra = ["cloudfront", "cloudflare", "fastly", "akamai", "cdn", "edge", "varnish", "cloudflare"]
+    cdn_infra = [
+        "cloudfront",
+        "cloudflare",
+        "fastly",
+        "akamai",
+        "cdn",
+        "edge",
+        "varnish",
+        "cloudflare",
+    ]
     cdn_deps = ["cloudfront", "fastly", "cloudflare", "boto3"]
     cdn_imports = ["cloudfront", "fastly", "cloudflare", "cdn"]
 
@@ -797,13 +804,19 @@ def _check_email_authentication(*args) -> bool:
     """Activate for projects that send email."""
     ctx = _DomainContext.from_args(args)
 
-    email_deps = ["sendgrid", "mailgun", "ses", "sparkpost", "postmark", "mailchimp", "aiosmtplib", "django.core.mail"]
+    email_deps = [
+        "sendgrid",
+        "mailgun",
+        "ses",
+        "sparkpost",
+        "postmark",
+        "mailchimp",
+        "aiosmtplib",
+        "django.core.mail",
+    ]
     email_imports = ["smtplib", "sendgrid", "ses", "mailgun", "email.mime", "aiosmtplib"]
 
-    return (
-        _has_dependency(ctx.deps, email_deps)
-        or _has_import(ctx.imports, email_imports)
-    )
+    return _has_dependency(ctx.deps, email_deps) or _has_import(ctx.imports, email_imports)
 
 
 def _check_push_notification_security(*args) -> bool:
@@ -813,43 +826,55 @@ def _check_push_notification_security(*args) -> bool:
     push_deps = ["firebase", "fcm", "apns", "pyfcm", "python-push-notify", "firebase-admin"]
     push_imports = ["firebase_admin", "apns", "fcm", "firebase"]
 
-    return (
-        _has_dependency(ctx.deps, push_deps)
-        or _has_import(ctx.imports, push_imports)
-    )
+    return _has_dependency(ctx.deps, push_deps) or _has_import(ctx.imports, push_imports)
 
 
 def _check_saml_sso_security(*args) -> bool:
     """Activate for projects using SAML SSO."""
     ctx = _DomainContext.from_args(args)
 
-    saml_deps = ["pysaml2", "onelogin", "python3-saml", "spring-security-saml2", "saml2", "leptoplast"]
+    saml_deps = [
+        "pysaml2",
+        "onelogin",
+        "python3-saml",
+        "spring-security-saml2",
+        "saml2",
+        "leptoplast",
+    ]
     saml_imports = ["saml", "SAML", "OneLogin", "saml2", "onelogin"]
 
-    return (
-        _has_dependency(ctx.deps, saml_deps)
-        or _has_import(ctx.imports, saml_imports)
-    )
+    return _has_dependency(ctx.deps, saml_deps) or _has_import(ctx.imports, saml_imports)
 
 
 def _check_secrets_runtime_management(*args) -> bool:
     """Activate for projects using runtime secrets backends."""
     ctx = _DomainContext.from_args(args)
 
-    secrets_deps = ["hvac", "boto3", "google-cloud-secret-manager", "azure-keyvault", "vault", "aws-secretsmanager"]
+    secrets_deps = [
+        "hvac",
+        "boto3",
+        "google-cloud-secret-manager",
+        "azure-keyvault",
+        "vault",
+        "aws-secretsmanager",
+    ]
     secrets_imports = ["vault", "secretsmanager", "keyvault", "hvac", "google.cloud.secretmanager"]
 
-    return (
-        _has_dependency(ctx.deps, secrets_deps)
-        or _has_import(ctx.imports, secrets_imports)
-    )
+    return _has_dependency(ctx.deps, secrets_deps) or _has_import(ctx.imports, secrets_imports)
 
 
 def _check_service_mesh_security(*args) -> bool:
     """Activate for projects deployed on a service mesh (Istio/Linkerd)."""
     ctx = _DomainContext.from_args(args)
 
-    mesh_infra = ["istio", "linkerd", "virtualservice", "destinationrule", "peerauthoration", "authorizationpolicy"]
+    mesh_infra = [
+        "istio",
+        "linkerd",
+        "virtualservice",
+        "destinationrule",
+        "peerauthoration",
+        "authorizationpolicy",
+    ]
     mesh_deps = ["istio-client", "linkerd2"]
     mesh_imports = ["istio", "linkerd"]
 
@@ -864,9 +889,19 @@ def _check_kubernetes_hardening(*args) -> bool:
     """Activate for projects deployed on Kubernetes."""
     ctx = _DomainContext.from_args(args)
 
-    k8s_infra = ["deployment.yaml", "service.yaml", "statefulset.yaml", "daemonset.yaml",
-                 "role.yaml", "clusterrole.yaml", "networkpolicy.yaml", "helmfile.yaml",
-                 "chart.yaml", "values.yaml", "kustomization.yaml"]
+    k8s_infra = [
+        "deployment.yaml",
+        "service.yaml",
+        "statefulset.yaml",
+        "daemonset.yaml",
+        "role.yaml",
+        "clusterrole.yaml",
+        "networkpolicy.yaml",
+        "helmfile.yaml",
+        "chart.yaml",
+        "values.yaml",
+        "kustomization.yaml",
+    ]
     k8s_imports = ["kubernetes", "kubectl", "kube", "helm"]
     k8s_deps = ["kubernetes", "pykube", "lightkube", "helm"]
 
@@ -889,6 +924,7 @@ def _check_kubernetes_hardening(*args) -> bool:
 _GENERATED_CHECKERS: dict[str, _DomainCheckerFn] = {}
 try:
     import patchi.core.brain._generated_checkers as _gen_mod
+
     for _name in dir(_gen_mod):
         if _name.startswith("_check_"):
             _fn = getattr(_gen_mod, _name)
@@ -910,16 +946,38 @@ def _check_access_control_authz(*args) -> bool:
     ctx = _DomainContext.from_args(args)
 
     az_imports = [
-        "authorize", "permission", "has_role", "has_permission", "is_admin",
-        "check_access", "rbac", "acl", "can_access", "require_role",
-        "login_required", "permission_required", "@requires_permissions",
-        "CurrentPrincipal", "SecurityContext", "AuthorizationService",
-        "policy.enforce", "guard.can", "authz",
+        "authorize",
+        "permission",
+        "has_role",
+        "has_permission",
+        "is_admin",
+        "check_access",
+        "rbac",
+        "acl",
+        "can_access",
+        "require_role",
+        "login_required",
+        "permission_required",
+        "@requires_permissions",
+        "CurrentPrincipal",
+        "SecurityContext",
+        "AuthorizationService",
+        "policy.enforce",
+        "guard.can",
+        "authz",
     ]
     az_deps = [
-        "casbin", "pycasbin", "rbac", "accesscontrol", "casbin-rs",
-        "spring-security", "django-guardian", "django-rules", "pundit",
-        "cancancan", "policy_machine",
+        "casbin",
+        "pycasbin",
+        "rbac",
+        "accesscontrol",
+        "casbin-rs",
+        "spring-security",
+        "django-guardian",
+        "django-rules",
+        "pundit",
+        "cancancan",
+        "policy_machine",
     ]
 
     return (
@@ -934,19 +992,29 @@ def _check_agent_orchestration(*args) -> bool:
     ctx = _DomainContext.from_args(args)
 
     agt_deps = [
-        "langgraph", "crewai", "autogen", "openai-agents", "swarm",
-        "semantic-kernel", "langchain", "llamaindex",
+        "langgraph",
+        "crewai",
+        "autogen",
+        "openai-agents",
+        "swarm",
+        "semantic-kernel",
+        "langchain",
+        "llamaindex",
     ]
     agt_imports = [
-        "langgraph", "crewai", "autogen", "AgentExecutor", "ToolNode",
-        "create_react_agent", "StateGraph", "AgentGroupChat",
-        "openai.agents", "Swarm",
+        "langgraph",
+        "crewai",
+        "autogen",
+        "AgentExecutor",
+        "ToolNode",
+        "create_react_agent",
+        "StateGraph",
+        "AgentGroupChat",
+        "openai.agents",
+        "Swarm",
     ]
 
-    return (
-        _has_import(ctx.imports, agt_imports)
-        or _has_dependency(ctx.deps, agt_deps)
-    )
+    return _has_import(ctx.imports, agt_imports) or _has_dependency(ctx.deps, agt_deps)
 
 
 def _check_auth_session(*args) -> bool:
@@ -954,23 +1022,45 @@ def _check_auth_session(*args) -> bool:
     ctx = _DomainContext.from_args(args)
 
     as_deps = [
-        "express-session", "cookie-session", "passport", "next-auth",
-        "flask-login", "flask-session", "django.contrib.sessions",
-        "devise", "warden", "spring-security", "jsonwebtoken", "pyjwt",
-        "jose", "ruby-jwt", "jjwt", "bcrypt", "argon2-cffi", "passlib",
+        "express-session",
+        "cookie-session",
+        "passport",
+        "next-auth",
+        "flask-login",
+        "flask-session",
+        "django.contrib.sessions",
+        "devise",
+        "warden",
+        "spring-security",
+        "jsonwebtoken",
+        "pyjwt",
+        "jose",
+        "ruby-jwt",
+        "jjwt",
+        "bcrypt",
+        "argon2-cffi",
+        "passlib",
     ]
     as_imports = [
-        "login", "signin", "session.create", "session.destroy",
-        "bcrypt", "argon2", "password_hash", "check_password",
-        "jwt.verify", "jwt.decode", "jwt.sign",
-        "passport.authenticate", "sessions.create",
-        "LoginView", "LoginController", "authenticat",
+        "login",
+        "signin",
+        "session.create",
+        "session.destroy",
+        "bcrypt",
+        "argon2",
+        "password_hash",
+        "check_password",
+        "jwt.verify",
+        "jwt.decode",
+        "jwt.sign",
+        "passport.authenticate",
+        "sessions.create",
+        "LoginView",
+        "LoginController",
+        "authenticat",
     ]
 
-    return (
-        _has_import(ctx.imports, as_imports)
-        or _has_dependency(ctx.deps, as_deps)
-    )
+    return _has_import(ctx.imports, as_imports) or _has_dependency(ctx.deps, as_deps)
 
 
 def _check_cicd_pipeline(*args) -> bool:
@@ -978,10 +1068,17 @@ def _check_cicd_pipeline(*args) -> bool:
     ctx = _DomainContext.from_args(args)
 
     ci_infra = [
-        ".github/workflows", ".gitlab-ci.yml", "jenkinsfile",
-        ".circleci/config.yml", "azure-pipelines.yml",
-        "bitbucket-pipelines.yml", ".travis.yml", "buildkite.yml",
-        "cloudbuild.yaml", ".drone.yml", "taskcluster.yml",
+        ".github/workflows",
+        ".gitlab-ci.yml",
+        "jenkinsfile",
+        ".circleci/config.yml",
+        "azure-pipelines.yml",
+        "bitbucket-pipelines.yml",
+        ".travis.yml",
+        "buildkite.yml",
+        "cloudbuild.yaml",
+        ".drone.yml",
+        "taskcluster.yml",
     ]
 
     return _has_infra_file(ctx.infra_files, ci_infra)
@@ -992,20 +1089,35 @@ def _check_configuration_hardening(*args) -> bool:
     ctx = _DomainContext.from_args(args)
 
     ch_infra = [
-        "nginx.conf", "apache2.conf", "httpd.conf", ".env",
-        ".env.production", ".env.local", "config.yaml", "config.yml",
-        "application.yml", "application.properties",
+        "nginx.conf",
+        "apache2.conf",
+        "httpd.conf",
+        ".env",
+        ".env.production",
+        ".env.local",
+        "config.yaml",
+        "config.yml",
+        "application.yml",
+        "application.properties",
     ]
     ch_imports = [
-        "os.environ", "process.env", "dotenv", "load_dotenv",
-        "config.get", "configparser", "yaml.safe_load",
-        "getenv", "environ",
+        "os.environ",
+        "process.env",
+        "dotenv",
+        "load_dotenv",
+        "config.get",
+        "configparser",
+        "yaml.safe_load",
+        "getenv",
+        "environ",
     ]
 
     return (
         _has_infra_file(ctx.infra_files, ch_infra)
         or _has_import(ctx.imports, ch_imports)
-        or _has_config_key(ctx.config_keys, ["secret", "password", "api_key", "token", "credentials"])
+        or _has_config_key(
+            ctx.config_keys, ["secret", "password", "api_key", "token", "credentials"]
+        )
     )
 
 
@@ -1014,16 +1126,24 @@ def _check_container_infra(*args) -> bool:
     ctx = _DomainContext.from_args(args)
 
     ci_infra = [
-        "dockerfile", "docker-compose.yml", "docker-compose.yaml",
-        "compose.yaml", "compose.yml", ".dockerignore",
-        "deployment.yaml", "service.yaml", "statefulset.yaml",
-        "daemonset.yaml", "chart.yaml", "values.yaml", "kustomization.yaml",
+        "dockerfile",
+        "docker-compose.yml",
+        "docker-compose.yaml",
+        "compose.yaml",
+        "compose.yml",
+        ".dockerignore",
+        "deployment.yaml",
+        "service.yaml",
+        "statefulset.yaml",
+        "daemonset.yaml",
+        "chart.yaml",
+        "values.yaml",
+        "kustomization.yaml",
         "helmfile.yaml",
     ]
 
-    return (
-        _has_infra_file(ctx.infra_files, ci_infra)
-        or _has_import(ctx.imports, ["docker", "kubernetes", "kubectl", "helm"])
+    return _has_infra_file(ctx.infra_files, ci_infra) or _has_import(
+        ctx.imports, ["docker", "kubernetes", "kubectl", "helm"]
     )
 
 
@@ -1032,23 +1152,50 @@ def _check_data_layer(*args) -> bool:
     ctx = _DomainContext.from_args(args)
 
     dl_deps = [
-        "sqlalchemy", "psycopg2", "asyncpg", "mysqlclient", "pymysql",
-        "pymongo", "motor", "django", "prisma", "typeorm", "sequelize",
-        "knex", "sequelize", "pg", "mysql2", "better-sqlite3",
-        "sqlite3", "alembic", "django.db", "drizzle-orm",
+        "sqlalchemy",
+        "psycopg2",
+        "asyncpg",
+        "mysqlclient",
+        "pymysql",
+        "pymongo",
+        "motor",
+        "django",
+        "prisma",
+        "typeorm",
+        "sequelize",
+        "knex",
+        "sequelize",
+        "pg",
+        "mysql2",
+        "better-sqlite3",
+        "sqlite3",
+        "alembic",
+        "django.db",
+        "drizzle-orm",
     ]
     dl_imports = [
-        "sqlalchemy", "psycopg2", "asyncpg", "pymysql", "pymongo",
-        "mongoose", "prisma", "typeorm", "sequelize", "knex",
-        "cursor.execute", "db.session", "connection.execute",
-        "create_engine", "sessionmaker", "Base.metadata",
-        "migration", "alembic", "db:migrate",
+        "sqlalchemy",
+        "psycopg2",
+        "asyncpg",
+        "pymysql",
+        "pymongo",
+        "mongoose",
+        "prisma",
+        "typeorm",
+        "sequelize",
+        "knex",
+        "cursor.execute",
+        "db.session",
+        "connection.execute",
+        "create_engine",
+        "sessionmaker",
+        "Base.metadata",
+        "migration",
+        "alembic",
+        "db:migrate",
     ]
 
-    return (
-        _has_import(ctx.imports, dl_imports)
-        or _has_dependency(ctx.deps, dl_deps)
-    )
+    return _has_import(ctx.imports, dl_imports) or _has_dependency(ctx.deps, dl_deps)
 
 
 def _check_data_protection_privacy(*args) -> bool:
@@ -1056,14 +1203,27 @@ def _check_data_protection_privacy(*args) -> bool:
     ctx = _DomainContext.from_args(args)
 
     dp_deps = [
-        "cookie", "redis", "memcached", "localforage",
-        "client-session", "express-session",
+        "cookie",
+        "redis",
+        "memcached",
+        "localforage",
+        "client-session",
+        "express-session",
     ]
     dp_imports = [
-        "localStorage", "sessionStorage", "indexedDB",
-        "cookies.set", "cookies.get", "setCookie",
-        "cache", "Cache-Control", "Vary",
-        "pii", "personal_data", "gdpr", "ccpa",
+        "localStorage",
+        "sessionStorage",
+        "indexedDB",
+        "cookies.set",
+        "cookies.get",
+        "setCookie",
+        "cache",
+        "Cache-Control",
+        "Vary",
+        "pii",
+        "personal_data",
+        "gdpr",
+        "ccpa",
     ]
 
     return (
@@ -1079,8 +1239,14 @@ def _check_desktop_app(*args) -> bool:
 
     da_deps = ["electron", "electron-builder", "electron-forge", "electron-packager"]
     da_imports = [
-        "BrowserWindow", "electron", "ipcMain", "ipcRenderer",
-        "contextBridge", "webContents", "app.getPath", "shell.openExternal",
+        "BrowserWindow",
+        "electron",
+        "ipcMain",
+        "ipcRenderer",
+        "contextBridge",
+        "webContents",
+        "app.getPath",
+        "shell.openExternal",
     ]
     da_infra = ["electron-builder.yml", "electron-builder.yaml", "forge.config.js"]
 
@@ -1096,20 +1262,37 @@ def _check_file_handling(*args) -> bool:
     ctx = _DomainContext.from_args(args)
 
     fh_imports = [
-        "multer", "busboy", "formidable", "multipart",
-        "zip", "tar", "gunzip", "zlib", "adm-zip", "unzipper",
-        "send_file", "sendFile", "Content-Disposition",
-        "open(", "write(", "os.path.join", "path.join",
+        "multer",
+        "busboy",
+        "formidable",
+        "multipart",
+        "zip",
+        "tar",
+        "gunzip",
+        "zlib",
+        "adm-zip",
+        "unzipper",
+        "send_file",
+        "sendFile",
+        "Content-Disposition",
+        "open(",
+        "write(",
+        "os.path.join",
+        "path.join",
     ]
     fh_deps = [
-        "multer", "busboy", "formidable", "archiver", "adm-zip",
-        "node-tar", "unzipper", "yauzl", "yazl",
+        "multer",
+        "busboy",
+        "formidable",
+        "archiver",
+        "adm-zip",
+        "node-tar",
+        "unzipper",
+        "yauzl",
+        "yazl",
     ]
 
-    return (
-        _has_import(ctx.imports, fh_imports)
-        or _has_dependency(ctx.deps, fh_deps)
-    )
+    return _has_import(ctx.imports, fh_imports) or _has_dependency(ctx.deps, fh_deps)
 
 
 def _check_general_cryptography(*args) -> bool:
@@ -1117,21 +1300,39 @@ def _check_general_cryptography(*args) -> bool:
     ctx = _DomainContext.from_args(args)
 
     gc_imports = [
-        "crypto", "hashlib", "hmac", "cryptography", "openssl",
-        "libsodium", "bcrypt", "argon2", "scrypt", "pbkdf2",
-        "AES", "RSA", "ECDSA", "HMAC",
-        "from cryptography", "import hashlib",
-        "subtle.encrypt", "subtle.decrypt", "subtle.sign",
+        "crypto",
+        "hashlib",
+        "hmac",
+        "cryptography",
+        "openssl",
+        "libsodium",
+        "bcrypt",
+        "argon2",
+        "scrypt",
+        "pbkdf2",
+        "AES",
+        "RSA",
+        "ECDSA",
+        "HMAC",
+        "from cryptography",
+        "import hashlib",
+        "subtle.encrypt",
+        "subtle.decrypt",
+        "subtle.sign",
     ]
     gc_deps = [
-        "cryptography", "pycryptodome", "libsodium", "bcrypt",
-        "argon2-cffi", "node-forge", "sjcl", "noble", "@noble/hashes",
+        "cryptography",
+        "pycryptodome",
+        "libsodium",
+        "bcrypt",
+        "argon2-cffi",
+        "node-forge",
+        "sjcl",
+        "noble",
+        "@noble/hashes",
     ]
 
-    return (
-        _has_import(ctx.imports, gc_imports)
-        or _has_dependency(ctx.deps, gc_deps)
-    )
+    return _has_import(ctx.imports, gc_imports) or _has_dependency(ctx.deps, gc_deps)
 
 
 def _check_github_app_bot(*args) -> bool:
@@ -1139,12 +1340,19 @@ def _check_github_app_bot(*args) -> bool:
     ctx = _DomainContext.from_args(args)
 
     gh_deps = [
-        "@octokit/auth-app", "@octokit/rest", "pygithub",
-        "probot", "github-app",
+        "@octokit/auth-app",
+        "@octokit/rest",
+        "pygithub",
+        "probot",
+        "github-app",
     ]
     gh_imports = [
-        "octokit", "App", "createAppAuth", "getInstallationAccessToken",
-        "pull_request_target", "workflow_run",
+        "octokit",
+        "App",
+        "createAppAuth",
+        "getInstallationAccessToken",
+        "pull_request_target",
+        "workflow_run",
     ]
     gh_infra = [".github/workflows"]
 
@@ -1160,12 +1368,24 @@ def _check_graphql_api_security(*args) -> bool:
     ctx = _DomainContext.from_args(args)
 
     gql_deps = [
-        "graphql", "apollo-server", "@apollo/server", "graphene",
-        "strawberry-graphql", "ariadne", "hasura", "type-graphql",
+        "graphql",
+        "apollo-server",
+        "@apollo/server",
+        "graphene",
+        "strawberry-graphql",
+        "ariadne",
+        "hasura",
+        "type-graphql",
     ]
     gql_imports = [
-        "GraphQLSchema", "graphql", "apollo-server", "gql",
-        "strawberry", "ariadne", "buildSchema", "makeExecutableSchema",
+        "GraphQLSchema",
+        "graphql",
+        "apollo-server",
+        "gql",
+        "strawberry",
+        "ariadne",
+        "buildSchema",
+        "makeExecutableSchema",
     ]
     gql_infra = [".graphql", ".gql", "schema.graphql", "schema.gql"]
 
@@ -1181,20 +1401,32 @@ def _check_input_validation_business_logic(*args) -> bool:
     ctx = _DomainContext.from_args(args)
 
     iv_deps = [
-        "joi", "yup", "zod", "ajv", "class-validator", "marshmallow",
-        "pydantic", "cerberus", "jsonschema", "express-validator",
-        "drf-validation", "django.forms",
+        "joi",
+        "yup",
+        "zod",
+        "ajv",
+        "class-validator",
+        "marshmallow",
+        "pydantic",
+        "cerberus",
+        "jsonschema",
+        "express-validator",
+        "drf-validation",
+        "django.forms",
     ]
     iv_imports = [
-        "validate", "sanitize", "whitelist", "blacklist",
-        "InputValidator", "RequestValidator", "Schema.validate",
-        "checkConstraint", "assertValid",
+        "validate",
+        "sanitize",
+        "whitelist",
+        "blacklist",
+        "InputValidator",
+        "RequestValidator",
+        "Schema.validate",
+        "checkConstraint",
+        "assertValid",
     ]
 
-    return (
-        _has_import(ctx.imports, iv_imports)
-        or _has_dependency(ctx.deps, iv_deps)
-    )
+    return _has_import(ctx.imports, iv_imports) or _has_dependency(ctx.deps, iv_deps)
 
 
 def _check_llm_integration(*args) -> bool:
@@ -1202,21 +1434,35 @@ def _check_llm_integration(*args) -> bool:
     ctx = _DomainContext.from_args(args)
 
     llm_deps = [
-        "openai", "anthropic", "@anthropic-ai/sdk", "langchain",
-        "llamaindex", "google-generativeai", "cohere-ai", "transformers",
-        "pinecone-client", "chromadb", "weaviate-client", "qdrant-client",
-        "pgvector", "faiss",
+        "openai",
+        "anthropic",
+        "@anthropic-ai/sdk",
+        "langchain",
+        "llamaindex",
+        "google-generativeai",
+        "cohere-ai",
+        "transformers",
+        "pinecone-client",
+        "chromadb",
+        "weaviate-client",
+        "qdrant-client",
+        "pgvector",
+        "faiss",
     ]
     llm_imports = [
-        "openai", "anthropic", "ChatOpenAI", "OpenAIEmbeddings",
-        "PineconeVectorStore", "Chroma", "FAISS",
-        "generateText", "generateContent", "messages.create",
+        "openai",
+        "anthropic",
+        "ChatOpenAI",
+        "OpenAIEmbeddings",
+        "PineconeVectorStore",
+        "Chroma",
+        "FAISS",
+        "generateText",
+        "generateContent",
+        "messages.create",
     ]
 
-    return (
-        _has_import(ctx.imports, llm_imports)
-        or _has_dependency(ctx.deps, llm_deps)
-    )
+    return _has_import(ctx.imports, llm_imports) or _has_dependency(ctx.deps, llm_deps)
 
 
 def _check_logging_error_handling(*args) -> bool:
@@ -1224,20 +1470,36 @@ def _check_logging_error_handling(*args) -> bool:
     ctx = _DomainContext.from_args(args)
 
     le_deps = [
-        "winston", "pino", "bunyan", "log4j", "logback",
-        "slog", "zap", "logrus", "structlog", "loguru",
+        "winston",
+        "pino",
+        "bunyan",
+        "log4j",
+        "logback",
+        "slog",
+        "zap",
+        "logrus",
+        "structlog",
+        "loguru",
     ]
     le_imports = [
-        "logging", "logger", "log.error", "log.warn", "log.info",
-        "winston.createLogger", "pino", "console.error",
-        "errorHandler", "ErrorMiddleware", "onerror",
-        "try:", "catch", "except", "rescue",
+        "logging",
+        "logger",
+        "log.error",
+        "log.warn",
+        "log.info",
+        "winston.createLogger",
+        "pino",
+        "console.error",
+        "errorHandler",
+        "ErrorMiddleware",
+        "onerror",
+        "try:",
+        "catch",
+        "except",
+        "rescue",
     ]
 
-    return (
-        _has_import(ctx.imports, le_imports)
-        or _has_dependency(ctx.deps, le_deps)
-    )
+    return _has_import(ctx.imports, le_imports) or _has_dependency(ctx.deps, le_deps)
 
 
 def _check_mcp_tool_surface(*args) -> bool:
@@ -1246,15 +1508,19 @@ def _check_mcp_tool_surface(*args) -> bool:
 
     mcp_deps = ["mcp", "@modelcontextprotocol/sdk"]
     mcp_imports = [
-        "mcp.server", "MCPServer", "tools/list", "tools/call",
-        "resources/list", "resources/read", "prompts/list",
-        "ListToolsRequest", "CallToolRequest", "ServerSession",
+        "mcp.server",
+        "MCPServer",
+        "tools/list",
+        "tools/call",
+        "resources/list",
+        "resources/read",
+        "prompts/list",
+        "ListToolsRequest",
+        "CallToolRequest",
+        "ServerSession",
     ]
 
-    return (
-        _has_import(ctx.imports, mcp_imports)
-        or _has_dependency(ctx.deps, mcp_deps)
-    )
+    return _has_import(ctx.imports, mcp_imports) or _has_dependency(ctx.deps, mcp_deps)
 
 
 def _check_message_queue_event_driven(*args) -> bool:
@@ -1262,23 +1528,45 @@ def _check_message_queue_event_driven(*args) -> bool:
     ctx = _DomainContext.from_args(args)
 
     mq_deps = [
-        "kafkajs", "kafka-node", "kafka-python", "confluent-kafka",
-        "amqplib", "pika", "rabbitmq", "celery",
-        "boto3", "aws-sdk", "sqs", "sns",
-        "google-cloud-pubsub", "nats", "bull", "bullmq", "redis",
+        "kafkajs",
+        "kafka-node",
+        "kafka-python",
+        "confluent-kafka",
+        "amqplib",
+        "pika",
+        "rabbitmq",
+        "celery",
+        "boto3",
+        "aws-sdk",
+        "sqs",
+        "sns",
+        "google-cloud-pubsub",
+        "nats",
+        "bull",
+        "bullmq",
+        "redis",
     ]
     mq_imports = [
-        "kafka", "KafkaJS", "Consumer", "Producer", "Broker",
-        "pika", "amqplib", "celery",
-        "SQS", "sqs", "SNS", "sns",
-        "PubSub", "pubsub", "Subscriber",
-        "nats.connect", "Bull",
+        "kafka",
+        "KafkaJS",
+        "Consumer",
+        "Producer",
+        "Broker",
+        "pika",
+        "amqplib",
+        "celery",
+        "SQS",
+        "sqs",
+        "SNS",
+        "sns",
+        "PubSub",
+        "pubsub",
+        "Subscriber",
+        "nats.connect",
+        "Bull",
     ]
 
-    return (
-        _has_import(ctx.imports, mq_imports)
-        or _has_dependency(ctx.deps, mq_deps)
-    )
+    return _has_import(ctx.imports, mq_imports) or _has_dependency(ctx.deps, mq_deps)
 
 
 def _check_mobile(*args) -> bool:
@@ -1286,17 +1574,33 @@ def _check_mobile(*args) -> bool:
     ctx = _DomainContext.from_args(args)
 
     mob_deps = [
-        "react-native", "flutter", "xamarin", "ionic", "capacitor",
-        "cordova", "expo", "@ionic/core",
+        "react-native",
+        "flutter",
+        "xamarin",
+        "ionic",
+        "capacitor",
+        "cordova",
+        "expo",
+        "@ionic/core",
     ]
     mob_imports = [
-        "ReactNative", "react-native", "flutter", "dart:ui",
-        "Xamarin.Forms", "Capacitor", "Ionic",
+        "ReactNative",
+        "react-native",
+        "flutter",
+        "dart:ui",
+        "Xamarin.Forms",
+        "Capacitor",
+        "Ionic",
     ]
     mob_infra = [
-        "androidmanifest.xml", "info.plist", "pubspec.yaml",
-        "config.xml", "build.gradle", "app.json",
-        "android/app", "ios/app",
+        "androidmanifest.xml",
+        "info.plist",
+        "pubspec.yaml",
+        "config.xml",
+        "build.gradle",
+        "app.json",
+        "android/app",
+        "ios/app",
     ]
 
     return (
@@ -1312,22 +1616,34 @@ def _check_oauth_oidc(*args) -> bool:
     ctx = _DomainContext.from_args(args)
 
     oa_deps = [
-        "passport", "passport-oauth2", "next-auth", "authlib",
-        "django-allauth", "social-auth-app", "omniauth",
-        "spring-security-oauth2", "oidc-client", "oidc",
+        "passport",
+        "passport-oauth2",
+        "next-auth",
+        "authlib",
+        "django-allauth",
+        "social-auth-app",
+        "omniauth",
+        "spring-security-oauth2",
+        "oidc-client",
+        "oidc",
     ]
     oa_imports = [
-        "oauth", "OAuth", "OIDC", "openid", "OpenID",
-        "passport.authenticate", "token.exchange",
-        "authorization_code", "client_credentials",
-        "refresh_token", "access_token",
-        "googleapis/auth", "auth0",
+        "oauth",
+        "OAuth",
+        "OIDC",
+        "openid",
+        "OpenID",
+        "passport.authenticate",
+        "token.exchange",
+        "authorization_code",
+        "client_credentials",
+        "refresh_token",
+        "access_token",
+        "googleapis/auth",
+        "auth0",
     ]
 
-    return (
-        _has_import(ctx.imports, oa_imports)
-        or _has_dependency(ctx.deps, oa_deps)
-    )
+    return _has_import(ctx.imports, oa_imports) or _has_dependency(ctx.deps, oa_deps)
 
 
 def _check_secure_coding_architecture(*args) -> bool:
@@ -1335,13 +1651,24 @@ def _check_secure_coding_architecture(*args) -> bool:
     ctx = _DomainContext.from_args(args)
 
     sc_imports = [
-        "threading", "multiprocessing", "concurrent.futures",
-        "asyncio", "ThreadPoolExecutor", "ProcessPoolExecutor",
-        "WorkerPool", "TaskGroup", "spawn",
+        "threading",
+        "multiprocessing",
+        "concurrent.futures",
+        "asyncio",
+        "ThreadPoolExecutor",
+        "ProcessPoolExecutor",
+        "WorkerPool",
+        "TaskGroup",
+        "spawn",
     ]
     sc_deps = [
-        "celery", "rq", "huey", "dramatiq",
-        "gunicorn", "uvicorn", "hypercorn",
+        "celery",
+        "rq",
+        "huey",
+        "dramatiq",
+        "gunicorn",
+        "uvicorn",
+        "hypercorn",
     ]
 
     return (
@@ -1356,12 +1683,22 @@ def _check_secure_communication_tls(*args) -> bool:
     ctx = _DomainContext.from_args(args)
 
     tls_imports = [
-        "ssl", "tls", "https", "mTLS", "certificate",
-        "SSLContext", "create_default_context", "CERT_REQUIRED",
-        "verify=True", "verify_ssl",
+        "ssl",
+        "tls",
+        "https",
+        "mTLS",
+        "certificate",
+        "SSLContext",
+        "create_default_context",
+        "CERT_REQUIRED",
+        "verify=True",
+        "verify_ssl",
     ]
     tls_deps = [
-        "pyopenssl", "trustme", "certifi", "ssl",
+        "pyopenssl",
+        "trustme",
+        "certifi",
+        "ssl",
     ]
     tls_config = ["ssl", "tls", "https", "certificate", "cert"]
 
@@ -1377,20 +1714,32 @@ def _check_self_contained_tokens(*args) -> bool:
     ctx = _DomainContext.from_args(args)
 
     sct_deps = [
-        "jsonwebtoken", "jose", "pyjwt", "ruby-jwt", "jjwt",
-        "pysaml2", "python3-saml", "onelogin",
+        "jsonwebtoken",
+        "jose",
+        "pyjwt",
+        "ruby-jwt",
+        "jjwt",
+        "pysaml2",
+        "python3-saml",
+        "onelogin",
     ]
     sct_imports = [
-        "jwt.sign", "jwt.verify", "jwt.decode",
-        "JWS", "JWE", "JWK", "JWA",
-        "saml2", "SAMLResponse", "Assertion",
-        "RS256", "ES256", "HS256",
+        "jwt.sign",
+        "jwt.verify",
+        "jwt.decode",
+        "JWS",
+        "JWE",
+        "JWK",
+        "JWA",
+        "saml2",
+        "SAMLResponse",
+        "Assertion",
+        "RS256",
+        "ES256",
+        "HS256",
     ]
 
-    return (
-        _has_import(ctx.imports, sct_imports)
-        or _has_dependency(ctx.deps, sct_deps)
-    )
+    return _has_import(ctx.imports, sct_imports) or _has_dependency(ctx.deps, sct_deps)
 
 
 def _check_supply_chain_local_tool(*args) -> bool:
@@ -1398,18 +1747,15 @@ def _check_supply_chain_local_tool(*args) -> bool:
     ctx = _DomainContext.from_args(args)
 
     sc_infra = [
-        "goreleaser.yml", ".goreleaser.yml", "release.yml",
-        "install.sh", "install.ps1",
+        "goreleaser.yml",
+        ".goreleaser.yml",
+        "release.yml",
+        "install.sh",
+        "install.ps1",
     ]
-    has_bin = any(
-        "bin" in str(f).lower() for f in ctx.infra_files
-    )
+    has_bin = any("bin" in str(f).lower() for f in ctx.infra_files)
 
-    return (
-        _has_infra_file(ctx.infra_files, sc_infra)
-        or has_bin
-        or ctx.has_cli
-    )
+    return _has_infra_file(ctx.infra_files, sc_infra) or has_bin or ctx.has_cli
 
 
 def _check_web_frontend(*args) -> bool:
@@ -1417,18 +1763,36 @@ def _check_web_frontend(*args) -> bool:
     ctx = _DomainContext.from_args(args)
 
     wf_deps = [
-        "react", "react-dom", "vue", "@vue/cli", "@angular/core",
-        "svelte", "solid-js", "preact", "lit", "ember-cli",
+        "react",
+        "react-dom",
+        "vue",
+        "@vue/cli",
+        "@angular/core",
+        "svelte",
+        "solid-js",
+        "preact",
+        "lit",
+        "ember-cli",
     ]
     wf_imports = [
-        "ReactDOM", "createRoot", "Vue.createApp",
-        "angular.module", "Component", "OnInit",
-        "svelte.mount", "render",
+        "ReactDOM",
+        "createRoot",
+        "Vue.createApp",
+        "angular.module",
+        "Component",
+        "OnInit",
+        "svelte.mount",
+        "render",
     ]
     wf_infra = [
-        "webpack.config", "vite.config", "rollup.config",
-        "next.config", "nuxt.config", "angular.json",
-        "tsconfig.json", "index.html",
+        "webpack.config",
+        "vite.config",
+        "rollup.config",
+        "next.config",
+        "nuxt.config",
+        "angular.json",
+        "tsconfig.json",
+        "index.html",
     ]
 
     return (
@@ -1443,19 +1807,27 @@ def _check_webrtc_communication(*args) -> bool:
     ctx = _DomainContext.from_args(args)
 
     wrtc_deps = [
-        "simple-peer", "peerjs", "werift", "pion/webrtc",
-        "mediasoup", "janus", "kurento", "coturn",
+        "simple-peer",
+        "peerjs",
+        "werift",
+        "pion/webrtc",
+        "mediasoup",
+        "janus",
+        "kurento",
+        "coturn",
     ]
     wrtc_imports = [
-        "RTCPeerConnection", "RTCSessionDescription",
-        "webrtc", "PeerConnection", "MediaStream",
-        "createOffer", "createAnswer", "addIceCandidate",
+        "RTCPeerConnection",
+        "RTCSessionDescription",
+        "webrtc",
+        "PeerConnection",
+        "MediaStream",
+        "createOffer",
+        "createAnswer",
+        "addIceCandidate",
     ]
 
-    return (
-        _has_import(ctx.imports, wrtc_imports)
-        or _has_dependency(ctx.deps, wrtc_deps)
-    )
+    return _has_import(ctx.imports, wrtc_imports) or _has_dependency(ctx.deps, wrtc_deps)
 
 
 def _check_security_scanner_tool(*args) -> bool:
@@ -1463,25 +1835,42 @@ def _check_security_scanner_tool(*args) -> bool:
     ctx = _DomainContext.from_args(args)
 
     scanner_imports = [
-        "scan", "detect", "finding", "vulnerability", "cve",
-        "semgrep", "bandit", "safety", "trivy", "grype",
-        "BaseAgent", "AgentInput", "AgentResult",
-        "coordinator", "governor", "dispatcher",
-        "domain_activator", "domain_loader",
-        "security_probe", "security_config",
+        "scan",
+        "detect",
+        "finding",
+        "vulnerability",
+        "cve",
+        "semgrep",
+        "bandit",
+        "safety",
+        "trivy",
+        "grype",
+        "BaseAgent",
+        "AgentInput",
+        "AgentResult",
+        "coordinator",
+        "governor",
+        "dispatcher",
+        "domain_activator",
+        "domain_loader",
+        "security_probe",
+        "security_config",
     ]
     scanner_deps = [
-        "semgrep", "bandit", "safety", "trivy", "grype",
-        "syft", "cosign", "checkov", "tfsec", "kics",
-    ]
-    scanner_infra = [
-        "domains/", "playbooks/", "fix-playbooks/",
-        "sigma_rules/", "agents/", "security/",
+        "semgrep",
+        "bandit",
+        "safety",
+        "trivy",
+        "grype",
+        "syft",
+        "cosign",
+        "checkov",
+        "tfsec",
+        "kics",
     ]
 
-    has_scanner_code = (
-        _has_import(ctx.imports, scanner_imports)
-        or _has_dependency(ctx.deps, scanner_deps)
+    has_scanner_code = _has_import(ctx.imports, scanner_imports) or _has_dependency(
+        ctx.deps, scanner_deps
     )
     has_scanner_structure = any(
         any(seg in f.lower() for seg in ["scan", "detect", "finding", "agent", "security"])
@@ -1496,19 +1885,27 @@ def _check_websocket_security(*args) -> bool:
     ctx = _DomainContext.from_args(args)
 
     ws_deps = [
-        "ws", "socket.io", "sockjs", "websocket",
-        "channels", "django-channels", "signalr",
+        "ws",
+        "socket.io",
+        "sockjs",
+        "websocket",
+        "channels",
+        "django-channels",
+        "signalr",
     ]
     ws_imports = [
-        "WebSocket", "Socket.IO", "socket.io", "ws.Server",
-        "socketio", "SignalR", "channels",
-        "on('connection')", "wss://",
+        "WebSocket",
+        "Socket.IO",
+        "socket.io",
+        "ws.Server",
+        "socketio",
+        "SignalR",
+        "channels",
+        "on('connection')",
+        "wss://",
     ]
 
-    return (
-        _has_import(ctx.imports, ws_imports)
-        or _has_dependency(ctx.deps, ws_deps)
-    )
+    return _has_import(ctx.imports, ws_imports) or _has_dependency(ctx.deps, ws_deps)
 
 
 # ---------------------------------------------------------------------------
@@ -1572,9 +1969,7 @@ _DOMAIN_CHECKERS: dict[str, _DomainCheckerFn] = {
 }
 
 # Merge auto-generated checkers (253 domains) — existing entries take precedence
-_DOMAIN_CHECKERS.update(
-    {k: v for k, v in _GENERATED_CHECKERS.items() if k not in _DOMAIN_CHECKERS}
-)
+_DOMAIN_CHECKERS.update({k: v for k, v in _GENERATED_CHECKERS.items() if k not in _DOMAIN_CHECKERS})
 
 
 def activate_domains(
@@ -1613,13 +2008,22 @@ def activate_domains(
 # ---------------------------------------------------------------------------
 
 _LANG_EXT_MAP: dict[str, str] = {
-    ".py": "python", ".pyw": "python", ".pyi": "python",
-    ".js": "javascript", ".jsx": "javascript",
-    ".ts": "typescript", ".tsx": "typescript",
-    ".java": "java", ".kt": "kotlin", ".kts": "kotlin",
+    ".py": "python",
+    ".pyw": "python",
+    ".pyi": "python",
+    ".js": "javascript",
+    ".jsx": "javascript",
+    ".ts": "typescript",
+    ".tsx": "typescript",
+    ".java": "java",
+    ".kt": "kotlin",
+    ".kts": "kotlin",
     ".go": "golang",
     ".rs": "rust",
-    ".c": "c", ".h": "c", ".cpp": "cpp", ".hpp": "cpp",
+    ".c": "c",
+    ".h": "c",
+    ".cpp": "cpp",
+    ".hpp": "cpp",
     ".rb": "ruby",
     ".swift": "swift",
     ".svelte": "svelte",
@@ -1662,8 +2066,7 @@ def _infer_deployment(active_domains: list[str], infra_files: list[str]) -> str:
         return "containerized"
     if "cicd-pipeline" in active_domains:
         return "pipeline"
-    has_kubernetes = any("k8s" in f.lower() or "kubernetes" in f.lower()
-                          for f in infra_files)
+    has_kubernetes = any("k8s" in f.lower() or "kubernetes" in f.lower() for f in infra_files)
     if has_kubernetes:
         return "kubernetes"
     has_docker = any("docker" in f.lower() for f in infra_files)
@@ -1693,17 +2096,17 @@ def build_project_context(
     """
     exts = sorted(file_extensions or [])
     args = [
-        _infer_primary_language(exts),        # language
-        "",                                     # framework (inferred elsewhere)
-        list(detected_imports or []),           # imports
-        list(dependency_names or []),           # deps
-        list(route_paths or []),                # routes
-        list(config_keys or []),                # config_keys
-        list(infrastructure_files or []),       # infra_files
-        bool(has_web_framework),                # has_web
-        bool(has_cli_framework),                # has_cli
-        bool(has_mobile_code),                  # has_mobile
-        exts,                                   # exts
+        _infer_primary_language(exts),  # language
+        "",  # framework (inferred elsewhere)
+        list(detected_imports or []),  # imports
+        list(dependency_names or []),  # deps
+        list(route_paths or []),  # routes
+        list(config_keys or []),  # config_keys
+        list(infrastructure_files or []),  # infra_files
+        bool(has_web_framework),  # has_web
+        bool(has_cli_framework),  # has_cli
+        bool(has_mobile_code),  # has_mobile
+        exts,  # exts
     ]
     active = activate_domains(args)
 

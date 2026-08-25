@@ -33,6 +33,7 @@ _TYPE_LABELS = {
     RestrictionType.SENSITIVE.value: "sensitive",
 }
 
+
 def run_add(path: str, rtype: RestrictionType, reason: str = "", root: Path | None = None) -> None:
     try:
         cfg.add_restriction(path, rtype, reason, root)
@@ -41,6 +42,7 @@ def run_add(path: str, rtype: RestrictionType, reason: str = "", root: Path | No
         _show_type_note(rtype)
     except RuntimeError as e:
         con.print(f"[red]{e}[/red]")
+
 
 def run_list(root: Path | None = None) -> None:
     try:
@@ -81,6 +83,7 @@ def run_list(root: Path | None = None) -> None:
     con.print(table)
     con.print()
 
+
 def run_remove(path: str, root: Path | None = None) -> None:
     try:
         removed = cfg.remove_restriction(path, root)
@@ -92,6 +95,7 @@ def run_remove(path: str, root: Path | None = None) -> None:
     except RuntimeError as e:
         con.print(f"[red]{e}[/red]")
 
+
 def run_disable(path: str, root: Path | None = None) -> None:
     try:
         ok = cfg.toggle_restriction(path, enabled=False, root=root)
@@ -102,6 +106,7 @@ def run_disable(path: str, root: Path | None = None) -> None:
     except RuntimeError as e:
         con.print(f"[red]{e}[/red]")
 
+
 def run_enable(path: str, root: Path | None = None) -> None:
     try:
         ok = cfg.toggle_restriction(path, enabled=True, root=root)
@@ -111,6 +116,7 @@ def run_enable(path: str, root: Path | None = None) -> None:
             con.print(f"[yellow]No restriction found for {path!r}.[/yellow]")
     except RuntimeError as e:
         con.print(f"[red]{e}[/red]")
+
 
 def _show_type_note(rtype: RestrictionType) -> None:
     notes = {

@@ -3,7 +3,7 @@ Graph normalizer for standardizing Code Property Graphs across languages.
 """
 
 import logging
-from typing import Any, Dict, List
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +47,7 @@ class GraphNormalizer:
         "throws",
     }
 
-    def normalize(self, graph: Dict[str, Any]) -> Dict[str, Any]:
+    def normalize(self, graph: dict[str, Any]) -> dict[str, Any]:
         """
         Normalize a graph to the standard CPG format.
 
@@ -90,7 +90,7 @@ class GraphNormalizer:
             "features": graph.get("features", []),
         }
 
-    def _normalize_node(self, node: Dict[str, Any]) -> Dict[str, Any]:
+    def _normalize_node(self, node: dict[str, Any]) -> dict[str, Any]:
         """Normalize a single node."""
         node_type = node.get("type", "statement")
         if node_type not in self.NODE_TYPES:
@@ -104,7 +104,7 @@ class GraphNormalizer:
             "function": node.get("function", ""),
         }
 
-    def _normalize_edge(self, edge: Any) -> List[Any]:
+    def _normalize_edge(self, edge: Any) -> list[Any]:
         """Normalize a single edge."""
         if not isinstance(edge, list) or len(edge) < 3:
             return [0, 0, "contains"]
@@ -115,7 +115,7 @@ class GraphNormalizer:
 
         return [edge[0], edge[1], edge_type]
 
-    def merge_graphs(self, graphs: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def merge_graphs(self, graphs: list[dict[str, Any]]) -> dict[str, Any]:
         """
         Merge multiple normalized graphs into a single graph.
 

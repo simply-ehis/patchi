@@ -3,7 +3,17 @@ import ast
 from patchi.core.brain.route_detector.base import BaseRouteDetector
 from patchi.core.brain.route_detector.registry import register_detector
 
-_FASTAPI_METHODS = {"get", "post", "put", "delete", "patch", "head", "options", "websocket", "api_route"}
+_FASTAPI_METHODS = {
+    "get",
+    "post",
+    "put",
+    "delete",
+    "patch",
+    "head",
+    "options",
+    "websocket",
+    "api_route",
+}
 _FLASK_METHODS = {"route"}
 _DJANGO_ROUTERS = {"path", "re_path", "url"}
 
@@ -36,7 +46,9 @@ class PythonRouteDetector(BaseRouteDetector):
 
         return routes
 
-    def _check_fastapi_decorator(self, dec: ast.AST, func: ast.AST, file_path: str, content: str) -> dict | None:
+    def _check_fastapi_decorator(
+        self, dec: ast.AST, func: ast.AST, file_path: str, content: str
+    ) -> dict | None:
         if not isinstance(dec, ast.Call):
             return None
         fn = self._get_dotted_name(dec.func)
@@ -71,9 +83,19 @@ class PythonRouteDetector(BaseRouteDetector):
 
         auth = self._check_auth_defaults(func)
 
-        return self._make_route(method_str, path, func.name, file_path, func.lineno, framework="FastAPI", auth_required=auth if auth else None)
+        return self._make_route(
+            method_str,
+            path,
+            func.name,
+            file_path,
+            func.lineno,
+            framework="FastAPI",
+            auth_required=auth if auth else None,
+        )
 
-    def _check_flask_decorator(self, dec: ast.AST, func: ast.AST, file_path: str, content: str) -> list[dict] | None:
+    def _check_flask_decorator(
+        self, dec: ast.AST, func: ast.AST, file_path: str, content: str
+    ) -> list[dict] | None:
         if not isinstance(dec, ast.Call):
             return None
         fn = self._get_dotted_name(dec.func)
@@ -95,7 +117,15 @@ class PythonRouteDetector(BaseRouteDetector):
         auth = self._check_auth_defaults(func)
 
         return [
-            self._make_route(m.upper(), path, func.name, file_path, func.lineno, framework="Flask", auth_required=auth if auth else None)
+            self._make_route(
+                m.upper(),
+                path,
+                func.name,
+                file_path,
+                func.lineno,
+                framework="Flask",
+                auth_required=auth if auth else None,
+            )
             for m in methods
         ]
 
@@ -109,7 +139,14 @@ class PythonRouteDetector(BaseRouteDetector):
             handler = self._get_dotted_name(arg)
             if not handler and isinstance(arg, ast.Call):
                 handler = self._get_dotted_name(arg.func)
-        return self._make_route("ANY", path, handler, file_path, node.lineno if hasattr(node, "lineno") else 0, framework="Django")
+        return self._make_route(
+            "ANY",
+            path,
+            handler,
+            file_path,
+            node.lineno if hasattr(node, "lineno") else 0,
+            framework="Django",
+        )
 
     def _get_dotted_name(self, node: ast.AST) -> str:
         if isinstance(node, ast.Name):

@@ -37,6 +37,7 @@ from .base import (
 
 _log = logging.getLogger("patchi.agents.test_scanner")
 
+
 @register
 class TestScanner(BaseAgent):
     """Scanner for test files and coverage mapping."""

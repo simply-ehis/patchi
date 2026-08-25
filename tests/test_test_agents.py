@@ -110,6 +110,9 @@ class TestAgentRegistration(unittest.TestCase):
                 "SecurityTestAgent",
                 "FlakeDetectorAgent",
                 "AttackAgent",
+                # v2 live runner joins the TEST group (registered via
+                # patchi.core.testing.test_agents import)
+                "LiveTestRunnerV2Agent",
             },
         )
 

@@ -34,6 +34,7 @@ from ..agents.base import (
 
 _log = logging.getLogger("patchi.testing.ui_button_agent")
 
+
 @register
 class UIButtonAgent(BaseAgent):
     """Test buttons, forms, and interactive UI elements with Playwright."""

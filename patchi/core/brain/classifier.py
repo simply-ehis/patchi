@@ -86,6 +86,7 @@ import logging
 
 _log = logging.getLogger("patchi.brain.classifier")
 
+
 def classify_file(rel_path: str, abs_path: Path) -> str:
     """
     Return a short plain-English purpose label for a file.
@@ -171,7 +172,7 @@ def classify_file(rel_path: str, abs_path: Path) -> str:
 
 
 def batch_classify(
-    files: "list",  # list[FileInfo]
+    files: list,  # list[FileInfo]
     root: Path,
     ai_config: dict | None = None,
     max_ai_calls: int = 20,

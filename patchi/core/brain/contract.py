@@ -29,6 +29,7 @@ import logging
 
 _log = logging.getLogger("patchi.brain.contract")
 
+
 @dataclass
 class ContractFlow:
     id: str
@@ -60,19 +61,71 @@ class ContractFlow:
 
 
 _ROUTE_TO_FLOW: dict[str, dict] = {
-    "dashboard": {"name": "Dashboard Overview", "desc": "Project dashboard with status and health overview.", "signal": "dashboard"},
-    "findings": {"name": "Findings Review", "desc": "Browse, filter, and review scan findings.", "signal": "findings"},
-    "settings": {"name": "Settings / Configuration", "desc": "View and update project configuration.", "signal": "config"},
-    "security": {"name": "Security Scanning", "desc": "Run security scans and view reports.", "signal": "security"},
-    "history": {"name": "History & Trends", "desc": "View scan history and health trends.", "signal": "history"},
-    "tests": {"name": "Test Management", "desc": "Run, view, and manage test suites.", "signal": "testing"},
-    "review": {"name": "Review & Fixes", "desc": "Review proposed fixes and apply or reject patches.", "signal": "fixes"},
-    "queue": {"name": "Queue Management", "desc": "View and manage the scan queue.", "signal": "queue"},
-    "hosted": {"name": "Hosted Mode", "desc": "Manage hosted mode, tokens, and IP reputation.", "signal": "hosted"},
-    "brain": {"name": "Brain & Memory", "desc": "View brain map, memory, import graph, and blast radius.", "signal": "insights"},
-    "agents": {"name": "Agent Management", "desc": "View and manage scanner agents.", "signal": "agents"},
-    "notifications": {"name": "Notifications", "desc": "Configure and receive notifications and alerts.", "signal": "notifications"},
-    "keys": {"name": "Key Management", "desc": "Manage API keys for AI providers.", "signal": "keys"},
+    "dashboard": {
+        "name": "Dashboard Overview",
+        "desc": "Project dashboard with status and health overview.",
+        "signal": "dashboard",
+    },
+    "findings": {
+        "name": "Findings Review",
+        "desc": "Browse, filter, and review scan findings.",
+        "signal": "findings",
+    },
+    "settings": {
+        "name": "Settings / Configuration",
+        "desc": "View and update project configuration.",
+        "signal": "config",
+    },
+    "security": {
+        "name": "Security Scanning",
+        "desc": "Run security scans and view reports.",
+        "signal": "security",
+    },
+    "history": {
+        "name": "History & Trends",
+        "desc": "View scan history and health trends.",
+        "signal": "history",
+    },
+    "tests": {
+        "name": "Test Management",
+        "desc": "Run, view, and manage test suites.",
+        "signal": "testing",
+    },
+    "review": {
+        "name": "Review & Fixes",
+        "desc": "Review proposed fixes and apply or reject patches.",
+        "signal": "fixes",
+    },
+    "queue": {
+        "name": "Queue Management",
+        "desc": "View and manage the scan queue.",
+        "signal": "queue",
+    },
+    "hosted": {
+        "name": "Hosted Mode",
+        "desc": "Manage hosted mode, tokens, and IP reputation.",
+        "signal": "hosted",
+    },
+    "brain": {
+        "name": "Brain & Memory",
+        "desc": "View brain map, memory, import graph, and blast radius.",
+        "signal": "insights",
+    },
+    "agents": {
+        "name": "Agent Management",
+        "desc": "View and manage scanner agents.",
+        "signal": "agents",
+    },
+    "notifications": {
+        "name": "Notifications",
+        "desc": "Configure and receive notifications and alerts.",
+        "signal": "notifications",
+    },
+    "keys": {
+        "name": "Key Management",
+        "desc": "Manage API keys for AI providers.",
+        "signal": "keys",
+    },
 }
 
 INFERENCE_RULES: list[tuple[str, str, str, list[str], list[str], list[str]]] = [
@@ -190,8 +243,8 @@ _KNOWN_PREFIXES = set(_ROUTE_TO_FLOW.keys())
 
 
 def build_ai_contract_summary(
-    file_infos: "list[FileInfo]",
-    routes: "list[RouteInfo]",
+    file_infos: list[FileInfo],
+    routes: list[RouteInfo],
     dead_files: list[str],
     circular_deps: list[Any],
     config: dict | None = None,
@@ -369,8 +422,8 @@ class ContractBuilder:
 
     def __init__(
         self,
-        routes: "list[RouteInfo]",
-        file_infos: "list[FileInfo]",
+        routes: list[RouteInfo],
+        file_infos: list[FileInfo],
         dead_files: list[str] | None = None,
         circular_deps: list[Any] | None = None,
     ):

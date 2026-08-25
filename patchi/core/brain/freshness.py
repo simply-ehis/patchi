@@ -11,9 +11,9 @@ from __future__ import annotations
 
 import json
 import threading
-from datetime import datetime, timezone
+from collections.abc import Callable
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Callable
 
 FRESHNESS_FILE = ".patchi/brain_freshness.json"
 
@@ -24,6 +24,7 @@ FRESHNESS_FILE = ".patchi/brain_freshness.json"
 import logging
 
 _log = logging.getLogger("patchi.brain.freshness")
+
 
 def save_freshness_snapshot(root: Path, file_infos_paths: list[str]) -> None:
     """
@@ -44,7 +45,7 @@ def save_freshness_snapshot(root: Path, file_infos_paths: list[str]) -> None:
         json.dump(
             {
                 "snapshot": snapshot,
-                "recorded_at": datetime.now(timezone.utc).isoformat(),
+                "recorded_at": datetime.now(UTC).isoformat(),
             },
             f,
             indent=2,
@@ -163,8 +164,7 @@ def root_walk(root: Path):
     """os.walk wrapper that stays inside root."""
     import os
 
-    for item in os.walk(root):
-        yield item
+    yield from os.walk(root)
 
 
 # ── File watcher (for p watch) ─────────────────────────────────────────────────
@@ -197,8 +197,8 @@ class BrainWatcher:
         self.on_change = on_change
         self.area = area
         self.debounce_ms = debounce_ms
-        self._stop_event: "threading.Event | None" = None
-        self._thread: "threading.Thread | None" = None
+        self._stop_event: threading.Event | None = None
+        self._thread: threading.Thread | None = None
 
     def start(self) -> None:
         """Start watching in a background thread. Returns immediately."""
@@ -237,7 +237,7 @@ class BrainWatcher:
                 break
 
             changed_paths: list[str] = []
-            for change_type, raw_path in changes:
+            for _change_type, raw_path in changes:
                 path = Path(raw_path)
 
                 # Skip patchi internals and build artifacts

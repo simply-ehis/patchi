@@ -35,12 +35,14 @@ def run(args):
         console.print("Or: p cross-repo --all  (analyze all indexed projects)")
         return
 
-    console.print(Panel(
-        f"[bold]Cross-Repository Intelligence[/bold]\n"
-        f"Mode: {mode}\n"
-        f"Targets: {', '.join(target_projects)}",
-        border_style="blue",
-    ))
+    console.print(
+        Panel(
+            f"[bold]Cross-Repository Intelligence[/bold]\n"
+            f"Mode: {mode}\n"
+            f"Targets: {', '.join(target_projects)}",
+            border_style="blue",
+        )
+    )
 
     try:
         from patchi.codebase_memory import index_repository, list_projects
@@ -54,7 +56,9 @@ def run(args):
             console.print("[red]Need at least 2 projects for cross-repo analysis.[/red]")
             return
 
-        console.print(f"\n[bold]Running cross-repo intelligence on {len(target_projects)} projects...[/bold]\n")
+        console.print(
+            f"\n[bold]Running cross-repo intelligence on {len(target_projects)} projects...[/bold]\n"
+        )
 
         results = index_repository(
             repo_path=".",
@@ -80,7 +84,9 @@ def run(args):
             table.add_row(source, target, link_type, detail)
 
         console.print(table)
-        console.print(f"\n[green]Found {len(results) if isinstance(results, list) else 0} cross-repo links.[/green]")
+        console.print(
+            f"\n[green]Found {len(results) if isinstance(results, list) else 0} cross-repo links.[/green]"
+        )
 
     except ImportError:
         console.print("[red]codebase-memory module not available.[/red]")
@@ -98,7 +104,10 @@ def register(subparsers):
     )
     parser.add_argument("projects", nargs="*", help="Target project names to analyze")
     parser.add_argument("--all", action="store_true", help="Analyze all indexed projects")
-    parser.add_argument("--mode", default="cross-repo-intelligence",
-                        help="Analysis mode (default: cross-repo-intelligence)")
+    parser.add_argument(
+        "--mode",
+        default="cross-repo-intelligence",
+        help="Analysis mode (default: cross-repo-intelligence)",
+    )
     parser.set_defaults(func=run)
     return parser

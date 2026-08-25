@@ -29,6 +29,30 @@ class RedTeamAgent(BaseAgent):
     group = AgentGroup.SECURITY
     timeout = 120
 
+    # Static-analysis hits mapped to the attack-scenario library
+    # (patchi/core/security/attack_scenarios/) and fix playbooks, so findings
+    # from this agent feed the Red Team Engine / AutoFixer pipeline instead of
+    # being dead-end pattern reports.
+    _PATTERN_LINKS: dict[str, tuple[str, str]] = {
+        # finding-message substring -> (scenario_family, remediation_playbook)
+        "eval(": ("injection-command", "fix-command-injection-no-eval"),
+        "exec(": ("injection-command", "fix-command-injection-no-exec"),
+        "os.system": ("injection-command", "fix-command-injection-shell-false"),
+        "subprocess.call": ("injection-command", "fix-command-injection-shell-false"),
+        "pickle deserialization": ("deserialization", "fix-deserialization-safe-load"),
+        "marshal deserialization": ("deserialization", "fix-deserialization-safe-load"),
+        "yaml.load": ("deserialization", "fix-deserialization-safe-load"),
+        "template rendering": ("xss-template", "fix-xss-template-autoescape"),
+        "debug mode enabled": ("security-headers", "fix-misconfig-debug-off"),
+        "allowed_hosts": ("security-headers", "fix-misconfig-host-allowlist"),
+    }
+
+    def _link_for(self, message: str) -> tuple[str, str]:
+        for needle, link in self._PATTERN_LINKS.items():
+            if needle.lower() in message.lower():
+                return link
+        return ("", "")
+
     def _run(self, inp: AgentInput, result: AgentResult) -> None:
         routes = inp.brain.get("routes", [])
         files_scanned = 0
@@ -57,6 +81,14 @@ class RedTeamAgent(BaseAgent):
                         line=0,
                         message=f"Parameterized route: {method.upper()} {route}",
                         detail="Route accepts dynamic parameters — verify input validation",
+                        suggestion="Validate/parameterize inputs; see sqli-basic-union scenario",
+                        cwe="CWE-20",
+                        extra={
+                            "attack_surface": "static",
+                            "scenario_family": "injection",
+                            "remediation_playbook": "fix-sqli-parameterized-queries",
+                            "route": f"{method.upper()} {route}",
+                        },
                     )
                 )
 
@@ -71,6 +103,14 @@ class RedTeamAgent(BaseAgent):
                         line=0,
                         message=f"State-changing endpoint: {method.upper()} {route}",
                         detail="Verify authentication and authorization are enforced",
+                        suggestion="Enforce auth decorators + object-level authz checks",
+                        cwe="CWE-306",
+                        extra={
+                            "attack_surface": "static",
+                            "scenario_family": "authorization",
+                            "remediation_playbook": "fix-authz-role-checks",
+                            "route": f"{method.upper()} {route}",
+                        },
                     )
                 )
 
@@ -116,6 +156,7 @@ class RedTeamAgent(BaseAgent):
                 for i, line in enumerate(lines, 1):
                     for rx, sev, msg in attack_patterns:
                         if re.search(rx, line):
+                            family, playbook = self._link_for(msg)
                             result.add_finding(
                                 Finding(
                                     agent=self.name,
@@ -125,6 +166,16 @@ class RedTeamAgent(BaseAgent):
                                     line=i,
                                     message=msg,
                                     code_snippet=line.strip()[:120],
+                                    suggestion=(
+                                        f"Remediate via playbook: {playbook}"
+                                        if playbook
+                                        else "Review for safe usage or remove"
+                                    ),
+                                    extra={
+                                        "attack_surface": "static",
+                                        "scenario_family": family,
+                                        "remediation_playbook": playbook,
+                                    },
                                 )
                             )
 

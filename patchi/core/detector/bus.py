@@ -14,8 +14,8 @@ import asyncio
 import logging
 import time
 from collections import defaultdict
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
-from typing import Awaitable, Callable
 
 from patchi.core.detector.event import Event, EventSeverity, EventSource, TechniqueID
 
@@ -27,9 +27,11 @@ EventHandler = Callable[[Event], Awaitable[None]]
 
 _log = logging.getLogger("patchi.core.bus")
 
+
 @dataclass
 class Subscription:
     """A single subscription to the event bus."""
+
     handler: EventHandler
     source: set[EventSource] | None = None
     technique_filter: set[str] | None = None
@@ -124,7 +126,11 @@ class EventBus:
 
     async def publish(self, event: Event) -> None:
         """Publish a single event to matching subscribers."""
-        tid = event.technique_id.value if isinstance(event.technique_id, TechniqueID) else event.technique_id
+        tid = (
+            event.technique_id.value
+            if isinstance(event.technique_id, TechniqueID)
+            else event.technique_id
+        )
 
         matched_any = False
         async with self._lock:
@@ -190,7 +196,7 @@ class EventBus:
                     timeout=remaining,
                 )
                 events.append(ev)
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 break
 
         return events

@@ -124,6 +124,7 @@ import logging
 
 _log = logging.getLogger("patchi.agents.doc_claim_agent")
 
+
 @dataclass
 class Claim:
     """A single verifiable claim extracted from documentation."""
@@ -176,7 +177,9 @@ class DocClaimAgent(BaseAgent):
         has_ai = bool(ai_config.get("keys") or ai_config.get("local_model_name"))
 
         if not has_ai:
-            logger.info("No AI configured — DocClaimAgent returns no claims (fallback to heuristic)")
+            logger.info(
+                "No AI configured — DocClaimAgent returns no claims (fallback to heuristic)"
+            )
             result.data["claims"] = []
             result.data["ai_unavailable"] = True
             return
@@ -194,7 +197,9 @@ class DocClaimAgent(BaseAgent):
                 if len(text.strip()) < 20:
                     continue
 
-                future = executor.submit(self._extract_claims, text, doc_path, result, inp.config, ai_config)
+                future = executor.submit(
+                    self._extract_claims, text, doc_path, result, inp.config, ai_config
+                )
                 future_to_doc[future] = doc_path
 
             for future in as_completed(future_to_doc):
@@ -233,19 +238,55 @@ class DocClaimAgent(BaseAgent):
                     continue
                 # Skip binary/irrelevant files by extension check
                 if resolved.suffix.lower() not in (
-                    ".md", ".txt", ".rst", ".adoc", ".asciidoc", ".mdown",
+                    ".md",
+                    ".txt",
+                    ".rst",
+                    ".adoc",
+                    ".asciidoc",
+                    ".mdown",
                     ".mdx",
                 ) and resolved.name not in (
-                    "README", "CONTRIBUTING", "CHANGELOG", "CHANGES", "HISTORY",
-                    "SECURITY", "CODE_OF_CONDUCT", "LICENSE", "COPYING", "NOTICE",
-                    "SUPPORT", "AUTHORS", "MAINTAINERS", "GOVERNANCE", "ROADMAP",
-                    "VISION", "GOALS", "MILESTONES",
+                    "README",
+                    "CONTRIBUTING",
+                    "CHANGELOG",
+                    "CHANGES",
+                    "HISTORY",
+                    "SECURITY",
+                    "CODE_OF_CONDUCT",
+                    "LICENSE",
+                    "COPYING",
+                    "NOTICE",
+                    "SUPPORT",
+                    "AUTHORS",
+                    "MAINTAINERS",
+                    "GOVERNANCE",
+                    "ROADMAP",
+                    "VISION",
+                    "GOALS",
+                    "MILESTONES",
                 ):
                     # Skip non-text files matched by docs/**/* (binary, images, etc.)
-                    if resolved.suffix in (".png", ".jpg", ".gif", ".svg", ".ico", ".pdf",
-                                            ".zip", ".gz", ".tar", ".bin", ".exe", ".dll",
-                                            ".so", ".dylib", ".pyc", ".woff", ".woff2",
-                                            ".ttf", ".eot"):
+                    if resolved.suffix in (
+                        ".png",
+                        ".jpg",
+                        ".gif",
+                        ".svg",
+                        ".ico",
+                        ".pdf",
+                        ".zip",
+                        ".gz",
+                        ".tar",
+                        ".bin",
+                        ".exe",
+                        ".dll",
+                        ".so",
+                        ".dylib",
+                        ".pyc",
+                        ".woff",
+                        ".woff2",
+                        ".ttf",
+                        ".eot",
+                    ):
                         continue
                 seen.add(resolved)
                 found.append(resolved)
@@ -281,7 +322,9 @@ class DocClaimAgent(BaseAgent):
                     temperature=0.1,
                 )
             except Exception as e:
-                logger.warning(f"LLM extraction failed for {doc_path.name} (attempt {attempt+1}): {e}")
+                logger.warning(
+                    f"LLM extraction failed for {doc_path.name} (attempt {attempt + 1}): {e}"
+                )
                 if attempt < max_retries - 1:
                     continue
                 result.errors.append(f"{doc_path.name}: LLM error — {e}")
@@ -392,12 +435,17 @@ def verify_claims_against_code(
         classes = fi.classes if hasattr(fi, "classes") else fi.get("classes", [])
         imports = fi.imports if hasattr(fi, "imports") else fi.get("imports", [])
         if funcs:
-            func_names.update(f.name.lower() if hasattr(f, "name") else f.get("name", "").lower() for f in funcs)
+            func_names.update(
+                f.name.lower() if hasattr(f, "name") else f.get("name", "").lower() for f in funcs
+            )
         if classes:
-            class_names.update(c.name.lower() if hasattr(c, "name") else c.get("name", "").lower() for c in classes)
+            class_names.update(
+                c.name.lower() if hasattr(c, "name") else c.get("name", "").lower() for c in classes
+            )
         if imports:
             import_names.update(
-                i.source.lower() if hasattr(i, "source") else i.get("source", "").lower() for i in imports
+                i.source.lower() if hasattr(i, "source") else i.get("source", "").lower()
+                for i in imports
             )
 
     if symbol_graph:

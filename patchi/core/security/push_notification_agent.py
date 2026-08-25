@@ -38,40 +38,91 @@ from ..agents.base import (
 from ..brain.trace_log import trace_agent
 
 _SOURCE_EXTENSIONS = {
-    "*.py", "*.js", "*.jsx", "*.ts", "*.tsx", "*.java",
-    "*.php", "*.rb", "*.go", "*.rs", "*.cs",
+    "*.py",
+    "*.js",
+    "*.jsx",
+    "*.ts",
+    "*.tsx",
+    "*.java",
+    "*.php",
+    "*.rb",
+    "*.go",
+    "*.rs",
+    "*.cs",
 }
 
 _FCM_KEY_PATTERNS = [
-    (re.compile(r"(?:FCM[_-]?(?:SERVER[_-]?KEY|KEY|SECRET|TOKEN|API[_-]?KEY))\s*[:=]\s*['\"][A-Za-z0-9_\-]{20,}['\"]", re.IGNORECASE),
-     "PUSH-01: Hardcoded FCM Server Key"),
-    (re.compile(r"(?:server[_-]?key|fcm[_-]?key)\s*[:=]\s*['\"][A-Za-z0-9_\-]{20,}['\"]", re.IGNORECASE),
-     "PUSH-01: Hardcoded FCM Key"),
-    (re.compile(r"AAAA[A-Za-z0-9_-]{7}:[A-Za-z0-9_-]{140}", re.IGNORECASE),
-     "PUSH-01: Exposed FCM Server Key"),
+    (
+        re.compile(
+            r"(?:FCM[_-]?(?:SERVER[_-]?KEY|KEY|SECRET|TOKEN|API[_-]?KEY))\s*[:=]\s*['\"][A-Za-z0-9_\-]{20,}['\"]",
+            re.IGNORECASE,
+        ),
+        "PUSH-01: Hardcoded FCM Server Key",
+    ),
+    (
+        re.compile(
+            r"(?:server[_-]?key|fcm[_-]?key)\s*[:=]\s*['\"][A-Za-z0-9_\-]{20,}['\"]", re.IGNORECASE
+        ),
+        "PUSH-01: Hardcoded FCM Key",
+    ),
+    (
+        re.compile(r"AAAA[A-Za-z0-9_-]{7}:[A-Za-z0-9_-]{140}", re.IGNORECASE),
+        "PUSH-01: Exposed FCM Server Key",
+    ),
 ]
 
 _APNS_KEY_PATTERNS = [
-    (re.compile(r"(?:APNS[_-]?(?:KEY|TOKEN|SECRET|PRIVATE[_-]?KEY|CERT))\s*[:=]\s*['\"][^'\"]{10,}['\"]", re.IGNORECASE),
-     "PUSH-02: Hardcoded APNs Credential"),
-    (re.compile(r"(?:aps[_-]?env|apns[_-]?environment)\s*[:=]\s*['\"]?(?:production|development|sandbox)['\"]?", re.IGNORECASE),
-     "PUSH-03: APNs Environment Hardcoded"),
-    (re.compile(r"-----BEGIN (?:RSA )?PRIVATE KEY-----"),
-     "PUSH-02: Embedded Private Key in Source"),
+    (
+        re.compile(
+            r"(?:APNS[_-]?(?:KEY|TOKEN|SECRET|PRIVATE[_-]?KEY|CERT))\s*[:=]\s*['\"][^'\"]{10,}['\"]",
+            re.IGNORECASE,
+        ),
+        "PUSH-02: Hardcoded APNs Credential",
+    ),
+    (
+        re.compile(
+            r"(?:aps[_-]?env|apns[_-]?environment)\s*[:=]\s*['\"]?(?:production|development|sandbox)['\"]?",
+            re.IGNORECASE,
+        ),
+        "PUSH-03: APNs Environment Hardcoded",
+    ),
+    (
+        re.compile(r"-----BEGIN (?:RSA )?PRIVATE KEY-----"),
+        "PUSH-02: Embedded Private Key in Source",
+    ),
 ]
 
 _PUSH_TOKEN_PATTERNS = [
-    (re.compile(r"(?:device[_-]?token|push[_-]?token|fcm[_-]?token|apns[_-]?token)\s*[:=]\s*['\"][A-Za-z0-9_\-]{20,}['\"]", re.IGNORECASE),
-     "PUSH-04: Hardcoded Push Token"),
-    (re.compile(r"(?:token|device_token)\s*\.\s*(?:save|store|persist|write|insert)", re.IGNORECASE),
-     "PUSH-05: Push Token Stored Without Encryption"),
+    (
+        re.compile(
+            r"(?:device[_-]?token|push[_-]?token|fcm[_-]?token|apns[_-]?token)\s*[:=]\s*['\"][A-Za-z0-9_\-]{20,}['\"]",
+            re.IGNORECASE,
+        ),
+        "PUSH-04: Hardcoded Push Token",
+    ),
+    (
+        re.compile(
+            r"(?:token|device_token)\s*\.\s*(?:save|store|persist|write|insert)", re.IGNORECASE
+        ),
+        "PUSH-05: Push Token Stored Without Encryption",
+    ),
 ]
 
 _SENSITIVE_PAYLOAD_PATTERNS = [
-    (re.compile(r"(?:password|secret|credit.?card|ssn|social.?security|api.?key|private.?key)\s*[:=]", re.IGNORECASE),
-     "PUSH-06: Sensitive Data in Notification Payload"),
-    (re.compile(r"(?:notification|message|alert|payload|body)\s*(?:\.|\[).*(?:password|secret|token|key|credential)", re.IGNORECASE),
-     "PUSH-06: Sensitive Data in Notification Body"),
+    (
+        re.compile(
+            r"(?:password|secret|credit.?card|ssn|social.?security|api.?key|private.?key)\s*[:=]",
+            re.IGNORECASE,
+        ),
+        "PUSH-06: Sensitive Data in Notification Payload",
+    ),
+    (
+        re.compile(
+            r"(?:notification|message|alert|payload|body)\s*(?:\.|\[).*(?:password|secret|token|key|credential)",
+            re.IGNORECASE,
+        ),
+        "PUSH-06: Sensitive Data in Notification Body",
+    ),
 ]
 
 _NOTIFICATION_FRAMEWORKS = [
@@ -118,10 +169,12 @@ class PushNotificationAgent(BaseAgent):
 
         result.status = AgentStatus.SUCCEEDED
         result.findings = findings
-        result.data.update({
-            "push_findings": len(findings),
-            "gitleaks_available": shutil.which("gitleaks") is not None,
-        })
+        result.data.update(
+            {
+                "push_findings": len(findings),
+                "gitleaks_available": shutil.which("gitleaks") is not None,
+            }
+        )
         return
 
     # ── Source file scan ───────────────────────────────────────────────────
@@ -137,61 +190,71 @@ class PushNotificationAgent(BaseAgent):
             for i, line in enumerate(lines, 1):
                 for rx, title in _FCM_KEY_PATTERNS:
                     if rx.search(line):
-                        findings.append(make_finding(
-                            severity=Severity.CRITICAL,
-                            file=rel,
-                            line_start=i,
-                            title=title,
-                            description="Hardcoded FCM server key found. Anyone with this key can send push notifications.",
-                            evidence=line.strip()[:120],
-                            suggestion="Store FCM server keys in environment variables or a secrets manager.",
-                        ))
+                        findings.append(
+                            make_finding(
+                                severity=Severity.CRITICAL,
+                                file=rel,
+                                line_start=i,
+                                title=title,
+                                description="Hardcoded FCM server key found. Anyone with this key can send push notifications.",
+                                evidence=line.strip()[:120],
+                                suggestion="Store FCM server keys in environment variables or a secrets manager.",
+                            )
+                        )
 
             # APNs keys
             for i, line in enumerate(lines, 1):
                 for rx, title in _APNS_KEY_PATTERNS:
                     if rx.search(line):
-                        findings.append(make_finding(
-                            severity=Severity.CRITICAL,
-                            file=rel,
-                            line_start=i,
-                            title=title,
-                            description="Hardcoded APNs credential or private key found.",
-                            evidence=line.strip()[:120],
-                            suggestion="Store APNs credentials securely and load from environment variables.",
-                        ))
+                        findings.append(
+                            make_finding(
+                                severity=Severity.CRITICAL,
+                                file=rel,
+                                line_start=i,
+                                title=title,
+                                description="Hardcoded APNs credential or private key found.",
+                                evidence=line.strip()[:120],
+                                suggestion="Store APNs credentials securely and load from environment variables.",
+                            )
+                        )
 
             # Push tokens
             for i, line in enumerate(lines, 1):
                 for rx, title in _PUSH_TOKEN_PATTERNS:
                     if rx.search(line):
-                        findings.append(make_finding(
-                            severity=Severity.HIGH,
-                            file=rel,
-                            line_start=i,
-                            title=title,
-                            description="Push token handling issue detected.",
-                            evidence=line.strip()[:120],
-                            suggestion="Rotate push tokens regularly and encrypt at rest.",
-                        ))
-
-            # Sensitive data in payloads
-            in_notification_block = False
-            for i, line in enumerate(lines, 1):
-                if re.search(r"(?:notification|message|payload|alert|body)\s*[{(]", line, re.IGNORECASE):
-                    in_notification_block = True
-                if in_notification_block:
-                    for rx, title in _SENSITIVE_PAYLOAD_PATTERNS:
-                        if rx.search(line):
-                            findings.append(make_finding(
+                        findings.append(
+                            make_finding(
                                 severity=Severity.HIGH,
                                 file=rel,
                                 line_start=i,
                                 title=title,
-                                description="Sensitive data detected in notification payload.",
+                                description="Push token handling issue detected.",
                                 evidence=line.strip()[:120],
-                                suggestion="Minimize notification payloads; never include PII or secrets.",
-                            ))
+                                suggestion="Rotate push tokens regularly and encrypt at rest.",
+                            )
+                        )
+
+            # Sensitive data in payloads
+            in_notification_block = False
+            for i, line in enumerate(lines, 1):
+                if re.search(
+                    r"(?:notification|message|payload|alert|body)\s*[{(]", line, re.IGNORECASE
+                ):
+                    in_notification_block = True
+                if in_notification_block:
+                    for rx, title in _SENSITIVE_PAYLOAD_PATTERNS:
+                        if rx.search(line):
+                            findings.append(
+                                make_finding(
+                                    severity=Severity.HIGH,
+                                    file=rel,
+                                    line_start=i,
+                                    title=title,
+                                    description="Sensitive data detected in notification payload.",
+                                    evidence=line.strip()[:120],
+                                    suggestion="Minimize notification payloads; never include PII or secrets.",
+                                )
+                            )
                     if re.search(r"[})]", line):
                         in_notification_block = False
 
@@ -223,25 +286,29 @@ class PushNotificationAgent(BaseAgent):
                     # Check for credentials in config
                     for rx, title in _FCM_KEY_PATTERNS:
                         if rx.search(content):
-                            findings.append(make_finding(
-                                severity=Severity.CRITICAL,
-                                file=rel,
-                                line_start=0,
-                                title=title,
-                                description="FCM server key found in configuration file.",
-                                suggestion="Use environment variables or a secrets manager instead of config files.",
-                            ))
+                            findings.append(
+                                make_finding(
+                                    severity=Severity.CRITICAL,
+                                    file=rel,
+                                    line_start=0,
+                                    title=title,
+                                    description="FCM server key found in configuration file.",
+                                    suggestion="Use environment variables or a secrets manager instead of config files.",
+                                )
+                            )
 
                     for rx, title in _APNS_KEY_PATTERNS:
                         if rx.search(content):
-                            findings.append(make_finding(
-                                severity=Severity.CRITICAL,
-                                file=rel,
-                                line_start=0,
-                                title=title,
-                                description="APNs credential found in configuration file.",
-                                suggestion="Load APNs credentials from a secure vault.",
-                            ))
+                            findings.append(
+                                make_finding(
+                                    severity=Severity.CRITICAL,
+                                    file=rel,
+                                    line_start=0,
+                                    title=title,
+                                    description="APNs credential found in configuration file.",
+                                    suggestion="Load APNs credentials from a secure vault.",
+                                )
+                            )
 
                 except Exception as e:
                     _log.warning("PushNotificationAgent._scan_push_config failed: %s", e)
@@ -263,28 +330,37 @@ class PushNotificationAgent(BaseAgent):
                         # Token stored in plaintext database field
                         if re.search(
                             r"(?:device_token|push_token|fcm_token|apns_token)\s*.*(?:VARCHAR|TEXT|STRING|str)",
-                            line, re.IGNORECASE,
+                            line,
+                            re.IGNORECASE,
                         ):
-                            findings.append(make_finding(
-                                severity=Severity.MEDIUM,
-                                file=rel,
-                                line_start=i,
-                                title="PUSH-05: Push Token Stored Without Encryption",
-                                description="Push token stored in a plaintext database column.",
-                                evidence=line.strip()[:120],
-                                suggestion="Encrypt push tokens at rest or store hashed.",
-                            ))
+                            findings.append(
+                                make_finding(
+                                    severity=Severity.MEDIUM,
+                                    file=rel,
+                                    line_start=i,
+                                    title="PUSH-05: Push Token Stored Without Encryption",
+                                    description="Push token stored in a plaintext database column.",
+                                    evidence=line.strip()[:120],
+                                    suggestion="Encrypt push tokens at rest or store hashed.",
+                                )
+                            )
                         # Token logged
-                        if re.search(r"(?:log|print|debug|console).*(?:token|device_token|push_token)", line, re.IGNORECASE):
-                            findings.append(make_finding(
-                                severity=Severity.MEDIUM,
-                                file=rel,
-                                line_start=i,
-                                title="PUSH-04: Push Token Logged",
-                                description="Push token may be written to logs.",
-                                evidence=line.strip()[:120],
-                                suggestion="Never log push tokens; they can be used to impersonate users.",
-                            ))
+                        if re.search(
+                            r"(?:log|print|debug|console).*(?:token|device_token|push_token)",
+                            line,
+                            re.IGNORECASE,
+                        ):
+                            findings.append(
+                                make_finding(
+                                    severity=Severity.MEDIUM,
+                                    file=rel,
+                                    line_start=i,
+                                    title="PUSH-04: Push Token Logged",
+                                    description="Push token may be written to logs.",
+                                    evidence=line.strip()[:120],
+                                    suggestion="Never log push tokens; they can be used to impersonate users.",
+                                )
+                            )
                 except Exception as e:
                     _log.warning("PushNotificationAgent._scan_token_storage failed: %s", e)
         return findings
@@ -297,30 +373,41 @@ class PushNotificationAgent(BaseAgent):
         try:
             proc = subprocess.run(
                 [
-                    "gitleaks", "detect",
-                    "--source", str(inp.root),
-                    "--report-format", "json",
+                    "gitleaks",
+                    "detect",
+                    "--source",
+                    str(inp.root),
+                    "--report-format",
+                    "json",
                     "--redact",
                 ],
-                capture_output=True, text=True, timeout=120,
+                capture_output=True,
+                text=True,
+                timeout=120,
             )
             if proc.stdout.strip():
                 import json
+
                 try:
                     data = json.loads(proc.stdout)
                     for item in data if isinstance(data, list) else []:
                         rule = item.get("RuleID", "").lower()
                         description = item.get("Description", "")
-                        if any(kw in rule or kw in description.lower() for kw in ("fcm", "firebase", "apns", "push", "notification")):
-                            findings.append(make_finding(
-                                severity=Severity.CRITICAL,
-                                file=item.get("File", "(gitleaks)"),
-                                line_start=item.get("StartLine", 0),
-                                title="PUSH-01: Push Secret Detected by Gitleaks",
-                                description=f"Gitleaks detected: {item.get('RuleID', 'unknown')}",
-                                evidence=item.get("Match", "")[:120],
-                                suggestion="Remove the secret and rotate credentials immediately.",
-                            ))
+                        if any(
+                            kw in rule or kw in description.lower()
+                            for kw in ("fcm", "firebase", "apns", "push", "notification")
+                        ):
+                            findings.append(
+                                make_finding(
+                                    severity=Severity.CRITICAL,
+                                    file=item.get("File", "(gitleaks)"),
+                                    line_start=item.get("StartLine", 0),
+                                    title="PUSH-01: Push Secret Detected by Gitleaks",
+                                    description=f"Gitleaks detected: {item.get('RuleID', 'unknown')}",
+                                    evidence=item.get("Match", "")[:120],
+                                    suggestion="Remove the secret and rotate credentials immediately.",
+                                )
+                            )
                 except json.JSONDecodeError:
                     pass
         except (subprocess.TimeoutExpired, FileNotFoundError, OSError):

@@ -40,6 +40,7 @@ from ..ai.prompts import Skill, build_prompt, get_system_prompt
 
 _log = logging.getLogger("patchi.testing.browser_test_agent")
 
+
 @register
 class BrowserTestAgent(BaseAgent):
     """Agent for running browser tests with Playwright."""
@@ -71,6 +72,20 @@ class BrowserTestAgent(BaseAgent):
             result.findings = findings
             result.data.update({"playwright_available": False, "needs_ai": False})
             return
+
+        # ── Live probe against a running app (opt-in) ─────────────────────────
+        # Real navigation through the shared browser pool: captures console
+        # errors, page crashes, 5xx responses and screenshots of failures.
+        # Opt-in via extra["live_probe"]=True (web Live Tests tab sets it) so
+        # plain test runs never launch a browser implicitly.
+        base_url = (inp.extra or {}).get("base_url")
+        wants_probe = bool((inp.extra or {}).get("live_probe"))
+        if base_url and wants_probe:
+            probe = self._live_probe(inp, base_url)
+            if probe:
+                result.data["live_probe"] = probe
+                for pf in probe.get("findings", []):
+                    findings.append(pf)
 
         # Check for existing Playwright tests
         existing_tests = self._find_existing_playwright_tests(inp.root)
@@ -154,14 +169,134 @@ class BrowserTestAgent(BaseAgent):
 
         result.status = AgentStatus.SUCCEEDED if test_results["success"] else AgentStatus.FAILED
         result.findings = findings
-        result.data.update({
-            "total_tests": test_results["total"],
-            "passed_tests": test_results["passed"],
-            "failed_tests": test_results["failed"],
-            "duration": round(duration, 2),
-            "needs_ai": True,  # Generating new tests requires AI
-        })
+        result.data.update(
+            {
+                "total_tests": test_results["total"],
+                "passed_tests": test_results["passed"],
+                "failed_tests": test_results["failed"],
+                "duration": round(duration, 2),
+                "needs_ai": True,  # Generating new tests requires AI
+            }
+        )
         return
+
+    # ── Live probe (shared browser pool) ──────────────────────────────────────
+
+    def _live_probe(self, inp: AgentInput, base_url: str) -> dict | None:
+        """Navigate the running app with a pooled browser.
+
+        Collects per page: console errors, uncaught page errors, HTTP >= 500
+        responses, and a screenshot whenever navigation or rendering fails.
+        Findings are capped so one noisy app can't flood the report.
+        """
+        import asyncio
+
+        try:
+            return asyncio.run(self._probe_async(inp, base_url))
+        except Exception as e:
+            _log.warning("BrowserTestAgent live probe failed: %s", e)
+            return None
+
+    async def _probe_async(self, inp: AgentInput, base_url: str) -> dict:
+        from .live_v2.browser_pool import get_browser_pool
+
+        pool = await get_browser_pool()
+        page = await pool.get_page()
+
+        console_errors: list[dict] = []
+        http_errors: list[dict] = []
+        nav_failures: list[dict] = []
+        screenshots: list[str] = []
+
+        artifacts = inp.root / ".patchi" / "artifacts" / "browser"
+        artifacts.mkdir(parents=True, exist_ok=True)
+
+        def _on_console(msg):
+            if msg.type == "error":
+                console_errors.append({"page": page.url, "text": msg.text[:200]})
+
+        def _on_pageerror(err):
+            console_errors.append({"page": page.url, "text": f"pageerror: {err}"[:200]})
+
+        def _on_response(resp):
+            if resp.status >= 500:
+                http_errors.append({"page": page.url, "status": resp.status, "url": resp.url[:200]})
+
+        page.on("console", _on_console)
+        page.on("pageerror", _on_pageerror)
+        page.on("response", _on_response)
+
+        urls = [base_url]
+        for route in (inp.brain or {}).get("routes", [])[:6]:
+            path = route.get("path") if isinstance(route, dict) else getattr(route, "path", "")
+            method = (
+                route.get("method") if isinstance(route, dict) else getattr(route, "method", "get")
+            ) or "get"
+            if (
+                str(method).lower() in ("get", "")
+                and path
+                and not path.startswith(("api/", "/api"))
+            ):
+                urls.append(base_url.rstrip("/") + ("/" + path.lstrip("/")))
+        seen = set()
+        urls = [u for u in urls if not (u in seen or seen.add(u))][:5]
+
+        findings_payload: list[dict] = []
+        try:
+            for url in urls:
+                try:
+                    await page.goto(url, wait_until="networkidle", timeout=15000)
+                except Exception as e:
+                    slug = "nav-failure"
+                    shot = artifacts / f"{slug}-{len(screenshots)}.png"
+                    try:
+                        await page.screenshot(path=str(shot), full_page=False)
+                        screenshots.append(shot.name)
+                    except Exception:
+                        pass
+                    nav_failures.append({"url": url, "error": str(e)[:160]})
+                    continue
+        finally:
+            await pool.release_page(page)
+
+        # Cap noise, convert to finding payloads (agent-level severity mapping)
+        for ce in console_errors[:10]:
+            findings_payload.append(
+                {
+                    "kind": "console_error",
+                    "severity": "medium",
+                    "page": ce["page"],
+                    "detail": ce["text"],
+                }
+            )
+        for he in http_errors[:10]:
+            findings_payload.append(
+                {
+                    "kind": "http_5xx",
+                    "severity": "high",
+                    "page": he.get("page", ""),
+                    "detail": f"{he['status']} on {he['url']}",
+                }
+            )
+        for nf in nav_failures:
+            findings_payload.append(
+                {
+                    "kind": "navigation_failure",
+                    "severity": "high",
+                    "page": nf["url"],
+                    "detail": nf["error"],
+                }
+            )
+
+        return {
+            "base_url": base_url,
+            "pages_probed": len(urls),
+            "console_errors": len(console_errors),
+            "http_errors": len(http_errors),
+            "nav_failures": len(nav_failures),
+            "screenshots": screenshots,
+            "findings": findings_payload,
+        }
 
     def _find_existing_playwright_tests(self, root: Path) -> list[Path]:
         """Find existing Playwright test files."""

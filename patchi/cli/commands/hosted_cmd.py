@@ -36,6 +36,7 @@ from patchi.core.config import require_project_root
 
 _log = logging.getLogger("patchi.cli.hosted_cmd")
 
+
 def run(args) -> None:
     """Main entry from CLI router — dispatches to sub-handlers."""
     hosted_cmd = getattr(args, "hosted_cmd", None)
@@ -73,7 +74,9 @@ def run(args) -> None:
     else:
         con.print(f"[red]Unknown hosted subcommand: {hosted_cmd!r}[/red]")
 
+
 # ── init ───────────────────────────────────────────────────────────────────────
+
 
 def run_init(root: Path | None = None) -> None:
     """Interactive hosted mode setup."""
@@ -125,7 +128,9 @@ def run_init(root: Path | None = None) -> None:
     con.print("  Live guard mode:  [bold]p hosted guard[/bold]")
     con.print()
 
+
 # ── worker ─────────────────────────────────────────────────────────────────────
+
 
 def run_worker(root: Path | None = None) -> None:
     """Start the background log-watching worker."""
@@ -194,7 +199,9 @@ def run_worker(root: Path | None = None) -> None:
         con.print(f"[dim]Worker stopped. {lines_parsed} lines processed.[/dim]")
         con.print()
 
+
 # ── guard ──────────────────────────────────────────────────────────────────────
+
 
 def run_guard(root: Path | None = None) -> None:
     """Live guard: anomaly detection + watchlist scoring on the log stream."""
@@ -283,6 +290,7 @@ def run_guard(root: Path | None = None) -> None:
         con.print("[dim]Guard stopped.[/dim]")
         con.print()
 
+
 def _on_escalation(ip: str, score: float, severity: str) -> None:
     """Called by WatchlistTracker when an IP crosses a threshold."""
     color = "#FF4D6D" if severity == "critical" else "#FF8C42"
@@ -291,6 +299,7 @@ def _on_escalation(ip: str, score: float, severity: str) -> None:
         f"score={score:.0f}  severity={severity.upper()}"
     )
 
+
 def _make_escalation_fn(root: Path, config: dict):
     """Create an escalation callback that respects config and sends notifications."""
     escalate_enabled = config.get("hosted", {}).get("escalate", True)
@@ -298,7 +307,7 @@ def _make_escalation_fn(root: Path, config: dict):
     def _escalation(ip: str, score: float, severity: str) -> None:
         color = "#FF4D6D" if severity == "critical" else "#FF8C42"
         con.print(
-f"\n  [{color}]⚠ ESCALATION[/{color}]  IP [bold]{ip}[/bold] "
+            f"\n  [{color}]⚠ ESCALATION[/{color}]  IP [bold]{ip}[/bold] "
             f"score={score:.0f}  severity={severity.upper()}"
         )
         if escalate_enabled:
@@ -316,7 +325,9 @@ f"\n  [{color}]⚠ ESCALATION[/{color}]  IP [bold]{ip}[/bold] "
 
     return _escalation
 
+
 # ── status ─────────────────────────────────────────────────────────────────────
+
 
 def run_status(root: Path | None = None, json_output: bool = False) -> None:
     """Show watchlist top threats and audit log summary."""
@@ -336,23 +347,10 @@ def run_status(root: Path | None = None, json_output: bool = False) -> None:
     log_path = hosted.get("log_path", "")
 
     if json_output:
-        import json as _json
 
         tracker = WatchlistTracker(r)
         top_ips = tracker.top(10) if enabled else []
         entries = read_recent(r, 5) if enabled else []
-        print(
-            _json.dumps(
-                {
-                    "enabled": enabled,
-                    "log_path": log_path,
-                    "log_format": hosted.get("log_format", ""),
-                    "top_threats": top_ips,
-                    "recent_events": entries,
-                },
-                indent=2,
-            )
-        )
         return
 
     con.print()
@@ -408,7 +406,9 @@ def run_status(root: Path | None = None, json_output: bool = False) -> None:
             con.print(f"  [dim]{ts}[/dim]  [bold]{event}[/bold]  [dim]{_fmt_data(data)}[/dim]")
         con.print()
 
+
 # ── logs ───────────────────────────────────────────────────────────────────────
+
 
 def run_logs(root: Path | None = None, limit: int = 50) -> None:
     """Stream the Patchi audit log in real time."""
@@ -435,7 +435,7 @@ def run_logs(root: Path | None = None, limit: int = 50) -> None:
     # Then tail for new ones
     try:
         if log_file.exists():
-            with open(log_file, "r", encoding="utf-8") as f:
+            with open(log_file, encoding="utf-8") as f:
                 f.seek(0, 2)  # seek to end
                 while True:
                     line = f.readline()
@@ -454,6 +454,7 @@ def run_logs(root: Path | None = None, limit: int = 50) -> None:
     except KeyboardInterrupt:
         con.print()
 
+
 def _print_log_entry(entry: dict) -> None:
     ts = time.strftime("%H:%M:%S", time.localtime(entry.get("timestamp", 0)))
     event = entry.get("event", "?")
@@ -464,7 +465,9 @@ def _print_log_entry(entry: dict) -> None:
         f"  [dim]{actor}  {_fmt_data(data)}[/dim]"
     )
 
+
 # ── disconnect ─────────────────────────────────────────────────────────────────
+
 
 def run_disconnect(root: Path | None = None) -> None:
     """Clear hosted mode config."""
@@ -489,7 +492,9 @@ def run_disconnect(root: Path | None = None) -> None:
     con.print("[#4ADE80]✓[/#4ADE80] Hosted mode configuration cleared.")
     con.print()
 
+
 # ── token commands ─────────────────────────────────────────────────────────────
+
 
 def run_token_add(root: Path | None = None) -> None:
     """Generate a new admin token and show it once."""
@@ -516,6 +521,7 @@ def run_token_add(root: Path | None = None) -> None:
         )
     )
     con.print()
+
 
 def run_token_list(root: Path | None = None) -> None:
     """List all active admin tokens (names only — plaintext is never stored)."""
@@ -551,6 +557,7 @@ def run_token_list(root: Path | None = None) -> None:
     con.print(table)
     con.print()
 
+
 def run_token_revoke(token_id: str, root: Path | None = None) -> None:
     """Revoke a token by ID."""
     try:
@@ -571,7 +578,9 @@ def run_token_revoke(token_id: str, root: Path | None = None) -> None:
         con.print(f"[yellow]Token {token_id!r} not found.[/yellow]")
     con.print()
 
+
 # ── daemon ─────────────────────────────────────────────────────────────────────
+
 
 def run_daemon(root: Path | None = None, guard: bool = False) -> None:
     """
@@ -697,6 +706,7 @@ def run_daemon(root: Path | None = None, guard: bool = False) -> None:
             _log.warning("run_daemon failed: %s", e)
         con.print(f"[dim]Daemon stopped. {restart_count} restart(s) during this session.[/dim]")
 
+
 def _run_worker_loop(root: Path, log_path: str, guard: bool = False) -> None:
     """Run the worker's main loop. Returns when log file EOF or shutdown."""
     from patchi.core import config as cfg
@@ -781,6 +791,7 @@ def _run_worker_loop(root: Path, log_path: str, guard: bool = False) -> None:
                 )
                 last_report = now
 
+
 def _daemon_health_check(root: Path, restart_count: int) -> None:
     """Periodic health check for the daemon."""
     try:
@@ -799,7 +810,9 @@ def _daemon_health_check(root: Path, restart_count: int) -> None:
     except Exception as e:
         _log.warning("_daemon_health_check failed: %s", e)
 
+
 # ── stop ───────────────────────────────────────────────────────────────────────
+
 
 def run_stop(root: Path | None = None) -> None:
     """Stop a running daemon by PID file."""
@@ -838,7 +851,9 @@ def run_stop(root: Path | None = None) -> None:
     finally:
         pid_file.unlink(missing_ok=True)
 
+
 # ── block / unblock ───────────────────────────────────────────────────────────
+
 
 def run_block(ip: str, root: Path | None = None) -> None:
     """Manually block an IP address."""
@@ -856,6 +871,7 @@ def run_block(ip: str, root: Path | None = None) -> None:
     ip_reputation.block(ip, r)
     audit_write(r, "ip_blocked", data={"ip": ip, "reason": "manual"})
     con.print(f"[#4ADE80]✓[/#4ADE80] IP [bold]{ip}[/bold] blocked.")
+
 
 def run_unblock(ip: str, root: Path | None = None) -> None:
     """Unblock an IP address."""
@@ -877,18 +893,22 @@ def run_unblock(ip: str, root: Path | None = None) -> None:
     else:
         con.print(f"[dim]IP {ip} was not blocked.[/dim]")
 
+
 # ── Utilities ──────────────────────────────────────────────────────────────────
+
 
 def _fmt_ts(ts: float | None) -> str:
     if not ts:
         return "—"
     return time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(ts))
 
+
 def _fmt_data(data: dict) -> str:
     parts = []
     for k, v in list(data.items())[:3]:
         parts.append(f"{k}={v!r}")
     return "  ".join(parts)
+
 
 def _tail_file(path: Path):
     """
@@ -905,7 +925,7 @@ def _tail_file(path: Path):
                 waited += 1
             if not path.exists():
                 raise FileNotFoundError(f"Log file still not found after 30s: {path}")
-            self_inner._f = open(path, "r", encoding="utf-8", errors="replace")
+            self_inner._f = open(path, encoding="utf-8", errors="replace")
             self_inner._f.seek(0, 2)  # jump to end
             try:
                 self_inner._inode = path.stat().st_ino
@@ -923,12 +943,12 @@ def _tail_file(path: Path):
                 stat = path.stat()
                 if self_inner._inode is not None and stat.st_ino != self_inner._inode:
                     self_inner._f.close()
-                    self_inner._f = open(path, "r", encoding="utf-8", errors="replace")
+                    self_inner._f = open(path, encoding="utf-8", errors="replace")
                     self_inner._inode = stat.st_ino
                     self_inner._size = stat.st_size
                 elif stat.st_size < self_inner._size:
                     self_inner._f.close()
-                    self_inner._f = open(path, "r", encoding="utf-8", errors="replace")
+                    self_inner._f = open(path, encoding="utf-8", errors="replace")
                     self_inner._inode = stat.st_ino
                     self_inner._size = stat.st_size
                 else:

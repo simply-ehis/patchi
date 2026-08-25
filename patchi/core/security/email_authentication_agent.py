@@ -39,8 +39,17 @@ from ..agents.base import (
 from ..brain.trace_log import trace_agent
 
 _SOURCE_EXTENSIONS = {
-    "*.py", "*.js", "*.jsx", "*.ts", "*.tsx", "*.java",
-    "*.php", "*.rb", "*.go", "*.rs", "*.cs",
+    "*.py",
+    "*.js",
+    "*.jsx",
+    "*.ts",
+    "*.tsx",
+    "*.java",
+    "*.php",
+    "*.rb",
+    "*.go",
+    "*.rs",
+    "*.cs",
 }
 
 _SMTP_PATTERNS = [
@@ -57,21 +66,43 @@ _SMTP_PATTERNS = [
 ]
 
 _SMTP_CREDENTIAL_PATTERNS = [
-    (re.compile(r"(?:smtp[_-]?(?:password|pass|pwd|secret|key|token))\s*[:=]\s*['\"][^'\"]{4,}['\"]", re.IGNORECASE),
-     "EMAILAUTH-06: Hardcoded SMTP Password"),
-    (re.compile(r"(?:smtp[_-]?(?:user|username|login))\s*[:=]\s*['\"][^'\"]{2,}['\"]", re.IGNORECASE),
-     "EMAILAUTH-07: Hardcoded SMTP Username"),
-    (re.compile(r"(?:SMTP_PASSWORD|SMTP_USER|EMAIL_PASSWORD|EMAIL_USER|MAIL_PASSWORD)\s*[:=]\s*['\"][^'\"]{4,}['\"]", re.IGNORECASE),
-     "EMAILAUTH-06: Hardcoded SMTP Credential Constant"),
-    (re.compile(r"['\"](?:smtps?://[^'\"]*:[^'\"]*@)['\"]", re.IGNORECASE),
-     "EMAILAUTH-06: SMTP Credential in URL"),
+    (
+        re.compile(
+            r"(?:smtp[_-]?(?:password|pass|pwd|secret|key|token))\s*[:=]\s*['\"][^'\"]{4,}['\"]",
+            re.IGNORECASE,
+        ),
+        "EMAILAUTH-06: Hardcoded SMTP Password",
+    ),
+    (
+        re.compile(
+            r"(?:smtp[_-]?(?:user|username|login))\s*[:=]\s*['\"][^'\"]{2,}['\"]", re.IGNORECASE
+        ),
+        "EMAILAUTH-07: Hardcoded SMTP Username",
+    ),
+    (
+        re.compile(
+            r"(?:SMTP_PASSWORD|SMTP_USER|EMAIL_PASSWORD|EMAIL_USER|MAIL_PASSWORD)\s*[:=]\s*['\"][^'\"]{4,}['\"]",
+            re.IGNORECASE,
+        ),
+        "EMAILAUTH-06: Hardcoded SMTP Credential Constant",
+    ),
+    (
+        re.compile(r"['\"](?:smtps?://[^'\"]*:[^'\"]*@)['\"]", re.IGNORECASE),
+        "EMAILAUTH-06: SMTP Credential in URL",
+    ),
 ]
 
 _CRLF_INJECTION_PATTERNS = [
-    (re.compile(r"(?:subject|to|from|cc|bcc|reply[-_]?to)\s*[=:]\s*.*\+.*\\r\\n|\\r\\n", re.IGNORECASE),
-     "EMAILAUTH-08: CRLF Injection in Email Header"),
-    (re.compile(r"headers?\s*\[.*\]\s*=.*\+|headers?.*update.*\{", re.IGNORECASE),
-     "EMAILAUTH-08: Dynamic Email Header Construction"),
+    (
+        re.compile(
+            r"(?:subject|to|from|cc|bcc|reply[-_]?to)\s*[=:]\s*.*\+.*\\r\\n|\\r\\n", re.IGNORECASE
+        ),
+        "EMAILAUTH-08: CRLF Injection in Email Header",
+    ),
+    (
+        re.compile(r"headers?\s*\[.*\]\s*=.*\+|headers?.*update.*\{", re.IGNORECASE),
+        "EMAILAUTH-08: Dynamic Email Header Construction",
+    ),
 ]
 
 _TLS_PATTERNS = [
@@ -118,10 +149,12 @@ class EmailAuthenticationAgent(BaseAgent):
 
         result.status = AgentStatus.SUCCEEDED
         result.findings = findings
-        result.data.update({
-            "email_auth_findings": len(findings),
-            "dig_available": shutil.which("dig") is not None,
-        })
+        result.data.update(
+            {
+                "email_auth_findings": len(findings),
+                "dig_available": shutil.which("dig") is not None,
+            }
+        )
         return
 
     # ── SPF/DKIM/DMARC config scan ────────────────────────────────────────
@@ -138,32 +171,38 @@ class EmailAuthenticationAgent(BaseAgent):
                     content_lower = content.lower()
                     if any(k in content_lower for k in ("dns", "zone", "domain", "mx", "mail")):
                         if "spf" not in content_lower and "txt" not in content_lower:
-                            findings.append(make_finding(
-                                severity=Severity.HIGH,
-                                file=rel,
-                                line_start=0,
-                                title="EMAILAUTH-01: No SPF Record Found",
-                                description="DNS/mail configuration without SPF record. Emails may be spoofed.",
-                                suggestion="Add an SPF TXT record (e.g., v=spf1 include:_spf.google.com ~all).",
-                            ))
+                            findings.append(
+                                make_finding(
+                                    severity=Severity.HIGH,
+                                    file=rel,
+                                    line_start=0,
+                                    title="EMAILAUTH-01: No SPF Record Found",
+                                    description="DNS/mail configuration without SPF record. Emails may be spoofed.",
+                                    suggestion="Add an SPF TXT record (e.g., v=spf1 include:_spf.google.com ~all).",
+                                )
+                            )
                         if "dkim" not in content_lower:
-                            findings.append(make_finding(
-                                severity=Severity.HIGH,
-                                file=rel,
-                                line_start=0,
-                                title="EMAILAUTH-02: No DKIM Record Found",
-                                description="DNS/mail configuration without DKIM. Email integrity cannot be verified.",
-                                suggestion="Configure DKIM signing and publish the public key as a DNS TXT record.",
-                            ))
+                            findings.append(
+                                make_finding(
+                                    severity=Severity.HIGH,
+                                    file=rel,
+                                    line_start=0,
+                                    title="EMAILAUTH-02: No DKIM Record Found",
+                                    description="DNS/mail configuration without DKIM. Email integrity cannot be verified.",
+                                    suggestion="Configure DKIM signing and publish the public key as a DNS TXT record.",
+                                )
+                            )
                         if "dmarc" not in content_lower:
-                            findings.append(make_finding(
-                                severity=Severity.HIGH,
-                                file=rel,
-                                line_start=0,
-                                title="EMAILAUTH-03: No DMARC Record Found",
-                                description="No DMARC policy found. Spoofed emails will not be rejected.",
-                                suggestion="Add a DMARC TXT record (e.g., v=DMARC1; p=quarantine; rua=mailto:dmarc@example.com).",
-                            ))
+                            findings.append(
+                                make_finding(
+                                    severity=Severity.HIGH,
+                                    file=rel,
+                                    line_start=0,
+                                    title="EMAILAUTH-03: No DMARC Record Found",
+                                    description="No DMARC policy found. Spoofed emails will not be rejected.",
+                                    suggestion="Add a DMARC TXT record (e.g., v=DMARC1; p=quarantine; rua=mailto:dmarc@example.com).",
+                                )
+                            )
                 except Exception as e:
                     _log.warning("EmailAuthenticationAgent._scan_spf_dkim_dmarc failed: %s", e)
         return findings
@@ -183,14 +222,16 @@ class EmailAuthenticationAgent(BaseAgent):
                     for i, line in enumerate(lines, 1):
                         for rx, desc in _SMTP_PATTERNS:
                             if rx.search(line):
-                                findings.append(make_finding(
-                                    severity=Severity.LOW,
-                                    file=rel,
-                                    line_start=i,
-                                    title="EMAILAUTH-04: Email Sending Code Detected",
-                                    description=f"Email sending code found: {desc}. Verify authentication is properly configured.",
-                                    evidence=line.strip()[:120],
-                                ))
+                                findings.append(
+                                    make_finding(
+                                        severity=Severity.LOW,
+                                        file=rel,
+                                        line_start=i,
+                                        title="EMAILAUTH-04: Email Sending Code Detected",
+                                        description=f"Email sending code found: {desc}. Verify authentication is properly configured.",
+                                        evidence=line.strip()[:120],
+                                    )
+                                )
                                 break
                 except Exception as e:
                     _log.warning("EmailAuthenticationAgent._scan_smtp_code failed: %s", e)
@@ -211,15 +252,17 @@ class EmailAuthenticationAgent(BaseAgent):
                     for i, line in enumerate(lines, 1):
                         for rx, desc in _CRLF_INJECTION_PATTERNS:
                             if rx.search(line):
-                                findings.append(make_finding(
-                                    severity=Severity.HIGH,
-                                    file=rel,
-                                    line_start=i,
-                                    title=desc,
-                                    description="User-controlled input may be injected into email headers via CRLF.",
-                                    evidence=line.strip()[:120],
-                                    suggestion="Sanitize header values: strip \\r\\n characters before use.",
-                                ))
+                                findings.append(
+                                    make_finding(
+                                        severity=Severity.HIGH,
+                                        file=rel,
+                                        line_start=i,
+                                        title=desc,
+                                        description="User-controlled input may be injected into email headers via CRLF.",
+                                        evidence=line.strip()[:120],
+                                        suggestion="Sanitize header values: strip \\r\\n characters before use.",
+                                    )
+                                )
                 except Exception as e:
                     _log.warning("EmailAuthenticationAgent._scan_crlf_injection failed: %s", e)
         return findings
@@ -243,15 +286,17 @@ class EmailAuthenticationAgent(BaseAgent):
                             lines = content.splitlines()
                             for i, line in enumerate(lines, 1):
                                 if any(rx.search(line) for rx, _ in _SMTP_PATTERNS[:3]):
-                                    findings.append(make_finding(
-                                        severity=Severity.HIGH,
-                                        file=rel,
-                                        line_start=i,
-                                        title="EMAILAUTH-05: SMTP Without TLS",
-                                        description="SMTP connection found without TLS/STARTTLS. Credentials and content sent in cleartext.",
-                                        evidence=line.strip()[:120],
-                                        suggestion="Use SMTP_SSL or call starttls() before sending.",
-                                    ))
+                                    findings.append(
+                                        make_finding(
+                                            severity=Severity.HIGH,
+                                            file=rel,
+                                            line_start=i,
+                                            title="EMAILAUTH-05: SMTP Without TLS",
+                                            description="SMTP connection found without TLS/STARTTLS. Credentials and content sent in cleartext.",
+                                            evidence=line.strip()[:120],
+                                            suggestion="Use SMTP_SSL or call starttls() before sending.",
+                                        )
+                                    )
                                     break
                 except Exception as e:
                     _log.warning("EmailAuthenticationAgent._scan_tls_usage failed: %s", e)
@@ -268,15 +313,17 @@ class EmailAuthenticationAgent(BaseAgent):
             for i, line in enumerate(lines, 1):
                 for rx, title in _SMTP_CREDENTIAL_PATTERNS:
                     if rx.search(line):
-                        findings.append(make_finding(
-                            severity=Severity.CRITICAL,
-                            file=rel,
-                            line_start=i,
-                            title=title,
-                            description="Hardcoded SMTP credential found in source code.",
-                            evidence=line.strip()[:120],
-                            suggestion="Move SMTP credentials to environment variables or a secrets manager.",
-                        ))
+                        findings.append(
+                            make_finding(
+                                severity=Severity.CRITICAL,
+                                file=rel,
+                                line_start=i,
+                                title=title,
+                                description="Hardcoded SMTP credential found in source code.",
+                                evidence=line.strip()[:120],
+                                suggestion="Move SMTP credentials to environment variables or a secrets manager.",
+                            )
+                        )
         except Exception as e:
             _log.warning("EmailAuthenticationAgent._scan_file failed: %s", e)
         return findings
@@ -294,20 +341,24 @@ class EmailAuthenticationAgent(BaseAgent):
         try:
             proc = subprocess.run(
                 ["dig", "+short", "txt", domain, "+timeout=5"],
-                capture_output=True, text=True, timeout=10,
+                capture_output=True,
+                text=True,
+                timeout=10,
             )
             if proc.returncode == 0:
                 output = proc.stdout.lower()
                 if "v=spf1" not in output:
-                    findings.append(make_finding(
-                        severity=Severity.HIGH,
-                        file="(dns_probe)",
-                        line_start=0,
-                        title="EMAILAUTH-01: No SPF Record",
-                        description=f"No SPF record found for {domain}.",
-                        evidence=proc.stdout[:200],
-                        suggestion="Add an SPF TXT record.",
-                    ))
+                    findings.append(
+                        make_finding(
+                            severity=Severity.HIGH,
+                            file="(dns_probe)",
+                            line_start=0,
+                            title="EMAILAUTH-01: No SPF Record",
+                            description=f"No SPF record found for {domain}.",
+                            evidence=proc.stdout[:200],
+                            suggestion="Add an SPF TXT record.",
+                        )
+                    )
         except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
             pass
 
@@ -316,40 +367,48 @@ class EmailAuthenticationAgent(BaseAgent):
             try:
                 proc = subprocess.run(
                     ["dig", "+short", "txt", f"{selector}._domainkey.{domain}", "+timeout=5"],
-                    capture_output=True, text=True, timeout=10,
+                    capture_output=True,
+                    text=True,
+                    timeout=10,
                 )
                 if proc.returncode == 0 and proc.stdout.strip():
                     break  # Found DKIM record
             except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
                 pass
         else:
-            findings.append(make_finding(
-                severity=Severity.HIGH,
-                file="(dns_probe)",
-                line_start=0,
-                title="EMAILAUTH-02: No DKIM Record Found",
-                description=f"No DKIM record found for {domain} (checked common selectors).",
-                suggestion="Configure DKIM and publish the public key.",
-            ))
+            findings.append(
+                make_finding(
+                    severity=Severity.HIGH,
+                    file="(dns_probe)",
+                    line_start=0,
+                    title="EMAILAUTH-02: No DKIM Record Found",
+                    description=f"No DKIM record found for {domain} (checked common selectors).",
+                    suggestion="Configure DKIM and publish the public key.",
+                )
+            )
 
         # Check DMARC
         try:
             proc = subprocess.run(
                 ["dig", "+short", "txt", f"_dmarc.{domain}", "+timeout=5"],
-                capture_output=True, text=True, timeout=10,
+                capture_output=True,
+                text=True,
+                timeout=10,
             )
             if proc.returncode == 0:
                 output = proc.stdout.lower()
                 if "v=dmarc1" not in output:
-                    findings.append(make_finding(
-                        severity=Severity.HIGH,
-                        file="(dns_probe)",
-                        line_start=0,
-                        title="EMAILAUTH-03: No DMARC Record",
-                        description=f"No DMARC record found for {domain}.",
-                        evidence=proc.stdout[:200],
-                        suggestion="Add a DMARC TXT record with at minimum p=none for monitoring.",
-                    ))
+                    findings.append(
+                        make_finding(
+                            severity=Severity.HIGH,
+                            file="(dns_probe)",
+                            line_start=0,
+                            title="EMAILAUTH-03: No DMARC Record",
+                            description=f"No DMARC record found for {domain}.",
+                            evidence=proc.stdout[:200],
+                            suggestion="Add a DMARC TXT record with at minimum p=none for monitoring.",
+                        )
+                    )
         except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
             pass
 

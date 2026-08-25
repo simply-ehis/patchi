@@ -88,11 +88,13 @@ class SnapshotDriftDetectorAgent(BaseAgent):
                 if row:
                     old_hash = row[0]
                     if current_hash != old_hash:
-                        drifts.append({
-                            "file": rel,
-                            "old_hash": old_hash,
-                            "new_hash": current_hash,
-                        })
+                        drifts.append(
+                            {
+                                "file": rel,
+                                "old_hash": old_hash,
+                                "new_hash": current_hash,
+                            }
+                        )
                         conn.execute(
                             "INSERT INTO snapshot_drifts (run_id, file_path, old_hash, new_hash, detected_at) VALUES (?, ?, ?, ?, ?)",
                             (run_id, rel, old_hash, current_hash, now),

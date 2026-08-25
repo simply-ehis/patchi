@@ -8,6 +8,7 @@ from typing import Any
 
 _log = logging.getLogger("patchi.brain.base")
 
+
 class BaseTypeChecker(ABC):
     """Abstract base for language-specific type checkers."""
 

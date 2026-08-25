@@ -11,8 +11,12 @@ from patchi.cli.console import con
 from patchi.core import config as cfg
 
 
-def run(settings_cmd: str | None = None, key: str | None = None,
-        value: str | None = None, root: Path | None = None) -> None:
+def run(
+    settings_cmd: str | None = None,
+    key: str | None = None,
+    value: str | None = None,
+    root: Path | None = None,
+) -> None:
     if settings_cmd == "show":
         run_show(root)
     elif settings_cmd == "set":

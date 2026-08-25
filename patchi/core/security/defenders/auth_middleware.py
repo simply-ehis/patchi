@@ -53,7 +53,8 @@ class AuthMiddlewareAdapter(BaseAdapter):
                     FileChange(
                         path=str(fpath),
                         original=content,
-                        proposed="from django.contrib.auth.decorators import login_required\n" + content,
+                        proposed="from django.contrib.auth.decorators import login_required\n"
+                        + content,
                     )
                 )
         elif "fastapi" in content.lower() or "from fastapi" in content:
@@ -62,7 +63,8 @@ class AuthMiddlewareAdapter(BaseAdapter):
                     FileChange(
                         path=str(fpath),
                         original=content,
-                        proposed="from fastapi import Depends\nfrom .auth import get_current_user\n" + content,
+                        proposed="from fastapi import Depends\nfrom .auth import get_current_user\n"
+                        + content,
                     )
                 )
 

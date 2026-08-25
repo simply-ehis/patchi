@@ -73,7 +73,9 @@ def get_ssrf_metadata_patterns(patterns: dict | None = None) -> list[tuple[re.Pa
     return result
 
 
-def get_ssrf_internal_network_patterns(patterns: dict | None = None) -> list[tuple[re.Pattern, str, str]]:
+def get_ssrf_internal_network_patterns(
+    patterns: dict | None = None,
+) -> list[tuple[re.Pattern, str, str]]:
     """Get compiled SSRF internal network regex patterns."""
     ssrf = get_ssrf_patterns(patterns)
     result = []

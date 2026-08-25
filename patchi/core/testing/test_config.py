@@ -54,6 +54,7 @@ import logging
 
 _log = logging.getLogger("patchi.testing.test_config")
 
+
 def _config_path(root: Path) -> Path:
     return root / TESTS_CONFIG
 

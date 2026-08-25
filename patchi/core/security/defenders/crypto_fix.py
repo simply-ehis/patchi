@@ -53,7 +53,7 @@ class CryptoFixAdapter(BaseAdapter):
         for old, new in _CRYPTO_REPLACEMENTS:
             if old in content:
                 lines = content.splitlines()
-                for i, line in enumerate(lines):
+                for _i, line in enumerate(lines):
                     if old in line:
                         change = FileChange(
                             path=str(fpath),

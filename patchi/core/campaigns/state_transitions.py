@@ -21,12 +21,22 @@ class StateTransitionCampaign(Campaign):
 
     def steps(self) -> list[CampaignStep]:
         return [
-            CampaignStep(name="discover_states", description="Discover all application states from the graph"),
+            CampaignStep(
+                name="discover_states", description="Discover all application states from the graph"
+            ),
             CampaignStep(name="map_transitions", description="Map all legal state transitions"),
-            CampaignStep(name="identify_guards", description="Identify guards protecting state transitions"),
-            CampaignStep(name="test_legal_sequences", description="Test legal state transition sequences"),
-            CampaignStep(name="test_illegal_sequences", description="Test illegal state transition sequences"),
-            CampaignStep(name="test_replay", description="Test replay attacks on state transitions"),
+            CampaignStep(
+                name="identify_guards", description="Identify guards protecting state transitions"
+            ),
+            CampaignStep(
+                name="test_legal_sequences", description="Test legal state transition sequences"
+            ),
+            CampaignStep(
+                name="test_illegal_sequences", description="Test illegal state transition sequences"
+            ),
+            CampaignStep(
+                name="test_replay", description="Test replay attacks on state transitions"
+            ),
             CampaignStep(name="test_concurrent", description="Test concurrent state transitions"),
         ]
 
@@ -58,17 +68,21 @@ class StateTransitionCampaign(Campaign):
                     states.add(a["to_state"])
 
         if not states:
-            step.findings.append({
-                "type": "no_states_found",
-                "severity": "info",
-                "detail": "No application states discovered from the assurance graph",
-            })
+            step.findings.append(
+                {
+                    "type": "no_states_found",
+                    "severity": "info",
+                    "detail": "No application states discovered from the assurance graph",
+                }
+            )
         else:
-            step.findings.append({
-                "type": "states_discovered",
-                "severity": "info",
-                "detail": f"Found {len(states)} states: {', '.join(sorted(states))}",
-            })
+            step.findings.append(
+                {
+                    "type": "states_discovered",
+                    "severity": "info",
+                    "detail": f"Found {len(states)} states: {', '.join(sorted(states))}",
+                }
+            )
 
     def _map_transitions(self, step: CampaignStep) -> None:
         """Map all legal transitions and check for completeness."""
@@ -77,44 +91,52 @@ class StateTransitionCampaign(Campaign):
             for ev in claim.evidence:
                 a = ev.artifact
                 if "from_state" in a and "to_state" in a:
-                    transitions.append({
-                        "from": a["from_state"],
-                        "to": a["to_state"],
-                        "action": a.get("action", "unknown"),
-                        "guarded": a.get("guarded", False),
-                    })
+                    transitions.append(
+                        {
+                            "from": a["from_state"],
+                            "to": a["to_state"],
+                            "action": a.get("action", "unknown"),
+                            "guarded": a.get("guarded", False),
+                        }
+                    )
 
         # Check for transitions without guards
         unguarded = [t for t in transitions if not t["guarded"]]
         if unguarded:
             for t in unguarded:
-                step.findings.append({
-                    "type": "unguarded_transition",
-                    "severity": "medium",
-                    "detail": f"Unguarded transition: {t['from']} → {t['to']} via {t['action']}",
-                })
+                step.findings.append(
+                    {
+                        "type": "unguarded_transition",
+                        "severity": "medium",
+                        "detail": f"Unguarded transition: {t['from']} → {t['to']} via {t['action']}",
+                    }
+                )
 
     def _identify_guards(self, step: CampaignStep) -> None:
         """Check that transitions have authorization guards."""
         for claim in self._graph.claims.values():
             if "guard" in claim.statement.lower() or "auth" in claim.statement.lower():
                 if claim.verdict.value == "disproved":
-                    step.findings.append({
-                        "type": "guard_broken",
-                        "severity": "critical",
-                        "detail": f"Guard violated: {claim.statement}",
-                    })
+                    step.findings.append(
+                        {
+                            "type": "guard_broken",
+                            "severity": "critical",
+                            "detail": f"Guard violated: {claim.statement}",
+                        }
+                    )
 
     def _test_legal_sequences(self, step: CampaignStep) -> None:
         """Test that legal transition sequences don't bypass guards."""
         # Check for claims about legal sequences
         for claim in self._graph.claims.values():
             if "sequence" in claim.statement.lower() and claim.verdict.value == "disproved":
-                step.findings.append({
-                    "type": "sequence_bypass",
-                    "severity": "high",
-                    "detail": f"Legal sequence bypasses guard: {claim.statement}",
-                })
+                step.findings.append(
+                    {
+                        "type": "sequence_bypass",
+                        "severity": "high",
+                        "detail": f"Legal sequence bypasses guard: {claim.statement}",
+                    }
+                )
 
     def _test_illegal_sequences(self, step: CampaignStep) -> None:
         """Test that illegal transitions are properly blocked."""
@@ -122,29 +144,35 @@ class StateTransitionCampaign(Campaign):
         for claim in self._graph.claims.values():
             if "must not" in claim.statement.lower() or "forbidden" in claim.statement.lower():
                 if claim.verdict.value == "disproved":
-                    step.findings.append({
-                        "type": "illegal_transition_allowed",
-                        "severity": "critical",
-                        "detail": f"Forbidden transition is possible: {claim.statement}",
-                    })
+                    step.findings.append(
+                        {
+                            "type": "illegal_transition_allowed",
+                            "severity": "critical",
+                            "detail": f"Forbidden transition is possible: {claim.statement}",
+                        }
+                    )
 
     def _test_replay(self, step: CampaignStep) -> None:
         """Test for replay vulnerabilities in state transitions."""
         for claim in self._graph.claims.values():
             if "replay" in claim.statement.lower() and claim.verdict.value == "disproved":
-                step.findings.append({
-                    "type": "replay_vulnerability",
-                    "severity": "high",
-                    "detail": f"Replay attack possible: {claim.statement}",
-                })
+                step.findings.append(
+                    {
+                        "type": "replay_vulnerability",
+                        "severity": "high",
+                        "detail": f"Replay attack possible: {claim.statement}",
+                    }
+                )
 
     def _test_concurrent(self, step: CampaignStep) -> None:
         """Test for concurrent state transition race conditions."""
         for claim in self._graph.claims.values():
             if "concurrent" in claim.statement.lower() or "race" in claim.statement.lower():
                 if claim.verdict.value == "disproved":
-                    step.findings.append({
-                        "type": "race_condition",
-                        "severity": "high",
-                        "detail": f"Race condition found: {claim.statement}",
-                    })
+                    step.findings.append(
+                        {
+                            "type": "race_condition",
+                            "severity": "high",
+                            "detail": f"Race condition found: {claim.statement}",
+                        }
+                    )

@@ -22,6 +22,7 @@ _log = logging.getLogger("patchi.ai.model_router")
 @dataclass
 class ModelProfile:
     """Profile for an AI model with cost and quality metrics."""
+
     name: str
     provider: str  # "openai", "anthropic", "local", "ollama"
     cost_per_1k_input: float
@@ -39,59 +40,91 @@ class ModelProfile:
 MODEL_PROFILES: dict[str, ModelProfile] = {
     # OpenAI
     "gpt-4o-mini": ModelProfile(
-        name="gpt-4o-mini", provider="openai",
-        cost_per_1k_input=0.00015, cost_per_1k_output=0.00060,
-        quality_score=0.7, speed_score=0.9, max_tokens=16384,
+        name="gpt-4o-mini",
+        provider="openai",
+        cost_per_1k_input=0.00015,
+        cost_per_1k_output=0.00060,
+        quality_score=0.7,
+        speed_score=0.9,
+        max_tokens=16384,
         supports_tools=True,
     ),
     "gpt-4o": ModelProfile(
-        name="gpt-4o", provider="openai",
-        cost_per_1k_input=0.00250, cost_per_1k_output=0.01000,
-        quality_score=0.95, speed_score=0.7, max_tokens=16384,
-        supports_tools=True, supports_vision=True,
+        name="gpt-4o",
+        provider="openai",
+        cost_per_1k_input=0.00250,
+        cost_per_1k_output=0.01000,
+        quality_score=0.95,
+        speed_score=0.7,
+        max_tokens=16384,
+        supports_tools=True,
+        supports_vision=True,
     ),
     "gpt-4o-mini-ft": ModelProfile(
-        name="gpt-4o-mini", provider="openai",
-        cost_per_1k_input=0.00015, cost_per_1k_output=0.00060,
-        quality_score=0.75, speed_score=0.9, max_tokens=16384,
+        name="gpt-4o-mini",
+        provider="openai",
+        cost_per_1k_input=0.00015,
+        cost_per_1k_output=0.00060,
+        quality_score=0.75,
+        speed_score=0.9,
+        max_tokens=16384,
         supports_tools=True,
     ),
     # Anthropic
     "claude-haiku": ModelProfile(
-        name="claude-3-5-haiku-20241022", provider="anthropic",
-        cost_per_1k_input=0.00025, cost_per_1k_output=0.00125,
-        quality_score=0.75, speed_score=0.95, max_tokens=8192,
+        name="claude-3-5-haiku-20241022",
+        provider="anthropic",
+        cost_per_1k_input=0.00025,
+        cost_per_1k_output=0.00125,
+        quality_score=0.75,
+        speed_score=0.95,
+        max_tokens=8192,
     ),
     "claude-sonnet": ModelProfile(
-        name="claude-sonnet-4-20250514", provider="anthropic",
-        cost_per_1k_input=0.00300, cost_per_1k_output=0.01500,
-        quality_score=0.92, speed_score=0.6, max_tokens=8192,
+        name="claude-sonnet-4-20250514",
+        provider="anthropic",
+        cost_per_1k_input=0.00300,
+        cost_per_1k_output=0.01500,
+        quality_score=0.92,
+        speed_score=0.6,
+        max_tokens=8192,
     ),
     # Local / Ollama
     "llama3-8b": ModelProfile(
-        name="llama3:8b", provider="local",
-        cost_per_1k_input=0.0, cost_per_1k_output=0.0,
-        quality_score=0.5, speed_score=0.8, max_tokens=4096,
+        name="llama3:8b",
+        provider="local",
+        cost_per_1k_input=0.0,
+        cost_per_1k_output=0.0,
+        quality_score=0.5,
+        speed_score=0.8,
+        max_tokens=4096,
     ),
     "mistral-small": ModelProfile(
-        name="mistral-small", provider="local",
-        cost_per_1k_input=0.0, cost_per_1k_output=0.0,
-        quality_score=0.55, speed_score=0.85, max_tokens=4096,
+        name="mistral-small",
+        provider="local",
+        cost_per_1k_input=0.0,
+        cost_per_1k_output=0.0,
+        quality_score=0.55,
+        speed_score=0.85,
+        max_tokens=4096,
     ),
 }
 
 
 # ── Task Complexity Levels ───────────────────────────────────────────────────
 
+
 class TaskComplexity:
     """Task complexity classification for model routing."""
-    SIMPLE = "simple"      # Formatting, summaries, simple Q&A
+
+    SIMPLE = "simple"  # Formatting, summaries, simple Q&A
     MODERATE = "moderate"  # Code analysis, explanations, refactoring suggestions
-    COMPLEX = "complex"    # Security analysis, architecture decisions, multi-step reasoning
+    COMPLEX = "complex"  # Security analysis, architecture decisions, multi-step reasoning
     CRITICAL = "critical"  # Fix generation, exploit analysis, production decisions
 
 
 # ── Model Router ─────────────────────────────────────────────────────────────
+
 
 class ModelRouter:
     """Routes AI requests to the optimal model based on cost and requirements."""
@@ -159,7 +192,9 @@ class ModelRouter:
         selected = scored[0][1]
         _log.info(
             "Model router: selected %s for complexity=%s (score=%.2f)",
-            selected, complexity, scored[0][0],
+            selected,
+            complexity,
+            scored[0][0],
         )
         return selected
 
@@ -172,12 +207,13 @@ class ModelRouter:
             return self._profiler_cache
         try:
             from patchi.core.ai.agent_profiler import get_all_profiles
+
             profiles = get_all_profiles(self._root)
             if not profiles:
                 self._profiler_cache = {}
                 return self._profiler_cache
             model_stats: dict[str, dict] = {}
-            for agent_name, profile in profiles.items():
+            for _agent_name, profile in profiles.items():
                 if profile.run_count == 0 or not profile.most_used_model:
                     continue
                 m = profile.most_used_model
@@ -261,7 +297,8 @@ class ModelRouter:
             "budget_limit": self._budget_limit,
             "budget_used_pct": (
                 (stats.get("cost_estimate", 0) / self._budget_limit * 100)
-                if self._budget_limit > 0 else 0
+                if self._budget_limit > 0
+                else 0
             ),
             "models_used": list(stats.get("by_model", {}).keys()),
             "prefer_local": self._prefer_local,

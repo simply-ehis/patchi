@@ -29,6 +29,7 @@ import logging
 import subprocess
 import time
 from dataclasses import dataclass
+from datetime import UTC
 from pathlib import Path
 
 from patchi.core import memory as mem
@@ -203,7 +204,8 @@ class PatchApplier:
                 rollback_ok = False
                 _log.warning(
                     "Rollback after failed write also failed (snapshot=%s): %s",
-                    snapshot_id, rb_err,
+                    snapshot_id,
+                    rb_err,
                 )
             return ApplyResult(
                 patch_id=patch.id,
@@ -212,7 +214,11 @@ class PatchApplier:
                 snapshot_id=snapshot_id,
                 error=(
                     f"Write failed after {len(written)} file(s): {e}"
-                    + ("" if rollback_ok else " (rollback ALSO failed — files may be in a partial state!)")
+                    + (
+                        ""
+                        if rollback_ok
+                        else " (rollback ALSO failed — files may be in a partial state!)"
+                    )
                 ),
                 duration_ms=_ms(t0),
             )
@@ -476,8 +482,10 @@ class PatchApplier:
             try:
                 proc = subprocess.run(
                     ["ruff", "check", "--select=E,F,W"] + py_files,
-                    capture_output=True, text=True,
-                    cwd=str(self.root), timeout=self.LINT_TIMEOUT,
+                    capture_output=True,
+                    text=True,
+                    cwd=str(self.root),
+                    timeout=self.LINT_TIMEOUT,
                 )
                 passed = proc.returncode == 0
                 output = (proc.stdout + proc.stderr)[:2000]
@@ -492,8 +500,10 @@ class PatchApplier:
             try:
                 proc = subprocess.run(
                     ["npx", "--yes", "eslint"] + js_files[:5],
-                    capture_output=True, text=True,
-                    cwd=str(self.root), timeout=self.LINT_TIMEOUT,
+                    capture_output=True,
+                    text=True,
+                    cwd=str(self.root),
+                    timeout=self.LINT_TIMEOUT,
                 )
                 passed = proc.returncode == 0
                 output = (proc.stdout + proc.stderr)[:2000]
@@ -516,7 +526,7 @@ class PatchApplier:
     ) -> None:
         """Update patch state in memory."""
         try:
-            from datetime import datetime, timezone
+            from datetime import datetime
 
             from patchi.core import memory as mem
 
@@ -526,7 +536,7 @@ class PatchApplier:
                     patch["state"] = state.value
                     patch["snapshot_id"] = snapshot_id
                     patch["test_result"] = test_result
-                    now = datetime.now(timezone.utc).isoformat()
+                    now = datetime.now(UTC).isoformat()
                     if state == PatchState.APPLIED:
                         patch["applied_at"] = now
                     elif state == PatchState.FAILED:
@@ -547,6 +557,7 @@ class PatchApplier:
                 json.dump(patches, f, indent=2)
             # Atomic replace
             import sys
+
             if sys.platform == "win32":
                 # Windows doesn't support atomic rename over existing file
                 if mem_path.exists():

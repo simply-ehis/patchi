@@ -11,13 +11,13 @@ import logging
 import subprocess
 import tempfile
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 from patchi.core.agents.base import (
-    AgentStatus,
     AgentGroup,
     AgentInput,
     AgentResult,
+    AgentStatus,
     BaseAgent,
     register,
 )
@@ -29,7 +29,7 @@ _log = logging.getLogger("patchi.security.agents.bandit_agent")
 class BanditAgent(BaseAgent):
     """
     BanditAgent - Bandit security linter integration.
-    
+
     Bandit is a Python security linter that finds common security issues
     like SQL injection, XSS, hardcoded passwords, etc.
     """
@@ -58,16 +58,12 @@ class BanditAgent(BaseAgent):
     def _is_bandit_available(self) -> bool:
         """Check if Bandit is installed and available."""
         try:
-            result = subprocess.run(
-                ["bandit", "--version"],
-                capture_output=True,
-                timeout=10
-            )
+            result = subprocess.run(["bandit", "--version"], capture_output=True, timeout=10)
             return result.returncode == 0
         except FileNotFoundError:
             return False
 
-    def _run_bandit(self, root: Path) -> List[Dict[str, Any]]:
+    def _run_bandit(self, root: Path) -> list[dict[str, Any]]:
         """Run Bandit and parse JSON output."""
         findings = []
 
@@ -75,16 +71,11 @@ class BanditAgent(BaseAgent):
             output_file = Path(tmpdir) / "bandit_output.json"
 
             try:
-                result = subprocess.run(
-                    [
-                        "bandit", "-r",
-                        "--format", "json",
-                        "--output", str(output_file),
-                        str(root)
-                    ],
+                subprocess.run(
+                    ["bandit", "-r", "--format", "json", "--output", str(output_file), str(root)],
                     capture_output=True,
                     timeout=120,
-                    cwd=root
+                    cwd=root,
                 )
 
                 if output_file.exists():
@@ -99,26 +90,28 @@ class BanditAgent(BaseAgent):
 
         return findings
 
-    def _parse_bandit_output(self, data: Dict[str, Any]) -> List[Dict[str, Any]]:
+    def _parse_bandit_output(self, data: dict[str, Any]) -> list[dict[str, Any]]:
         """Parse Bandit JSON output into findings (full fidelity)."""
         findings = []
 
         for result in data.get("results", []):
-            findings.append({
-                "type": result.get("test_id", "bandit_finding"),
-                "severity": result.get("severity", "MEDIUM"),
-                "file": result.get("filename", ""),
-                "line": result.get("line_number", 0),
-                "message": result.get("issue_text", ""),
-                # Bandit embeds CWE as {"id": "CWE-78"} (newer) or plain text
-                "cwe": self._extract_cwe(result),
-                "confidence": self._map_confidence(result.get("confidence", "MEDIUM")),
-                "snippet": (result.get("code") or "").strip(),
-                "more_info": result.get("more_info", ""),
-            })
+            findings.append(
+                {
+                    "type": result.get("test_id", "bandit_finding"),
+                    "severity": result.get("severity", "MEDIUM"),
+                    "file": result.get("filename", ""),
+                    "line": result.get("line_number", 0),
+                    "message": result.get("issue_text", ""),
+                    # Bandit embeds CWE as {"id": "CWE-78"} (newer) or plain text
+                    "cwe": self._extract_cwe(result),
+                    "confidence": self._map_confidence(result.get("confidence", "MEDIUM")),
+                    "snippet": (result.get("code") or "").strip(),
+                    "more_info": result.get("more_info", ""),
+                }
+            )
         return findings
 
-    def _extract_cwe(self, result: Dict[str, Any]) -> str:
+    def _extract_cwe(self, result: dict[str, Any]) -> str:
         cwe = result.get("issue_cwe") or result.get("cwe")
         if isinstance(cwe, dict):
             return str(cwe.get("id", "") or "")
@@ -136,7 +129,7 @@ class BanditAgent(BaseAgent):
         }
         return mapping.get(confidence.upper(), 0.5)
 
-    def _create_finding(self, finding_data: Dict[str, Any]):
+    def _create_finding(self, finding_data: dict[str, Any]):
         """Create a Finding object from Bandit output."""
         from patchi.core.security.tool_adapters import make_tool_finding
 

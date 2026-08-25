@@ -18,8 +18,9 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable, Optional
+from typing import Any
 
 from patchi.core.ai.tool_executor import CLIConfirmationProvider, ToolExecutor
 from patchi.core.ai.tools import realize
@@ -31,8 +32,8 @@ class SmartAgent:
     def __init__(
         self,
         root: Path,
-        on_event: Optional[Callable[[dict], None]] = None,
-        on_progress: Optional[Callable[[str], None]] = None,
+        on_event: Callable[[dict], None] | None = None,
+        on_progress: Callable[[str], None] | None = None,
         llm: Any = None,
     ):
         self.root = Path(root)
@@ -62,11 +63,37 @@ class SmartAgent:
             if not any(s["tool"] == tool for s in steps):
                 steps.append({"tool": tool, "parameters": params})
 
-        if any(k in g for k in ("understand", "what", "how", "explain", "brain",
-                                "purpose", "domain", "map", "analyze", "scan")):
+        if any(
+            k in g
+            for k in (
+                "understand",
+                "what",
+                "how",
+                "explain",
+                "brain",
+                "purpose",
+                "domain",
+                "map",
+                "analyze",
+                "scan",
+            )
+        ):
             add("analyze_project", {})
-        if any(k in g for k in ("security", "vulnerab", "attack", "cve", "exploit",
-                                "owasp", "injection", "harden", "secure", "audit")):
+        if any(
+            k in g
+            for k in (
+                "security",
+                "vulnerab",
+                "attack",
+                "cve",
+                "exploit",
+                "owasp",
+                "injection",
+                "harden",
+                "secure",
+                "audit",
+            )
+        ):
             add("scan_vulnerabilities", {"domains": None})
             if any(k in g for k in ("attack", "red", "exploit", "advers", "breach")):
                 add("attack_simulate", {"safe_mode": True})
@@ -75,8 +102,10 @@ class SmartAgent:
         if any(k in g for k in ("stress", "load", "performance", "scale", "breakpoint")):
             url = self._discover_url()
             if url:
-                add("stress_test", {"base_url": url, "scenario": "load",
-                                    "users": 10, "duration_seconds": 15})
+                add(
+                    "stress_test",
+                    {"base_url": url, "scenario": "load", "users": 10, "duration_seconds": 15},
+                )
         if any(k in g for k in ("screenshot", "visual", "capture")):
             url = self._discover_url()
             if url:
@@ -92,7 +121,7 @@ class SmartAgent:
             add("scan_vulnerabilities", {"domains": None})
         return steps
 
-    def _discover_url(self) -> Optional[str]:
+    def _discover_url(self) -> str | None:
         """Best-effort discovery of a running local app to test against."""
         import httpx
 
@@ -119,9 +148,7 @@ class SmartAgent:
             from patchi.core.brain.council import Council
 
             council = Council(self.root, on_progress=self.on_progress)
-            session = await asyncio.wait_for(
-                council.deliberate(goal, {}), timeout=timeout
-            )
+            session = await asyncio.wait_for(council.deliberate(goal, {}), timeout=timeout)
             tools = [s.get("tool") for s in session.action_plan if s.get("tool")]
             # Only keep tool names we actually have.
             known = {t.name for t in council.registry.list_tools()}
@@ -134,8 +161,9 @@ class SmartAgent:
     async def run(self, goal: str, max_steps: int = 6) -> dict:
         realize.set_event_sink(self._sink)
         self.on_progress(f"SmartAgent: goal = {goal!r}")
-        self._emit("agent.progress", {"agent": "smart", "progress_pct": 0,
-                                      "current_file": "planning"})
+        self._emit(
+            "agent.progress", {"agent": "smart", "progress_pct": 0, "current_file": "planning"}
+        )
 
         plan = self._plan(goal)
         # Merge Council suggestions (the "dynamic brain with councils/personas").
@@ -162,38 +190,47 @@ class SmartAgent:
             name = step["tool"]
             params = step["parameters"]
             pct = int((i) / max(1, len(plan)) * 100)
-            self._emit("agent.progress", {"agent": "smart", "progress_pct": pct,
-                                          "current_file": name})
-            self.on_progress(f"SmartAgent: step {i+1}/{len(plan)} → {name}")
+            self._emit(
+                "agent.progress", {"agent": "smart", "progress_pct": pct, "current_file": name}
+            )
+            self.on_progress(f"SmartAgent: step {i + 1}/{len(plan)} → {name}")
             try:
                 res = await executor.execute(
                     name, params, invoked_by="council", skip_confirmation=True
                 )
             except Exception as e:
-                res = type("R", (), {"success": False, "error": str(e),
-                                     "result": None})()
+                res = type("R", (), {"success": False, "error": str(e), "result": None})()
             ok = getattr(res, "success", False)
             result_data = getattr(res, "result", None) or {}
             if isinstance(result_data, dict):
                 total_findings += int(result_data.get("total_findings", 0) or 0)
-            step_results.append({
-                "tool": name,
-                "success": ok,
-                "error": getattr(res, "error", None),
-                "summary": self._summarize(name, result_data),
-            })
-            self._emit("agent.progress", {"agent": "smart",
-                                          "progress_pct": int((i + 1) / len(plan) * 100),
-                                          "current_file": name})
+            step_results.append(
+                {
+                    "tool": name,
+                    "success": ok,
+                    "error": getattr(res, "error", None),
+                    "summary": self._summarize(name, result_data),
+                }
+            )
+            self._emit(
+                "agent.progress",
+                {
+                    "agent": "smart",
+                    "progress_pct": int((i + 1) / len(plan) * 100),
+                    "current_file": name,
+                },
+            )
             if not ok and name in ("analyze_project",):
                 # Non-fatal; keep going with whatever else is planned.
                 pass
 
-        self._emit("agent.progress", {"agent": "smart", "progress_pct": 100,
-                                      "current_file": "done"})
-        self._emit("agent.completed", {"agent": "smart",
-                                       "findings_count": total_findings,
-                                       "steps": len(step_results)})
+        self._emit(
+            "agent.progress", {"agent": "smart", "progress_pct": 100, "current_file": "done"}
+        )
+        self._emit(
+            "agent.completed",
+            {"agent": "smart", "findings_count": total_findings, "steps": len(step_results)},
+        )
 
         return {
             "success": True,
@@ -211,37 +248,55 @@ class SmartAgent:
             return str(data)[:200]
         if tool == "scan_vulnerabilities":
             sev = data.get("by_severity", {})
-            return f"{data.get('agent_count', 0)} agents, {data.get('total_findings', 0)} findings " \
-                   f"(crit={sev.get('critical',0)} high={sev.get('high',0)} med={sev.get('medium',0)})"
+            return (
+                f"{data.get('agent_count', 0)} agents, {data.get('total_findings', 0)} findings "
+                f"(crit={sev.get('critical', 0)} high={sev.get('high', 0)} med={sev.get('medium', 0)})"
+            )
         if tool == "run_tests":
-            return f"passed={data.get('passed',0)} failed={data.get('failed',0)} " \
-                   f"errors={data.get('errors',0)} ({data.get('summary','')})"
+            return (
+                f"passed={data.get('passed', 0)} failed={data.get('failed', 0)} "
+                f"errors={data.get('errors', 0)} ({data.get('summary', '')})"
+            )
         if tool == "stress_test":
             if not data.get("success"):
-                return f"stress FAILED: {data.get('error','')}"
-            return f"{data.get('requests',0)} reqs @ {data.get('rps',0)} rps, " \
-                   f"p95={data.get('p95_ms',0)}ms, err={data.get('error_rate',0)}"
+                return f"stress FAILED: {data.get('error', '')}"
+            return (
+                f"{data.get('requests', 0)} reqs @ {data.get('rps', 0)} rps, "
+                f"p95={data.get('p95_ms', 0)}ms, err={data.get('error_rate', 0)}"
+            )
         if tool == "attack_simulate":
-            return f"{data.get('total_findings',0)} offensive findings (safe_mode)"
+            return f"{data.get('total_findings', 0)} offensive findings (safe_mode)"
         if tool == "analyze_project":
             if not data.get("success"):
-                return f"analyze FAILED: {data.get('error','')}"
-            return f"{data.get('file_count',0)} files, {data.get('route_count',0)} routes, " \
-                   f"framework={data.get('framework','?')}"
+                return f"analyze FAILED: {data.get('error', '')}"
+            return (
+                f"{data.get('file_count', 0)} files, {data.get('route_count', 0)} routes, "
+                f"framework={data.get('framework', '?')}"
+            )
         if tool == "check_compliance":
-            return f"{data.get('total_findings',0)} compliance findings across " \
-                   f"{len(data.get('controls',{}))} controls"
+            return (
+                f"{data.get('total_findings', 0)} compliance findings across "
+                f"{len(data.get('controls', {}))} controls"
+            )
         if tool == "screenshot":
-            return "screenshot captured" if data.get("success") else f"screenshot FAILED: {data.get('error','')}"
+            return (
+                "screenshot captured"
+                if data.get("success")
+                else f"screenshot FAILED: {data.get('error', '')}"
+            )
         return (data.get("message") or data.get("error") or str(data))[:160]
 
     def _emit(self, event: str, data: dict) -> None:
         self._sink({"event": event, "data": data})
 
 
-def run_smart_agent(root: Path, goal: str, max_steps: int = 6,
-                    on_event: Optional[Callable[[dict], None]] = None,
-                    on_progress: Optional[Callable[[str], None]] = None) -> dict:
+def run_smart_agent(
+    root: Path,
+    goal: str,
+    max_steps: int = 6,
+    on_event: Callable[[dict], None] | None = None,
+    on_progress: Callable[[str], None] | None = None,
+) -> dict:
     """Synchronous entry point for CLI/tests."""
     agent = SmartAgent(root, on_event=on_event, on_progress=on_progress)
     return asyncio.run(agent.run(goal, max_steps=max_steps))

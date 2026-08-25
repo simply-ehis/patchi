@@ -22,21 +22,49 @@ from .helpers import child_by_field, children, node_text
 
 # Untrusted data origins
 SOURCES = {
-    "request.args", "request.form", "request.json", "request.data",
-    "request.GET", "request.POST", "request.body", "request.headers",
-    "request.query_params", "request.path_params", "request.cookies",
-    "req.query", "req.body", "req.params", "req.headers",
-    "input", "sys.argv", "os.environ", "os.getenv",
-    "self.request", "self.params", "params", "query", "payload",
-    "event.target", "event.data", "document.location", "location.search",
-    "req.body", "req.query", "req.params",
+    "request.args",
+    "request.form",
+    "request.json",
+    "request.data",
+    "request.GET",
+    "request.POST",
+    "request.body",
+    "request.headers",
+    "request.query_params",
+    "request.path_params",
+    "request.cookies",
+    "req.query",
+    "req.body",
+    "req.params",
+    "req.headers",
+    "input",
+    "sys.argv",
+    "os.environ",
+    "os.getenv",
+    "self.request",
+    "self.params",
+    "params",
+    "query",
+    "payload",
+    "event.target",
+    "event.data",
+    "document.location",
+    "location.search",
 }
 
 # Sanitizers that neutralize common taint categories
 SANITIZERS = {
-    "escape", "sanitize", "html.escape", "markupsafe.escape",
-    "bleach.clean", "django.utils.html.escape",
-    "parameterized", "prepare", "quote", "urlencode", "encode_for_sql",
+    "escape",
+    "sanitize",
+    "html.escape",
+    "markupsafe.escape",
+    "bleach.clean",
+    "django.utils.html.escape",
+    "parameterized",
+    "prepare",
+    "quote",
+    "urlencode",
+    "encode_for_sql",
 }
 
 
@@ -44,10 +72,20 @@ import logging
 
 _log = logging.getLogger("patchi.brain.taint")
 
+
 def _is_source(text: str) -> bool:
     t = text.strip()
-    return t in SOURCES or any(t.startswith(s + ".") for s in SOURCES) or t in (
-        "request", "req", "input()", "event", "location",
+    return (
+        t in SOURCES
+        or any(t.startswith(s + ".") for s in SOURCES)
+        or t
+        in (
+            "request",
+            "req",
+            "input()",
+            "event",
+            "location",
+        )
     )
 
 
@@ -108,7 +146,13 @@ def _argument_texts(call_node: object) -> list[str]:
     return out
 
 
-def _walk_taint(node: object, call_types: set[str], sinks: set[str], aliases: dict[str, str], results: list[dict]) -> None:
+def _walk_taint(
+    node: object,
+    call_types: set[str],
+    sinks: set[str],
+    aliases: dict[str, str],
+    results: list[dict],
+) -> None:
     try:
         ntype = node.type if hasattr(node, "type") else ""
     except Exception as e:
@@ -123,8 +167,10 @@ def _walk_taint(node: object, call_types: set[str], sinks: set[str], aliases: di
             tainted = []
             for arg in arg_texts:
                 base = arg.split(".")[0].split("[")[0].strip()
-                if _is_source(arg) or base in aliases or (
-                    any(s in arg for s in aliases) and not _is_sanitized(arg)
+                if (
+                    _is_source(arg)
+                    or base in aliases
+                    or (any(s in arg for s in aliases) and not _is_sanitized(arg))
                 ):
                     tainted.append(arg)
             if tainted:
@@ -134,13 +180,15 @@ def _walk_taint(node: object, call_types: set[str], sinks: set[str], aliases: di
                 except Exception as e:
                     _log.warning("_walk_taint failed: %s", e)
                     line, col = 0, 0
-                results.append({
-                    "name": fn,
-                    "line": line,
-                    "col": col,
-                    "full_text": node_text(node),
-                    "tainted_via": tainted,
-                })
+                results.append(
+                    {
+                        "name": fn,
+                        "line": line,
+                        "col": col,
+                        "full_text": node_text(node),
+                        "tainted_via": tainted,
+                    }
+                )
 
     for child in children(node):
         _walk_taint(child, call_types, sinks, aliases, results)
@@ -177,7 +225,9 @@ def _track_python(content: str, sinks: set[str]) -> list[dict]:
                     call = node.value
                     if isinstance(call.func, ast.Name) and _is_source(_py_src_expr(call.func.id)):
                         aliases[t.id] = call.func.id
-                    elif isinstance(call.func, ast.Attribute) and _is_source(_py_src_expr(_py_attr_str(call.func))):
+                    elif isinstance(call.func, ast.Attribute) and _is_source(
+                        _py_src_expr(_py_attr_str(call.func))
+                    ):
                         aliases[t.id] = _py_attr_str(call.func)
 
     for node in ast.walk(tree):
@@ -189,22 +239,30 @@ def _track_python(content: str, sinks: set[str]) -> list[dict]:
                 for arg in node.args:
                     arg_str = _py_arg_str(arg)
                     base = arg_str.split(".")[0].split("[")[0].strip()
-                    if _is_source(arg_str) or base in aliases or (
-                        any(a in arg_str for a in aliases.values()) and not _is_sanitized(arg_str)
+                    if (
+                        _is_source(arg_str)
+                        or base in aliases
+                        or (
+                            any(a in arg_str for a in aliases.values())
+                            and not _is_sanitized(arg_str)
+                        )
                     ):
                         tainted.append(arg_str)
                 if tainted:
-                    results.append({
-                        "name": fn_str,
-                        "line": getattr(node, "lineno", 0),
-                        "col": getattr(node, "col_offset", 0),
-                        "full_text": _ast_text(node, content),
-                        "tainted_via": tainted,
-                    })
+                    results.append(
+                        {
+                            "name": fn_str,
+                            "line": getattr(node, "lineno", 0),
+                            "col": getattr(node, "col_offset", 0),
+                            "full_text": _ast_text(node, content),
+                            "tainted_via": tainted,
+                        }
+                    )
     return results
 
 
 # ── Python helpers ─────────────────────────────────────────────────────────────
+
 
 def _py_src_expr(s: str) -> str:
     return s
@@ -248,7 +306,7 @@ def _ast_text(node: ast.AST, source: str) -> str:
         lines = source.splitlines()
         start = getattr(node, "lineno", 1) - 1
         end = getattr(node, "end_lineno", start + 1) - 1
-        return "\n".join(lines[start:end + 1])
+        return "\n".join(lines[start : end + 1])
     except Exception as e:
         _log.debug("_ast_text failed: %s", e)
         return ""

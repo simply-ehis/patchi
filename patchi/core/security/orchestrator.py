@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from patchi.core.agents.base import AgentResult, Finding
-from patchi.core.security.chain_analyzer import ChainAnalyzer, Chain
+from patchi.core.security.chain_analyzer import Chain, ChainAnalyzer
 from patchi.core.security.intent_analyzer import IntentAnalyzer, IntentReport
 
 # ── Security Report ───────────────────────────────────────────────────────────
@@ -63,9 +63,13 @@ class SecurityReport:
             "chains": [
                 {
                     "steps": [
-                        {"file": n.finding.file, "line": n.finding.line,
-                         "type": n.finding.type, "label": lbl}
-                        for n, lbl in zip(c.nodes, c.labels)
+                        {
+                            "file": n.finding.file,
+                            "line": n.finding.line,
+                            "type": n.finding.type,
+                            "label": lbl,
+                        }
+                        for n, lbl in zip(c.nodes, c.labels, strict=False)
                     ],
                     "total_severity": c.total_severity,
                 }
@@ -166,6 +170,10 @@ class SecurityOrchestrator:
         LINE_TOLERANCE = 5
         groups: dict[tuple, list[Finding]] = {}
         used: set[tuple] = set()
+        # CWE secondary index: different tools name the same weakness
+        # differently ("B608" vs "patchi-sql-injection-..."), but the CWE is
+        # the semantic join. Same file + same CWE within tolerance => merge.
+        cwe_index: dict[tuple[str, str], tuple] = {}
         for f in sorted(all_findings, key=lambda x: (x.file, x.line)):
             cwe_key = f.cwe.upper().replace("CWE-", "").strip() if f.cwe else ""
             # Try exact match first
@@ -180,10 +188,20 @@ class SecurityOrchestrator:
                     if tol_key in used:
                         matched = True
                         break
+                if not matched and cwe_key and f.line > 0:
+                    # Cross-tool join on (file, cwe) proximity
+                    gkey = cwe_index.get((f.file, cwe_key))
+                    if gkey is not None and abs(gkey[1] - f.line) <= LINE_TOLERANCE:
+                        groups[gkey].append(f)
+                        matched = True
                 if not matched:
                     key = (f.file, f.line, f.type, cwe_key)
                     used.add(key)
                     groups[key] = [f]
+                    if cwe_key and f.line > 0:
+                        existing = cwe_index.get((f.file, cwe_key))
+                        if existing is None or abs(existing[1] - f.line) <= LINE_TOLERANCE:
+                            cwe_index[(f.file, cwe_key)] = key
                 else:
                     # Add to existing tolerance group
                     for gkey in groups:
@@ -237,6 +255,7 @@ class SecurityOrchestrator:
         import_edges: dict[str, set[str]] = {}
         try:
             from patchi.core.brain.import_graph import build_import_graph
+
             ig = build_import_graph(Path("."))
             import_edges = dict(ig.edges)
         except Exception:

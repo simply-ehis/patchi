@@ -79,8 +79,9 @@ def _fix_panel(state: ck.CockpitState) -> Panel:
             body = Text("Computing fix list…", style="#FACC15")
         else:
             body = Text("No fixes proposed — clean, or run `p scan` first.", style="#9AA0A6")
-        return Panel(body, title="[bold #C8621A]Prioritized Fix List[/bold #C8621A]",
-                     border_style="#2A3D28")
+        return Panel(
+            body, title="[bold #C8621A]Prioritized Fix List[/bold #C8621A]", border_style="#2A3D28"
+        )
 
     tbl = Table(show_header=True, header_style="dim", box=None, expand=True, pad_edge=False)
     tbl.add_column("#", justify="right", width=2, style="dim")
@@ -103,8 +104,9 @@ def _fix_panel(state: ck.CockpitState) -> Panel:
 def _blast_panel(state: ck.CockpitState) -> Panel:
     if not state.last_file:
         body = Text("Save a file to see its blast radius.", style="#9AA0A6")
-        return Panel(body, title="[bold #C8621A]Blast Radius[/bold #C8621A]",
-                     border_style="#2A3D28")
+        return Panel(
+            body, title="[bold #C8621A]Blast Radius[/bold #C8621A]", border_style="#2A3D28"
+        )
 
     lines: list = [Text(state.blast_summary or "", style="#F2EDD6"), Text("")]
     if state.blast_affected:
@@ -128,15 +130,16 @@ def _events_panel(state: ck.CockpitState) -> Panel:
         for ev in list(state.events)[-8:]:
             style = _LEVEL_STYLE.get(ev.level, "#F2EDD6")
             mark = {"info": "·", "warn": "▲", "crit": "✖"}.get(ev.level, "·")
-            rows.append(Text.assemble(
-                (f"{ev.stamp()} ", "dim"),
-                (f"{mark} ", style),
-                (ev.text, style),
-            ))
+            rows.append(
+                Text.assemble(
+                    (f"{ev.stamp()} ", "dim"),
+                    (f"{mark} ", style),
+                    (ev.text, style),
+                )
+            )
         body = Group(*rows)
     sec = f" · [#FF4D6D]{len(state.secrets)} secret(s)[/#FF4D6D]" if state.secrets else ""
-    return Panel(body, title=f"[bold #C8621A]Events[/bold #C8621A]{sec}",
-                 border_style="#2A3D28")
+    return Panel(body, title=f"[bold #C8621A]Events[/bold #C8621A]{sec}", border_style="#2A3D28")
 
 
 # ── Layout ─────────────────────────────────────────────────────────────────────

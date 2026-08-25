@@ -15,13 +15,13 @@ Design principles:
 
 from __future__ import annotations
 
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 # ── Skills ─────────────────────────────────────────────────────────────────────
 
 
-class Skill(str, Enum):
+class Skill(StrEnum):
     """All AI skills Patchi can invoke. Each maps to a system prompt + template."""
 
     CODE_FIX = "code_fix"

@@ -19,8 +19,8 @@ from pathlib import Path
 
 from patchi.core.fix.risk_gate import RiskGate
 from patchi.core.security.defenders import (
-    DefenseAction,
     DefendResult,
+    DefenseAction,
     get_adapter,
 )
 from patchi.core.security.history import _get_db

@@ -28,6 +28,7 @@ from patchi.core.constants import QueueMode
 def _root(root: Path | None) -> Path | None:
     return root
 
+
 def run_show(root: Path | None = None) -> None:
     """p queue — show current queue."""
     try:
@@ -87,6 +88,7 @@ def run_show(root: Path | None = None) -> None:
     con.print("[dim]p queue pause  ·  p queue resume  ·  p queue skip  ·  p queue clear[/dim]")
     con.print()
 
+
 def run_pause(root: Path | None = None) -> None:
     try:
         q.pause(root)
@@ -94,12 +96,14 @@ def run_pause(root: Path | None = None) -> None:
     except RuntimeError as e:
         con.print(f"[red]{e}[/red]")
 
+
 def run_resume(root: Path | None = None) -> None:
     try:
         q.resume(root)
         con.print("[#4ADE80]Queue resumed.[/#4ADE80]")
     except RuntimeError as e:
         con.print(f"[red]{e}[/red]")
+
 
 def run_skip(root: Path | None = None) -> None:
     try:
@@ -110,6 +114,7 @@ def run_skip(root: Path | None = None) -> None:
             con.print("[dim]Nothing active to skip.[/dim]")
     except RuntimeError as e:
         con.print(f"[red]{e}[/red]")
+
 
 def run_clear(root: Path | None = None) -> None:
     try:
@@ -128,6 +133,7 @@ def run_clear(root: Path | None = None) -> None:
             con.print("[dim]Cancelled.[/dim]")
     except RuntimeError as e:
         con.print(f"[red]{e}[/red]")
+
 
 def run_set_mode(mode_str: str, root: Path | None = None) -> None:
     """p queue mode <single|multi|off>"""

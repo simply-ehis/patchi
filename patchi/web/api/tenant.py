@@ -31,6 +31,7 @@ async def list_projects(request: Request):
     """List all registered projects."""
     try:
         from patchi.core.tenant import get_tenant_manager
+
         mgr = get_tenant_manager()
         projects = mgr.list_projects()
         active = mgr.get_active()
@@ -47,6 +48,7 @@ async def discover_projects(request: Request):
     """Scan near the current project for other Patchi projects."""
     try:
         from patchi.core.tenant import get_tenant_manager
+
         mgr = get_tenant_manager()
         base = request.app.state.root
         found = mgr.discover_projects(near=base)
@@ -54,7 +56,11 @@ async def discover_projects(request: Request):
         return {
             "current": active.to_dict() if active else {"root": str(base), "name": base.name},
             "discovered": [
-                {"path": str(p), "name": p.name, "is_current": str(p.resolve()) == str(base.resolve())}
+                {
+                    "path": str(p),
+                    "name": p.name,
+                    "is_current": str(p.resolve()) == str(base.resolve()),
+                }
                 for p in found
             ],
         }
@@ -79,12 +85,16 @@ async def switch_project(req: SwitchProjectRequest, request: Request):
 
         if not (target / ".patchi").is_dir():
             if not req.init:
-                return JSONResponse(status_code=400, content={
-                    "error": f"No .patchi project at {target}. Pass init=true to create one.",
-                    "hint": "Found by accident? Only real Patchi projects can be viewed.",
-                })
+                return JSONResponse(
+                    status_code=400,
+                    content={
+                        "error": f"No .patchi project at {target}. Pass init=true to create one.",
+                        "hint": "Found by accident? Only real Patchi projects can be viewed.",
+                    },
+                )
 
         from patchi.core.tenant import get_tenant_manager
+
         mgr = get_tenant_manager()
         tenant = mgr.switch_project(target)
         # Update app state — every route reads root from here
@@ -99,6 +109,7 @@ async def active_project(request: Request):
     """Get the currently active project."""
     try:
         from patchi.core.tenant import get_tenant_manager
+
         mgr = get_tenant_manager()
         active = mgr.get_active()
         return {"project": active.to_dict() if active else None}

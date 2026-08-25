@@ -30,7 +30,9 @@ def run_vulture(root: Path, min_confidence: int = 60) -> list[dict]:
     try:
         proc = subprocess.run(
             ["vulture", str(root), "--min-confidence", str(min_confidence), "--json"],
-            capture_output=True, text=True, timeout=30,
+            capture_output=True,
+            text=True,
+            timeout=30,
         )
         if proc.returncode not in (0, 1):
             return []
@@ -41,13 +43,15 @@ def run_vulture(root: Path, min_confidence: int = 60) -> list[dict]:
                 continue
             try:
                 entry = json.loads(line)
-                results.append({
-                    "symbol": entry.get("name", ""),
-                    "file": entry.get("filename", ""),
-                    "line": entry.get("lineno", 0),
-                    "tool": "vulture",
-                    "confidence": entry.get("confidence", min_confidence),
-                })
+                results.append(
+                    {
+                        "symbol": entry.get("name", ""),
+                        "file": entry.get("filename", ""),
+                        "line": entry.get("lineno", 0),
+                        "tool": "vulture",
+                        "confidence": entry.get("confidence", min_confidence),
+                    }
+                )
             except json.JSONDecodeError:
                 continue
         return results
@@ -62,7 +66,9 @@ def run_ruff_unused_imports(root: Path) -> list[dict]:
     try:
         proc = subprocess.run(
             ["ruff", "check", str(root), "--select=F401", "--output-format=json"],
-            capture_output=True, text=True, timeout=30,
+            capture_output=True,
+            text=True,
+            timeout=30,
         )
         results = []
         for line in proc.stdout.splitlines():
@@ -72,13 +78,17 @@ def run_ruff_unused_imports(root: Path) -> list[dict]:
             try:
                 entry = json.loads(line)
                 if entry.get("code") == "F401":
-                    results.append({
-                        "symbol": entry.get("message", "").split("'")[1] if "'" in entry.get("message", "") else "",
-                        "file": entry.get("filename", ""),
-                        "line": entry.get("location", {}).get("row", 0),
-                        "tool": "ruff",
-                        "confidence": 90,
-                    })
+                    results.append(
+                        {
+                            "symbol": entry.get("message", "").split("'")[1]
+                            if "'" in entry.get("message", "")
+                            else "",
+                            "file": entry.get("filename", ""),
+                            "line": entry.get("location", {}).get("row", 0),
+                            "tool": "ruff",
+                            "confidence": 90,
+                        }
+                    )
             except (json.JSONDecodeError, IndexError):
                 continue
         return results
@@ -96,7 +106,10 @@ def run_ts_prune(root: Path) -> list[dict]:
     try:
         proc = subprocess.run(
             ["npx", "--yes", "ts-prune", "--json"],
-            capture_output=True, text=True, timeout=60, cwd=str(root),
+            capture_output=True,
+            text=True,
+            timeout=60,
+            cwd=str(root),
         )
         results = []
         for line in proc.stdout.splitlines():
@@ -107,13 +120,15 @@ def run_ts_prune(root: Path) -> list[dict]:
                 entry = json.loads(line)
                 if entry.get("isDefault", False):
                     continue
-                results.append({
-                    "symbol": entry.get("symbol", ""),
-                    "file": entry.get("file", ""),
-                    "line": 0,
-                    "tool": "ts-prune",
-                    "confidence": 70,
-                })
+                results.append(
+                    {
+                        "symbol": entry.get("symbol", ""),
+                        "file": entry.get("file", ""),
+                        "line": 0,
+                        "tool": "ts-prune",
+                        "confidence": 70,
+                    }
+                )
             except json.JSONDecodeError:
                 continue
         return results
@@ -126,8 +141,11 @@ def detect_and_run(root: Path, corpus: FileCorpus | None = None) -> list[dict]:
     results: list[dict] = []
 
     has_python = any(corpus.by_ext(".py")) if corpus else any(root.rglob("*.py"))
-    has_ts = (any(corpus.by_ext(".ts", ".tsx")) if corpus
-              else any(root.rglob("*.ts")) or any(root.rglob("*.tsx")))
+    has_ts = (
+        any(corpus.by_ext(".ts", ".tsx"))
+        if corpus
+        else any(root.rglob("*.ts")) or any(root.rglob("*.tsx"))
+    )
 
     if has_python:
         results.extend(run_vulture(root))

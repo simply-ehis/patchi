@@ -25,17 +25,18 @@ logger = logging.getLogger("patchi.detector.dispatcher")
 
 
 class DispatchUrgency(str):
-    SYNC_BLOCK = "sync_block"       # Block the request / stop processing immediately
-    SYNC_INVESTIGATE = "sync_inv"   # Investigate synchronously (hold response)
-    ASYNC_PRIORITY = "async_pri"    # High-priority async (process within seconds)
-    ASYNC_NORMAL = "async_normal"   # Normal async queue
+    SYNC_BLOCK = "sync_block"  # Block the request / stop processing immediately
+    SYNC_INVESTIGATE = "sync_inv"  # Investigate synchronously (hold response)
+    ASYNC_PRIORITY = "async_pri"  # High-priority async (process within seconds)
+    ASYNC_NORMAL = "async_normal"  # Normal async queue
     ASYNC_DEFERRED = "async_defer"  # Low-priority, batch later
-    DISCARD = "discard"             # Drop (below threshold)
+    DISCARD = "discard"  # Drop (below threshold)
 
 
 @dataclass
 class DispatchInstruction:
     """What the dispatcher wants done — one instruction per event."""
+
     event_id: str
     technique_id: str
     agent_name: str
@@ -72,7 +73,7 @@ class Dispatcher:
         self._agent_whitelist = agent_whitelist
         self._agent_registry: dict[str, str] = {}  # technique_id -> agent_name
         self._dedup_window: dict[str, float] = {}  # event_id -> timestamp (for dedup)
-        self._dedup_ttl_s = 300.0                   # 5 minute dedup window
+        self._dedup_ttl_s = 300.0  # 5 minute dedup window
 
         # Build agent registry from TechniqueID mapping + known agents
         self._build_registry()
@@ -81,8 +82,18 @@ class Dispatcher:
         """Build technique_id → agent_name mapping from all registered agents."""
         for agent_cls in list_agents():
             name = getattr(agent_cls, "name", "") or agent_cls.__name__
-            for agent_type in ("injection", "auth", "authz", "dependency", "secret",
-                               "network", "runtime", "crypto", "compliance", "triage"):
+            for agent_type in (
+                "injection",
+                "auth",
+                "authz",
+                "dependency",
+                "secret",
+                "network",
+                "runtime",
+                "crypto",
+                "compliance",
+                "triage",
+            ):
                 if agent_type.lower() in name.lower():
                     tid = TechniqueID.for_agent_type(agent_type)
                     self._agent_registry[tid.value] = name
@@ -207,14 +218,22 @@ class Dispatcher:
         sigma_matches: list | None,
     ) -> tuple[str, float, str]:
         """Determine the best technique_id, confidence, and suggested_agent."""
-        tid = event.technique_id.value if isinstance(event.technique_id, TechniqueID) else event.technique_id
+        tid = (
+            event.technique_id.value
+            if isinstance(event.technique_id, TechniqueID)
+            else event.technique_id
+        )
         confidence = event.confidence
         suggested_agent = event.suggested_agent or ""
 
         # If Sigma matched, boost confidence and use Sigma's technique_id
         if sigma_matches:
             best = sigma_matches[0]
-            tid = best.technique_id.value if isinstance(best.technique_id, TechniqueID) else str(best.technique_id)
+            tid = (
+                best.technique_id.value
+                if isinstance(best.technique_id, TechniqueID)
+                else str(best.technique_id)
+            )
             confidence = max(confidence, best.confidence)
             if best.target_agent:
                 suggested_agent = best.target_agent
@@ -238,7 +257,11 @@ class Dispatcher:
                 return DispatchUrgency.SYNC_INVESTIGATE
             return DispatchUrgency.ASYNC_PRIORITY
         if severity == EventSeverity.MEDIUM:
-            return DispatchUrgency.ASYNC_PRIORITY if confidence >= 0.5 else DispatchUrgency.ASYNC_NORMAL
+            return (
+                DispatchUrgency.ASYNC_PRIORITY
+                if confidence >= 0.5
+                else DispatchUrgency.ASYNC_NORMAL
+            )
         return DispatchUrgency.ASYNC_NORMAL
 
     def stats(self) -> dict:

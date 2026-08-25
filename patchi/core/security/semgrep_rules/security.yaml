@@ -1,0 +1,163 @@
+rules:
+  # ── Injection ────────────────────────────────────────────────────────────
+  - id: patchi-sql-injection-string-concat
+    languages: [python]
+    message: SQL query built by string concatenation with a variable — use parameterized queries
+    severity: ERROR
+    metadata:
+      cwe: CWE-89
+      confidence: HIGH
+      category: security
+    patterns:
+      - pattern-either:
+          - pattern: $CUR.execute($Q + $X)
+          - pattern: $CUR.execute($Q % $X)
+          - pattern: $CUR.executemany($Q + $X, ...)
+
+  - id: patchi-sql-injection-format-generic
+    languages: [python]
+    message: SQL query appears to interpolate data via .format — use bound parameters
+    severity: ERROR
+    metadata:
+      cwe: CWE-89
+      confidence: MEDIUM
+    patterns:
+      - pattern: $CUR.execute($Q.format(...))
+      - metavariable-regex:
+          metavariable: $Q
+          regex: "(?i)select|insert|update|delete"
+
+  - id: patchi-command-injection-os-system
+    languages: [python]
+    message: os.system() with non-literal command — command injection risk; use subprocess arg lists
+    severity: ERROR
+    metadata:
+      cwe: CWE-78
+      confidence: HIGH
+    patterns:
+      - pattern-either:
+          - pattern: os.system($A + $B)
+          - pattern: os.system($A % $B)
+          - pattern: os.system($A.format(...))
+
+  - id: patchi-command-injection-shell-true
+    languages: [python]
+    message: subprocess with shell=True and non-literal command — command injection risk
+    severity: ERROR
+    metadata:
+      cwe: CWE-78
+      confidence: HIGH
+    pattern: subprocess.$F(..., shell=True, ...)
+
+  - id: patchi-eval-exec-use
+    languages: [python]
+    message: eval()/exec() on dynamic content — arbitrary code execution risk
+    severity: WARNING
+    metadata:
+      cwe: CWE-95
+      confidence: MEDIUM
+    pattern-either:
+      - pattern: eval(...)
+      - pattern: exec(...)
+
+  # ── Deserialization ──────────────────────────────────────────────────────
+  - id: patchi-pickle-loads-untrusted
+    languages: [python]
+    message: pickle deserialization of potentially untrusted data — arbitrary object instantiation
+    severity: ERROR
+    metadata:
+      cwe: CWE-502
+      confidence: MEDIUM
+    pattern-either:
+      - pattern: pickle.loads(...)
+      - pattern: yaml.load(...)   # Loader omitted → unsafe default
+      - pattern: json.loads($D, cls=...)
+
+  - id: patchi-yaml-unsafe-load
+    languages: [python]
+    message: yaml.load without SafeLoader allows arbitrary python objects
+    severity: ERROR
+    metadata:
+      cwe: CWE-502
+      confidence: HIGH
+    patterns:
+      - pattern: yaml.load($D, ...)
+      - pattern-not: yaml.load($D, Loader=yaml.SafeLoader, ...)
+      - pattern-not: yaml.load($D, Loader=yaml.CSafeLoader, ...)
+
+  # ── Secrets & crypto ─────────────────────────────────────────────────────
+  - id: patchi-hardcoded-secret-assign
+    languages: [python]
+    message: Hardcoded credential-looking string assigned to secret-named variable
+    severity: ERROR
+    metadata:
+      cwe: CWE-798
+      confidence: MEDIUM
+    patterns:
+      - pattern: $KEY = $VAL
+      - metavariable-regex:
+          metavariable: $KEY
+          regex: (?i)(secret|password|passwd|api_key|apikey|token|private_key)\w*
+      - metavariable-regex:
+          metavariable: $VAL
+          regex: "[\"'][^\"']{8,}[\"']"
+
+  - id: patchi-md5-sha1-weak-hash
+    languages: [python]
+    message: MD5/SHA1 used — cryptographically broken; use SHA-256+ or bcrypt/argon2 for passwords
+    severity: WARNING
+    metadata:
+      cwe: CWE-327
+      confidence: MEDIUM
+    pattern-either:
+      - pattern: hashlib.md5(...)
+      - pattern: hashlib.sha1(...)
+
+  # ── Web framework footguns ───────────────────────────────────────────────
+  - id: patchi-flask-debug-true
+    languages: [python]
+    message: Flask debug=True in production exposes the Werkzeug debugger (RCE)
+    severity: ERROR
+    metadata:
+      cwe: CWE-489
+      confidence: HIGH
+    pattern: app.run(..., debug=True, ...)
+
+  - id: patchi-render-template-string
+    languages: [python]
+    message: render_template_string with variable content — SSTI risk; use static templates
+    severity: ERROR
+    metadata:
+      cwe: CWE-1336
+      confidence: MEDIUM
+    pattern: flask.render_template_string($X)
+
+  - id: patchi-path-traversal-concat
+    languages: [python]
+    message: File path joined with request data without sanitization — path traversal risk
+    severity: WARNING
+    metadata:
+      cwe: CWE-22
+      confidence: LOW
+    patterns:
+      - pattern-either:
+          - pattern: open($BASE + $REQ)
+          - pattern: open(os.path.join($BASE, $REQ))
+          - pattern: Path($BASE) / $REQ
+      - metavariable-regex:
+          metavariable: $REQ
+          regex: (?i)(request|req|user|param|name|path|filename)\w*
+
+  # ── Randomness ───────────────────────────────────────────────────────────
+  - id: patchi-insecure-random-token
+    languages: [python]
+    message: random module for tokens/keys is predictable — use secrets module
+    severity: WARNING
+    metadata:
+      cwe: CWE-330
+      confidence: MEDIUM
+    patterns:
+      - pattern-either:
+          - pattern: random.random()
+          - pattern: random.randint(...)
+          - pattern: random.choice(...)

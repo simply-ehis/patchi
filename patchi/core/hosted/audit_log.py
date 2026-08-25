@@ -21,6 +21,7 @@ import logging
 
 _log = logging.getLogger("patchi.core.audit_log")
 
+
 def _log_path(root: Path) -> Path:
     return root / _LOG_FILE
 

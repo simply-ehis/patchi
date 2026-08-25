@@ -52,10 +52,15 @@ def run(
     # ── Plan mode: snapshot the agreed Plan, no scans ──────────────────────────
     if plan:
         saved = save_plan(r, intent=intent)
-        con.print(f"[#4ADE80]Plan saved[/#4ADE80] at {saved['saved_at']}"
-                  + (f" — intent: {saved['intent']}" if saved.get("intent") else "") + ".")
-        con.print(f"  Findings at plan time: {saved['total_findings']}; "
-                  f"charter violations: {saved['charter_violations']}")
+        con.print(
+            f"[#4ADE80]Plan saved[/#4ADE80] at {saved['saved_at']}"
+            + (f" — intent: {saved['intent']}" if saved.get("intent") else "")
+            + "."
+        )
+        con.print(
+            f"  Findings at plan time: {saved['total_findings']}; "
+            f"charter violations: {saved['charter_violations']}"
+        )
         con.print("[dim]Now build. Later run [bold]p audit[/bold] to detect drift.[/dim]")
         return
 
@@ -100,10 +105,18 @@ def run(
     plan_state = load_plan(r)
     if plan_state:
         drift = compute_drift(r)
-        report["drift"] = {k: drift[k] for k in (
-            "has_plan", "clean", "new_findings", "new_charter_violations",
-            "layers_added", "layers_removed", "scope_diff",
-        )}
+        report["drift"] = {
+            k: drift[k]
+            for k in (
+                "has_plan",
+                "clean",
+                "new_findings",
+                "new_charter_violations",
+                "layers_added",
+                "layers_removed",
+                "scope_diff",
+            )
+        }
     else:
         report["drift"] = {"has_plan": False}
 
@@ -126,10 +139,12 @@ def _print_full_audit(report: dict, test_run) -> None:
     tests = report.get("tests")
     if tests:
         state = "[#4ADE80]GREEN[/#4ADE80]" if tests["truthful"] else "[#FACC15]RED[/#FACC15]"
-        lines.append(f"Tests: {state} — {tests['passed']} passed"
-                     + (f", {tests['failed']} failed" if tests['failed'] else "")
-                     + (f", {tests['error']} error" if tests['error'] else "")
-                     + (f" ({tests['duration_seconds']}s)" if tests.get('duration_seconds') else ""))
+        lines.append(
+            f"Tests: {state} — {tests['passed']} passed"
+            + (f", {tests['failed']} failed" if tests["failed"] else "")
+            + (f", {tests['error']} error" if tests["error"] else "")
+            + (f" ({tests['duration_seconds']}s)" if tests.get("duration_seconds") else "")
+        )
     secrets = report.get("secret_hits") or []
     if secrets:
         lines.append(f"[#FACC15]Possible secrets found ({len(secrets)}):[/#FACC15]")
@@ -141,21 +156,34 @@ def _print_full_audit(report: dict, test_run) -> None:
     drift = report.get("drift") or {}
     if drift.get("has_plan"):
         status = "ON PLAN ✅" if drift.get("clean") else "DRIFT DETECTED ⚠️"
-        lines.append(f"Plan-vs-Built: {status}"
-                     + (f" — {drift.get('new_findings', 0)} new findings" if drift.get('new_findings') else "")
-                     + (f", {drift.get('new_charter_violations', 0)} new charter violations"
-                        if drift.get('new_charter_violations') else ""))
+        lines.append(
+            f"Plan-vs-Built: {status}"
+            + (
+                f" — {drift.get('new_findings', 0)} new findings"
+                if drift.get("new_findings")
+                else ""
+            )
+            + (
+                f", {drift.get('new_charter_violations', 0)} new charter violations"
+                if drift.get("new_charter_violations")
+                else ""
+            )
+        )
         if drift.get("layers_added"):
             lines.append(f"  + beyond plan: {', '.join(drift['layers_added'])}")
         if drift.get("layers_removed"):
             lines.append(f"  - missing vs plan: {', '.join(drift['layers_removed'])}")
         sd = drift.get("scope_diff") or {}
         if sd.get("added_files"):
-            lines.append(f"  + files added ({sd['added_count']}): "
-                         + ", ".join(f for f in sd["added_files"][:8]))
+            lines.append(
+                f"  + files added ({sd['added_count']}): "
+                + ", ".join(f for f in sd["added_files"][:8])
+            )
         if sd.get("removed_files"):
-            lines.append(f"  - files removed ({sd['removed_count']}): "
-                         + ", ".join(f for f in sd["removed_files"][:8]))
+            lines.append(
+                f"  - files removed ({sd['removed_count']}): "
+                + ", ".join(f for f in sd["removed_files"][:8])
+            )
         if sd.get("modified_files"):
             lines.append(f"  ~ files changed ({sd['modified_count']}):")
             for m in sd["modified_files"][:8]:
@@ -168,10 +196,13 @@ def _print_full_audit(report: dict, test_run) -> None:
                     bits.append("content changed")
                 lines.append(f"      • {m['file']}  ({', '.join(bits)})")
     else:
-        lines.append("[dim]Tip: run [bold]p audit --plan[/bold] to set a baseline, then re-audit for drift.[/dim]")
+        lines.append(
+            "[dim]Tip: run [bold]p audit --plan[/bold] to set a baseline, then re-audit for drift.[/dim]"
+        )
 
-    con.print(Panel("\n".join(lines), title="[bold #C8621A]Audit[/bold #C8621A]",
-                    border_style="#2A3D28"))
+    con.print(
+        Panel("\n".join(lines), title="[bold #C8621A]Audit[/bold #C8621A]", border_style="#2A3D28")
+    )
     con.print()
 
 
@@ -183,12 +214,16 @@ def _write_html(path: Path, report: dict) -> None:
     tests = report.get("tests")
     if tests:
         state = "GREEN" if tests["truthful"] else "RED"
-        rows.append(f"<tr><td>Tests</td><td>{state}</td>"
-                    f"<td>{tests['passed']} passed / {tests['failed']} failed"
-                    f"{('/ ' + str(tests['error']) + ' error') if tests['error'] else ''}</td></tr>")
+        rows.append(
+            f"<tr><td>Tests</td><td>{state}</td>"
+            f"<td>{tests['passed']} passed / {tests['failed']} failed"
+            f"{('/ ' + str(tests['error']) + ' error') if tests['error'] else ''}</td></tr>"
+        )
     secrets = report.get("secret_hits") or []
-    rows.append(f"<tr><td>Secrets</td><td>{'FOUND' if secrets else 'none'}</td>"
-                f"<td>{_esc('; '.join(str(s) for s in secrets[:10]) or 'none detected')}</td></tr>")
+    rows.append(
+        f"<tr><td>Secrets</td><td>{'FOUND' if secrets else 'none'}</td>"
+        f"<td>{_esc('; '.join(str(s) for s in secrets[:10]) or 'none detected')}</td></tr>"
+    )
     drift = report.get("drift") or {}
     if drift.get("has_plan"):
         status = "ON PLAN" if drift.get("clean") else "DRIFT"
@@ -201,11 +236,15 @@ def _write_html(path: Path, report: dict) -> None:
             extra.append("beyond plan: " + ", ".join(drift["layers_added"]))
         if drift.get("layers_removed"):
             extra.append("missing: " + ", ".join(drift["layers_removed"]))
-        rows.append(f"<tr><td>Plan-vs-Built</td><td>{status}</td>"
-                    f"<td>{_esc('; '.join(extra) or 'no drift')}</td></tr>")
+        rows.append(
+            f"<tr><td>Plan-vs-Built</td><td>{status}</td>"
+            f"<td>{_esc('; '.join(extra) or 'no drift')}</td></tr>"
+        )
     else:
-        rows.append("<tr><td>Plan-vs-Built</td><td>n/a</td>"
-                    "<td>run <code>p audit --plan</code> to set a baseline</td></tr>")
+        rows.append(
+            "<tr><td>Plan-vs-Built</td><td>n/a</td>"
+            "<td>run <code>p audit --plan</code> to set a baseline</td></tr>"
+        )
 
     html = f"""<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
@@ -220,10 +259,10 @@ def _write_html(path: Path, report: dict) -> None:
 </style></head>
 <body>
 <h1>Patchi — Full Project Audit</h1>
-<p class="muted">scan_error: {_esc(report.get('scan_error') or 'none')}</p>
+<p class="muted">scan_error: {_esc(report.get("scan_error") or "none")}</p>
 <table>
 <tr><th>Section</th><th>Status</th><th>Detail</th></tr>
-{''.join(rows)}
+{"".join(rows)}
 </table>
 </body></html>"""
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -237,6 +276,11 @@ def _print_drift(drift: dict) -> None:
         con.print(f"[red]{msg}[/red]")
         return
     border = "#4ADE80" if drift.get("clean") else "#FACC15"
-    con.print(Panel(drift["summary"], title="[bold #C8621A]Plan-vs-Built[/bold #C8621A]",
-                    border_style=border))
+    con.print(
+        Panel(
+            drift["summary"],
+            title="[bold #C8621A]Plan-vs-Built[/bold #C8621A]",
+            border_style=border,
+        )
+    )
     con.print()

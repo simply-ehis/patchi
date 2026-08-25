@@ -100,9 +100,7 @@ def run(
         )
         # Disproved critical claims enter the repair loop record.
         if claim.verdict == Verdict.DISPROVED:
-            already = any(
-                rep.get("description") == detail for rep in claim.repairs
-            )
+            already = any(rep.get("description") == detail for rep in claim.repairs)
             if not already:
                 claim.record_repair(detail, outcome="awaiting-fix")
 
@@ -123,7 +121,9 @@ def run(
 
             attack_results = planner.run_all()
             confirmed = [r for r in attack_results if r.confirmed]
-            con.print(f"  Tested: [bold]{len(attack_results)}[/bold], Confirmed: [bold]{len(confirmed)}[/bold]")
+            con.print(
+                f"  Tested: [bold]{len(attack_results)}[/bold], Confirmed: [bold]{len(confirmed)}[/bold]"
+            )
 
             # Record confirmed attacks as evidence
             for r in confirmed:
@@ -169,14 +169,18 @@ def run(
             con.print(f"  Campaigns: [bold]{len(campaign_result.campaigns)}[/bold] run")
 
             for cr in campaign_result.campaigns:
-                status = "[green]PASS[/green]" if cr.total_findings == 0 else f"[yellow]{cr.total_findings} findings[/yellow]"
+                status = (
+                    "[green]PASS[/green]"
+                    if cr.total_findings == 0
+                    else f"[yellow]{cr.total_findings} findings[/yellow]"
+                )
                 con.print(f"    {cr.name}: {status}")
 
                 # Record campaign findings as evidence
                 for step in cr.steps:
                     for f in step.findings:
-                        sev = f.get('severity', 'info')
-                        detail = f.get('detail', '')
+                        sev = f.get("severity", "info")
+                        detail = f.get("detail", "")
                         claim_id = f"campaign-{cr.name}-{step.name}"
                         graph.upsert_claim(
                             claim_id,
@@ -189,11 +193,11 @@ def run(
                             Evidence(
                                 source=f"campaign:{cr.name}",
                                 detail=detail,
-                                supports=sev in ('info',),  # info = supports the claim
+                                supports=sev in ("info",),  # info = supports the claim
                                 artifact={"step": step.name, "severity": sev},
                             ),
                         )
-                        if sev in ('critical', 'high'):
+                        if sev in ("critical", "high"):
                             con.print(f"      [{sev}] {detail[:70]}")
 
             if campaign_result.total_findings > 0:
@@ -211,12 +215,16 @@ def run(
             from patchi.core.fuzz import InputFuzzer
 
             fuzzer = InputFuzzer(seed=42)
-            endpoint_claims = [c for c in graph.claims.values() if 'endpoint' in c.domain]
+            endpoint_claims = [c for c in graph.claims.values() if "endpoint" in c.domain]
             con.print(f"  Endpoints discovered: [bold]{len(endpoint_claims)}[/bold]")
 
             total_fuzz = 0
             for claim in endpoint_claims[:20]:
-                path = claim.statement.split('Endpoint ')[-1].split(' requires')[0] if 'Endpoint' in claim.statement else claim.id
+                path = (
+                    claim.statement.split("Endpoint ")[-1].split(" requires")[0]
+                    if "Endpoint" in claim.statement
+                    else claim.id
+                )
                 inputs = fuzzer.fuzz_string(path, count=5)
                 total_fuzz += len(inputs)
 
@@ -234,9 +242,7 @@ def run(
 
     if json_output:
         sys.stdout.write(json.dumps(report_data, indent=2, default=str) + "\n")
-        has_bad = coverage["by_verdict"].get("disproved", 0) > 0 or (
-            coverage["claims_total"] == 0
-        )
+        has_bad = coverage["by_verdict"].get("disproved", 0) > 0 or (coverage["claims_total"] == 0)
         return 1 if has_bad else 0
 
     # ── Render report ────────────────────────────────────────────────────────
@@ -251,7 +257,7 @@ def _build_report(coverage: dict, run_all: bool) -> dict:
     """Build comprehensive report data from coverage and graph state."""
     by_domain = coverage.get("by_domain", {})
     by_verdict = coverage.get("by_verdict", {})
-    disproved = [c for c in coverage.get("disproved_claims", [])]
+    disproved = list(coverage.get("disproved_claims", []))
 
     # Count by severity from evidence artifacts
     severity_counts = {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0}
@@ -270,7 +276,7 @@ def _build_report(coverage: dict, run_all: bool) -> dict:
             "unproven": by_verdict.get("unproven", 0),
             "status": coverage.get("statement", ""),
         },
-        "by_domain": {k: v for k, v in by_domain.items()},
+        "by_domain": dict(by_domain.items()),
         "by_severity": severity_counts,
         "disproved_claims": disproved[:20],
         "domains_tested": len(by_domain),
@@ -308,8 +314,13 @@ def _render_report(report_data: dict, coverage: dict, graph) -> None:
     summary_text = Text()
     summary_text.append(f"Claims: {summary['total_claims']}  ", style="bold")
     summary_text.append(f"Proved: {summary['proved']}  ", style="green")
-    summary_text.append(f"Violated: {summary['disproved']}  ", style="red" if summary['disproved'] > 0 else "dim")
-    summary_text.append(f"Unproven: {summary['unproven'] + summary['not_proved']}", style="yellow" if summary['unproven'] + summary['not_proved'] > 0 else "dim")
+    summary_text.append(
+        f"Violated: {summary['disproved']}  ", style="red" if summary["disproved"] > 0 else "dim"
+    )
+    summary_text.append(
+        f"Unproven: {summary['unproven'] + summary['not_proved']}",
+        style="yellow" if summary["unproven"] + summary["not_proved"] > 0 else "dim",
+    )
     con.print(Panel(summary_text, title="Summary", border_style="#C8621A"))
 
     # ── Severity breakdown ───────────────────────────────────────────────────
@@ -320,7 +331,13 @@ def _render_report(report_data: dict, coverage: dict, graph) -> None:
         for level in ["critical", "high", "medium", "low", "info"]:
             count = sev.get(level, 0)
             if count > 0:
-                style = {"critical": "bold red", "high": "red", "medium": "yellow", "low": "dim", "info": "dim"}.get(level, "dim")
+                style = {
+                    "critical": "bold red",
+                    "high": "red",
+                    "medium": "yellow",
+                    "low": "dim",
+                    "info": "dim",
+                }.get(level, "dim")
                 sev_text.append(f"{level}: {count}  ", style=style)
         con.print(Panel(sev_text, title="Findings by Severity", border_style="#C8621A"))
 
@@ -374,13 +391,17 @@ def _render_report(report_data: dict, coverage: dict, graph) -> None:
 
     con.print(f"[bold]{coverage['statement']}[/bold]")
     if disproved:
-        con.print("[#FF4D6D]Violated properties above need fixes — run `p fix` or `p chain`.[/#FF4D6D]")
+        con.print(
+            "[#FF4D6D]Violated properties above need fixes — run `p fix` or `p chain`.[/#FF4D6D]"
+        )
     elif proved < total:
         con.print("[dim]Unproved properties have insufficient evidence — scan deeper first.[/dim]")
     con.print()
     con.print(
         "[dim]No evidence currently demonstrates a known violation within "
-        f"the {total}-property tested scope.[/dim]" if disproved == 0 else ""
+        f"the {total}-property tested scope.[/dim]"
+        if disproved == 0
+        else ""
     )
     con.print()
 
@@ -426,38 +447,49 @@ def _show_chain_report(root, con, json_output=False):
         # Get remediations
         try:
             from patchi.core.security.remediation import get_remediation_for_step
+
             rems = [get_remediation_for_step(s) for s in steps]
         except ImportError:
             rems = [None] * len(steps)
 
-        chain_claims.append({
-            "id": f"chain-{i+1}",
-            "statement": f"{entry} → {impact} ({len(steps)} steps)",
-            "severity": severity,
-            "score": score,
-            "steps": steps,
-            "remediations": rems,
-            "narrative": chain.get("narrative", ""),
-        })
+        chain_claims.append(
+            {
+                "id": f"chain-{i + 1}",
+                "statement": f"{entry} → {impact} ({len(steps)} steps)",
+                "severity": severity,
+                "score": score,
+                "steps": steps,
+                "remediations": rems,
+                "narrative": chain.get("narrative", ""),
+            }
+        )
 
     # Build intent gap claims
     intent_claims = []
     if intent:
         gaps = intent.get("gaps", [])
         for gap in gaps:
-            intent_claims.append({
-                "id": gap.get("route", "?"),
-                "statement": gap.get("description", "Missing auth"),
-                "severity": gap.get("severity", "high"),
-                "route": gap.get("route", ""),
-                "method": gap.get("method", ""),
-            })
+            intent_claims.append(
+                {
+                    "id": gap.get("route", "?"),
+                    "statement": gap.get("description", "Missing auth"),
+                    "severity": gap.get("severity", "high"),
+                    "route": gap.get("route", ""),
+                    "method": gap.get("method", ""),
+                }
+            )
 
     if json_output:
-        con.print(_json.dumps({
-            "chain_claims": chain_claims,
-            "intent_claims": intent_claims,
-        }, indent=2, default=str))
+        con.print(
+            _json.dumps(
+                {
+                    "chain_claims": chain_claims,
+                    "intent_claims": intent_claims,
+                },
+                indent=2,
+                default=str,
+            )
+        )
         return
 
     # ── Display ──────────────────────────────────────────────────────────
@@ -471,19 +503,23 @@ def _show_chain_report(root, con, json_output=False):
         for cc in chain_claims:
             sev = cc["severity"]
             sev_style = {
-                "critical": "bold red", "high": "red",
-                "medium": "yellow", "low": "dim",
+                "critical": "bold red",
+                "high": "red",
+                "medium": "yellow",
+                "low": "dim",
             }.get(sev, "")
-            con.print(f"  [{'#C8621A'}]{cc['id']}[/'#C8621A'] [{sev_style}]{sev}[/{sev_style}] (score {cc['score']:.0f})")
+            con.print(
+                f"  [{'#C8621A'}]{cc['id']}[/'#C8621A'] [{sev_style}]{sev}[/{sev_style}] (score {cc['score']:.0f})"
+            )
             con.print(f"    {cc['statement']}")
 
             # Show steps with remediation
-            for j, (step, rem) in enumerate(zip(cc["steps"], cc["remediations"])):
+            for j, (step, rem) in enumerate(zip(cc["steps"], cc["remediations"], strict=False)):
                 role = step.get("role", "?")
                 ftype = step.get("type", "?")
                 ffile = step.get("file", "?")
                 line = step.get("line", 0)
-                con.print(f"    [{j+1}] [{role}] {ftype} @ {ffile}:{line}")
+                con.print(f"    [{j + 1}] [{role}] {ftype} @ {ffile}:{line}")
                 if rem:
                     con.print(f"        [green]Fix:[/green] {rem['action']}")
                     if rem.get("auto_fixable"):

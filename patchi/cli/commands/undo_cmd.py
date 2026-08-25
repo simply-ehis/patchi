@@ -11,6 +11,7 @@ p rollback <id>     — rollback all patches back to before a specific patch
 from __future__ import annotations
 
 import logging
+from datetime import UTC
 from pathlib import Path
 
 from rich.prompt import Confirm
@@ -22,6 +23,7 @@ from patchi.core.fix.applier import PatchApplier
 from patchi.core.fix.patch import Patch, PatchState
 
 _log = logging.getLogger("patchi.cli.undo_cmd")
+
 
 def run_undo(patch_id: str | None = None, root: Path | None = None) -> None:
     """p undo [id]"""
@@ -55,6 +57,7 @@ def run_undo(patch_id: str | None = None, root: Path | None = None) -> None:
         )
     else:
         con.print(f"[red]✗ Undo failed.[/red]  [dim]{result.error}[/dim]")
+
 
 def run_redo(patch_id: str | None = None, root: Path | None = None) -> None:
     """p redo [id]"""
@@ -93,6 +96,7 @@ def run_redo(patch_id: str | None = None, root: Path | None = None) -> None:
         )
     else:
         con.print(f"[red]✗ Failed.[/red]  [dim]{result.error}[/dim]")
+
 
 def run_rollback(patch_id: str, root: Path | None = None) -> None:
     """
@@ -161,7 +165,9 @@ def run_rollback(patch_id: str, root: Path | None = None) -> None:
     con.print(f"[dim]Rollback complete: {undone}/{count} patches undone.[/dim]")
     con.print()
 
+
 # ── Finders ────────────────────────────────────────────────────────────────────
+
 
 def _find_for_undo(patch_id: str | None, root: Path) -> dict | None:
     patches = mem.list_patches(root)
@@ -174,6 +180,7 @@ def _find_for_undo(patch_id: str | None, root: Path) -> dict | None:
     applied.sort(key=lambda p: p.get("applied_at", ""))
     return applied[-1]
 
+
 def _find_for_redo(patch_id: str | None, root: Path) -> dict | None:
     patches = mem.list_patches(root)
     undone = [p for p in patches if p.get("state") == "undone"]
@@ -185,12 +192,14 @@ def _find_for_redo(patch_id: str | None, root: Path) -> dict | None:
     undone.sort(key=lambda p: p.get("rolled_back_at", ""), reverse=True)
     return undone[0]
 
+
 # ── State update ───────────────────────────────────────────────────────────────
+
 
 def _mark_undone(patch_id: str, root: Path) -> None:
     try:
         import json
-        from datetime import datetime, timezone
+        from datetime import datetime
 
         from patchi.core.constants import MEMORY_FILES, MemoryCategory
 
@@ -198,18 +207,19 @@ def _mark_undone(patch_id: str, root: Path) -> None:
         for p in patches:
             if p.get("id") == patch_id:
                 p["state"] = PatchState.UNDONE.value
-                p["rolled_back_at"] = datetime.now(timezone.utc).isoformat()
+                p["rolled_back_at"] = datetime.now(UTC).isoformat()
                 break
         mem_path = root / MEMORY_FILES[MemoryCategory.PATCHES]
         mem_path.write_text(json.dumps(patches, indent=2), encoding="utf-8")
     except Exception as e:
         _log.warning("_mark_undone failed: %s", e)
 
+
 def _mark_applied(patch_id: str, root: Path) -> None:
     """Mark a patch as applied (used after redo succeeds)."""
     try:
         import json
-        from datetime import datetime, timezone
+        from datetime import datetime
 
         from patchi.core.constants import MEMORY_FILES, MemoryCategory
 
@@ -217,7 +227,7 @@ def _mark_applied(patch_id: str, root: Path) -> None:
         for p in patches:
             if p.get("id") == patch_id:
                 p["state"] = PatchState.APPLIED.value
-                p["applied_at"] = datetime.now(timezone.utc).isoformat()
+                p["applied_at"] = datetime.now(UTC).isoformat()
                 break
         mem_path = root / MEMORY_FILES[MemoryCategory.PATCHES]
         mem_path.write_text(json.dumps(patches, indent=2), encoding="utf-8")

@@ -30,17 +30,67 @@ from pathlib import Path
 # ── Known frameworks / languages for stack detection ──────────────────────────
 
 _KNOWN_FRAMEWORKS = [
-    "flask", "django", "fastapi", "starlette", "tornado", "sanic", "litestar",
-    "express", "fastify", "koa", "nestjs", "next.js", "nuxt", "sveltekit",
-    "remix", "astro", "react", "vue", "angular", "svelte", "solid.js", "qwik",
-    "spring", "quarkus", "micronaut", "laravel", "symfony", "rails", "sinatra",
-    "gin", "echo", "fiber", "chi", "actix", "axum", "rocket", "tauri", "warp",
-    "hono", "trpc", "vapor", "phoenix",
+    "flask",
+    "django",
+    "fastapi",
+    "starlette",
+    "tornado",
+    "sanic",
+    "litestar",
+    "express",
+    "fastify",
+    "koa",
+    "nestjs",
+    "next.js",
+    "nuxt",
+    "sveltekit",
+    "remix",
+    "astro",
+    "react",
+    "vue",
+    "angular",
+    "svelte",
+    "solid.js",
+    "qwik",
+    "spring",
+    "quarkus",
+    "micronaut",
+    "laravel",
+    "symfony",
+    "rails",
+    "sinatra",
+    "gin",
+    "echo",
+    "fiber",
+    "chi",
+    "actix",
+    "axum",
+    "rocket",
+    "tauri",
+    "warp",
+    "hono",
+    "trpc",
+    "vapor",
+    "phoenix",
 ]
 
 _KNOWN_LANGUAGES = [
-    "python", "javascript", "typescript", "go", "golang", "rust", "java",
-    "php", "ruby", "swift", "kotlin", "scala", "c#", "csharp", "c++", "dart",
+    "python",
+    "javascript",
+    "typescript",
+    "go",
+    "golang",
+    "rust",
+    "java",
+    "php",
+    "ruby",
+    "swift",
+    "kotlin",
+    "scala",
+    "c#",
+    "csharp",
+    "c++",
+    "dart",
 ]
 
 # Role words → subsystem layer names they map to
@@ -66,6 +116,7 @@ import logging
 
 _log = logging.getLogger("patchi.brain.charter")
 
+
 @dataclass
 class Charter:
     """Structured project guard rails parsed from natural language."""
@@ -88,7 +139,7 @@ class Charter:
         }
 
     @classmethod
-    def from_dict(cls, d: dict) -> "Charter":
+    def from_dict(cls, d: dict) -> Charter:
         return cls(
             raw_text=d.get("raw_text", ""),
             stack=d.get("stack", {"languages": [], "frameworks": []}),
@@ -172,7 +223,10 @@ def parse_charter(text: str, config: dict | None = None) -> Charter:
 
     if re.search(r"all\s+(?:api\s+)?routes?\s+(?:need|must have|require)\s+tests", text_l):
         charter.conventions["require_tests_for_routes"] = True
-    if re.search(r"(?:every|all)\s+(?:function|module|service)\s+(?:needs|must have|requires)\s+tests", text_l):
+    if re.search(
+        r"(?:every|all)\s+(?:function|module|service)\s+(?:needs|must have|requires)\s+tests",
+        text_l,
+    ):
         charter.conventions["require_tests_for_routes"] = True
 
     # ── Security rules ─────────────────────────────────────────────────────────
@@ -196,7 +250,7 @@ def _split_role_phrase(phrase: str) -> tuple[str, str]:
     return phrase, ""
 
 
-def parse_charter_with_ai(text: str, config: dict) -> "Charter | None":
+def parse_charter_with_ai(text: str, config: dict) -> Charter | None:
     """Optional LLM-backed parser. Returns None if AI unavailable or it fails."""
     ai_config = config.get("ai", {})
     has_ai = bool(ai_config.get("keys") or ai_config.get("local_model_name"))
@@ -215,7 +269,9 @@ def parse_charter_with_ai(text: str, config: dict) -> "Charter | None":
         "Return ONLY JSON.\n\n" + text
     )
     try:
-        resp = call_ai(config, "You are a config parser. Output only JSON.", prompt, max_tokens=1024)
+        resp = call_ai(
+            config, "You are a config parser. Output only JSON.", prompt, max_tokens=1024
+        )
     except Exception as e:
         _log.warning("parse_charter_with_ai failed: %s", e)
         return None
@@ -253,10 +309,20 @@ def _resolve_role(token: str) -> set[str]:
         return {token_l}
     # Framework → its typical subsystem
     fw_to_sub = {
-        "react": "ui", "vue": "ui", "angular": "ui", "svelte": "ui",
-        "next.js": "ui", "nuxt": "ui", "sveltekit": "ui",
-        "flask": "api", "django": "api", "fastapi": "api", "express": "api",
-        "spring": "api", "laravel": "api", "rails": "api",
+        "react": "ui",
+        "vue": "ui",
+        "angular": "ui",
+        "svelte": "ui",
+        "next.js": "ui",
+        "nuxt": "ui",
+        "sveltekit": "ui",
+        "flask": "api",
+        "django": "api",
+        "fastapi": "api",
+        "express": "api",
+        "spring": "api",
+        "laravel": "api",
+        "rails": "api",
     }
     if token_l in fw_to_sub:
         return {fw_to_sub[token_l]}
@@ -270,10 +336,13 @@ def _matches_boundary(edge_from: str, edge_to: str, boundary: dict) -> bool:
     if not from_set or not to_set:
         return False
     # Direct name match OR role-resolved match
-    direct = boundary.get("from", "").lower().strip() in edge_from.lower() and \
-        boundary.get("to", "").lower().strip() in edge_to.lower()
-    role = (bool(from_set & {edge_from} or any(f in edge_from.lower() for f in from_set))) and \
-        (bool(to_set & {edge_to} or any(t in edge_to.lower() for t in to_set)))
+    direct = (
+        boundary.get("from", "").lower().strip() in edge_from.lower()
+        and boundary.get("to", "").lower().strip() in edge_to.lower()
+    )
+    role = (bool(from_set & {edge_from} or any(f in edge_from.lower() for f in from_set))) and (
+        bool(to_set & {edge_to} or any(t in edge_to.lower() for t in to_set))
+    )
     return direct or role
 
 
@@ -281,12 +350,12 @@ def _matches_boundary(edge_from: str, edge_to: str, boundary: dict) -> bool:
 
 
 def check_charter(
-    charter: "Charter",
+    charter: Charter,
     layers: dict,
     detected_frameworks: list[str] | None = None,
     routes: list | None = None,
     file_infos: list | None = None,
-) -> list["CharterViolation"]:
+) -> list[CharterViolation]:
     """Evaluate a charter against the current codebase state.
 
     Returns a list of :class:`CharterViolation` (empty if fully compliant).
@@ -336,8 +405,7 @@ def check_charter(
     # ── Convention: require tests for routes ───────────────────────────────────
     if charter.conventions.get("require_tests_for_routes") and routes:
         route_files = {
-            r.get("file", "") if isinstance(r, dict) else getattr(r, "file", "")
-            for r in routes
+            r.get("file", "") if isinstance(r, dict) else getattr(r, "file", "") for r in routes
         }
         test_files = {
             fi.path
@@ -369,13 +437,13 @@ def check_charter(
 # ── Persistence helpers ───────────────────────────────────────────────────────
 
 
-def save_charter(charter: "Charter", root: Path) -> None:
+def save_charter(charter: Charter, root: Path) -> None:
     from patchi.core import memory as mem
 
     mem.save_charter(charter.to_dict(), root)
 
 
-def load_charter(root: Path) -> "Charter | None":
+def load_charter(root: Path) -> Charter | None:
     from patchi.core import memory as mem
 
     data = mem.get_charter(root)

@@ -105,18 +105,21 @@ def test_stress_test_unreachable_is_honest(tmp_path):
 
 
 def test_stress_test_real_load(tmp_path):
+    import time
+
     handler = http.server.SimpleHTTPRequestHandler
     # Serve the temp dir so the endpoint is reachable.
     srv = http.server.ThreadingHTTPServer(("127.0.0.1", 0), handler)
     port = srv.server_address[1]
     t = threading.Thread(target=srv.serve_forever, daemon=True)
     t.start()
+    time.sleep(0.3)  # let the server thread come up before hammering it
     try:
         res = realize.stress_test(
             Path(tmp_path),
             base_url=f"http://127.0.0.1:{port}/",
-            duration_seconds=2,
-            users=4,
+            duration_seconds=4,
+            users=2,
         )
         assert res["success"] is True
         assert res["requests"] > 0

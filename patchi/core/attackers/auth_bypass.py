@@ -17,25 +17,29 @@ class AuthBypassAttacker(BaseAttacker):
         for claim in self._graph.claims.values():
             if "auth" in claim.domain.lower() or "session" in claim.domain.lower():
                 if claim.verdict.value in ("not_proved", "unproven"):
-                    hypotheses.append(Hypothesis(
+                    hypotheses.append(
+                        Hypothesis(
+                            attacker=self.name,
+                            objective=self.objective,
+                            target=claim.id,
+                            risk="high",
+                            confidence=0.7,
+                            description=f"Auth property unverified: {claim.statement}",
+                        )
+                    )
+
+            # State transitions without auth guards
+            if "transition" in claim.statement.lower() and "guard" not in claim.statement.lower():
+                hypotheses.append(
+                    Hypothesis(
                         attacker=self.name,
                         objective=self.objective,
                         target=claim.id,
                         risk="high",
-                        confidence=0.7,
-                        description=f"Auth property unverified: {claim.statement}",
-                    ))
-
-            # State transitions without auth guards
-            if "transition" in claim.statement.lower() and "guard" not in claim.statement.lower():
-                hypotheses.append(Hypothesis(
-                    attacker=self.name,
-                    objective=self.objective,
-                    target=claim.id,
-                    risk="high",
-                    confidence=0.5,
-                    description=f"State transition may lack auth guard: {claim.statement}",
-                ))
+                        confidence=0.5,
+                        description=f"State transition may lack auth guard: {claim.statement}",
+                    )
+                )
 
         return hypotheses
 

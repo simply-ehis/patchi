@@ -1,5 +1,6 @@
 """Tests for new security agents: orchestrator, secrets guard, supply chain, IaC, policy, CVE monitor, red team, security test agent."""
 
+import pytest
 import tempfile
 import unittest
 from pathlib import Path
@@ -41,6 +42,7 @@ def _write(root: Path, rel: str, content: str) -> None:
 
 
 class TestOrchestrator(unittest.TestCase):
+    @pytest.mark.integration
     def test_deduplication(self):
         orch = SecurityOrchestrator()
         f1 = Finding(

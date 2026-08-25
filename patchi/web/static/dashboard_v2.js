@@ -527,6 +527,12 @@
                         opt.value = path;
                         opt.textContent = name + (path === currentPath ? ' ●' : '');
                         opt.selected = path === currentPath;
+                        if (path === currentPath) {
+                            // 1:1 with CLI: show exactly which directory is being served
+                            opt.textContent += ` — ${path}`;
+                            document.title = `${name} — Patchi`;
+                            projectSelect.title = path;
+                        }
                         projectSelect.appendChild(opt);
                     }
                 } catch (e) {

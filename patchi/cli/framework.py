@@ -42,16 +42,16 @@ _log = logging.getLogger("patchi.cli.framework")
 
 @dataclass(frozen=True)
 class Arg:
-    name: str                          # "--area" or "area" (positional)
+    name: str  # "--area" or "area" (positional)
     help: str = ""
     default: Any = None
-    action: str | None = None          # "store_true", "store_false", etc.
+    action: str | None = None  # "store_true", "store_false", etc.
     choices: tuple | None = None
     nargs: str | None = None
     dest: str | None = None
     type: type | None = None
-    global_flag: bool = False          # True = already defined on the top-level
-                                        # parser; don't re-add, just read it
+    global_flag: bool = False  # True = already defined on the top-level
+    # parser; don't re-add, just read it
 
     def resolved_dest(self) -> str:
         is_positional = not self.name.startswith("-")
@@ -70,9 +70,9 @@ class Arg:
 class Command:
     name: str
     help: str
-    handler: str = ""                  # dotted path: "patchi.cli.commands.scan_cmd:run"
+    handler: str = ""  # dotted path: "patchi.cli.commands.scan_cmd:run"
     args: tuple[Arg, ...] = ()
-    subcommands: tuple["Command", ...] = ()
+    subcommands: tuple[Command, ...] = ()
     aliases: tuple[str, ...] = ()
     fixed_kwargs: dict = field(default_factory=dict)
     # ^ For cases where several subcommands share ONE handler but each needs a

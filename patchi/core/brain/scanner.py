@@ -36,6 +36,7 @@ from patchi.core.brain.languages import Lang, detect_language, get_parser
 
 _log = logging.getLogger("patchi.brain.scanner")
 
+
 @dataclass
 class ImportInfo:
     source: str  # e.g. "os", "./auth", "@/components/Button"
@@ -213,7 +214,7 @@ def _load_ast_cache(root: Path) -> None:
         try:
             import json
 
-            with open(cache_file, "r", encoding="utf-8") as f:
+            with open(cache_file, encoding="utf-8") as f:
                 _file_hash_cache = json.load(f)
         except (json.JSONDecodeError, OSError):
             _file_hash_cache = {}
@@ -240,7 +241,7 @@ def _load_file_info_cache(root: Path) -> None:
         try:
             import json
 
-            with open(cache_file, "r", encoding="utf-8") as f:
+            with open(cache_file, encoding="utf-8") as f:
                 _file_info_cache = json.load(f)
         except (json.JSONDecodeError, OSError):
             _file_info_cache = {}
@@ -715,9 +716,23 @@ def _parse_js_ts(source: str, lang: Lang, info: FileInfo) -> None:
     parser = get_parser(lang)
     if parser is None:
         for m in re.finditer(r"""import\s+.*?\s+from\s+['"]([^'"]+)['"]""", source):
-            info.imports.append(ImportInfo(source=m.group(1), names=["*"], is_relative=m.group(1).startswith("."), line=source[:m.start()].count("\n") + 1))
+            info.imports.append(
+                ImportInfo(
+                    source=m.group(1),
+                    names=["*"],
+                    is_relative=m.group(1).startswith("."),
+                    line=source[: m.start()].count("\n") + 1,
+                )
+            )
         for m in re.finditer(r"""require\(['"]([^'"]+)['"]\)""", source):
-            info.imports.append(ImportInfo(source=m.group(1), names=["*"], is_relative=m.group(1).startswith("."), line=source[:m.start()].count("\n") + 1))
+            info.imports.append(
+                ImportInfo(
+                    source=m.group(1),
+                    names=["*"],
+                    is_relative=m.group(1).startswith("."),
+                    line=source[: m.start()].count("\n") + 1,
+                )
+            )
         return
 
     tree = parser.parse(source.encode("utf-8"))
@@ -884,14 +899,21 @@ def _walk_rust_node(node: Any, source: str, info: FileInfo) -> None:
         is_rel = path.starts_with("crate") or path.starts_with("self") or path.starts_with("super")
         if path:
             info.imports.append(
-                ImportInfo(source=path, names=names, is_relative=is_rel, line=node.start_point[0] + 1)
+                ImportInfo(
+                    source=path, names=names, is_relative=is_rel, line=node.start_point[0] + 1
+                )
             )
 
     elif ntype == "extern_crate_declaration":
         name = _node_text(node, source)
         if name:
             info.imports.append(
-                ImportInfo(source=name.strip(";"), names=["*"], is_relative=False, line=node.start_point[0] + 1)
+                ImportInfo(
+                    source=name.strip(";"),
+                    names=["*"],
+                    is_relative=False,
+                    line=node.start_point[0] + 1,
+                )
             )
 
     elif ntype == "mod_item":
@@ -909,9 +931,7 @@ def _walk_rust_node(node: Any, source: str, info: FileInfo) -> None:
     elif ntype in ("function_item", "function_signature_item"):
         name = _rust_child_text(node, "identifier", source)
         if name:
-            info.functions.append(
-                FunctionInfo(name=name, line=node.start_point[0] + 1)
-            )
+            info.functions.append(FunctionInfo(name=name, line=node.start_point[0] + 1))
 
     elif ntype in ("struct_item", "enum_item", "trait_item", "type_item"):
         name = _rust_child_text(node, "identifier", source)
@@ -942,7 +962,7 @@ def _walk_rust_node(node: Any, source: str, info: FileInfo) -> None:
                         for arg in child.children:
                             atype = arg.type
                             if atype in ("string_literal", "raw_string_literal"):
-                                route = _node_text(arg, source).strip('"\'')
+                                route = _node_text(arg, source).strip("\"'")
                                 if route and route.startswith("/"):
                                     info.exports.append(f"route:{route}")
 
@@ -1051,7 +1071,10 @@ def _ts_extract_annotations(node: Any, buf: bytes) -> list[str]:
 def _ts_spring_route(annotation: str) -> str:
     """Extract route path from a Spring annotation like @GetMapping(\"/api/foo\")."""
     import re
-    m = re.search(r"@(?:Get|Post|Put|Delete|Patch|Request)Mapping\s*\(\s*[\"']([^\"']+)[\"']", annotation)
+
+    m = re.search(
+        r"@(?:Get|Post|Put|Delete|Patch|Request)Mapping\s*\(\s*[\"']([^\"']+)[\"']", annotation
+    )
     return m.group(1) if m else ""
 
 
@@ -1072,8 +1095,11 @@ def _parse_java_regex(source: str, info: FileInfo) -> None:
     for m in re.finditer(r"^import\s+(?:static\s+)?([\w.]+(?:\*)?)\s*;", source, re.MULTILINE):
         info.imports.append(ImportInfo(source=m.group(1), names=["*"], is_relative=False))
     for m in re.finditer(r"class\s+(\w+)", source):
-        info.classes.append(ClassInfo(name=m.group(1), line=source[:m.start()].count(chr(10)) + 1))
-    for m in re.finditer(r"@(GetMapping|PostMapping|PutMapping|DeleteMapping|PatchMapping|RequestMapping)\s*\(\s*[\"']([^\"']+)[\"']", source):
+        info.classes.append(ClassInfo(name=m.group(1), line=source[: m.start()].count(chr(10)) + 1))
+    for m in re.finditer(
+        r"@(GetMapping|PostMapping|PutMapping|DeleteMapping|PatchMapping|RequestMapping)\s*\(\s*[\"']([^\"']+)[\"']",
+        source,
+    ):
         info.exports.append(f"route:{m.group(2)}")
 
 
@@ -1091,7 +1117,12 @@ def _walk_java(node: Any, buf: bytes, info: FileInfo) -> None:
         path = _ts_node_text(path_node, buf) if path_node else ""
         if path:
             info.imports.append(ImportInfo(source=path, names=["*"], is_relative=False))
-    elif ntype in ("class_declaration", "interface_declaration", "enum_declaration", "record_declaration"):
+    elif ntype in (
+        "class_declaration",
+        "interface_declaration",
+        "enum_declaration",
+        "record_declaration",
+    ):
         name = _ts_node_text(_ts_child_by_field(node, "name"), buf)
         if name:
             info.classes.append(ClassInfo(name=name, line=node.start_point[0] + 1))
@@ -1100,7 +1131,9 @@ def _walk_java(node: Any, buf: bytes, info: FileInfo) -> None:
         name = _ts_node_text(name_node, buf) if name_node else ""
         if name:
             annotations = _ts_extract_annotations(node, buf)
-            info.functions.append(FunctionInfo(name=name, line=node.start_point[0] + 1, decorators=annotations))
+            info.functions.append(
+                FunctionInfo(name=name, line=node.start_point[0] + 1, decorators=annotations)
+            )
             for a in annotations:
                 route = _ts_spring_route(a)
                 if route and f"route:{route}" not in info.exports:
@@ -1127,7 +1160,9 @@ def _parse_go_regex(source: str, info: FileInfo) -> None:
     for m in re.finditer(r'^\s+"([^"]+)"', source, re.MULTILINE):
         info.imports.append(ImportInfo(source=m.group(1), names=["*"], is_relative=False))
     for m in re.finditer(r"^func\s+(?:\([^)]*\)\s*)?(\w+)", source, re.MULTILINE):
-        info.functions.append(FunctionInfo(name=m.group(1), line=source[:m.start()].count(chr(10)) + 1))
+        info.functions.append(
+            FunctionInfo(name=m.group(1), line=source[: m.start()].count(chr(10)) + 1)
+        )
     for m in re.finditer(r"r\.(GET|POST|PUT|DELETE|PATCH|HEAD)\s*\(\s*[\"']([^\"']+)[\"']", source):
         info.exports.append(f"route:{m.group(2)}")
 
@@ -1172,7 +1207,18 @@ def _walk_go(node: Any, buf: bytes, info: FileInfo) -> None:
 
 def _ts_go_route(func_text: str, args_node: Any, buf: bytes) -> str:
     """Extract route path from Go router calls like r.GET(\"/api/foo\")."""
-    methods = {"GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS", "Any", "Handle", "HandleFunc"}
+    methods = {
+        "GET",
+        "POST",
+        "PUT",
+        "DELETE",
+        "PATCH",
+        "HEAD",
+        "OPTIONS",
+        "Any",
+        "Handle",
+        "HandleFunc",
+    }
     parts = func_text.split(".")
     if len(parts) < 2:
         return ""
@@ -1180,7 +1226,11 @@ def _ts_go_route(func_text: str, args_node: Any, buf: bytes) -> str:
     if method not in methods:
         return ""
     for child in _ts_children(args_node):
-        if _ts_node_type(child) in ("interpreted_string_literal", "string_literal", "raw_string_literal"):
+        if _ts_node_type(child) in (
+            "interpreted_string_literal",
+            "string_literal",
+            "raw_string_literal",
+        ):
             path = _ts_node_text(child, buf).strip('"`')
             if path:
                 return path
@@ -1201,10 +1251,14 @@ def _parse_c_cpp(source: str, info: FileInfo) -> None:
 
 
 def _parse_c_cpp_regex(source: str, info: FileInfo) -> None:
-    for m in re.finditer(r'^#\s*include\s+[<\"]([^>\"]+)[>\"]', source, re.MULTILINE):
+    for m in re.finditer(r"^#\s*include\s+[<\"]([^>\"]+)[>\"]", source, re.MULTILINE):
         info.imports.append(ImportInfo(source=m.group(1), names=["*"], is_relative=False))
-    for m in re.finditer(r"^(?:static\s+)?\w+(?:\s*\*+)?\s+(\w+)\s*\([^)]*\)\s*\{", source, re.MULTILINE):
-        info.functions.append(FunctionInfo(name=m.group(1), line=source[:m.start()].count(chr(10)) + 1))
+    for m in re.finditer(
+        r"^(?:static\s+)?\w+(?:\s*\*+)?\s+(\w+)\s*\([^)]*\)\s*\{", source, re.MULTILINE
+    ):
+        info.functions.append(
+            FunctionInfo(name=m.group(1), line=source[: m.start()].count(chr(10)) + 1)
+        )
 
 
 def _walk_c_cpp(node: Any, buf: bytes, info: FileInfo, lang: Lang) -> None:
@@ -1261,12 +1315,16 @@ def _parse_swift(source: str, info: FileInfo) -> None:
 
 def _parse_swift_regex(source: str, info: FileInfo) -> None:
     for m in re.finditer(r"^import\s+(\w+)", source, re.MULTILINE):
-        lineno = source[:m.start()].count(chr(10)) + 1
-        info.imports.append(ImportInfo(source=m.group(1), names=["*"], is_relative=False, line=lineno))
+        lineno = source[: m.start()].count(chr(10)) + 1
+        info.imports.append(
+            ImportInfo(source=m.group(1), names=["*"], is_relative=False, line=lineno)
+        )
     for m in re.finditer(r"(?:public\s+)?(?:class|struct|enum|protocol|extension)\s+(\w+)", source):
-        info.classes.append(ClassInfo(name=m.group(1), line=source[:m.start()].count(chr(10)) + 1))
+        info.classes.append(ClassInfo(name=m.group(1), line=source[: m.start()].count(chr(10)) + 1))
     for m in re.finditer(r"(?:public\s+)?func\s+(\w+)\s*\(", source):
-        info.functions.append(FunctionInfo(name=m.group(1), line=source[:m.start()].count(chr(10)) + 1))
+        info.functions.append(
+            FunctionInfo(name=m.group(1), line=source[: m.start()].count(chr(10)) + 1)
+        )
 
 
 def _walk_swift(node: Any, buf: bytes, info: FileInfo) -> None:
@@ -1280,8 +1338,18 @@ def _walk_swift(node: Any, buf: bytes, info: FileInfo) -> None:
                     break
         path = _ts_node_text(path_node, buf) if path_node else ""
         if path:
-            info.imports.append(ImportInfo(source=path, names=["*"], is_relative=False, line=node.start_point[0] + 1))
-    elif ntype in ("class_declaration", "struct_declaration", "enum_declaration", "protocol_declaration", "extension_declaration"):
+            info.imports.append(
+                ImportInfo(
+                    source=path, names=["*"], is_relative=False, line=node.start_point[0] + 1
+                )
+            )
+    elif ntype in (
+        "class_declaration",
+        "struct_declaration",
+        "enum_declaration",
+        "protocol_declaration",
+        "extension_declaration",
+    ):
         name = _ts_node_text(_ts_child_by_field(node, "name"), buf)
         if name:
             info.classes.append(ClassInfo(name=name, line=node.start_point[0] + 1))
@@ -1306,13 +1374,26 @@ def _parse_ruby(source: str, info: FileInfo) -> None:
 
 
 def _parse_ruby_regex(source: str, info: FileInfo) -> None:
-    for m in re.finditer(r'^\s*(?:require|require_relative|load)\s+["\']([^"\']+)["\']', source, re.MULTILINE):
-        info.imports.append(ImportInfo(source=m.group(1), names=["*"], is_relative=m.group(0).strip().startswith("require_relative"), line=source[:m.start()].count(chr(10)) + 1))
+    for m in re.finditer(
+        r'^\s*(?:require|require_relative|load)\s+["\']([^"\']+)["\']', source, re.MULTILINE
+    ):
+        info.imports.append(
+            ImportInfo(
+                source=m.group(1),
+                names=["*"],
+                is_relative=m.group(0).strip().startswith("require_relative"),
+                line=source[: m.start()].count(chr(10)) + 1,
+            )
+        )
     for m in re.finditer(r"^\s*(?:class|module)\s+(\w+(?:::\w+)*)", source, re.MULTILINE):
-        info.classes.append(ClassInfo(name=m.group(1), line=source[:m.start()].count(chr(10)) + 1))
+        info.classes.append(ClassInfo(name=m.group(1), line=source[: m.start()].count(chr(10)) + 1))
     for m in re.finditer(r"^\s*def\s+(?:self\.)?(\w+)", source, re.MULTILINE):
-        info.functions.append(FunctionInfo(name=m.group(1), line=source[:m.start()].count(chr(10)) + 1))
-    for m in re.finditer(r"(?:get|post|put|patch|delete|resources)\s+['\"]([^'\"]+)['\"]", source, re.MULTILINE):
+        info.functions.append(
+            FunctionInfo(name=m.group(1), line=source[: m.start()].count(chr(10)) + 1)
+        )
+    for m in re.finditer(
+        r"(?:get|post|put|patch|delete|resources)\s+['\"]([^'\"]+)['\"]", source, re.MULTILINE
+    ):
         info.exports.append(f"route:{m.group(1)}")
 
 
@@ -1328,10 +1409,17 @@ def _walk_ruby(node: Any, buf: bytes, info: FileInfo) -> None:
             elif ctype == "argument_list":
                 for a in _ts_children(c):
                     if _ts_node_type(a) == "string":
-                        args.append(_ts_node_text(a, buf).strip('"\''))
+                        args.append(_ts_node_text(a, buf).strip("\"'"))
         if method in ("require", "require_relative", "load"):
             for arg in args:
-                info.imports.append(ImportInfo(source=arg, names=["*"], is_relative=(method == "require_relative"), line=node.start_point[0] + 1))
+                info.imports.append(
+                    ImportInfo(
+                        source=arg,
+                        names=["*"],
+                        is_relative=(method == "require_relative"),
+                        line=node.start_point[0] + 1,
+                    )
+                )
         elif method in ("get", "post", "put", "patch", "delete", "resources"):
             for arg in args:
                 info.exports.append(f"route:{arg}")
@@ -1399,16 +1487,24 @@ def _parse_yaml(source: str, info: FileInfo) -> None:
         if key == "uses" and isinstance(value, str):
             info.imports.append(ImportInfo(source=value, names=["*"], is_relative=False, line=0))
         elif key == "image" and isinstance(value, str):
-            info.imports.append(ImportInfo(source=value, names=["docker"], is_relative=False, line=0))
+            info.imports.append(
+                ImportInfo(source=value, names=["docker"], is_relative=False, line=0)
+            )
         elif isinstance(value, list):
             for item in value:
                 if isinstance(item, dict):
                     sub_uses = item.get("uses")
                     if sub_uses:
-                        info.imports.append(ImportInfo(source=sub_uses, names=["*"], is_relative=False, line=0))
+                        info.imports.append(
+                            ImportInfo(source=sub_uses, names=["*"], is_relative=False, line=0)
+                        )
                     sub_image = item.get("image")
                     if sub_image:
-                        info.imports.append(ImportInfo(source=sub_image, names=["docker"], is_relative=False, line=0))
+                        info.imports.append(
+                            ImportInfo(
+                                source=sub_image, names=["docker"], is_relative=False, line=0
+                            )
+                        )
 
 
 # ── PHP parser ────────────────────────────────────────────────────────────────
@@ -1466,17 +1562,29 @@ def _walk_php_node(node: Any, source: str, info: FileInfo) -> None:
         path = _node_text(node, source).removeprefix("use ")
         if path:
             info.imports.append(
-                ImportInfo(source=path.rstrip(";"), names=["*"], is_relative=False,
-                           line=node.start_point[0] + 1)
+                ImportInfo(
+                    source=path.rstrip(";"),
+                    names=["*"],
+                    is_relative=False,
+                    line=node.start_point[0] + 1,
+                )
             )
 
-    elif ntype in ("require_expression", "require_once_expression",
-                   "include_expression", "include_once_expression"):
+    elif ntype in (
+        "require_expression",
+        "require_once_expression",
+        "include_expression",
+        "include_once_expression",
+    ):
         path = _php_extract_include_path(node, source)
         if path:
             info.imports.append(
-                ImportInfo(source=path, names=["*"], is_relative=not path.startswith("/"),
-                           line=node.start_point[0] + 1)
+                ImportInfo(
+                    source=path,
+                    names=["*"],
+                    is_relative=not path.startswith("/"),
+                    line=node.start_point[0] + 1,
+                )
             )
 
     elif ntype == "function_definition":
@@ -1510,12 +1618,12 @@ def _php_extract_include_path(node: Any, source: str) -> str | None:
     """Extract the file path from a PHP require/include expression."""
     for child in node.children:
         if child.type in ("encapsed_string", "string"):
-            return _node_text(child, source).strip('"\'')
+            return _node_text(child, source).strip("\"'")
         if child.type == "binary_expression":
             parts = child.children
-            for i, p in enumerate(parts):
+            for _i, p in enumerate(parts):
                 if p.type in ("encapsed_string", "string"):
-                    return _node_text(p, source).strip('"\'')
+                    return _node_text(p, source).strip("\"'")
     return None
 
 
@@ -1543,7 +1651,8 @@ def _walk_html(node: Any, source: str, info: FileInfo) -> None:
         if src:
             info.imports.append(
                 ImportInfo(
-                    source=src, names=["script"],
+                    source=src,
+                    names=["script"],
                     is_relative=not src.startswith("http"),
                     line=node.start_point[0] + 1,
                 )
@@ -1556,7 +1665,8 @@ def _walk_html(node: Any, source: str, info: FileInfo) -> None:
             if href and rel and "stylesheet" in rel.lower().split():
                 info.imports.append(
                     ImportInfo(
-                        source=href, names=["style"],
+                        source=href,
+                        names=["style"],
                         is_relative=not href.startswith("http"),
                         line=node.start_point[0] + 1,
                     )
@@ -1611,15 +1721,18 @@ def _walk_csharp_node(node: Any, source: str, info: FileInfo) -> None:
         path = _node_text(node, source).removeprefix("using ").rstrip(";")
         if path:
             info.imports.append(
-                ImportInfo(source=path, names=["*"], is_relative=False,
-                           line=node.start_point[0] + 1)
+                ImportInfo(
+                    source=path, names=["*"], is_relative=False, line=node.start_point[0] + 1
+                )
             )
     elif ntype == "class_declaration":
         name = _csharp_child_text(node, "identifier", source)
         if name:
             info.classes.append(ClassInfo(name=name, line=node.start_point[0] + 1))
     elif ntype == "method_declaration":
-        name = _csharp_child_text(node, "identifier", source) or _csharp_child_text(node, "name", source)
+        name = _csharp_child_text(node, "identifier", source) or _csharp_child_text(
+            node, "name", source
+        )
         if name:
             info.functions.append(FunctionInfo(name=name, line=node.start_point[0] + 1))
     for child in node.children:
@@ -1658,8 +1771,9 @@ def _walk_kotlin_node(node: Any, source: str, info: FileInfo) -> None:
         path = raw.removeprefix("import ").rstrip(";").removesuffix(".*")
         if path:
             info.imports.append(
-                ImportInfo(source=path, names=["*"], is_relative=False,
-                           line=node.start_point[0] + 1)
+                ImportInfo(
+                    source=path, names=["*"], is_relative=False, line=node.start_point[0] + 1
+                )
             )
     elif ntype == "class_declaration":
         name = _kotlin_child_text(node, "identifier", source)
@@ -1705,15 +1819,20 @@ def _walk_dart_node(node: Any, source: str, info: FileInfo) -> None:
         path = raw.strip("'\"")
         if path:
             info.imports.append(
-                ImportInfo(source=path, names=["*"], is_relative=is_rel,
-                           line=node.start_point[0] + 1)
+                ImportInfo(
+                    source=path, names=["*"], is_relative=is_rel, line=node.start_point[0] + 1
+                )
             )
     elif ntype == "class_definition":
         name = _dart_child_text(node, "identifier", source)
         if name:
             info.classes.append(ClassInfo(name=name, line=node.start_point[0] + 1))
-    elif ntype in ("method_declaration", "function_declaration", "getter_declaration",
-                   "setter_declaration"):
+    elif ntype in (
+        "method_declaration",
+        "function_declaration",
+        "getter_declaration",
+        "setter_declaration",
+    ):
         name = _dart_child_text(node, "identifier", source)
         if name:
             info.functions.append(FunctionInfo(name=name, line=node.start_point[0] + 1))
@@ -1749,8 +1868,12 @@ def _parse_bash_regex(source: str, info: FileInfo) -> None:
     """Regex fallback for Bash."""
     for m in re.finditer(r"""^(?:source|\.)\s+['"]?([^\s'"]+)['"]?""", source, re.MULTILINE):
         info.imports.append(
-            ImportInfo(source=m.group(1), names=["*"], is_relative=True,
-                       line=source[: m.start()].count("\n") + 1)
+            ImportInfo(
+                source=m.group(1),
+                names=["*"],
+                is_relative=True,
+                line=source[: m.start()].count("\n") + 1,
+            )
         )
 
 
@@ -1779,8 +1902,9 @@ def _walk_bash_node(node: Any, source: str, info: FileInfo) -> None:
                             break
                 if path:
                     info.imports.append(
-                        ImportInfo(source=path, names=["*"], is_relative=True,
-                                   line=node.start_point[0] + 1)
+                        ImportInfo(
+                            source=path, names=["*"], is_relative=True, line=node.start_point[0] + 1
+                        )
                     )
     for child in node.children:
         _walk_bash_node(child, source, info)
@@ -1817,8 +1941,12 @@ def _walk_css_node(node: Any, source: str, info: FileInfo) -> None:
             path = path[4:-1].strip("\"'")
         if path:
             info.imports.append(
-                ImportInfo(source=path, names=["*"], is_relative=not path.startswith(("http", "//")),
-                           line=node.start_point[0] + 1)
+                ImportInfo(
+                    source=path,
+                    names=["*"],
+                    is_relative=not path.startswith(("http", "//")),
+                    line=node.start_point[0] + 1,
+                )
             )
     for child in node.children:
         _walk_css_node(child, source, info)
@@ -1842,12 +1970,16 @@ def _parse_sql(source: str, info: FileInfo) -> None:
 def _walk_sql_node(node: Any, source: str, info: FileInfo) -> None:
     ntype = node.type
     if ntype == "create_table":
-        name_node = _sql_child_by_type(node, "identifier") or _sql_child_by_type(node, "object_reference")
+        name_node = _sql_child_by_type(node, "identifier") or _sql_child_by_type(
+            node, "object_reference"
+        )
         if name_node:
             name = _node_text(name_node, source)
             info.classes.append(ClassInfo(name=name, line=node.start_point[0] + 1))
     elif ntype in ("create_view", "create_procedure", "create_function"):
-        name_node = _sql_child_by_type(node, "identifier") or _sql_child_by_type(node, "object_reference")
+        name_node = _sql_child_by_type(node, "identifier") or _sql_child_by_type(
+            node, "object_reference"
+        )
         if name_node:
             name = _node_text(name_node, source)
             info.functions.append(FunctionInfo(name=name, line=node.start_point[0] + 1))
@@ -1875,8 +2007,12 @@ def _parse_scala_regex(source: str, info: FileInfo) -> None:
     """
     for m in re.finditer(r"^\s*import\s+([\w.]+(?:\.\{[^}]*\})?)", source, re.MULTILINE):
         info.imports.append(
-            ImportInfo(source=m.group(1), names=["*"], is_relative=False,
-                       line=source[: m.start()].count("\n") + 1)
+            ImportInfo(
+                source=m.group(1),
+                names=["*"],
+                is_relative=False,
+                line=source[: m.start()].count("\n") + 1,
+            )
         )
     for m in re.finditer(
         r"^\s*(?:private\s+|protected\s+|final\s+)*def\s+(\w+)", source, re.MULTILINE
@@ -1884,12 +2020,8 @@ def _parse_scala_regex(source: str, info: FileInfo) -> None:
         info.functions.append(
             FunctionInfo(name=m.group(1), line=source[: m.start()].count("\n") + 1)
         )
-    for m in re.finditer(
-        r"^\s*(?:case\s+)?(?:class|object|trait)\s+(\w+)", source, re.MULTILINE
-    ):
-        info.classes.append(
-            ClassInfo(name=m.group(1), line=source[: m.start()].count("\n") + 1)
-        )
+    for m in re.finditer(r"^\s*(?:case\s+)?(?:class|object|trait)\s+(\w+)", source, re.MULTILINE):
+        info.classes.append(ClassInfo(name=m.group(1), line=source[: m.start()].count("\n") + 1))
 
 
 # ── Generic fallback parser ────────────────────────────────────────────────────

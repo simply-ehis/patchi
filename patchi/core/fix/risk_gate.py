@@ -30,7 +30,7 @@ from __future__ import annotations
 import datetime
 import logging
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import StrEnum
 from pathlib import Path
 
 from patchi.core import config as cfg
@@ -43,7 +43,7 @@ _log = logging.getLogger("patchi.fix.risk_gate")
 # ── Gate decision ──────────────────────────────────────────────────────────────
 
 
-class GateDecision(str, Enum):
+class GateDecision(StrEnum):
     ALLOW_AUTO = "allow_auto"  # apply immediately
     REQUIRE_REVIEW = "require_review"  # surface to user
     BLOCK = "block"  # hard stop
@@ -114,7 +114,9 @@ class RiskGate:
         except Exception as e:
             _log.warning(
                 "Failed to load config for %s — falling back to defaults (restricted-path "
-                "protections may be affected): %s", root, e,
+                "protections may be affected): %s",
+                root,
+                e,
             )
             self._config = {}
         try:

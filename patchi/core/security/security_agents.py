@@ -55,6 +55,7 @@ _AGENT_MODULES: dict[str, str] = {
     "IaCScannerAgent": ".iac_scanner",
     "InsecureRandomnessAgent": ".insecure_randomness_agent",
     "InjectionAgent": ".injection_agent",
+    "SemgrepAgent": ".sast_agent",
     "JWTSecurityAgent": ".jwt_agent",
     "KubernetesAgent": ".kubernetes_agent",
     "LLMSecurityAgent": ".llm_security_agent",
@@ -122,9 +123,7 @@ class _LazyModuleProxy:
     """Module-level __getattr__ that lazily resolves agent imports."""
 
     def __init__(self):
-        self._agents: dict[str, _LazyAgent] = {
-            name: _make_proxy(name) for name in _AGENT_MODULES
-        }
+        self._agents: dict[str, _LazyAgent] = {name: _make_proxy(name) for name in _AGENT_MODULES}
 
     def __getattr__(self, name: str):
         if name in self._agents:

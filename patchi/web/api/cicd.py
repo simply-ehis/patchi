@@ -1,4 +1,4 @@
-﻿"""CI/CD REST API â€” trigger scans, retrieve results, health checks.
+"""CI/CD REST API â€” trigger scans, retrieve results, health checks.
 
 Endpoints:
   POST /api/cicd/scan          â€” trigger scan and wait for results (sync)
@@ -42,6 +42,7 @@ router = APIRouter(prefix="/api/cicd")
 # Clients send the key via X-API-Key header.
 # Health check endpoint is always unauthenticated.
 
+
 def _get_api_key(root: Path | None = None) -> str | None:
     """Resolve the API key from env or .patchi/api_key file."""
     # 1. Environment variable (always checked first)
@@ -52,6 +53,7 @@ def _get_api_key(root: Path | None = None) -> str | None:
     if root is None:
         try:
             from patchi.core.config import require_project_root
+
             root = require_project_root()
         except Exception:
             return None
@@ -61,6 +63,7 @@ def _get_api_key(root: Path | None = None) -> str | None:
             return key_file.read_text(encoding="utf-8").strip()
         # Auto-generate on first access
         import secrets
+
         new_key = secrets.token_urlsafe(32)
         key_file.parent.mkdir(parents=True, exist_ok=True)
         key_file.write_text(new_key, encoding="utf-8")
@@ -81,17 +84,25 @@ def _verify_api_key(x_api_key: str | None = Header(None)) -> str | None:
         return None  # auth disabled
     if not x_api_key:
         from fastapi import HTTPException
-        raise HTTPException(status_code=401, detail={
-            "error": "Missing X-API-Key header",
-            "hint": "Send X-API-Key header with your request",
-        })
+
+        raise HTTPException(
+            status_code=401,
+            detail={
+                "error": "Missing X-API-Key header",
+                "hint": "Send X-API-Key header with your request",
+            },
+        )
     # Constant-time comparison to prevent timing attacks
     if not hashlib.compare_digest(x_api_key, required):
         from fastapi import HTTPException
-        raise HTTPException(status_code=401, detail={
-            "error": "Invalid API key",
-            "hint": "Send X-API-Key header with your request",
-        })
+
+        raise HTTPException(
+            status_code=401,
+            detail={
+                "error": "Invalid API key",
+                "hint": "Send X-API-Key header with your request",
+            },
+        )
     return x_api_key
 
 
@@ -135,35 +146,43 @@ async def health(request: Request) -> JSONResponse:
     scan_results_exist = False
     try:
         from patchi.core import memory as mem
+
         results = mem.get_scan_results(root)
         scan_results_exist = bool(results)
     except Exception:
         pass
 
-    return JSONResponse({
-        "status": "healthy",
-        "version": "0.6.0",
-        "project_root": str(root),
-        "brain_ready": brain_exists,
-        "assurance_ready": assurance_exists,
-        "scan_results_ready": scan_results_exist,
-        "scan_running": _scan_state["running"],
-        "last_scan": _scan_state["completed_at"],
-    })
+    return JSONResponse(
+        {
+            "status": "healthy",
+            "version": "0.6.0",
+            "project_root": str(root),
+            "brain_ready": brain_exists,
+            "assurance_ready": assurance_exists,
+            "scan_results_ready": scan_results_exist,
+            "scan_running": _scan_state["running"],
+            "last_scan": _scan_state["completed_at"],
+        }
+    )
 
 
 @router.post("/scan")
-async def scan_sync(request: Request, body: ScanRequest = None, _key: str | None = Depends(_verify_api_key)) -> JSONResponse:
+async def scan_sync(
+    request: Request, body: ScanRequest = None, _key: str | None = Depends(_verify_api_key)
+) -> JSONResponse:
     """Trigger scan and wait for results (synchronous, for CI/CD).
 
     Returns scan results when complete. Timeout: 300s.
     """
     if _scan_state["running"]:
-        return JSONResponse({
-            "ok": False,
-            "error": "Scan already running",
-            "started_at": _scan_state["started_at"],
-        }, status_code=409)
+        return JSONResponse(
+            {
+                "ok": False,
+                "error": "Scan already running",
+                "started_at": _scan_state["started_at"],
+            },
+            status_code=409,
+        )
 
     body = body or ScanRequest()
     root = request.app.state.root
@@ -180,27 +199,35 @@ async def scan_sync(request: Request, body: ScanRequest = None, _key: str | None
         return JSONResponse(result)
     except Exception as e:
         _scan_state["last_error"] = str(e)
-        return JSONResponse({
-            "ok": False,
-            "error": str(e),
-            "duration_ms": int((time.time() - _scan_state["started_at"]) * 1000),
-        }, status_code=500)
+        return JSONResponse(
+            {
+                "ok": False,
+                "error": str(e),
+                "duration_ms": int((time.time() - _scan_state["started_at"]) * 1000),
+            },
+            status_code=500,
+        )
     finally:
         _scan_state["running"] = False
 
 
 @router.post("/scan/async")
-async def scan_async(request: Request, body: ScanRequest = None, _key: str | None = Depends(_verify_api_key)) -> JSONResponse:
+async def scan_async(
+    request: Request, body: ScanRequest = None, _key: str | None = Depends(_verify_api_key)
+) -> JSONResponse:
     """Trigger scan and return immediately (async, for CI/CD).
 
     Poll /api/cicd/scan/status for completion.
     """
     if _scan_state["running"]:
-        return JSONResponse({
-            "ok": False,
-            "error": "Scan already running",
-            "started_at": _scan_state["started_at"],
-        }, status_code=409)
+        return JSONResponse(
+            {
+                "ok": False,
+                "error": "Scan already running",
+                "started_at": _scan_state["started_at"],
+            },
+            status_code=409,
+        )
 
     body = body or ScanRequest()
     root = request.app.state.root
@@ -221,29 +248,35 @@ async def scan_async(request: Request, body: ScanRequest = None, _key: str | Non
 
     asyncio.create_task(_bg())
 
-    return JSONResponse({
-        "ok": True,
-        "message": "Scan started",
-        "started_at": _scan_state["started_at"],
-        "poll_url": "/api/cicd/scan/status",
-    })
+    return JSONResponse(
+        {
+            "ok": True,
+            "message": "Scan started",
+            "started_at": _scan_state["started_at"],
+            "poll_url": "/api/cicd/scan/status",
+        }
+    )
 
 
 @router.get("/scan/status")
 async def scan_status(_key: str | None = Depends(_verify_api_key)) -> JSONResponse:
     """Get current scan status."""
-    return JSONResponse({
-        "running": _scan_state["running"],
-        "started_at": _scan_state["started_at"],
-        "completed_at": _scan_state["completed_at"],
-        "agents_run": _scan_state["agents_run"],
-        "total_findings": _scan_state["total_findings"],
-        "error": _scan_state["last_error"],
-    })
+    return JSONResponse(
+        {
+            "running": _scan_state["running"],
+            "started_at": _scan_state["started_at"],
+            "completed_at": _scan_state["completed_at"],
+            "agents_run": _scan_state["agents_run"],
+            "total_findings": _scan_state["total_findings"],
+            "error": _scan_state["last_error"],
+        }
+    )
 
 
 @router.get("/scan/results")
-async def scan_results(request: Request, _key: str | None = Depends(_verify_api_key)) -> JSONResponse:
+async def scan_results(
+    request: Request, _key: str | None = Depends(_verify_api_key)
+) -> JSONResponse:
     """Get latest scan results."""
     root = request.app.state.root
 
@@ -253,6 +286,7 @@ async def scan_results(request: Request, _key: str | None = Depends(_verify_api_
     # Load from memory
     try:
         from patchi.core import memory as mem
+
         results = mem.get_scan_results(root)
         findings = []
         for agent_name, data in (results or {}).items():
@@ -263,15 +297,17 @@ async def scan_results(request: Request, _key: str | None = Depends(_verify_api_
         sev_order = {"critical": 0, "high": 1, "medium": 2, "low": 3, "info": 4}
         findings.sort(key=lambda f: sev_order.get(f.get("severity", "info"), 5))
 
-        return JSONResponse({
-            "ok": True,
-            "total": len(findings),
-            "findings": findings[:100],
-            "by_severity": {
-                s: sum(1 for f in findings if f.get("severity") == s)
-                for s in ["critical", "high", "medium", "low", "info"]
-            },
-        })
+        return JSONResponse(
+            {
+                "ok": True,
+                "total": len(findings),
+                "findings": findings[:100],
+                "by_severity": {
+                    s: sum(1 for f in findings if f.get("severity") == s)
+                    for s in ["critical", "high", "medium", "low", "info"]
+                },
+            }
+        )
     except Exception as e:
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
@@ -290,6 +326,7 @@ async def findings(
 
     try:
         from patchi.core import memory as mem
+
         results = mem.get_scan_results(root)
         all_findings = []
         for agent_name, data in (results or {}).items():
@@ -308,15 +345,17 @@ async def findings(
         all_findings.sort(key=lambda f: sev_order.get(f.get("severity", "info"), 5))
 
         total = len(all_findings)
-        page = all_findings[offset:offset + limit]
+        page = all_findings[offset : offset + limit]
 
-        return JSONResponse({
-            "ok": True,
-            "total": total,
-            "offset": offset,
-            "limit": limit,
-            "findings": page,
-        })
+        return JSONResponse(
+            {
+                "ok": True,
+                "total": total,
+                "offset": offset,
+                "limit": limit,
+                "findings": page,
+            }
+        )
     except Exception as e:
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
@@ -328,26 +367,31 @@ async def assurance(request: Request, _key: str | None = Depends(_verify_api_key
 
     try:
         from patchi.core.assurance.graph import AssuranceGraph
+
         graph = AssuranceGraph.load(root)
         coverage = graph.coverage()
 
         claims = []
         for claim in graph.claims.values():
-            claims.append({
-                "id": claim.id,
-                "statement": claim.statement,
-                "domain": claim.domain,
-                "verdict": claim.verdict.value,
-                "severity": claim.severity_if_disproved,
-                "evidence_count": len(claim.evidence),
-            })
+            claims.append(
+                {
+                    "id": claim.id,
+                    "statement": claim.statement,
+                    "domain": claim.domain,
+                    "verdict": claim.verdict.value,
+                    "severity": claim.severity_if_disproved,
+                    "evidence_count": len(claim.evidence),
+                }
+            )
 
-        return JSONResponse({
-            "ok": True,
-            "coverage": coverage,
-            "claims": claims,
-            "total_claims": len(claims),
-        })
+        return JSONResponse(
+            {
+                "ok": True,
+                "coverage": coverage,
+                "claims": claims,
+                "total_claims": len(claims),
+            }
+        )
     except Exception as e:
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
@@ -383,6 +427,7 @@ async def summary(request: Request, _key: str | None = Depends(_verify_api_key))
         assurance_proved = 0
         try:
             from patchi.core.assurance.graph import AssuranceGraph
+
             graph = AssuranceGraph.load(root)
             assurance_claims = len(graph.claims)
             assurance_proved = sum(1 for c in graph.claims.values() if c.verdict.value == "proved")
@@ -393,6 +438,7 @@ async def summary(request: Request, _key: str | None = Depends(_verify_api_key))
         routing_stats = {}
         try:
             from patchi.core.ai.model_router import get_model_router
+
             router = get_model_router(root=root)
             routing_stats = router.get_routing_stats()
         except Exception:
@@ -402,27 +448,32 @@ async def summary(request: Request, _key: str | None = Depends(_verify_api_key))
         tenant_cost = 0.0
         try:
             from patchi.core.tenant import get_tenant_cost
+
             tenant_cost = get_tenant_cost(root)
         except Exception:
             pass
 
-        return JSONResponse({
-            "ok": True,
-            "project": str(root),
-            "files": file_count,
-            "routes": route_count,
-            "findings": {
-                "total": len(all_findings),
-                "by_severity": by_severity,
-            },
-            "assurance": {
-                "claims": assurance_claims,
-                "proved": assurance_proved,
-            },
-            "routing": routing_stats,
-            "tenant_cost": tenant_cost,
-            "health_score": _compute_health_score(all_findings, assurance_claims, assurance_proved),
-        })
+        return JSONResponse(
+            {
+                "ok": True,
+                "project": str(root),
+                "files": file_count,
+                "routes": route_count,
+                "findings": {
+                    "total": len(all_findings),
+                    "by_severity": by_severity,
+                },
+                "assurance": {
+                    "claims": assurance_claims,
+                    "proved": assurance_proved,
+                },
+                "routing": routing_stats,
+                "tenant_cost": tenant_cost,
+                "health_score": _compute_health_score(
+                    all_findings, assurance_claims, assurance_proved
+                ),
+            }
+        )
     except Exception as e:
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
@@ -464,6 +515,7 @@ async def _run_scan(root: Path, scan_type: str, deep: bool, pipeline: bool) -> d
     # Correlate
     try:
         from patchi.core.security.orchestrator import SecurityOrchestrator
+
         report = SecurityOrchestrator().correlate(results)
         total = report.total_findings
     except Exception:
@@ -473,14 +525,18 @@ async def _run_scan(root: Path, scan_type: str, deep: bool, pipeline: bool) -> d
     all_findings = []
     for r in results:
         for f in r.findings:
-            all_findings.append({
-                "agent": r.agent_name,
-                "type": f.type,
-                "severity": f.severity.value if hasattr(f.severity, "value") else str(f.severity),
-                "file": f.file,
-                "line": f.line,
-                "message": f.message,
-            })
+            all_findings.append(
+                {
+                    "agent": r.agent_name,
+                    "type": f.type,
+                    "severity": f.severity.value
+                    if hasattr(f.severity, "value")
+                    else str(f.severity),
+                    "file": f.file,
+                    "line": f.line,
+                    "message": f.message,
+                }
+            )
 
     return {
         "ok": True,

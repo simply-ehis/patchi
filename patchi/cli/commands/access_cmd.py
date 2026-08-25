@@ -11,8 +11,12 @@ from patchi.cli.console import con
 from patchi.core import memory as mem
 
 
-def run(access_cmd: str | None = None, name: str | None = None,
-        env_var: str | None = None, root: Path | None = None) -> None:
+def run(
+    access_cmd: str | None = None,
+    name: str | None = None,
+    env_var: str | None = None,
+    root: Path | None = None,
+) -> None:
     if access_cmd == "add":
         run_add(name, env_var, root)
     elif access_cmd == "list":
@@ -21,8 +25,7 @@ def run(access_cmd: str | None = None, name: str | None = None,
         run_remove(name, root)
 
 
-def run_add(name: str | None = None, env_var: str | None = None,
-            root: Path | None = None) -> None:
+def run_add(name: str | None = None, env_var: str | None = None, root: Path | None = None) -> None:
     if not name:
         con.print("[red]Usage: p access add <name> [--env-var VAR][/red]")
         return
@@ -55,6 +58,7 @@ def run_remove(name: str | None, root: Path | None = None) -> None:
 def _require_root() -> Path:
     try:
         from patchi.core.config import require_project_root
+
         return require_project_root()
     except RuntimeError as e:
         con.print(f"[red]{e}[/red]")

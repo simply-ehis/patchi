@@ -15,8 +15,9 @@ Deterministic: same findings + graph -> same tree. Zero AI calls.
 from __future__ import annotations
 
 import logging
+from collections.abc import Iterable
 from dataclasses import dataclass, field
-from typing import Any, Iterable, Optional
+from typing import Any
 
 from patchi.core.security.chain_analyzer import Chain, ChainAnalyzer
 
@@ -43,7 +44,7 @@ class TreeNode:
 
     label: str
     detail: str = ""
-    children: list["TreeNode"] = field(default_factory=list)
+    children: list[TreeNode] = field(default_factory=list)
     severity: str = "medium"
     score: float = 0.0
 
@@ -93,7 +94,7 @@ class AttackTree:
         }
 
 
-def _goal_for(chain: Chain) -> Optional[str]:
+def _goal_for(chain: Chain) -> str | None:
     """Map a chain's terminal node to an attacker goal."""
     terminal = chain.nodes[-1].finding.type.lower()
     for pattern, goal in _GOAL_MAP.items():
@@ -125,9 +126,7 @@ def build_attack_trees(
 
     trees: list[AttackTree] = []
     for goal, goal_chains in by_goal.items():
-        worst = max(
-            (_SEVERITY_ORDER.get(c.severity, 0) for c in goal_chains), default=0
-        )
+        worst = max((_SEVERITY_ORDER.get(c.severity, 0) for c in goal_chains), default=0)
         root = TreeNode(label=f"Goal: {goal}")
         # Each chain becomes one path under the root; branch labels come from
         # the entry/exploit steps, leaf is the impact.
@@ -159,8 +158,7 @@ def build_attack_trees(
                 goal=goal,
                 root=root,
                 chain_count=len(goal_chains),
-                worst_severity=[s for s, v in _SEVERITY_ORDER.items() if v == worst][0]
-                or "info",
+                worst_severity=[s for s, v in _SEVERITY_ORDER.items() if v == worst][0] or "info",
             )
         )
 
@@ -170,7 +168,7 @@ def build_attack_trees(
 
 def trees_from_findings(
     findings: Iterable[Any],
-    import_edges: Optional[dict[str, set[str]]] = None,
+    import_edges: dict[str, set[str]] | None = None,
 ) -> tuple[list[AttackTree], list[Chain]]:
     """Convenience: findings -> chains -> trees in one call."""
     analyzer = ChainAnalyzer(findings, import_edges=import_edges)

@@ -36,13 +36,21 @@ from ..brain.languages import EXTENSION_MAP, Lang
 
 # Call names that set a session cookie (used for cookie-flag checks).
 _COOKIE_SETTER_CALLS = {
-    "set_cookie", "setcookie", "cookie.set", "cookies.set",
-    "session.cookie", "response.set_cookie", "res.cookie", "ctx.cookie",
+    "set_cookie",
+    "setcookie",
+    "cookie.set",
+    "cookies.set",
+    "session.cookie",
+    "response.set_cookie",
+    "res.cookie",
+    "ctx.cookie",
 }
 # Literal header / config forms that also set cookies.
 _COOKIE_SETTER_LITERALS = re.compile(
-    r'(?i)\b(?:Set-Cookie|set_cookie|session\.cookie|cookie\.set)\b'
+    r"(?i)\b(?:Set-Cookie|set_cookie|session\.cookie|cookie\.set)\b"
 )
+
+
 @register
 class SessionManagementAgent(BaseAgent):
     """Detects session management vulnerabilities."""
@@ -165,7 +173,7 @@ class SessionManagementAgent(BaseAgent):
         # ── Weak session storage (localStorage) ────────────────────────────
         for call in self._calls(content, lang, {"setItem"}):
             full = call.get("full_text", "")
-            if re.search(r'(?i)(?:token|session|jwt|access_token)', full):
+            if re.search(r"(?i)(?:token|session|jwt|access_token)", full):
                 result.add_finding(
                     Finding(
                         agent=self.name,
@@ -181,7 +189,9 @@ class SessionManagementAgent(BaseAgent):
                 )
 
         # ── No session timeout / expiry ─────────────────────────────────────
-        if re.search(r"(?i)\b(?:session|token)\b.*\b(?:expire|timeout|ttl|max_age|maxAge)\b", content):
+        if re.search(
+            r"(?i)\b(?:session|token)\b.*\b(?:expire|timeout|ttl|max_age|maxAge)\b", content
+        ):
             pass  # OK — has expiry configuration
         elif re.search(r"(?i)\bsession\.(?:start|init|create|new)\s*\(", content):
             result.add_finding(

@@ -9,15 +9,49 @@ from pathlib import Path
 
 _LOG = logging.getLogger("patchi.debug.adapters.node")
 
-_BUILTIN_VARS = frozenset({
-    "arguments", "console", "process", "require", "module", "__filename",
-    "__dirname", "global", "Buffer", "clearTimeout", "setTimeout",
-    "setInterval", "clearInterval", "setImmediate", "Promise",
-    "JSON", "Object", "String", "Number", "Boolean", "Function", "Array",
-    "Date", "Math", "RegExp", "Error", "SyntaxError", "TypeError",
-    "ReferenceError", "RangeError", "URIError", "EvalError", "Symbol",
-    "Map", "Set", "WeakMap", "WeakSet", "Proxy", "Reflect",
-})
+_BUILTIN_VARS = frozenset(
+    {
+        "arguments",
+        "console",
+        "process",
+        "require",
+        "module",
+        "__filename",
+        "__dirname",
+        "global",
+        "Buffer",
+        "clearTimeout",
+        "setTimeout",
+        "setInterval",
+        "clearInterval",
+        "setImmediate",
+        "Promise",
+        "JSON",
+        "Object",
+        "String",
+        "Number",
+        "Boolean",
+        "Function",
+        "Array",
+        "Date",
+        "Math",
+        "RegExp",
+        "Error",
+        "SyntaxError",
+        "TypeError",
+        "ReferenceError",
+        "RangeError",
+        "URIError",
+        "EvalError",
+        "Symbol",
+        "Map",
+        "Set",
+        "WeakMap",
+        "WeakSet",
+        "Proxy",
+        "Reflect",
+    }
+)
 
 
 class NodeDebugAdapter:
@@ -64,7 +98,7 @@ class NodeDebugAdapter:
             prefix = "PATCHI_DEBUG_CAPTURE:"
             if stripped.startswith(prefix):
                 try:
-                    return json.loads(stripped[len(prefix):])
+                    return json.loads(stripped[len(prefix) :])
                 except json.JSONDecodeError:
                     _LOG.warning("PATCHI_DEBUG_CAPTURE JSON parse error: %.200s", stripped)
                     return None
@@ -83,7 +117,9 @@ def _find_node() -> Path | None:
     try:
         result = subprocess.run(
             ["where", "node"],
-            capture_output=True, text=True, timeout=10,
+            capture_output=True,
+            text=True,
+            timeout=10,
         )
         if result.returncode == 0:
             for line in result.stdout.splitlines():

@@ -18,6 +18,7 @@ from __future__ import annotations
 import hashlib
 import logging
 import time
+from datetime import UTC
 from pathlib import Path
 from typing import Any
 
@@ -43,6 +44,7 @@ from patchi.core.brain.freshness import check_freshness
 from patchi.core.config import require_project_root
 
 _log = logging.getLogger("patchi.cli.scan_cmd")
+
 
 def run(
     area: str | None = None,
@@ -78,6 +80,7 @@ def run(
 
     # ── Set tenant context so profiler records the correct project root ────
     from patchi.core.tenant import get_tenant_manager, tenant_context
+
     try:
         mgr = get_tenant_manager()
         mgr.register_project(r)
@@ -86,11 +89,31 @@ def run(
         pass  # non-critical
 
     with tenant_context(r):
-        _run_scan_inner(r, area, dry_run, force, quiet, no_logo, deep,
-                        file_path, contract, all_flows, offline, json_output,
-                        side, pipeline, daemon, governor, with_attackers,
-                        with_campaigns, with_fuzz, red_team, dast,
-                        changed, changed_commits)
+        _run_scan_inner(
+            r,
+            area,
+            dry_run,
+            force,
+            quiet,
+            no_logo,
+            deep,
+            file_path,
+            contract,
+            all_flows,
+            offline,
+            json_output,
+            side,
+            pipeline,
+            daemon,
+            governor,
+            with_attackers,
+            with_campaigns,
+            with_fuzz,
+            red_team,
+            dast,
+            changed,
+            changed_commits,
+        )
 
 
 def _run_scan_inner(
@@ -242,8 +265,11 @@ def _run_scan_inner(
             # Import scanners to trigger @register decorators
             import patchi.core.agents.scanners  # noqa: F401
             from patchi.core.agents.coordinator import Coordinator, CoordinatorProgress
+
             if not governor:
-                agents_task = progress.add_task("[dim]Running scanner agents…[/dim]", total=len(list_agents(AgentGroup.SCANNER)))
+                agents_task = progress.add_task(
+                    "[dim]Running scanner agents…[/dim]", total=len(list_agents(AgentGroup.SCANNER))
+                )
 
                 def on_agent_progress(cp: CoordinatorProgress) -> None:
                     progress.update(
@@ -262,19 +288,22 @@ def _run_scan_inner(
                         from patchi.core.security.git_diff_activator import (
                             activate_from_diff,
                         )
+
                         diff_result = activate_from_diff(r, commits=changed_commits)
                         if diff_result.activated_domains:
-                            con.print(f"  [dim]Changed files: {len(diff_result.changed_files)}[/dim]")
+                            con.print(
+                                f"  [dim]Changed files: {len(diff_result.changed_files)}[/dim]"
+                            )
                             dom_str = ", ".join(
                                 f"{d} ({s:.1f})"
                                 for d, s in list(diff_result.activated_domains.items())[:8]
                             )
                             con.print(f"  [dim]Activated domains: {dom_str}[/dim]")
-                            coord.set_active_domains(
-                                list(diff_result.activated_domains.keys())
-                            )
+                            coord.set_active_domains(list(diff_result.activated_domains.keys()))
                         else:
-                            con.print("  [dim]No domain-relevant changes detected — running full scan[/dim]")
+                            con.print(
+                                "  [dim]No domain-relevant changes detected — running full scan[/dim]"
+                            )
                     except Exception as e:
                         _log.debug("Git-diff activation failed: %s", e)
 
@@ -284,10 +313,11 @@ def _run_scan_inner(
                 try:
                     from patchi.core.agents.coordinator import merge_results as _pmr
                     from patchi.core.ai.agent_profiler import record_run
+
                     _pm = _pmr(agent_results)
-                    for ar in (agent_results or []):
-                        aname = getattr(ar, 'agent_name', type(ar).__name__)
-                        acount = getattr(ar, 'finding_count', 0)
+                    for ar in agent_results or []:
+                        aname = getattr(ar, "agent_name", type(ar).__name__)
+                        acount = getattr(ar, "finding_count", 0)
                         with record_run(r, aname, files_scanned=acount) as run:
                             run.findings_produced = acount
                 except Exception:
@@ -299,16 +329,20 @@ def _run_scan_inner(
                     from patchi.core.security.attack_feedback import (
                         record_confirmed_attack,
                     )
+
                     _fb = _fbr(agent_results)
-                    for f in _fb.get('findings', []):
-                        if f.get('severity') in ('critical', 'high'):
-                            record_confirmed_attack(r, {
-                                'tool': f.get('agent', 'unknown'),
-                                'payload': f.get('message', ''),
-                                'endpoint': f.get('file', ''),
-                                'severity': f.get('severity', 'medium'),
-                                'evidence': f.get('message', ''),
-                            })
+                    for f in _fb.get("findings", []):
+                        if f.get("severity") in ("critical", "high"):
+                            record_confirmed_attack(
+                                r,
+                                {
+                                    "tool": f.get("agent", "unknown"),
+                                    "payload": f.get("message", ""),
+                                    "endpoint": f.get("file", ""),
+                                    "severity": f.get("severity", "medium"),
+                                    "evidence": f.get("message", ""),
+                                },
+                            )
                 except Exception:
                     pass  # feedback is best-effort
 
@@ -319,6 +353,7 @@ def _run_scan_inner(
 
         except Exception as e:
             import traceback
+
             error = f"{e}\n{traceback.format_exc()}"
 
     if _is_tty:
@@ -348,9 +383,8 @@ def _run_scan_inner(
     try:
         from patchi.core.agents.coordinator import merge_results as _mr
         from patchi.core.security.threat_model_updater import update_threat_model
-        _findings_for_tm = (
-            _mr(agent_results).get("findings", []) if agent_results else []
-        )
+
+        _findings_for_tm = _mr(agent_results).get("findings", []) if agent_results else []
         threat_model = update_threat_model(r, _findings_for_tm)
         if threat_model.applicable_scenarios > 0:
             con.print()
@@ -360,9 +394,7 @@ def _run_scan_inner(
                 f"out of {threat_model.total_scenarios} total"
             )
             if threat_model.by_severity:
-                sev_str = ", ".join(
-                    f"{k}={v}" for k, v in sorted(threat_model.by_severity.items())
-                )
+                sev_str = ", ".join(f"{k}={v}" for k, v in sorted(threat_model.by_severity.items()))
                 con.print(f"  By severity: {sev_str}")
             if threat_model.recommendations:
                 for rec in threat_model.recommendations[:3]:
@@ -371,6 +403,7 @@ def _run_scan_inner(
             tm_path = r / ".patchi" / "threat_model.json"
             tm_path.parent.mkdir(parents=True, exist_ok=True)
             import json as _json
+
             tm_path.write_text(_json.dumps(threat_model.to_dict(), indent=2), encoding="utf-8")
     except Exception as e:
         _log.debug("Threat model generation failed: %s", e)
@@ -379,22 +412,27 @@ def _run_scan_inner(
     try:
         from patchi.core.agents.base import AgentGroup
         from patchi.core.agents.base import list_agents as _la
+
         _sec_names = {a.name for a in _la(AgentGroup.SECURITY)}
         _sec_agents = [
-            a for a in (agent_results or [])
-            if getattr(a, "agent_name", "") in _sec_names
+            a for a in (agent_results or []) if getattr(a, "agent_name", "") in _sec_names
         ]
         if _sec_agents:
             from patchi.core.security.orchestrator import SecurityOrchestrator
+
             _sec_report = SecurityOrchestrator().correlate(_sec_agents)
 
             # ── Exploit Chains ──────────────────────────────────────
             if _sec_report.chains:
                 con.print()
                 con.print("[bold #C8621A]─ Exploit Chains ─[/bold #C8621A]")
-                con.print(f"  [bold]{len(_sec_report.chains)}[/bold] cross-file attack paths discovered")
+                con.print(
+                    f"  [bold]{len(_sec_report.chains)}[/bold] cross-file attack paths discovered"
+                )
                 for chain in _sec_report.chains[:5]:
-                    sev_color = {"critical": "red", "high": "red", "medium": "yellow"}.get(chain.severity, "dim")
+                    sev_color = {"critical": "red", "high": "red", "medium": "yellow"}.get(
+                        chain.severity, "dim"
+                    )
                     con.print(
                         f"    [{sev_color}]●[{chain.severity}] score={chain.score:.0f} "
                         f"length={chain.length}[/{sev_color}]"
@@ -436,6 +474,7 @@ def _run_scan_inner(
 
             # Persist for web UI
             import json as _cjson
+
             _ci_path = r / ".patchi" / "chain_intent.json"
             _ci_path.parent.mkdir(parents=True, exist_ok=True)
             _ci_path.write_text(_cjson.dumps(_sec_report.to_dict(), indent=2), encoding="utf-8")
@@ -443,6 +482,7 @@ def _run_scan_inner(
             # ── Feed chains + intent into assurance graph ──────────────
             try:
                 from patchi.core.security.chain_to_assurance import feed_chains_to_graph
+
                 _fed = feed_chains_to_graph(r)
                 if _fed:
                     con.print(f"  [dim]Fed {_fed} evidence items into assurance graph[/dim]")
@@ -461,7 +501,9 @@ def _run_scan_inner(
 
             agraph = AssuranceGraph.load(r)
             if not agraph.claims:
-                con.print("  [dim]No assurance graph found — run 'p scan' first to build one.[/dim]")
+                con.print(
+                    "  [dim]No assurance graph found — run 'p scan' first to build one.[/dim]"
+                )
             else:
                 con.print(f"  [dim]Loaded assurance graph: {len(agraph.claims)} claims[/dim]")
 
@@ -473,12 +515,16 @@ def _run_scan_inner(
                     campaign_result = orch.run_all()
                     con.print(f"  Campaigns: [bold]{len(campaign_result.campaigns)}[/bold] run")
                     for cr in campaign_result.campaigns:
-                        status = "[green]PASS[/green]" if cr.total_findings == 0 else f"[yellow]{cr.total_findings} findings[/yellow]"
+                        status = (
+                            "[green]PASS[/green]"
+                            if cr.total_findings == 0
+                            else f"[yellow]{cr.total_findings} findings[/yellow]"
+                        )
                         con.print(f"    {cr.name}: {status}")
                         for step in cr.steps:
                             if step.findings:
                                 for f in step.findings:
-                                    sev = f.get('severity', 'info')
+                                    sev = f.get("severity", "info")
                                     con.print(f"      [{sev}] {f.get('detail', '')[:80]}")
 
                 # ── Attackers ────────────────────────────────────────────
@@ -488,8 +534,10 @@ def _run_scan_inner(
                     planner = AttackPlanner(agraph)
                     attack_results = planner.run_all()
                     confirmed = [r for r in attack_results if r.confirmed]
-                    con.print(f"  Attackers: [bold]{len(attack_results)}[/bold] hypotheses tested, "
-                              f"[bold]{len(confirmed)}[/bold] confirmed")
+                    con.print(
+                        f"  Attackers: [bold]{len(attack_results)}[/bold] hypotheses tested, "
+                        f"[bold]{len(confirmed)}[/bold] confirmed"
+                    )
                     for r in confirmed[:10]:
                         con.print(f"    [red]●[/red] {r.hypothesis.attacker}: {r.evidence[:70]}")
 
@@ -501,7 +549,7 @@ def _run_scan_inner(
                     # Fuzz route parameters
                     route_finds = 0
                     for claim in agraph.claims.values():
-                        if 'endpoint' in claim.domain:
+                        if "endpoint" in claim.domain:
                             route_finds += 1
                     con.print(f"  Fuzz: [bold]{route_finds}[/bold] endpoints available for fuzzing")
                     if route_finds > 0:
@@ -510,6 +558,7 @@ def _run_scan_inner(
 
         except Exception as e:
             import traceback
+
             con.print(f"  [red]Assurance analysis error: {e}[/red]")
             con.print(traceback.format_exc())
 
@@ -525,6 +574,7 @@ def _run_scan_inner(
             try:
                 # Check if web server is already running
                 import urllib.request
+
                 urllib.request.urlopen("http://127.0.0.1:1612/api/health", timeout=2)
                 target_url = "http://127.0.0.1:1612"
                 con.print(f"  [dim]Target: {target_url} (detected running server)[/dim]")
@@ -538,10 +588,13 @@ def _run_scan_inner(
                 on_progress=lambda msg: con.print(f"  [dim]{msg}[/dim]"),
             )
             import asyncio
-            report = asyncio.run(engine.run_assessment(
-                scope="full",
-                intensity="standard",
-            ))
+
+            report = asyncio.run(
+                engine.run_assessment(
+                    scope="full",
+                    intensity="standard",
+                )
+            )
             con.print(f"  Scenarios run: [bold]{len(report.scenarios_run)}[/bold]")
             con.print(f"  Findings: [bold]{report.total_findings}[/bold]")
             if report.by_severity:
@@ -554,16 +607,25 @@ def _run_scan_inner(
             if report.total_findings > 0:
                 con.print("\n  [dim]Generating fixes for confirmed findings...[/dim]")
                 from patchi.core.security.auto_fixer import AutoFixer
-                fixer = AutoFixer(r, cfg.load(r), on_progress=lambda msg: con.print(f"  [dim]{msg}[/dim]"))
+
+                fixer = AutoFixer(
+                    r, cfg.load(r), on_progress=lambda msg: con.print(f"  [dim]{msg}[/dim]")
+                )
                 for scenario in report.scenarios_run:
                     for finding in scenario.findings:
                         import asyncio
-                        result = asyncio.run(fixer.fix_finding(finding, strategy="auto", apply=False, verify=False))
+
+                        result = asyncio.run(
+                            fixer.fix_finding(finding, strategy="auto", apply=False, verify=False)
+                        )
                         if result.get("success"):
-                            con.print(f"    [green]Fixed[/green] {finding.type} → patch {result['patch_id']}")
+                            con.print(
+                                f"    [green]Fixed[/green] {finding.type} → patch {result['patch_id']}"
+                            )
 
         except Exception as e:
             import traceback
+
             con.print(f"  [red]Red team error: {e}[/red]")
             con.print(traceback.format_exc())
 
@@ -580,6 +642,7 @@ def _run_scan_inner(
             target_url = None
             try:
                 import urllib.request
+
                 urllib.request.urlopen("http://127.0.0.1:1612/api/health", timeout=2)
                 target_url = "http://127.0.0.1:1612"
                 con.print(f"  [dim]Target: {target_url} (detected running server)[/dim]")
@@ -607,8 +670,15 @@ def _run_scan_inner(
                     con.print(f"  By severity: {sev_str}")
                     con.print()
                     for f in report.findings[:10]:
-                        sev_color = {"critical": "red", "high": "red", "medium": "yellow", "low": "dim"}.get(f.severity, "dim")
-                        con.print(f"    [{sev_color}] [{f.severity}] {f.test}: {f.evidence[:60]}[/{sev_color}]")
+                        sev_color = {
+                            "critical": "red",
+                            "high": "red",
+                            "medium": "yellow",
+                            "low": "dim",
+                        }.get(f.severity, "dim")
+                        con.print(
+                            f"    [{sev_color}] [{f.severity}] {f.test}: {f.evidence[:60]}[/{sev_color}]"
+                        )
                 else:
                     con.print("  [green]No security issues found.[/green]")
 
@@ -617,6 +687,7 @@ def _run_scan_inner(
 
         except Exception as e:
             import traceback
+
             con.print(f"  [red]DAST error: {e}[/red]")
             con.print(traceback.format_exc())
 
@@ -633,15 +704,15 @@ def _run_scan_inner(
             con.print(f"  [dim]Adapter registry: {len(ADAPTER_REGISTRY)} adapters loaded[/dim]")
 
             sec_group_names = {a.name for a in list_agents(AgentGroup.SECURITY)}
-            sec_group_names.update({
-                "DependencyScanner",
-                "EnvScanner",
-                "SideFileScanner",
-            })
+            sec_group_names.update(
+                {
+                    "DependencyScanner",
+                    "EnvScanner",
+                    "SideFileScanner",
+                }
+            )
             sec_agents = [
-                a
-                for a in agent_results
-                if getattr(a, "agent_name", "") in sec_group_names
+                a for a in agent_results if getattr(a, "agent_name", "") in sec_group_names
             ]
             report_sec = SecurityOrchestrator().correlate(sec_agents)
             pipeline_inst = DetectionPipeline(r, cfg.load(r))
@@ -666,6 +737,7 @@ def _run_scan_inner(
             if gated.defend:
                 # Use adapter registry directly for each finding
                 from patchi.core.fix.risk_gate import RiskGate
+
                 risk_gate = RiskGate(r)
                 results = []
                 action_counts = {"applied": 0, "queued": 0, "blocked": 0, "skipped": 0}
@@ -683,13 +755,19 @@ def _run_scan_inner(
 
                     target = f.file
                     if action_type == "block_ip":
-                        target = f.extra.get("ip", "") if hasattr(f, "extra") and isinstance(f.extra, dict) else ""
+                        target = (
+                            f.extra.get("ip", "")
+                            if hasattr(f, "extra") and isinstance(f.extra, dict)
+                            else ""
+                        )
 
                     action = DefenseAction(
                         type=action_type,
                         target=target,
                         finding=f,
-                        severity=f.severity.value if hasattr(f.severity, "value") else str(f.severity),
+                        severity=f.severity.value
+                        if hasattr(f.severity, "value")
+                        else str(f.severity),
                         fix_code=f.suggestion or "",
                     )
                     adapter = get_adapter(action_type, root=r, risk_gate=risk_gate)
@@ -706,9 +784,13 @@ def _run_scan_inner(
                 for d in results:
                     if d.action == "applied":
                         adapter_name = type(d.defense_action).__name__ if d.defense_action else "?"
-                        con.print(f"    [green]✓[/green] {d.defense_action.type} → {d.defense_action.target} (via {adapter_name})")
+                        con.print(
+                            f"    [green]✓[/green] {d.defense_action.type} → {d.defense_action.target} (via {adapter_name})"
+                        )
                     elif d.action == "queued":
-                        con.print(f"    [yellow]⏳[/yellow] {d.defense_action.type} → queued for review")
+                        con.print(
+                            f"    [yellow]⏳[/yellow] {d.defense_action.type} → queued for review"
+                        )
             else:
                 con.print("  [dim]No actionable defense findings.[/dim]")
         except Exception as e:
@@ -877,6 +959,7 @@ def _run_scan_inner(
 
     con.print()
 
+
 def _run_contract_review(root: Path, all_flows: bool = False) -> None:
     """Run contract review mode."""
     con.print("[bold #C8621A]Contract Review Mode[/bold #C8621A]")
@@ -929,6 +1012,7 @@ def _run_contract_review(root: Path, all_flows: bool = False) -> None:
 
     con.print()
     con.print("[dim]Run a full scan to confirm these flows.[/dim]")
+
 
 def _run_file_scan(root: Path, file_path: str, deep: bool = False) -> None:
     """Run deep analysis on a specific file."""
@@ -995,6 +1079,7 @@ def _run_file_scan(root: Path, file_path: str, deep: bool = False) -> None:
             con.print(f"[red]Error analyzing file: {e}[/red]")
     else:
         con.print(f"[dim]Basic scan of {file_path}[/dim]")
+
 
 def _run_deep_scan_analysis(root: Path, report: BrainReport, agent_results: list) -> None:
     """Run deep AI analysis on changed files since last deep scan."""
@@ -1099,6 +1184,7 @@ def _run_deep_scan_analysis(root: Path, report: BrainReport, agent_results: list
         con.print(f"[red]Error during deep scan: {e}[/red]")
         con.print(f"[dim]{traceback.format_exc()}[/dim]")
 
+
 _SEV_COLORS = {
     "critical": "#FF4D6D",
     "high": "#FF8C42",
@@ -1106,6 +1192,7 @@ _SEV_COLORS = {
     "low": "#4ADE80",
     "info": "#B8A898",
 }
+
 
 def _show_report_summary(
     report: BrainReport,
@@ -1189,6 +1276,7 @@ def _show_report_summary(
     if agent_results:
         _show_agent_findings_summary(agent_results, root=root)
 
+
 def _show_agent_findings_summary(agent_results: list, root: Path | None = None) -> None:
     """Show a condensed findings table from all scanner agents.
 
@@ -1216,14 +1304,11 @@ def _show_agent_findings_summary(agent_results: list, root: Path | None = None) 
                 kept, nfr = nf.apply(findings)
                 if nfr.capped or nfr.discarded:
                     cats = ", ".join(
-                        f"{k}={v}"
-                        for k, v in sorted(nfr.to_dict()["by_category"].items())
+                        f"{k}={v}" for k, v in sorted(nfr.to_dict()["by_category"].items())
                     )
                     noise_line = (
                         f"  [dim]Noise muted: {nfr.capped} capped, "
-                        f"{nfr.discarded} discarded"
-                        + (f" ({cats})" if cats else "")
-                        + "[/dim]"
+                        f"{nfr.discarded} discarded" + (f" ({cats})" if cats else "") + "[/dim]"
                     )
             findings = kept
         except Exception:  # noqa: BLE001 — display must never crash on filter bugs
@@ -1303,6 +1388,7 @@ def _show_agent_findings_summary(agent_results: list, root: Path | None = None) 
             con.print(f"  [{color}]●[/{color}] [dim]{loc}[/dim]")
             con.print(f"    {f.get('message', '')[:80]}")
 
+
 def _run_contract_confirmation(root: Path, report: BrainReport, all_flows: bool = False) -> None:
     """Interactive contract confirmation flow."""
     from rich.prompt import Confirm, Prompt
@@ -1323,7 +1409,11 @@ def _run_contract_confirmation(root: Path, report: BrainReport, all_flows: bool 
     msg = builder.build_confirmation_message(shown_flows, all_flows=all_flows)
 
     con.print()
-    sub = f" ({hidden_count} low-confidence flows hidden — use --all-flows to see)" if hidden_count else ""
+    sub = (
+        f" ({hidden_count} low-confidence flows hidden — use --all-flows to see)"
+        if hidden_count
+        else ""
+    )
     con.print(
         Panel(
             f"[bold #F2EDD6]App Contract[/bold #F2EDD6]\n\n[dim]{msg}[/dim]{sub}",
@@ -1374,6 +1464,7 @@ def _run_contract_confirmation(root: Path, report: BrainReport, all_flows: bool 
     )
     con.print("[dim]Every fix will check against this contract before applying.[/dim]")
 
+
 def _show_changed_dry_run(root: Path, commits: int) -> None:
     """Show what --changed would activate without actually scanning."""
     from patchi.core.agents.base import AgentGroup
@@ -1391,7 +1482,9 @@ def _show_changed_dry_run(root: Path, commits: int) -> None:
         con.print(f"  [yellow]{diff_result.error}[/yellow]")
         return
 
-    con.print(f"  [bold]Changed files:[/bold] {len(diff_result.changed_files)} (from last {commits} commit{'s' if commits > 1 else ''})")
+    con.print(
+        f"  [bold]Changed files:[/bold] {len(diff_result.changed_files)} (from last {commits} commit{'s' if commits > 1 else ''})"
+    )
     con.print()
 
     # Group changed files by extension
@@ -1437,11 +1530,15 @@ def _show_changed_dry_run(root: Path, commits: int) -> None:
             relevant = list(dict.fromkeys(relevant))  # dedupe preserving order
             would_run = [a for a in all_scanner_agents if getattr(a, "name", "") in relevant]
             skipped = len(all_scanner_agents) - len(would_run)
-            con.print(f"  [bold]Would run:[/bold] {len(would_run)} agents [dim](skipping {skipped})[/dim]")
+            con.print(
+                f"  [bold]Would run:[/bold] {len(would_run)} agents [dim](skipping {skipped})[/dim]"
+            )
             con.print()
             con.print("  [dim]Run without --dry-run to execute the scan.[/dim]")
         except Exception:
-            con.print(f"  [dim]Would run all {len(all_scanner_agents)} agents (activation failed)[/dim]")
+            con.print(
+                f"  [dim]Would run all {len(all_scanner_agents)} agents (activation failed)[/dim]"
+            )
     else:
         con.print(f"  [dim]Would run all {len(all_scanner_agents)} agents (no diff match)[/dim]")
     con.print()
@@ -1483,6 +1580,7 @@ def _show_dry_run(root: Path, area: str | None) -> None:
     con.print(table)
     con.print()
 
+
 def _show_summary_from_memory(root: Path) -> None:
     """Show last scan summary from brain memory."""
     brain = mem.get_brain(root)
@@ -1495,6 +1593,7 @@ def _show_summary_from_memory(root: Path) -> None:
     )
     con.print()
 
+
 def _build_progress() -> Progress:
     return Progress(
         SpinnerColumn(spinner_name="dots"),
@@ -1505,13 +1604,14 @@ def _build_progress() -> Progress:
         transient=False,
     )
 
+
 def _fmt_time(iso: str) -> str:
     """Format ISO timestamp as human-readable."""
     try:
-        from datetime import datetime, timezone
+        from datetime import datetime
 
         dt = datetime.fromisoformat(iso)
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         diff = now - dt
         secs = diff.total_seconds()
         if secs < 60:

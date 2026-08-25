@@ -13,15 +13,15 @@ from __future__ import annotations
 import asyncio
 import logging
 import uuid
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Callable
 
 from patchi.core.agents.base import Finding
-from patchi.core.fix.patch import Patch, PatchState, save_patch_state
 from patchi.core.fix.applier import PatchApplier
 from patchi.core.fix.base import generate_fix as base_generate_fix
+from patchi.core.fix.patch import Patch, PatchState, save_patch_state
 from patchi.core.security.domain_loader import DomainLoader, FixPlaybook
 from patchi.core.security.orchestrator import CorrelatedFinding
 
@@ -31,6 +31,7 @@ _log = logging.getLogger("patchi.security.auto_fixer")
 @dataclass
 class FixAttempt:
     """Record of a fix generation attempt."""
+
     finding_id: str
     finding_type: str
     strategy: str  # "deterministic", "llm-template", "playbook", "manual"
@@ -38,7 +39,7 @@ class FixAttempt:
     patch_id: str | None = None
     success: bool = False
     error: str = ""
-    generated_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    generated_at: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
     verified: bool = False
     verification_at: str = ""
 
@@ -46,6 +47,7 @@ class FixAttempt:
 @dataclass
 class FixVerificationResult:
     """Result of verifying a fix."""
+
     patch_id: str
     finding_id: str
     verified: bool
@@ -57,7 +59,7 @@ class FixVerificationResult:
 class AutoFixer:
     """
     Automatically generates and verifies fixes for security findings.
-    
+
     Flow:
     1. Receive finding (from RedTeamEngine, Orchestrator, or direct)
     2. Match finding to fix playbook (via DomainLoader)
@@ -84,6 +86,7 @@ class AutoFixer:
     def _load_history(self):
         """Load fix history from memory."""
         from patchi.core import memory as mem
+
         history = mem.read(mem.MemoryCategory.ISSUES, self.root)
         for item in history:
             if item.get("type") == "fix_attempt":
@@ -92,6 +95,7 @@ class AutoFixer:
     def _save_history(self):
         """Save fix history to memory."""
         from patchi.core import memory as mem
+
         # Keep last 500 attempts
         data = [{"type": "fix_attempt", **fa.__dict__} for fa in self.fix_history[-500:]]
         mem.write(mem.MemoryCategory.ISSUES, data, self.root)
@@ -105,13 +109,19 @@ class AutoFixer:
     ) -> dict:
         """
         Generate and optionally apply/verify a fix for a finding.
-        
+
         Returns:
             Dict with fix details, patch_id, verification result
         """
-        finding_id = getattr(finding, "id", None) or getattr(finding, "finding", {}).get("id", str(uuid.uuid4())[:8])
+        finding_id = getattr(finding, "id", None) or getattr(finding, "finding", {}).get(
+            "id", str(uuid.uuid4())[:8]
+        )
         finding_type = finding.type if hasattr(finding, "type") else finding.finding.type
-        severity = finding.severity.value if hasattr(finding, "severity") else finding.finding.severity.value
+        severity = (
+            finding.severity.value
+            if hasattr(finding, "severity")
+            else finding.finding.severity.value
+        )
 
         self.on_progress(f"🔧 Generating fix for {finding_type} ({severity})")
 
@@ -152,7 +162,11 @@ class AutoFixer:
             if verify:
                 verification = await self._verify_fix(patch, finding, playbook)
                 attempt.verified = verification.verified
-                attempt.verification_at = verification.verified_at if hasattr(verification, 'verified_at') else datetime.now(timezone.utc).isoformat()
+                attempt.verification_at = (
+                    verification.verified_at
+                    if hasattr(verification, "verified_at")
+                    else datetime.now(UTC).isoformat()
+                )
 
             self.fix_history.append(attempt)
             self._save_history()
@@ -181,9 +195,7 @@ class AutoFixer:
         message = finding.message if hasattr(finding, "message") else finding.finding.message
 
         # Use domain loader to match finding to controls
-        controls = self.domain_loader.match_finding_to_controls(
-            finding_type, file_path, message
-        )
+        controls = self.domain_loader.match_finding_to_controls(finding_type, file_path, message)
 
         if not controls:
             return None
@@ -204,7 +216,9 @@ class AutoFixer:
     ) -> Patch | None:
         """Generate a fix patch."""
         # Use base generate_fix with playbook context
-        finding_dict = finding.to_dict() if hasattr(finding, "to_dict") else finding.finding.to_dict()
+        finding_dict = (
+            finding.to_dict() if hasattr(finding, "to_dict") else finding.finding.to_dict()
+        )
 
         # Enhance with playbook info
         if playbook:
@@ -224,8 +238,7 @@ class AutoFixer:
             asyncio.set_event_loop(loop)
 
         patch = await loop.run_in_executor(
-            None,
-            lambda: base_generate_fix(self.root, finding_dict, self.config)
+            None, lambda: base_generate_fix(self.root, finding_dict, self.config)
         )
 
         return patch
@@ -328,7 +341,7 @@ class AutoFixer:
 
         results = []
         for i, finding in enumerate(findings[:max_fixes]):
-            self.on_progress(f"  [{i+1}/{min(len(findings), max_fixes)}] {finding.type}")
+            self.on_progress(f"  [{i + 1}/{min(len(findings), max_fixes)}] {finding.type}")
             result = await self.fix_finding(finding, strategy, apply, verify)
             results.append(result)
 
@@ -364,7 +377,7 @@ class AutoFixer:
 class FixPlaybookEngine:
     """
     Engine for managing and executing fix playbooks.
-    
+
     Playbooks define:
     - Deterministic tool fixes (bandit, semgrep, etc.)
     - LLM template fills

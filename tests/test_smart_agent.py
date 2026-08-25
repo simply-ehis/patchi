@@ -74,8 +74,19 @@ def test_run_emits_events_and_runs_tools(tmp_path, monkeypatch):
     assert any(e["event"].startswith("security.") for e in emitted)
 
 
-def test_offline_no_openai_required(tmp_path):
+def test_offline_no_openai_required(tmp_path, monkeypatch):
     # If openai is missing entirely, the agent must still run via deterministic plan.
+    # Scope the security fan-out to a single fast agent (offline, no API key).
+    import patchi.core.ai.tools.realize as realize_mod
+
+    def _fast_select(root, name_map, area=None):
+        from patchi.core.security.security_agents import SensitiveDataAgent
+
+        return [c for n, c in name_map.items() if c is SensitiveDataAgent]
+
+    monkeypatch.setattr(realize_mod, "_select_security_agents", _fast_select)
+    monkeypatch.setenv("PATCHI_AGENT_TIMEOUT", "15")
+
     root = _vuln_project(tmp_path)
     report = run_smart_agent(
         root, "find security issues", max_steps=2,

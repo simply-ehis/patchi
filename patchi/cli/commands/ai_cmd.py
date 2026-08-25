@@ -23,6 +23,7 @@ from patchi.core.config import require_project_root
 
 _TEST_PROMPT = "Reply with exactly: PATCHI AI READY"
 
+
 def run(args) -> None:
     ai_cmd = getattr(args, "ai_cmd", None) or "status"
     try:
@@ -43,6 +44,7 @@ def run(args) -> None:
         run_remove(root, getattr(args, "name", ""))
     else:
         con.print(f"[red]Unknown ai subcommand: {ai_cmd!r}[/red]")
+
 
 def run_profiles(root=None) -> None:
     """List configured AI provider profiles (E-12 S-2 seed: p ai profiles)."""
@@ -82,8 +84,10 @@ def run_profiles(root=None) -> None:
         )
     con.print(table)
     con.print()
-    con.print("[dim]Profile schema (E-12 S-2): nickname, provider, env_var, "
-              "base_url, model, format, status, extra_body[/dim]")
+    con.print(
+        "[dim]Profile schema (E-12 S-2): nickname, provider, env_var, "
+        "base_url, model, format, status, extra_body[/dim]"
+    )
     con.print()
 
 
@@ -95,6 +99,7 @@ def _resolve_root(root: Path | None) -> Path:
     except RuntimeError as e:
         con.print(f"[red]{e}[/red]")
         raise SystemExit(1)
+
 
 def run_status(root: Path | None = None) -> None:
     import patchi.core.config as cfg
@@ -148,6 +153,7 @@ def run_status(root: Path | None = None) -> None:
     con.print(f"  AI Horde fallback: {horde_text}")
     con.print()
 
+
 def run_test(root: Path | None = None) -> None:
     import patchi.core.config as cfg
 
@@ -172,6 +178,7 @@ def run_test(root: Path | None = None) -> None:
         con.print("  [dim]No AI configured or all keys failed. Try: p ai horde[/dim]")
     con.print()
 
+
 def run_horde_test() -> None:
     from patchi.core.ai.client import _call_ai_horde
 
@@ -191,6 +198,7 @@ def run_horde_test() -> None:
         con.print("  [#FACC15]⚠ AI Horde did not respond in time.[/#FACC15]")
         con.print("  [dim]Try again — Horde workers may be busy.[/dim]")
     con.print()
+
 
 def run_add(root: Path | None = None) -> None:
     from rich.prompt import Prompt
@@ -230,6 +238,7 @@ def run_add(root: Path | None = None) -> None:
     con.print("[#4ADE80]✓[/#4ADE80] Key added. Set the env var:")
     con.print(f"  [bold]export {env_name}=your_api_key_here[/bold]")
     con.print()
+
 
 def run_remove(root: Path | None = None, name: str = "") -> None:
     import patchi.core.config as cfg

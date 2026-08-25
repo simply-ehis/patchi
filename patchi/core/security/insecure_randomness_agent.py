@@ -52,10 +52,29 @@ class InsecureRandomnessAgent(BaseAgent):
 
     # Security-sensitive keywords that elevate RNG usage from INFO to HIGH
     SENSITIVE_CONTEXT_KEYWORDS = [
-        "token", "password", "secret", "key", "session", "csrf",
-        "nonce", "otp", "auth", "reset", "salt", "iv", "challenge",
-        "jwt", "api_key", "apikey", "access_token", "refresh_token",
-        "verification", "recovery", "mfa", "2fa", "tfa",
+        "token",
+        "password",
+        "secret",
+        "key",
+        "session",
+        "csrf",
+        "nonce",
+        "otp",
+        "auth",
+        "reset",
+        "salt",
+        "iv",
+        "challenge",
+        "jwt",
+        "api_key",
+        "apikey",
+        "access_token",
+        "refresh_token",
+        "verification",
+        "recovery",
+        "mfa",
+        "2fa",
+        "tfa",
     ]
 
     # Per-language insecure RNG call sets (matched by leaf name)
@@ -63,17 +82,38 @@ class InsecureRandomnessAgent(BaseAgent):
         Lang.JAVASCRIPT: {"Math.random", "Math.floor"},
         Lang.TYPESCRIPT: {"Math.random", "Math.floor"},
         Lang.PYTHON: {
-            "random.random", "random.randint", "random.choice", "random.choices",
-            "random.uniform", "random.shuffle", "random.sample", "random.randrange",
-            "random.getrandbits", "random.getstate", "random.seed",
+            "random.random",
+            "random.randint",
+            "random.choice",
+            "random.choices",
+            "random.uniform",
+            "random.shuffle",
+            "random.sample",
+            "random.randrange",
+            "random.getrandbits",
+            "random.getstate",
+            "random.seed",
         },
         Lang.JAVA: {"Random", "Math.random"},
-        Lang.GO: {"rand.Intn", "rand.Int", "rand.Float64", "rand.Perm", "rand.Shuffle", "rand.Seed"},
+        Lang.GO: {
+            "rand.Intn",
+            "rand.Int",
+            "rand.Float64",
+            "rand.Perm",
+            "rand.Shuffle",
+            "rand.Seed",
+        },
         Lang.RUST: {"rand::random", "rand::thread_rng", "rand::Rng.gen", "rand::Rng.gen_range"},
         Lang.C: {"rand", "srand"},
         Lang.CPP: {"rand", "srand"},
         Lang.RUBY: {"rand", "Random.new", "Random.rand"},
-        Lang.SWIFT: {"Int.random", "Double.random", "CGFloat.random", "randomElement", "GKRandomSource"},
+        Lang.SWIFT: {
+            "Int.random",
+            "Double.random",
+            "CGFloat.random",
+            "randomElement",
+            "GKRandomSource",
+        },
         Lang.PHP: {"mt_rand", "rand", "array_rand"},
         Lang.KOTLIN: {"Random.nextInt", "Random.nextDouble", "Random.nextBoolean"},
         Lang.C_SHARP: {"Random.Next", "Random.NextDouble", "Random.NextBytes"},
@@ -104,10 +144,25 @@ class InsecureRandomnessAgent(BaseAgent):
         findings = []
 
         source_patterns = [
-            "*.py", "*.js", "*.jsx", "*.ts", "*.tsx",
-            "*.java", "*.go", "*.rs", "*.c", "*.h",
-            "*.cpp", "*.cxx", "*.cc", "*.hpp", "*.rb",
-            "*.swift", "*.php", "*.kt", "*.cs",
+            "*.py",
+            "*.js",
+            "*.jsx",
+            "*.ts",
+            "*.tsx",
+            "*.java",
+            "*.go",
+            "*.rs",
+            "*.c",
+            "*.h",
+            "*.cpp",
+            "*.cxx",
+            "*.cc",
+            "*.hpp",
+            "*.rb",
+            "*.swift",
+            "*.php",
+            "*.kt",
+            "*.cs",
         ]
 
         for pattern in source_patterns:
@@ -119,14 +174,17 @@ class InsecureRandomnessAgent(BaseAgent):
 
         result.status = AgentStatus.SUCCEEDED
         result.findings = findings
-        result.data.update({
-            "rng_findings": len(findings),
-            "needs_ai": False,
-        })
+        result.data.update(
+            {
+                "rng_findings": len(findings),
+                "needs_ai": False,
+            }
+        )
         return
 
     def _should_skip_file(self, file_path: str, inp: AgentInput) -> bool:
         from pathlib import PurePosixPath
+
         restrictions = inp.config.get("restrictions", [])
         for r in restrictions:
             if r.get("enabled", True):
@@ -198,8 +256,13 @@ class InsecureRandomnessAgent(BaseAgent):
         return findings
 
     def _add_call_finding(
-        self, findings: list[Finding], rel_path: str, line_num: int, line: str,
-        lang: Lang, rng_name: str,
+        self,
+        findings: list[Finding],
+        rel_path: str,
+        line_num: int,
+        line: str,
+        lang: Lang,
+        rng_name: str,
     ) -> None:
         is_sensitive = any(kw in line.lower() for kw in self.SENSITIVE_CONTEXT_KEYWORDS)
         secure_alt = self.SECURE_ALTERNATIVES.get(

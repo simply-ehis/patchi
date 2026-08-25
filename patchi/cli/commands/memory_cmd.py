@@ -69,6 +69,7 @@ def run_show_all(root: Path | None = None) -> None:
     )
     con.print()
 
+
 def run_show(category_str: str, root: Path | None = None) -> None:
     """p memory show <category>"""
     import json
@@ -96,6 +97,7 @@ def run_show(category_str: str, root: Path | None = None) -> None:
     con.print()
     con.print_json(json.dumps(data, indent=2, default=str))
     con.print()
+
 
 def _show_scans(root: Path) -> None:
     """Structured view of scan results — one row per agent."""
@@ -131,6 +133,7 @@ def _show_scans(root: Path) -> None:
     con.print(table)
     con.print()
 
+
 def run_delete(category_str: str, root: Path | None = None) -> None:
     """p memory delete <category> — with warning"""
     try:
@@ -162,12 +165,11 @@ def run_delete(category_str: str, root: Path | None = None) -> None:
         con.print("[dim]Cancelled.[/dim]")
     con.print()
 
+
 def _delete_all(root: Path) -> None:
     """Full memory reset — requires typing CONFIRM."""
     con.print()
-    con.print(
-        "[red bold]Full memory reset.[/red bold]\n"
-    )
+    con.print("[red bold]Full memory reset.[/red bold]\n")
     con.print()
     typed = Prompt.ask("[bold]Type CONFIRM to proceed[/bold]")
     if typed.strip() == "CONFIRM":
@@ -177,7 +179,9 @@ def _delete_all(root: Path) -> None:
         con.print("[dim]Cancelled.[/dim]")
     con.print()
 
+
 # ── Helpers ────────────────────────────────────────────────────────────────────
+
 
 def _parse_category(s: str) -> MemoryCategory:
     valid = {c.value: c for c in MemoryCategory}
@@ -196,6 +200,7 @@ def _parse_category(s: str) -> MemoryCategory:
     if cleaned in aliases:
         return aliases[cleaned]
     raise ValueError(f"Unknown category: {s!r}\nValid: {', '.join(valid.keys())}")
+
 
 def _delete_consequence(category: MemoryCategory) -> str:
     consequences = {

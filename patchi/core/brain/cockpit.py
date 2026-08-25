@@ -35,8 +35,22 @@ _log = logging.getLogger("patchi.core.brain.cockpit")
 # ── Watcher config (self-contained, no watchdog dependency) ──────────────────────
 
 _WATCH_EXTS = {
-    ".py", ".js", ".ts", ".tsx", ".jsx", ".rs", ".go", ".rb", ".java",
-    ".env", ".toml", ".yaml", ".yml", ".json", ".cfg", ".ini",
+    ".py",
+    ".js",
+    ".ts",
+    ".tsx",
+    ".jsx",
+    ".rs",
+    ".go",
+    ".rb",
+    ".java",
+    ".env",
+    ".toml",
+    ".yaml",
+    ".yml",
+    ".json",
+    ".cfg",
+    ".ini",
 }
 _SKIP_DIRS = DEFAULT_IGNORE_DIRS | {".turbo", ".codebase-memory"}
 _MAX_WATCH_FILES = 20_000
@@ -72,7 +86,7 @@ class CockpitState:
     blast_impacted: list[str] = field(default_factory=list)
     blast_summary: str = ""
 
-    secrets: list[dict] = field(default_factory=list)          # deduped, most-recent last
+    secrets: list[dict] = field(default_factory=list)  # deduped, most-recent last
     events: deque = field(default_factory=lambda: deque(maxlen=200))
 
     metrics_at: float = 0.0
@@ -199,14 +213,17 @@ def gather_full(
     if state.health_total is None:
         add_event(state, "warn", "No brain found — run `p scan` to populate the cockpit.")
     else:
-        add_event(state, "info", f"Cockpit armed · health {state.health_total} ({state.health_grade})")
+        add_event(
+            state, "info", f"Cockpit armed · health {state.health_total} ({state.health_grade})"
+        )
 
     thread = refresh_fixes_async(state)
     if fixes_sync and thread is not None:
         thread.join(timeout=fixes_timeout)
         if state.fixes_computing:
             add_event(
-                state, "warn",
+                state,
+                "warn",
                 f"Fix list still computing after {fixes_timeout:.0f}s (large project) — "
                 "showing partial frame; scope with --area for a faster pass.",
             )
@@ -224,8 +241,12 @@ def refresh_on_change(state: CockpitState, changed: list[str]) -> None:
     if not changed:
         return
     state.last_file = changed[-1]
-    add_event(state, "info", f"saved {', '.join(changed[:3])}"
-              + (f" (+{len(changed) - 3} more)" if len(changed) > 3 else ""))
+    add_event(
+        state,
+        "info",
+        f"saved {', '.join(changed[:3])}"
+        + (f" (+{len(changed) - 3} more)" if len(changed) > 3 else ""),
+    )
 
     _get_blast(state, changed)
     _sweep_secrets(state, paths=changed, announce=False)
@@ -240,8 +261,9 @@ def _get_blast(state: CockpitState, changed: list[str]) -> None:
         state.blast_impacted = list(analysis.impacted_layers)
         state.blast_summary = analysis.summary
         if analysis.impacted_layers:
-            add_event(state, "warn",
-                      f"blast radius: {len(analysis.impacted_layers)} downstream layer(s)")
+            add_event(
+                state, "warn", f"blast radius: {len(analysis.impacted_layers)} downstream layer(s)"
+            )
     except Exception as e:
         # Triggered per-save during an active session (not the one-time "fresh
         # project" case above) -- more likely a real problem, so this is worth
@@ -265,7 +287,9 @@ def _sweep_secrets(state: CockpitState, paths: list[str] | None, announce: bool)
             state.secrets.append({"path": h.path, "line": h.line, "rule": h.rule})
             new += 1
         if new:
-            add_event(state, "crit", f"{new} secret(s) detected — {hits[-1].rule} in {hits[-1].path}")
+            add_event(
+                state, "crit", f"{new} secret(s) detected — {hits[-1].rule} in {hits[-1].path}"
+            )
         elif announce:
             add_event(state, "info", "secrets sweep clean")
     except Exception as e:

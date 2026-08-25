@@ -14,14 +14,15 @@ InvariantType mirrors UNIFIED_UPGRADE_PLAN.md's semantics:
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass
-from enum import Enum
-from typing import Any, Callable, Optional
+from enum import StrEnum
+from typing import Any
 
 _log = logging.getLogger("patchi.core.assurance.invariants")
 
 
-class InvariantType(str, Enum):
+class InvariantType(StrEnum):
     MUST = "must"
     MUST_NOT = "must_not"
     ONLY_IF = "only_if"
@@ -31,16 +32,16 @@ class InvariantType(str, Enum):
 class Invariant:
     """One provable property about the project."""
 
-    id: str                       # stable slug
+    id: str  # stable slug
     invariant_type: InvariantType
-    statement: str                # human-readable property
-    domain: str                   # owning domain tag
+    statement: str  # human-readable property
+    domain: str  # owning domain tag
     severity_if_disproved: str = "high"
 
     # verifier(project_data) -> (supports: bool, detail: str, artifact: dict)
     # project_data keys available: routes(IntentReport|None), findings(list[dict]),
     #                              config(dict), files(set[str])
-    verifier: Optional[Callable[[dict], tuple[bool, str, dict]]] = None
+    verifier: Callable[[dict], tuple[bool, str, dict]] | None = None
 
     def to_dict(self) -> dict:
         return {
@@ -66,9 +67,7 @@ def verify_invariants(
     results = []
     for inv in invariants:
         if inv.verifier is None:
-            results.append(
-                (inv, False, "no verifier registered for this invariant", {})
-            )
+            results.append((inv, False, "no verifier registered for this invariant", {}))
             continue
         try:
             supports, detail, artifact = inv.verifier(project_data)
@@ -81,19 +80,19 @@ def verify_invariants(
 
 # ── Built-in invariant library ────────────────────────────────────────────────
 
+
 def _check_all_writes_authenticated(data: dict) -> tuple[bool, str, dict]:
     """Every state-changing route must carry an auth guard."""
     report = data.get("routes")
     if report is None or not getattr(report, "routes", None):
         return False, "no route data available", {}
     bad = [
-        r for r in report.routes
-        if r.method.lower() in ("post", "put", "delete", "patch")
-        and not r.has_auth_guard
+        r
+        for r in report.routes
+        if r.method.lower() in ("post", "put", "delete", "patch") and not r.has_auth_guard
     ]
     total_writes = sum(
-        1 for r in report.routes
-        if r.method.lower() in ("post", "put", "delete", "patch")
+        1 for r in report.routes if r.method.lower() in ("post", "put", "delete", "patch")
     )
     if not total_writes:
         return False, "no state-changing routes discovered", {}
@@ -127,14 +126,17 @@ def _check_no_debug_mode(data: dict) -> tuple[bool, str, dict]:
     """Application must not run with debug enabled."""
     findings = data.get("findings", [])
     hits = [
-        f for f in findings
+        f
+        for f in findings
         if "debug" in str(f.get("type", "")).lower()
         and f.get("severity", "").lower() in ("high", "critical")
     ]
     if hits:
-        return False, f"{len(hits)} debug-enabled finding(s) at high+ severity", {
-            "count": len(hits)
-        }
+        return (
+            False,
+            f"{len(hits)} debug-enabled finding(s) at high+ severity",
+            {"count": len(hits)},
+        )
     return True, "no high+ debug-mode findings", {}
 
 

@@ -10,14 +10,16 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Callable, Optional
 
-from patchi.core.brain.layered_brain import Layer, layers_from_dict
 # Import the personas package (not just base) so @register_persona decorators run
 import patchi.core.brain.personas as _persona_registry  # noqa: F401
+from patchi.core import config as cfg
+from patchi.core import memory as mem
+from patchi.core.brain.layered_brain import Layer, layers_from_dict
 from patchi.core.brain.personas.base import (
     BasePersona,
     PersonaDecision,
@@ -25,8 +27,6 @@ from patchi.core.brain.personas.base import (
     create_persona,
     list_personas,
 )
-from patchi.core import config as cfg
-from patchi.core import memory as mem
 
 _log = logging.getLogger("patchi.brain.council")
 
@@ -34,13 +34,14 @@ _log = logging.getLogger("patchi.brain.council")
 @dataclass
 class CouncilSession:
     """A single council deliberation session."""
+
     issue: str
     context: dict = field(default_factory=dict)
     persona_decisions: list[PersonaDecision] = field(default_factory=list)
     synthesis: str = ""
     action_plan: list[dict] = field(default_factory=list)
     consensus_reached: bool = False
-    started_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    started_at: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
     completed_at: str = ""
     duration_ms: int = 0
 
@@ -48,6 +49,7 @@ class CouncilSession:
 @dataclass
 class ActionStep:
     """A single step in the council's action plan."""
+
     tool: str
     parameters: dict
     priority: int  # 1=highest
@@ -60,7 +62,7 @@ class ActionStep:
 class Council:
     """
     The Council — orchestrates multi-persona deliberation.
-    
+
     Flow:
     1. Receive issue + context
     2. Select relevant personas
@@ -73,50 +75,135 @@ class Council:
     # Persona selection rules: issue keywords -> persona names
     PERSONA_SELECTION_RULES = {
         "architect": [
-            "architecture", "structure", "dependency", "module", "layer",
-            "refactor", "blast radius", "circular", "dead code", "coupling",
-            "cohesion", "boundary", "interface", "contract",
+            "architecture",
+            "structure",
+            "dependency",
+            "module",
+            "layer",
+            "refactor",
+            "blast radius",
+            "circular",
+            "dead code",
+            "coupling",
+            "cohesion",
+            "boundary",
+            "interface",
+            "contract",
         ],
         "security_officer": [
-            "security", "vulnerability", "attack", "threat", "exploit",
-            "injection", "xss", "csrf", "ssrf", "auth", "authorization",
-            "secrets", "compliance", "encryption", "owasp", "cve",
+            "security",
+            "vulnerability",
+            "attack",
+            "threat",
+            "exploit",
+            "injection",
+            "xss",
+            "csrf",
+            "ssrf",
+            "auth",
+            "authorization",
+            "secrets",
+            "compliance",
+            "encryption",
+            "owasp",
+            "cve",
         ],
         "test_engineer": [
-            "test", "testing", "coverage", "flaky", "regression", "e2e",
-            "integration", "unit test", "visual", "accessibility", "browser",
-            "stress", "load", "contract", "api",
+            "test",
+            "testing",
+            "coverage",
+            "flaky",
+            "regression",
+            "e2e",
+            "integration",
+            "unit test",
+            "visual",
+            "accessibility",
+            "browser",
+            "stress",
+            "load",
+            "contract",
+            "api",
         ],
         "performance_analyst": [
-            "performance", "slow", "latency", "throughput", "bottleneck",
-            "memory", "cpu", "profiling", "benchmark", "optimization",
-            "scalability", "cache", "async", "concurrent",
+            "performance",
+            "slow",
+            "latency",
+            "throughput",
+            "bottleneck",
+            "memory",
+            "cpu",
+            "profiling",
+            "benchmark",
+            "optimization",
+            "scalability",
+            "cache",
+            "async",
+            "concurrent",
         ],
         "devops_engineer": [
-            "deploy", "ci", "cd", "pipeline", "infrastructure", "kubernetes",
-            "docker", "container", "monitoring", "observability", "logging",
-            "secrets", "supply chain", "rollback", "feature flag",
+            "deploy",
+            "ci",
+            "cd",
+            "pipeline",
+            "infrastructure",
+            "kubernetes",
+            "docker",
+            "container",
+            "monitoring",
+            "observability",
+            "logging",
+            "secrets",
+            "supply chain",
+            "rollback",
+            "feature flag",
         ],
         "code_reviewer": [
-            "code quality", "readability", "maintainability", "pattern",
-            "anti-pattern", "complexity", "duplication", "naming",
-            "documentation", "style", "error handling",
+            "code quality",
+            "readability",
+            "maintainability",
+            "pattern",
+            "anti-pattern",
+            "complexity",
+            "duplication",
+            "naming",
+            "documentation",
+            "style",
+            "error handling",
         ],
         "product_owner": [
-            "business", "user", "requirement", "acceptance", "flow",
-            "journey", "feature", "priority", "compliance", "regulation",
-            "risk", "value",
+            "business",
+            "user",
+            "requirement",
+            "acceptance",
+            "flow",
+            "journey",
+            "feature",
+            "priority",
+            "compliance",
+            "regulation",
+            "risk",
+            "value",
         ],
         "incident_responder": [
-            "crash", "error", "incident", "anomaly", "debug", "root cause",
-            "runtime", "alert", "outage", "recovery", "postmortem",
+            "crash",
+            "error",
+            "incident",
+            "anomaly",
+            "debug",
+            "root cause",
+            "runtime",
+            "alert",
+            "outage",
+            "recovery",
+            "postmortem",
         ],
     }
 
     def __init__(
         self,
         root: Path,
-        on_progress: Optional[Callable[[str], None]] = None,
+        on_progress: Callable[[str], None] | None = None,
     ):
         self.root = root
         self.on_progress = on_progress or (lambda _: None)
@@ -178,7 +265,7 @@ class Council:
 
     def _select_personas(self, issue: str, context: dict = None) -> list[str]:
         """Select relevant personas using domain relevance scoring.
-        
+
         Scoring factors:
         1. Keyword match (0-5 points per persona)
         2. Expertise area alignment (0-3 points)
@@ -206,7 +293,7 @@ class Council:
             score += min(expertise_overlap * 1.5, 3.0)
 
             # Factor 3: Historical success rate (0-2 points)
-            if hasattr(persona, 'memory') and persona.memory.success_rates:
+            if hasattr(persona, "memory") and persona.memory.success_rates:
                 # Get success rate for similar issue types
                 rates = persona.memory.success_rates
                 avg_success = sum(rates.values()) / len(rates)
@@ -214,19 +301,19 @@ class Council:
 
             # Factor 4: Context-based relevance
             # Check if issue mentions files/types this persona handles
-            context_files = context.get('files', [])
+            context_files = context.get("files", [])
             if context_files:
                 # Security persona gets bonus for security-related files
-                if persona_name == 'security_officer':
-                    sec_kws = ['auth', 'crypto', 'secret', 'token']
-                    sec_files = [f for f in context_files
-                                 if any(k in f.lower() for k in sec_kws)]
+                if persona_name == "security_officer":
+                    sec_kws = ["auth", "crypto", "secret", "token"]
+                    sec_files = [f for f in context_files if any(k in f.lower() for k in sec_kws)]
                     score += min(len(sec_files) * 0.5, 2.0)
                 # DevOps for infrastructure files
-                elif persona_name == 'devops_engineer':
-                    infra_kws = ['docker', 'ci', 'deploy', 'k8s']
-                    infra_files = [f for f in context_files
-                                   if any(k in f.lower() for k in infra_kws)]
+                elif persona_name == "devops_engineer":
+                    infra_kws = ["docker", "ci", "deploy", "k8s"]
+                    infra_files = [
+                        f for f in context_files if any(k in f.lower() for k in infra_kws)
+                    ]
                     score += min(len(infra_files) * 0.5, 2.0)
 
             if score > 0:
@@ -251,7 +338,7 @@ class Council:
     async def deliberate(self, issue: str, context: dict = None) -> CouncilSession:
         """
         Run a full council deliberation on an issue.
-        
+
         Returns a CouncilSession with decisions, synthesis, and action plan.
         """
         start_time = time.monotonic()
@@ -274,7 +361,7 @@ class Council:
 
         decisions = await asyncio.gather(*analysis_tasks, return_exceptions=True)
 
-        for name, decision in zip(selected_names, decisions):
+        for name, decision in zip(selected_names, decisions, strict=False):
             if isinstance(decision, Exception):
                 _log.error(f"Persona {name} failed: {decision}")
                 continue
@@ -291,11 +378,13 @@ class Council:
         # Phase 4: Consensus Check
         session.consensus_reached = self._check_consensus(session)
 
-        session.completed_at = datetime.now(timezone.utc).isoformat()
+        session.completed_at = datetime.now(UTC).isoformat()
         session.duration_ms = int((time.monotonic() - start_time) * 1000)
 
         self.session_history.append(session)
-        self.on_progress(f"✅ Council complete in {session.duration_ms}ms. Consensus: {session.consensus_reached}")
+        self.on_progress(
+            f"✅ Council complete in {session.duration_ms}ms. Consensus: {session.consensus_reached}"
+        )
 
         return session
 
@@ -315,15 +404,17 @@ class Council:
             return "No persona decisions to synthesize."
 
         # Build synthesis prompt
-        decisions_text = "\n\n".join([
-            f"=== {d.persona_name.upper()} ===\n"
-            f"Analysis: {d.analysis}\n"
-            f"Recommendation: {d.recommendation}\n"
-            f"Confidence: {d.confidence:.0%}\n"
-            f"Tools: {', '.join(d.tools_needed) if d.tools_needed else 'none'}\n"
-            f"Risks: {', '.join(d.risks) if d.risks else 'none'}"
-            for d in session.persona_decisions
-        ])
+        decisions_text = "\n\n".join(
+            [
+                f"=== {d.persona_name.upper()} ===\n"
+                f"Analysis: {d.analysis}\n"
+                f"Recommendation: {d.recommendation}\n"
+                f"Confidence: {d.confidence:.0%}\n"
+                f"Tools: {', '.join(d.tools_needed) if d.tools_needed else 'none'}\n"
+                f"Risks: {', '.join(d.risks) if d.risks else 'none'}"
+                for d in session.persona_decisions
+            ]
+        )
 
         synthesis_prompt = f"""
 Synthesize the following persona analyses into a unified assessment.
@@ -362,12 +453,14 @@ Provide synthesis in this JSON format:
         all_tools = []
         for d in session.persona_decisions:
             for tool in d.tools_needed:
-                all_tools.append({
-                    "tool": tool,
-                    "persona": d.persona_name,
-                    "confidence": d.confidence,
-                    "rationale": d.recommendation,
-                })
+                all_tools.append(
+                    {
+                        "tool": tool,
+                        "persona": d.persona_name,
+                        "confidence": d.confidence,
+                        "rationale": d.recommendation,
+                    }
+                )
 
         # Deduplicate and prioritize
         tool_map: dict[str, dict] = {}
@@ -379,20 +472,22 @@ Provide synthesis in this JSON format:
         # Build action steps
         steps = []
         for i, (tool_name, info) in enumerate(tool_map.items()):
-            steps.append({
-                "tool": tool_name,
-                "parameters": {},  # Will be filled by executor
-                "priority": i + 1,
-                "rationale": info["rationale"],
-                "assigned_persona": info["persona"],
-                "confidence": info["confidence"],
-            })
+            steps.append(
+                {
+                    "tool": tool_name,
+                    "parameters": {},  # Will be filled by executor
+                    "priority": i + 1,
+                    "rationale": info["rationale"],
+                    "assigned_persona": info["persona"],
+                    "confidence": info["confidence"],
+                }
+            )
 
         return steps
 
     def _check_consensus(self, session: CouncilSession) -> bool:
         """Check if personas reached weighted consensus.
-        
+
         Uses weighted confidence based on:
         1. Persona expertise relevance to the issue
         2. Historical accuracy of each persona
@@ -418,11 +513,14 @@ Provide synthesis in this JSON format:
         weighted_avg = sum(weighted_confidences) / total_weight
 
         # Weighted standard deviation (measures agreement)
-        weighted_variance = sum(
-            w * (c - weighted_avg) ** 2
-            for w, c in zip(weights, [d.confidence for d in session.persona_decisions])
-        ) / total_weight
-        weighted_std = weighted_variance ** 0.5
+        weighted_variance = (
+            sum(
+                w * (c - weighted_avg) ** 2
+                for w, c in zip(weights, [d.confidence for d in session.persona_decisions], strict=False)
+            )
+            / total_weight
+        )
+        weighted_std = weighted_variance**0.5
 
         # Check for semantic agreement (recommendations align)
         semantic_agreement = self._check_semantic_agreement(session)
@@ -431,15 +529,11 @@ Provide synthesis in this JSON format:
         # 1. Weighted confidence > 0.6
         # 2. Weighted std < 0.25 (low disagreement)
         # 3. At least 60% semantic agreement on recommendations
-        consensus = (
-            weighted_avg > 0.6 and
-            weighted_std < 0.25 and
-            semantic_agreement >= 0.6
-        )
+        consensus = weighted_avg > 0.6 and weighted_std < 0.25 and semantic_agreement >= 0.6
 
         return consensus
 
-    def _calculate_persona_weight(self, decision: 'PersonaDecision', issue: str) -> float:
+    def _calculate_persona_weight(self, decision: PersonaDecision, issue: str) -> float:
         """Calculate weight for a persona based on expertise and history."""
         weight = 1.0  # Base weight
 
@@ -455,7 +549,7 @@ Provide synthesis in this JSON format:
             weight += min(expertise_matches * 0.25, 1.0)
 
         # Factor 2: Historical accuracy (0-1 bonus)
-        if hasattr(persona, 'memory') and persona.memory.success_rates:
+        if hasattr(persona, "memory") and persona.memory.success_rates:
             rates = persona.memory.success_rates
             avg_success = sum(rates.values()) / len(rates)
             weight += avg_success * 1.0
@@ -464,15 +558,15 @@ Provide synthesis in this JSON format:
         style = persona.get_style()
         if style == PersonaStyle.CAUTIOUS:
             # Cautious personas get bonus for risk-related issues
-            if any(kw in issue_lower for kw in ['risk', 'safety', 'security', 'regression']):
+            if any(kw in issue_lower for kw in ["risk", "safety", "security", "regression"]):
                 weight += 0.3
         elif style == PersonaStyle.AGGRESSIVE:
             # Aggressive personas get bonus for edge cases
-            if any(kw in issue_lower for kw in ['edge case', 'boundary', '极限', 'corner']):
+            if any(kw in issue_lower for kw in ["edge case", "boundary", "极限", "corner"]):
                 weight += 0.3
         elif style == PersonaStyle.PRAGMATIC:
             # Pragmatic personas get bonus for implementation issues
-            if any(kw in issue_lower for kw in ['implement', 'fix', 'deploy', 'ship']):
+            if any(kw in issue_lower for kw in ["implement", "fix", "deploy", "ship"]):
                 weight += 0.3
 
         return weight
@@ -485,7 +579,7 @@ Provide synthesis in this JSON format:
         recommendations = [d.recommendation.lower() for d in session.persona_decisions]
 
         # Simple semantic check: count common action keywords
-        action_keywords = ['fix', 'refactor', 'test', 'deploy', 'monitor', 'review', 'audit']
+        action_keywords = ["fix", "refactor", "test", "deploy", "monitor", "review", "audit"]
 
         keyword_counts = {}
         for rec in recommendations:
@@ -503,7 +597,7 @@ Provide synthesis in this JSON format:
     async def execute_action_plan(
         self,
         session: CouncilSession,
-        tool_executor: "ToolExecutor",
+        tool_executor: ToolExecutor,
         max_steps: int = 10,
     ) -> list[dict]:
         """Execute the council's action plan using the tool executor."""
@@ -523,12 +617,14 @@ Provide synthesis in this JSON format:
 
             try:
                 result = await tool_executor.execute(tool_name, step["parameters"])
-                results.append({
-                    "tool": tool_name,
-                    "success": result.get("success", False),
-                    "result": result,
-                    "step": step,
-                })
+                results.append(
+                    {
+                        "tool": tool_name,
+                        "success": result.get("success", False),
+                        "result": result,
+                        "step": step,
+                    }
+                )
                 executed_tools.add(tool_name)
 
                 # Record outcome for learning
@@ -538,12 +634,14 @@ Provide synthesis in this JSON format:
 
             except Exception as e:
                 _log.error(f"Tool {tool_name} failed: {e}")
-                results.append({
-                    "tool": tool_name,
-                    "success": False,
-                    "error": str(e),
-                    "step": step,
-                })
+                results.append(
+                    {
+                        "tool": tool_name,
+                        "success": False,
+                        "error": str(e),
+                        "step": step,
+                    }
+                )
 
         return results
 
@@ -558,7 +656,9 @@ Provide synthesis in this JSON format:
             decisions = persona.memory.decisions
             stats[name] = {
                 "total_decisions": len(decisions),
-                "avg_confidence": sum(d.confidence for d in decisions) / len(decisions) if decisions else 0,
+                "avg_confidence": sum(d.confidence for d in decisions) / len(decisions)
+                if decisions
+                else 0,
                 "success_rates": persona.memory.success_rates,
                 "style": persona.get_style().value,
             }
@@ -568,8 +668,8 @@ Provide synthesis in this JSON format:
 class CouncilMode:
     """Council operation modes."""
 
-    AUTO = "auto"          # Full autonomous: deliberate -> execute -> learn
-    CONFIRM = "confirm"    # Deliberate -> present plan -> wait for confirmation -> execute
+    AUTO = "auto"  # Full autonomous: deliberate -> execute -> learn
+    CONFIRM = "confirm"  # Deliberate -> present plan -> wait for confirmation -> execute
     ADVISORY = "advisory"  # Deliberate only -> present recommendations
 
 
@@ -587,6 +687,7 @@ async def run_council(
 
     if mode == CouncilMode.AUTO:
         from patchi.core.ai.tool_executor import ToolExecutor
+
         executor = ToolExecutor(root)
         await council.execute_action_plan(session, executor)
     elif mode == CouncilMode.CONFIRM:

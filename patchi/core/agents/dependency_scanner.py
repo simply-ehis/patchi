@@ -52,6 +52,7 @@ import logging
 
 _log = logging.getLogger("patchi.agents.dependency_scanner")
 
+
 @register
 class DependencyScanner(BaseAgent):
     """Scanner for project dependencies and CVEs."""
@@ -295,8 +296,8 @@ class DependencyScanner(BaseAgent):
 
             # Combine all dependencies
             all_deps = {}
-            all_deps.update({name: version for name, version in deps.items()})
-            all_deps.update({name: version for name, version in dev_deps.items()})
+            all_deps.update(dict(deps.items()))
+            all_deps.update(dict(dev_deps.items()))
 
             for name, version in all_deps.items():
                 findings.append(
@@ -563,8 +564,8 @@ class DependencyScanner(BaseAgent):
 
             # Combine all dependencies
             all_deps = {}
-            all_deps.update({name: version for name, version in deps.items()})
-            all_deps.update({name: version for name, version in dev_deps.items()})
+            all_deps.update(dict(deps.items()))
+            all_deps.update(dict(dev_deps.items()))
 
             for name, version in all_deps.items():
                 findings.append(

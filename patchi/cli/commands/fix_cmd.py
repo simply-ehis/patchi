@@ -163,8 +163,7 @@ def run(
                     applied.append(outcome.patch or patch)
                     if outcome.verified:
                         con.print(
-                            f"[#4ADE80]✓[/#4ADE80] Patch {patch.id} verified — "
-                            "failing test passes."
+                            f"[#4ADE80]✓[/#4ADE80] Patch {patch.id} verified — failing test passes."
                         )
                     else:
                         con.print(
@@ -197,6 +196,7 @@ def run(
     # ── 5. Record fix patterns for learning ───────────────────────────────────
     try:
         from patchi.core.brain.learning import record_fix_pattern
+
         for patch in applied:
             if patch.findings:
                 finding_type = patch.findings[0].get("type", "unknown")
@@ -214,7 +214,9 @@ def run(
     # ── 6. Summary ────────────────────────────────────────────────────────────
     _show_summary(applied, queued, blocked)
 
+
 # ── Fix agents runner ──────────────────────────────────────────────────────────
+
 
 def _run_fix_agents(findings: list[dict], root: Path) -> list[Patch]:
     """Run relevant fix agents sequentially. Returns all proposed patches."""
@@ -251,6 +253,7 @@ def _run_fix_agents(findings: list[dict], root: Path) -> list[Patch]:
     import_graph = None
     try:
         from patchi.core.brain.import_graph import build_import_graph
+
         import_graph = build_import_graph(root)
         # Enrich each finding with import graph context
         for f in findings:
@@ -288,8 +291,11 @@ def _run_fix_agents(findings: list[dict], root: Path) -> list[Patch]:
         lp.update()
 
         inp_with_cb = AgentInput(
-            root=inp.root, scope=inp.scope, brain=inp.brain,
-            config=inp.config, extra=inp.extra,
+            root=inp.root,
+            scope=inp.scope,
+            brain=inp.brain,
+            config=inp.config,
+            extra=inp.extra,
             on_message=lambda n, msg, s: (lp.log(f"    {msg}", s), lp.update()),
         )
         result = agent_cls().run(inp_with_cb)
@@ -309,7 +315,9 @@ def _run_fix_agents(findings: list[dict], root: Path) -> list[Patch]:
     lp.stop(summary=f"{len(all_patches)} patch(es) from {len(fix_agent_classes)} agent(s)")
     return all_patches
 
+
 # ── Dry run display ────────────────────────────────────────────────────────────
+
 
 def _show_dry_run(findings: list[dict], root: Path) -> None:
     """Show what would be fixed without doing anything."""
@@ -401,7 +409,9 @@ def _show_dry_run(findings: list[dict], root: Path) -> None:
     con.print("[dim]Remove --dry-run to apply fixes.[/dim]")
     con.print()
 
+
 # ── Summary ────────────────────────────────────────────────────────────────────
+
 
 def _show_summary(
     applied: list[Patch],
@@ -435,7 +445,9 @@ def _show_summary(
 
     con.print()
 
+
 # ── Multi-framework annotation ─────────────────────────────────────────────────
+
 
 def _build_file_framework_map(brain: dict) -> dict[str, str]:
     """Build a file path → framework name map from brain routes and framework list.
@@ -467,7 +479,11 @@ def _build_file_framework_map(brain: dict) -> dict[str, str]:
             first_fw = detected_frameworks[0]
         if first_fw:
             for fi in brain.get("file_infos", []):
-                fp = fi.path if hasattr(fi, "path") else (fi.get("path") if isinstance(fi, dict) else "")
+                fp = (
+                    fi.path
+                    if hasattr(fi, "path")
+                    else (fi.get("path") if isinstance(fi, dict) else "")
+                )
                 if fp and fp not in mapping:
                     mapping[fp] = first_fw
 
@@ -486,6 +502,7 @@ def _annotate_findings_with_framework(findings: list[dict], brain: dict) -> None
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
 
+
 def _collect_findings(scan_results: dict, area: str | None) -> list[dict]:
     """Collect all findings from the last agent scan results."""
     all_findings: list[dict] = []
@@ -498,6 +515,7 @@ def _collect_findings(scan_results: dict, area: str | None) -> list[dict]:
                 continue
             all_findings.append(f)
     return all_findings
+
 
 def _save_patch(patch: Patch, root: Path) -> None:
     """Save a patch to memory."""

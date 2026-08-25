@@ -23,6 +23,7 @@ _log = logging.getLogger("patchi.testing.browser_pool")
 @dataclass
 class BrowserInstance:
     """A single browser instance in the pool."""
+
     id: str
     browser_type: str  # "chromium", "firefox", "webkit"
     created_at: float
@@ -36,18 +37,21 @@ class BrowserInstance:
 @dataclass
 class BrowserConfig:
     """Configuration for browser pool."""
+
     max_browsers: int = 5
     max_pages_per_browser: int = 10
     browser_type: str = "chromium"  # chromium, firefox, webkit
     headless: bool = True
     viewport: dict = field(default_factory=lambda: {"width": 1280, "height": 720})
     default_timeout: int = 30000  # ms
-    launch_args: list[str] = field(default_factory=lambda: [
-        "--no-sandbox",
-        "--disable-setuid-sandbox",
-        "--disable-dev-shm-usage",
-        "--disable-gpu",
-    ])
+    launch_args: list[str] = field(
+        default_factory=lambda: [
+            "--no-sandbox",
+            "--disable-setuid-sandbox",
+            "--disable-dev-shm-usage",
+            "--disable-gpu",
+        ]
+    )
     # Stealth settings
     stealth: bool = False
     user_agent: str | None = None
@@ -56,11 +60,11 @@ class BrowserConfig:
 class BrowserPool:
     """
     Manages a pool of browser instances for parallel test execution.
-    
+
     Usage:
         pool = BrowserPool(config)
         await pool.initialize()
-        
+
         # Get a page for testing
         page = await pool.get_page()
         try:
@@ -68,7 +72,7 @@ class BrowserPool:
             # ... test actions
         finally:
             await pool.release_page(page)
-        
+
         await pool.shutdown()
     """
 
@@ -92,11 +96,14 @@ class BrowserPool:
 
         try:
             from playwright.async_api import async_playwright
+
             self._playwright = await async_playwright().start()
             self._initialized = True
             _log.info(f"Browser pool initialized ({self.config.browser_type})")
         except ImportError:
-            _log.error("Playwright not installed. Install with: pip install playwright && playwright install")
+            _log.error(
+                "Playwright not installed. Install with: pip install playwright && playwright install"
+            )
             raise
         except Exception as e:
             _log.error(f"Failed to initialize browser pool: {e}")
@@ -177,7 +184,7 @@ class BrowserPool:
         await context.add_init_script("""
             // Remove webdriver property
             Object.defineProperty(navigator, 'webdriver', {get: () => undefined});
-            
+
             // Mock permissions
             const originalQuery = window.navigator.permissions.query;
             window.navigator.permissions.query = (parameters) => (

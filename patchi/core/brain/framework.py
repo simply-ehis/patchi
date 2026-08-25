@@ -22,6 +22,7 @@ if TYPE_CHECKING:
 
 _log = logging.getLogger("patchi.brain.framework")
 
+
 @dataclass
 class FrameworkInfo:
     name: str  # e.g. "Next.js", "FastAPI", "Express"
@@ -129,7 +130,9 @@ class FrameworkDetector:
         # Svelte (standalone Svelte files without SvelteKit)
         svelte_files = self._rglob("*.svelte")
         if svelte_files:
-            has_kit = any("sveltekit" in f.name.lower() or "kit" in f.name.lower() for f in stack.frameworks)
+            has_kit = any(
+                "sveltekit" in f.name.lower() or "kit" in f.name.lower() for f in stack.frameworks
+            )
             if not has_kit:
                 stack.frameworks.append(
                     FrameworkInfo(
@@ -172,8 +175,9 @@ class FrameworkDetector:
             self._detect_swift(pkg_swift, stack)
         elif self._rglob("*.swift"):
             stack.frameworks.append(
-                FrameworkInfo(name="Swift", language="Swift", version="",
-                              config_file="", confidence=0.6)
+                FrameworkInfo(
+                    name="Swift", language="Swift", version="", config_file="", confidence=0.6
+                )
             )
 
         # Ruby — Gemfile or .rb files
@@ -182,8 +186,9 @@ class FrameworkDetector:
             self._detect_ruby(gemfile, stack)
         elif self._rglob("*.rb"):
             stack.frameworks.append(
-                FrameworkInfo(name="Ruby", language="Ruby", version="",
-                              config_file="", confidence=0.6)
+                FrameworkInfo(
+                    name="Ruby", language="Ruby", version="", config_file="", confidence=0.6
+                )
             )
 
         # Shell / Bash (simple presence check)
@@ -248,14 +253,23 @@ class FrameworkDetector:
         has_bun_engine = data.get("engines", {}).get("bun") is not None
         if has_bun_lock or has_bunfig:
             stack.frameworks.append(
-                FrameworkInfo(name="Bun", language="JavaScript", version="",
-                              config_file="bun.lock" if has_bun_lock else "bunfig.toml",
-                              confidence=0.95)
+                FrameworkInfo(
+                    name="Bun",
+                    language="JavaScript",
+                    version="",
+                    config_file="bun.lock" if has_bun_lock else "bunfig.toml",
+                    confidence=0.95,
+                )
             )
         elif has_bun_engine:
             stack.frameworks.append(
-                FrameworkInfo(name="Bun", language="JavaScript", version="",
-                              config_file="package.json", confidence=0.80)
+                FrameworkInfo(
+                    name="Bun",
+                    language="JavaScript",
+                    version="",
+                    config_file="package.json",
+                    confidence=0.80,
+                )
             )
 
         # Package manager
@@ -424,7 +438,6 @@ class FrameworkDetector:
                 )
             )
 
-
     # ── Rust detector ─────────────────────────────────────────────────────────
 
     def _detect_rust(self, path: Path, stack: StackInfo) -> None:
@@ -459,7 +472,11 @@ class FrameworkDetector:
                     try:
                         with open(member_path, "rb") as f:
                             md = tomllib.load(f)
-                        md_deps = set(md.get("dependencies", {}).keys()) if isinstance(md.get("dependencies"), dict) else set()
+                        md_deps = (
+                            set(md.get("dependencies", {}).keys())
+                            if isinstance(md.get("dependencies"), dict)
+                            else set()
+                        )
                         all_deps.update(md_deps)
                     except Exception as e:
                         _log.warning("FrameworkDetector._detect_rust failed: %s", e)
@@ -524,6 +541,7 @@ class FrameworkDetector:
         if path.name == "pom.xml":
             stack.package_manager = "maven"
             import re
+
             # Detect Spring Boot from pom.xml
             if re.search(r"spring-boot-starter", content, re.I):
                 version = ""
@@ -531,8 +549,13 @@ class FrameworkDetector:
                 if vm:
                     version = vm.group(1)
                 stack.frameworks.append(
-                    FrameworkInfo(name="Spring Boot", language="Java", version=version,
-                                  config_file=path.name, confidence=0.95)
+                    FrameworkInfo(
+                        name="Spring Boot",
+                        language="Java",
+                        version=version,
+                        config_file=path.name,
+                        confidence=0.95,
+                    )
                 )
             # Detect Quarkus from pom.xml
             elif re.search(r"quarkus-", content, re.I) or re.search(r"io\.quarkus", content):
@@ -541,8 +564,13 @@ class FrameworkDetector:
                 if vm:
                     version = vm.group(1)
                 stack.frameworks.append(
-                    FrameworkInfo(name="Quarkus", language="Java", version=version,
-                                  config_file=path.name, confidence=0.95)
+                    FrameworkInfo(
+                        name="Quarkus",
+                        language="Java",
+                        version=version,
+                        config_file=path.name,
+                        confidence=0.95,
+                    )
                 )
             # Detect Micronaut from pom.xml
             elif re.search(r"micronaut-", content, re.I) or re.search(r"io\.micronaut", content):
@@ -551,32 +579,54 @@ class FrameworkDetector:
                 if vm:
                     version = vm.group(1)
                 stack.frameworks.append(
-                    FrameworkInfo(name="Micronaut", language="Java", version=version,
-                                  config_file=path.name, confidence=0.95)
+                    FrameworkInfo(
+                        name="Micronaut",
+                        language="Java",
+                        version=version,
+                        config_file=path.name,
+                        confidence=0.95,
+                    )
                 )
         elif path.name.startswith("build.gradle"):
             stack.package_manager = "gradle"
             import re
+
             if "spring" in content.lower():
                 stack.frameworks.append(
-                    FrameworkInfo(name="Spring Boot", language="Java", version="",
-                                  config_file=path.name, confidence=0.90)
+                    FrameworkInfo(
+                        name="Spring Boot",
+                        language="Java",
+                        version="",
+                        config_file=path.name,
+                        confidence=0.90,
+                    )
                 )
             elif "quarkus" in content.lower():
                 stack.frameworks.append(
-                    FrameworkInfo(name="Quarkus", language="Java", version="",
-                                  config_file=path.name, confidence=0.90)
+                    FrameworkInfo(
+                        name="Quarkus",
+                        language="Java",
+                        version="",
+                        config_file=path.name,
+                        confidence=0.90,
+                    )
                 )
             elif "micronaut" in content.lower():
                 stack.frameworks.append(
-                    FrameworkInfo(name="Micronaut", language="Java", version="",
-                                  config_file=path.name, confidence=0.90)
+                    FrameworkInfo(
+                        name="Micronaut",
+                        language="Java",
+                        version="",
+                        config_file=path.name,
+                        confidence=0.90,
+                    )
                 )
 
         if not stack.frameworks:
             stack.frameworks.append(
-                FrameworkInfo(name="Java", language="Java", version="",
-                              config_file=path.name, confidence=0.7)
+                FrameworkInfo(
+                    name="Java", language="Java", version="", config_file=path.name, confidence=0.7
+                )
             )
 
     # ── C# detector ─────────────────────────────────────────────────────────
@@ -606,24 +656,40 @@ class FrameworkDetector:
             if vm:
                 version = vm.group(1)
             stack.frameworks.append(
-                FrameworkInfo(name="ASP.NET Core", language="C#", version=version,
-                              config_file=path.name, confidence=0.95 if is_web_sdk else 0.85)
+                FrameworkInfo(
+                    name="ASP.NET Core",
+                    language="C#",
+                    version=version,
+                    config_file=path.name,
+                    confidence=0.95 if is_web_sdk else 0.85,
+                )
             )
         elif re.search(r"Microsoft\.Maui", content, re.I):
             stack.frameworks.append(
-                FrameworkInfo(name=".NET MAUI", language="C#", version="",
-                              config_file=path.name, confidence=0.9)
+                FrameworkInfo(
+                    name=".NET MAUI",
+                    language="C#",
+                    version="",
+                    config_file=path.name,
+                    confidence=0.9,
+                )
             )
         elif re.search(r'Sdk\s*=\s*"Microsoft\.NET\.Sdk\.BlazorWebAssembly"', content, re.I):
             stack.frameworks.append(
-                FrameworkInfo(name="Blazor WebAssembly", language="C#", version="",
-                              config_file=path.name, confidence=0.95)
+                FrameworkInfo(
+                    name="Blazor WebAssembly",
+                    language="C#",
+                    version="",
+                    config_file=path.name,
+                    confidence=0.95,
+                )
             )
 
         if not stack.frameworks:
             stack.frameworks.append(
-                FrameworkInfo(name="C#", language="C#", version="",
-                              config_file=path.name, confidence=0.7)
+                FrameworkInfo(
+                    name="C#", language="C#", version="", config_file=path.name, confidence=0.7
+                )
             )
 
     # ── Go detector ─────────────────────────────────────────────────────────
@@ -664,14 +730,20 @@ class FrameworkDetector:
         for fw_name, fw_lang, indicators in fw_checks:
             if any(dep in all_imports for dep in indicators):
                 stack.frameworks.append(
-                    FrameworkInfo(name=fw_name, language=fw_lang, version="",
-                                  config_file="go.mod", confidence=0.95)
+                    FrameworkInfo(
+                        name=fw_name,
+                        language=fw_lang,
+                        version="",
+                        config_file="go.mod",
+                        confidence=0.95,
+                    )
                 )
 
         if not stack.frameworks:
             stack.frameworks.append(
-                FrameworkInfo(name="Go", language="Go", version="",
-                              config_file="go.mod", confidence=0.7)
+                FrameworkInfo(
+                    name="Go", language="Go", version="", config_file="go.mod", confidence=0.7
+                )
             )
 
     # ── C/C++ detector ──────────────────────────────────────────────────────
@@ -691,21 +763,32 @@ class FrameworkDetector:
                 content = path.read_text("utf-8", errors="ignore")
                 if "crow" in content.lower():
                     stack.frameworks.append(
-                        FrameworkInfo(name="Crow", language="C++", version="",
-                                      config_file=path.name, confidence=0.85)
+                        FrameworkInfo(
+                            name="Crow",
+                            language="C++",
+                            version="",
+                            config_file=path.name,
+                            confidence=0.85,
+                        )
                     )
                 if "drogon" in content.lower():
                     stack.frameworks.append(
-                        FrameworkInfo(name="Drogon", language="C++", version="",
-                                      config_file=path.name, confidence=0.85)
+                        FrameworkInfo(
+                            name="Drogon",
+                            language="C++",
+                            version="",
+                            config_file=path.name,
+                            confidence=0.85,
+                        )
                     )
             except Exception as e:
                 _log.warning("FrameworkDetector._detect_c_cpp failed: %s", e)
 
         if not stack.frameworks:
             stack.frameworks.append(
-                FrameworkInfo(name=lang, language=lang, version="",
-                              config_file=path.name, confidence=0.7)
+                FrameworkInfo(
+                    name=lang, language=lang, version="", config_file=path.name, confidence=0.7
+                )
             )
 
     # ── Swift detector ──────────────────────────────────────────────────────
@@ -722,23 +805,43 @@ class FrameworkDetector:
 
         if re.search(r"vapor", content, re.I):
             stack.frameworks.append(
-                FrameworkInfo(name="Vapor", language="Swift", version="",
-                              config_file="Package.swift", confidence=0.95)
+                FrameworkInfo(
+                    name="Vapor",
+                    language="Swift",
+                    version="",
+                    config_file="Package.swift",
+                    confidence=0.95,
+                )
             )
         if re.search(r"kitura", content, re.I):
             stack.frameworks.append(
-                FrameworkInfo(name="Kitura", language="Swift", version="",
-                              config_file="Package.swift", confidence=0.90)
+                FrameworkInfo(
+                    name="Kitura",
+                    language="Swift",
+                    version="",
+                    config_file="Package.swift",
+                    confidence=0.90,
+                )
             )
         if re.search(r"perfect", content, re.I):
             stack.frameworks.append(
-                FrameworkInfo(name="Perfect", language="Swift", version="",
-                              config_file="Package.swift", confidence=0.85)
+                FrameworkInfo(
+                    name="Perfect",
+                    language="Swift",
+                    version="",
+                    config_file="Package.swift",
+                    confidence=0.85,
+                )
             )
         if not stack.frameworks:
             stack.frameworks.append(
-                FrameworkInfo(name="Swift", language="Swift", version="",
-                              config_file="Package.swift", confidence=0.7)
+                FrameworkInfo(
+                    name="Swift",
+                    language="Swift",
+                    version="",
+                    config_file="Package.swift",
+                    confidence=0.7,
+                )
             )
 
     # ── Ruby detector ───────────────────────────────────────────────────────
@@ -755,23 +858,43 @@ class FrameworkDetector:
 
         if re.search(r"rails", content, re.I):
             stack.frameworks.append(
-                FrameworkInfo(name="Ruby on Rails", language="Ruby", version="",
-                              config_file="Gemfile", confidence=0.95)
+                FrameworkInfo(
+                    name="Ruby on Rails",
+                    language="Ruby",
+                    version="",
+                    config_file="Gemfile",
+                    confidence=0.95,
+                )
             )
         elif re.search(r"sinatra", content, re.I):
             stack.frameworks.append(
-                FrameworkInfo(name="Sinatra", language="Ruby", version="",
-                              config_file="Gemfile", confidence=0.90)
+                FrameworkInfo(
+                    name="Sinatra",
+                    language="Ruby",
+                    version="",
+                    config_file="Gemfile",
+                    confidence=0.90,
+                )
             )
         elif re.search(r"hanami", content, re.I):
             stack.frameworks.append(
-                FrameworkInfo(name="Hanami", language="Ruby", version="",
-                              config_file="Gemfile", confidence=0.85)
+                FrameworkInfo(
+                    name="Hanami",
+                    language="Ruby",
+                    version="",
+                    config_file="Gemfile",
+                    confidence=0.85,
+                )
             )
         elif re.search(r"grape", content, re.I):
             stack.frameworks.append(
-                FrameworkInfo(name="Grape", language="Ruby", version="",
-                              config_file="Gemfile", confidence=0.85)
+                FrameworkInfo(
+                    name="Grape",
+                    language="Ruby",
+                    version="",
+                    config_file="Gemfile",
+                    confidence=0.85,
+                )
             )
         else:
             # Scan .rb files for framework imports (fallback)
@@ -782,13 +905,23 @@ class FrameworkDetector:
                     if re.search(r"class\s+\w+\s*<\s*(Sinatra::Base|Grape::API)", text):
                         if "Sinatra" in text:
                             stack.frameworks.append(
-                                FrameworkInfo(name="Sinatra", language="Ruby", version="",
-                                              config_file=rb.name, confidence=0.85)
+                                FrameworkInfo(
+                                    name="Sinatra",
+                                    language="Ruby",
+                                    version="",
+                                    config_file=rb.name,
+                                    confidence=0.85,
+                                )
                             )
                         elif "Grape" in text:
                             stack.frameworks.append(
-                                FrameworkInfo(name="Grape", language="Ruby", version="",
-                                              config_file=rb.name, confidence=0.85)
+                                FrameworkInfo(
+                                    name="Grape",
+                                    language="Ruby",
+                                    version="",
+                                    config_file=rb.name,
+                                    confidence=0.85,
+                                )
                             )
                         break
                 except Exception as e:
@@ -796,8 +929,9 @@ class FrameworkDetector:
 
         if not stack.frameworks:
             stack.frameworks.append(
-                FrameworkInfo(name="Ruby", language="Ruby", version="",
-                              config_file="Gemfile", confidence=0.7)
+                FrameworkInfo(
+                    name="Ruby", language="Ruby", version="", config_file="Gemfile", confidence=0.7
+                )
             )
 
 

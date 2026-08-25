@@ -16,13 +16,14 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Callable
 
 from ..agents.base import AgentGroup, AgentInput, AgentResult, AgentStatus
 
 _log = logging.getLogger("patchi.testing.live_test_runner")
+
 
 @dataclass
 class TestRunConfig:

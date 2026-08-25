@@ -16,10 +16,10 @@ import asyncio
 import logging
 import time
 import uuid
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Callable
 
 import yaml
 
@@ -40,6 +40,7 @@ _log = logging.getLogger("patchi.security.red_team_engine")
 @dataclass
 class AttackStepResult:
     """Result of a single attack step."""
+
     step: int
     action: str
     success: bool
@@ -52,6 +53,7 @@ class AttackStepResult:
 @dataclass
 class ScenarioResult:
     """Result of running an attack scenario."""
+
     scenario_id: str
     scenario_name: str
     status: str  # "success", "failed", "blocked", "skipped"
@@ -60,7 +62,7 @@ class ScenarioResult:
     step_results: list[AttackStepResult] = field(default_factory=list)
     findings: list[Finding] = field(default_factory=list)
     exploit_evidence: dict = field(default_factory=dict)
-    started_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    started_at: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
     completed_at: str = ""
     duration_ms: int = 0
 
@@ -68,6 +70,7 @@ class ScenarioResult:
 @dataclass
 class RedTeamReport:
     """Complete red team assessment report."""
+
     assessment_id: str
     project_root: str
     scope: str
@@ -77,7 +80,7 @@ class RedTeamReport:
     by_severity: dict[str, int] = field(default_factory=dict)
     attack_tree: dict = field(default_factory=dict)
     remediation_playbooks: list[str] = field(default_factory=list)
-    started_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    started_at: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
     completed_at: str = ""
     duration_ms: int = 0
 
@@ -110,6 +113,7 @@ class AttackExecutor:
         # HTTP session
         try:
             import aiohttp
+
             timeout = aiohttp.ClientTimeout(total=15)
             self.session = aiohttp.ClientSession(timeout=timeout)
         except ImportError:
@@ -118,6 +122,7 @@ class AttackExecutor:
         # Playwright browser
         try:
             from playwright.async_api import async_playwright
+
             self._playwright = await async_playwright().start()
             self.browser = await self._playwright.chromium.launch(
                 headless=True,
@@ -196,12 +201,16 @@ class AttackExecutor:
             else:
                 result = {"success": False, "error": f"Unknown tool: {tool}"}
 
-            self._record_evidence(step_num, action, {
-                "tool": tool,
-                "success": result.get("success", False),
-                "evidence": result.get("evidence", ""),
-                "data": result.get("data", {}),
-            })
+            self._record_evidence(
+                step_num,
+                action,
+                {
+                    "tool": tool,
+                    "success": result.get("success", False),
+                    "evidence": result.get("evidence", ""),
+                    "data": result.get("data", {}),
+                },
+            )
 
             duration = int((time.monotonic() - start) * 1000)
             return AttackStepResult(
@@ -238,7 +247,7 @@ class AttackExecutor:
 
         # Apply payloads to URL params or form data
         if payloads:
-            for i, payload in enumerate(payloads[:5]):  # cap at 5
+            for _i, payload in enumerate(payloads[:5]):  # cap at 5
                 test_url = url
                 test_data = dict(data)
 
@@ -260,9 +269,16 @@ class AttackExecutor:
                         body = await resp.text()
                         # Check for SQL error messages
                         error_indicators = [
-                            "sql syntax", "mysql", "sqlite", "postgresql",
-                            "ora-", "unquoted parameter", "microsoft ole db",
-                            "odbc", "jdbc", "syntax error",
+                            "sql syntax",
+                            "mysql",
+                            "sqlite",
+                            "postgresql",
+                            "ora-",
+                            "unquoted parameter",
+                            "microsoft ole db",
+                            "odbc",
+                            "jdbc",
+                            "syntax error",
                         ]
                         has_error = any(ind in body.lower() for ind in error_indicators)
 
@@ -303,7 +319,13 @@ class AttackExecutor:
 
         payloads = step.get("payloads", [])
         if self.safe_mode:
-            payloads = [p for p in payloads if not any(d in p.upper() for d in ["DROP", "DELETE", "UPDATE", "INSERT", "EXEC", "SYSTEM"])]
+            payloads = [
+                p
+                for p in payloads
+                if not any(
+                    d in p.upper() for d in ["DROP", "DELETE", "UPDATE", "INSERT", "EXEC", "SYSTEM"]
+                )
+            ]
 
         url = step.get("url", self.target_url)
         findings = []
@@ -315,11 +337,19 @@ class AttackExecutor:
                     body = await resp.text()
                     # Check for error reflection, stack traces, or interesting responses
                     if resp.status >= 500:
-                        findings.append({"payload": payload, "status": resp.status, "type": "server_error"})
-                    elif any(kw in body.lower() for kw in ["traceback", "exception", "stack trace"]):
-                        findings.append({"payload": payload, "status": resp.status, "type": "info_disclosure"})
+                        findings.append(
+                            {"payload": payload, "status": resp.status, "type": "server_error"}
+                        )
+                    elif any(
+                        kw in body.lower() for kw in ["traceback", "exception", "stack trace"]
+                    ):
+                        findings.append(
+                            {"payload": payload, "status": resp.status, "type": "info_disclosure"}
+                        )
                     elif payload in body:  # payload reflected in response
-                        findings.append({"payload": payload, "status": resp.status, "type": "reflected"})
+                        findings.append(
+                            {"payload": payload, "status": resp.status, "type": "reflected"}
+                        )
             except Exception:
                 continue
 
@@ -335,18 +365,28 @@ class AttackExecutor:
             return {"success": False, "error": "No HTTP session"}
 
         url = step.get("url", self.target_url)
-        payloads = step.get("payloads", [
-            "' OR '1'='1",
-            "' OR 1=1--",
-            "admin'--",
-            "' UNION SELECT NULL--",
-            "1; DROP TABLE users--",
-        ])
+        payloads = step.get(
+            "payloads",
+            [
+                "' OR '1'='1",
+                "' OR 1=1--",
+                "admin'--",
+                "' UNION SELECT NULL--",
+                "1; DROP TABLE users--",
+            ],
+        )
 
         sql_indicators = [
-            "sql syntax", "mysql", "sqlite", "postgresql",
-            "ora-", "unquoted", "microsoft ole db", "odbc",
-            "warning.*mysql", "unclosed quotation mark",
+            "sql syntax",
+            "mysql",
+            "sqlite",
+            "postgresql",
+            "ora-",
+            "unquoted",
+            "microsoft ole db",
+            "odbc",
+            "warning.*mysql",
+            "unclosed quotation mark",
         ]
 
         results = []
@@ -356,12 +396,14 @@ class AttackExecutor:
                 async with self.session.get(test_url) as resp:
                     body = await resp.text()
                     has_sql_error = any(ind in body.lower() for ind in sql_indicators)
-                    results.append({
-                        "payload": payload,
-                        "status": resp.status,
-                        "sql_error": has_sql_error,
-                        "response_preview": body[:200] if has_sql_error else "",
-                    })
+                    results.append(
+                        {
+                            "payload": payload,
+                            "status": resp.status,
+                            "sql_error": has_sql_error,
+                            "response_preview": body[:200] if has_sql_error else "",
+                        }
+                    )
                     if has_sql_error:
                         return {
                             "success": True,
@@ -396,31 +438,41 @@ class AttackExecutor:
             if action_type == "navigate":
                 await page.goto(url, wait_until="domcontentloaded", timeout=10000)
                 evidence["title"] = await page.title()
-                evidence["screenshot"] = await self._capture_screenshot(page, f"nav_{step.get('step', 0)}")
+                evidence["screenshot"] = await self._capture_screenshot(
+                    page, f"nav_{step.get('step', 0)}"
+                )
 
             elif action_type == "click":
                 await page.goto(url, wait_until="domcontentloaded", timeout=10000)
                 if selector:
                     await page.click(selector)
                     await page.wait_for_load_state("domcontentloaded")
-                evidence["screenshot"] = await self._capture_screenshot(page, f"click_{step.get('step', 0)}")
+                evidence["screenshot"] = await self._capture_screenshot(
+                    page, f"click_{step.get('step', 0)}"
+                )
 
             elif action_type == "fill":
                 await page.goto(url, wait_until="domcontentloaded", timeout=10000)
                 if selector and value:
                     await page.fill(selector, value)
-                evidence["screenshot"] = await self._capture_screenshot(page, f"fill_{step.get('step', 0)}")
+                evidence["screenshot"] = await self._capture_screenshot(
+                    page, f"fill_{step.get('step', 0)}"
+                )
 
             elif action_type == "fill_and_submit":
                 await page.goto(url, wait_until="domcontentloaded", timeout=10000)
                 if selector and value:
                     await page.fill(selector, value)
                     # Try to find and click submit button
-                    submit = await page.query_selector("button[type=submit], input[type=submit], button:has-text('Login'), button:has-text('Submit')")
+                    submit = await page.query_selector(
+                        "button[type=submit], input[type=submit], button:has-text('Login'), button:has-text('Submit')"
+                    )
                     if submit:
                         await submit.click()
                         await page.wait_for_load_state("domcontentloaded")
-                evidence["screenshot"] = await self._capture_screenshot(page, f"submit_{step.get('step', 0)}")
+                evidence["screenshot"] = await self._capture_screenshot(
+                    page, f"submit_{step.get('step', 0)}"
+                )
                 evidence["final_url"] = page.url
 
             elif action_type == "check_auth_bypass":
@@ -428,33 +480,43 @@ class AttackExecutor:
                 # Check if we can access protected resource without auth
                 content = await page.content()
                 has_login_form = bool(await page.query_selector("input[type=password]"))
-                has_dashboard = any(kw in content.lower() for kw in ["dashboard", "welcome", "logout", "admin"])
+                has_dashboard = any(
+                    kw in content.lower() for kw in ["dashboard", "welcome", "logout", "admin"]
+                )
                 evidence["has_login_form"] = has_login_form
                 evidence["has_dashboard"] = has_dashboard
                 evidence["bypassed"] = has_dashboard and not has_login_form
-                evidence["screenshot"] = await self._capture_screenshot(page, f"bypass_{step.get('step', 0)}")
+                evidence["screenshot"] = await self._capture_screenshot(
+                    page, f"bypass_{step.get('step', 0)}"
+                )
 
             elif action_type == "screenshot":
                 await page.goto(url, wait_until="domcontentloaded", timeout=10000)
-                evidence["screenshot"] = await self._capture_screenshot(page, f"capture_{step.get('step', 0)}")
+                evidence["screenshot"] = await self._capture_screenshot(
+                    page, f"capture_{step.get('step', 0)}"
+                )
                 evidence["title"] = await page.title()
 
             elif action_type == "intercept_requests":
                 captured_requests = []
 
                 async def on_request(request):
-                    captured_requests.append({
-                        "method": request.method,
-                        "url": request.url,
-                        "headers": dict(request.headers),
-                    })
+                    captured_requests.append(
+                        {
+                            "method": request.method,
+                            "url": request.url,
+                            "headers": dict(request.headers),
+                        }
+                    )
 
                 page.on("request", on_request)
                 await page.goto(url, wait_until="domcontentloaded", timeout=10000)
                 await page.wait_for_timeout(2000)  # let requests settle
                 evidence["captured_requests"] = captured_requests[:20]
                 evidence["request_count"] = len(captured_requests)
-                evidence["screenshot"] = await self._capture_screenshot(page, f"intercept_{step.get('step', 0)}")
+                evidence["screenshot"] = await self._capture_screenshot(
+                    page, f"intercept_{step.get('step', 0)}"
+                )
 
             else:
                 evidence["error"] = f"Unknown browser action: {action_type}"
@@ -495,12 +557,14 @@ class AttackExecutor:
                     # Find the line
                     for i, line in enumerate(content.splitlines(), 1):
                         if pattern.lower() in line.lower():
-                            findings.append({
-                                "file": str(py_file.relative_to(self.root)),
-                                "line": i,
-                                "pattern": pattern,
-                                "context": line.strip()[:100],
-                            })
+                            findings.append(
+                                {
+                                    "file": str(py_file.relative_to(self.root)),
+                                    "line": i,
+                                    "pattern": pattern,
+                                    "context": line.strip()[:100],
+                                }
+                            )
                             break
 
         return {
@@ -530,7 +594,10 @@ class AttackExecutor:
                     return {
                         "success": True,
                         "evidence": f"JWT decoded: {list(decoded.keys())}",
-                        "data": {"header": _json.loads(base64.urlsafe_b64decode(parts[0] + "==")), "payload": decoded},
+                        "data": {
+                            "header": _json.loads(base64.urlsafe_b64decode(parts[0] + "==")),
+                            "payload": decoded,
+                        },
                     }
 
             elif action == "alg_none":
@@ -554,7 +621,7 @@ class AttackExecutor:
 class RedTeamEngine:
     """
     Main Red Team Engine.
-    
+
     Orchestrates attack scenarios, manages execution, and produces reports.
     """
 
@@ -582,7 +649,7 @@ class RedTeamEngine:
         if self.scenarios_dir.exists():
             for yaml_file in self.scenarios_dir.glob("*.yaml"):
                 try:
-                    with open(yaml_file, "r") as f:
+                    with open(yaml_file) as f:
                         data = yaml.safe_load(f)
                     if data and "scenarios" in data:
                         for scenario in data["scenarios"]:
@@ -605,7 +672,7 @@ class RedTeamEngine:
         forced_scenarios = forced_scenarios or []
 
         # Get active security domains
-        active_domains = project_context.get("active_security_domains", [])
+        project_context.get("active_security_domains", [])
         frameworks = [f.get("name", "").lower() for f in project_context.get("frameworks", [])]
         component_type = project_context.get("component_type", "")
 
@@ -691,7 +758,9 @@ class RedTeamEngine:
         start_time = time.monotonic()
 
         self.on_progress(f"🎯 Starting Red Team Assessment: {assessment_id}")
-        self.on_progress(f"   Scope: {scope} | Intensity: {intensity} | Safe Mode: {self.safe_mode}")
+        self.on_progress(
+            f"   Scope: {scope} | Intensity: {intensity} | Safe Mode: {self.safe_mode}"
+        )
 
         # Select scenarios
         scenarios = self.select_scenarios(project_context, scope, intensity, forced_scenarios)
@@ -721,7 +790,7 @@ class RedTeamEngine:
         try:
             # Run scenarios
             for i, scenario in enumerate(scenarios):
-                self.on_progress(f"⚔️  Scenario {i+1}/{len(scenarios)}: {scenario['name']}")
+                self.on_progress(f"⚔️  Scenario {i + 1}/{len(scenarios)}: {scenario['name']}")
 
                 result = await self._run_scenario(scenario, executor, project_context)
                 report.scenarios_run.append(result)
@@ -739,7 +808,9 @@ class RedTeamEngine:
 
             # Capture evidence from executor
             report.exploit_evidence = {
-                "screenshots": len([e for e in executor.get_evidence() if e.get("data", {}).get("screenshot")]),
+                "screenshots": len(
+                    [e for e in executor.get_evidence() if e.get("data", {}).get("screenshot")]
+                ),
                 "total_steps": len(executor.get_evidence()),
                 "evidence_dir": str(executor._evidence_dir),
                 "evidence": executor.get_evidence()[:50],
@@ -748,10 +819,12 @@ class RedTeamEngine:
         finally:
             await executor.cleanup()
 
-        report.completed_at = datetime.now(timezone.utc).isoformat()
+        report.completed_at = datetime.now(UTC).isoformat()
         report.duration_ms = int((time.monotonic() - start_time) * 1000)
 
-        self.on_progress(f"✅ Assessment complete: {report.total_findings} findings in {report.duration_ms}ms")
+        self.on_progress(
+            f"✅ Assessment complete: {report.total_findings} findings in {report.duration_ms}ms"
+        )
 
         # Save report
         await self._save_report(report)
@@ -796,7 +869,7 @@ class RedTeamEngine:
         # Collect exploit evidence
         result.exploit_evidence = self._collect_evidence(scenario, result)
 
-        result.completed_at = datetime.now(timezone.utc).isoformat()
+        result.completed_at = datetime.now(UTC).isoformat()
         result.duration_ms = int((time.monotonic() - start_time) * 1000)
 
         return result
@@ -888,6 +961,7 @@ class RedTeamEngine:
         report_path.parent.mkdir(parents=True, exist_ok=True)
 
         import json
+
         report_data = {
             "assessment_id": report.assessment_id,
             "project_root": report.project_root,
@@ -931,7 +1005,6 @@ class RedTeamEngine:
         from patchi.core.fix.patch import list_patches
 
         patches = list_patches(self.root)
-        relevant_findings = []
 
         for patch_id in patch_ids:
             patch = next((p for p in patches if p.get("id") == patch_id), None)
@@ -973,6 +1046,7 @@ async def run_red_team(
     """Run a red team assessment."""
     # Get project context from brain
     from patchi.core import memory as mem
+
     brain = mem.get_brain(root)
 
     project_context = {

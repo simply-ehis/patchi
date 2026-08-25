@@ -30,6 +30,7 @@ async def self_improvement(request: Request):
     # Agent profiles
     try:
         from patchi.core.ai.agent_profiler import get_all_profiles, get_profile_summary
+
         profile_summary = get_profile_summary(root)
         all_profiles = get_all_profiles(root)
         profiles_data = {k: v.to_dict() for k, v in all_profiles.items()}
@@ -40,6 +41,7 @@ async def self_improvement(request: Request):
     # Learning summary
     try:
         from patchi.core.security.attack_feedback import get_learning_summary
+
         learning = get_learning_summary(root)
     except Exception:
         learning = {"acceptances": {}, "rejections": {}, "agent_trust": {}, "skip_types": []}
@@ -50,6 +52,7 @@ async def self_improvement(request: Request):
     # Fuzz corpus stats
     try:
         from patchi.core.fuzz.corpus import FuzzCorpus
+
         corpus = FuzzCorpus(root)
         corpus_stats = corpus.stats()
     except Exception:
@@ -58,6 +61,7 @@ async def self_improvement(request: Request):
     # Ignore learner stats
     try:
         from patchi.core.security.ignore_learner import IgnoreLearner
+
         learner = IgnoreLearner(root)
         learner.build()
         ignore_count = len(learner.entries)
@@ -85,15 +89,18 @@ async def api_self_improvement(request: Request):
     try:
         from patchi.core.ai.agent_profiler import get_all_profiles, get_profile_summary
         from patchi.core.security.attack_feedback import get_learning_summary
+
         profile_summary = get_profile_summary(root)
         all_profiles = get_all_profiles(root)
         learning = get_learning_summary(root)
         threat_model = _load_json(root, ".patchi/threat_model.json")
-        return JSONResponse({
-            "profiles": profile_summary,
-            "agent_details": {k: v.to_dict() for k, v in all_profiles.items()},
-            "learning": learning,
-            "threat_model": threat_model,
-        })
+        return JSONResponse(
+            {
+                "profiles": profile_summary,
+                "agent_details": {k: v.to_dict() for k, v in all_profiles.items()},
+                "learning": learning,
+                "threat_model": threat_model,
+            }
+        )
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)

@@ -41,8 +41,7 @@ class EnforceRateLimitAdapter(BaseAdapter):
                         proposed=(
                             "from flask_limiter import Limiter\n"
                             "from flask_limiter.util import get_remote_address\n\n"
-                            "limiter = Limiter(key_func=get_remote_address)\n"
-                            + content
+                            "limiter = Limiter(key_func=get_remote_address)\n" + content
                         ),
                     )
                 )
@@ -57,8 +56,7 @@ class EnforceRateLimitAdapter(BaseAdapter):
                         original=content,
                         proposed=(
                             "from slowapi import Limiter, _rate_limit_exceeded_handler\n"
-                            "from slowapi.util import get_remote_address\n"
-                            + content
+                            "from slowapi.util import get_remote_address\n" + content
                         ),
                     )
                 )

@@ -61,6 +61,7 @@ import logging
 
 _log = logging.getLogger("patchi.agents.dead_code_scanner")
 
+
 @register
 class DeadCodeScanner(BaseAgent):
     """Dead code detection via vulture + import graph dual-signal."""
@@ -239,7 +240,11 @@ def _detect_project_langs(root: Path) -> set[str]:
         langs.add("java")
     if (root / "package.json").exists():
         langs.add("javascript")
-    if (root / "requirements.txt").exists() or (root / "setup.py").exists() or (root / "pyproject.toml").exists():
+    if (
+        (root / "requirements.txt").exists()
+        or (root / "setup.py").exists()
+        or (root / "pyproject.toml").exists()
+    ):
         langs.add("python")
     if list(root.glob("*.csproj")):
         langs.add("csharp")
@@ -283,15 +288,17 @@ def _run_vulture(root: Path) -> list[dict] | None:
             rel = Path(abs_path).relative_to(root).as_posix()
         except ValueError:
             rel = abs_path
-        findings.append({
-            "file": rel,
-            "line": item.get("first_lineno", 0),
-            "name": item.get("name", ""),
-            "type": item.get("type", ""),
-            "message": item.get("message", ""),
-            "confidence": item.get("confidence", 0),
-            "code": item.get("code", ""),
-        })
+        findings.append(
+            {
+                "file": rel,
+                "line": item.get("first_lineno", 0),
+                "name": item.get("name", ""),
+                "type": item.get("type", ""),
+                "message": item.get("message", ""),
+                "confidence": item.get("confidence", 0),
+                "code": item.get("code", ""),
+            }
+        )
     return findings
 
 
@@ -320,15 +327,17 @@ def _run_ts_prune(root: Path) -> list[dict] | None:
             rel = Path(file_part).as_posix()
         except ValueError:
             rel = file_part
-        findings.append({
-            "file": rel,
-            "line": line_num,
-            "name": symbol,
-            "type": "export",
-            "message": f"Unused export: {symbol}",
-            "confidence": 95,
-            "code": "",
-        })
+        findings.append(
+            {
+                "file": rel,
+                "line": line_num,
+                "name": symbol,
+                "type": "export",
+                "message": f"Unused export: {symbol}",
+                "confidence": 95,
+                "code": "",
+            }
+        )
     return findings
 
 
@@ -339,15 +348,17 @@ def _run_cargo_dead_code(root: Path) -> list[dict] | None:
     if proc is not None:
         for line in proc.stderr.strip().splitlines():
             if "unused" in line.lower():
-                findings.append({
-                    "file": "Cargo.toml",
-                    "line": 0,
-                    "name": line.strip(),
-                    "type": "unused_dependency",
-                    "message": line.strip(),
-                    "confidence": 90,
-                    "code": "",
-                })
+                findings.append(
+                    {
+                        "file": "Cargo.toml",
+                        "line": 0,
+                        "name": line.strip(),
+                        "type": "unused_dependency",
+                        "message": line.strip(),
+                        "confidence": 90,
+                        "code": "",
+                    }
+                )
     return findings or None
 
 
@@ -359,29 +370,37 @@ def _run_go_dead_code(root: Path) -> list[dict] | None:
     if proc is not None:
         for line in proc.stderr.strip().splitlines():
             if "unused" in line.lower() or "dead" in line.lower():
-                findings.append({
-                    "file": "",
-                    "line": 0,
-                    "name": line.strip(),
-                    "type": "go_dead_code",
-                    "message": line.strip(),
-                    "confidence": 85,
-                    "code": "",
-                })
+                findings.append(
+                    {
+                        "file": "",
+                        "line": 0,
+                        "name": line.strip(),
+                        "type": "go_dead_code",
+                        "message": line.strip(),
+                        "confidence": 85,
+                        "code": "",
+                    }
+                )
     # golangci-lint with unused linter
-    proc = _run_tool(["golangci-lint", "run", "--disable-all", "--enable=unused", "--timeout=2m"], root, timeout=180)
+    proc = _run_tool(
+        ["golangci-lint", "run", "--disable-all", "--enable=unused", "--timeout=2m"],
+        root,
+        timeout=180,
+    )
     if proc is not None:
         for line in proc.stdout.strip().splitlines():
             if "unused" in line.lower():
-                findings.append({
-                    "file": "",
-                    "line": 0,
-                    "name": line.strip(),
-                    "type": "go_dead_code",
-                    "message": line.strip(),
-                    "confidence": 90,
-                    "code": "",
-                })
+                findings.append(
+                    {
+                        "file": "",
+                        "line": 0,
+                        "name": line.strip(),
+                        "type": "go_dead_code",
+                        "message": line.strip(),
+                        "confidence": 90,
+                        "code": "",
+                    }
+                )
     return findings or None
 
 
@@ -404,15 +423,17 @@ def _run_debride(root: Path) -> list[dict] | None:
             rel = Path(file_part).as_posix()
         except ValueError:
             rel = file_part
-        findings.append({
-            "file": rel,
-            "line": line_num,
-            "name": rest.strip(),
-            "type": "ruby_dead_code",
-            "message": rest.strip(),
-            "confidence": 90,
-            "code": "",
-        })
+        findings.append(
+            {
+                "file": rel,
+                "line": line_num,
+                "name": rest.strip(),
+                "type": "ruby_dead_code",
+                "message": rest.strip(),
+                "confidence": 90,
+                "code": "",
+            }
+        )
     return findings or None
 
 
@@ -424,15 +445,17 @@ def _run_composer_unused(root: Path) -> list[dict] | None:
     findings: list[dict] = []
     for line in proc.stdout.strip().splitlines():
         if "unused" in line.lower():
-            findings.append({
-                "file": "composer.json",
-                "line": 0,
-                "name": line.strip(),
-                "type": "unused_dependency",
-                "message": line.strip(),
-                "confidence": 85,
-                "code": "",
-            })
+            findings.append(
+                {
+                    "file": "composer.json",
+                    "line": 0,
+                    "name": line.strip(),
+                    "type": "unused_dependency",
+                    "message": line.strip(),
+                    "confidence": 85,
+                    "code": "",
+                }
+            )
     return findings or None
 
 
@@ -443,21 +466,25 @@ def _run_dotnet_dead_code(root: Path) -> list[dict] | None:
         csproj_files = list(root.glob("**/*.csproj"))
     if not csproj_files:
         return None
-    proc = _run_tool(["dotnet", "list", str(csproj_files[0]), "package", "--vulnerable"], root, timeout=120)
+    proc = _run_tool(
+        ["dotnet", "list", str(csproj_files[0]), "package", "--vulnerable"], root, timeout=120
+    )
     if proc is None:
         return None
     findings: list[dict] = []
     for line in proc.stdout.strip().splitlines():
         if "unused" in line.lower() or "not used" in line.lower():
-            findings.append({
-                "file": csproj_files[0].relative_to(root).as_posix(),
-                "line": 0,
-                "name": line.strip(),
-                "type": "unused_dependency",
-                "message": line.strip(),
-                "confidence": 80,
-                "code": "",
-            })
+            findings.append(
+                {
+                    "file": csproj_files[0].relative_to(root).as_posix(),
+                    "line": 0,
+                    "name": line.strip(),
+                    "type": "unused_dependency",
+                    "message": line.strip(),
+                    "confidence": 80,
+                    "code": "",
+                }
+            )
     return findings or None
 
 
@@ -472,15 +499,17 @@ def _run_jdeps(root: Path) -> list[dict] | None:
         findings: list[dict] = []
         for line in proc.stdout.strip().splitlines():
             if "Unused" in line or "unused" in line:
-                findings.append({
-                    "file": "pom.xml",
-                    "line": 0,
-                    "name": line.strip(),
-                    "type": "unused_dependency",
-                    "message": line.strip(),
-                    "confidence": 85,
-                    "code": "",
-                })
+                findings.append(
+                    {
+                        "file": "pom.xml",
+                        "line": 0,
+                        "name": line.strip(),
+                        "type": "unused_dependency",
+                        "message": line.strip(),
+                        "confidence": 85,
+                        "code": "",
+                    }
+                )
         return findings or None
     findings = []
     for line in proc.stdout.strip().splitlines():
@@ -489,15 +518,17 @@ def _run_jdeps(root: Path) -> list[dict] | None:
         parts = line.split("->")
         if len(parts) >= 2:
             source = parts[0].strip()
-            findings.append({
-                "file": source if source else "",
-                "line": 0,
-                "name": parts[1].strip(),
-                "type": "java_dependency",
-                "message": line.strip(),
-                "confidence": 80,
-                "code": "",
-            })
+            findings.append(
+                {
+                    "file": source if source else "",
+                    "line": 0,
+                    "name": parts[1].strip(),
+                    "type": "java_dependency",
+                    "message": line.strip(),
+                    "confidence": 80,
+                    "code": "",
+                }
+            )
     return findings or None
 
 
@@ -509,35 +540,41 @@ def _run_swift_dead_code(root: Path) -> list[dict] | None:
     findings: list[dict] = []
     for line in proc.stderr.strip().splitlines():
         if "unused" in line.lower():
-            findings.append({
-                "file": "",
-                "line": 0,
-                "name": line.strip(),
-                "type": "swift_unused",
-                "message": line.strip(),
-                "confidence": 85,
-                "code": "",
-            })
+            findings.append(
+                {
+                    "file": "",
+                    "line": 0,
+                    "name": line.strip(),
+                    "type": "swift_unused",
+                    "message": line.strip(),
+                    "confidence": 85,
+                    "code": "",
+                }
+            )
     return findings or None
 
 
 def _run_clang_tidy(root: Path) -> list[dict] | None:
     """Run clang-tidy for C/C++ dead code detection."""
-    proc = _run_tool(["clang-tidy", "--checks=-*,misc-unused-*", "--list-checks"], root, timeout=120)
+    proc = _run_tool(
+        ["clang-tidy", "--checks=-*,misc-unused-*", "--list-checks"], root, timeout=120
+    )
     if proc is None:
         return None
     findings: list[dict] = []
     for line in proc.stdout.strip().splitlines():
         if "unused" in line.lower():
-            findings.append({
-                "file": "",
-                "line": 0,
-                "name": line.strip(),
-                "type": "c_cpp_unused",
-                "message": line.strip(),
-                "confidence": 80,
-                "code": "",
-            })
+            findings.append(
+                {
+                    "file": "",
+                    "line": 0,
+                    "name": line.strip(),
+                    "type": "c_cpp_unused",
+                    "message": line.strip(),
+                    "confidence": 80,
+                    "code": "",
+                }
+            )
     return findings or None
 
 

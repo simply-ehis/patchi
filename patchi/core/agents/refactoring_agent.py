@@ -29,6 +29,7 @@ from .base import (
 
 _log = logging.getLogger("patchi.agents.refactoring_agent")
 
+
 def _detect_interval_without_cleanup(content: str) -> list[dict]:
     findings: list[dict] = []
     has_clear = "clearInterval" in content
@@ -74,7 +75,10 @@ def _detect_file_handle_leaks(content: str) -> list[dict]:
     streams: dict[str, int] = {}
     for i, line in enumerate(lines):
         # Detect stream creation patterns
-        for pat in [r"(?:createReadStream|createWriteStream)\s*\(\s*([^)]+)\)", r"open\s*\(\s*['\"]([^'\"]+)"]:
+        for pat in [
+            r"(?:createReadStream|createWriteStream)\s*\(\s*([^)]+)\)",
+            r"open\s*\(\s*['\"]([^'\"]+)",
+        ]:
             m = re.search(pat, line)
             if m:
                 ident = m.group(1)[:20]
@@ -98,10 +102,14 @@ def _detect_modernization_candidates(content: str, ext: str) -> list[dict]:
                 findings.append({"line": i + 1, "type": "var_to_const_let", "text": stripped[:60]})
             if ".then(" in stripped and "async" not in stripped and "await" not in stripped:
                 if re.search(r"\.then\s*\(", stripped):
-                    findings.append({"line": i + 1, "type": "then_to_async_await", "text": stripped[:60]})
+                    findings.append(
+                        {"line": i + 1, "type": "then_to_async_await", "text": stripped[:60]}
+                    )
             if re.search(r"require\s*\(['\"]", stripped) and not stripped.startswith("//"):
                 if "import " not in content:
-                    findings.append({"line": i + 1, "type": "require_to_import", "text": stripped[:60]})
+                    findings.append(
+                        {"line": i + 1, "type": "require_to_import", "text": stripped[:60]}
+                    )
     return findings
 
 
@@ -125,7 +133,21 @@ class RefactoringAgent(BaseAgent):
             if any(seg in DEFAULT_IGNORE_DIRS for seg in Path(rel).parts):
                 continue
             ext = file_path.suffix.lower()
-            if ext not in (".js", ".jsx", ".ts", ".tsx", ".py", ".rs", ".go", ".java", ".c", ".cpp", ".swift", ".rb", ".svelte"):
+            if ext not in (
+                ".js",
+                ".jsx",
+                ".ts",
+                ".tsx",
+                ".py",
+                ".rs",
+                ".go",
+                ".java",
+                ".c",
+                ".cpp",
+                ".swift",
+                ".rb",
+                ".svelte",
+            ):
                 continue
             files_scanned += 1
             try:

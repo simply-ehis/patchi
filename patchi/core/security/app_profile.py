@@ -55,7 +55,9 @@ class DomainActivation:
 
 @dataclass
 class ComponentProfile:
-    component_type: str  # cli-binary | backend-api | frontend-web | library | mobile | embedded | unknown
+    component_type: (
+        str  # cli-binary | backend-api | frontend-web | library | mobile | embedded | unknown
+    )
     display_name: str = ""
     frameworks: list[str] = field(default_factory=list)
     languages: list[str] = field(default_factory=list)
@@ -82,7 +84,18 @@ class ComponentProfile:
 
 _COMPONENT_SIGNALS: dict[str, dict] = {
     "backend-api": {
-        "frameworks": {"fastapi", "flask", "django", "express", "koa", "spring", "actix", "rocket", "gin", "echo"},
+        "frameworks": {
+            "fastapi",
+            "flask",
+            "django",
+            "express",
+            "koa",
+            "spring",
+            "actix",
+            "rocket",
+            "gin",
+            "echo",
+        },
         "files": {"routes/", "api/", "controllers/", "middleware/", "serializers/"},
         "deps": {"fastapi", "flask", "django", "express", "axios", "rest"},
     },
@@ -112,8 +125,24 @@ _COMPONENT_SIGNALS: dict[str, dict] = {
         "deps": set(),
     },
     "infra": {
-        "frameworks": {"docker", "kubernetes", "terraform", "ansible", "pulumi", "helm", "kustomize"},
-        "files": {"Dockerfile", "docker-compose", ".github/workflows/", ".gitlab-ci/", "k8s/", "deploy/", "infra/"},
+        "frameworks": {
+            "docker",
+            "kubernetes",
+            "terraform",
+            "ansible",
+            "pulumi",
+            "helm",
+            "kustomize",
+        },
+        "files": {
+            "Dockerfile",
+            "docker-compose",
+            ".github/workflows/",
+            ".gitlab-ci/",
+            "k8s/",
+            "deploy/",
+            "infra/",
+        },
         "deps": {"docker", "docker-compose", "kubernetes", "terraform"},
     },
     "llm-integration": {
@@ -158,7 +187,9 @@ class AppProfileBuilder:
         # Frameworks from brain
         fw_raw = brain.get("frameworks", brain.get("framework", ""))
         if isinstance(fw_raw, list):
-            profile.frameworks = [f if isinstance(f, str) else (f.get("name", "") or "") for f in fw_raw]
+            profile.frameworks = [
+                f if isinstance(f, str) else (f.get("name", "") or "") for f in fw_raw
+            ]
         elif isinstance(fw_raw, dict):
             profile.frameworks = [fw_raw.get("name", "")] if fw_raw.get("name") else []
         elif isinstance(fw_raw, str):
@@ -171,7 +202,9 @@ class AppProfileBuilder:
 
         # Component type inference
         profile.component_type = self._infer_component_type(profile)
-        profile.display_name = brain.get("project_purpose", brain.get("project_name", "")) or profile.component_type
+        profile.display_name = (
+            brain.get("project_purpose", brain.get("project_name", "")) or profile.component_type
+        )
 
         profile.has_database = profile.detection_signals.get("has_database", False)
         profile.has_authentication = profile.detection_signals.get("has_authentication", False)
@@ -212,6 +245,7 @@ class AppProfileBuilder:
             signals["is_packaged"] = True
             try:
                 import json
+
                 data = json.loads(package.read_text(encoding="utf-8", errors="ignore"))
                 deps = {**data.get("dependencies", {}), **data.get("devDependencies", {})}
                 signals["found_deps"].update(deps.keys())
@@ -241,7 +275,7 @@ class AppProfileBuilder:
 
     def _infer_component_type(self, profile: ComponentProfile) -> str:
         """Score each component type and return the best match."""
-        scores: dict[str, int] = {ct: 0 for ct in _COMPONENT_SIGNALS}
+        scores: dict[str, int] = dict.fromkeys(_COMPONENT_SIGNALS, 0)
         signals = profile.detection_signals
 
         for ct, sig in _COMPONENT_SIGNALS.items():
@@ -287,14 +321,16 @@ class AppProfileScorer:
             state, reason = self._determine_activation(domain, profile)
             score = existing_scores.get(did, 50.0)
 
-            results.append(DomainActivation(
-                domain_id=did,
-                display_name=domain.display_name,
-                state=state,
-                weight=domain.weight,
-                score=score if state == ActivationState.ACTIVE else 0.0,
-                reason=reason,
-            ))
+            results.append(
+                DomainActivation(
+                    domain_id=did,
+                    display_name=domain.display_name,
+                    state=state,
+                    weight=domain.weight,
+                    score=score if state == ActivationState.ACTIVE else 0.0,
+                    reason=reason,
+                )
+            )
 
         return results
 
@@ -348,15 +384,15 @@ class AppProfileScorer:
             if d not in explicit:
                 domain = self._loader.get_domain(d)
                 if domain and domain.component_type:
-                    comp_types = [self._normalize_type(ct.strip()) for ct in domain.component_type.split(",")]
+                    comp_types = [
+                        self._normalize_type(ct.strip()) for ct in domain.component_type.split(",")
+                    ]
                     if profile_type in comp_types:
                         explicit.append(d)
 
         return explicit
 
-    def _determine_activation(
-        self, domain: Domain, profile: ComponentProfile
-    ) -> tuple[str, str]:
+    def _determine_activation(self, domain: Domain, profile: ComponentProfile) -> tuple[str, str]:
         """Determine if a domain is Active, N/A, or Unclear."""
         sig = domain.activation_signals or {}
 

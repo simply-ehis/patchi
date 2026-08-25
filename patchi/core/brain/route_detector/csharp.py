@@ -59,7 +59,9 @@ class CSharpRouteDetector(BaseRouteDetector):
         for child in getattr(node, "children", []):
             self._walk(child, content, file_path, routes)
 
-    def _check_method(self, method_node: object, content: str, file_path: str, routes: list[dict]) -> None:
+    def _check_method(
+        self, method_node: object, content: str, file_path: str, routes: list[dict]
+    ) -> None:
         http_method = None
         route_suffix = ""
         method_auth = False
@@ -86,15 +88,26 @@ class CSharpRouteDetector(BaseRouteDetector):
         class_prefix, class_auth = self._enclosing_class_context(method_node, content)
         path = self._combine_path(class_prefix, route_suffix)
 
-        name_node = method_node.child_by_field_name("name") if hasattr(method_node, "child_by_field_name") else None
+        name_node = (
+            method_node.child_by_field_name("name")
+            if hasattr(method_node, "child_by_field_name")
+            else None
+        )
         handler = self._node_text(name_node, content) if name_node else ""
         line = getattr(method_node, "start_point", (0, 0))[0] + 1
 
         auth = method_auth or class_auth
-        routes.append(self._make_route(
-            http_method, path, handler, file_path, line,
-            framework="ASP.NET Core", auth_required=auth if auth else None,
-        ))
+        routes.append(
+            self._make_route(
+                http_method,
+                path,
+                handler,
+                file_path,
+                line,
+                framework="ASP.NET Core",
+                auth_required=auth if auth else None,
+            )
+        )
 
     def _enclosing_class_context(self, node: object, content: str) -> tuple[str, bool]:
         """Walk up to the enclosing class_declaration for its [Route] prefix and [Authorize]."""
@@ -129,7 +142,11 @@ class CSharpRouteDetector(BaseRouteDetector):
         return "/" + "/".join(parts) if parts else ""
 
     def _attr_name(self, attr_node: object, content: str) -> str:
-        name_node = attr_node.child_by_field_name("name") if hasattr(attr_node, "child_by_field_name") else None
+        name_node = (
+            attr_node.child_by_field_name("name")
+            if hasattr(attr_node, "child_by_field_name")
+            else None
+        )
         return self._node_text(name_node, content) if name_node else ""
 
     def _attr_string_arg(self, attr_node: object, content: str) -> str:
@@ -145,7 +162,7 @@ class CSharpRouteDetector(BaseRouteDetector):
 
     def _node_text(self, node: object, content: str) -> str:
         try:
-            return content[node.start_byte:node.end_byte]
+            return content[node.start_byte : node.end_byte]
         except Exception as e:
             _log.debug("CSharpRouteDetector._node_text failed: %s", e)
             return ""
@@ -167,14 +184,26 @@ class CSharpRouteDetector(BaseRouteDetector):
 
             handler = ""
             for j in range(i, min(i + 5, len(lines) + 1)):
-                hm = re.search(r"\b(?:public|private|protected)\s+\w+(?:<[\w,\s]+>)?\s+(\w+)\s*\(", lines[j - 1])
+                hm = re.search(
+                    r"\b(?:public|private|protected)\s+\w+(?:<[\w,\s]+>)?\s+(\w+)\s*\(",
+                    lines[j - 1],
+                )
                 if hm:
                     handler = hm.group(1)
                     break
 
-            ctx = "\n".join(lines[max(0, i - 5):i])
+            ctx = "\n".join(lines[max(0, i - 5) : i])
             auth = bool(auth_pat.search(ctx))
 
-            routes.append(self._make_route(method, path, handler, file_path, i,
-                                            framework="ASP.NET Core", auth_required=auth if auth else None))
+            routes.append(
+                self._make_route(
+                    method,
+                    path,
+                    handler,
+                    file_path,
+                    i,
+                    framework="ASP.NET Core",
+                    auth_required=auth if auth else None,
+                )
+            )
         return routes

@@ -82,7 +82,14 @@ def _record_test_run(
         for c in cases:
             conn.execute(
                 "INSERT INTO test_results (run_id, test_name, passed, duration_ms, file, line) VALUES (?, ?, ?, ?, ?, ?)",
-                (run_id, c.get("name", "?"), 1 if c.get("passed", True) else 0, c.get("duration_ms", 0), c.get("file", ""), c.get("line", 0)),
+                (
+                    run_id,
+                    c.get("name", "?"),
+                    1 if c.get("passed", True) else 0,
+                    c.get("duration_ms", 0),
+                    c.get("file", ""),
+                    c.get("line", 0),
+                ),
             )
         conn.commit()
     finally:
@@ -93,7 +100,9 @@ def _record_test_run(
 def _get_all_runs(root: Path) -> list[dict]:
     conn = _get_flake_db(root)
     try:
-        cur = conn.execute("SELECT run_id, timestamp, runner, total, passed, failed, skipped, duration_ms FROM test_runs ORDER BY rowid ASC")
+        cur = conn.execute(
+            "SELECT run_id, timestamp, runner, total, passed, failed, skipped, duration_ms FROM test_runs ORDER BY rowid ASC"
+        )
         return [
             {
                 "run_id": r[0],
@@ -152,15 +161,17 @@ def _detect_flaky_tests(root: Path, min_runs: int = _MIN_RUNS_FOR_FLAKE) -> list
             continue
         outcomes = [h["passed"] for h in history]
         if len(set(outcomes)) > 1:
-            flakes.append({
-                "test_name": test_name,
-                "history": history,
-                "run_count": len(history),
-                "pass_count": sum(1 for h in history if h["passed"]),
-                "fail_count": sum(1 for h in history if not h["passed"]),
-                "latest_file": history[-1]["file"],
-                "latest_line": history[-1]["line"],
-            })
+            flakes.append(
+                {
+                    "test_name": test_name,
+                    "history": history,
+                    "run_count": len(history),
+                    "pass_count": sum(1 for h in history if h["passed"]),
+                    "fail_count": sum(1 for h in history if not h["passed"]),
+                    "latest_file": history[-1]["file"],
+                    "latest_line": history[-1]["line"],
+                }
+            )
     return flakes
 
 
@@ -178,16 +189,18 @@ def _detect_duration_outliers(root: Path, z_threshold: float = 3.0) -> list[dict
         latest_dur = history[-1]["duration_ms"]
         z_score = (latest_dur - mean) / stdev
         if z_score > z_threshold:
-            outliers.append({
-                "test_name": test_name,
-                "mean_duration_ms": round(mean, 1),
-                "stdev_duration_ms": round(stdev, 1),
-                "latest_duration_ms": latest_dur,
-                "z_score": round(z_score, 2),
-                "history": history,
-                "latest_file": history[-1]["file"],
-                "latest_line": history[-1]["line"],
-            })
+            outliers.append(
+                {
+                    "test_name": test_name,
+                    "mean_duration_ms": round(mean, 1),
+                    "stdev_duration_ms": round(stdev, 1),
+                    "latest_duration_ms": latest_dur,
+                    "z_score": round(z_score, 2),
+                    "history": history,
+                    "latest_file": history[-1]["file"],
+                    "latest_line": history[-1]["line"],
+                }
+            )
     return outliers
 
 

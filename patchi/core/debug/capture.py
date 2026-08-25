@@ -59,7 +59,9 @@ class DebugCapture:
         lines: list[str] = []
         for i, f in enumerate(self.frames):
             marker = " <-- trigger" if i == self.trigger_frame else ""
-            lines.append(f"#{i}  {f['name']}  {_short_path(f.get('path',''))}:{f.get('line',0)}{marker}")
+            lines.append(
+                f"#{i}  {f['name']}  {_short_path(f.get('path', ''))}:{f.get('line', 0)}{marker}"
+            )
             for k, v in f.get("locals", {}).items():
                 val = _short_value(v, max_var_len)
                 lines.append(f"    {k} -> {val}")

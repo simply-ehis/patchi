@@ -24,6 +24,7 @@ from patchi.core.config import require_project_root
 
 _log = logging.getLogger("patchi.cli.learn_cmd")
 
+
 def run(
     force: bool = False,
     sub: str | None = None,
@@ -61,8 +62,10 @@ def run(
     has_data = summary["acceptances"] or summary["rejections"] or summary.get("agent_trust")
     if not has_data:
         con.print()
-        con.print("[dim]No learning data yet. Patchi learns from the fixes you accept or reject "
-                  "(e.g. [bold]p auto <files> --reject <type>[/bold]).[/dim]")
+        con.print(
+            "[dim]No learning data yet. Patchi learns from the fixes you accept or reject "
+            "(e.g. [bold]p auto <files> --reject <type>[/bold]).[/dim]"
+        )
         con.print()
         return
 
@@ -86,8 +89,10 @@ def run(
         for agent, score in summary["agent_trust"].items():
             con.print(f"  {agent}: {score}")
     con.print()
-    con.print("[dim]Run [bold]p learn patterns[/bold] to see captured fix strategies, "
-              "[bold]p learn --reset[/bold] to forget.[/dim]")
+    con.print(
+        "[dim]Run [bold]p learn patterns[/bold] to see captured fix strategies, "
+        "[bold]p learn --reset[/bold] to forget.[/dim]"
+    )
     con.print()
 
 
@@ -128,9 +133,7 @@ def _relearn(r: Path) -> None:
         for fi in file_infos:
             fixes = agent.analyze_change([fi.path], file_infos, None, None, include_format=False)
             for f in fixes:
-                learning.record_fix_pattern(
-                    f.fix_type, f.file, "auto", f.description, r
-                )
+                learning.record_fix_pattern(f.fix_type, f.file, "auto", f.description, r)
                 captured += 1
         con.print(f"[dim]Re-learned {captured} fix pattern(s) from the current project.[/dim]")
     except Exception as e:

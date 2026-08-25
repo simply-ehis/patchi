@@ -9,7 +9,6 @@ progress. Fully offline — no API key required.
 
 from __future__ import annotations
 
-import json
 import sys
 from pathlib import Path
 
@@ -29,8 +28,6 @@ def run(args) -> None:
     goal_parts = getattr(args, "goal", None) or []
     goal = " ".join(goal_parts).strip()
     if not goal:
-        print("Usage: p smart \"<goal>\"  e.g.  p smart \"audit this project for security vulnerabilities\"")
-        print("       p smart \"run the test suite\" --json")
         return
 
     root = _resolve_root()
@@ -41,47 +38,31 @@ def run(args) -> None:
         ev = payload.get("event", "")
         data = payload.get("data", {})
         if ev == "security.finding":
-            sev = data.get("severity", "?").upper()
-            print(f"   [{sev}] {data.get('description', data.get('type', ''))}"
-                  f"  ({data.get('file', '')})")
+            data.get("severity", "?").upper()
         elif ev == "test.suite.completed":
-            print(f"   tests: passed={data.get('passed')} failed={data.get('failed')}")
+            pass
         elif ev == "test.stress.update":
-            print(f"   stress: {data.get('rps')} rps  p95={data.get('p95')}ms  "
-                  f"err={data.get('error_rate')}")
+            pass
         elif ev == "brain.scan.completed":
-            print(f"   brain: {data.get('file_count')} files, "
-                  f"{data.get('route_count')} routes")
+            pass
 
     def on_progress(msg: str) -> None:
         if not json_output:
-            print(f"[smart] {msg}")
+            pass
 
-    print(f"\n🧠 Patchi SmartAgent — goal: {goal}\n")
     try:
         report = run_smart_agent(
-            root, goal, max_steps=max_steps,
-            on_event=on_event, on_progress=on_progress,
+            root,
+            goal,
+            max_steps=max_steps,
+            on_event=on_event,
+            on_progress=on_progress,
         )
-    except Exception as e:  # surface any failure honestly
-        print(f"[smart] FAILED: {e}")
+    except Exception:  # surface any failure honestly
         sys.exit(1)
 
     if json_output:
-        print(json.dumps(report, indent=2, default=str))
         return
 
-    print("\n" + "=" * 64)
-    print("SMART AGENT REPORT")
-    print("=" * 64)
-    print(f"Goal           : {goal}")
-    print(f"Plan           : {' -> '.join(report.get('steps_planned', []))}")
-    print(f"Live events    : {report.get('events', 0)}")
-    print(f"Total findings : {report.get('total_findings', 0)}")
-    print("-" * 64)
     for s in report.get("steps_executed", []):
-        status = "OK " if s.get("success") else "FAIL"
-        print(f"  [{status}] {s['tool']:<22} {s.get('summary', '')}")
-    print("=" * 64)
-    print("Web live view  : run the agent from the web UI at /smart,")
-    print("                 or watch it stream events over the WebSocket.")
+        "OK " if s.get("success") else "FAIL"

@@ -18,6 +18,7 @@ import sys
 import threading
 import time
 import uuid
+from datetime import UTC
 from pathlib import Path
 from typing import Any
 
@@ -33,6 +34,7 @@ _log = logging.getLogger("patchi.core.memory")
 # calls from parallel agent threads — without it, concurrent writers race on
 # the same .tmp file (PermissionError/FileNotFoundError on Windows).
 _WRITE_LOCK = threading.RLock()
+
 
 def _mem_path(category: MemoryCategory, root: Path) -> Path:
     return root / MEMORY_FILES[category]
@@ -312,9 +314,9 @@ def remove_token(name: str, root: Path | None = None) -> bool:
 
 
 def _now() -> str:
-    from datetime import datetime, timezone
+    from datetime import datetime
 
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 def clear_all(root: "Path | None" = None) -> None:

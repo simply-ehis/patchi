@@ -58,9 +58,9 @@ class ReasoningEngine:
 
     def __init__(self, root: Path):
         self.root = Path(root)
-        self.layers: dict[str, "Layer"] = self._load_layers()
+        self.layers: dict[str, Layer] = self._load_layers()
 
-    def _load_layers(self) -> dict[str, "Layer"]:
+    def _load_layers(self) -> dict[str, Layer]:
         from patchi.core import memory as mem
 
         data = mem.get_layers(self.root) or {}
@@ -112,8 +112,7 @@ class ReasoningEngine:
             )
         if blast:
             parts.append(
-                f"{len(blast)} downstream layer(s) in the blast radius: "
-                f"{', '.join(sorted(blast))}"
+                f"{len(blast)} downstream layer(s) in the blast radius: {', '.join(sorted(blast))}"
             )
         else:
             parts.append("no downstream layers depend on the changed code")
@@ -164,9 +163,7 @@ class ReasoningEngine:
         layer_name = matches[0]
         layer = self.layers[layer_name]
         dependents = layer.dependents
-        importance = (
-            "critical" if dependents else ("shared" if len(layer.files) > 1 else "leaf")
-        )
+        importance = "critical" if dependents else ("shared" if len(layer.files) > 1 else "leaf")
         return {
             "file": path,
             "layer": layer_name,
@@ -192,7 +189,7 @@ class ReasoningEngine:
         if not tokens:
             return "Could you rephrase? Try naming a subsystem (auth, api, data, ui…)."
 
-        scored: list[tuple[int, str, "Layer"]] = []
+        scored: list[tuple[int, str, Layer]] = []
         for name, layer in self.layers.items():
             if layer.level == 4:  # skip the whole-project rollup
                 continue
@@ -215,9 +212,7 @@ class ReasoningEngine:
         for _, name, layer in top:
             lines.append(f"[bold]{name}[/bold] ({_level_name(layer.level)}): {layer.summary}")
         lines.append("")
-        lines.append(
-            "[dim]Answers are derived from cached layer summaries, not raw source.[/dim]"
-        )
+        lines.append("[dim]Answers are derived from cached layer summaries, not raw source.[/dim]")
         return "\n".join(lines)
 
 

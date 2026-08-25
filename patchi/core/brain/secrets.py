@@ -16,9 +16,29 @@ from pathlib import Path
 
 # Source-ish extensions worth scanning for secrets.
 _SCAN_EXTS = {
-    ".py", ".js", ".ts", ".tsx", ".jsx", ".env", ".toml", ".yaml", ".yml",
-    ".json", ".cfg", ".ini", ".xml", ".sh", ".bash", ".ps1", ".sql",
-    ".pem", ".key", ".crt", ".pub", ".p12", ".keystore",
+    ".py",
+    ".js",
+    ".ts",
+    ".tsx",
+    ".jsx",
+    ".env",
+    ".toml",
+    ".yaml",
+    ".yml",
+    ".json",
+    ".cfg",
+    ".ini",
+    ".xml",
+    ".sh",
+    ".bash",
+    ".ps1",
+    ".sql",
+    ".pem",
+    ".key",
+    ".crt",
+    ".pub",
+    ".p12",
+    ".keystore",
 }
 from patchi.core.brain.languages import DEFAULT_IGNORE_DIRS
 
@@ -33,13 +53,17 @@ _PATTERNS: list[tuple[str, re.Pattern]] = [
     ("github_oauth", re.compile(r"(?i)gho_[A-Za-z0-9]{20,}")),
     ("slack_token", re.compile(r"(?i)xox[baprs]-[A-Za-z0-9-]{10,}")),
     ("google_api", re.compile(r"(?i)AIza[0-9A-Za-z_\-]{35}")),
-    ("generic_api_key", re.compile(r"(?i)(api[_-]?key|secret|token|passwd|password)\s*[:=]\s*['\"][^'\"]{8,}['\"]")),
+    (
+        "generic_api_key",
+        re.compile(r"(?i)(api[_-]?key|secret|token|passwd|password)\s*[:=]\s*['\"][^'\"]{8,}['\"]"),
+    ),
 ]
 
 
 import logging
 
 _log = logging.getLogger("patchi.brain.secrets")
+
 
 @dataclass
 class SecretHit:
@@ -126,9 +150,18 @@ def scan_secrets(root: Path, paths: list[str] | None = None) -> list[SecretHit]:
                 return _regex_scan(files)
             target = files[0].parent if paths else root
             proc = subprocess.run(
-                ["gitleaks", "detect", "--source", str(target), "--no-banner",
-                 "--report-format", "json"],
-                capture_output=True, text=True, timeout=120,
+                [
+                    "gitleaks",
+                    "detect",
+                    "--source",
+                    str(target),
+                    "--no-banner",
+                    "--report-format",
+                    "json",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=120,
             )
             # gitleaks exits 1 when leaks found; parse JSON report from stderr/stdout.
             text = proc.stdout or proc.stderr
@@ -137,9 +170,14 @@ def scan_secrets(root: Path, paths: list[str] | None = None) -> list[SecretHit]:
             try:
                 data = json.loads(text)
                 return [
-                    SecretHit(path=d.get("file", "?"), line=int(d.get("line", 0)),
-                              rule=d.get("rule", "gitleaks"), snippet=(d.get("match") or "")[:120])
-                    for d in data if isinstance(d, dict)
+                    SecretHit(
+                        path=d.get("file", "?"),
+                        line=int(d.get("line", 0)),
+                        rule=d.get("rule", "gitleaks"),
+                        snippet=(d.get("match") or "")[:120],
+                    )
+                    for d in data
+                    if isinstance(d, dict)
                 ]
             except Exception as e:
                 _log.warning("scan_secrets failed: %s", e)

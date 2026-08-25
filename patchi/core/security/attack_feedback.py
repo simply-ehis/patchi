@@ -44,12 +44,14 @@ def record_confirmed_attack(
         corpus = FuzzCorpus(root)
         label = f"confirmed_{attack.get('tool', 'unknown')}_{endpoint or 'global'}"
         score = {"critical": 1.0, "high": 0.85, "medium": 0.6, "low": 0.4}.get(severity, 0.5)
-        corpus.add(CorpusEntry(
-            label=label[:120],
-            value=payload[:500] if payload else evidence[:500],
-            strategy="attack_feedback",
-            score=score,
-        ))
+        corpus.add(
+            CorpusEntry(
+                label=label[:120],
+                value=payload[:500] if payload else evidence[:500],
+                strategy="attack_feedback",
+                score=score,
+            )
+        )
         corpus.save()
         _log.info("Fed confirmed attack into corpus: %s (score=%.2f)", label[:60], score)
     except Exception as exc:
@@ -87,17 +89,21 @@ def record_false_positive(
         fps: list[dict] = []
         if fp_store.exists():
             import json
+
             fps = json.loads(fp_store.read_text(encoding="utf-8"))
 
         # Add this new FP
-        fps.append({
-            "file": file_path,
-            "type": finding_type,
-            "timestamp": time.time(),
-            "agent": agent_name,
-        })
+        fps.append(
+            {
+                "file": file_path,
+                "type": finding_type,
+                "timestamp": time.time(),
+                "agent": agent_name,
+            }
+        )
         fp_store.parent.mkdir(parents=True, exist_ok=True)
         import json
+
         fp_store.write_text(json.dumps(fps[-500:], indent=2), encoding="utf-8")
 
         # Rebuild learner with updated FP list
@@ -122,7 +128,12 @@ def record_fix_outcome(
         learn.record_acceptance(finding_type, "auto_fixer", root)
     else:
         learn.record_rejection(finding_type, "auto_fixer", root)
-    _log.info("Fix outcome recorded: %s on %s → %s", finding_type, file_path, "accepted" if accepted else "rejected")
+    _log.info(
+        "Fix outcome recorded: %s on %s → %s",
+        finding_type,
+        file_path,
+        "accepted" if accepted else "rejected",
+    )
 
 
 def get_learning_summary(root: Path) -> dict:

@@ -5,7 +5,7 @@ Code Property Graph (CPG) extractor for Patchi's GNN-based bug detection system.
 import logging
 import time
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +32,7 @@ class CPGExtractor:
         ]
         self.parsers = {}
 
-    def extract_graph(self, file_path: str, project_root: Any) -> Dict[str, Any]:
+    def extract_graph(self, file_path: str, project_root: Any) -> dict[str, Any]:
         """
         Extract Code Property Graph from source file.
 
@@ -53,9 +53,7 @@ class CPGExtractor:
                 return self._create_empty_graph()
 
             # Extract graph based on language
-            graph = self._extract_graph_for_language(
-                file_path, language, project_root
-            )
+            graph = self._extract_graph_for_language(file_path, language, project_root)
 
             # Standardize graph format
             standardized_graph = self._standardize_graph(graph)
@@ -66,7 +64,7 @@ class CPGExtractor:
             logger.error(f"Error extracting CPG: {e}")
             return self._create_empty_graph()
 
-    def _detect_language(self, file_ext: str) -> Optional[str]:
+    def _detect_language(self, file_ext: str) -> str | None:
         """Detect programming language based on file extension."""
         extension_map = {
             ".py": "python",
@@ -96,14 +94,14 @@ class CPGExtractor:
 
     def _extract_graph_for_language(
         self, file_path: str, language: str, project_root: Any
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Extract graph for specific language."""
         # Simplified implementation - in practice, this would use
         # Joern, Tree-sitter, or other language-specific parsers
 
         try:
             # Read file content
-            with open(file_path, "r", encoding="utf-8", errors="replace") as f:
+            with open(file_path, encoding="utf-8", errors="replace") as f:
                 content = f.read()
 
             # Extract basic structure based on language
@@ -122,7 +120,7 @@ class CPGExtractor:
             logger.error(f"Error extracting graph for {language}: {e}")
             return self._create_empty_graph()
 
-    def _extract_python_graph(self, content: str, file_path: str) -> Dict[str, Any]:
+    def _extract_python_graph(self, content: str, file_path: str) -> dict[str, Any]:
         """Extract Python-specific graph structure."""
         # Simulate Python AST extraction
         lines = content.split("\n")
@@ -143,7 +141,7 @@ class CPGExtractor:
             nodes.append(node_info)
 
         # Create simple edges (parent-child relationships)
-        for i, node in enumerate(nodes):
+        for i, _node in enumerate(nodes):
             if i > 0:
                 edges.append([i - 1, i, "contains"])
 
@@ -154,20 +152,20 @@ class CPGExtractor:
             "file_path": file_path,
         }
 
-    def _extract_c_cpp_graph(self, content: str, file_path: str) -> Dict[str, Any]:
+    def _extract_c_cpp_graph(self, content: str, file_path: str) -> dict[str, Any]:
         """Extract C/C++-specific graph structure."""
         # Similar to Python but with C-specific constructs
         return self._extract_generic_graph(content, file_path)
 
-    def _extract_java_graph(self, content: str, file_path: str) -> Dict[str, Any]:
+    def _extract_java_graph(self, content: str, file_path: str) -> dict[str, Any]:
         """Extract Java-specific graph structure."""
         return self._extract_generic_graph(content, file_path)
 
-    def _extract_js_ts_graph(self, content: str, file_path: str) -> Dict[str, Any]:
+    def _extract_js_ts_graph(self, content: str, file_path: str) -> dict[str, Any]:
         """Extract JavaScript/TypeScript-specific graph structure."""
         return self._extract_generic_graph(content, file_path)
 
-    def _extract_generic_graph(self, content: str, file_path: str) -> Dict[str, Any]:
+    def _extract_generic_graph(self, content: str, file_path: str) -> dict[str, Any]:
         """Extract generic graph structure."""
         lines = content.split("\n")
         nodes = []
@@ -186,7 +184,7 @@ class CPGExtractor:
             nodes.append(node_info)
 
         # Create edges
-        for i, node in enumerate(nodes):
+        for i, _node in enumerate(nodes):
             if i > 0:
                 edges.append([i - 1, i, "contains"])
 
@@ -251,7 +249,7 @@ class CPGExtractor:
         else:
             return "statement"
 
-    def _extract_python_function(self, line: str, nodes: List[Dict[str, Any]]) -> str:
+    def _extract_python_function(self, line: str, nodes: list[dict[str, Any]]) -> str:
         """Extract Python function name from line."""
         if line.startswith("def "):
             return line[4:].split("(")[0].strip()
@@ -268,7 +266,7 @@ class CPGExtractor:
             return "anonymous"
         return ""
 
-    def _standardize_graph(self, graph: Dict[str, Any]) -> Dict[str, Any]:
+    def _standardize_graph(self, graph: dict[str, Any]) -> dict[str, Any]:
         """Standardize graph format for GNN input."""
         # Ensure consistent structure
         standardized = {
@@ -284,13 +282,11 @@ class CPGExtractor:
         }
 
         # Add derived features for GNN
-        standardized["features"] = self._compute_node_features(
-            standardized["nodes"]
-        )
+        standardized["features"] = self._compute_node_features(standardized["nodes"])
 
         return standardized
 
-    def _compute_node_features(self, nodes: List[Dict[str, Any]]) -> List[List[float]]:
+    def _compute_node_features(self, nodes: list[dict[str, Any]]) -> list[list[float]]:
         """Compute features for each node."""
         features = []
         for node in nodes:
@@ -338,7 +334,7 @@ class CPGExtractor:
         # Normalize to [0, 1]
         return min(complexity, 1.0)
 
-    def _create_empty_graph(self) -> Dict[str, Any]:
+    def _create_empty_graph(self) -> dict[str, Any]:
         """Create an empty graph structure."""
         return {
             "nodes": [],

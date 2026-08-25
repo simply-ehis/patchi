@@ -48,11 +48,15 @@ def list_webhooks(root: Path) -> list[dict]:
     """All webhooks with secret redacted."""
     out = []
     for h in _load(root):
-        out.append({k: v for k, v in h.items() if k != "secret"} | {"has_secret": bool(h.get("secret"))})
+        out.append(
+            {k: v for k, v in h.items() if k != "secret"} | {"has_secret": bool(h.get("secret"))}
+        )
     return out
 
 
-def add_webhook(root: Path, url: str, events: list[str] | None = None, name: str = "", secret: str = "") -> dict:
+def add_webhook(
+    root: Path, url: str, events: list[str] | None = None, name: str = "", secret: str = ""
+) -> dict:
     """Register a webhook. Returns its record (with id)."""
     hooks = _load(root)
     record = {
@@ -126,7 +130,14 @@ def dispatch_event(root: Path, event: str, data: dict) -> int:
                 try:
                     from patchi.core.hosted.audit_log import write as audit_write
 
-                    audit_write(root, "webhook.disabled", data={"id": h["id"], "reason": f"{MAX_FAILURES} consecutive delivery failures"})
+                    audit_write(
+                        root,
+                        "webhook.disabled",
+                        data={
+                            "id": h["id"],
+                            "reason": f"{MAX_FAILURES} consecutive delivery failures",
+                        },
+                    )
                 except Exception:
                     pass
         dirty = True

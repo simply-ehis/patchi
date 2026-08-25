@@ -15,6 +15,7 @@ from .helpers import child_by_field, children, node_text
 
 _log = logging.getLogger("patchi.brain.decorators")
 
+
 def find_decorators(content: str, lang: Lang, names: set[str]) -> list[dict]:
     """
     Find all decorators/annotations matching one of `names`.
@@ -47,11 +48,13 @@ def _find_decorators_python(content: str, names: set[str]) -> list[dict]:
             for dec in node.decorator_list:
                 dec_name = _py_decorator_name(dec)
                 if dec_name in names:
-                    results.append({
-                        "name": dec_name,
-                        "line": getattr(dec, "lineno", getattr(node, "lineno", 0)),
-                        "full_text": _ast_text(dec, content) if content else "",
-                    })
+                    results.append(
+                        {
+                            "name": dec_name,
+                            "line": getattr(dec, "lineno", getattr(node, "lineno", 0)),
+                            "full_text": _ast_text(dec, content) if content else "",
+                        }
+                    )
     return results
 
 
@@ -60,7 +63,7 @@ def _ast_text(node: _py_ast.AST, source: str) -> str:
         lines = source.splitlines()
         start = getattr(node, "lineno", 1) - 1
         end = getattr(node, "end_lineno", start + 1) - 1
-        return "\n".join(lines[start:end + 1])
+        return "\n".join(lines[start : end + 1])
     except Exception as e:
         _log.debug("_ast_text failed: %s", e)
         return ""
@@ -93,11 +96,13 @@ def _walk_decorators(node: Any, dec_types: set[str], names: set[str], results: l
                 except Exception as e:
                     _log.warning("_walk_decorators failed: %s", e)
                     line = 0
-                results.append({
-                    "name": dec_name,
-                    "line": line,
-                    "full_text": node_text(node),
-                })
+                results.append(
+                    {
+                        "name": dec_name,
+                        "line": line,
+                        "full_text": node_text(node),
+                    }
+                )
 
     for child in children(node):
         _walk_decorators(child, dec_types, names, results)

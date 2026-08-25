@@ -61,9 +61,7 @@ class SequenceFuzzer:
 
         return results[: self._max_perm]
 
-    def _pairwise_permutations(
-        self, operations: list[dict[str, Any]]
-    ) -> list[FuzzSequence]:
+    def _pairwise_permutations(self, operations: list[dict[str, Any]]) -> list[FuzzSequence]:
         """Test every pair of operations in both orderings."""
         results: list[FuzzSequence] = []
         for i, op_a in enumerate(operations):
@@ -71,46 +69,50 @@ class SequenceFuzzer:
                 if i >= j:
                     continue
                 # Normal order
-                results.append(FuzzSequence(
-                    label=f"pair_{i}_{j}_normal",
-                    operations=[op_a, op_b],
-                    strategy="permutation",
-                    description=f"Execute {op_a.get('method', '?')} then {op_b.get('method', '?')}",
-                ))
+                results.append(
+                    FuzzSequence(
+                        label=f"pair_{i}_{j}_normal",
+                        operations=[op_a, op_b],
+                        strategy="permutation",
+                        description=f"Execute {op_a.get('method', '?')} then {op_b.get('method', '?')}",
+                    )
+                )
                 # Reversed order
-                results.append(FuzzSequence(
-                    label=f"pair_{j}_{i}_reversed",
-                    operations=[op_b, op_a],
-                    strategy="permutation",
-                    description=f"Execute {op_b.get('method', '?')} then {op_a.get('method', '?')} (reversed)",
-                ))
+                results.append(
+                    FuzzSequence(
+                        label=f"pair_{j}_{i}_reversed",
+                        operations=[op_b, op_a],
+                        strategy="permutation",
+                        description=f"Execute {op_b.get('method', '?')} then {op_a.get('method', '?')} (reversed)",
+                    )
+                )
         return results
 
-    def _replay_sequences(
-        self, operations: list[dict[str, Any]]
-    ) -> list[FuzzSequence]:
+    def _replay_sequences(self, operations: list[dict[str, Any]]) -> list[FuzzSequence]:
         """Test replaying the same operation multiple times."""
         results: list[FuzzSequence] = []
         for i, op in enumerate(operations):
             # Double replay
-            results.append(FuzzSequence(
-                label=f"replay_{i}_double",
-                operations=[op, op],
-                strategy="replay",
-                description=f"Replay {op.get('method', '?')} twice (idempotency test)",
-            ))
+            results.append(
+                FuzzSequence(
+                    label=f"replay_{i}_double",
+                    operations=[op, op],
+                    strategy="replay",
+                    description=f"Replay {op.get('method', '?')} twice (idempotency test)",
+                )
+            )
             # Triple replay
-            results.append(FuzzSequence(
-                label=f"replay_{i}_triple",
-                operations=[op, op, op],
-                strategy="replay",
-                description=f"Replay {op.get('method', '?')} three times (idempotency test)",
-            ))
+            results.append(
+                FuzzSequence(
+                    label=f"replay_{i}_triple",
+                    operations=[op, op, op],
+                    strategy="replay",
+                    description=f"Replay {op.get('method', '?')} three times (idempotency test)",
+                )
+            )
         return results
 
-    def _concurrent_pairs(
-        self, operations: list[dict[str, Any]]
-    ) -> list[FuzzSequence]:
+    def _concurrent_pairs(self, operations: list[dict[str, Any]]) -> list[FuzzSequence]:
         """Mark operation pairs as concurrent (for testing race conditions)."""
         results: list[FuzzSequence] = []
         for i, op_a in enumerate(operations):
@@ -118,27 +120,29 @@ class SequenceFuzzer:
                 if i >= j:
                     continue
                 if self._are_concurrent(op_a, op_b):
-                    results.append(FuzzSequence(
-                        label=f"concurrent_{i}_{j}",
-                        operations=[op_a, op_b],
-                        strategy="concurrent",
-                        description=f"Execute {op_a.get('method', '?')} and {op_b.get('method', '?')} concurrently (race condition test)",
-                    ))
+                    results.append(
+                        FuzzSequence(
+                            label=f"concurrent_{i}_{j}",
+                            operations=[op_a, op_b],
+                            strategy="concurrent",
+                            description=f"Execute {op_a.get('method', '?')} and {op_b.get('method', '?')} concurrently (race condition test)",
+                        )
+                    )
         return results
 
-    def _full_permutations(
-        self, operations: list[dict[str, Any]]
-    ) -> list[FuzzSequence]:
+    def _full_permutations(self, operations: list[dict[str, Any]]) -> list[FuzzSequence]:
         """Generate all permutations of small operation sets."""
         results: list[FuzzSequence] = []
         for perm in itertools.permutations(range(len(operations))):
             ops = [operations[i] for i in perm]
-            results.append(FuzzSequence(
-                label=f"perm_{'_'.join(map(str, perm))}",
-                operations=ops,
-                strategy="permutation",
-                description=f"Permutation: {' → '.join(o.get('method', '?') for o in ops)}",
-            ))
+            results.append(
+                FuzzSequence(
+                    label=f"perm_{'_'.join(map(str, perm))}",
+                    operations=ops,
+                    strategy="permutation",
+                    description=f"Permutation: {' → '.join(o.get('method', '?') for o in ops)}",
+                )
+            )
         return results
 
     def _are_concurrent(self, op_a: dict, op_b: dict) -> bool:

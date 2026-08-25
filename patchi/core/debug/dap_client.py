@@ -58,7 +58,7 @@ class DAPClient:
     # ── low-level I/O ───────────────────────────────────────────────────
 
     def _send(self, body: str) -> None:
-        raw = f"Content-Length: {len(body)}\r\n\r\n{body}".encode("utf-8")
+        raw = f"Content-Length: {len(body)}\r\n\r\n{body}".encode()
         self._sock.sendall(raw)
 
     def _recv(self, size: int = 8192) -> bytes:
@@ -93,12 +93,14 @@ class DAPClient:
 
     def send_request(self, command: str, arguments: dict | None = None) -> int:
         self._seq += 1
-        body = json.dumps({
-            "seq": self._seq,
-            "type": "request",
-            "command": command,
-            "arguments": arguments or {},
-        })
+        body = json.dumps(
+            {
+                "seq": self._seq,
+                "type": "request",
+                "command": command,
+                "arguments": arguments or {},
+            }
+        )
         self._send(body)
         return self._seq
 
@@ -107,7 +109,9 @@ class DAPClient:
             msg = self.read_message()
             if msg["type"] == "response" and msg.get("request_seq") == expected_seq:
                 if not msg.get("success", False):
-                    err = msg.get("message", msg.get("body", {}).get("error", {}).get("format", "unknown"))
+                    err = msg.get(
+                        "message", msg.get("body", {}).get("error", {}).get("format", "unknown")
+                    )
                     raise DAPError(f"{msg.get('command', '?')} failed: {err}")
                 return msg.get("body", {})
             if msg["type"] == "event":
@@ -122,19 +126,23 @@ class DAPClient:
             msg = self.read_message()
             if msg["type"] == "event" and msg.get("event") == event:
                 return msg.get("body", {})
+
     # ── standard DAP requests ──────────────────────────────────────────
 
     def initialize(self) -> dict:
-        return self.request("initialize", {
-            "clientID": "patchi-debug",
-            "clientName": "Patchi Debugger",
-            "adapterID": "python",
-            "pathFormat": "path",
-            "linesStartAt1": True,
-            "columnsStartAt1": True,
-            "supportsVariableType": True,
-            "supportsRunInTerminalRequest": False,
-        })
+        return self.request(
+            "initialize",
+            {
+                "clientID": "patchi-debug",
+                "clientName": "Patchi Debugger",
+                "adapterID": "python",
+                "pathFormat": "path",
+                "linesStartAt1": True,
+                "columnsStartAt1": True,
+                "supportsVariableType": True,
+                "supportsRunInTerminalRequest": False,
+            },
+        )
 
     def launch(
         self,
@@ -158,20 +166,29 @@ class DAPClient:
         return self.request("launch", args_body)
 
     def set_exception_breakpoints(self, filters: list[str] | None = None) -> dict:
-        return self.request("setExceptionBreakpoints", {
-            "filters": filters or ["uncaught"],
-        })
+        return self.request(
+            "setExceptionBreakpoints",
+            {
+                "filters": filters or ["uncaught"],
+            },
+        )
 
     def set_function_breakpoints(self, names: list[str]) -> dict:
-        return self.request("setFunctionBreakpoints", {
-            "breakpoints": [{"name": n} for n in names],
-        })
+        return self.request(
+            "setFunctionBreakpoints",
+            {
+                "breakpoints": [{"name": n} for n in names],
+            },
+        )
 
     def set_breakpoints(self, source_path: str, lines: list[int]) -> dict:
-        return self.request("setBreakpoints", {
-            "source": {"path": source_path},
-            "breakpoints": [{"line": ln} for ln in lines],
-        })
+        return self.request(
+            "setBreakpoints",
+            {
+                "source": {"path": source_path},
+                "breakpoints": [{"line": ln} for ln in lines],
+            },
+        )
 
     def configuration_done(self) -> dict:
         return self.request("configurationDone")
@@ -180,10 +197,13 @@ class DAPClient:
         return self.request("continue", {"threadId": thread_id})
 
     def stack_trace(self, thread_id: int, levels: int = 30) -> dict:
-        return self.request("stackTrace", {
-            "threadId": thread_id,
-            "levels": levels,
-        })
+        return self.request(
+            "stackTrace",
+            {
+                "threadId": thread_id,
+                "levels": levels,
+            },
+        )
 
     def scopes(self, frame_id: int) -> dict:
         return self.request("scopes", {"frameId": frame_id})

@@ -38,14 +38,31 @@ from ..agents.base import (
 from ..brain.trace_log import trace_agent
 
 _SOURCE_EXTENSIONS = {
-    "*.py", "*.js", "*.jsx", "*.ts", "*.tsx", "*.java",
-    "*.php", "*.rb", "*.go", "*.rs", "*.cs",
+    "*.py",
+    "*.js",
+    "*.jsx",
+    "*.ts",
+    "*.tsx",
+    "*.java",
+    "*.php",
+    "*.rb",
+    "*.go",
+    "*.rs",
+    "*.cs",
 }
 
 _DNS_CONFIG_NAMES = {
-    "dns.tf", "route53.tf", "dns.yaml", "dns.yml", "dns.json",
-    "named.conf", "zone.db", "db.", "db.",
-    "corefile", "Corefile", "unbound.conf",
+    "dns.tf",
+    "route53.tf",
+    "dns.yaml",
+    "dns.yml",
+    "dns.json",
+    "named.conf",
+    "zone.db",
+    "db.",
+    "corefile",
+    "Corefile",
+    "unbound.conf",
 }
 
 _ROUTE53_PATTERNS = [
@@ -55,12 +72,9 @@ _ROUTE53_PATTERNS = [
 ]
 
 _ZONE_TRANSFER_PATTERNS = [
-    (re.compile(r"allow-transfer\s*\{[^}]*any", re.IGNORECASE),
-     "DNS zone transfer allowed to any"),
-    (re.compile(r"allow-transfer\s*\{[^}]*\}", re.IGNORECASE),
-     "DNS zone transfer configured"),
-    (re.compile(r"also-notify", re.IGNORECASE),
-     "DNS secondary notification configured"),
+    (re.compile(r"allow-transfer\s*\{[^}]*any", re.IGNORECASE), "DNS zone transfer allowed to any"),
+    (re.compile(r"allow-transfer\s*\{[^}]*\}", re.IGNORECASE), "DNS zone transfer configured"),
+    (re.compile(r"also-notify", re.IGNORECASE), "DNS secondary notification configured"),
 ]
 
 _DNSSEC_PATTERNS = [
@@ -74,10 +88,19 @@ _CAA_RECORD_PATTERNS = [
 ]
 
 _SUBDOMAIN_TAKEOVER_PATTERNS = [
-    (re.compile(r"CNAME\s+\S+\.(amazonaws\.com|azurewebsites\.net|herokuapp\.com|github\.io|surge\.sh|bitbucket\.io|ghost\.io)", re.IGNORECASE),
-     "Potential dangling CNAME to third-party service"),
-    (re.compile(r"ALIAS\s+\S+\.(amazonaws\.com|azurewebsites\.net|herokuapp\.com)", re.IGNORECASE),
-     "Potential dangling ALIAS to third-party service"),
+    (
+        re.compile(
+            r"CNAME\s+\S+\.(amazonaws\.com|azurewebsites\.net|herokuapp\.com|github\.io|surge\.sh|bitbucket\.io|ghost\.io)",
+            re.IGNORECASE,
+        ),
+        "Potential dangling CNAME to third-party service",
+    ),
+    (
+        re.compile(
+            r"ALIAS\s+\S+\.(amazonaws\.com|azurewebsites\.net|herokuapp\.com)", re.IGNORECASE
+        ),
+        "Potential dangling ALIAS to third-party service",
+    ),
 ]
 
 
@@ -122,11 +145,14 @@ class DNSSecurityAgent(BaseAgent):
 
         result.status = AgentStatus.SUCCEEDED
         result.findings = findings
-        result.data.update({
-            "dns_findings": len(findings),
-            "dig_available": shutil.which("dig") is not None,
-            "dnsreaper_available": shutil.which("dnsReaper") is not None or shutil.which("dnsreaper") is not None,
-        })
+        result.data.update(
+            {
+                "dns_findings": len(findings),
+                "dig_available": shutil.which("dig") is not None,
+                "dnsreaper_available": shutil.which("dnsReaper") is not None
+                or shutil.which("dnsreaper") is not None,
+            }
+        )
         return
 
     # ── DNS config file scan ───────────────────────────────────────────────
@@ -139,23 +165,27 @@ class DNSSecurityAgent(BaseAgent):
                 try:
                     content = fp.read_text(encoding="utf-8", errors="replace")
                     if "dnssec" not in content.lower():
-                        findings.append(make_finding(
-                            severity=Severity.MEDIUM,
-                            file=rel,
-                            line_start=0,
-                            title="DNS-03: DNSSEC Not Configured",
-                            description="DNS zone file found without DNSSEC signing configuration.",
-                            suggestion="Enable DNSSEC to prevent DNS spoofing and cache poisoning.",
-                        ))
+                        findings.append(
+                            make_finding(
+                                severity=Severity.MEDIUM,
+                                file=rel,
+                                line_start=0,
+                                title="DNS-03: DNSSEC Not Configured",
+                                description="DNS zone file found without DNSSEC signing configuration.",
+                                suggestion="Enable DNSSEC to prevent DNS spoofing and cache poisoning.",
+                            )
+                        )
                     if "CAA" not in content:
-                        findings.append(make_finding(
-                            severity=Severity.MEDIUM,
-                            file=rel,
-                            line_start=0,
-                            title="DNS-04: No CAA Records Found",
-                            description="No CAA (Certification Authority Authorization) records found in zone file.",
-                            suggestion="Add CAA records to restrict certificate issuance to authorized CAs.",
-                        ))
+                        findings.append(
+                            make_finding(
+                                severity=Severity.MEDIUM,
+                                file=rel,
+                                line_start=0,
+                                title="DNS-04: No CAA Records Found",
+                                description="No CAA (Certification Authority Authorization) records found in zone file.",
+                                suggestion="Add CAA records to restrict certificate issuance to authorized CAs.",
+                            )
+                        )
                 except Exception as e:
                     _log.warning("DNSSecurityAgent._scan_dns_configs failed: %s", e)
         return findings
@@ -175,16 +205,20 @@ class DNSSecurityAgent(BaseAgent):
                     for i, line in enumerate(lines, 1):
                         for rx, desc in _ZONE_TRANSFER_PATTERNS:
                             if rx.search(line):
-                                severity = Severity.HIGH if "any" in line.lower() else Severity.MEDIUM
-                                findings.append(make_finding(
-                                    severity=severity,
-                                    file=rel,
-                                    line_start=i,
-                                    title="DNS-01: Zone Transfer Risk",
-                                    description=desc,
-                                    evidence=line.strip(),
-                                    suggestion="Restrict zone transfers to authorized secondaries only.",
-                                ))
+                                severity = (
+                                    Severity.HIGH if "any" in line.lower() else Severity.MEDIUM
+                                )
+                                findings.append(
+                                    make_finding(
+                                        severity=severity,
+                                        file=rel,
+                                        line_start=i,
+                                        title="DNS-01: Zone Transfer Risk",
+                                        description=desc,
+                                        evidence=line.strip(),
+                                        suggestion="Restrict zone transfers to authorized secondaries only.",
+                                    )
+                                )
                                 break
                 except Exception as e:
                     _log.warning("DNSSecurityAgent._scan_zone_transfer failed: %s", e)
@@ -202,15 +236,19 @@ class DNSSecurityAgent(BaseAgent):
                 try:
                     content = fp.read_text(encoding="utf-8", errors="replace")
                     has_dnssec = any(rx.search(content) for rx in _DNSSEC_PATTERNS)
-                    if not has_dnssec and any(k in content.lower() for k in ("zone", "dns", "route53")):
-                        findings.append(make_finding(
-                            severity=Severity.MEDIUM,
-                            file=rel,
-                            line_start=0,
-                            title="DNS-03: DNSSEC Not Enabled",
-                            description="DNS configuration found without DNSSEC validation.",
-                            suggestion="Enable DNSSEC validation to prevent DNS spoofing.",
-                        ))
+                    if not has_dnssec and any(
+                        k in content.lower() for k in ("zone", "dns", "route53")
+                    ):
+                        findings.append(
+                            make_finding(
+                                severity=Severity.MEDIUM,
+                                file=rel,
+                                line_start=0,
+                                title="DNS-03: DNSSEC Not Enabled",
+                                description="DNS configuration found without DNSSEC validation.",
+                                suggestion="Enable DNSSEC validation to prevent DNS spoofing.",
+                            )
+                        )
                 except Exception as e:
                     _log.warning("DNSSecurityAgent._scan_dnssec failed: %s", e)
         return findings
@@ -229,14 +267,16 @@ class DNSSecurityAgent(BaseAgent):
                     if any(k in content.lower() for k in ("zone", "dns", "domain", "route53")):
                         has_caa = any(rx.search(content) for rx in _CAA_RECORD_PATTERNS)
                         if not has_caa:
-                            findings.append(make_finding(
-                                severity=Severity.MEDIUM,
-                                file=rel,
-                                line_start=0,
-                                title="DNS-04: No CAA Records",
-                                description="DNS zone configuration has no CAA records to restrict certificate issuance.",
-                                suggestion="Add CAA records (e.g., 0 issue \"letsencrypt.org\").",
-                            ))
+                            findings.append(
+                                make_finding(
+                                    severity=Severity.MEDIUM,
+                                    file=rel,
+                                    line_start=0,
+                                    title="DNS-04: No CAA Records",
+                                    description="DNS zone configuration has no CAA records to restrict certificate issuance.",
+                                    suggestion='Add CAA records (e.g., 0 issue "letsencrypt.org").',
+                                )
+                            )
                 except Exception as e:
                     _log.warning("DNSSecurityAgent._scan_caa_records failed: %s", e)
         return findings
@@ -254,32 +294,38 @@ class DNSSecurityAgent(BaseAgent):
                 has_route53 = any(rx.search(content) for rx in _ROUTE53_PATTERNS)
                 if has_route53:
                     if "enable_dnssec" not in content.lower():
-                        findings.append(make_finding(
-                            severity=Severity.MEDIUM,
-                            file=rel,
-                            line_start=0,
-                            title="DNS-03: Route53 Zone Without DNSSEC",
-                            description="Terraform Route53 zone does not enable DNSSEC.",
-                            suggestion="Set enable_dnssec = true on aws_route53_zone.",
-                        ))
+                        findings.append(
+                            make_finding(
+                                severity=Severity.MEDIUM,
+                                file=rel,
+                                line_start=0,
+                                title="DNS-03: Route53 Zone Without DNSSEC",
+                                description="Terraform Route53 zone does not enable DNSSEC.",
+                                suggestion="Set enable_dnssec = true on aws_route53_zone.",
+                            )
+                        )
                     if "caa" not in content.lower() and "record" in content.lower():
-                        findings.append(make_finding(
-                            severity=Severity.MEDIUM,
-                            file=rel,
-                            line_start=0,
-                            title="DNS-04: Route53 Without CAA Records",
-                            description="Route53 records found but no CAA record defined.",
-                            suggestion="Add an aws_route53_record of type CAA.",
-                        ))
+                        findings.append(
+                            make_finding(
+                                severity=Severity.MEDIUM,
+                                file=rel,
+                                line_start=0,
+                                title="DNS-04: Route53 Without CAA Records",
+                                description="Route53 records found but no CAA record defined.",
+                                suggestion="Add an aws_route53_record of type CAA.",
+                            )
+                        )
                     if "allow_transfer" not in content.lower() and "zone" in content.lower():
-                        findings.append(make_finding(
-                            severity=Severity.LOW,
-                            file=rel,
-                            line_start=0,
-                            title="DNS-05: Route53 Zone Transfer Not Configured",
-                            description="Route53 zone found without explicit transfer restrictions.",
-                            suggestion="Ensure zone transfer is restricted or disabled.",
-                        ))
+                        findings.append(
+                            make_finding(
+                                severity=Severity.LOW,
+                                file=rel,
+                                line_start=0,
+                                title="DNS-05: Route53 Zone Transfer Not Configured",
+                                description="Route53 zone found without explicit transfer restrictions.",
+                                suggestion="Ensure zone transfer is restricted or disabled.",
+                            )
+                        )
             except Exception as e:
                 _log.warning("DNSSecurityAgent._scan_terraform_route53 failed: %s", e)
         return findings
@@ -299,15 +345,17 @@ class DNSSecurityAgent(BaseAgent):
                     for i, line in enumerate(lines, 1):
                         for rx, desc in _SUBDOMAIN_TAKEOVER_PATTERNS:
                             if rx.search(line):
-                                findings.append(make_finding(
-                                    severity=Severity.HIGH,
-                                    file=rel,
-                                    line_start=i,
-                                    title="DNS-02: Potential Subdomain Takeover",
-                                    description=desc,
-                                    evidence=line.strip(),
-                                    suggestion="Verify the target service is claimed and not vulnerable to takeover.",
-                                ))
+                                findings.append(
+                                    make_finding(
+                                        severity=Severity.HIGH,
+                                        file=rel,
+                                        line_start=i,
+                                        title="DNS-02: Potential Subdomain Takeover",
+                                        description=desc,
+                                        evidence=line.strip(),
+                                        suggestion="Verify the target service is claimed and not vulnerable to takeover.",
+                                    )
+                                )
                 except Exception as e:
                     _log.warning("DNSSecurityAgent._scan_subdomain_takeover failed: %s", e)
         return findings
@@ -321,22 +369,29 @@ class DNSSecurityAgent(BaseAgent):
             content = fp.read_text(encoding="utf-8", errors="replace")
             # DNS-related hardcoded secrets
             secret_patterns = [
-                (re.compile(r"(?:route53|dns|cloudflare)[_-]?(?:api[_-]?key|token|secret)\s*[:=]\s*['\"][^'\"]{8,}['\"]", re.IGNORECASE),
-                 "DNS-06: Hardcoded DNS/CDN API Credential"),
+                (
+                    re.compile(
+                        r"(?:route53|dns|cloudflare)[_-]?(?:api[_-]?key|token|secret)\s*[:=]\s*['\"][^'\"]{8,}['\"]",
+                        re.IGNORECASE,
+                    ),
+                    "DNS-06: Hardcoded DNS/CDN API Credential",
+                ),
             ]
             lines = content.splitlines()
             for i, line in enumerate(lines, 1):
                 for rx, title in secret_patterns:
                     if rx.search(line):
-                        findings.append(make_finding(
-                            severity=Severity.CRITICAL,
-                            file=rel,
-                            line_start=i,
-                            title=title,
-                            description="Hardcoded DNS API credential found in source code.",
-                            evidence=line.strip()[:120],
-                            suggestion="Move DNS API credentials to environment variables or a secrets manager.",
-                        ))
+                        findings.append(
+                            make_finding(
+                                severity=Severity.CRITICAL,
+                                file=rel,
+                                line_start=i,
+                                title=title,
+                                description="Hardcoded DNS API credential found in source code.",
+                                evidence=line.strip()[:120],
+                                suggestion="Move DNS API credentials to environment variables or a secrets manager.",
+                            )
+                        )
         except Exception as e:
             _log.warning("DNSSecurityAgent._scan_file failed: %s", e)
         return findings
@@ -354,18 +409,22 @@ class DNSSecurityAgent(BaseAgent):
         try:
             proc = subprocess.run(
                 ["dig", "axfr", domain, "+short", "+timeout=5"],
-                capture_output=True, text=True, timeout=10,
+                capture_output=True,
+                text=True,
+                timeout=10,
             )
             if proc.returncode == 0 and proc.stdout.strip():
-                findings.append(make_finding(
-                    severity=Severity.CRITICAL,
-                    file="(dns_probe)",
-                    line_start=0,
-                    title="DNS-01: Zone Transfer Allowed",
-                    description=f"DNS zone transfer (AXFR) succeeded for {domain}.",
-                    evidence=proc.stdout[:300],
-                    suggestion="Restrict zone transfers to authorized secondaries.",
-                ))
+                findings.append(
+                    make_finding(
+                        severity=Severity.CRITICAL,
+                        file="(dns_probe)",
+                        line_start=0,
+                        title="DNS-01: Zone Transfer Allowed",
+                        description=f"DNS zone transfer (AXFR) succeeded for {domain}.",
+                        evidence=proc.stdout[:300],
+                        suggestion="Restrict zone transfers to authorized secondaries.",
+                    )
+                )
         except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
             pass
 
@@ -373,18 +432,22 @@ class DNSSecurityAgent(BaseAgent):
         try:
             proc = subprocess.run(
                 ["dig", "+dnssec", domain, "+short", "+timeout=5"],
-                capture_output=True, text=True, timeout=10,
+                capture_output=True,
+                text=True,
+                timeout=10,
             )
             if proc.returncode == 0 and "RRSIG" not in proc.stdout:
-                findings.append(make_finding(
-                    severity=Severity.MEDIUM,
-                    file="(dns_probe)",
-                    line_start=0,
-                    title="DNS-03: DNSSEC Not Active",
-                    description=f"No DNSSEC RRSIG records found for {domain}.",
-                    evidence=proc.stdout[:200],
-                    suggestion="Enable DNSSEC signing for the domain.",
-                ))
+                findings.append(
+                    make_finding(
+                        severity=Severity.MEDIUM,
+                        file="(dns_probe)",
+                        line_start=0,
+                        title="DNS-03: DNSSEC Not Active",
+                        description=f"No DNSSEC RRSIG records found for {domain}.",
+                        evidence=proc.stdout[:200],
+                        suggestion="Enable DNSSEC signing for the domain.",
+                    )
+                )
         except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
             pass
 
@@ -403,23 +466,28 @@ class DNSSecurityAgent(BaseAgent):
         try:
             proc = subprocess.run(
                 [tool, "scan", "--domain", domain, "--output", "json"],
-                capture_output=True, text=True, timeout=120,
+                capture_output=True,
+                text=True,
+                timeout=120,
             )
             if proc.returncode == 0 and proc.stdout.strip():
                 import json
+
                 try:
                     data = json.loads(proc.stdout)
                     for record in data if isinstance(data, list) else []:
                         if record.get("vulnerable"):
-                            findings.append(make_finding(
-                                severity=Severity.HIGH,
-                                file="(dnsreaper)",
-                                line_start=0,
-                                title="DNS-06: Subdomain Takeover Vulnerability",
-                                description=f"Subdomain {record.get('subdomain', 'unknown')} is vulnerable to takeover.",
-                                evidence=str(record)[:200],
-                                suggestion="Remove the dangling record or claim the target resource.",
-                            ))
+                            findings.append(
+                                make_finding(
+                                    severity=Severity.HIGH,
+                                    file="(dnsreaper)",
+                                    line_start=0,
+                                    title="DNS-06: Subdomain Takeover Vulnerability",
+                                    description=f"Subdomain {record.get('subdomain', 'unknown')} is vulnerable to takeover.",
+                                    evidence=str(record)[:200],
+                                    suggestion="Remove the dangling record or claim the target resource.",
+                                )
+                            )
                 except json.JSONDecodeError:
                     pass
         except (subprocess.TimeoutExpired, FileNotFoundError, OSError):

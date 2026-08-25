@@ -20,12 +20,15 @@ from patchi import __version__
 
 _log = logging.getLogger("patchi.cli.main")
 
+
 def _cmd_status():
     from patchi.cli.commands.status_cmd import run
 
     return run
 
+
 # ── Upcoming stub ──────────────────────────────────────────────────────────────
+
 
 def _coming_soon(command: str, phase: str) -> None:
     con.print(
@@ -33,7 +36,9 @@ def _coming_soon(command: str, phase: str) -> None:
         f"[dim]Coming in {phase}. Not yet available in this build.[/dim]"
     )
 
+
 # ── Parser setup ───────────────────────────────────────────────────────────────
+
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
@@ -52,10 +57,14 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--dry-run", action="store_true", help="Preview actions without executing")
     parser.add_argument(
-        "--theme", default=None, choices=("dark", "light", "mono", "highcontrast"),
+        "--theme",
+        default=None,
+        choices=("dark", "light", "mono", "highcontrast"),
         help="CLI color palette (default: value from settings, or dark)",
     )
-    parser.add_argument("--no-color", action="store_true", help="Disable color output (same as NO_COLOR env)")
+    parser.add_argument(
+        "--no-color", action="store_true", help="Disable color output (same as NO_COLOR env)"
+    )
 
     sub = parser.add_subparsers(dest="command", metavar="<command>")
 
@@ -69,7 +78,9 @@ def _build_parser() -> argparse.ArgumentParser:
     register_commands(sub, COMMANDS)
     return parser
 
+
 # ── Router ─────────────────────────────────────────────────────────────────────
+
 
 def _load_patchi_env() -> None:
     """
@@ -113,6 +124,7 @@ def _load_patchi_env() -> None:
         except Exception as e:
             _log.warning("_load_patchi_env failed: %s", e)
 
+
 def main() -> None:
     # Force UTF-8 encoding on Windows to support Unicode characters (✓, etc.)
     import os
@@ -126,12 +138,13 @@ def main() -> None:
     parser = _build_parser()
     args = parser.parse_args()
 
-    no_logo = getattr(args, "no_logo", False)
+    getattr(args, "no_logo", False)
 
     # Apply the CLI theme before ANY command output happens, so every command
     # (including the "no command -> show status" default path below) is
     # themed consistently with zero per-command wiring.
     from patchi.cli.console import configure_theme
+
     configure_theme(
         explicit=getattr(args, "theme", None),
         no_color_flag=getattr(args, "no_color", False),
@@ -158,6 +171,7 @@ def main() -> None:
     import threading
 
     from patchi.cli.commands.update_cmd import auto_check_background
+
     threading.Thread(target=auto_check_background, daemon=True).start()
 
     # Onboarding check (M-01): if project exists but onboarding not complete,
@@ -170,8 +184,6 @@ def main() -> None:
             if r:
                 conf = load(r)
                 if not conf.get("onboarding_complete", False):
-
-
                     con.print()
                     con.print("[bold #C8621A]Welcome to Patchi![/bold #C8621A]")
                     con.print("[dim]It looks like you haven't completed setup yet.[/dim]")
@@ -203,6 +215,7 @@ def main() -> None:
 
     parser.print_help()
     return None
+
 
 if __name__ == "__main__":
     main()

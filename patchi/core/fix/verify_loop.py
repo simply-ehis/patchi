@@ -30,14 +30,26 @@ from pathlib import Path
 
 _log = logging.getLogger("patchi.fix.verify_loop")
 
-MAX_RETRIES = 2          # attempts after the first one ("up to 2 retries")
+MAX_RETRIES = 2  # attempts after the first one ("up to 2 retries")
 _VERIFY_TIMEOUT_S = 120  # per-attempt cap for the targeted test re-run
 
 _TEST_FILE_PATTERNS = (
-    "test_*.py", "*_test.py", "conftest.py",
-    "*.spec.ts", "*.spec.tsx", "*.spec.js", "*.spec.jsx",
-    "*.test.ts", "*.test.tsx", "*.test.js", "*.test.jsx",
-    "*_test.go", "*_test.rb", "*Test.java", "*Test.kt", "*Tests.swift",
+    "test_*.py",
+    "*_test.py",
+    "conftest.py",
+    "*.spec.ts",
+    "*.spec.tsx",
+    "*.spec.js",
+    "*.spec.jsx",
+    "*.test.ts",
+    "*.test.tsx",
+    "*.test.js",
+    "*.test.jsx",
+    "*_test.go",
+    "*_test.rb",
+    "*Test.java",
+    "*Test.kt",
+    "*Tests.swift",
 )
 
 _TEST_DIR_MARKERS = ("test", "tests", "spec", "specs", "__tests__", "testing")
@@ -158,7 +170,7 @@ def run_verify_loop(
         if not getattr(result, "success", False):
             last_reason = getattr(result, "error", "") or "apply failed"
             say(f"attempt {attempt}/{attempts} failed to apply: {last_reason}")
-            setattr(patch, "verify_retries", attempt - 1)
+            patch.verify_retries = attempt - 1
             continue
 
         # Applied — now prove it: the original failing test must pass.
@@ -171,7 +183,7 @@ def run_verify_loop(
             reason = "" if verified else "applied but applier-level tests did not pass"
 
         if verified:
-            setattr(patch, "verify_retries", attempt - 1)
+            patch.verify_retries = attempt - 1
             return VerifyOutcome(
                 applied=True,
                 verified=True,
@@ -181,7 +193,7 @@ def run_verify_loop(
 
         last_reason = reason
         say(f"attempt {attempt}/{attempts} applied but unverified: {reason}")
-        setattr(patch, "verify_retries", attempt - 1)
+        patch.verify_retries = attempt - 1
 
     return VerifyOutcome(
         applied=False,

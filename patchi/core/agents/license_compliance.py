@@ -28,21 +28,42 @@ from .base import (
 )
 
 _RESTRICTED_LICENSES = {
-    "gpl", "gpl-2.0", "gpl-3.0", "gplv2", "gplv3",
-    "agpl", "agpl-3.0", "agplv3",
-    "lgpl", "lgpl-3.0",
-    "cc-by-nc", "cc-by-nc-nd",
-    "proprietary", "commercial",
+    "gpl",
+    "gpl-2.0",
+    "gpl-3.0",
+    "gplv2",
+    "gplv3",
+    "agpl",
+    "agpl-3.0",
+    "agplv3",
+    "lgpl",
+    "lgpl-3.0",
+    "cc-by-nc",
+    "cc-by-nc-nd",
+    "proprietary",
+    "commercial",
 }
 
 _ALLOWED_LICENSES = {
-    "mit", "apache-2.0", "apache", "bsd-2-clause", "bsd-3-clause",
-    "isc", "unlicense", "cc0-1.0", "cc-by-4.0", "python-2.0",
-    "zlib", "mpl-2.0",
+    "mit",
+    "apache-2.0",
+    "apache",
+    "bsd-2-clause",
+    "bsd-3-clause",
+    "isc",
+    "unlicense",
+    "cc0-1.0",
+    "cc-by-4.0",
+    "python-2.0",
+    "zlib",
+    "mpl-2.0",
 }
 
 _UNKNOWN_LICENSE_RISK = {
-    "gpl", "agpl", "lgpl", "unknown",
+    "gpl",
+    "agpl",
+    "lgpl",
+    "unknown",
 }
 
 
@@ -50,8 +71,16 @@ import logging
 
 _log = logging.getLogger("patchi.agents.license_compliance")
 
+
 def _normalize_license(license_str: str) -> str:
-    return license_str.strip().strip('"').strip("'").lower().replace("-or-later", "").replace("-only", "")
+    return (
+        license_str.strip()
+        .strip('"')
+        .strip("'")
+        .lower()
+        .replace("-or-later", "")
+        .replace("-only", "")
+    )
 
 
 def _check_license(license_str: str | None) -> tuple[str, str]:
@@ -102,7 +131,14 @@ def _extract_deps(root: Path) -> list[dict]:
             data = json.loads(fp.read_text(encoding="utf-8"))
             for name in {**data.get("dependencies", {}), **data.get("devDependencies", {})}:
                 lic = data.get("license") or _lookup_license(name, "npm")
-                deps.append({"name": name, "license": lic, "ecosystem": "npm", "file": fp.relative_to(root).as_posix()})
+                deps.append(
+                    {
+                        "name": name,
+                        "license": lic,
+                        "ecosystem": "npm",
+                        "file": fp.relative_to(root).as_posix(),
+                    }
+                )
         except Exception as e:
             _log.warning("_extract_deps failed: %s", e)
     # pyproject.toml
@@ -116,7 +152,14 @@ def _extract_deps(root: Path) -> list[dict]:
                 if stripped.startswith('"') and ">" in stripped:
                     name = stripped.split(">")[0].strip('"').strip("'").split("[")[0].strip()
                     if name and not name.startswith("python") and not name.startswith("#"):
-                        deps.append({"name": name, "license": lic, "ecosystem": "pypi", "file": fp.relative_to(root).as_posix()})
+                        deps.append(
+                            {
+                                "name": name,
+                                "license": lic,
+                                "ecosystem": "pypi",
+                                "file": fp.relative_to(root).as_posix(),
+                            }
+                        )
         except Exception as e:
             _log.warning("_extract_deps failed: %s", e)
     return deps

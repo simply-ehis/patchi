@@ -42,6 +42,7 @@ async def dashboard_v2(request: Request):
     try:
         from patchi.core.config import load as load_config
         from patchi.core.tenant import check_tenant_cost_alert
+
         cfg = load_config(root)
         cost_alert = check_tenant_cost_alert(root, cfg)
     except Exception:
@@ -220,34 +221,37 @@ async def websocket_v2(ws: WebSocket):
 
 async def _send_initial_state(ws: WebSocket, root: Path):
     """Send initial dashboard state."""
-    from patchi.core import memory as mem
     from patchi.core import config as cfg
+    from patchi.core import memory as mem
     from patchi.core.health import compute as compute_health
 
     brain = mem.get_brain(root)
     conf = cfg.load(root)
     hs = compute_health(root)
 
-    await ws.send_json({
-        "event": "initial_state",
-        "data": {
-            "health_score": hs.total,
-            "health_grade": hs.grade,
-            "health_components": hs.to_dict()["components"],
-            "file_count": brain.get("file_count", 0),
-            "route_count": brain.get("route_count", 0),
-            "framework": brain.get("framework", "Unknown"),
-            "mode": conf.get("mode", "confirm"),
-            "active_domains": brain.get("active_security_domains", []),
-            "project_purpose": brain.get("project_purpose", ""),
-        },
-    })
+    await ws.send_json(
+        {
+            "event": "initial_state",
+            "data": {
+                "health_score": hs.total,
+                "health_grade": hs.grade,
+                "health_components": hs.to_dict()["components"],
+                "file_count": brain.get("file_count", 0),
+                "route_count": brain.get("route_count", 0),
+                "framework": brain.get("framework", "Unknown"),
+                "mode": conf.get("mode", "confirm"),
+                "active_domains": brain.get("active_security_domains", []),
+                "project_purpose": brain.get("project_purpose", ""),
+            },
+        }
+    )
 
 
 async def _handle_ws_message(ws: WebSocket, root: Path, raw: str):
     """Handle incoming WebSocket messages."""
     try:
         import json
+
         msg = json.loads(raw)
         action = msg.get("action", "")
         data = msg.get("data", {})
@@ -263,36 +267,42 @@ async def _handle_ws_message(ws: WebSocket, root: Path, raw: str):
         elif action == "council_query":
             # Query council for analysis
             from patchi.core.brain.council import run_council
+
             issue = data.get("issue", "")
             session = await run_council(root, issue)
-            await ws.send_json({
-                "event": "council_result",
-                "data": {
-                    "issue": issue,
-                    "synthesis": session.synthesis,
-                    "action_plan": session.action_plan,
-                    "consensus": session.consensus_reached,
-                },
-            })
+            await ws.send_json(
+                {
+                    "event": "council_result",
+                    "data": {
+                        "issue": issue,
+                        "synthesis": session.synthesis,
+                        "action_plan": session.action_plan,
+                        "consensus": session.consensus_reached,
+                    },
+                }
+            )
 
         elif action == "tool_call":
             # Execute AI tool call
             from patchi.core.ai.tool_executor import ToolExecutor
+
             tool_name = data.get("tool")
             parameters = data.get("parameters", {})
 
             executor = ToolExecutor(root)
             exec_result = await executor.execute(tool_name, parameters, invoked_by="dashboard")
 
-            await ws.send_json({
-                "event": "tool_result",
-                "data": {
-                    "tool": tool_name,
-                    "success": exec_result.success,
-                    "result": exec_result.result,
-                    "error": exec_result.error,
-                },
-            })
+            await ws.send_json(
+                {
+                    "event": "tool_result",
+                    "data": {
+                        "tool": tool_name,
+                        "success": exec_result.success,
+                        "result": exec_result.result,
+                        "error": exec_result.error,
+                    },
+                }
+            )
 
         elif action == "start_scan":
             # 1:1 with the CLI: run the actual `p scan` pipeline, not a
@@ -311,14 +321,16 @@ async def _handle_ws_message(ws: WebSocket, root: Path, raw: str):
                 brain_mem = mem.get_brain(root)
                 scans = mem.get_scan_results(root)
                 brain_meta = scans.get("Brain", {})
-                await ws.send_json({
-                    "event": "scan_completed",
-                    "data": {
-                        "file_count": brain_mem.get("file_count", 0),
-                        "route_count": brain_mem.get("route_count", 0),
-                        "duration": brain_meta.get("duration", 0),
-                    },
-                })
+                await ws.send_json(
+                    {
+                        "event": "scan_completed",
+                        "data": {
+                            "file_count": brain_mem.get("file_count", 0),
+                            "route_count": brain_mem.get("route_count", 0),
+                            "duration": brain_meta.get("duration", 0),
+                        },
+                    }
+                )
             except Exception as e:
                 _log.error("CLI scan failed: %s", e)
                 await ws.send_json({"event": "error", "data": {"message": f"Scan failed: {e}"}})
@@ -326,19 +338,22 @@ async def _handle_ws_message(ws: WebSocket, root: Path, raw: str):
         elif action == "start_red_team":
             # Trigger red team assessment
             from patchi.core.security.red_team_engine import run_red_team
+
             report = await run_red_team(root, safe_mode=data.get("safe_mode", True))
-            await ws.send_json({
-                "event": "red_team_completed",
-                "data": {
-                    "assessment_id": report.assessment_id,
-                    "findings": report.total_findings,
-                    "by_severity": report.by_severity,
-                },
-            })
+            await ws.send_json(
+                {
+                    "event": "red_team_completed",
+                    "data": {
+                        "assessment_id": report.assessment_id,
+                        "findings": report.total_findings,
+                        "by_severity": report.by_severity,
+                    },
+                }
+            )
 
         elif action == "start_live_test":
             # Trigger live test
-            from patchi.core.testing.live_v2.runner import run_live_tests_v2, LiveTestConfigV2
+            from patchi.core.testing.live_v2.runner import LiveTestConfigV2, run_live_tests_v2
             from patchi.core.testing.live_v2.stress_orchestrator import StressConfig
 
             test_config = LiveTestConfigV2(
@@ -354,10 +369,12 @@ async def _handle_ws_message(ws: WebSocket, root: Path, raw: str):
                 )
 
             result = await run_live_tests_v2(root, test_config)
-            await ws.send_json({
-                "event": "live_test_completed",
-                "data": result.to_dict(),
-            })
+            await ws.send_json(
+                {
+                    "event": "live_test_completed",
+                    "data": result.to_dict(),
+                }
+            )
 
     except Exception as e:
         _log.error(f"WebSocket message handling failed: {e}")
@@ -374,6 +391,7 @@ async def agents_stream(request: Request):
     async def event_generator():
         # Stream agent events from memory
         from patchi.core import memory as mem
+
         root = request.app.state.root
         scan_results = mem.get_scan_results(root)
 
@@ -388,6 +406,7 @@ async def agents_stream(request: Request):
 async def get_brain_layers(request: Request):
     """Get layered brain data for visualization."""
     from patchi.core import memory as mem
+
     root = request.app.state.root
     layers_data = mem.get_layers(root)
     return layers_data
@@ -397,6 +416,7 @@ async def get_brain_layers(request: Request):
 async def get_council_sessions(request: Request):
     """Get council session history."""
     from patchi.core import memory as mem
+
     root = request.app.state.root
     history = mem.read(mem.MemoryCategory.ISSUES, root)
     sessions = [s for s in history if s.get("type") == "council_session"]
@@ -407,6 +427,7 @@ async def get_council_sessions(request: Request):
 async def get_attack_timeline(request: Request):
     """Get attack simulation timeline."""
     from patchi.core import memory as mem
+
     root = request.app.state.root
     scan_results = mem.get_scan_results(root)
     attack_data = scan_results.get("RedTeamEngineAgent", {})
@@ -417,6 +438,7 @@ async def get_attack_timeline(request: Request):
 async def get_live_test_status(request: Request):
     """Get live test status."""
     from patchi.core import memory as mem
+
     root = request.app.state.root
     scan_results = mem.get_scan_results(root)
     test_data = scan_results.get("TestRunner", {})
@@ -427,6 +449,7 @@ async def get_live_test_status(request: Request):
 async def execute_tool(request: Request):
     """Execute an AI tool call from dashboard."""
     from patchi.core.ai.tool_executor import ToolExecutor
+
     root = request.app.state.root
 
     data = await request.json()
@@ -448,6 +471,7 @@ async def execute_tool(request: Request):
 async def list_tools(request: Request):
     """List all available AI tools."""
     from patchi.core.ai.tools.registry import get_tool_registry
+
     registry = get_tool_registry()
 
     category = request.query_params.get("category")

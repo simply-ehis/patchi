@@ -36,6 +36,7 @@ from patchi.core.config import require_project_root
 
 _log = logging.getLogger("patchi.cli.blast_cmd")
 
+
 def run(file_path: str | None = None, show_all: bool = False, root: Path | None = None) -> None:
     """Entry point for `p blast <file>`."""
     try:
@@ -65,6 +66,7 @@ def run(file_path: str | None = None, show_all: bool = False, root: Path | None 
         return
 
     _show_blast_radius(resolved, graph, r)
+
 
 def _build_graph(root: Path) -> ImportGraph:
     """Build import graph from project source files."""
@@ -96,6 +98,7 @@ def _build_graph(root: Path) -> ImportGraph:
 
     return graph
 
+
 def _resolve_import(module_name: str, root: Path, from_file: Path) -> str | None:
     """Resolve a module name to a relative file path."""
     parts = module_name.split(".")
@@ -122,6 +125,7 @@ def _resolve_import(module_name: str, root: Path, from_file: Path) -> str | None
         return candidate.relative_to(root).as_posix()
     return None
 
+
 def _resolve_file(file_path: str, root: Path) -> str | None:
     """Resolve a user-provided file path to a relative path in the graph."""
     # Try exact match
@@ -140,7 +144,8 @@ def _resolve_file(file_path: str, root: Path) -> str | None:
             return rel
     return None
 
-def _show_blast_radius(file_rel: str, graph: "ImportGraph", root: Path) -> None:
+
+def _show_blast_radius(file_rel: str, graph: ImportGraph, root: Path) -> None:
     """Display blast radius for a single file."""
     # BFS to find all dependents
     direct = sorted(graph.reverse.get(file_rel, set()))
@@ -217,8 +222,9 @@ def _show_blast_radius(file_rel: str, graph: "ImportGraph", root: Path) -> None:
         )
     con.print()
 
+
 def _build_tree(
-    parent_tree, file_rel: str, graph: "ImportGraph", depth: int, max_depth: int, visited: set
+    parent_tree, file_rel: str, graph: ImportGraph, depth: int, max_depth: int, visited: set
 ) -> None:
     """Recursively build a tree of dependents."""
     if depth >= max_depth:
@@ -232,7 +238,8 @@ def _build_tree(
         child = parent_tree.add(dep)
         _build_tree(child, dep, graph, depth + 1, max_depth, visited)
 
-def _show_all_blast_radii(graph: "ImportGraph", root: Path, json_output: bool = False) -> None:
+
+def _show_all_blast_radii(graph: ImportGraph, root: Path, json_output: bool = False) -> None:
     """Show blast radius summary for all files."""
     radii = []
     for node in graph.nodes:
@@ -255,12 +262,16 @@ def _show_all_blast_radii(graph: "ImportGraph", root: Path, json_output: bool = 
     if json_output:
         import json as _json
 
-        con.print(_json.dumps({
-            "blast_radii": [
-                {"file": node, "direct": d, "total_affected": t}
-                for node, d, t in radii
-            ]
-        }, indent=2))
+        con.print(
+            _json.dumps(
+                {
+                    "blast_radii": [
+                        {"file": node, "direct": d, "total_affected": t} for node, d, t in radii
+                    ]
+                },
+                indent=2,
+            )
+        )
         return
 
     table = Table(show_header=True, header_style="bold #C8621A", box=None, pad_edge=False)
@@ -289,6 +300,7 @@ def _show_all_blast_radii(graph: "ImportGraph", root: Path, json_output: bool = 
     con.print()
     con.print(Panel(table, title="💥 Blast Radius Map — All Files", border_style="#C8621A"))
     con.print()
+
 
 def _safe_rglob(root: Path, pattern: str, skip: set):
     """Directory-walking with pruning."""

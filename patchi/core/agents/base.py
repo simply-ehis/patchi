@@ -23,8 +23,8 @@ import time
 import traceback
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from enum import Enum
+from datetime import UTC, datetime
+from enum import StrEnum
 from pathlib import Path
 
 from patchi.core.brain.file_corpus import FileCorpus
@@ -40,6 +40,7 @@ _SKIP_FILES = frozenset(
 import logging
 
 _log = logging.getLogger("patchi.agents.base")
+
 
 def safe_rglob(
     root: Path,
@@ -103,7 +104,7 @@ def safe_rglob(
 # ── Agent groups ───────────────────────────────────────────────────────────────
 
 
-class AgentGroup(str, Enum):
+class AgentGroup(StrEnum):
     SCANNER = "scanner"
     FIX = "fix"
     TEST = "test"
@@ -134,7 +135,7 @@ class AgentGroup(str, Enum):
 # ── Agent status ───────────────────────────────────────────────────────────────
 
 
-class AgentStatus(str, Enum):
+class AgentStatus(StrEnum):
     IDLE = "idle"
     RUNNING = "running"
     DONE = "done"
@@ -146,7 +147,7 @@ class AgentStatus(str, Enum):
 # ── Severity levels (used across all finding types) ────────────────────────────
 
 
-class Severity(str, Enum):
+class Severity(StrEnum):
     CRITICAL = "critical"  # level 1 alert
     HIGH = "high"  # level 2 alert
     MEDIUM = "medium"  # level 3 alert
@@ -209,8 +210,21 @@ class Finding:
         }
 
     @classmethod
-    def from_dict(cls, d: dict) -> "Finding":
-        extra_keys = {"agent", "type", "severity", "file", "line", "column", "message", "detail", "code_snippet", "suggestion", "fix_agent", "cwe"}
+    def from_dict(cls, d: dict) -> Finding:
+        extra_keys = {
+            "agent",
+            "type",
+            "severity",
+            "file",
+            "line",
+            "column",
+            "message",
+            "detail",
+            "code_snippet",
+            "suggestion",
+            "fix_agent",
+            "cwe",
+        }
         extra = {k: v for k, v in d.items() if k not in extra_keys}
         return cls(
             agent=d.get("agent", ""),
@@ -259,7 +273,9 @@ class AgentInput:
     domain: str = ""  # project domain (e.g. "dev-tool", "web-app", "library")
     context: dict = field(default_factory=dict)  # rich project context from brain context phase
     active_domains: list[str] = field(default_factory=list)  # activated security domain IDs
-    on_message: callable | None = None  # callback for live progress streaming: fn(agent_name, message, style)
+    on_message: callable | None = (
+        None  # callback for live progress streaming: fn(agent_name, message, style)
+    )
 
 
 # ── Agent result ───────────────────────────────────────────────────────────────
@@ -328,7 +344,7 @@ class AgentResult:
         }
 
     @classmethod
-    def from_dict(cls, d: dict) -> "AgentResult":
+    def from_dict(cls, d: dict) -> AgentResult:
         return cls(
             agent_name=d.get("agent", ""),
             agent_group=AgentGroup(d.get("group", "scanner")),
@@ -505,7 +521,7 @@ class BaseAgent(ABC):
             "name": cls.name,
             "group": cls.group.value,
             "timeout": cls.timeout,
-        }# ── Registry ───────────────────────────────────────────────────────────────────
+        }  # ── Registry ───────────────────────────────────────────────────────────────────
 
 
 _REGISTRY: dict[str, type[BaseAgent]] = {}
@@ -672,15 +688,11 @@ def _find_result_shadowing(cls: type) -> list[tuple[int, str]]:
                 for n in _iter_target_names(t):
                     if n == "result":
                         rebinds[node.lineno] = "plain assignment"
-        elif isinstance(node, ast.Name) and node.id == "result" and isinstance(
-            node.ctx, ast.Load
-        ):
+        elif isinstance(node, ast.Name) and node.id == "result" and isinstance(node.ctx, ast.Load):
             load_lines.add(node.lineno)
 
     return sorted(
-        (line, kind)
-        for line, kind in rebinds.items()
-        if any(load > line for load in load_lines)
+        (line, kind) for line, kind in rebinds.items() if any(load > line for load in load_lines)
     )
 
 
@@ -698,9 +710,7 @@ def register(agent_cls: type[BaseAgent]) -> type[BaseAgent]:
             "agents must inherit BaseAgent to expose run()/AgentResult"
         )
     if not callable(getattr(agent_cls, "run", None)):
-        raise TypeError(
-            f"register() requires {agent_cls.__name__} to expose a callable run()"
-        )
+        raise TypeError(f"register() requires {agent_cls.__name__} to expose a callable run()")
     # An agent that never sets .name inherits "BaseAgent" from the base class
     # and would silently OVERWRITE the base entry in the registry — reject the
     # inherited default, not just the empty string.
@@ -729,26 +739,14 @@ def _check_run_signature(agent_cls: type[BaseAgent]) -> None:
 
     run_impl = getattr(agent_cls, "_run", None)
     if not callable(run_impl):
-        raise TypeError(
-            f"register() requires {agent_cls.__name__} to implement _run()"
-        )
+        raise TypeError(f"register() requires {agent_cls.__name__} to implement _run()")
     try:
         sig = inspect.signature(run_impl)
     except (TypeError, ValueError) as e:  # noqa: BLE001 — signature probe failure
-        raise TypeError(
-            f"register() could not inspect {agent_cls.__name__}._run: {e}"
-        ) from e
+        raise TypeError(f"register() could not inspect {agent_cls.__name__}._run: {e}") from e
     params = list(sig.parameters.values())
-    positional = [
-        p
-        for p in params
-        if p.kind in (p.POSITIONAL_ONLY, p.POSITIONAL_OR_KEYWORD)
-    ]
-    if (
-        len(positional) < 3
-        or positional[1].name != "inp"
-        or positional[2].name != "result"
-    ):
+    positional = [p for p in params if p.kind in (p.POSITIONAL_ONLY, p.POSITIONAL_OR_KEYWORD)]
+    if len(positional) < 3 or positional[1].name != "inp" or positional[2].name != "result":
         raise TypeError(
             f"register() requires {agent_cls.__name__}._run(self, inp, result) — "
             f"got {sig}. The old _run(inp) -> AgentResult shape is removed."
@@ -775,7 +773,7 @@ def list_agents(group: AgentGroup | None = None) -> list[type[BaseAgent]]:
 
 
 def _now() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 def _infer_agent_name() -> str:

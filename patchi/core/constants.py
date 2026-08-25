@@ -4,7 +4,7 @@ Every magic string lives here. Nothing is scattered across modules.
 """
 
 import os
-from enum import Enum
+from enum import StrEnum
 
 
 def is_offline() -> bool:
@@ -17,10 +17,11 @@ def is_offline() -> bool:
     """
     return bool(os.environ.get("PATCHI_OFFLINE"))
 
+
 # ── Modes ─────────────────────────────────────────────────────────────────────
 
 
-class Mode(str, Enum):
+class Mode(StrEnum):
     CONFIRM = "confirm"  # every action requires approval
     AUTO = "auto"  # safe fixes auto-apply, risky ones ask
     AUTOPILOT = "autopilot"  # full trust, Patchi decides everything
@@ -35,7 +36,7 @@ class Mode(str, Enum):
 # ── Queue modes ────────────────────────────────────────────────────────────────
 
 
-class QueueMode(str, Enum):
+class QueueMode(StrEnum):
     SINGLE = "single"  # one task at a time
     MULTI = "multi"  # auto-scaled parallel
     OFF = "off"  # full speed, no queue
@@ -51,7 +52,7 @@ class QueueMode(str, Enum):
 # ── Queue item states ──────────────────────────────────────────────────────────
 
 
-class QueueItemState(str, Enum):
+class QueueItemState(StrEnum):
     WAITING = "waiting"
     ACTIVE = "active"
     DONE = "done"
@@ -62,7 +63,7 @@ class QueueItemState(str, Enum):
 # ── Restriction types ──────────────────────────────────────────────────────────
 
 
-class RestrictionType(str, Enum):
+class RestrictionType(StrEnum):
     NO_TOUCH = "no_touch"  # Patchi never reads, scans, or modifies
     SCAN_ONLY = "scan_only"  # read and report, never fix
     SENSITIVE = "sensitive"  # acknowledges existence, never reads contents
@@ -71,7 +72,7 @@ class RestrictionType(str, Enum):
 # ── Memory categories ──────────────────────────────────────────────────────────
 
 
-class MemoryCategory(str, Enum):
+class MemoryCategory(StrEnum):
     BRAIN = "brain"
     PATCHES = "patches"
     FAILED = "failed"
@@ -86,7 +87,7 @@ class MemoryCategory(str, Enum):
 # ── Risk levels ────────────────────────────────────────────────────────────────
 
 
-class RiskLevel(str, Enum):
+class RiskLevel(StrEnum):
     LOW = "low"  # 0–30:  safe to auto-apply
     MEDIUM = "medium"  # 31–60: logic changes, requires review in confirm mode
     HIGH = "high"  # 61–100: auth, payments, data — always ask
@@ -106,7 +107,7 @@ class RiskLevel(str, Enum):
 # ── Device tiers ───────────────────────────────────────────────────────────────
 
 
-class DeviceTier(str, Enum):
+class DeviceTier(StrEnum):
     LOW = "low"  # < 4 GB RAM
     MID = "mid"  # 4–16 GB
     HIGH = "high"  # 16 GB+

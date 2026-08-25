@@ -25,6 +25,7 @@ from patchi.core.agents.base import AgentGroup, list_agents
 
 _log = logging.getLogger("patchi.cli.dev_cmd")
 
+
 def run(action: str | None = None, verbose: bool = False) -> None:
 
     if action == "test":
@@ -39,6 +40,7 @@ def run(action: str | None = None, verbose: bool = False) -> None:
         _install_hook(con)
     else:
         _show_dev_overview(con, verbose)
+
 
 def _show_dev_overview(con: Console, verbose: bool) -> None:
     con.print()
@@ -63,7 +65,9 @@ def _show_dev_overview(con: Console, verbose: bool) -> None:
     pipeline_enabled = config.get("pipeline", {}).get("enabled", False)
     info.add_row("[bold]Security Pipeline:[/bold]", "ENABLED" if pipeline_enabled else "DISABLED")
     interceptor_enabled = config.get("pipeline", {}).get("interceptor", {}).get("enabled", False)
-    info.add_row("[bold]Request Interceptor:[/bold]", "ENABLED" if interceptor_enabled else "DISABLED")
+    info.add_row(
+        "[bold]Request Interceptor:[/bold]", "ENABLED" if interceptor_enabled else "DISABLED"
+    )
     ai_keys = config.get("ai", {}).get("keys", [])
     info.add_row("[bold]AI Keys:[/bold]", f"{len(ai_keys)} configured")
     info.add_row("[bold]Agent Queue:[/bold]", config.get("queue_mode", "single"))
@@ -73,7 +77,10 @@ def _show_dev_overview(con: Console, verbose: bool) -> None:
 
     _show_quick_commands(con)
     con.print()
-    con.print("[dim]Run [bold]p dev test[/bold] for testing docs, [bold]p dev security[/bold] for security status, [bold]p dev docs[/bold] for all commands[/dim]")
+    con.print(
+        "[dim]Run [bold]p dev test[/bold] for testing docs, [bold]p dev security[/bold] for security status, [bold]p dev docs[/bold] for all commands[/dim]"
+    )
+
 
 def _show_quick_commands(con: Console) -> None:
     t = Table(title="Quick Reference", box=None)
@@ -94,9 +101,12 @@ def _show_quick_commands(con: Console) -> None:
     t.add_row("p audit", "Full project audit in one shot")
     con.print(t)
 
+
 def _show_test_docs(con: Console) -> None:
     con.print()
-    con.print(Panel.fit("[bold yellow]Testing Tools Reference[/bold yellow]", border_style="yellow"))
+    con.print(
+        Panel.fit("[bold yellow]Testing Tools Reference[/bold yellow]", border_style="yellow")
+    )
     con.print()
 
     t = Table(title="Test Commands")
@@ -106,18 +116,38 @@ def _show_test_docs(con: Console) -> None:
 
     t.add_row("p test", "default", "Run unit + regression tests")
     t.add_row("p test unit", "unit", "Run pytest/unittest/jest/mocha tests via UnitTestAgent")
-    t.add_row("p test browser", "browser", "Run Playwright critical-flow tests via BrowserTestAgent")
+    t.add_row(
+        "p test browser", "browser", "Run Playwright critical-flow tests via BrowserTestAgent"
+    )
     t.add_row("p test e2e", "e2e", "AI-generated end-to-end Playwright tests via E2EFlowAgent")
     t.add_row("p test buttons", "buttons", "Button/form/interaction tests via UIButtonAgent")
-    t.add_row("p test layout", "layout", "Responsive layout tests at 320/768/1024/1440px via UILayoutAgent")
-    t.add_row("p test accessibility", "accessibility", "WCAG a11y via axe-core injection via UIAccessibilityAgent")
-    t.add_row("p test visual", "visual", "Screenshot comparison at 3 viewports via VisualRegressionAgent")
+    t.add_row(
+        "p test layout",
+        "layout",
+        "Responsive layout tests at 320/768/1024/1440px via UILayoutAgent",
+    )
+    t.add_row(
+        "p test accessibility",
+        "accessibility",
+        "WCAG a11y via axe-core injection via UIAccessibilityAgent",
+    )
+    t.add_row(
+        "p test visual", "visual", "Screenshot comparison at 3 viewports via VisualRegressionAgent"
+    )
     t.add_row("p test api", "api", "OpenAPI/JSON Schema contract tests via APIContractAgent")
     t.add_row("p test stress", "stress", "Locust load testing via StressTestAgent")
-    t.add_row("p test security", "security", "Route-specific security pytest generation via SecurityTestAgent")
-    t.add_row("p test regression", "regression", "Snapshot-based regression tests via RegressionAgent")
+    t.add_row(
+        "p test security",
+        "security",
+        "Route-specific security pytest generation via SecurityTestAgent",
+    )
+    t.add_row(
+        "p test regression", "regression", "Snapshot-based regression tests via RegressionAgent"
+    )
     t.add_row("p test smoke", "smoke", "Quick smoke: buttons + layout + accessibility")
-    t.add_row("p test full", "full", f"ALL test agents ({len(list_agents(AgentGroup.TEST))} agents)")
+    t.add_row(
+        "p test full", "full", f"ALL test agents ({len(list_agents(AgentGroup.TEST))} agents)"
+    )
     t.add_row("p test generate", "generate", "AI generates a full test suite")
     t.add_row("p test report", "report", "Show test run history (last 50)")
     t.add_row("p test config show", "config", "Show test configuration")
@@ -154,9 +184,15 @@ def _show_test_docs(con: Console) -> None:
     t3.add_row("BrowserTesterAgent (security)", "Playwright auth bypass / XSS / SQLi testing")
     con.print(t3)
 
+
 def _show_playwright_docs(con: Console) -> None:
     con.print()
-    con.print(Panel.fit("[bold magenta]Playwright / Browser Testing Reference[/bold magenta]", border_style="magenta"))
+    con.print(
+        Panel.fit(
+            "[bold magenta]Playwright / Browser Testing Reference[/bold magenta]",
+            border_style="magenta",
+        )
+    )
     con.print()
 
     t = Table(title="Playwright Test Types")
@@ -167,7 +203,11 @@ def _show_playwright_docs(con: Console) -> None:
     t.add_row("p test browser", "Critical flows: login, forms, navigation, API calls", "N/A")
     t.add_row("p test e2e", "AI-generated full user flows", "N/A")
     t.add_row("p test buttons", "Buttons, forms, hover/focus, keyboard, disabled states", "N/A")
-    t.add_row("p test layout", "Responsive design, overflow, overlap, touch targets", "320 / 768 / 1024 / 1440")
+    t.add_row(
+        "p test layout",
+        "Responsive design, overflow, overlap, touch targets",
+        "320 / 768 / 1024 / 1440",
+    )
     t.add_row("p test accessibility", "WCAG: contrast, alt text, labels, ARIA, landmarks", "N/A")
     t.add_row("p test visual", "Screenshot diff detection", "375 / 768 / 1440")
     t.add_row("p security browsertest", "Auth bypass, XSS injection, SQLi injection", "N/A")
@@ -197,6 +237,7 @@ def _show_playwright_docs(con: Console) -> None:
     con.print()
     con.print("[dim]Open [bold]p web[/bold] and watch the dashboard while tests run![/dim]")
 
+
 def _show_security_status(con: Console) -> None:
     con.print()
     con.print(Panel.fit("[bold red]Security Pipeline Status[/bold red]", border_style="red"))
@@ -219,13 +260,35 @@ def _show_security_status(con: Console) -> None:
     t.add_column("Status")
     t.add_column("Detail")
 
-    t.add_row("Security Pipeline", "ENABLED" if pipeline.get("enabled") else "DISABLED", "DetectionPipeline + ConfidenceGate + Layer2Orchestrator + DefenseLayer")
-    t.add_row("Request Interceptor", "ENABLED" if interceptor.get("enabled") else "DISABLED", f"ASGI middleware, threshold={interceptor.get('block_threshold', 0.7)}, rate={interceptor.get('rate_limit', 100)}/min")
-    t.add_row("Security Agents", f"{len(list_agents(AgentGroup.SECURITY))} agents", "All registered via @register decorator")
-    t.add_row("ConfidenceGate", "Active", "Routes findings: defend / ai_analyze / human_review / discard")
-    t.add_row("Layer2 AI", "Active" if ai_keys else "No AI keys", "Batches medium-confidence findings for AI confirmation")
-    t.add_row("DefenseLayer", "Active", "Creates patches / blocks IPs / rotates secrets / escalates")
-    t.add_row("RiskGate", "Always active", "Enforces mode, no-touch paths, quiet hours, secrets gate")
+    t.add_row(
+        "Security Pipeline",
+        "ENABLED" if pipeline.get("enabled") else "DISABLED",
+        "DetectionPipeline + ConfidenceGate + Layer2Orchestrator + DefenseLayer",
+    )
+    t.add_row(
+        "Request Interceptor",
+        "ENABLED" if interceptor.get("enabled") else "DISABLED",
+        f"ASGI middleware, threshold={interceptor.get('block_threshold', 0.7)}, rate={interceptor.get('rate_limit', 100)}/min",
+    )
+    t.add_row(
+        "Security Agents",
+        f"{len(list_agents(AgentGroup.SECURITY))} agents",
+        "All registered via @register decorator",
+    )
+    t.add_row(
+        "ConfidenceGate", "Active", "Routes findings: defend / ai_analyze / human_review / discard"
+    )
+    t.add_row(
+        "Layer2 AI",
+        "Active" if ai_keys else "No AI keys",
+        "Batches medium-confidence findings for AI confirmation",
+    )
+    t.add_row(
+        "DefenseLayer", "Active", "Creates patches / blocks IPs / rotates secrets / escalates"
+    )
+    t.add_row(
+        "RiskGate", "Always active", "Enforces mode, no-touch paths, quiet hours, secrets gate"
+    )
     t.add_row("Sigma Engine", "Standby", "Loaded from .patchi/sigma/ (if rules exist)")
     t.add_row("SecretsGuard", "Always active", "Gate-checks proposed code for secrets before apply")
 
@@ -234,7 +297,9 @@ def _show_security_status(con: Console) -> None:
 
     con.print("[bold]Security Commands:[/bold]")
     con.print("  p security all            — Run all 34 security scanners")
-    con.print("  p security <type>         — Run specific security scan (sqli, xss, jwt, crypto, etc.)")
+    con.print(
+        "  p security <type>         — Run specific security scan (sqli, xss, jwt, crypto, etc.)"
+    )
     con.print("  p security report         — Show correlated security report")
     con.print("  p security browsertest    — Run Playwright security browser tests")
     con.print("  p scan --pipeline         — Full scan + security pipeline + auto-defense")
@@ -251,9 +316,14 @@ def _show_security_status(con: Console) -> None:
     con.print("  suspend_account  — Queues to .patchi/suspend_accounts.json")
     con.print("  block_ws_origin  — Persists to .patchi/blocked_ws_origins.json")
 
+
 def _show_cli_reference(con: Console) -> None:
     con.print()
-    con.print(Panel.fit("[bold green]Patchi CLI Reference — All Commands[/bold green]", border_style="green"))
+    con.print(
+        Panel.fit(
+            "[bold green]Patchi CLI Reference — All Commands[/bold green]", border_style="green"
+        )
+    )
     con.print()
 
     t = Table(box=None)
@@ -271,8 +341,16 @@ def _show_cli_reference(con: Console) -> None:
         ("p review", "Review pending patches", "review_cmd.py (225 lines)"),
         ("p patch", "Manage patches (list/show/apply/reject)", "patch_cmd.py (215 lines)"),
         ("p undo / redo / rollback", "Undo/redo/rollback patches", "undo_cmd.py (233 lines)"),
-        ("p test", f"Run test agents ({len(list_agents(AgentGroup.TEST))} types)", "test_cmd.py (699 lines)"),
-        ("p security", f"Run security agents ({len(list_agents(AgentGroup.SECURITY))} types)", "security_cmd.py (538 lines)"),
+        (
+            "p test",
+            f"Run test agents ({len(list_agents(AgentGroup.TEST))} types)",
+            "test_cmd.py (699 lines)",
+        ),
+        (
+            "p security",
+            f"Run security agents ({len(list_agents(AgentGroup.SECURITY))} types)",
+            "security_cmd.py (538 lines)",
+        ),
         ("p memory", "Show/manage brain memory", "memory_cmd.py (219 lines)"),
         ("p queue", "Manage agent queue", "queue_cmd.py (154 lines)"),
         ("p mode", "Set confirm/auto/autopilot mode", "mode_cmd.py (78 lines)"),
@@ -305,9 +383,11 @@ def _show_cli_reference(con: Console) -> None:
 
     con.print(t)
 
+
 def _get_version() -> str:
     try:
         from patchi import __version__
+
         return __version__
     except Exception as e:
         _log.warning("_get_version failed: %s", e)

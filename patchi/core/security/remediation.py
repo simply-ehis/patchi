@@ -25,6 +25,7 @@ _log = logging.getLogger("patchi.security.remediation")
 @dataclass
 class Remediation:
     """One fix suggestion for a finding type."""
+
     finding_type: str
     action: str
     code_pattern: str = ""
@@ -65,7 +66,6 @@ _REMEDIATIONS: dict[str, Remediation] = {
         playbook_id="secrets-runtime-management",
         auto_fixable=True,
     ),
-
     # Injection
     "sql_injection": Remediation(
         finding_type="sql_injection",
@@ -78,7 +78,7 @@ _REMEDIATIONS: dict[str, Remediation] = {
             "java": 'PreparedStatement ps = conn.prepareStatement("SELECT * FROM users WHERE id = ?"); ps.setInt(1, userId);',
             "rust": 'sqlx::query!("SELECT * FROM users WHERE id = $1", user_id).fetch_one(&pool)',
             "php": '$stmt = $pdo->prepare("SELECT * FROM users WHERE id = :id"); $stmt->execute(["id" => $userId]);',
-            "ruby": 'User.where(id: user_id).first  # ActiveRecord sanitizes automatically',
+            "ruby": "User.where(id: user_id).first  # ActiveRecord sanitizes automatically",
         },
     ),
     "command_injection": Remediation(
@@ -100,11 +100,11 @@ _REMEDIATIONS: dict[str, Remediation] = {
         code_pattern="Use {{ variable | e }} in Jinja2 templates",
         auto_fixable=False,
         lang_patterns={
-            "go": 'template.HTML(template.HTMLEscapeString(userInput))  // or use html/template auto-escaping',
+            "go": "template.HTML(template.HTMLEscapeString(userInput))  // or use html/template auto-escaping",
             "java": '<%= request.getParameter("name") %>  // JSP auto-escapes; use OWASP Encoder for raw',
-            "rust": 'askama or tera templates auto-escape; avoid Markup::new()',
+            "rust": "askama or tera templates auto-escape; avoid Markup::new()",
             "php": 'htmlspecialchars($input, ENT_QUOTES, "UTF-8")',
-            "ruby": 'ERB::Util.html_escape(user_input)  // or Rails auto-escaping',
+            "ruby": "ERB::Util.html_escape(user_input)  // or Rails auto-escaping",
         },
     ),
     "path_traversal": Remediation(
@@ -113,19 +113,18 @@ _REMEDIATIONS: dict[str, Remediation] = {
         code_pattern="Path(user_input).resolve().is_relative_to(base_dir)",
         auto_fixable=True,
         lang_patterns={
-            "go": 'filepath.Clean(path) + must be inside baseDir; check with strings.HasPrefix',
-            "java": 'Path resolved = Paths.get(baseDir, userInput).normalize(); if (!resolved.startsWith(baseDir)) throw;',
-            "rust": 'let resolved = std::fs::canonicalize(base_dir.join(&user_input))?; if !resolved.starts_with(&base_dir) { return Err(...); }',
+            "go": "filepath.Clean(path) + must be inside baseDir; check with strings.HasPrefix",
+            "java": "Path resolved = Paths.get(baseDir, userInput).normalize(); if (!resolved.startsWith(baseDir)) throw;",
+            "rust": "let resolved = std::fs::canonicalize(base_dir.join(&user_input))?; if !resolved.starts_with(&base_dir) { return Err(...); }",
             "php": 'realpath($baseDir . "/" . $userInput) must start with realpath($baseDir)',
-            "ruby": 'File.expand_path(user_input, base_dir).start_with?(base_dir)',
+            "ruby": "File.expand_path(user_input, base_dir).start_with?(base_dir)",
         },
     ),
-
     # Auth
     "missing_auth": Remediation(
         finding_type="missing_auth",
         action="Add authentication decorator or middleware to route",
-        code_pattern='@require_auth or @login_required',
+        code_pattern="@require_auth or @login_required",
         playbook_id="auth-session",
         auto_fixable=False,
     ),
@@ -141,7 +140,6 @@ _REMEDIATIONS: dict[str, Remediation] = {
         code_pattern="Use password validation: minlength=12, complexity=True",
         playbook_id="auth-session",
     ),
-
     # Config
     "debug_enabled": Remediation(
         finding_type="debug_enabled",
@@ -152,7 +150,7 @@ _REMEDIATIONS: dict[str, Remediation] = {
     "cors_wildcard": Remediation(
         finding_type="cors_wildcard",
         action="Replace CORS wildcard with explicit allowed origins",
-        code_pattern='Access-Control-Allow-Origin: https://yourdomain.com',
+        code_pattern="Access-Control-Allow-Origin: https://yourdomain.com",
         playbook_id="cdn-cache-security",
         auto_fixable=True,
     ),
@@ -166,7 +164,7 @@ _REMEDIATIONS: dict[str, Remediation] = {
     "missing_hsts": Remediation(
         finding_type="missing_hsts",
         action="Add Strict-Transport-Security header with long max-age",
-        code_pattern='Strict-Transport-Security: max-age=31536000; includeSubDomains',
+        code_pattern="Strict-Transport-Security: max-age=31536000; includeSubDomains",
         playbook_id="cdn-cache-security",
     ),
     "missing_csp": Remediation(
@@ -175,7 +173,6 @@ _REMEDIATIONS: dict[str, Remediation] = {
         code_pattern="Content-Security-Policy: default-src 'self'; script-src 'self'",
         playbook_id="cdn-cache-security",
     ),
-
     # Crypto
     "weak_crypto": Remediation(
         finding_type="weak_crypto",
@@ -183,9 +180,9 @@ _REMEDIATIONS: dict[str, Remediation] = {
         code_pattern="Use cryptography.hazmat.primitives.ciphers.aead.AESGCM",
         playbook_id="secrets-runtime-management",
         lang_patterns={
-            "go": 'crypto/aes + crypto/cipher.NewGCM()  // AES-256-GCM',
+            "go": "crypto/aes + crypto/cipher.NewGCM()  // AES-256-GCM",
             "java": 'javax.crypto.Cipher.getInstance("AES/GCM/NoPadding")',
-            "rust": 'aes_gcm::Aes256Gcm::new(key)  // use aes-gcm crate',
+            "rust": "aes_gcm::Aes256Gcm::new(key)  // use aes-gcm crate",
             "php": 'openssl_encrypt($data, "aes-256-gcm", $key, 0, $iv, $tag)',
             "ruby": 'AES-256-GCM via OpenSSL::Cipher.new("aes-256-gcm")',
         },
@@ -193,17 +190,16 @@ _REMEDIATIONS: dict[str, Remediation] = {
     "insecure_random": Remediation(
         finding_type="insecure_random",
         action="Replace random module with secrets for security-sensitive values",
-        code_pattern='Use secrets.token_hex(32) instead of random.random()',
+        code_pattern="Use secrets.token_hex(32) instead of random.random()",
         auto_fixable=True,
         lang_patterns={
-            "go": 'crypto/rand.Read(buf)  // never math/rand for security',
-            "java": 'java.security.SecureRandom.getInstanceStrong().nextBytes(buf)',
-            "rust": 'use rand::rngs::OsRng; rand::RngCore::fill_bytes(&mut OsRng, &mut buf)',
-            "php": 'random_bytes(32)  // never mt_rand or rand()',
-            "ruby": 'SecureRandom.hex(32)  // never rand() for security',
+            "go": "crypto/rand.Read(buf)  // never math/rand for security",
+            "java": "java.security.SecureRandom.getInstanceStrong().nextBytes(buf)",
+            "rust": "use rand::rngs::OsRng; rand::RngCore::fill_bytes(&mut OsRng, &mut buf)",
+            "php": "random_bytes(32)  // never mt_rand or rand()",
+            "ruby": "SecureRandom.hex(32)  // never rand() for security",
         },
     ),
-
     # SSRF / Network
     "ssrf": Remediation(
         finding_type="ssrf",
@@ -215,7 +211,6 @@ _REMEDIATIONS: dict[str, Remediation] = {
         action="Validate redirect target is internal or on allowlist",
         code_pattern="if redirect_url.startswith('/'): return redirect(redirect_url)",
     ),
-
     # Business logic
     "idor": Remediation(
         finding_type="idor",
@@ -232,6 +227,7 @@ _REMEDIATIONS: dict[str, Remediation] = {
 
 
 # ── Finding Type → Remediation Lookup ───────────────────────────────────────
+
 
 def _normalize_type(finding_type: str) -> str:
     """Normalize a finding type to a known remediation key."""
@@ -307,6 +303,7 @@ def get_remediation_confidence(finding_type: str, root: Path | None = None) -> f
     if root:
         try:
             from patchi.core.security.attack_feedback import get_learning_summary
+
             summary = get_learning_summary(root)
             accepted = summary.get("accepted_fixes", {}).get(finding_type, 0)
             rejected = summary.get("rejected_fixes", {}).get(finding_type, 0)
@@ -351,6 +348,7 @@ def load_playbook_fix(playbook_id: str, control_id: str = "") -> str | None:
         return None
     try:
         import yaml
+
         data = yaml.safe_load(pb_path.read_text(encoding="utf-8"))
         for pb in data.get("playbooks", []):
             if control_id and pb.get("control_id") != control_id:

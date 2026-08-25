@@ -81,9 +81,11 @@ class BaseAttacker(abc.ABC):
                 results.append(result)
             except Exception as e:
                 _log.warning("Attacker %s failed testing %s: %s", self.name, h.target, e)
-                results.append(AttackResult(
-                    hypothesis=h,
-                    confirmed=False,
-                    evidence=f"Test error: {e}",
-                ))
+                results.append(
+                    AttackResult(
+                        hypothesis=h,
+                        confirmed=False,
+                        evidence=f"Test error: {e}",
+                    )
+                )
         return results

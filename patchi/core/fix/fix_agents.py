@@ -107,13 +107,21 @@ def _detect_language(file_path: str, project_root: str | None = None) -> str:
     if ext == ".h" and project_root:
         root = Path(project_root)
         if root.exists():
-            cpp_files = list(root.rglob("*.cpp")) + list(root.rglob("*.cxx")) + list(root.rglob("*.cc"))
+            cpp_files = (
+                list(root.rglob("*.cpp")) + list(root.rglob("*.cxx")) + list(root.rglob("*.cc"))
+            )
             if cpp_files:
                 return "cpp"
     return {
-        ".py": "python", ".pyw": "python",
-        ".js": "javascript", ".jsx": "javascript", ".mjs": "javascript", ".cjs": "javascript",
-        ".ts": "typescript", ".tsx": "typescript", ".mts": "typescript",
+        ".py": "python",
+        ".pyw": "python",
+        ".js": "javascript",
+        ".jsx": "javascript",
+        ".mjs": "javascript",
+        ".cjs": "javascript",
+        ".ts": "typescript",
+        ".tsx": "typescript",
+        ".mts": "typescript",
         ".rs": "rust",
         ".java": "java",
         ".go": "go",
@@ -123,14 +131,26 @@ def _detect_language(file_path: str, project_root: str | None = None) -> str:
         ".scala": "scala",
         ".cs": "csharp",
         ".dart": "dart",
-        ".c": "c", ".h": "c",
-        ".cpp": "cpp", ".cxx": "cpp", ".cc": "cpp", ".hpp": "cpp",
-        ".php": "php", ".php3": "php", ".php4": "php", ".php5": "php", ".phtml": "php",
+        ".c": "c",
+        ".h": "c",
+        ".cpp": "cpp",
+        ".cxx": "cpp",
+        ".cc": "cpp",
+        ".hpp": "cpp",
+        ".php": "php",
+        ".php3": "php",
+        ".php4": "php",
+        ".php5": "php",
+        ".phtml": "php",
         ".svelte": "svelte",
-        ".sh": "bash", ".bash": "bash", ".zsh": "bash",
-        ".yml": "yaml", ".yaml": "yaml",
+        ".sh": "bash",
+        ".bash": "bash",
+        ".zsh": "bash",
+        ".yml": "yaml",
+        ".yaml": "yaml",
         ".json": "json",
-        ".html": "html", ".htm": "html",
+        ".html": "html",
+        ".htm": "html",
         ".css": "css",
         ".sql": "sql",
         ".md": "markdown",
@@ -191,6 +211,7 @@ def _ai_fix(
     fw = framework or finding.get("framework", "")
 
     from patchi.core.debug import debug_context_from_finding
+
     dbg = debug_context_from_finding(finding, root or Path.cwd())
 
     ctx: dict = {
@@ -275,10 +296,19 @@ class DependencyFixer(BaseAgent):
                 continue
 
             for dep_file in [
-                "requirements.txt", "package.json", "pyproject.toml",
-                "Cargo.toml", "go.mod", "Gemfile", "composer.json",
-                "pom.xml", "build.gradle", "build.gradle.kts",
-                "pubspec.yaml", "Package.swift", "Package.resolved",
+                "requirements.txt",
+                "package.json",
+                "pyproject.toml",
+                "Cargo.toml",
+                "go.mod",
+                "Gemfile",
+                "composer.json",
+                "pom.xml",
+                "build.gradle",
+                "build.gradle.kts",
+                "pubspec.yaml",
+                "Package.swift",
+                "Package.resolved",
             ]:
                 dep_path = inp.root / dep_file
                 if not dep_path.exists():
@@ -376,7 +406,15 @@ class EnvFixer(BaseAgent):
                 continue
 
             framework = finding.get("framework", "")
-            proposed = _ai_fix(inp.config, Skill.ENV_FIX, fpath, original, finding, root=inp.root, framework=framework)
+            proposed = _ai_fix(
+                inp.config,
+                Skill.ENV_FIX,
+                fpath,
+                original,
+                finding,
+                root=inp.root,
+                framework=framework,
+            )
             if not proposed:
                 continue
 
@@ -490,7 +528,15 @@ class TypeFixer(BaseAgent):
                 continue
 
             framework = finding.get("framework", "")
-            proposed = _ai_fix(inp.config, Skill.TYPE_FIX, fpath, original, finding, root=inp.root, framework=framework)
+            proposed = _ai_fix(
+                inp.config,
+                Skill.TYPE_FIX,
+                fpath,
+                original,
+                finding,
+                root=inp.root,
+                framework=framework,
+            )
             if not proposed:
                 continue
 
@@ -572,7 +618,9 @@ class RefactorAgent(BaseAgent):
 
                 patchi_action_log(inp.root, "ai_call", f"{file1}, {file2}", agent="RefactorAgent")
             except Exception as e:
-                _log.warning("Failed to write AI-call audit log entry for %s, %s: %s", file1, file2, e)
+                _log.warning(
+                    "Failed to write AI-call audit log entry for %s, %s: %s", file1, file2, e
+                )
 
             response = call_ai(inp.config, system, user_prompt, max_tokens=3000)
             if not response:

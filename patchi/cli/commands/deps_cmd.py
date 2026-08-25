@@ -65,7 +65,13 @@ def run(
         lp.set_progress(len(results) + 1, len(target_agents), name)
         lp.log(f"  {name}…")
         lp.update()
-        inp = AgentInput(root=r, scope=[], brain=brain, config=config, on_message=lambda n, msg, s: (lp.log(f"    {msg}", s), lp.update()))
+        inp = AgentInput(
+            root=r,
+            scope=[],
+            brain=brain,
+            config=config,
+            on_message=lambda n, msg, s: (lp.log(f"    {msg}", s), lp.update()),
+        )
         try:
             result = cls().run(inp)
             results.append(result)
@@ -82,17 +88,23 @@ def run(
     if json_output:
         import json as _json
 
-        con.print(_json.dumps({
-            "agents": [
+        con.print(
+            _json.dumps(
                 {
-                    "agent": getattr(res, "agent_name", ""),
-                    "status": getattr(getattr(res, "status", None), "value", ""),
-                    "findings": [
-                        f.to_dict() if hasattr(f, "to_dict") else dict(f)
-                        for f in (getattr(res, "findings", []) or [])
+                    "agents": [
+                        {
+                            "agent": getattr(res, "agent_name", ""),
+                            "status": getattr(getattr(res, "status", None), "value", ""),
+                            "findings": [
+                                f.to_dict() if hasattr(f, "to_dict") else dict(f)
+                                for f in (getattr(res, "findings", []) or [])
+                            ],
+                        }
+                        for res in results
                     ],
-                }
-                for res in results
-            ],
-            "total_findings": total_findings,
-        }, indent=2, default=str))
+                    "total_findings": total_findings,
+                },
+                indent=2,
+                default=str,
+            )
+        )

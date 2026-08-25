@@ -71,7 +71,9 @@ class ConfidenceGate:
         self.ai_weight: float = float(noise_cfg.get("ai_weight", 0.3))  # default 0.3, was 0.0
         self.fp_penalty: float = float(noise_cfg.get("fp_penalty", 0.3))
         self.noise_penalty: float = float(noise_cfg.get("noise_penalty", 0.5))
-        self.fp_auto_discard: bool = bool(noise_cfg.get("fp_auto_discard", True))  # default True, was False
+        self.fp_auto_discard: bool = bool(
+            noise_cfg.get("fp_auto_discard", True)
+        )  # default True, was False
         self._known_fps: set[tuple] = set()
         self._load_known_fps()
         # Lazy-load AI validator
@@ -142,7 +144,8 @@ class ConfidenceGate:
             try:
                 data = json.loads(self._fp_path.read_text(encoding="utf-8"))
                 remaining = [
-                    e for e in data
+                    e
+                    for e in data
                     if (e.get("file", ""), e.get("type", ""), e.get("line", 0)) != key
                 ]
             except Exception:  # noqa: BLE001
@@ -187,7 +190,9 @@ class ConfidenceGate:
         gated_list = [
             self.gate(
                 cf,
-                ai_confidence=(ai_confidences[i] if ai_confidences and i < len(ai_confidences) else None),
+                ai_confidence=(
+                    ai_confidences[i] if ai_confidences and i < len(ai_confidences) else None
+                ),
             )
             for i, cf in enumerate(report.findings)
         ]
@@ -245,9 +250,8 @@ class ConfidenceGate:
                     )
                 # Blend AI confidence into score
                 ai_w = min(self.ai_weight, 0.5)
-                gf.confidence_score = (
-                    (1.0 - ai_w) * gf.confidence_score
-                    + ai_w * (1.0 - result.confidence if not result.is_true_positive else result.confidence)
+                gf.confidence_score = (1.0 - ai_w) * gf.confidence_score + ai_w * (
+                    1.0 - result.confidence if not result.is_true_positive else result.confidence
                 )
 
         # Step 3: Auto-learn from discarded findings
@@ -275,13 +279,15 @@ class ConfidenceGate:
         entries = []
         for gf in gated.discarded:
             f = gf.finding
-            entries.append({
-                "file": f.file,
-                "type": f.type,
-                "line": f.line,
-                "reason": gf.routing_reason[:200],
-                "source": "pipeline",
-            })
+            entries.append(
+                {
+                    "file": f.file,
+                    "type": f.type,
+                    "line": f.line,
+                    "reason": gf.routing_reason[:200],
+                    "source": "pipeline",
+                }
+            )
         return self.record_false_positives(entries)
 
     # ── Scoring internals ───────────────────────────────────────────────────
@@ -328,6 +334,7 @@ class ConfidenceGate:
 
         # 7. Heuristic FP detection — catch common false-positive patterns
         from patchi.core.security.ai_validator import heuristic_pre_filter
+
         hp = heuristic_pre_filter(f)
         if hp:
             _, penalty = hp

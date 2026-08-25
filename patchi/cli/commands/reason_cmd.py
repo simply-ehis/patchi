@@ -29,15 +29,20 @@ def run_ask(question: str, root: Path | None = None) -> None:
         return
 
     if not question or not question.strip():
-        con.print("[red]Provide a question, e.g.[/red] "
-                  "[bold]p ask \"what does the auth subsystem do?\"[/bold]")
+        con.print(
+            "[red]Provide a question, e.g.[/red] "
+            '[bold]p ask "what does the auth subsystem do?"[/bold]'
+        )
         return
 
     engine = ReasoningEngine(r)
     answer = engine.ask(question)
     con.print()
-    con.print(Panel(answer, title="[bold #C8621A]Patchi · Reasoning[/bold #C8621A]",
-                    border_style="#2A3D28"))
+    con.print(
+        Panel(
+            answer, title="[bold #C8621A]Patchi · Reasoning[/bold #C8621A]", border_style="#2A3D28"
+        )
+    )
     con.print()
 
 
@@ -64,12 +69,15 @@ def run_why(path: str, root: Path | None = None) -> None:
         "[bold #F2EDD6]Depended on by[/bold #F2EDD6]",
         ", ".join(info["depended_on_by"]) or "nothing (no internal dependents)",
     )
-    table.add_row(
-        "[bold #F2EDD6]Files in layer[/bold #F2EDD6]", str(info["files_in_layer"])
-    )
+    table.add_row("[bold #F2EDD6]Files in layer[/bold #F2EDD6]", str(info["files_in_layer"]))
     con.print()
-    con.print(Panel(table, title="[bold #C8621A]Why this file matters[/bold #C8621A]",
-                    border_style="#2A3D28"))
+    con.print(
+        Panel(
+            table,
+            title="[bold #C8621A]Why this file matters[/bold #C8621A]",
+            border_style="#2A3D28",
+        )
+    )
     con.print()
 
 
@@ -101,9 +109,11 @@ def run_impact(
         return
 
     if not files:
-        con.print("[red]Provide at least one changed file, e.g.[/red] "
-                  "[bold]p impact src/api/routes.py[/bold] "
-                  "[dim](or p impact --all)[/dim]")
+        con.print(
+            "[red]Provide at least one changed file, e.g.[/red] "
+            "[bold]p impact src/api/routes.py[/bold] "
+            "[dim](or p impact --all)[/dim]"
+        )
         return
 
     engine = ReasoningEngine(r)
@@ -112,12 +122,17 @@ def run_impact(
     if json_output:
         import json as _json
 
-        con.print(_json.dumps({
-            "files": list(files),
-            "summary": analysis.summary,
-            "affected_layers": list(analysis.affected_layers),
-            "impacted_layers": list(analysis.impacted_layers),
-        }, indent=2))
+        con.print(
+            _json.dumps(
+                {
+                    "files": list(files),
+                    "summary": analysis.summary,
+                    "affected_layers": list(analysis.affected_layers),
+                    "impacted_layers": list(analysis.impacted_layers),
+                },
+                indent=2,
+            )
+        )
         return
 
     con.print()

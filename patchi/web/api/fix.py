@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
+
 from patchi.core.tenant import tenant_context
 
 router = APIRouter(prefix="/api/fix")
@@ -63,8 +64,15 @@ async def apply_all_safe(request: Request) -> JSONResponse:
 
     patches_raw = mem.read("patches", root)
     if not patches_raw:
-        return JSONResponse({"ok": True, "applied": [], "skipped": [], "failed": [],
-                             "message": "No patches pending"})
+        return JSONResponse(
+            {
+                "ok": True,
+                "applied": [],
+                "skipped": [],
+                "failed": [],
+                "message": "No patches pending",
+            }
+        )
 
     gate = RiskGate(root)
     applier = PatchApplier(root)
@@ -86,11 +94,15 @@ async def apply_all_safe(request: Request) -> JSONResponse:
 
         decision = gate.evaluate(patch)
         if decision.is_blocked() or decision.needs_review():
-            skipped.append({
-                "id": pid,
-                "reason": decision.decision.value if hasattr(decision.decision, "value") else str(decision.decision),
-                "detail": getattr(decision, "reasons", None) or "",
-            })
+            skipped.append(
+                {
+                    "id": pid,
+                    "reason": decision.decision.value
+                    if hasattr(decision.decision, "value")
+                    else str(decision.decision),
+                    "detail": getattr(decision, "reasons", None) or "",
+                }
+            )
             continue
 
         try:
@@ -104,10 +116,12 @@ async def apply_all_safe(request: Request) -> JSONResponse:
         except Exception as e:
             failed.append({"id": pid, "reason": str(e)})
 
-    return JSONResponse({
-        "ok": True,
-        "applied": applied,
-        "skipped": skipped,
-        "failed": failed,
-        "message": f"{len(applied)} applied, {len(skipped)} need review, {len(failed)} failed",
-    })
+    return JSONResponse(
+        {
+            "ok": True,
+            "applied": applied,
+            "skipped": skipped,
+            "failed": failed,
+            "message": f"{len(applied)} applied, {len(skipped)} need review, {len(failed)} failed",
+        }
+    )

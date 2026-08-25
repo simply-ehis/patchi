@@ -17,7 +17,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 _PLAN_FILE = ".patchi/plan.json"
@@ -26,6 +26,7 @@ _PLAN_FILE = ".patchi/plan.json"
 import logging
 
 _log = logging.getLogger("patchi.brain.audit")
+
 
 def _snapshot_scope(root: Path) -> dict:
     """
@@ -52,9 +53,7 @@ def _snapshot_scope(root: Path) -> dict:
             _log.warning("_snapshot_scope failed: %s", e)
             h = ""
         syms = sorted(
-            {f.name for f in fi.functions}
-            | {c.name for c in fi.classes}
-            | set(fi.exports)
+            {f.name for f in fi.functions} | {c.name for c in fi.classes} | set(fi.exports)
         )
         scope[fi.path] = {"lang": fi.language.value, "symbols": syms, "hash": h}
     return scope
@@ -74,12 +73,14 @@ def _diff_scope(plan_scope: dict, cur_scope: dict) -> dict:
             continue
         added_sym = sorted(set(c.get("symbols", [])) - set(p.get("symbols", [])))
         removed_sym = sorted(set(p.get("symbols", [])) - set(c.get("symbols", [])))
-        modified.append({
-            "file": f,
-            "symbols_added": added_sym,
-            "symbols_removed": removed_sym,
-            "symbols_unchanged": sorted(set(p.get("symbols", [])) & set(c.get("symbols", []))),
-        })
+        modified.append(
+            {
+                "file": f,
+                "symbols_added": added_sym,
+                "symbols_removed": removed_sym,
+                "symbols_unchanged": sorted(set(p.get("symbols", [])) & set(c.get("symbols", []))),
+            }
+        )
     return {
         "added_files": added,
         "removed_files": removed,
@@ -91,7 +92,7 @@ def _diff_scope(plan_scope: dict, cur_scope: dict) -> dict:
 
 
 def _now() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 def _count_findings(result: dict) -> int:
@@ -210,11 +211,15 @@ def compute_drift(root: Path, scans: dict | None = None) -> dict:
         "new_charter_violations": max(
             0, current.get("charter_violations", 0) - plan.get("charter_violations", 0)
         ),
-        "per_scanner": _diff_scanners(plan.get("scan_summary", {}), current.get("scan_summary", {})),
+        "per_scanner": _diff_scanners(
+            plan.get("scan_summary", {}), current.get("scan_summary", {})
+        ),
         "scope_diff": scope_diff,
     }
     drift["clean"] = (
-        not added and not removed and drift["new_findings"] == 0
+        not added
+        and not removed
+        and drift["new_findings"] == 0
         and drift["new_charter_violations"] == 0
         and scope_diff["added_count"] == 0
         and scope_diff["removed_count"] == 0
@@ -274,13 +279,17 @@ def report_card(root: Path, run_scan: bool = True) -> dict:
         lines.append(f"  - Layers in plan but missing: {', '.join(drift['layers_removed'])}")
     sd = drift.get("scope_diff", {}) or {}
     if sd.get("added_files"):
-        lines.append(f"  + Files added beyond plan ({sd['added_count']}): "
-                     f"{', '.join(f for f in sd['added_files'][:8])}"
-                     + (" …" if sd['added_count'] > 8 else ""))
+        lines.append(
+            f"  + Files added beyond plan ({sd['added_count']}): "
+            f"{', '.join(f for f in sd['added_files'][:8])}"
+            + (" …" if sd["added_count"] > 8 else "")
+        )
     if sd.get("removed_files"):
-        lines.append(f"  - Files removed vs plan ({sd['removed_count']}): "
-                     f"{', '.join(f for f in sd['removed_files'][:8])}"
-                     + (" …" if sd['removed_count'] > 8 else ""))
+        lines.append(
+            f"  - Files removed vs plan ({sd['removed_count']}): "
+            f"{', '.join(f for f in sd['removed_files'][:8])}"
+            + (" …" if sd["removed_count"] > 8 else "")
+        )
     if sd.get("modified_files"):
         lines.append(f"  ~ Files changed vs plan ({sd['modified_count']}):")
         for m in sd["modified_files"][:8]:
@@ -292,13 +301,17 @@ def report_card(root: Path, run_scan: bool = True) -> dict:
             if not bits:
                 bits.append("content changed")
             lines.append(f"      • {m['file']}  ({', '.join(bits)})")
-    lines.append(f"  Findings: plan {drift['plan_total_findings']} -> built {drift['built_total_findings']} "
-                 f"({drift['new_findings']} new)")
+    lines.append(
+        f"  Findings: plan {drift['plan_total_findings']} -> built {drift['built_total_findings']} "
+        f"({drift['new_findings']} new)"
+    )
     if drift["new_charter_violations"]:
         lines.append(f"  Charter violations: {drift['new_charter_violations']} new")
     for row in drift["per_scanner"]:
         if row["delta"]:
-            lines.append(f"    • {row['scanner']}: {row['plan']} -> {row['built']} ({row['delta']:+d})")
+            lines.append(
+                f"    • {row['scanner']}: {row['plan']} -> {row['built']} ({row['delta']:+d})"
+            )
     status = "ON PLAN ✅" if drift["clean"] else "DRIFT DETECTED ⚠️"
     lines.insert(0, f"Plan-vs-Built: {status}")
     drift["summary"] = "\n".join(lines)
@@ -319,7 +332,6 @@ def drift_vs_plan_file(root: Path, plan_file: str | Path) -> dict:
         plan = json.loads(path.read_text(encoding="utf-8"))
     except Exception as e:
         return {"has_plan": False, "error": f"Could not parse plan file: {e}"}
-
 
     current = _snapshot_state(root)
     cur_scope = _snapshot_scope(root)
@@ -347,8 +359,10 @@ def drift_vs_plan_file(root: Path, plan_file: str | Path) -> dict:
         "scope_diff": _diff_scope(plan.get("scope", {}) or {}, cur_scope),
     }
     drift["clean"] = (
-        not drift["layers_added"] and not drift["layers_removed"]
-        and drift["new_findings"] == 0 and drift["new_charter_violations"] == 0
+        not drift["layers_added"]
+        and not drift["layers_removed"]
+        and drift["new_findings"] == 0
+        and drift["new_charter_violations"] == 0
     )
     status = "ON PLAN ✅" if drift["clean"] else "DRIFT DETECTED ⚠️"
     lines = [f"Plan-vs-Built (vs {path.name}): {status}"]
@@ -358,9 +372,10 @@ def drift_vs_plan_file(root: Path, plan_file: str | Path) -> dict:
         lines.append(f"  + Layers beyond plan: {', '.join(drift['layers_added'])}")
     if drift["layers_removed"]:
         lines.append(f"  - Layers missing vs plan: {', '.join(drift['layers_removed'])}")
-    lines.append(f"  Findings: plan {plan_total} -> built {cur_total} ({drift['new_findings']} new)")
+    lines.append(
+        f"  Findings: plan {plan_total} -> built {cur_total} ({drift['new_findings']} new)"
+    )
     if drift["new_charter_violations"]:
         lines.append(f"  Charter violations: {drift['new_charter_violations']} new")
     drift["summary"] = "\n".join(lines)
     return drift
-

@@ -22,6 +22,7 @@ from patchi.core.config import require_project_root
 
 _log = logging.getLogger("patchi.cli.watch_cmd")
 
+
 def run(
     area: str | None = None,
     root: Path | None = None,
@@ -104,14 +105,17 @@ def run(
 
             result = run_proactive(r, norm, apply=af_enabled, unsafe=af_unsafe)
             if result["fixes"]:
-                con.print(f"[dim]Proactive: {len(result['fixes'])} fix(es) proposed "
-                          f"({len(result['applied'])} applied, "
-                          f"{len(result['escalated'])} need review).[/dim]")
+                con.print(
+                    f"[dim]Proactive: {len(result['fixes'])} fix(es) proposed "
+                    f"({len(result['applied'])} applied, "
+                    f"{len(result['escalated'])} need review).[/dim]"
+                )
             for fix in result["escalated"]:
                 escalate_to_governor(r, fix)
-                con.print(f"[#FACC15]⚠[/#FACC15] [yellow]Escalated to Governor:[/yellow] "
-                          f"{fix.fix_type} → {fix.file}"
-                          + (f" ({fix.name})" if fix.name else ""))
+                con.print(
+                    f"[#FACC15]⚠[/#FACC15] [yellow]Escalated to Governor:[/yellow] "
+                    f"{fix.fix_type} → {fix.file}" + (f" ({fix.name})" if fix.name else "")
+                )
                 con.print(f"  [dim]{fix.description}[/dim]")
         except Exception as e:
             con.print(f"[dim]Proactive check skipped: {e}[/dim]")
@@ -132,16 +136,20 @@ def run(
 
             hits = scan_secrets(r, paths=norm) if norm else []
             for h in hits:
-                mem.save_issue({
-                    "source": "secrets",
-                    "fix_type": "secret_leak",
-                    "file": h.path,
-                    "name": h.rule,
-                    "description": f"Possible secret ({h.rule}) at line {h.line}: {h.snippet}",
-                    "severity": "high",
-                })
-                con.print(f"[#FACC15]🔒[/#FACC15] [yellow]Secret detected:[/yellow] "
-                          f"{h.path}:{h.line} [{h.rule}]")
+                mem.save_issue(
+                    {
+                        "source": "secrets",
+                        "fix_type": "secret_leak",
+                        "file": h.path,
+                        "name": h.rule,
+                        "description": f"Possible secret ({h.rule}) at line {h.line}: {h.snippet}",
+                        "severity": "high",
+                    }
+                )
+                con.print(
+                    f"[#FACC15]🔒[/#FACC15] [yellow]Secret detected:[/yellow] "
+                    f"{h.path}:{h.line} [{h.rule}]"
+                )
                 con.print(f"  [dim]{h.snippet}[/dim]")
             if hits:
                 con.print(f"[dim]Escalated {len(hits)} secret hit(s) to Governor for review.[/dim]")

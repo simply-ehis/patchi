@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import json
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from uuid import uuid4
 
@@ -59,6 +59,7 @@ import logging
 
 _log = logging.getLogger("patchi.agents.sbom_generator")
 
+
 def _parse_deps(fp: Path) -> list[dict]:
     deps: list[dict] = []
     try:
@@ -97,10 +98,10 @@ def _parse_deps(fp: Path) -> list[dict]:
             if stripped.startswith("[") and in_deps:
                 in_deps = False
             if in_deps and "=" in stripped:
-                m = re.match(r'(\w[\w\-_]*)', stripped)
+                m = re.match(r"(\w[\w\-_]*)", stripped)
                 if m:
                     name = m.group(1)
-                    ver_part = stripped[len(name):].strip("= ").strip('"')
+                    ver_part = stripped[len(name) :].strip("= ").strip('"')
                     deps.append({"name": name, "version": ver_part})
     elif fp.name == "pyproject.toml":
         in_deps = False
@@ -134,13 +135,15 @@ def _build_cyclonedx(
     for eco, dep_list in deps_by_eco.items():
         comp_type = _COMPONENT_TYPES.get(eco, "library")
         for dep in dep_list:
-            components.append({
-                "type": comp_type,
-                "name": dep["name"],
-                "version": dep["version"],
-                "purl": f"pkg:{eco}/{dep['name']}@{dep['version']}",
-                "bom-ref": f"pkg:{eco}/{dep['name']}@{dep['version']}",
-            })
+            components.append(
+                {
+                    "type": comp_type,
+                    "name": dep["name"],
+                    "version": dep["version"],
+                    "purl": f"pkg:{eco}/{dep['name']}@{dep['version']}",
+                    "bom-ref": f"pkg:{eco}/{dep['name']}@{dep['version']}",
+                }
+            )
 
     return {
         "bomFormat": "CycloneDX",
@@ -148,7 +151,7 @@ def _build_cyclonedx(
         "serialNumber": f"urn:uuid:{uuid4().hex}",
         "version": 1,
         "metadata": {
-            "timestamp": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "timestamp": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
             "tools": [{"name": "Patchi", "version": "1.0"}],
             "component": {
                 "type": "application",

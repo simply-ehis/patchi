@@ -36,6 +36,7 @@ _GROUP_ORDER = [
     AgentGroup.GUARD,
 ]
 
+
 def run_list(group_name: str | None = None, root: Path | None = None) -> None:
     """p agents [list] [group]"""
     # Parse group filter
@@ -69,6 +70,7 @@ def run_list(group_name: str | None = None, root: Path | None = None) -> None:
             "[bold]p agents list security[/bold]  …[/dim]"
         )
     con.print()
+
 
 def _render_group(
     group: AgentGroup,
@@ -104,6 +106,7 @@ def _render_group(
 
     con.print(Panel(table, title=title, border_style="#2A3D28", padding=(0, 1)))
     con.print()
+
 
 def run_status(root: Path | None = None) -> None:
     """p agents status — detailed last-run status for all agents."""
@@ -147,6 +150,7 @@ def run_status(root: Path | None = None) -> None:
     con.print(table)
     con.print()
 
+
 def run_reset(agent_name: str | None = None, root: Path | None = None) -> None:
     """p agents reset [name] — reset circuit breaker for one or all agents."""
     try:
@@ -169,6 +173,7 @@ def run_reset(agent_name: str | None = None, root: Path | None = None) -> None:
         con.print()
     else:
         con.print("[dim]No circuit-broken agents to reset.[/dim]")
+
 
 def _status_text(status: str) -> Text:
     colors = {

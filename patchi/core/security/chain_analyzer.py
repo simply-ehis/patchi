@@ -29,19 +29,20 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
+from collections.abc import Iterable
 from dataclasses import dataclass, field
-from enum import Enum
-from typing import Any, Iterable, Optional
+from enum import StrEnum
+from typing import Any
 
 _log = logging.getLogger("patchi.security.chain_analyzer")
 
 
-class NodeRole(str, Enum):
+class NodeRole(StrEnum):
     """What role a finding plays in an attack chain."""
 
-    ENTRY = "entry"          # opens the door
-    EXPLOIT = "exploit"      # the actual attack step
-    IMPACT = "impact"        # what the attacker walks away with
+    ENTRY = "entry"  # opens the door
+    EXPLOIT = "exploit"  # the actual attack step
+    IMPACT = "impact"  # what the attacker walks away with
     STANDALONE = "standalone"  # not part of any known chain pattern
 
 
@@ -91,16 +92,29 @@ def classify(finding_type: str) -> NodeRole:
     if any(
         k in t
         for k in (
-            "inject", "xss", "ssrf", "idor", "deserial", "traversal",
-            "rce", "sqli", "xxe",
+            "inject",
+            "xss",
+            "ssrf",
+            "idor",
+            "deserial",
+            "traversal",
+            "rce",
+            "sqli",
+            "xxe",
         )
     ):
         return NodeRole.EXPLOIT
     if any(
         k in t
         for k in (
-            "secret", "crypto", "sensitive", "session", "jwt",
-            "hardcoded", "password", "key",
+            "secret",
+            "crypto",
+            "sensitive",
+            "session",
+            "jwt",
+            "hardcoded",
+            "password",
+            "key",
         )
     ):
         return NodeRole.IMPACT
@@ -153,9 +167,7 @@ class Chain:
     def score(self) -> float:
         """Exploitability score 0-100: depth × severity × confirmation spread."""
         sev_weight = {"info": 5, "low": 15, "medium": 35, "high": 70, "critical": 90}
-        base = max(
-            (sev_weight.get(n.severity, 20) for n in self.nodes), default=20
-        )
+        base = max((sev_weight.get(n.severity, 20) for n in self.nodes), default=20)
         depth_bonus = min((self.length - 1) * 8, 24)
         agents = {n.finding.agent for n in self.nodes}
         confirm_bonus = min(len(agents) * 4, 12)
@@ -196,7 +208,7 @@ class ChainAnalyzer:
     def __init__(
         self,
         findings: Iterable[Any],
-        import_edges: Optional[dict[str, set[str]]] = None,
+        import_edges: dict[str, set[str]] | None = None,
     ):
         """
         Args:
@@ -226,7 +238,7 @@ class ChainAnalyzer:
             return True
         return fb in self.import_edges.get(fa, set())
 
-    def _edge_label(self, src: ChainNode, dst: ChainNode) -> Optional[str]:
+    def _edge_label(self, src: ChainNode, dst: ChainNode) -> str | None:
         st, dt = src.finding.type.lower(), dst.finding.type.lower()
         for sp, dp, label in _CHAIN_RULES:
             if _matches(sp, st) and _matches(dp, dt):
@@ -262,9 +274,7 @@ class ChainAnalyzer:
             # Entry->exploit pairs are already actionable ("unauthenticated
             # SQL injection"); record them AND keep walking toward impact.
             if len(path) >= 2 and node.role in (NodeRole.EXPLOIT, NodeRole.IMPACT):
-                chains.append(
-                    Chain(nodes=[self.nodes[i] for i in path], edges=list(labels))
-                )
+                chains.append(Chain(nodes=[self.nodes[i] for i in path], edges=list(labels)))
                 if node.role == NodeRole.IMPACT:
                     return  # impact terminates a chain
             for j, label in adj.get(idx, []):

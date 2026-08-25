@@ -105,13 +105,16 @@ import logging
 
 _log = logging.getLogger("patchi.cli.key_cmd")
 
+
 def _provider_by_name(name: str) -> dict | None:
     for p in PROVIDERS:
         if p["name"].lower() == name.lower():
             return p
     return None
 
+
 # ── Commands ───────────────────────────────────────────────────────────────────
+
 
 def run_add(root: Path | None = None) -> None:
     """p key add — interactive key addition."""
@@ -198,6 +201,7 @@ def run_add(root: Path | None = None) -> None:
     if Confirm.ask("Test this key now?", default=True):
         run_test(nickname, root=r)
 
+
 def run_list(root: Path | None = None) -> None:
     """p key list"""
     try:
@@ -256,6 +260,7 @@ def run_list(root: Path | None = None) -> None:
     con.print("[dim]Run [bold]p key test[/bold] to verify all keys.[/dim]")
     con.print()
 
+
 def run_remove(nickname: str, root: Path | None = None) -> None:
     """p key remove <nickname>"""
     try:
@@ -285,6 +290,7 @@ def run_remove(nickname: str, root: Path | None = None) -> None:
         con.print(f"[#4ADE80]✓[/#4ADE80] Key [bold]{nickname}[/bold] removed.")
     else:
         con.print("[dim]Cancelled.[/dim]")
+
 
 def run_test(nickname: str | None = None, root: Path | None = None) -> None:
     """p key test [nickname] — test one or all keys"""
@@ -344,7 +350,9 @@ def run_test(nickname: str | None = None, root: Path | None = None) -> None:
     cfg.set_value("ai.keys", updated_keys, r)
     con.print()
 
+
 # ── Key test probe ─────────────────────────────────────────────────────────────
+
 
 def _test_key(api_key: str, fmt: str, base_url: str, model: str) -> dict:
     """
@@ -427,7 +435,9 @@ def _test_key(api_key: str, fmt: str, base_url: str, model: str) -> dict:
     except Exception as e:
         return {"ok": False, "latency_ms": 0, "error": str(e)}
 
+
 # ── .env helpers ───────────────────────────────────────────────────────────────
+
 
 def _write_env_var(env_file: Path, key: str, value: str) -> None:
     """Append or update a KEY=VALUE line in .env file."""
@@ -449,6 +459,7 @@ def _write_env_var(env_file: Path, key: str, value: str) -> None:
     data[key] = value
     lines = [f"{k}={v}" for k, v in data.items()]
     env_file.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
 
 def _remove_env_var(env_file: Path, key: str) -> None:
     """Remove an entry from .env file."""
@@ -472,6 +483,7 @@ def _remove_env_var(env_file: Path, key: str) -> None:
         lines = [f"{k}={v}" for k, v in data.items()]
         env_file.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
+
 def _load_env_file(env_file: Path) -> None:
     """Load .env file into os.environ (only missing vars)."""
     if not env_file.exists():
@@ -488,6 +500,7 @@ def _load_env_file(env_file: Path) -> None:
     except Exception as e:
         _log.warning("_load_env_file failed: %s", e)
 
+
 def _ensure_gitignore(root: Path) -> None:
     """Make sure .patchi/.env is in .gitignore."""
     gitignore = root / ".gitignore"
@@ -499,6 +512,7 @@ def _ensure_gitignore(root: Path) -> None:
                 f.write(f"\n# Patchi key storage\n{entry}\n")
     else:
         gitignore.write_text(f"# Patchi key storage\n{entry}\n", encoding="utf-8")
+
 
 def _update_key_status(keys: list[dict], nickname: str, status: str) -> None:
     for k in keys:

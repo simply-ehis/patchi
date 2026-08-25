@@ -271,7 +271,7 @@ class UIScanner(BaseAgent):
                 "router_link",
             ),
         ]
-        for pattern, finding_type in link_patterns:
+        for pattern, _finding_type in link_patterns:
             for match in re.finditer(pattern, content, re.IGNORECASE):
                 line_start = content[: match.start()].count("\n") + 1
                 to_value = match.group("to")

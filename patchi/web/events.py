@@ -86,7 +86,6 @@ def _evt(event: str, data: dict) -> dict:
 # Server → client events
 
 
-
 def evt_agent_progress(agent: str, progress_pct: int, current_file: str = "") -> dict:
     return _evt(
         "agent.progress",
@@ -108,17 +107,8 @@ def evt_agent_completed(agent: str, findings_count: int, report_summary: str = "
     )
 
 
-
-
-
 def evt_agent_failed(agent: str, reason: str) -> dict:
     return _evt("agent.failed", {"agent": agent, "reason": reason})
-
-
-
-
-
-
 
 
 def evt_scan_file_found(path: str, file_type: str, purpose: str) -> dict:
@@ -127,7 +117,8 @@ def evt_scan_file_found(path: str, file_type: str, purpose: str) -> dict:
 
 def evt_scan_dependency_mapped(from_node: str, to_node: str, dep_type: str) -> dict:
     return _evt(
-        "brain.scan.dependency_mapped", {"from_node": from_node, "to_node": to_node, "type": dep_type}
+        "brain.scan.dependency_mapped",
+        {"from_node": from_node, "to_node": to_node, "type": dep_type},
     )
 
 
@@ -196,9 +187,6 @@ def evt_fix_applying(patch_id: str, file: str, lines_affected: list) -> dict:
     return _evt(
         "fix.applying", {"patch_id": patch_id, "file": file, "lines_affected": lines_affected}
     )
-
-
-
 
 
 def evt_fix_test_running(patch_id: str, test_type: str) -> dict:
@@ -333,7 +321,9 @@ def evt_health_score_100_estimate(
     )
 
 
-def evt_guard_anomaly_detected(anomaly_type: str, ip: str, severity: str, signal_data: dict) -> dict:
+def evt_guard_anomaly_detected(
+    anomaly_type: str, ip: str, severity: str, signal_data: dict
+) -> dict:
     return _evt(
         "guard.anomaly_detected",
         {"type": anomaly_type, "ip": ip, "severity": severity, "signal_data": signal_data},
@@ -354,9 +344,6 @@ def evt_guard_agent_connected(connection_type: str) -> dict:
 
 def evt_guard_agent_disconnected(last_seen: str, reason: str) -> dict:
     return _evt("guard.agent_disconnected", {"last_seen": last_seen, "reason": reason})
-
-
-
 
 
 def evt_guard_stats(requests_per_min: int, errors: int, blocked: int, anomalies: int) -> dict:
@@ -406,9 +393,6 @@ def evt_system_error(component: str, reason: str, recoverable: bool) -> dict:
     return _evt(
         "system.error", {"component": component, "reason": reason, "recoverable": recoverable}
     )
-
-
-
 
 
 def evt_queue_updated(depth: int, active: int, paused: bool = False) -> dict:

@@ -230,7 +230,7 @@ class ConfigAuditAgent(BaseAgent):
             )
 
         result.data["semgrep_findings"] = result.finding_count
-        result.data["rules_run"] = len(set(f.get("check_id", "") for f in findings))
+        result.data["rules_run"] = len({f.get("check_id", "") for f in findings})
 
     def _run_semgrep(self, root: Path, paths: list[str]) -> tuple[list[dict], int]:
         """Run semgrep with JSON output. Returns (findings, files_scanned)."""
@@ -254,7 +254,7 @@ class ConfigAuditAgent(BaseAgent):
                 findings = data.get("results", [])
                 stats = data.get("stats", {})
                 files = stats.get("total_bytes", 0) // 1000  # approximate
-                return findings, max(files, len(set(f.get("path") for f in findings)))
+                return findings, max(files, len({f.get("path") for f in findings}))
             except json.JSONDecodeError:
                 continue  # try next config
 

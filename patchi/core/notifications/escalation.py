@@ -29,6 +29,7 @@ import logging
 
 _log = logging.getLogger("patchi.core.escalation")
 
+
 def _load_store(root: Path) -> dict:
     path = root / _ESCALATION_FILE
     if not path.exists():

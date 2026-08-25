@@ -56,6 +56,7 @@ def find_codelldb() -> str | None:
         if which.is_file():
             return str(which.resolve())
         import shutil
+
         found = shutil.which(name)
         if found:
             return found
@@ -67,8 +68,8 @@ def _find_lldb_cli(exe: str) -> str | None:
     root = Path(exe).resolve()
     candidates = [
         root.parent.parent / "lldb" / "bin" / "lldb.exe",  # adapter\codelldb.exe
-        root.parent / "lldb" / "bin" / "lldb.exe",          # extension-root codelldb.exe
-        root.parent.parent / "lldb" / "bin" / "lldb",       # non-Windows
+        root.parent / "lldb" / "bin" / "lldb.exe",  # extension-root codelldb.exe
+        root.parent.parent / "lldb" / "bin" / "lldb",  # non-Windows
         root.parent / "lldb" / "bin" / "lldb",
     ]
     for c in candidates:
@@ -121,22 +122,28 @@ class CodeLLDBAdapter:
         try:
             client.connect(timeout=min(10.0, budget))
             client.initialize()
-            client.send_request("launch", {
-                "type": "lldb",
-                "request": "launch",
-                "name": "Patchi Debug",
-                "program": str(self._binary),
-                "args": self._args or [],
-                "console": "internalConsole",
-                "sourceLanguages": ["rust"],
-                # Deterministic entry stop; stopOnEntry alone is racy on Windows.
-                "processCreateCommands": ["process launch -s"],
-            })
+            client.send_request(
+                "launch",
+                {
+                    "type": "lldb",
+                    "request": "launch",
+                    "name": "Patchi Debug",
+                    "program": str(self._binary),
+                    "args": self._args or [],
+                    "console": "internalConsole",
+                    "sourceLanguages": ["rust"],
+                    # Deterministic entry stop; stopOnEntry alone is racy on Windows.
+                    "processCreateCommands": ["process launch -s"],
+                },
+            )
             # Set the panic breakpoint before configurationDone so its
             # response is not starved by the deferred launch response.
-            client.send_request("setFunctionBreakpoints", {
-                "breakpoints": [{"name": _PANIC_SYMBOL}],
-            })
+            client.send_request(
+                "setFunctionBreakpoints",
+                {
+                    "breakpoints": [{"name": _PANIC_SYMBOL}],
+                },
+            )
             client.send_request("configurationDone", {})
 
             entry = _pump_until(client, deadline, "stopped")
@@ -151,8 +158,7 @@ class CodeLLDBAdapter:
             if stop is None:
                 _log.info("DAP: no panic stop after continue")
                 return None
-            desc = (stop.get("description") or stop.get("text")
-                    or stop.get("reason") or "rust panic")
+            desc = stop.get("description") or stop.get("text") or stop.get("reason") or "rust panic"
             # codelldb sometimes re-delivers the entry int3 stop instead of
             # the breakpoint hit — treat that as a failed attempt.
             if desc == entry_desc:
@@ -184,16 +190,25 @@ class CodeLLDBAdapter:
             _log.info("no bundled lldb CLI next to codelldb — skipping CLI capture")
             return None
         cmd = [
-            cli, "-b",
-            "-o", f"break set -n {_PANIC_SYMBOL}",
-            "-o", "run",
-            "-o", "bt 30",
-            "--", str(self._binary), *self._args,
+            cli,
+            "-b",
+            "-o",
+            f"break set -n {_PANIC_SYMBOL}",
+            "-o",
+            "run",
+            "-o",
+            "bt 30",
+            "--",
+            str(self._binary),
+            *self._args,
         ]
         try:
             proc = subprocess.run(
-                cmd, capture_output=True, text=True,
-                errors="replace", timeout=budget,
+                cmd,
+                capture_output=True,
+                text=True,
+                errors="replace",
+                timeout=budget,
             )
         except (OSError, subprocess.TimeoutExpired) as exc:
             _log.warning("lldb CLI capture failed: %s", exc)
@@ -242,13 +257,15 @@ class CodeLLDBAdapter:
                 locals_vars = self._frame_locals(client, sf["id"])
             except Exception:
                 locals_vars = {}
-            frames.append({
-                "id": sf["id"],
-                "name": sf.get("name", ""),
-                "path": (sf.get("source") or {}).get("path", ""),
-                "line": sf.get("line", 0),
-                "locals": locals_vars,
-            })
+            frames.append(
+                {
+                    "id": sf["id"],
+                    "name": sf.get("name", ""),
+                    "path": (sf.get("source") or {}).get("path", ""),
+                    "line": sf.get("line", 0),
+                    "locals": locals_vars,
+                }
+            )
         return frames
 
     def _frame_locals(self, client: DAPClient, frame_id: int) -> dict:
@@ -261,6 +278,7 @@ class CodeLLDBAdapter:
 
 # ── helpers ──────────────────────────────────────────────────────────────
 
+
 def _pump_until(client: DAPClient, deadline: float, event: str) -> dict | None:
     """Read messages until *event* arrives or *deadline* passes."""
     while time.monotonic() < deadline:
@@ -270,7 +288,7 @@ def _pump_until(client: DAPClient, deadline: float, event: str) -> dict | None:
         try:
             client._sock.settimeout(min(max(remaining, 0.1), 3.0))
             msg = client.read_message()
-        except socket.timeout:
+        except TimeoutError:
             continue
         except (ConnectionError, OSError):
             break
@@ -313,7 +331,7 @@ def _parse_cli_exception(out: str) -> str:
             msg = line.split("panicked at ", 1)[1].strip()
             # Rust prints the message on the next line when it contains
             # backticks / spaces.
-            for nxt in lines[i + 1:]:
+            for nxt in lines[i + 1 :]:
                 nxt = nxt.strip()
                 if not nxt:
                     continue
@@ -331,13 +349,15 @@ def _parse_cli_frames(out: str) -> list[dict]:
     for m in _FRAME_RE.finditer(out):
         name = m.group(2)
         name = re.sub(r"\(.*\)$", "", name)  # strip argument lists
-        frames.append({
-            "id": int(m.group(1)),
-            "name": name,
-            "path": m.group(3) or "",
-            "line": int(m.group(4) or 0),
-            "locals": {},
-        })
+        frames.append(
+            {
+                "id": int(m.group(1)),
+                "name": name,
+                "path": m.group(3) or "",
+                "line": int(m.group(4) or 0),
+                "locals": {},
+            }
+        )
     return frames
 
 

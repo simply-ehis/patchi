@@ -3,8 +3,7 @@ from abc import ABC, abstractmethod
 
 class BaseRouteDetector(ABC):
     @abstractmethod
-    def detect(self, content: str, file_path: str) -> list[dict]:
-        ...
+    def detect(self, content: str, file_path: str) -> list[dict]: ...
 
     def _make_route(
         self,

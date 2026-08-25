@@ -7,6 +7,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, JSONResponse
+
 from patchi.core.tenant import tenant_context
 
 router = APIRouter(prefix="/api")
@@ -94,9 +95,7 @@ async def quick_scan(request: Request) -> JSONResponse:
 
         # 2. Map domains to agents
         activator = DomainActivatorV2(root)
-        relevant = activator.get_relevant_agents(
-            list(diff_result.activated_domains.keys())
-        )
+        relevant = activator.get_relevant_agents(list(diff_result.activated_domains.keys()))
         relevant.extend(["PreCheckAgent", "PlanAuditorAgent"])
         relevant = list(dict.fromkeys(relevant))
 
@@ -104,17 +103,20 @@ async def quick_scan(request: Request) -> JSONResponse:
         to_run = [all_agents[n] for n in relevant if n in all_agents]
 
         if not to_run:
-            return JSONResponse({
-                "ok": True,
-                "message": "No agents match changed files",
-                "changed_files": diff_result.changed_files,
-                "domains": diff_result.activated_domains,
-                "agents_run": 0,
-            })
+            return JSONResponse(
+                {
+                    "ok": True,
+                    "message": "No agents match changed files",
+                    "changed_files": diff_result.changed_files,
+                    "domains": diff_result.activated_domains,
+                    "agents_run": 0,
+                }
+            )
 
         # 3. Run filtered agents
         from patchi.core import config as cfg
         from patchi.core import memory as mem
+
         config = cfg.load(root) if root.exists() else {}
         brain = mem.get_brain(root)
 
@@ -129,16 +131,19 @@ async def quick_scan(request: Request) -> JSONResponse:
 
         asyncio.create_task(_run())
 
-        return JSONResponse({
-            "ok": True,
-            "message": f"Quick scan started: {len(to_run)} agents",
-            "changed_files": diff_result.changed_files[:20],
-            "domains": diff_result.activated_domains,
-            "agents_queued": [a.name for a in to_run],
-        })
+        return JSONResponse(
+            {
+                "ok": True,
+                "message": f"Quick scan started: {len(to_run)} agents",
+                "changed_files": diff_result.changed_files[:20],
+                "domains": diff_result.activated_domains,
+                "agents_queued": [a.name for a in to_run],
+            }
+        )
 
     except Exception as e:
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
 
 @router.get("/findings-table")
 async def get_findings(request: Request, limit: int = 20) -> HTMLResponse:

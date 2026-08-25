@@ -34,14 +34,32 @@ from ..brain.languages import EXTENSION_MAP, Lang
 
 # Source extensions to scan (language parity).
 _SOURCE_EXTENSIONS = [
-    "*.py", "*.js", "*.jsx", "*.ts", "*.tsx", "*.java", "*.rb", "*.php",
-    "*.go", "*.rs", "*.cs", "*.kt", "*.kts",
+    "*.py",
+    "*.js",
+    "*.jsx",
+    "*.ts",
+    "*.tsx",
+    "*.java",
+    "*.rb",
+    "*.php",
+    "*.go",
+    "*.rs",
+    "*.cs",
+    "*.kt",
+    "*.kts",
 ]
 
 # Path keywords that indicate an API/route file (early-exit gate).
 _API_KEYWORDS = [
-    "route", "view", "api", "controller", "serializer",
-    "resource", "handler", "endpoint", "action",
+    "route",
+    "view",
+    "api",
+    "controller",
+    "serializer",
+    "resource",
+    "handler",
+    "endpoint",
+    "action",
 ]
 
 # Request-body sources passed directly to model updates (mass assignment).
@@ -103,7 +121,9 @@ class BusinessLogicAgent(BaseAgent):
                 result.files_scanned += 1
                 self._scan_business_logic(content, rel, result, lang)
 
-    def _scan_business_logic(self, content: str, rel: str, result: AgentResult, lang: Lang | None) -> None:
+    def _scan_business_logic(
+        self, content: str, rel: str, result: AgentResult, lang: Lang | None
+    ) -> None:
         # ── Mass assignment detection (AST) ───────────────────────────────────
         if lang is not None:
             for call in find_calls(content, lang, _MUTATION_CALLS):

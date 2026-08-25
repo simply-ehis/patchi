@@ -18,16 +18,11 @@ from patchi.core import config as cfg
 from patchi.core.constants import Mode
 
 _DESCRIPTIONS = {
-    Mode.CONFIRM: (
-        "Every action requires your approval before it applies.\n",
-    ),
-    Mode.AUTO: (
-        "Low-risk fixes apply automatically (risk score 0–30).\n",
-    ),
-    Mode.AUTOPILOT: (
-        "Full trust. Patchi applies whatever it decides is correct.\n",
-    ),
+    Mode.CONFIRM: ("Every action requires your approval before it applies.\n",),
+    Mode.AUTO: ("Low-risk fixes apply automatically (risk score 0–30).\n",),
+    Mode.AUTOPILOT: ("Full trust. Patchi applies whatever it decides is correct.\n",),
 }
+
 
 def run(mode_str: str | None = None, root: Path | None = None) -> None:
     """
@@ -62,6 +57,7 @@ def run_show(root: Path | None = None) -> None:
         "[dim]Change mode: [bold]p mode confirm[/bold]  ·  [bold]p mode auto[/bold]  ·  [bold]p mode autopilot[/bold][/dim]"
     )
     con.print()
+
 
 def run_set(mode_str: str, root: Path | None = None) -> None:
     """p mode <confirm|auto|autopilot>"""

@@ -1,4 +1,4 @@
-﻿"""
+"""
 Agent Profiler â€” self-profiling for latency, cost, and accuracy optimization.
 
 Tracks per-agent execution metrics across scan cycles:
@@ -31,6 +31,7 @@ _MAX_ENTRIES_PER_AGENT = 200
 @dataclass
 class AgentRun:
     """One recorded execution of an agent."""
+
     agent: str
     start_time: float = 0.0
     end_time: float = 0.0
@@ -50,13 +51,14 @@ class AgentRun:
         return asdict(self)
 
     @classmethod
-    def from_dict(cls, d: dict) -> "AgentRun":
+    def from_dict(cls, d: dict) -> AgentRun:
         return cls(**{k: v for k, v in d.items() if k in cls.__dataclass_fields__})
 
 
 @dataclass
 class AgentProfile:
     """Aggregated profile for one agent across all recorded runs."""
+
     agent: str
     run_count: int = 0
     total_wall_ms: float = 0.0
@@ -144,7 +146,10 @@ def _persist_run(root: Path, run: AgentRun) -> None:
     _save(root, data)
     _log.debug(
         "Recorded %s: %.0fms, %d findings, $%.4f",
-        run.agent, run.wall_ms, run.findings_produced, run.cost_usd,
+        run.agent,
+        run.wall_ms,
+        run.findings_produced,
+        run.cost_usd,
     )
 
 
@@ -161,6 +166,7 @@ def record_tokens(root: Path, agent: str, prompt_tokens: int, completion_tokens:
     model = last.get("model_used", "gpt-4o-mini")
     try:
         from patchi.core.ai.model_router import MODEL_PROFILES
+
         profile = MODEL_PROFILES.get(model)
         if profile:
             last["cost_usd"] = (
@@ -266,7 +272,6 @@ def get_profile_summary(root: Path) -> dict:
             3,
         ),
         "slowest": [
-            {"agent": p.agent, "p95_ms": round(p.p95_wall_ms)}
-            for p in get_slowest_agents(root, 5)
+            {"agent": p.agent, "p95_ms": round(p.p95_wall_ms)} for p in get_slowest_agents(root, 5)
         ],
     }

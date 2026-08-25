@@ -17,10 +17,11 @@ import json
 import logging
 import time
 import uuid
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Callable, Optional
+from typing import Any
 
 from patchi.core.ai.tools.registry import get_tool_registry
 
@@ -30,12 +31,13 @@ _log = logging.getLogger("patchi.ai.tool_executor")
 @dataclass
 class ToolInvocation:
     """A single tool invocation record for audit logging."""
+
     id: str
     tool_name: str
     parameters: dict
     invoked_by: str  # "council", "persona", "cli", "user"
     persona_name: str | None = None
-    timestamp: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    timestamp: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
     started_at: float = 0
     completed_at: float = 0
     success: bool = False
@@ -54,6 +56,7 @@ class ToolInvocation:
 @dataclass
 class ExecutionResult:
     """Result of a tool execution."""
+
     success: bool
     result: Any = None
     error: str | None = None
@@ -64,7 +67,9 @@ class ExecutionResult:
 class ConfirmationProvider:
     """Interface for getting user confirmation."""
 
-    async def confirm(self, tool_name: str, parameters: dict, side_effects: str, description: str) -> bool:
+    async def confirm(
+        self, tool_name: str, parameters: dict, side_effects: str, description: str
+    ) -> bool:
         """Return True if user confirms, False otherwise."""
         raise NotImplementedError
 
@@ -75,7 +80,9 @@ class CLIConfirmationProvider(ConfirmationProvider):
     def __init__(self, auto_confirm: bool = False):
         self.auto_confirm = auto_confirm
 
-    async def confirm(self, tool_name: str, parameters: dict, side_effects: str, description: str) -> bool:
+    async def confirm(
+        self, tool_name: str, parameters: dict, side_effects: str, description: str
+    ) -> bool:
         if self.auto_confirm:
             return True
 
@@ -93,11 +100,8 @@ class CLIConfirmationProvider(ConfirmationProvider):
             return Confirm.ask("  Proceed?", default=False)
         except Exception:
             # Fallback to simple input
-            print(f"\n⚠ Tool requires confirmation: {tool_name}")
-            print(f"  Description: {description}")
-            print(f"  Parameters: {json.dumps(parameters, indent=2)}")
             if side_effects:
-                print(f"  Side effects: {side_effects}")
+                pass
             response = input("  Proceed? (y/N): ").strip().lower()
             return response in ("y", "yes")
 
@@ -105,15 +109,16 @@ class CLIConfirmationProvider(ConfirmationProvider):
 @dataclass
 class StateSnapshot:
     """Snapshot of file system state for rollback."""
+
     id: str
     files: dict[str, bytes] = field(default_factory=dict)  # path -> content
-    created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    created_at: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
 
 
 class ToolExecutor:
     """
     Executes tool calls with full validation, confirmation, and error handling.
-    
+
     Features:
     - JSON schema validation for parameters
     - Confirmation gates for destructive operations
@@ -130,7 +135,7 @@ class ToolExecutor:
         root: Path,
         confirmation_provider: ConfirmationProvider | None = None,
         default_timeout: float = 120.0,
-        on_progress: Optional[Callable[[str], None]] = None,
+        on_progress: Callable[[str], None] | None = None,
     ):
         self.root = root
         self.registry = get_tool_registry()
@@ -159,7 +164,7 @@ class ToolExecutor:
     ) -> ExecutionResult:
         """
         Execute a tool call with full validation and safety checks.
-        
+
         Args:
             tool_name: Name of the tool to execute
             parameters: Parameters for the tool
@@ -167,7 +172,7 @@ class ToolExecutor:
             persona_name: Name of the persona if invoked by one
             timeout: Custom timeout in seconds
             skip_confirmation: Skip confirmation even if required (for testing)
-        
+
         Returns:
             ExecutionResult with success status, result, or error
         """
@@ -219,9 +224,7 @@ class ToolExecutor:
 
             # 4. Execute with timeout
             exec_timeout = timeout or self.default_timeout
-            result = await self._execute_with_timeout(
-                handler, validated_params, exec_timeout
-            )
+            result = await self._execute_with_timeout(handler, validated_params, exec_timeout)
 
             # 5. Normalize result
             normalized = self._normalize_result(result)
@@ -255,7 +258,7 @@ class ToolExecutor:
                 duration_ms=int((time.monotonic() - start_time) * 1000),
             )
 
-    def _validate_parameters(self, tool_def: "ToolDefinition", parameters: dict) -> dict:
+    def _validate_parameters(self, tool_def: ToolDefinition, parameters: dict) -> dict:
         """Validate and coerce parameters against tool schema."""
         validated = {}
 
@@ -276,7 +279,7 @@ class ToolExecutor:
 
         return validated
 
-    def _coerce_value(self, value: Any, param: "ToolParameter") -> Any:
+    def _coerce_value(self, value: Any, param: ToolParameter) -> Any:
         """Coerce a value to the expected type."""
         if param.type == "string":
             return str(value)
@@ -389,10 +392,10 @@ class ToolExecutor:
 
     def create_snapshot(self, description: str = "") -> str:
         """Create a snapshot of files that might be modified.
-        
+
         Snapshots key project files (config, source, etc.) so they can be
         restored if a tool chain fails.
-        
+
         Returns:
             Snapshot ID for later rollback.
         """
@@ -415,7 +418,10 @@ class ToolExecutor:
                 # Skip .patchi, .git, __pycache__, node_modules, venv
                 rel = path.relative_to(self.root)
                 parts = rel.parts
-                if any(p.startswith('.') or p in ('__pycache__', 'node_modules', '.venv', 'venv') for p in parts):
+                if any(
+                    p.startswith(".") or p in ("__pycache__", "node_modules", ".venv", "venv")
+                    for p in parts
+                ):
                     continue
                 try:
                     content = path.read_bytes()
@@ -432,6 +438,7 @@ class ToolExecutor:
         snapshot_path = self._snapshot_dir / f"{snapshot_id}.json"
         try:
             import base64
+
             data = {
                 "id": snapshot_id,
                 "description": description,
@@ -447,7 +454,7 @@ class ToolExecutor:
 
     def rollback(self, snapshot_id: str) -> bool:
         """Restore files from a snapshot.
-        
+
         Returns:
             True if rollback succeeded.
         """
@@ -482,6 +489,7 @@ class ToolExecutor:
 
         try:
             import base64
+
             data = json.loads(snapshot_path.read_text(encoding="utf-8"))
             files = {k: base64.b64decode(v) for k, v in data["files"].items()}
             return StateSnapshot(
@@ -501,7 +509,7 @@ class ToolExecutor:
         persona_name: str | None = None,
     ) -> ExecutionResult:
         """Execute a tool with automatic snapshot and rollback on failure.
-        
+
         Creates a state snapshot before execution, and rolls back if the
         tool fails.
         """
@@ -509,9 +517,7 @@ class ToolExecutor:
         snapshot_id = self.create_snapshot(f"pre-{tool_name}")
 
         # Execute the tool
-        result = await self.execute(
-            tool_name, parameters, invoked_by, persona_name
-        )
+        result = await self.execute(tool_name, parameters, invoked_by, persona_name)
 
         # Rollback on failure
         if not result.success:
@@ -539,12 +545,12 @@ class ToolExecutor:
         stop_on_failure: bool = True,
     ) -> list[ExecutionResult]:
         """Execute a chain of tools with rollback on failure.
-        
+
         Args:
             steps: List of {"tool": name, "parameters": {...}} dicts
             invoked_by: Who is invoking the chain
             stop_on_failure: If True, stop and rollback on first failure
-        
+
         Returns:
             List of ExecutionResult for each step
         """
@@ -555,22 +561,22 @@ class ToolExecutor:
             tool_name = step.get("tool")
             parameters = step.get("parameters", {})
 
-            self.on_progress(f"🔗 Chain step {i+1}/{len(steps)}: {tool_name}")
+            self.on_progress(f"🔗 Chain step {i + 1}/{len(steps)}: {tool_name}")
 
-            result = await self.execute(
-                tool_name, parameters, invoked_by
-            )
+            result = await self.execute(tool_name, parameters, invoked_by)
             results.append(result)
 
             if not result.success and stop_on_failure:
-                self.on_progress(f"❌ Chain failed at step {i+1}, rolling back...")
+                self.on_progress(f"❌ Chain failed at step {i + 1}, rolling back...")
                 self.rollback(snapshot_id)
                 # Mark remaining steps as skipped
-                for j in range(i + 1, len(steps)):
-                    results.append(ExecutionResult(
-                        success=False,
-                        error=f"Skipped: chain stopped at step {i+1}",
-                    ))
+                for _j in range(i + 1, len(steps)):
+                    results.append(
+                        ExecutionResult(
+                            success=False,
+                            error=f"Skipped: chain stopped at step {i + 1}",
+                        )
+                    )
                 break
 
         # Clean up snapshot if chain succeeded

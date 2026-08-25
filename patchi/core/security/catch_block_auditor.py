@@ -86,10 +86,25 @@ class CatchBlockAuditor(BaseAgent):
         findings = []
 
         source_patterns = [
-            "*.py", "*.js", "*.jsx", "*.ts", "*.tsx",
-            "*.java", "*.go", "*.rs", "*.c", "*.h",
-            "*.cpp", "*.cxx", "*.cc", "*.hpp", "*.rb",
-            "*.swift", "*.kt", "*.kts", "*.cs",
+            "*.py",
+            "*.js",
+            "*.jsx",
+            "*.ts",
+            "*.tsx",
+            "*.java",
+            "*.go",
+            "*.rs",
+            "*.c",
+            "*.h",
+            "*.cpp",
+            "*.cxx",
+            "*.cc",
+            "*.hpp",
+            "*.rb",
+            "*.swift",
+            "*.kt",
+            "*.kts",
+            "*.cs",
         ]
 
         with trace_agent(self.name, inp.root) as trace:
@@ -159,7 +174,9 @@ class CatchBlockAuditor(BaseAgent):
 
     # ── AST walking ──────────────────────────────────────────────────────────
 
-    def _walk_catch_tree(self, node, node_types: set[str], lang: Lang, rel_path: str) -> list[Finding]:
+    def _walk_catch_tree(
+        self, node, node_types: set[str], lang: Lang, rel_path: str
+    ) -> list[Finding]:
         findings: list[Finding] = []
         if node.type in node_types:
             spec, is_bare, body_text = self._classify_catch(node, lang)

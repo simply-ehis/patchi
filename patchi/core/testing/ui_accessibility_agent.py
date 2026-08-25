@@ -95,6 +95,7 @@ import logging
 
 _log = logging.getLogger("patchi.testing.ui_accessibility_agent")
 
+
 @register
 class UIAccessibilityAgent(BaseAgent):
     """Real WCAG accessibility testing via Playwright + axe-core injection."""

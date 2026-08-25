@@ -58,7 +58,14 @@ class SecurityFixer(BaseAgent):
                 blast_radius = compute_blast_radius(fpath, inp.root)
 
             proposed = _ai_fix(
-                inp.config, Skill.SECURITY_FIX, fpath, original, finding, blast_radius, root=inp.root, framework=framework
+                inp.config,
+                Skill.SECURITY_FIX,
+                fpath,
+                original,
+                finding,
+                blast_radius,
+                root=inp.root,
+                framework=framework,
             )
             if not proposed:
                 continue

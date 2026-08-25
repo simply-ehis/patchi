@@ -27,9 +27,10 @@ import subprocess
 import sys
 import threading
 import time
-from datetime import datetime, timezone
+from collections.abc import Callable
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Callable, Optional
+from typing import Any
 
 # Only pass --no-cov if pytest-cov is actually installed; otherwise pytest
 # rejects the unknown flag and exits with code 4 (no tests run).
@@ -42,10 +43,10 @@ _log = logging.getLogger("patchi.ai.realize")
 # progress can be streamed to a live view.
 # ---------------------------------------------------------------------------
 
-_EVENT_SINK: Optional[Callable[[dict], None]] = None
+_EVENT_SINK: Callable[[dict], None] | None = None
 
 
-def set_event_sink(fn: Optional[Callable[[dict], None]]) -> None:
+def set_event_sink(fn: Callable[[dict], None] | None) -> None:
     """Set the callable that receives ``{"event": str, "data": dict}`` payloads."""
     global _EVENT_SINK
     _EVENT_SINK = fn
@@ -66,7 +67,7 @@ def _emit(event: str, data: dict) -> None:
 
 
 def _now() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 def _detect_signals(root: Path) -> set[str]:
@@ -105,14 +106,15 @@ def _detect_signals(root: Path) -> set[str]:
     return sig
 
 
-def _build_agent_input(root: Path, scope: Optional[list[str]] = None,
-                       active_domains: Optional[list[str]] = None):
+def _build_agent_input(
+    root: Path, scope: list[str] | None = None, active_domains: list[str] | None = None
+):
     """Construct an ``AgentInput`` with current brain/config context."""
     from patchi.core.agents.base import AgentInput
 
     try:
-        from patchi.core import memory as mem
         from patchi.core import config as cfg
+        from patchi.core import memory as mem
 
         brain = mem.get_brain(root)
         config = cfg.load(root)
@@ -133,7 +135,7 @@ def _build_agent_input(root: Path, scope: Optional[list[str]] = None,
     )
 
 
-def _run_agent_class(cls, root: Path, scope: Optional[list[str]] = None) -> Any:
+def _run_agent_class(cls, root: Path, scope: list[str] | None = None) -> Any:
     """Instantiate and run one agent class, returning its AgentResult.
 
     A per-agent timeout (``PATCHI_AGENT_TIMEOUT``, default 60s) bounds any
@@ -149,13 +151,17 @@ def _run_agent_class(cls, root: Path, scope: Optional[list[str]] = None) -> Any:
         return cls().run(inp)
 
     try:
-        with _cf.ThreadPoolExecutor(max_workers=1) as ex:
-            fut = ex.submit(_go)
+        ex = _cf.ThreadPoolExecutor(max_workers=1)
+        fut = ex.submit(_go)
+        try:
             result = fut.result(timeout=timeout)
+        finally:
+            # Do NOT join the worker thread on shutdown: if the agent exceeded
+            # the timeout we abandon it, but a blocking join would wait for the
+            # (still-running) agent subprocess and defeat the timeout entirely.
+            ex.shutdown(wait=False)
     except _cf.TimeoutError:
-        raise TimeoutError(
-            f"{cls.__name__} exceeded {timeout:g}s and was aborted"
-        )
+        raise TimeoutError(f"{cls.__name__} exceeded {timeout:g}s and was aborted")
     try:
         from patchi.core.security.pattern_context import suppress_findings
 
@@ -171,16 +177,57 @@ def _run_agent_class(cls, root: Path, scope: Optional[list[str]] = None) -> Any:
 
 # Agents relevant to any project regardless of stack.
 _ALWAYS = (
-    "secret", "crypto", "inject", "auth", "authz", "config", "supply",
-    "depen", "sensit", "privac", "complian", "govern", "polic", "precheck",
-    "red", "attack", "advers", "runtime", "probe", "blast", "history",
-    "malware", "vuln", "taint", "leak",
+    "secret",
+    "crypto",
+    "inject",
+    "auth",
+    "authz",
+    "config",
+    "supply",
+    "depen",
+    "sensit",
+    "privac",
+    "complian",
+    "govern",
+    "polic",
+    "precheck",
+    "red",
+    "attack",
+    "advers",
+    "runtime",
+    "probe",
+    "blast",
+    "history",
+    "malware",
+    "vuln",
+    "taint",
+    "leak",
 )
 # Agents only worth running when a web/network surface is present.
 _WEB_ONLY = (
-    "header", "cors", "ratelimit", "ssrf", "network", "appmap", "browser",
-    "jwt", "saml", "dns", "cdn", "email", "push", "mesh", "k8s", "iac",
-    "container", "docker", "kube", "ssl", "tls", "xss", "csrf",
+    "header",
+    "cors",
+    "ratelimit",
+    "ssrf",
+    "network",
+    "appmap",
+    "browser",
+    "jwt",
+    "saml",
+    "dns",
+    "cdn",
+    "email",
+    "push",
+    "mesh",
+    "k8s",
+    "iac",
+    "container",
+    "docker",
+    "kube",
+    "ssl",
+    "tls",
+    "xss",
+    "csrf",
 )
 
 
@@ -192,8 +239,9 @@ def _security_agent_map(root: Path) -> dict[str, Any]:
     return {a.name: a for a in agents}
 
 
-def _select_security_agents(root: Path, name_map: dict[str, Any],
-                            area: Optional[str] = None) -> list[Any]:
+def _select_security_agents(
+    root: Path, name_map: dict[str, Any], area: str | None = None
+) -> list[Any]:
     """Pick the security agents relevant to THIS project's signals."""
     signals = _detect_signals(root)
     web = "web" in signals or "web_frontend" in signals
@@ -212,9 +260,12 @@ def _select_security_agents(root: Path, name_map: dict[str, Any],
 # ---------------------------------------------------------------------------
 
 
-def scan_vulnerabilities(root: Path, area: Optional[str] = None,
-                         domains: Optional[list[str]] = None,
-                         include_red_team: bool = False) -> dict:
+def scan_vulnerabilities(
+    root: Path,
+    area: str | None = None,
+    domains: list[str] | None = None,
+    include_red_team: bool = False,
+) -> dict:
     """Run the real defensive security agents, auto-activating relevant domains.
 
     Returns aggregated finding counts + the (capped) findings list. Results are
@@ -226,18 +277,28 @@ def scan_vulnerabilities(root: Path, area: Optional[str] = None,
     else:
         selected = _select_security_agents(root, name_map, area)
         if include_red_team:
-            extra = [c for n, c in name_map.items()
-                     if any(s in n.lower() for s in ("red", "attack", "advers", "runtime", "probe"))
-                     and c not in selected]
+            extra = [
+                c
+                for n, c in name_map.items()
+                if any(s in n.lower() for s in ("red", "attack", "advers", "runtime", "probe"))
+                and c not in selected
+            ]
             selected = extra + selected
 
     if not selected:
-        return {"success": True, "agent_count": 0, "by_severity": {},
-                "total_findings": 0, "findings": [],
-                "message": "No relevant security agents for this project."}
+        return {
+            "success": True,
+            "agent_count": 0,
+            "by_severity": {},
+            "total_findings": 0,
+            "findings": [],
+            "message": "No relevant security agents for this project.",
+        }
 
-    _emit("security.scan.started", {"mode": "smart", "agent_count": len(selected),
-                                    "domains": domains or "auto"})
+    _emit(
+        "security.scan.started",
+        {"mode": "smart", "agent_count": len(selected), "domains": domains or "auto"},
+    )
     results = []
     agg = {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0}
     all_findings: list[dict] = []
@@ -248,20 +309,32 @@ def scan_vulnerabilities(root: Path, area: Optional[str] = None,
             res = _run_agent_class(cls, root, scope=scope)
         except Exception as e:
             _log.error("agent %s failed: %s", cls.__name__, e)
-            _emit("security.finding", {"severity": "info", "type": "agent_error",
-                                       "file": "", "line": 0, "cwe": "",
-                                       "description": f"{cls.__name__} error: {e}"})
+            _emit(
+                "security.finding",
+                {
+                    "severity": "info",
+                    "type": "agent_error",
+                    "file": "",
+                    "line": 0,
+                    "cwe": "",
+                    "description": f"{cls.__name__} error: {e}",
+                },
+            )
             continue
         try:
             from patchi.core import memory as mem
 
-            mem.save_scan_result(cls.name, {
-                "status": res.status.value if hasattr(res.status, "value") else str(res.status),
-                "duration_ms": getattr(res, "duration_ms", 0),
-                "finding_count": res.finding_count,
-                "files_scanned": getattr(res, "files_scanned", 0),
-                "findings": [f.to_dict() for f in res.findings],
-            }, root)
+            mem.save_scan_result(
+                cls.name,
+                {
+                    "status": res.status.value if hasattr(res.status, "value") else str(res.status),
+                    "duration_ms": getattr(res, "duration_ms", 0),
+                    "finding_count": res.finding_count,
+                    "files_scanned": getattr(res, "files_scanned", 0),
+                    "findings": [f.to_dict() for f in res.findings],
+                },
+                root,
+            )
         except Exception as e:
             _log.warning("save_scan_result failed: %s", e)
         for f in res.findings:
@@ -269,17 +342,28 @@ def scan_vulnerabilities(root: Path, area: Optional[str] = None,
             agg[sev] = agg.get(sev, 0) + 1
             fd = f.to_dict()
             all_findings.append(fd)
-            _emit("security.finding", {
-                "severity": sev, "type": fd.get("type", ""),
-                "file": fd.get("file", ""), "line": fd.get("line", 0),
-                "cwe": fd.get("cwe", ""), "description": fd.get("message", ""),
-            })
+            _emit(
+                "security.finding",
+                {
+                    "severity": sev,
+                    "type": fd.get("type", ""),
+                    "file": fd.get("file", ""),
+                    "line": fd.get("line", 0),
+                    "cwe": fd.get("cwe", ""),
+                    "description": fd.get("message", ""),
+                },
+            )
         results.append(res)
 
-    _emit("security.scan.completed", {
-        "critical_count": agg["critical"], "high_count": agg["high"],
-        "medium_count": agg["medium"], "low_count": agg["low"],
-    })
+    _emit(
+        "security.scan.completed",
+        {
+            "critical_count": agg["critical"],
+            "high_count": agg["high"],
+            "medium_count": agg["medium"],
+            "low_count": agg["low"],
+        },
+    )
     return {
         "success": True,
         "agent_count": len(results),
@@ -296,28 +380,39 @@ def scan_vulnerabilities(root: Path, area: Optional[str] = None,
 _OFFENSIVE = ("red", "attack", "advers", "runtime", "probe", "exploit", "fuzz", "dast", "exploit")
 
 
-def attack_simulate(root: Path, scenarios: Optional[list[str]] = None,
-                    target_url: Optional[str] = None,
-                    safe_mode: bool = True) -> dict:
+def attack_simulate(
+    root: Path,
+    scenarios: list[str] | None = None,
+    target_url: str | None = None,
+    safe_mode: bool = True,
+) -> dict:
     """Run offensive agents (static) and, if a URL is given, a SAFE dynamic probe.
 
     ``safe_mode`` (default True) restricts the dynamic probe to read-only header
     inspection — no payloads are sent.
     """
     name_map = _security_agent_map(root)
-    selected = [c for n, c in name_map.items()
-                if any(s in n.lower() for s in _OFFENSIVE)]
+    selected = [c for n, c in name_map.items() if any(s in n.lower() for s in _OFFENSIVE)]
     if scenarios:
-        selected = [c for c in selected
-                    if any(s in c.__name__.lower() for s in scenarios)]
+        selected = [c for c in selected if any(s in c.__name__.lower() for s in scenarios)]
     if not safe_mode:
-        _emit("security.finding", {"severity": "info", "type": "safety",
-                                   "file": "", "line": 0, "cwe": "",
-                                   "description": "Non-safe attack mode requested — restricting to read-only checks for safety."})
+        _emit(
+            "security.finding",
+            {
+                "severity": "info",
+                "type": "safety",
+                "file": "",
+                "line": 0,
+                "cwe": "",
+                "description": "Non-safe attack mode requested — restricting to read-only checks for safety.",
+            },
+        )
     safe_mode = True  # enforce safety regardless of caller intent
 
-    _emit("security.scan.started", {"mode": "red-team", "agent_count": len(selected),
-                                    "target_url": target_url or ""})
+    _emit(
+        "security.scan.started",
+        {"mode": "red-team", "agent_count": len(selected), "target_url": target_url or ""},
+    )
     findings: list[dict] = []
     for cls in selected:
         try:
@@ -325,10 +420,17 @@ def attack_simulate(root: Path, scenarios: Optional[list[str]] = None,
             for f in res.findings:
                 fd = f.to_dict()
                 findings.append(fd)
-                _emit("security.finding", {"severity": f.severity.value if hasattr(f.severity, "value") else "info",
-                                           "type": fd.get("type", ""), "file": fd.get("file", ""),
-                                           "line": fd.get("line", 0), "cwe": fd.get("cwe", ""),
-                                           "description": fd.get("message", "")})
+                _emit(
+                    "security.finding",
+                    {
+                        "severity": f.severity.value if hasattr(f.severity, "value") else "info",
+                        "type": fd.get("type", ""),
+                        "file": fd.get("file", ""),
+                        "line": fd.get("line", 0),
+                        "cwe": fd.get("cwe", ""),
+                        "description": fd.get("message", ""),
+                    },
+                )
         except Exception as e:
             _log.error("attack agent %s failed: %s", cls.__name__, e)
 
@@ -336,24 +438,50 @@ def attack_simulate(root: Path, scenarios: Optional[list[str]] = None,
     if target_url:
         dyn = _safe_dynamic_probe(target_url)
         for d in dyn.get("issues", []):
-            findings.append({"type": "dynamic", "severity": d.get("severity", "medium"),
-                             "message": d.get("message", ""), "file": target_url,
-                             "line": 0, "cwe": d.get("cwe", "")})
-            _emit("security.finding", {"severity": d.get("severity", "medium"),
-                                       "type": "dynamic", "file": target_url, "line": 0,
-                                       "cwe": d.get("cwe", ""), "description": d.get("message", "")})
+            findings.append(
+                {
+                    "type": "dynamic",
+                    "severity": d.get("severity", "medium"),
+                    "message": d.get("message", ""),
+                    "file": target_url,
+                    "line": 0,
+                    "cwe": d.get("cwe", ""),
+                }
+            )
+            _emit(
+                "security.finding",
+                {
+                    "severity": d.get("severity", "medium"),
+                    "type": "dynamic",
+                    "file": target_url,
+                    "line": 0,
+                    "cwe": d.get("cwe", ""),
+                    "description": d.get("message", ""),
+                },
+            )
 
     sev_counts = {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0}
     for f in findings:
         s = str(f.get("severity", "info")).lower()
         sev_counts[s] = sev_counts.get(s, 0) + 1
-    _emit("security.scan.completed", {"critical_count": sev_counts["critical"],
-                                      "high_count": sev_counts["high"],
-                                      "medium_count": sev_counts["medium"],
-                                      "low_count": sev_counts["low"]})
-    return {"success": True, "findings": findings, "by_severity": sev_counts,
-            "dynamic_probe": dyn, "target_url": target_url,
-            "safe_mode": True, "total_findings": len(findings)}
+    _emit(
+        "security.scan.completed",
+        {
+            "critical_count": sev_counts["critical"],
+            "high_count": sev_counts["high"],
+            "medium_count": sev_counts["medium"],
+            "low_count": sev_counts["low"],
+        },
+    )
+    return {
+        "success": True,
+        "findings": findings,
+        "by_severity": sev_counts,
+        "dynamic_probe": dyn,
+        "target_url": target_url,
+        "safe_mode": True,
+        "total_findings": len(findings),
+    }
 
 
 def _safe_dynamic_probe(target_url: str) -> dict:
@@ -379,15 +507,21 @@ def _safe_dynamic_probe(target_url: str) -> dict:
             issues.append({"severity": "medium", "message": msg, "cwe": "CWE-693"})
     server = headers.get("server")
     if server:
-        issues.append({"severity": "low", "message": f"Server header leaks software: {server}",
-                       "cwe": "CWE-200"})
+        issues.append(
+            {
+                "severity": "low",
+                "message": f"Server header leaks software: {server}",
+                "cwe": "CWE-200",
+            }
+        )
     return {"ok": True, "status_code": resp.status_code, "issues": issues}
 
 
 def red_team(root: Path, scope: str = "full", intensity: str = "active") -> dict:
     """Full red-team assessment: static attack surface + safe dynamic probing."""
-    _emit("security.scan.started", {"mode": "red-team-full", "scope": scope,
-                                    "intensity": intensity})
+    _emit(
+        "security.scan.started", {"mode": "red-team-full", "scope": scope, "intensity": intensity}
+    )
     result = attack_simulate(root, safe_mode=True)
     result["scope"] = scope
     result["intensity"] = intensity
@@ -402,12 +536,24 @@ def red_team(root: Path, scope: str = "full", intensity: str = "active") -> dict
 def check_compliance(root: Path, standard: str = "owasp-asvs", level: int = 1) -> dict:
     """Run compliance-relevant security agents and summarize their findings."""
     name_map = _security_agent_map(root)
-    keywords = ("complian", "policy", "privacy", "soc2", "pci", "hipaa", "gdpr",
-                "govern", "secret", "crypto", "auth")
-    selected = [c for n, c in name_map.items()
-                if any(k in n.lower() for k in keywords)]
-    _emit("security.scan.started", {"mode": "compliance", "standard": standard,
-                                    "agent_count": len(selected)})
+    keywords = (
+        "complian",
+        "policy",
+        "privacy",
+        "soc2",
+        "pci",
+        "hipaa",
+        "gdpr",
+        "govern",
+        "secret",
+        "crypto",
+        "auth",
+    )
+    selected = [c for n, c in name_map.items() if any(k in n.lower() for k in keywords)]
+    _emit(
+        "security.scan.started",
+        {"mode": "compliance", "standard": standard, "agent_count": len(selected)},
+    )
     findings: list[dict] = []
     for cls in selected:
         try:
@@ -425,12 +571,23 @@ def check_compliance(root: Path, standard: str = "owasp-asvs", level: int = 1) -
             controls[ctl]["fail"] += 1
         else:
             controls[ctl]["pass"] += 1
-    _emit("security.scan.completed", {"critical_count": 0, "high_count": 0,
-                                      "medium_count": sum(c["fail"] for c in controls.values()),
-                                      "low_count": 0})
-    return {"success": True, "standard": standard, "level": level,
-            "controls": controls, "total_findings": len(findings),
-            "findings": findings[:200]}
+    _emit(
+        "security.scan.completed",
+        {
+            "critical_count": 0,
+            "high_count": 0,
+            "medium_count": sum(c["fail"] for c in controls.values()),
+            "low_count": 0,
+        },
+    )
+    return {
+        "success": True,
+        "standard": standard,
+        "level": level,
+        "controls": controls,
+        "total_findings": len(findings),
+        "findings": findings[:200],
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -438,19 +595,30 @@ def check_compliance(root: Path, standard: str = "owasp-asvs", level: int = 1) -
 # ---------------------------------------------------------------------------
 
 
-def run_tests(root: Path, test_types: Optional[list[str]] = None,
-              area: Optional[str] = None, base_url: Optional[str] = None,
-              parallel: bool = False) -> dict:
+def run_tests(
+    root: Path,
+    test_types: list[str] | None = None,
+    area: str | None = None,
+    base_url: str | None = None,
+    parallel: bool = False,
+) -> dict:
     """Run the project's pytest suite and return real pass/fail counts."""
     target = str(root / area) if area else str(root)
-    cmd = [sys.executable, "-m", "pytest", target, "-q",
-           "--no-header", "-p", "no:cacheprovider", "--no-cov" if _HAS_PYTEST_COV else ""]
+    cmd = [
+        sys.executable,
+        "-m",
+        "pytest",
+        target,
+        "-q",
+        "--no-header",
+        "-p",
+        "no:cacheprovider",
+        "--no-cov" if _HAS_PYTEST_COV else "",
+    ]
     cmd = [c for c in cmd if c]
-    _emit("test.suite.started", {"test_type": (test_types or ["unit"])[0],
-                                 "test_count": 0})
+    _emit("test.suite.started", {"test_type": (test_types or ["unit"])[0], "test_count": 0})
     try:
-        proc = subprocess.run(cmd, capture_output=True, text=True,
-                               cwd=str(root), timeout=600)
+        proc = subprocess.run(cmd, capture_output=True, text=True, cwd=str(root), timeout=600)
     except subprocess.TimeoutExpired:
         _emit("test.suite.completed", {"passed": 0, "failed": 0, "coverage_pct": 0.0})
         return {"success": False, "error": "pytest timed out (600s)"}
@@ -459,12 +627,14 @@ def run_tests(root: Path, test_types: Optional[list[str]] = None,
     failed = _extract_count(out, r"(\d+) failed")
     errors = _extract_count(out, r"(\d+) error")
     skipped = _extract_count(out, r"(\d+) skipped")
-    _emit("test.suite.completed", {"passed": passed, "failed": failed,
-                                    "coverage_pct": 0.0})
+    _emit("test.suite.completed", {"passed": passed, "failed": failed, "coverage_pct": 0.0})
     return {
         "success": proc.returncode == 0 or failed == 0,
-        "passed": passed, "failed": failed, "errors": errors,
-        "skipped": skipped, "returncode": proc.returncode,
+        "passed": passed,
+        "failed": failed,
+        "errors": errors,
+        "skipped": skipped,
+        "returncode": proc.returncode,
         "summary": out.strip().splitlines()[-1] if out.strip() else "",
         "target": target,
     }
@@ -482,9 +652,14 @@ def _extract_count(text: str, pattern: str) -> int:
 # ---------------------------------------------------------------------------
 
 
-def stress_test(root: Path, base_url: str, scenario: str = "load",
-                users: int = 10, duration_seconds: int = 30,
-                ramp_up_seconds: int = 10) -> dict:
+def stress_test(
+    root: Path,
+    base_url: str,
+    scenario: str = "load",
+    users: int = 10,
+    duration_seconds: int = 30,
+    ramp_up_seconds: int = 10,
+) -> dict:
     """Generate real load against ``base_url`` and report latency/throughput.
 
     Returns an error (success=False) if the target is unreachable instead of
@@ -534,11 +709,17 @@ def stress_test(root: Path, base_url: str, scenario: str = "load",
         elapsed = time.monotonic() - start
         if n:
             rps = n / elapsed
-            _emit("test.stress.update", {
-                "users": users, "rps": round(rps, 1),
-                "p50": 0, "p95": 0, "p99": 0,
-                "error_rate": 0.0,
-            })
+            _emit(
+                "test.stress.update",
+                {
+                    "users": users,
+                    "rps": round(rps, 1),
+                    "p50": 0,
+                    "p95": 0,
+                    "p99": 0,
+                    "error_rate": 0.0,
+                },
+            )
     stop.set()
     for th in threads:
         th.join(timeout=5)
@@ -546,8 +727,12 @@ def stress_test(root: Path, base_url: str, scenario: str = "load",
     with lock:
         sample = list(latencies)
     if not sample:
-        return {"success": False, "error": "No successful requests (target may be down)",
-                "users": users, "error_count": errors}
+        return {
+            "success": False,
+            "error": "No successful requests (target may be down)",
+            "users": users,
+            "error_count": errors,
+        }
     sample.sort()
     total = len(sample) + errors
 
@@ -563,19 +748,27 @@ def stress_test(root: Path, base_url: str, scenario: str = "load",
         "duration_seconds": duration_seconds,
         "requests": len(sample),
         "rps": round(len(sample) / duration_seconds, 1),
-        "p50_ms": pct(0.50), "p95_ms": pct(0.95), "p99_ms": pct(0.99),
+        "p50_ms": pct(0.50),
+        "p95_ms": pct(0.95),
+        "p99_ms": pct(0.99),
         "max_ms": round(sample[-1], 2),
         "error_count": errors,
         "error_rate": err_rate,
         "target_url": base_url,
     }
-    _emit("test.stress.update", {
-        "users": users, "rps": result["rps"], "p50": result["p50_ms"],
-        "p95": result["p95_ms"], "p99": result["p99_ms"], "error_rate": err_rate,
-    })
+    _emit(
+        "test.stress.update",
+        {
+            "users": users,
+            "rps": result["rps"],
+            "p50": result["p50_ms"],
+            "p95": result["p95_ms"],
+            "p99": result["p99_ms"],
+            "error_rate": err_rate,
+        },
+    )
     if err_rate > 0.2:
-        _emit("test.stress.break_found",
-              {"breaking_users": users, "breaking_route": base_url})
+        _emit("test.stress.break_found", {"breaking_users": users, "breaking_route": base_url})
     return result
 
 
@@ -584,8 +777,13 @@ def stress_test(root: Path, base_url: str, scenario: str = "load",
 # ---------------------------------------------------------------------------
 
 
-def screenshot(root: Path, url: str, selector: Optional[str] = None,
-               full_page: bool = True, wait_for: Optional[str] = None) -> dict:
+def screenshot(
+    root: Path,
+    url: str,
+    selector: str | None = None,
+    full_page: bool = True,
+    wait_for: str | None = None,
+) -> dict:
     """Capture a screenshot via Playwright. Fails gracefully if unavailable."""
     try:
         from playwright.sync_api import sync_playwright
@@ -608,16 +806,21 @@ def screenshot(root: Path, url: str, selector: Optional[str] = None,
                 img = page.screenshot(full_page=full_page)
             browser.close()
             b64 = base64.b64encode(img).decode()
-            _emit("test.browser.step_passed",
-                  {"flow_name": "screenshot", "step": f"captured {url}"})
-            return {"success": True, "screenshot_base64": b64,
-                    "bytes": len(img), "url": url}
+            _emit(
+                "test.browser.step_passed", {"flow_name": "screenshot", "step": f"captured {url}"}
+            )
+            return {"success": True, "screenshot_base64": b64, "bytes": len(img), "url": url}
     except Exception as e:
         return {"success": False, "error": f"Screenshot failed: {e}"}
 
 
-def browser_test(root: Path, script: str, base_url: Optional[str] = None,
-                 headless: bool = True, record_video: bool = False) -> dict:
+def browser_test(
+    root: Path,
+    script: str,
+    base_url: str | None = None,
+    headless: bool = True,
+    record_video: bool = False,
+) -> dict:
     """Execute a small Playwright navigation script (goto/fill/click/expect)."""
     try:
         from playwright.sync_api import sync_playwright
@@ -630,8 +833,7 @@ def browser_test(root: Path, script: str, base_url: Optional[str] = None,
             page = browser.new_page()
             passed = 0
             for step in steps:
-                _emit("test.browser.flow_started",
-                      {"flow_name": "browser_test", "steps": [step]})
+                _emit("test.browser.flow_started", {"flow_name": "browser_test", "steps": [step]})
                 if step.startswith("goto("):
                     page.goto(_expand(step[5:-1], base_url), timeout=15000)
                 elif step.startswith("fill("):
@@ -642,21 +844,18 @@ def browser_test(root: Path, script: str, base_url: Optional[str] = None,
                 elif step.startswith("expect("):
                     page.wait_for_selector(_strip(step[7:-1]), timeout=5000)
                 passed += 1
-                _emit("test.browser.step_passed",
-                      {"flow_name": "browser_test", "step": step})
+                _emit("test.browser.step_passed", {"flow_name": "browser_test", "step": step})
             browser.close()
-            return {"success": True, "steps_executed": passed,
-                    "steps_total": len(steps)}
+            return {"success": True, "steps_executed": passed, "steps_total": len(steps)}
     except Exception as e:
-        return {"success": False, "error": f"Browser test failed: {e}",
-                "steps_executed": 0}
+        return {"success": False, "error": f"Browser test failed: {e}", "steps_executed": 0}
 
 
 def _strip(s: str) -> str:
     return s.strip().strip("'\"")
 
 
-def _expand(s: str, base: Optional[str]) -> str:
+def _expand(s: str, base: str | None) -> str:
     s = _strip(s)
     if base and s.startswith("/"):
         return base.rstrip("/") + s
@@ -695,12 +894,14 @@ def visual_regression(root: Path, urls: list[str], threshold: float = 0.1) -> di
                 if bl.exists():
                     prev = bl.read_bytes()
                     diff = abs(len(prev) - len(img)) / max(1, len(prev))
-                    results.append({"url": url, "changed": diff > threshold,
-                                    "delta": round(diff, 3)})
+                    results.append(
+                        {"url": url, "changed": diff > threshold, "delta": round(diff, 3)}
+                    )
                 else:
                     bl.write_bytes(img)
-                    results.append({"url": url, "changed": False,
-                                    "delta": 0.0, "baseline_created": True})
+                    results.append(
+                        {"url": url, "changed": False, "delta": 0.0, "baseline_created": True}
+                    )
             browser.close()
     except Exception as e:
         return {"success": False, "error": f"Visual regression failed: {e}"}
@@ -712,8 +913,9 @@ def visual_regression(root: Path, urls: list[str], threshold: float = 0.1) -> di
 # ---------------------------------------------------------------------------
 
 
-def generate_tests(root: Path, target_files: list[str], test_type: str = "unit",
-                   framework: Optional[str] = None) -> dict:
+def generate_tests(
+    root: Path, target_files: list[str], test_type: str = "unit", framework: str | None = None
+) -> dict:
     """Generate minimal, real pytest skeletons for the given source files.
 
     Files are written to ``.patchi/generated_tests/`` — never over the source —
@@ -733,7 +935,7 @@ def generate_tests(root: Path, target_files: list[str], test_type: str = "unit",
         test_src = (
             f"# Auto-generated by Patchi SmartAgent ({test_type})\n"
             f"import pytest\n\n"
-            f"MODULE = \"{src.as_posix()}\"\n\n\n"
+            f'MODULE = "{src.as_posix()}"\n\n\n'
             f"def test_{module}_importable():\n"
             f"    # TODO: replace with real behavioural assertions\n"
             f"    assert MODULE.endswith('.py')\n"
@@ -742,8 +944,7 @@ def generate_tests(root: Path, target_files: list[str], test_type: str = "unit",
         dest.write_text(test_src, encoding="utf-8")
         created.append({"file": str(dest), "source": str(src), "status": "created"})
     _emit("test.suite.started", {"test_type": test_type, "test_count": len(created)})
-    _emit("test.suite.completed", {"passed": len(created), "failed": 0,
-                                   "coverage_pct": 0.0})
+    _emit("test.suite.completed", {"passed": len(created), "failed": 0, "coverage_pct": 0.0})
     return {"success": True, "created": created, "output_dir": str(out_dir)}
 
 
@@ -756,6 +957,7 @@ def start_web_server(root: Path, port: int = 8000, host: str = "127.0.0.1") -> d
     """Start the Patchi web dashboard in a background thread."""
     try:
         import uvicorn
+
         from patchi.web.app import create_app
     except Exception as e:
         return {"success": False, "error": f"Web stack unavailable: {e}"}
@@ -767,8 +969,7 @@ def start_web_server(root: Path, port: int = 8000, host: str = "127.0.0.1") -> d
     # Give it a moment to bind
     time.sleep(1.0)
     url = f"http://{host}:{port}"
-    _emit("status", {"mode": "web", "active_agents": 0, "queue_depth": 0,
-                     "brain_fresh": True})
+    _emit("status", {"mode": "web", "active_agents": 0, "queue_depth": 0, "brain_fresh": True})
     return {"success": True, "url": url, "message": "Web server started (background)"}
 
 
@@ -777,18 +978,21 @@ def start_web_server(root: Path, port: int = 8000, host: str = "127.0.0.1") -> d
 # ---------------------------------------------------------------------------
 
 
-def analyze_project(root: Path, area: Optional[str] = None) -> dict:
+def analyze_project(root: Path, area: str | None = None) -> dict:
     """Run a real brain scan and summarize what the project actually is."""
     try:
         from patchi.core.brain.brain import Brain
 
         brain = Brain(root)
         report = brain.scan(area)
-        _emit("brain.scan.completed", {
-            "file_count": getattr(report, "file_count", 0),
-            "route_count": getattr(report, "route_count", 0),
-            "health_score": 0,
-        })
+        _emit(
+            "brain.scan.completed",
+            {
+                "file_count": getattr(report, "file_count", 0),
+                "route_count": getattr(report, "route_count", 0),
+                "health_score": 0,
+            },
+        )
         return {
             "success": True,
             "file_count": getattr(report, "file_count", 0),

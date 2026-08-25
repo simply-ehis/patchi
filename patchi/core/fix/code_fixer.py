@@ -86,18 +86,14 @@ class CodeFixer(BaseAgent):
                     hasattr(brain_report, "blast_radius_map")
                     and fpath in brain_report.blast_radius_map
                 ):
-                    blast_radius = len(
-                        brain_report.blast_radius_map[fpath].all_dependents
-                    )
+                    blast_radius = len(brain_report.blast_radius_map[fpath].all_dependents)
             else:
                 blast_radius = compute_blast_radius(fpath, inp.root)
 
             lang = _detect_language(fpath)
             debug_section = ""
             if dbg:
-                debug_section = (
-                    f"\n\nRUNTIME STATE AT FAILURE:\n{json.dumps(dbg, indent=2)}"
-                )
+                debug_section = f"\n\nRUNTIME STATE AT FAILURE:\n{json.dumps(dbg, indent=2)}"
 
             test_context = ""
             if ftype == "test_failure" and finding_file:
@@ -105,8 +101,7 @@ class CodeFixer(BaseAgent):
                 test_content = _read_file(test_path)
                 if test_content:
                     test_context = (
-                        f"\n\nFailing test file ({finding_file}):\n"
-                        f"```\n{test_content[:2000]}\n```"
+                        f"\n\nFailing test file ({finding_file}):\n```\n{test_content[:2000]}\n```"
                     )
 
             prompt = textwrap.dedent(f"""
@@ -155,9 +150,7 @@ class CodeFixer(BaseAgent):
                 # applier's M-16 _verify_fix on its generic fallback path
                 # instead of re-running the test suite inside apply().
                 scanner_agent=(
-                    "UnitTestAgent"
-                    if ftype == "test_failure"
-                    else finding.get("agent", "")
+                    "UnitTestAgent" if ftype == "test_failure" else finding.get("agent", "")
                 ),
                 source_finding=finding,
             )

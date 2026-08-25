@@ -18,6 +18,7 @@ _log = logging.getLogger("patchi.security.precommit_hook")
 
 # ── Hook Script Template ─────────────────────────────────────────────────────
 
+
 def generate_hook(
     strict: bool = False,
     with_tests: bool = False,
@@ -48,79 +49,89 @@ def generate_hook(
 
     # NOTE: no `set -e` — each step checks $? manually so warnings
     # are non-blocking when STRICT=0.
-    lines.append('STRICT=' + ('1' if strict else '0'))
-    lines.append('FAIL=0')
+    lines.append("STRICT=" + ("1" if strict else "0"))
+    lines.append("FAIL=0")
     lines.append("")
     lines.append('echo "🔍 Patchi pre-commit hook…"')
     lines.append("")
 
     # Step 1: Ruff
-    lines.extend([
-        "# ── Step 1: Ruff lint ──────────────────────────────────────────────",
-        'echo "  [1/3] ruff check…"',
-        "ruff check patchi/ --select E,F,W --ignore E501 --quiet 2>/dev/null",
-        "if [ $? -ne 0 ]; then",
-        '  echo "  ⚠️  ruff found issues (non-blocking)"',
-        "  if [ \"$STRICT\" = \"1\" ]; then",
-        '    echo "  ❌ Commit blocked: fix ruff errors first"',
-        "    exit 1",
-        "  fi",
-        "  FAIL=1",
-        "else",
-        '  echo "  ✅ ruff clean"',
-        "fi",
-        "",
-    ])
-
-    # Step 2: Tests (optional)
-    if with_tests:
-        lines.extend([
-            "# ── Step 2: Pytest ───────────────────────────────────────────────",
-            'echo "  [2/3] pytest…"',
-            "PATCHI_OFFLINE=1 python -m pytest tests/ -x -q --timeout=30 --tb=no 2>/dev/null",
+    lines.extend(
+        [
+            "# ── Step 1: Ruff lint ──────────────────────────────────────────────",
+            'echo "  [1/3] ruff check…"',
+            "ruff check patchi/ --select E,F,W --ignore E501 --quiet 2>/dev/null",
             "if [ $? -ne 0 ]; then",
-            '  echo "  ⚠️  pytest failed (non-blocking)"',
-            "  if [ \"$STRICT\" = \"1\" ]; then",
-        ])
-        if with_scan:
-            lines.append('    echo "  ❌ Commit blocked: fix failing tests first"')
-        else:
-            lines.append('    echo "  ❌ Commit blocked: fix failing tests first"')
-        lines.extend([
+            '  echo "  ⚠️  ruff found issues (non-blocking)"',
+            '  if [ "$STRICT" = "1" ]; then',
+            '    echo "  ❌ Commit blocked: fix ruff errors first"',
             "    exit 1",
             "  fi",
             "  FAIL=1",
             "else",
-            '  echo "  ✅ tests pass"',
+            '  echo "  ✅ ruff clean"',
             "fi",
             "",
-        ])
+        ]
+    )
+
+    # Step 2: Tests (optional)
+    if with_tests:
+        lines.extend(
+            [
+                "# ── Step 2: Pytest ───────────────────────────────────────────────",
+                'echo "  [2/3] pytest…"',
+                "PATCHI_OFFLINE=1 python -m pytest tests/ -x -q --timeout=30 --tb=no 2>/dev/null",
+                "if [ $? -ne 0 ]; then",
+                '  echo "  ⚠️  pytest failed (non-blocking)"',
+                '  if [ "$STRICT" = "1" ]; then',
+            ]
+        )
+        if with_scan:
+            lines.append('    echo "  ❌ Commit blocked: fix failing tests first"')
+        else:
+            lines.append('    echo "  ❌ Commit blocked: fix failing tests first"')
+        lines.extend(
+            [
+                "    exit 1",
+                "  fi",
+                "  FAIL=1",
+                "else",
+                '  echo "  ✅ tests pass"',
+                "fi",
+                "",
+            ]
+        )
 
     # Step 3: Scan --changed (optional)
     if with_scan:
         step_num = "3" if with_tests else "2"
         total = "3" if with_tests else "2"
-        lines.extend([
-            f"# ── Step {step_num}: On-demand security scan ──────────────────────────",
-            f'echo "  [{step_num}/{total}] p scan --changed…"',
-            "python -m patchi.cli.main scan --changed --quiet &",
-            "SCAN_PID=$!",
-            "for i in 1 2 3 4 5 6; do sleep 10; kill -0 $SCAN_PID 2>/dev/null || break; done",
-            "kill $SCAN_PID 2>/dev/null && echo '  (scan timed out — results in next commit)' || true",
-            "",
-        ])
+        lines.extend(
+            [
+                f"# ── Step {step_num}: On-demand security scan ──────────────────────────",
+                f'echo "  [{step_num}/{total}] p scan --changed…"',
+                "python -m patchi.cli.main scan --changed --quiet &",
+                "SCAN_PID=$!",
+                "for i in 1 2 3 4 5 6; do sleep 10; kill -0 $SCAN_PID 2>/dev/null || break; done",
+                "kill $SCAN_PID 2>/dev/null && echo '  (scan timed out — results in next commit)' || true",
+                "",
+            ]
+        )
 
     # Summary
-    lines.extend([
-        "# ── Summary ────────────────────────────────────────────────────────",
-        'if [ "$FAIL" = "1" ]; then',
-        '  echo "⚠️  Commit succeeded with warnings. Run "p dev check" for full gate."',
-        "else",
-        '  echo "✅ All gates passed."',
-        "fi",
-        "",
-        "exit 0",
-    ])
+    lines.extend(
+        [
+            "# ── Summary ────────────────────────────────────────────────────────",
+            'if [ "$FAIL" = "1" ]; then',
+            '  echo "⚠️  Commit succeeded with warnings. Run "p dev check" for full gate."',
+            "else",
+            '  echo "✅ All gates passed."',
+            "fi",
+            "",
+            "exit 0",
+        ]
+    )
 
     return "\n".join(lines) + "\n"
 

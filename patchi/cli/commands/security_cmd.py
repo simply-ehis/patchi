@@ -69,6 +69,7 @@ import logging
 
 _log = logging.getLogger("patchi.cli.security_cmd")
 
+
 def _load_maps() -> tuple[dict[str, str], list[str]]:
     """Load security agent mapping data from external JSON config."""
     maps_file = _MAPS_DIR / "agent_maps.json"
@@ -80,7 +81,9 @@ def _load_maps() -> tuple[dict[str, str], list[str]]:
         con.print(f"[yellow]Warning: could not load agent_maps.json: {e}[/yellow]")
         return {}, []
 
+
 _AGENT_MAP, _DEFENSIVE_AGENTS = _load_maps()
+
 
 def run(
     scan_type: str | None = None,
@@ -97,6 +100,7 @@ def run(
 
     # ── Set tenant context so profiler records the correct project root ────
     from patchi.core.tenant import get_tenant_manager, tenant_context
+
     try:
         mgr = get_tenant_manager()
         mgr.register_project(r)
@@ -230,6 +234,7 @@ def _run_security_inner(
     lp.stop(summary=f"{len(results)} agents - {total} findings")
     _show_results(results)
 
+
 def run_security(args) -> None:
     """Namespace-shaped entry for the CLI registry (self-routing).
 
@@ -246,6 +251,7 @@ def run_security(args) -> None:
             area=getattr(args, "area", None),
             policy_file=getattr(args, "policy", None),
         )
+
 
 def run_report(root: Path | None = None) -> None:
     """Entry point for `p security report`."""
@@ -287,7 +293,17 @@ def run_report(root: Path | None = None) -> None:
         lp.set_progress(len(results) + 1, len(defensive), short_name)
         lp.log(f"  {short_name}…")
         lp.update()
-        inp = AgentInput(root=r, scope=[], brain=brain, config=config, purpose=project_purpose, domain=project_domain, context=project_context, active_domains=active_domains, on_message=lambda n, msg, s: (lp.log(f"    {msg}", s), lp.update()))
+        inp = AgentInput(
+            root=r,
+            scope=[],
+            brain=brain,
+            config=config,
+            purpose=project_purpose,
+            domain=project_domain,
+            context=project_context,
+            active_domains=active_domains,
+            on_message=lambda n, msg, s: (lp.log(f"    {msg}", s), lp.update()),
+        )
         result = agent_cls().run(inp)
         from patchi.core.security.pattern_context import suppress_findings
 
@@ -297,7 +313,9 @@ def run_report(root: Path | None = None) -> None:
         lp.set_findings(total_findings)
         if result.findings:
             for f in result.findings[:2]:
-                sev_color = {"critical": "bold red", "high": "red", "medium": "yellow"}.get(f.severity.value, "dim")
+                sev_color = {"critical": "bold red", "high": "red", "medium": "yellow"}.get(
+                    f.severity.value, "dim"
+                )
                 lp.log(f"    ! [{f.severity.value}] {f.message[:70]}", sev_color)
         lp.update()
 
@@ -450,6 +468,7 @@ def run_report(root: Path | None = None) -> None:
     except Exception as e:
         _log.warning("run_report failed: %s", e)
 
+
 def _show_results(results: list) -> None:
     from patchi.core.agents.base import AgentStatus
 
@@ -545,6 +564,7 @@ def _show_results(results: list) -> None:
     con.print()
     con.print("[dim]Run [bold]p fix[/bold] to apply security fixes.[/dim]")
     con.print()
+
 
 def _scope_from_area(root: Path, area: str | None) -> list[str]:
     if not area:

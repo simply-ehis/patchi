@@ -26,10 +26,20 @@ _log = logging.getLogger("patchi.core.agents.tool_health")
 _VERSION_TIMEOUT_S = 10
 
 # Tools this module knows how to probe end-to-end.
-_TOOLS = frozenset({
-    "bandit", "semgrep", "codeql", "pyre", "safety", "pip-audit",
-    "git", "node", "npm", "ollama",
-})
+_TOOLS = frozenset(
+    {
+        "bandit",
+        "semgrep",
+        "codeql",
+        "pyre",
+        "safety",
+        "pip-audit",
+        "git",
+        "node",
+        "npm",
+        "ollama",
+    }
+)
 
 # Per-tool run flags: some tools don't answer `--version` nicely.
 _VERSION_ARGS: dict[str, list[str]] = {
@@ -75,9 +85,7 @@ def check_tool(tool: str) -> dict:
             timeout=_VERSION_TIMEOUT_S,
         )
     except subprocess.TimeoutExpired:
-        hint = _BROKEN_HINTS.get(
-            tool, f"{tool} did not answer within {_VERSION_TIMEOUT_S}s"
-        )
+        hint = _BROKEN_HINTS.get(tool, f"{tool} did not answer within {_VERSION_TIMEOUT_S}s")
         return {"status": "broken", "version": "", "hint": hint}
     except OSError as exc:
         return {
@@ -89,8 +97,7 @@ def check_tool(tool: str) -> dict:
     if proc.returncode != 0:
         hint = _BROKEN_HINTS.get(
             tool,
-            f"{tool} exits {proc.returncode} on {args[0]} "
-            f"— reinstall or check its runtime deps",
+            f"{tool} exits {proc.returncode} on {args[0]} — reinstall or check its runtime deps",
         )
         return {"status": "broken", "version": "", "hint": hint}
 

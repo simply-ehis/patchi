@@ -114,7 +114,7 @@ class CommentScanner(BaseAgent):
                     line_start=0,
                     title=f"Technical Debt Markers Found: {len(debt_findings)}",
                     description=f"Discovered {len(debt_findings)} technical debt markers in project",
-                    evidence=f"Markers found in {len(set(f.file for f in debt_findings))} files",
+                    evidence=f"Markers found in {len({f.file for f in debt_findings})} files",
                 )
             )
 
@@ -127,39 +127,41 @@ class CommentScanner(BaseAgent):
 
         result.status = AgentStatus.SUCCEEDED
         result.findings = findings
-        result.data.update({
-            "todo_count": len(
-                [
-                    f
-                    for f in findings
-                    if f.type == "technical_debt" and "TODO" in f.message.upper()
-        ]
-            ),
-            "fixme_count": len(
-                [
-                    f
-                    for f in findings
-                    if f.type == "technical_debt" and "FIXME" in f.message.upper()
-        ]
-            ),
-            "hack_count": len(
-                [
-                    f
-                    for f in findings
-                    if f.type == "technical_debt" and "HACK" in f.message.upper()
-        ]
-            ),
-            "bug_count": len(
-                [
-                    f
-                    for f in findings
-                    if f.type == "technical_debt" and "BUG" in f.message.upper()
-        ]
-            ),
-            "total_markers": len(debt_findings),
-            "by_type": by_type,
-            "needs_ai": False,
-        })
+        result.data.update(
+            {
+                "todo_count": len(
+                    [
+                        f
+                        for f in findings
+                        if f.type == "technical_debt" and "TODO" in f.message.upper()
+                    ]
+                ),
+                "fixme_count": len(
+                    [
+                        f
+                        for f in findings
+                        if f.type == "technical_debt" and "FIXME" in f.message.upper()
+                    ]
+                ),
+                "hack_count": len(
+                    [
+                        f
+                        for f in findings
+                        if f.type == "technical_debt" and "HACK" in f.message.upper()
+                    ]
+                ),
+                "bug_count": len(
+                    [
+                        f
+                        for f in findings
+                        if f.type == "technical_debt" and "BUG" in f.message.upper()
+                    ]
+                ),
+                "total_markers": len(debt_findings),
+                "by_type": by_type,
+                "needs_ai": False,
+            }
+        )
         return
 
     def _should_skip_file(self, file_path: str, inp: AgentInput) -> bool:

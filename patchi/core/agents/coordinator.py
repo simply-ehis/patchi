@@ -26,10 +26,11 @@ import logging
 import queue
 import threading
 from collections import defaultdict
+from collections.abc import Callable
 from concurrent.futures import Future, ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 from loguru import logger
 
@@ -147,6 +148,7 @@ class Coordinator:
             for k in keys:
                 env_var = k.get("env_var", "")
                 import os
+
                 if os.environ.get(env_var) or os.environ.get("_PATCHI_ENV_LOADED"):
                     return {"provider": "api", "config": self._config}
             return {"provider": "api", "config": self._config}
@@ -202,18 +204,17 @@ class Coordinator:
                 from patchi.core.security.domain_activator_v2 import (
                     DomainActivatorV2,
                 )
+
                 activator = DomainActivatorV2(self.root)
                 relevant = activator.get_relevant_agents(self._active_domains)
                 # Always run core agents (PreCheckAgent, etc.)
                 core = ["PreCheckAgent", "PlanAuditorAgent"]
                 relevant.extend(core)
-                agent_classes = [
-                    a for a in agent_classes
-                    if getattr(a, "name", "") in relevant
-                ]
+                agent_classes = [a for a in agent_classes if getattr(a, "name", "") in relevant]
                 _log.info(
                     "Domain filter: %d → %d agents (domains=%s)",
-                    len(list_agents(group)), len(agent_classes),
+                    len(list_agents(group)),
+                    len(agent_classes),
                     self._active_domains[:5],
                 )
             except Exception as e:
@@ -348,6 +349,7 @@ class Coordinator:
         # Offline scans must never attempt an LLM call — avoid even spawning
         # the bounded worker thread.
         import os
+
         if os.environ.get("PATCHI_OFFLINE"):
             return agent_classes
 
@@ -763,7 +765,7 @@ def _group_fix_agents_by_file(
     for cls in ungrouped:
         batches.append([cls])
 
-    return batches if batches else [[c for c in agent_classes]]
+    return batches if batches else [list(agent_classes)]
 
 
 def _run_sequential(

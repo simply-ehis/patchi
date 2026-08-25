@@ -47,6 +47,7 @@ async def smoke_test(req: SmokeTestRequest, request: Request):
     root: Path = request.app.state.root
     try:
         from patchi.core.testing.live_v2.browser_test_runner import BrowserTestRunner
+
         runner = BrowserTestRunner(root, base_url=req.url)
         result = await runner.run_smoke_test(req.url)
         return result.to_dict()
@@ -71,9 +72,10 @@ async def stress_test(req: StressTestRequest, request: Request):
 
     try:
         from patchi.core.testing.live_v2.stress_orchestrator import (
-            StressOrchestrator,
             StressConfig,
+            StressOrchestrator,
         )
+
         config = StressConfig(
             target_url=req.url,
             concurrent_users=req.users,
@@ -125,6 +127,7 @@ async def browser_pool_stats():
     """Get browser pool statistics."""
     try:
         from patchi.core.testing.live_v2.browser_pool import get_browser_pool
+
         pool = await get_browser_pool()
         return pool.get_stats()
     except Exception as e:

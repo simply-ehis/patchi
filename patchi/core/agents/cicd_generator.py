@@ -91,7 +91,9 @@ class CICDGeneratorAgent(BaseAgent):
 
     group = AgentGroup.GUARD
     name = "CICDGeneratorAgent"
-    description = "Generate .pre-commit-config.yaml, GitHub Actions, GitLab CI, and branch protection gates"
+    description = (
+        "Generate .pre-commit-config.yaml, GitHub Actions, GitLab CI, and branch protection gates"
+    )
 
     def _run(self, inp: AgentInput, result: AgentResult) -> None:
         existing_precommit = inp.root / ".pre-commit-config.yaml"

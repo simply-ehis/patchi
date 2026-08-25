@@ -61,6 +61,7 @@ import logging
 
 _log = logging.getLogger("patchi.cli.doctor_cmd")
 
+
 def run(verbose: bool = False, json_output: bool = False) -> None:
     """Entry point for `p doctor`."""
     if not json_output:
@@ -270,9 +271,7 @@ def run(verbose: bool = False, json_output: bool = False) -> None:
                 note = f"{desc} ({st['version']})"
                 checks.append((f"[dim]opt:[/dim] {cmd}", "✓", note, "#4ADE80"))
             elif st["status"] == "broken":
-                checks.append(
-                    (f"[dim]opt:[/dim] {cmd}", "✗", f"Broken: {st['hint']}", "#FF4D6D")
-                )
+                checks.append((f"[dim]opt:[/dim] {cmd}", "✗", f"Broken: {st['hint']}", "#FF4D6D"))
                 errors += 1
             else:
                 note = f"Optional — {pip_name}"
@@ -288,15 +287,20 @@ def run(verbose: bool = False, json_output: bool = False) -> None:
     if json_output:
         import json as _json
 
-        con.print(_json.dumps({
-            "ok": errors == 0,
-            "errors": errors,
-            "warnings": warnings,
-            "checks": [
-                {"label": label, "status": status.strip(), "note": note}
-                for label, status, note, _color in checks
-            ],
-        }, indent=2))
+        con.print(
+            _json.dumps(
+                {
+                    "ok": errors == 0,
+                    "errors": errors,
+                    "warnings": warnings,
+                    "checks": [
+                        {"label": label, "status": status.strip(), "note": note}
+                        for label, status, note, _color in checks
+                    ],
+                },
+                indent=2,
+            )
+        )
         return
 
     _render_table(checks)
@@ -329,7 +333,9 @@ def run(verbose: bool = False, json_output: bool = False) -> None:
         )
     con.print()
 
+
 # ── Helpers ────────────────────────────────────────────────────────────────────
+
 
 def _can_import(name: str) -> bool:
     try:
@@ -337,6 +343,7 @@ def _can_import(name: str) -> bool:
         return True
     except ImportError:
         return False
+
 
 def _test_api_key(key_entry: dict) -> tuple[bool, str]:
     """Attempt a minimal live connection to the configured AI provider."""
@@ -394,6 +401,7 @@ def _test_api_key(key_entry: dict) -> tuple[bool, str]:
     except Exception as e:
         return False, f"Connection error: {str(e)[:50]}"
 
+
 def _test_ollama(model_name: str) -> tuple[bool, str]:
     """Check if Ollama is running and the model is available."""
     try:
@@ -411,6 +419,7 @@ def _test_ollama(model_name: str) -> tuple[bool, str]:
     except Exception as e:
         _log.debug("_test_ollama failed: %s", e)
         return False, "Ollama not running — start with: ollama serve"
+
 
 def _render_table(checks: list[tuple[str, str, str, str]]) -> None:
     table = Table(show_header=False, box=None, pad_edge=False, padding=(0, 1))

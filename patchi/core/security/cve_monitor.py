@@ -244,7 +244,7 @@ class CVEMonitorAgent(BaseAgent):
         deps = {}
         deps.update(data.get("dependencies", {}))
         deps.update(data.get("devDependencies", {}))
-        return [(k, v) for k, v in deps.items()]
+        return list(deps.items())
 
     def _parse_pip(self, content: str) -> list[tuple[str, str]]:
         deps = []

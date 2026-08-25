@@ -43,6 +43,7 @@ Routes:
 from __future__ import annotations
 
 import logging
+from datetime import UTC
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Request
@@ -75,6 +76,7 @@ def _safe_json(request: Request, default=None):
     """Safely parse JSON body from request, return default on failure."""
     try:
         import json as _json
+
         body = request._body
         if body is None:
             return default
@@ -256,7 +258,7 @@ async def get_findings(request: Request) -> JSONResponse:
         # Also include scanner findings from scan results
         scans = memory_mod.get_scan_results(root)
         scanner_findings = []
-        for agent_name, scan_data in scans.items():
+        for _agent_name, scan_data in scans.items():
             for f in scan_data.get("findings", []):
                 if isinstance(f, dict):
                     scanner_findings.append(f)
@@ -287,7 +289,7 @@ async def get_brain_nodes(request: Request) -> JSONResponse:
         scan_results = memory_mod.read(MemoryCategory.SCANS, root=root)
         findings_by_file = {}
         if isinstance(scan_results, dict):
-            for scanner_name, scanner_data in scan_results.items():
+            for _scanner_name, scanner_data in scan_results.items():
                 findings = (
                     scanner_data.get("findings", []) if isinstance(scanner_data, dict) else []
                 )
@@ -436,7 +438,9 @@ async def accept_fix(request: Request) -> JSONResponse:
                         if p.get("state") in ("proposed", "pending")
                     ]
                 )
-                asyncio.get_running_loop().create_task(manager.broadcast(evt_review_updated(pending)))
+                asyncio.get_running_loop().create_task(
+                    manager.broadcast(evt_review_updated(pending))
+                )
             except Exception as exc:
                 logger.warning("Failed to broadcast review_updated event: %s", exc)
             return JSONResponse({"ok": True, "message": f"Patch {patch_id} applied"})
@@ -657,17 +661,19 @@ async def get_security_report(request: Request, fresh: str = "0") -> JSONRespons
             if fresh != "1":
                 # Nothing cached yet and no explicit fresh request — never run
                 # a multi-minute agent suite on a plain GET.
-                return JSONResponse({
-                    "total_findings": 0,
-                    "by_severity": {},
-                    "by_owasp": {},
-                    "agents_run": [],
-                    "correlation_count": 0,
-                    "findings": [],
-                    "cached": True,
-                    "last_scan": "",
-                    "hint": "No scan data yet. Run `p security` or ?fresh=1 to populate.",
-                })
+                return JSONResponse(
+                    {
+                        "total_findings": 0,
+                        "by_severity": {},
+                        "by_owasp": {},
+                        "agents_run": [],
+                        "correlation_count": 0,
+                        "findings": [],
+                        "cached": True,
+                        "last_scan": "",
+                        "hint": "No scan data yet. Run `p security` or ?fresh=1 to populate.",
+                    }
+                )
 
         # Explicit fresh run
         import patchi.core.security.security_agents  # noqa
@@ -1270,7 +1276,7 @@ async def get_health_breakdown(request: Request) -> JSONResponse:
 async def get_report_markdown(request: Request) -> JSONResponse:
     """Generate a markdown report from latest scan data."""
     try:
-        from datetime import datetime, timezone
+        from datetime import datetime
 
         from patchi.core import health as hm
         from patchi.core import memory as mem
@@ -1299,7 +1305,7 @@ async def get_report_markdown(request: Request) -> JSONResponse:
                 "route_count": brain.get("route_count", 0),
                 "last_scan": brain.get("last_scan", "never"),
             },
-            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "generated_at": datetime.now(UTC).isoformat(),
             "finding_totals": totals,
             "findings": findings_by_sev,
             "patches": [
@@ -1643,14 +1649,18 @@ async def get_notifications(request: Request):
         channels = load_channels(config)
         html = request.headers.get("hx-request", "").lower() == "true"
         if html:
-            lst = "".join(
-                f'<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 8px;border-bottom:1px solid var(--border)">'
-                f'<span><strong>{ch.get("name","?")}</strong> <span style="color:var(--text-dim)">{ch.get("type","?")}</span></span>'
-                f'<span style="font-size:11px;color:var(--text-dim)">{ch.get("min_severity","medium")}+</span>'
-                f'</div>'
-                for ch in [channel_to_dict(ch) for ch in channels]
-            ) or '<div style="color:var(--text-dim);padding:8px">No notification channels configured.</div>'
+            lst = (
+                "".join(
+                    f'<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 8px;border-bottom:1px solid var(--border)">'
+                    f'<span><strong>{ch.get("name", "?")}</strong> <span style="color:var(--text-dim)">{ch.get("type", "?")}</span></span>'
+                    f'<span style="font-size:11px;color:var(--text-dim)">{ch.get("min_severity", "medium")}+</span>'
+                    f"</div>"
+                    for ch in [channel_to_dict(ch) for ch in channels]
+                )
+                or '<div style="color:var(--text-dim);padding:8px">No notification channels configured.</div>'
+            )
             from fastapi.responses import HTMLResponse
+
             return HTMLResponse(lst)
         return JSONResponse(
             {
@@ -1660,6 +1670,7 @@ async def get_notifications(request: Request):
     except Exception as e:
         if html:
             from fastapi.responses import HTMLResponse
+
             return HTMLResponse(f'<div style="color:var(--critical)">Error: {e}</div>')
         return JSONResponse({"channels": [], "error": str(e)})
 

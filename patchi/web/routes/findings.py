@@ -36,6 +36,7 @@ async def findings(request: Request):
     all_findings = []
     try:
         from patchi.core.security.remediation import get_remediation, get_remediation_confidence
+
         has_remediation = True
     except ImportError:
         has_remediation = False
@@ -69,6 +70,7 @@ async def findings(request: Request):
     # Attach remediation to each chain step
     try:
         from patchi.core.security.remediation import get_remediation_for_step
+
         for chain in chains:
             chain["remediations"] = [
                 get_remediation_for_step(step) for step in chain.get("steps", [])

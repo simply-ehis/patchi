@@ -17,9 +17,10 @@ the scan pipeline's behaviour when no prior state exists.
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Iterable
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from patchi.core.brain.framework import StackInfo
@@ -41,6 +42,7 @@ from patchi.core.brain.layered_brain import (
 from patchi.core.brain.layered_brain import build_layers as _full_build
 
 _log = logging.getLogger("patchi.brain.brain_watcher")
+
 
 @dataclass
 class ChangeSet:
@@ -66,7 +68,7 @@ class ChangeSet:
         }
 
     @classmethod
-    def from_dict(cls, d: dict) -> "ChangeSet":
+    def from_dict(cls, d: dict) -> ChangeSet:
         return cls(
             changed=set(d.get("changed", [])),
             added=set(d.get("added", [])),
@@ -74,7 +76,7 @@ class ChangeSet:
         )
 
 
-def file_snapshot(file_infos: Iterable["FileInfo"], root: Path) -> dict[str, str]:
+def file_snapshot(file_infos: Iterable[FileInfo], root: Path) -> dict[str, str]:
     """Map each file path to its content hash for change detection."""
     from patchi.core.brain.scanner import _file_content_hash
 
@@ -134,10 +136,10 @@ def affected_layers(changes: ChangeSet, old_layers: dict[str, Layer]) -> set[str
 
 def update_layers(
     old_layers: dict[str, Layer],
-    file_infos: list["FileInfo"],
-    graph: "ImportGraph | None" = None,
-    routes: list["RouteInfo"] | None = None,
-    stack: "StackInfo | None" = None,
+    file_infos: list[FileInfo],
+    graph: ImportGraph | None = None,
+    routes: list[RouteInfo] | None = None,
+    stack: StackInfo | None = None,
     changes: ChangeSet | None = None,
 ) -> tuple[dict[str, Layer], list[str]]:
     """Incrementally rebuild layers, reusing cached summaries where possible.
@@ -196,11 +198,7 @@ def update_layers(
 
     for sub, mods in subsystem_modules.items():
         all_children_present = all(m in new_layers for m in mods)
-        if (
-            sub in old_layers
-            and sub not in changed_subsystems
-            and all_children_present
-        ):
+        if sub in old_layers and sub not in changed_subsystems and all_children_present:
             new_layers[sub] = old_layers[sub]  # no-op: reuse cached summary
         else:
             sub_files: list[str] = []
@@ -273,10 +271,10 @@ def update_layers(
 
 def build_or_update(
     old_layers: dict[str, Layer],
-    file_infos: list["FileInfo"],
-    graph: "ImportGraph | None" = None,
-    routes: list["RouteInfo"] | None = None,
-    stack: "StackInfo | None" = None,
+    file_infos: list[FileInfo],
+    graph: ImportGraph | None = None,
+    routes: list[RouteInfo] | None = None,
+    stack: StackInfo | None = None,
     old_snapshot: dict[str, str] | None = None,
     root: Path | None = None,
 ) -> tuple[dict[str, Layer], list[str], ChangeSet]:

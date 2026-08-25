@@ -10,6 +10,7 @@ from .base import BaseTypeChecker, _node_text, make_finding
 
 _log = logging.getLogger("patchi.brain.php")
 
+
 class PHPTypeChecker(BaseTypeChecker):
     language = "php"
 
@@ -29,32 +30,54 @@ class PHPTypeChecker(BaseTypeChecker):
         ntype = node.type
         if ntype in ("function_definition", "method_declaration"):
             line = node.start_point[0] + 1
-            name = _node_text(source, self._child_by_type(node, "name")) if self._child_by_type(node, "name") else ""
-            return_type = self._child_by_type(node, "primitive_type") or self._child_by_type(node, "named_type") or self._child_by_type(node, "nullable_type")
+            name = (
+                _node_text(source, self._child_by_type(node, "name"))
+                if self._child_by_type(node, "name")
+                else ""
+            )
+            return_type = (
+                self._child_by_type(node, "primitive_type")
+                or self._child_by_type(node, "named_type")
+                or self._child_by_type(node, "nullable_type")
+            )
             if return_type is None:
-                findings.append(make_finding(
-                    finding_type="missing_return_type",
-                    file=file_path, line=line,
-                    title="Missing return type hint",
-                    description=f"Function '{name}' is missing a PHP return type hint",
-                    evidence=f"function {name}()",
-                    severity="low",
-                ))
+                findings.append(
+                    make_finding(
+                        finding_type="missing_return_type",
+                        file=file_path,
+                        line=line,
+                        title="Missing return type hint",
+                        description=f"Function '{name}' is missing a PHP return type hint",
+                        evidence=f"function {name}()",
+                        severity="low",
+                    )
+                )
             # Check param type hints
             params = self._child_by_type(node, "formal_parameters")
             if params:
                 for child in params.children:
                     if child.type == "simple_parameter":
-                        ptype = self._child_by_type(child, "primitive_type") or self._child_by_type(child, "named_type") or self._child_by_type(child, "nullable_type")
+                        ptype = (
+                            self._child_by_type(child, "primitive_type")
+                            or self._child_by_type(child, "named_type")
+                            or self._child_by_type(child, "nullable_type")
+                        )
                         if ptype is None:
-                            param_name = _node_text(source, self._child_by_type(child, "variable_name")) if self._child_by_type(child, "variable_name") else "?"
-                            findings.append(make_finding(
-                                finding_type="missing_param_type",
-                                file=file_path, line=line,
-                                title="Missing parameter type hint",
-                                description=f"Parameter '{param_name}' in '{name}' missing type hint",
-                                severity="low",
-                            ))
+                            param_name = (
+                                _node_text(source, self._child_by_type(child, "variable_name"))
+                                if self._child_by_type(child, "variable_name")
+                                else "?"
+                            )
+                            findings.append(
+                                make_finding(
+                                    finding_type="missing_param_type",
+                                    file=file_path,
+                                    line=line,
+                                    title="Missing parameter type hint",
+                                    description=f"Parameter '{param_name}' in '{name}' missing type hint",
+                                    severity="low",
+                                )
+                            )
         for child in node.children:
             self._walk(child, source, file_path, findings)
 

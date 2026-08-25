@@ -32,34 +32,85 @@ _log = logging.getLogger("patchi.noise_filter")
 
 # ── Category definitions ─────────────────────────────────────────────────────
 
-_LOCKFILE_NAMES = frozenset({
-    "package-lock.json", "npm-shrinkwrap.json", "yarn.lock", "pnpm-lock.yaml",
-    "poetry.lock", "Pipfile.lock", "Cargo.lock", "composer.lock",
-    "Gemfile.lock", "packages.locker", "mix.lock", "go.sum", "bun.lockb",
-})
+_LOCKFILE_NAMES = frozenset(
+    {
+        "package-lock.json",
+        "npm-shrinkwrap.json",
+        "yarn.lock",
+        "pnpm-lock.yaml",
+        "poetry.lock",
+        "Pipfile.lock",
+        "Cargo.lock",
+        "composer.lock",
+        "Gemfile.lock",
+        "packages.locker",
+        "mix.lock",
+        "go.sum",
+        "bun.lockb",
+    }
+)
 
 _GENERATED_PATTERNS = (
-    "*.min.js", "*.min.css", "*.min.mjs", "*.map", "*.bundle.js",
-    "*_pb2.py", "*_pb2_grpc.py", "*_pb.py", "*.pb.go", "*_pb2.pyi",
-    "*-gen.py", "*_gen.go", "*.generated.*", "*.g.cs", "*.Designer.cs",
-    "*.snap", "__snapshots__/*",
+    "*.min.js",
+    "*.min.css",
+    "*.min.mjs",
+    "*.map",
+    "*.bundle.js",
+    "*_pb2.py",
+    "*_pb2_grpc.py",
+    "*_pb.py",
+    "*.pb.go",
+    "*_pb2.pyi",
+    "*-gen.py",
+    "*_gen.go",
+    "*.generated.*",
+    "*.g.cs",
+    "*.Designer.cs",
+    "*.snap",
+    "__snapshots__/*",
 )
 
 _DOC_PATTERNS = ("*.md", "*.mdx", "*.rst", "*.txt", "*.csv", "*.log")
 
 _TEST_FILE_PATTERNS = (
-    "test_*.py", "*_test.py", "*_test.go", "*_test.dart",
-    "conftest.py", "test_utils.py",
-    "*.spec.ts", "*.spec.tsx", "*.spec.js", "*.spec.jsx", "*.spec.mjs",
-    "*.test.ts", "*.test.tsx", "*.test.js", "*.test.jsx", "*.test.mjs",
-    "*_test.rb", "*.spec.rb",
+    "test_*.py",
+    "*_test.py",
+    "*_test.go",
+    "*_test.dart",
+    "conftest.py",
+    "test_utils.py",
+    "*.spec.ts",
+    "*.spec.tsx",
+    "*.spec.js",
+    "*.spec.jsx",
+    "*.spec.mjs",
+    "*.test.ts",
+    "*.test.tsx",
+    "*.test.js",
+    "*.test.jsx",
+    "*.test.mjs",
+    "*_test.rb",
+    "*.spec.rb",
 )
 
-_TEST_DIR_MARKERS = frozenset({
-    "test", "tests", "spec", "specs", "fixtures", "fixture",
-    "testdata", "test_data", "mock", "mocks", "stubs",
-    "__snapshots__", "__tests__", "testing",
-})
+_TEST_DIR_MARKERS = frozenset(
+    {
+        "test",
+        "tests",
+        "spec",
+        "specs",
+        "fixtures",
+        "fixture",
+        "testdata",
+        "test_data",
+        "mock",
+        "mocks",
+        "stubs",
+        "__snapshots__",
+        "__tests__",
+        "testing",
+    }
+)
 
 
 def classify(path: str) -> str | None:
@@ -126,7 +177,7 @@ class NoiseFilter:
     def __init__(self, root=None, config: dict | None = None):
         cfg = (config or {}).get("noise_filter", {})
         self.enabled: bool = bool(cfg.get("enabled", True))
-        self.mode: str = cfg.get("mode", "cap")          # "cap" | "discard"
+        self.mode: str = cfg.get("mode", "cap")  # "cap" | "discard"
         self.skip_tests: bool = bool(cfg.get("skip_tests", True))
         self.skip_locks: bool = bool(cfg.get("skip_locks", True))
         self.skip_generated: bool = bool(cfg.get("skip_generated", True))

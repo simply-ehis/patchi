@@ -35,7 +35,9 @@ def run(json_output: bool = False) -> int:
     from patchi.core.security.intent_analyzer import IntentAnalyzer, findings_from_report
 
     con.print()
-    con.print("[bold #C8621A]Business Logic Analysis[/bold #C8621A]  [dim]routes + auth intent[/dim]")
+    con.print(
+        "[bold #C8621A]Business Logic Analysis[/bold #C8621A]  [dim]routes + auth intent[/dim]"
+    )
     con.print()
 
     analyzer = IntentAnalyzer()

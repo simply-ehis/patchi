@@ -45,30 +45,67 @@ GLOBAL_STORE = Path.home() / ".patchi" / "global_ignores.json"
 _SOURCE_PREFIXES = ("src", "app", "lib", "pkg", "internal")
 
 # Executable extensions = files that can contain running code.
-_EXEC_EXTENSIONS = frozenset({
-    ".py", ".js", ".jsx", ".ts", ".tsx", ".mjs", ".cjs", ".go", ".rs",
-    ".java", ".kt", ".kts", ".rb", ".php", ".cs", ".swift", ".dart",
-    ".c", ".h", ".cpp", ".hpp", ".cc", ".sh", ".ps1", ".lua", ".sql",
-})
+_EXEC_EXTENSIONS = frozenset(
+    {
+        ".py",
+        ".js",
+        ".jsx",
+        ".ts",
+        ".tsx",
+        ".mjs",
+        ".cjs",
+        ".go",
+        ".rs",
+        ".java",
+        ".kt",
+        ".kts",
+        ".rb",
+        ".php",
+        ".cs",
+        ".swift",
+        ".dart",
+        ".c",
+        ".h",
+        ".cpp",
+        ".hpp",
+        ".cc",
+        ".sh",
+        ".ps1",
+        ".lua",
+        ".sql",
+    }
+)
 
 # Data/config extensions — presence signals tool-owned content.
-_DATA_EXTENSIONS = frozenset({
-    ".yaml", ".yml", ".json", ".toml", ".ini", ".cfg", ".md", ".rst",
-    ".txt", ".xml", ".csv", ".lock",
-})
+_DATA_EXTENSIONS = frozenset(
+    {
+        ".yaml",
+        ".yml",
+        ".json",
+        ".toml",
+        ".ini",
+        ".cfg",
+        ".md",
+        ".rst",
+        ".txt",
+        ".xml",
+        ".csv",
+        ".lock",
+    }
+)
 
-_MIN_SAMPLES_FOR_GLOBAL = 3          # distinct projects before a pattern goes global
-_MIN_FILES_FOR_COMPOSITION = 4       # dir must hold this many files to judge
-_DATA_RATIO_THRESHOLD = 0.9          # >=90% data files => tool-owned candidate
+_MIN_SAMPLES_FOR_GLOBAL = 3  # distinct projects before a pattern goes global
+_MIN_FILES_FOR_COMPOSITION = 4  # dir must hold this many files to judge
+_DATA_RATIO_THRESHOLD = 0.9  # >=90% data files => tool-owned candidate
 
 
 @dataclass
 class IgnoreEntry:
     """One learned/user ignore decision with provenance."""
 
-    pattern: str                       # glob, matched against rel paths
-    category: str                      # generated|lockfile|docs|tests|data_dir|...
-    source: str                        # static|git|fp_stats|composition|user
+    pattern: str  # glob, matched against rel paths
+    category: str  # generated|lockfile|docs|tests|data_dir|...
+    source: str  # static|git|fp_stats|composition|user
     reason: str = ""
     confidence: float = 1.0
     added_at: float = field(default_factory=time.time)
@@ -77,7 +114,7 @@ class IgnoreEntry:
         return asdict(self)
 
     @classmethod
-    def from_dict(cls, d: dict) -> "IgnoreEntry":
+    def from_dict(cls, d: dict) -> IgnoreEntry:
         return cls(
             pattern=d.get("pattern", ""),
             category=d.get("category", ""),
@@ -147,10 +184,15 @@ class IgnoreLearner:
         from patchi.core.brain.languages import DEFAULT_IGNORE_DIRS
 
         for d in sorted(DEFAULT_IGNORE_DIRS):
-            self.entries.append(IgnoreEntry(
-                pattern=f"{d}/**", category="environment", source="static",
-                reason="default ignored directory", confidence=1.0,
-            ))
+            self.entries.append(
+                IgnoreEntry(
+                    pattern=f"{d}/**",
+                    category="environment",
+                    source="static",
+                    reason="default ignored directory",
+                    confidence=1.0,
+                )
+            )
 
     # ── Layer 2: gitignore ──────────────────────────────────────────────────
 
@@ -166,7 +208,7 @@ class IgnoreLearner:
             line = raw.strip()
             if not line or line.startswith("#"):
                 continue
-            if line.startswith("!"):       # negation: git says KEEP — obey it
+            if line.startswith("!"):  # negation: git says KEEP — obey it
                 continue
             pat = line.rstrip("/")
             if not pat or "*" not in pat and "/" in pat:
@@ -176,17 +218,22 @@ class IgnoreLearner:
                 pat = f"**/{pat}/**" if "/" not in line else f"{pat}/**"
             else:
                 pat = f"**/{line}" if "/" not in line else line
-            self.entries.append(IgnoreEntry(
-                pattern=pat.replace("\\", "/"), category="gitignored", source="git",
-                reason=".gitignore", confidence=0.9,
-            ))
+            self.entries.append(
+                IgnoreEntry(
+                    pattern=pat.replace("\\", "/"),
+                    category="gitignored",
+                    source="git",
+                    reason=".gitignore",
+                    confidence=0.9,
+                )
+            )
 
     # ── Layer 3: false-positive statistics ──────────────────────────────────
 
     def _fp_stats_rules(self, known_fps: list[dict]) -> None:
         dir_total: dict[str, int] = {}
         dir_rejected: dict[str, int] = {}
-        name_hits: dict[str, set] = {}     # dirname -> {other parent dirs}
+        name_hits: dict[str, set] = {}  # dirname -> {other parent dirs}
 
         for e in known_fps:
             f = (e.get("file") or "").replace("\\", "/")
@@ -213,23 +260,32 @@ class IgnoreLearner:
             guarded = d.split("/")[0] in _SOURCE_PREFIXES and ratio < 0.95
             if guarded:
                 continue  # safety rail: source prefixes need overwhelming evidence
-            self.entries.append(IgnoreEntry(
-                pattern=f"{d}/**", category="fp_source", source="fp_stats",
-                reason=f"{rejected}/{total} findings here were rejected",
-                confidence=min(0.95, 0.5 + 0.05 * rejected),
-            ))
+            self.entries.append(
+                IgnoreEntry(
+                    pattern=f"{d}/**",
+                    category="fp_source",
+                    source="fp_stats",
+                    reason=f"{rejected}/{total} findings here were rejected",
+                    confidence=min(0.95, 0.5 + 0.05 * rejected),
+                )
+            )
             # Generalize: same dir name already noisy elsewhere?
             leaf = d.rsplit("/", 1)[-1]
             others = name_hits.get(leaf, set()) - {d.rsplit("/", 1)[0] if "/" in d else "."}
-            if leaf and leaf not in _SOURCE_PREFIXES and (
-                len(others) >= 1 or self._seen_elsewhere(leaf)
+            if (
+                leaf
+                and leaf not in _SOURCE_PREFIXES
+                and (len(others) >= 1 or self._seen_elsewhere(leaf))
             ):
-                self.entries.append(IgnoreEntry(
-                    pattern=f"**/{leaf}/**", category="fp_source",
-                    source="fp_stats",
-                    reason=f"generalized from noisy '{leaf}' dirs across locations",
-                    confidence=0.75,
-                ))
+                self.entries.append(
+                    IgnoreEntry(
+                        pattern=f"**/{leaf}/**",
+                        category="fp_source",
+                        source="fp_stats",
+                        reason=f"generalized from noisy '{leaf}' dirs across locations",
+                        confidence=0.75,
+                    )
+                )
 
     def _seen_elsewhere(self, name: str) -> bool:
         """Has this dir name been learned noisy in another project (global)?"""
@@ -262,14 +318,18 @@ class IgnoreLearner:
             if exec_count == 0 and data_count / len(files) >= _DATA_RATIO_THRESHOLD:
                 if d.split("/")[0] in _SOURCE_PREFIXES:
                     continue  # rail: never judge src/app/... as data-only
-                self.entries.append(IgnoreEntry(
-                    pattern=f"{d}/**", category="data_dir", source="composition",
-                    reason=(
-                        f"{len(files)} files, zero executable "
-                        f"({data_count}/{len(files)} config/data)"
-                    ),
-                    confidence=0.85,
-                ))
+                self.entries.append(
+                    IgnoreEntry(
+                        pattern=f"{d}/**",
+                        category="data_dir",
+                        source="composition",
+                        reason=(
+                            f"{len(files)} files, zero executable "
+                            f"({data_count}/{len(files)} config/data)"
+                        ),
+                        confidence=0.85,
+                    )
+                )
 
     # ── Merge global + user (user always wins) ──────────────────────────────
 

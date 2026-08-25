@@ -112,7 +112,7 @@ class Layer:
         }
 
     @classmethod
-    def from_dict(cls, d: dict) -> "Layer":
+    def from_dict(cls, d: dict) -> Layer:
         return cls(
             name=d["name"],
             level=d["level"],
@@ -151,8 +151,8 @@ def _lang_value(lang) -> str:
 def _module_summary(
     module_name: str,
     files: list[str],
-    fi_map: dict[str, "FileInfo"],
-    routes: list["RouteInfo"],
+    fi_map: dict[str, FileInfo],
+    routes: list[RouteInfo],
 ) -> tuple[str, str, list[str]]:
     """Produce (summary, purpose, public_api) for a module."""
     langs: dict[str, int] = {}
@@ -193,10 +193,10 @@ def _module_summary(
 
 
 def build_layers(
-    file_infos: list["FileInfo"],
-    graph: "ImportGraph | None" = None,
-    routes: list["RouteInfo"] | None = None,
-    stack: "StackInfo | None" = None,
+    file_infos: list[FileInfo],
+    graph: ImportGraph | None = None,
+    routes: list[RouteInfo] | None = None,
+    stack: StackInfo | None = None,
 ) -> dict[str, Layer]:
     """Build the full layered brain from scan results.
 
@@ -269,9 +269,7 @@ def build_layers(
 
     # ── Level 4: project ───────────────────────────────────────────────────────
     fw_names = (
-        ", ".join(f.name for f in stack.frameworks[:5])
-        if stack and stack.frameworks
-        else "unknown"
+        ", ".join(f.name for f in stack.frameworks[:5]) if stack and stack.frameworks else "unknown"
     )
     runtime = stack.runtime if stack else "unknown"
     project_summary = (
@@ -298,7 +296,7 @@ def build_layers(
     return layers
 
 
-def _dominant_language(files: list[str], fi_map: dict[str, "FileInfo"]) -> str:
+def _dominant_language(files: list[str], fi_map: dict[str, FileInfo]) -> str:
     counts: dict[str, int] = {}
     for fp in files:
         fi = fi_map.get(fp)
@@ -312,7 +310,7 @@ def _dominant_language(files: list[str], fi_map: dict[str, "FileInfo"]) -> str:
 
 def _populate_dependencies(
     layers: dict[str, Layer],
-    graph: "ImportGraph",
+    graph: ImportGraph,
     module_to_subsystem: dict[str, str],
 ) -> None:
     """Derive module- and subsystem-level dependency edges from the graph."""
@@ -377,9 +375,7 @@ def layers_to_dict(layers: dict[str, Layer]) -> dict:
 
 
 def layers_from_dict(data: dict) -> dict[str, Layer]:
-    return {
-        name: Layer.from_dict(d) for name, d in data.get("layers", {}).items()
-    }
+    return {name: Layer.from_dict(d) for name, d in data.get("layers", {}).items()}
 
 
 # ── Query helpers (used by the reasoning engine in later phases) ───────────────
@@ -413,9 +409,7 @@ def find_layers_for_file(layers: dict[str, Layer], file_path: str) -> list[str]:
     return [name for name, layer in layers.items() if file_path in layer.files]
 
 
-def detect_stale_layers(
-    old_layers: dict[str, Layer], new_layers: dict[str, Layer]
-) -> list[str]:
+def detect_stale_layers(old_layers: dict[str, Layer], new_layers: dict[str, Layer]) -> list[str]:
     """Compare two layer sets and return names whose hash changed."""
     stale: list[str] = []
     for name, layer in new_layers.items():

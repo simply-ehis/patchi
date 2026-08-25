@@ -37,6 +37,7 @@ from rich.text import Text
 
 _log = logging.getLogger("patchi.cli.live_audit")
 
+
 class PhaseStatus(Enum):
     PENDING = "○"
     RUNNING = "◉"
@@ -144,7 +145,7 @@ class LiveAuditDisplay:
                 )
 
                 # Expanded body if this phase is running AND the running phase
-                is_expanded = (phase_name == expanded)
+                is_expanded = phase_name == expanded
                 if is_expanded and phase.log_lines:
                     body = self._render_expanded_body(phase)
                     rows.append(Group(header, body))
@@ -158,9 +159,13 @@ class LiveAuditDisplay:
                 style="dim",
             )
             grid = Group(*rows, Text(""), footer)
-            return Panel(grid, title=f"[bold]{color.get('audit', '#C8621A')}audit[/bold]", border_style="dim")
+            return Panel(
+                grid, title=f"[bold]{color.get('audit', '#C8621A')}audit[/bold]", border_style="dim"
+            )
 
-    def _render_header_line(self, name: str, status: PhaseStatus, summary: str, duration_ms: int) -> RenderableType:
+    def _render_header_line(
+        self, name: str, status: PhaseStatus, summary: str, duration_ms: int
+    ) -> RenderableType:
         """A single-line phase header: ◉ Scan → 47 files · 1.2s"""
         color = _PHASE_COLORS.get(name, "white")
         status_icon = status.value

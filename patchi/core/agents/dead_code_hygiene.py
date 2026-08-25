@@ -72,6 +72,7 @@ import logging
 
 _log = logging.getLogger("patchi.agents.dead_code_hygiene")
 
+
 def _get_lang(file_path: str) -> str | None:
     # handle .cc, .cxx etc
     for k, v in _EXT_LANG.items():
@@ -88,7 +89,9 @@ def _find_unreachable_code(content: str, lang: str) -> list[dict]:
 
 
 _FEATURE_FLAG_PATTERNS = [
-    re.compile(r"(?:is|has|show|enable|disable|use|with)_?\w*\s*[=:]\s*(true|false)", re.IGNORECASE),
+    re.compile(
+        r"(?:is|has|show|enable|disable|use|with)_?\w*\s*[=:]\s*(true|false)", re.IGNORECASE
+    ),
     re.compile(r"const\s+\w+\s*=\s*(true|false)", re.IGNORECASE),
     re.compile(r"let\s+\w+\s*=\s*(true|false)", re.IGNORECASE),
     re.compile(r"var\s+\w+\s*=\s*(true|false)", re.IGNORECASE),
@@ -113,7 +116,7 @@ def _find_feature_flags(content: str) -> list[dict]:
 
 def _detect_duplicate_deps(root: Path) -> list[dict]:
     findings: list[dict] = []
-    for manifest, eco in _DEP_MANIFESTS.items():
+    for manifest, _eco in _DEP_MANIFESTS.items():
         for fp in safe_rglob(root, manifest):
             try:
                 content = fp.read_text(encoding="utf-8")
@@ -166,12 +169,14 @@ def _detect_outdated_deps(root: Path) -> list[dict]:
                 major = ver.lstrip("^~").split(".")[0]
                 try:
                     if int(major) <= 1:
-                        findings.append({
-                            "file": fp.relative_to(root).as_posix(),
-                            "name": name,
-                            "current": ver,
-                            "suggestion": "Consider updating — may be behind major versions",
-                        })
+                        findings.append(
+                            {
+                                "file": fp.relative_to(root).as_posix(),
+                                "name": name,
+                                "current": ver,
+                                "suggestion": "Consider updating — may be behind major versions",
+                            }
+                        )
                 except ValueError:
                     pass
     return findings
@@ -188,12 +193,14 @@ def _detect_supply_chain_risk(root: Path) -> list[dict]:
             continue
         for name in deps:
             if re.search(r"(?:typo|safety|test|dummy|placeholder)", name, re.IGNORECASE):
-                findings.append({
-                    "file": fp.relative_to(root).as_posix(),
-                    "name": name,
-                    "risk": "suspicious_name",
-                    "detail": f"Package name '{name}' looks suspicious — possible typosquatting",
-                })
+                findings.append(
+                    {
+                        "file": fp.relative_to(root).as_posix(),
+                        "name": name,
+                        "risk": "suspicious_name",
+                        "detail": f"Package name '{name}' looks suspicious — possible typosquatting",
+                    }
+                )
     return findings
 
 
@@ -203,7 +210,9 @@ class DeadCodeHygieneAgent(BaseAgent):
 
     group = AgentGroup.SCANNER
     name = "DeadCodeHygieneAgent"
-    description = "Detect unreachable code, feature flag archaeology, duplicate/outdated/suspicious deps"
+    description = (
+        "Detect unreachable code, feature flag archaeology, duplicate/outdated/suspicious deps"
+    )
 
     def _run(self, inp: AgentInput, result: AgentResult) -> None:
         feature_flags: list[dict] = []
@@ -227,9 +236,7 @@ class DeadCodeHygieneAgent(BaseAgent):
                 _log.warning("DeadCodeHygieneAgent._run failed: %s", e)
                 continue
 
-            feature_flags.extend(
-                {"file": rel, **f} for f in _find_feature_flags(content)
-            )
+            feature_flags.extend({"file": rel, **f} for f in _find_feature_flags(content))
 
         duplicate_deps = _detect_duplicate_deps(inp.root)
         outdated_deps = _detect_outdated_deps(inp.root)

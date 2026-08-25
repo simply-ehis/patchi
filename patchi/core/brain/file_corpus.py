@@ -139,9 +139,7 @@ class FileCorpus:
                         (cat != "tests" and self._exclude_noise)
                         or (cat == "tests" and self._exclude_tests)
                     ):
-                        self.noise_excluded[cat] = (
-                            self.noise_excluded.get(cat, 0) + 1
-                        )
+                        self.noise_excluded[cat] = self.noise_excluded.get(cat, 0) + 1
                         continue
 
                 try:
@@ -174,10 +172,7 @@ class FileCorpus:
         """
         if not self._built or learner is None:
             return 0
-        doomed = [
-            rel for rel in self._entries
-            if learner.matches(rel) is not None
-        ]
+        doomed = [rel for rel in self._entries if learner.matches(rel) is not None]
         for rel in doomed:
             del self._entries[rel]
         self.learner_excluded += len(doomed)

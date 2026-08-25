@@ -7,6 +7,7 @@ def register_detector(language: str):
     def decorator(cls: type[BaseRouteDetector]):
         _DETECTOR_REGISTRY[language] = cls
         return cls
+
     return decorator
 
 

@@ -63,13 +63,15 @@ def run_list(json_output: bool = False, **_kw) -> None:
         stored_patterns = {e.get("pattern") for e in entries}
         for e in learner.entries:
             if e.pattern not in stored_patterns:
-                entries.append({
-                    "pattern": e.pattern,
-                    "category": e.category,
-                    "source": e.source,
-                    "reason": f"{e.reason} (derived, not stored)",
-                    "confidence": e.confidence,
-                })
+                entries.append(
+                    {
+                        "pattern": e.pattern,
+                        "category": e.category,
+                        "source": e.source,
+                        "reason": f"{e.reason} (derived, not stored)",
+                        "confidence": e.confidence,
+                    }
+                )
     except Exception:  # noqa: BLE001 — listing must work even if learner fails
         pass
 
@@ -90,8 +92,13 @@ def run_list(json_output: bool = False, **_kw) -> None:
     table.add_column("Conf", justify="right", width=5)
     table.add_column("Reason", style="dim")
 
-    order = {"user": "#4ADE80", "fp_stats": "#FF8C42", "composition": "#FACC15",
-             "git": "#B8A898", "static": "dim"}
+    order = {
+        "user": "#4ADE80",
+        "fp_stats": "#FF8C42",
+        "composition": "#FACC15",
+        "git": "#B8A898",
+        "static": "dim",
+    }
     for e in sorted(entries, key=lambda x: (x.get("source") != "user", -x.get("confidence", 0))):
         src = e.get("source", "?")
         color = order.get(src, "dim")
@@ -105,8 +112,10 @@ def run_list(json_output: bool = False, **_kw) -> None:
 
     con.print(table)
     user_n = sum(1 for e in entries if e.get("source") == "user")
-    con.print(f"\n[dim]{len(entries)} entries ({user_n} user overrides). "
-              f"User entries always win over learned ones.[/dim]")
+    con.print(
+        f"\n[dim]{len(entries)} entries ({user_n} user overrides). "
+        f"User entries always win over learned ones.[/dim]"
+    )
 
 
 def run_add(path: str, **_kw) -> None:
@@ -123,19 +132,22 @@ def run_add(path: str, **_kw) -> None:
     if any(e.get("pattern") == pattern for e in entries):
         con.print(f"[yellow]Already ignored:[/yellow] {pattern}")
         return
-    entries.append({
-        "pattern": pattern,
-        "category": "user",
-        "source": "user",
-        "reason": "added via p ignore add",
-        "confidence": 1.0,
-        "added_at": time.time(),
-    })
+    entries.append(
+        {
+            "pattern": pattern,
+            "category": "user",
+            "source": "user",
+            "reason": "added via p ignore add",
+            "confidence": 1.0,
+            "added_at": time.time(),
+        }
+    )
     # also drop conflicting learned rows so the override is durable on disk
     base = pattern.removesuffix("/**")
     kept_learned = [
-        e for e in _load(root) if e.get("source") != "user"
-        and not e.get("pattern", "").startswith(base)
+        e
+        for e in _load(root)
+        if e.get("source") != "user" and not e.get("pattern", "").startswith(base)
     ]
     _save(root, kept_learned + entries)
     con.print(f"[green]✓ Never scanning[/green] {pattern} [dim](user override)[/dim]")
@@ -149,7 +161,8 @@ def run_remove(path: str, **_kw) -> None:
 
     before = _load(root)
     after = [
-        e for e in before
+        e
+        for e in before
         if e.get("pattern", "").removesuffix("/**") != base
         and not e.get("pattern", "").startswith(base + "/**")
     ]
@@ -158,5 +171,7 @@ def run_remove(path: str, **_kw) -> None:
         con.print(f"[yellow]No ignore entry matches[/yellow] {pattern}")
         return
     _save(root, after)
-    con.print(f"[green]✓ Removed {removed} entr{'y' if removed == 1 else 'ies'}[/green] — "
-              f"{pattern} will be scanned again.")
+    con.print(
+        f"[green]✓ Removed {removed} entr{'y' if removed == 1 else 'ies'}[/green] — "
+        f"{pattern} will be scanned again."
+    )

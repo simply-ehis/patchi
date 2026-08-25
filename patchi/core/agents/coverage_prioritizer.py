@@ -27,6 +27,7 @@ from .base import (
 
 _log = logging.getLogger("patchi.agents.coverage_prioritizer")
 
+
 def _get_git_churn(root: Path, max_files: int = 100) -> dict[str, int]:
     """Get commit count per file via git log."""
     churn: dict[str, int] = defaultdict(int)
@@ -41,7 +42,19 @@ def _get_git_churn(root: Path, max_files: int = 100) -> dict[str, int]:
         for line in result.stdout.splitlines():
             line = line.strip()
             if line and Path(line).suffix in (
-                ".py", ".js", ".ts", ".rs", ".go", ".java", ".c", ".cpp", ".swift", ".rb", ".svelte", ".jsx", ".tsx",
+                ".py",
+                ".js",
+                ".ts",
+                ".rs",
+                ".go",
+                ".java",
+                ".c",
+                ".cpp",
+                ".swift",
+                ".rb",
+                ".svelte",
+                ".jsx",
+                ".tsx",
             ):
                 churn[line] += 1
     except Exception as e:
@@ -93,11 +106,20 @@ def _parse_coverage_json(root: Path) -> set[str]:
     for cov_file in safe_rglob(root, "coverage.json"):
         try:
             import json
+
             data = json.loads(cov_file.read_text(encoding="utf-8"))
             for file_path, info in data.items():
                 if isinstance(info, dict):
-                    total = info.get("lines", {}).get("total", 0) or info.get("totals", {}).get("lines", {}).get("count", 0) or 0
-                    covered = info.get("lines", {}).get("covered", 0) or info.get("totals", {}).get("lines", {}).get("covered", 0) or 0
+                    total = (
+                        info.get("lines", {}).get("total", 0)
+                        or info.get("totals", {}).get("lines", {}).get("count", 0)
+                        or 0
+                    )
+                    covered = (
+                        info.get("lines", {}).get("covered", 0)
+                        or info.get("totals", {}).get("lines", {}).get("covered", 0)
+                        or 0
+                    )
                     if total > 0 and (covered / total * 100) < 80:
                         low_coverage.add(file_path)
         except Exception as e:

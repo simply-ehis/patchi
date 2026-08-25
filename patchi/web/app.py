@@ -31,7 +31,10 @@ def create_app(root: Path) -> FastAPI:
     import os
 
     from fastapi.middleware.cors import CORSMiddleware
-    allowed_origins = os.environ.get("PATCHI_CORS_ORIGINS", "http://localhost:3000,http://localhost:8000").split(",")
+
+    allowed_origins = os.environ.get(
+        "PATCHI_CORS_ORIGINS", "http://localhost:3000,http://localhost:8000"
+    ).split(",")
     app.add_middleware(
         CORSMiddleware,
         allow_origins=allowed_origins,
@@ -50,17 +53,20 @@ def create_app(root: Path) -> FastAPI:
         init_cost(root)
     except Exception as e:
         import logging
+
         logging.getLogger("patchi.web").warning("Cost tracker init failed: %s", e)
 
     # Initialize tenant manager for multi-project isolation
     try:
         from patchi.core.tenant import get_tenant_manager
+
         tenant_mgr = get_tenant_manager()
         tenant_mgr.register_project(root)
         tenant_mgr.switch_project(root)
         app.state.tenant_manager = tenant_mgr
     except Exception as e:
         import logging
+
         logging.getLogger("patchi.web").warning("Tenant manager init failed: %s", e)
 
     # Initialize SpawnManager (was only in dead server.py — now wired here)
@@ -70,6 +76,7 @@ def create_app(root: Path) -> FastAPI:
         app.state.spawner = SpawnManager(root)
     except Exception as e:
         import logging
+
         logging.getLogger("patchi.web").warning("SpawnManager init failed: %s", e)
         app.state.spawner = None
 
@@ -77,11 +84,13 @@ def create_app(root: Path) -> FastAPI:
     try:
         from patchi.core import config as _cfg
         from patchi.core.security.request_interceptor import RequestInterceptor
+
         _conf = _cfg.load(root)
         interceptor = RequestInterceptor(root, _conf)
         interceptor.enabled = _conf.get("pipeline", {}).get("interceptor", {}).get("enabled", False)
         app.state.interceptor = interceptor
         if interceptor.enabled:
+
             @app.middleware("http")
             async def security_interceptor(request, call_next):
                 result = interceptor.inspect_request(
@@ -91,15 +100,21 @@ def create_app(root: Path) -> FastAPI:
                 )
                 if result["should_block"]:
                     from fastapi.responses import JSONResponse
+
                     return JSONResponse(
                         status_code=403,
                         content={"error": "Request blocked", "reason": result["reason"]},
                     )
                 return await call_next(request)
+
             import logging as _lg
-            _lg.getLogger("patchi.web").info("RequestInterceptor enabled — %d paths excluded", len(interceptor.exclude_paths))
+
+            _lg.getLogger("patchi.web").info(
+                "RequestInterceptor enabled — %d paths excluded", len(interceptor.exclude_paths)
+            )
     except Exception as e:
         import logging
+
         logging.getLogger("patchi.web").warning("RequestInterceptor init failed: %s", e)
         app.state.interceptor = None
 
@@ -119,7 +134,8 @@ def create_app(root: Path) -> FastAPI:
 
     # Mount static files
     import sys as _sys
-    if getattr(_sys, 'frozen', False):
+
+    if getattr(_sys, "frozen", False):
         _base = Path(_sys._MEIPASS) / "patchi" / "web"
     else:
         _base = Path(__file__).parent
@@ -133,6 +149,7 @@ def create_app(root: Path) -> FastAPI:
     from patchi.web.api.fix import router as fix_router
     from patchi.web.api.guard import router as guard_api_router
     from patchi.web.api.hosted import router as hosted_router
+
     try:
         from patchi.web.api.hosted_v2 import router as hosted_v2_router
     except Exception as e:
@@ -144,6 +161,7 @@ def create_app(root: Path) -> FastAPI:
     from patchi.web.routes.brain import router as brain_router
     from patchi.web.routes.chat import router as chat_router
     from patchi.web.routes.dashboard import router as dashboard_router
+
     try:
         from patchi.web.routes.dashboard_v2 import router as dashboard_v2_router
     except Exception as e:  # v2 dashboard is additive — never break core UI
@@ -218,6 +236,7 @@ def create_app(root: Path) -> FastAPI:
             await ws.send_text(json.dumps({"event": "status.update", "data": status_data}))
         except Exception as e:
             import logging
+
             logging.getLogger("patchi.web").warning("Initial status push failed: %s", e)
         try:
             while True:
@@ -271,6 +290,7 @@ def create_app(root: Path) -> FastAPI:
                             )
                         except Exception as e:
                             import logging
+
                             logging.getLogger("patchi.web").warning("Status fetch failed: %s", e)
 
                     elif action == "queue.clear":
@@ -360,6 +380,7 @@ def create_app(root: Path) -> FastAPI:
 
                 except (ValueError, KeyError) as e:
                     import logging
+
                     logging.getLogger("patchi.web").warning("Malformed WS message: %s", e)
 
         except WebSocketDisconnect:

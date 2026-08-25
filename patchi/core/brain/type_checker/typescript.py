@@ -10,6 +10,7 @@ from .base import BaseTypeChecker, _node_text, make_finding
 
 _log = logging.getLogger("patchi.brain.typescript")
 
+
 class TypeScriptChecker(BaseTypeChecker):
     language = "typescript"
 
@@ -28,7 +29,9 @@ class TypeScriptChecker(BaseTypeChecker):
 
         return findings
 
-    def _walk(self, node: Any, buf: bytes, source: str, file_path: str, findings: list[dict]) -> None:
+    def _walk(
+        self, node: Any, buf: bytes, source: str, file_path: str, findings: list[dict]
+    ) -> None:
         ntype = node.type
 
         if ntype in ("function_declaration", "method_definition"):
@@ -54,7 +57,9 @@ class TypeScriptChecker(BaseTypeChecker):
         for child in node.named_children if hasattr(node, "named_children") else node.children:
             self._walk(child, buf, source, file_path, findings)
 
-    def _check_function(self, node: Any, buf: bytes, source: str, file_path: str, findings: list[dict]) -> None:
+    def _check_function(
+        self, node: Any, buf: bytes, source: str, file_path: str, findings: list[dict]
+    ) -> None:
         line = node.start_point[0] + 1
 
         # Check return type annotation
@@ -64,33 +69,41 @@ class TypeScriptChecker(BaseTypeChecker):
         if return_type is None and name != "constructor":
             body_text = _node_text(source, node)
             if "=>" not in body_text:
-                findings.append(make_finding(
-                    finding_type="missing_return_type",
-                    file=file_path, line=line,
-                    title="Missing return type on function",
-                    description=f"Function '{name}' is missing an explicit return type annotation",
-                    evidence=f"function {name}",
-                    severity="low",
-                ))
+                findings.append(
+                    make_finding(
+                        finding_type="missing_return_type",
+                        file=file_path,
+                        line=line,
+                        title="Missing return type on function",
+                        description=f"Function '{name}' is missing an explicit return type annotation",
+                        evidence=f"function {name}",
+                        severity="low",
+                    )
+                )
         elif return_type is not None:
             # return_type is a type_annotation node — look inside for "any"
             inner = self._find_predefined_type(return_type)
             if inner == "any":
-                findings.append(make_finding(
-                    finding_type="explicit_any",
-                    file=file_path, line=line,
-                    title="Function returns 'any'",
-                    description=f"Function '{name}' returns 'any' type",
-                    evidence=f"function {name}: any",
-                    severity="medium",
-                ))
+                findings.append(
+                    make_finding(
+                        finding_type="explicit_any",
+                        file=file_path,
+                        line=line,
+                        title="Function returns 'any'",
+                        description=f"Function '{name}' returns 'any' type",
+                        evidence=f"function {name}: any",
+                        severity="medium",
+                    )
+                )
 
         # Check parameters for 'any'
         params = self._child_by_field(node, "parameters")
         if params:
             self._check_parameter_list(params, buf, source, file_path, findings)
 
-    def _check_arrow_function(self, node: Any, buf: bytes, source: str, file_path: str, findings: list[dict]) -> None:
+    def _check_arrow_function(
+        self, node: Any, buf: bytes, source: str, file_path: str, findings: list[dict]
+    ) -> None:
         line = node.start_point[0] + 1
 
         return_type = self._child_by_field(node, "return_type")
@@ -99,30 +112,38 @@ class TypeScriptChecker(BaseTypeChecker):
             if parent and parent.type == "variable_declarator":
                 name_node = self._child_by_field(parent, "name")
                 name = _node_text(source, name_node) if name_node else "anonymous"
-                findings.append(make_finding(
-                    finding_type="missing_return_type",
-                    file=file_path, line=line,
-                    title="Missing return type on arrow function",
-                    description=f"Arrow function '{name}' is missing explicit return type",
-                    evidence=f"const {name} = ... =>",
-                    severity="low",
-                ))
+                findings.append(
+                    make_finding(
+                        finding_type="missing_return_type",
+                        file=file_path,
+                        line=line,
+                        title="Missing return type on arrow function",
+                        description=f"Arrow function '{name}' is missing explicit return type",
+                        evidence=f"const {name} = ... =>",
+                        severity="low",
+                    )
+                )
         elif return_type is not None:
             inner = self._find_predefined_type(return_type)
             if inner == "any":
-                findings.append(make_finding(
-                    finding_type="explicit_any",
-                    file=file_path, line=line,
-                    title="Arrow function returns 'any'",
-                    description="Arrow function returns 'any' type",
-                    severity="medium",
-                ))
+                findings.append(
+                    make_finding(
+                        finding_type="explicit_any",
+                        file=file_path,
+                        line=line,
+                        title="Arrow function returns 'any'",
+                        description="Arrow function returns 'any' type",
+                        severity="medium",
+                    )
+                )
 
         params = self._child_by_field(node, "parameters")
         if params:
             self._check_parameter_list(params, buf, source, file_path, findings)
 
-    def _check_variable(self, node: Any, buf: bytes, source: str, file_path: str, findings: list[dict]) -> None:
+    def _check_variable(
+        self, node: Any, buf: bytes, source: str, file_path: str, findings: list[dict]
+    ) -> None:
         line = node.start_point[0] + 1
         name_node = self._child_by_field(node, "name")
         name = _node_text(source, name_node) if name_node else ""
@@ -131,28 +152,41 @@ class TypeScriptChecker(BaseTypeChecker):
         type_node = self._child_by_field(node, "type")
         if type_node is None:
             value_node = self._child_by_field(node, "value")
-            if value_node and value_node.type not in ("arrow_function", "function", "object", "array"):
-                findings.append(make_finding(
-                    finding_type="missing_type",
-                    file=file_path, line=line,
-                    title="Missing type annotation on variable",
-                    description=f"Variable '{name}' is missing explicit type annotation",
-                    evidence=f"{name} = ...",
-                    severity="low",
-                ))
+            if value_node and value_node.type not in (
+                "arrow_function",
+                "function",
+                "object",
+                "array",
+            ):
+                findings.append(
+                    make_finding(
+                        finding_type="missing_type",
+                        file=file_path,
+                        line=line,
+                        title="Missing type annotation on variable",
+                        description=f"Variable '{name}' is missing explicit type annotation",
+                        evidence=f"{name} = ...",
+                        severity="low",
+                    )
+                )
         elif type_node is not None:
             inner = self._find_predefined_type(type_node)
             if inner == "any":
-                findings.append(make_finding(
-                    finding_type="explicit_any",
-                    file=file_path, line=line,
-                    title="Variable typed as 'any'",
-                    description=f"Variable '{name}' is explicitly typed as 'any'",
-                    evidence=f"{name}: any",
-                    severity="medium",
-                ))
+                findings.append(
+                    make_finding(
+                        finding_type="explicit_any",
+                        file=file_path,
+                        line=line,
+                        title="Variable typed as 'any'",
+                        description=f"Variable '{name}' is explicitly typed as 'any'",
+                        evidence=f"{name}: any",
+                        severity="medium",
+                    )
+                )
 
-    def _check_parameter(self, node: Any, buf: bytes, source: str, file_path: str, findings: list[dict]) -> None:
+    def _check_parameter(
+        self, node: Any, buf: bytes, source: str, file_path: str, findings: list[dict]
+    ) -> None:
         line = node.start_point[0] + 1
         name_node = self._child_by_field(node, "name")
         name = _node_text(source, name_node) if name_node else ""
@@ -161,17 +195,26 @@ class TypeScriptChecker(BaseTypeChecker):
         if type_node is not None:
             inner = self._find_predefined_type(type_node)
             if inner == "any":
-                findings.append(make_finding(
-                    finding_type="explicit_any",
-                    file=file_path, line=line,
-                    title="Parameter typed as 'any'",
-                    description=f"Parameter '{name}' is typed as 'any'",
-                    evidence=f"{name}: any",
-                    severity="medium",
-                ))
+                findings.append(
+                    make_finding(
+                        finding_type="explicit_any",
+                        file=file_path,
+                        line=line,
+                        title="Parameter typed as 'any'",
+                        description=f"Parameter '{name}' is typed as 'any'",
+                        evidence=f"{name}: any",
+                        severity="medium",
+                    )
+                )
 
-    def _check_parameter_list(self, params_node: Any, buf: bytes, source: str, file_path: str, findings: list[dict]) -> None:
-        for child in params_node.named_children if hasattr(params_node, "named_children") else params_node.children:
+    def _check_parameter_list(
+        self, params_node: Any, buf: bytes, source: str, file_path: str, findings: list[dict]
+    ) -> None:
+        for child in (
+            params_node.named_children
+            if hasattr(params_node, "named_children")
+            else params_node.children
+        ):
             if child.type == "required_parameter":
                 self._check_parameter(child, buf, source, file_path, findings)
             elif child.type == "optional_parameter":
@@ -204,39 +247,52 @@ class TypeScriptChecker(BaseTypeChecker):
                 _log.warning("TypeScriptChecker._child_text_by_field failed: %s", e)
         return ""
 
-    def _check_as_cast(self, node: Any, buf: bytes, source: str, file_path: str, findings: list[dict]) -> None:
+    def _check_as_cast(
+        self, node: Any, buf: bytes, source: str, file_path: str, findings: list[dict]
+    ) -> None:
         line = node.start_point[0] + 1
         type_node = self._child_by_field(node, "type")
         type_name = "unknown"
         if type_node:
             type_name = _node_text(source, type_node)[:50]
-        findings.append(make_finding(
-            finding_type="unsafe_cast",
-            file=file_path, line=line,
-            title="Unsafe type cast",
-            description=f"Using 'as' type assertion to '{type_name}'",
-            evidence=f"as {type_name}",
-            severity="medium",
-        ))
+        findings.append(
+            make_finding(
+                finding_type="unsafe_cast",
+                file=file_path,
+                line=line,
+                title="Unsafe type cast",
+                description=f"Using 'as' type assertion to '{type_name}'",
+                evidence=f"as {type_name}",
+                severity="medium",
+            )
+        )
 
-    def _check_comment(self, node: Any, buf: bytes, source: str, file_path: str, findings: list[dict]) -> None:
+    def _check_comment(
+        self, node: Any, buf: bytes, source: str, file_path: str, findings: list[dict]
+    ) -> None:
         line = node.start_point[0] + 1
         text = _node_text(source, node)
         if "@ts-ignore" in text:
-            findings.append(make_finding(
-                finding_type="ts_ignore",
-                file=file_path, line=line,
-                title="@ts-ignore suppression",
-                description="TypeScript compiler error suppressed with @ts-ignore",
-                evidence=text.strip(),
-                severity="medium",
-            ))
+            findings.append(
+                make_finding(
+                    finding_type="ts_ignore",
+                    file=file_path,
+                    line=line,
+                    title="@ts-ignore suppression",
+                    description="TypeScript compiler error suppressed with @ts-ignore",
+                    evidence=text.strip(),
+                    severity="medium",
+                )
+            )
         elif "@ts-expect-error" in text:
-            findings.append(make_finding(
-                finding_type="ts_ignore",
-                file=file_path, line=line,
-                title="@ts-expect-error suppression",
-                description="TypeScript compiler error suppressed with @ts-expect-error",
-                evidence=text.strip(),
-                severity="medium",
-            ))
+            findings.append(
+                make_finding(
+                    finding_type="ts_ignore",
+                    file=file_path,
+                    line=line,
+                    title="@ts-expect-error suppression",
+                    description="TypeScript compiler error suppressed with @ts-expect-error",
+                    evidence=text.strip(),
+                    severity="medium",
+                )
+            )

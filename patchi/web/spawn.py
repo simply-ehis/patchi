@@ -132,5 +132,8 @@ class SpawnManager:
             return any(r["path"] == node_id and r.get("enabled", True) for r in restrictions)
         except Exception as e:
             import logging
-            logging.getLogger("patchi.web.spawn").warning("Restriction check failed for %s: %s", node_id, e)
+
+            logging.getLogger("patchi.web.spawn").warning(
+                "Restriction check failed for %s: %s", node_id, e
+            )
             return False

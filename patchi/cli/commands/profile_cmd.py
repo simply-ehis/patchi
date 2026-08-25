@@ -54,10 +54,15 @@ def run(
         return
 
     if json_output:
-        con.print(json.dumps({
-            "summary": summary,
-            "agents": {k: v.to_dict() for k, v in profiles.items()},
-        }, indent=2))
+        con.print(
+            json.dumps(
+                {
+                    "summary": summary,
+                    "agents": {k: v.to_dict() for k, v in profiles.items()},
+                },
+                indent=2,
+            )
+        )
         return
 
     con.print()
@@ -88,17 +93,13 @@ def run(
     for name, p in sorted(profiles.items(), key=lambda x: -x[1].run_count):
         acc_str = f"{p.accuracy * 100:.0f}%" if p.run_count >= 3 else "n/a"
         acc_color = (
-            "green" if p.accuracy >= 0.8
-            else "yellow" if p.accuracy >= 0.5
-            else "red"
-        ) if p.run_count >= 3 else "dim"
+            ("green" if p.accuracy >= 0.8 else "yellow" if p.accuracy >= 0.5 else "red")
+            if p.run_count >= 3
+            else "dim"
+        )
 
         p95_str = f"{p.p95_wall_ms:.0f}ms"
-        p95_color = (
-            "red" if p.p95_wall_ms > 5000
-            else "yellow" if p.p95_wall_ms > 2000
-            else ""
-        )
+        p95_color = "red" if p.p95_wall_ms > 5000 else "yellow" if p.p95_wall_ms > 2000 else ""
 
         table.add_row(
             name,

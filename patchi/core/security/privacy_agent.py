@@ -82,27 +82,29 @@ class PrivacyAgent(BaseAgent):
 
         result.status = AgentStatus.SUCCEEDED
         result.findings = findings
-        result.data.update({
-            "privacy_findings": len(
-                [
-                    f
-                    for f in findings
-                    if any(
-                        word in f.title.lower()
-                        for word in [
-                            "privacy",
-                            "personal",
-                            "data",
-                            "consent",
-                            "retention",
-                            "subject",
-                            "gdpr",
-        ]
+        result.data.update(
+            {
+                "privacy_findings": len(
+                    [
+                        f
+                        for f in findings
+                        if any(
+                            word in f.title.lower()
+                            for word in [
+                                "privacy",
+                                "personal",
+                                "data",
+                                "consent",
+                                "retention",
+                                "subject",
+                                "gdpr",
+                            ]
+                        )
+                    ]
+                ),
+                "needs_ai": False,
+            }
         )
-        ]
-            ),
-            "needs_ai": False,
-        })
         return
 
     def _should_skip_file(self, file_path: str, inp: AgentInput) -> bool:
@@ -210,7 +212,7 @@ class PrivacyAgent(BaseAgent):
         for i, line in enumerate(lines, 1):
             for pattern, description, severity in consent_patterns:
                 matches = re.finditer(pattern, line, re.IGNORECASE)
-                for match in matches:
+                for _match in matches:
                     # Check if this relates to consent implementation
                     if any(
                         consent_word in line.lower()
@@ -267,7 +269,7 @@ class PrivacyAgent(BaseAgent):
         for i, line in enumerate(lines, 1):
             for pattern, description, severity in retention_patterns:
                 matches = re.finditer(pattern, line, re.IGNORECASE)
-                for match in matches:
+                for _match in matches:
                     findings.append(
                         make_finding(
                             severity=severity,
@@ -310,7 +312,7 @@ class PrivacyAgent(BaseAgent):
         for i, line in enumerate(lines, 1):
             for pattern, description, severity in rights_patterns:
                 matches = re.finditer(pattern, line, re.IGNORECASE)
-                for match in matches:
+                for _match in matches:
                     findings.append(
                         make_finding(
                             severity=severity,
@@ -342,7 +344,7 @@ class PrivacyAgent(BaseAgent):
         for i, line in enumerate(lines, 1):
             for pattern, description, severity in privacy_config_patterns:
                 matches = re.finditer(pattern, line, re.IGNORECASE)
-                for match in matches:
+                for _match in matches:
                     findings.append(
                         make_finding(
                             severity=severity,

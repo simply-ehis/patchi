@@ -53,6 +53,7 @@ def _py_assign_target_name(node: _py_ast.AST) -> str:
         return ".".join(reversed(parts))
     return ""
 
+
 def parse_source(content: str, lang: Lang) -> Any | None:
     """Parse `content` with the tree-sitter parser for `lang`.
 
@@ -118,7 +119,7 @@ def get_call_arg(call_full_text: str, position: int = 0) -> str:
     """Extract the positional argument at `position` from a call text."""
     try:
         paren = call_full_text.index("(")
-        rest = call_full_text[paren + 1:]
+        rest = call_full_text[paren + 1 :]
         depth = 0
         arg_start = 0
         arg_idx = 0

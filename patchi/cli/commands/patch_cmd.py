@@ -10,6 +10,7 @@ Subcommands:
 
 from __future__ import annotations
 
+from datetime import UTC
 from pathlib import Path
 
 from rich.syntax import Syntax
@@ -32,6 +33,7 @@ _STATE_COLORS = {
     "rejected": "dim",
     "undone": "dim",
 }
+
 
 def run_list(root: Path | None = None, json_output: bool = False) -> None:
     """p patch list"""
@@ -80,6 +82,7 @@ def run_list(root: Path | None = None, json_output: bool = False) -> None:
     con.print()
     con.print("[dim]p patch show <id>  ·  p patch apply <id>  ·  p patch reject <id>[/dim]")
     con.print()
+
 
 def run_show(patch_id: str, root: Path | None = None, json_output: bool = False) -> None:
     """p patch show <id>"""
@@ -152,6 +155,7 @@ def run_show(patch_id: str, root: Path | None = None, json_output: bool = False)
 
     con.print()
 
+
 def run_apply(patch_id: str, root: Path | None = None) -> None:
     """p patch apply <id>"""
     try:
@@ -194,6 +198,7 @@ def run_apply(patch_id: str, root: Path | None = None) -> None:
         if result.rolled_back:
             con.print("[dim]Rolled back to original state.[/dim]")
 
+
 def run_reject(patch_id: str, root: Path | None = None) -> None:
     """p patch reject <id>"""
     try:
@@ -209,7 +214,7 @@ def run_reject(patch_id: str, root: Path | None = None) -> None:
 
     try:
         import json
-        from datetime import datetime, timezone
+        from datetime import datetime
 
         from patchi.core.constants import MEMORY_FILES, MemoryCategory
 
@@ -217,7 +222,7 @@ def run_reject(patch_id: str, root: Path | None = None) -> None:
         for p in patches:
             if p.get("id") == patch_id:
                 p["state"] = PatchState.REJECTED.value
-                p["rejected_at"] = datetime.now(timezone.utc).isoformat()
+                p["rejected_at"] = datetime.now(UTC).isoformat()
                 break
         mem_path = r / MEMORY_FILES[MemoryCategory.PATCHES]
         mem_path.write_text(json.dumps(patches, indent=2), encoding="utf-8")

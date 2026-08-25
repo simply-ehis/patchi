@@ -35,19 +35,31 @@ from .base import (
 
 # Languages that have type checkers
 TYPE_CHECKED_LANGS = {
-    Lang.TYPESCRIPT, Lang.PYTHON, Lang.JAVA, Lang.GO, Lang.RUST,
-    Lang.C_SHARP, Lang.KOTLIN, Lang.SWIFT, Lang.PHP, Lang.DART,
+    Lang.TYPESCRIPT,
+    Lang.PYTHON,
+    Lang.JAVA,
+    Lang.GO,
+    Lang.RUST,
+    Lang.C_SHARP,
+    Lang.KOTLIN,
+    Lang.SWIFT,
+    Lang.PHP,
+    Lang.DART,
 }
 
 # Source file patterns for type-checked languages
 TYPE_CHECKED_PATTERNS = [
-    "*.ts", "*.tsx", "*.mts",
-    "*.py", "*.pyw",
+    "*.ts",
+    "*.tsx",
+    "*.mts",
+    "*.py",
+    "*.pyw",
     "*.java",
     "*.go",
     "*.rs",
     "*.cs",
-    "*.kt", "*.kts",
+    "*.kt",
+    "*.kts",
     "*.swift",
     "*.php",
     "*.dart",
@@ -87,15 +99,18 @@ class TypeScanner(BaseAgent):
 
         result.status = AgentStatus.SUCCEEDED
         result.findings = findings
-        result.data.update({
-            "files_scanned": len(checked_files),
-            "findings_count": len(findings),
-            "needs_ai": True,
-        })
+        result.data.update(
+            {
+                "files_scanned": len(checked_files),
+                "findings_count": len(findings),
+                "needs_ai": True,
+            }
+        )
         return
 
     def _should_skip_file(self, file_path: str, inp: AgentInput) -> bool:
         from pathlib import PurePosixPath
+
         if any(p in DEFAULT_IGNORE_DIRS for p in PurePosixPath(file_path).parts):
             return True
         restrictions = inp.config.get("restrictions", [])

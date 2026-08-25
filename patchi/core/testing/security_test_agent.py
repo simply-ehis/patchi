@@ -238,7 +238,7 @@ class SecurityTestAgent(BaseAgent):
         # Rate limit for all
         templates.append(("rate_limit", _RATE_LIMIT_TEMPLATE))
 
-        for name, tpl in templates:
+        for _name, tpl in templates:
             tests.append(
                 tpl.format(
                     func=func,

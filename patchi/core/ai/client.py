@@ -18,8 +18,8 @@ import logging
 import os
 import re
 import time
-from pathlib import Path
 import urllib.request
+from pathlib import Path
 
 from loguru import logger
 
@@ -41,6 +41,7 @@ from patchi.core.constants import (
 
 _log = logging.getLogger("patchi.core.client")
 
+
 def _ensure_env_loaded(root: str | None = None) -> None:
     """Load .patchi/.env into os.environ if not already loaded."""
     _marker = "_PATCHI_ENV_LOADED"
@@ -49,9 +50,11 @@ def _ensure_env_loaded(root: str | None = None) -> None:
     try:
         if root is None:
             from patchi.core.config import find_project_root
+
             r = find_project_root()
         else:
             from pathlib import Path
+
             r = Path(root)
         if r is None:
             return
@@ -114,6 +117,7 @@ def call_ai(
     if root is None:
         try:
             from patchi.core.tenant import get_current_tenant_root
+
             root = get_current_tenant_root()
         except Exception:
             pass
@@ -122,6 +126,7 @@ def call_ai(
     # Use ModelRouter to select optimal model based on prompt complexity
     try:
         from patchi.core.ai.model_router import TaskComplexity, get_model_router
+
         _router = get_model_router(config, root=root)
         # Estimate complexity from prompt length
         total_len = len(system_prompt) + len(user_prompt)
@@ -143,7 +148,9 @@ def call_ai(
     # Try local Ollama first
     local_model = ai_config.get("local_model_name")
     if local_model:
-        result = _call_ollama(local_model, system_prompt, user_prompt, max_tokens, temperature, _remaining())
+        result = _call_ollama(
+            local_model, system_prompt, user_prompt, max_tokens, temperature, _remaining()
+        )
         if result:
             return result
 
@@ -168,7 +175,14 @@ def call_ai(
             )
         else:
             result = _call_openai_compat(
-                api_key, base_url, model, system_prompt, user_prompt, max_tokens, temperature, _remaining()
+                api_key,
+                base_url,
+                model,
+                system_prompt,
+                user_prompt,
+                max_tokens,
+                temperature,
+                _remaining(),
             )
 
         if result:
@@ -188,7 +202,9 @@ def call_ai(
     # Last resort — AI Horde community endpoint (free, keyless, always available)
     if ai_config.get("horde_fallback"):
         horde_key = ai_config.get("horde_key", AI_HORDE_ANON_KEY)
-        return _call_ai_horde(horde_key, f"{system_prompt}\n\n{user_prompt}", max_tokens, _remaining())
+        return _call_ai_horde(
+            horde_key, f"{system_prompt}\n\n{user_prompt}", max_tokens, _remaining()
+        )
 
     return None
 
@@ -239,7 +255,9 @@ def _call_ollama(
             headers={"Content-Type": "application/json"},
             method="POST",
         )
-        with urllib.request.urlopen(req, timeout=timeout if timeout is not None else HTTP_REQUEST_TIMEOUT) as resp:
+        with urllib.request.urlopen(
+            req, timeout=timeout if timeout is not None else HTTP_REQUEST_TIMEOUT
+        ) as resp:
             data = json.loads(resp.read())
             pt = estimate_tokens(system + user)
             ct = estimate_tokens(data.get("response", ""))
@@ -286,7 +304,9 @@ def _call_openai_compat(
             headers=headers,
             method="POST",
         )
-        with urllib.request.urlopen(req, timeout=timeout if timeout is not None else HTTP_REQUEST_TIMEOUT) as resp:
+        with urllib.request.urlopen(
+            req, timeout=timeout if timeout is not None else HTTP_REQUEST_TIMEOUT
+        ) as resp:
             data = json.loads(resp.read())
             usage = data.get("usage", {})
             pt = usage.get("prompt_tokens", 0) or estimate_tokens(system + user)
@@ -331,7 +351,9 @@ def _call_anthropic(
             headers=headers,
             method="POST",
         )
-        with urllib.request.urlopen(req, timeout=timeout if timeout is not None else HTTP_REQUEST_TIMEOUT) as resp:
+        with urllib.request.urlopen(
+            req, timeout=timeout if timeout is not None else HTTP_REQUEST_TIMEOUT
+        ) as resp:
             data = json.loads(resp.read())
             usage = data.get("usage", {})
             pt = usage.get("input_tokens", 0) or estimate_tokens(system + user)
@@ -377,7 +399,9 @@ def _call_ai_horde(
             headers={"apikey": api_key, "Content-Type": "application/json"},
             method="POST",
         )
-        with urllib.request.urlopen(req, timeout=timeout if timeout is not None else HTTP_REQUEST_TIMEOUT_SHORT) as resp:
+        with urllib.request.urlopen(
+            req, timeout=timeout if timeout is not None else HTTP_REQUEST_TIMEOUT_SHORT
+        ) as resp:
             data = json.loads(resp.read())
             job_id = data.get("id")
         if not job_id:
@@ -392,7 +416,9 @@ def _call_ai_horde(
                 f"{AI_HORDE_BASE_URL}/generate/text/status/{job_id}",
                 headers={"apikey": api_key},
             )
-            with urllib.request.urlopen(status_req, timeout=timeout if timeout is not None else HTTP_REQUEST_TIMEOUT_SHORT) as resp:
+            with urllib.request.urlopen(
+                status_req, timeout=timeout if timeout is not None else HTTP_REQUEST_TIMEOUT_SHORT
+            ) as resp:
                 status = json.loads(resp.read())
             if status.get("done"):
                 generations = status.get("generations", [])

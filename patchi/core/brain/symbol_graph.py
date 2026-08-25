@@ -19,7 +19,7 @@ import sqlite3
 import threading
 import time
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import StrEnum
 from pathlib import Path
 from typing import Any
 
@@ -86,7 +86,8 @@ import logging
 
 _log = logging.getLogger("patchi.brain.symbol_graph")
 
-class SymbolKind(str, Enum):
+
+class SymbolKind(StrEnum):
     FUNCTION = "function"
     ASYNC_FUNCTION = "async_function"
     METHOD = "method"
@@ -253,16 +254,16 @@ class SymbolGraph:
             new_symbols = self._extract_symbols(fi)
             for sym in new_symbols:
                 self._insert_symbol(conn, sym, rel)
-                old = next((s for s in old_symbols if s.name == sym.name and s.line == sym.line), None)
+                old = next(
+                    (s for s in old_symbols if s.name == sym.name and s.line == sym.line), None
+                )
                 if old and old.hash != sym.hash:
                     diff.modified.append(sym)
                 elif not old:
                     diff.added.append(sym)
 
             for sym in list(diff.removed):
-                still_exists = any(
-                    s.name == sym.name and s.line == sym.line for s in new_symbols
-                )
+                still_exists = any(s.name == sym.name and s.line == sym.line for s in new_symbols)
                 if still_exists:
                     diff.removed.remove(sym)
 
@@ -280,13 +281,9 @@ class SymbolGraph:
                 (name, file, line),
             )
         elif file:
-            cur = conn.execute(
-                "SELECT * FROM symbols WHERE name = ? AND file = ?", (name, file)
-            )
+            cur = conn.execute("SELECT * FROM symbols WHERE name = ? AND file = ?", (name, file))
         else:
-            cur = conn.execute(
-                "SELECT * FROM symbols WHERE name = ? LIMIT 1", (name,)
-            )
+            cur = conn.execute("SELECT * FROM symbols WHERE name = ? LIMIT 1", (name,))
         row = cur.fetchone()
         return self._row_to_symbol(row) if row else None
 
@@ -298,7 +295,8 @@ class SymbolGraph:
         """All symbols of a given kind."""
         conn = self._get_conn()
         cur = conn.execute(
-            "SELECT * FROM symbols WHERE kind = ? ORDER BY file, line", (kind.value if isinstance(kind, SymbolKind) else kind,)
+            "SELECT * FROM symbols WHERE kind = ? ORDER BY file, line",
+            (kind.value if isinstance(kind, SymbolKind) else kind,),
         )
         return [self._row_to_symbol(r) for r in cur.fetchall()]
 
@@ -440,30 +438,50 @@ class SymbolGraph:
         elif lang == Lang.RUBY:
             return self._extract_ruby(raw_bytes, content_str, fi.path)
         elif lang == Lang.PHP:
-            return self._extract_generic_ts(raw_bytes, content_str, fi.path, lang,
+            return self._extract_generic_ts(
+                raw_bytes,
+                content_str,
+                fi.path,
+                lang,
                 function_types={"function_definition"},
                 method_types={"method_declaration"},
                 class_types={"class_declaration"},
             )
         elif lang == Lang.C_SHARP:
-            return self._extract_generic_ts(raw_bytes, content_str, fi.path, lang,
+            return self._extract_generic_ts(
+                raw_bytes,
+                content_str,
+                fi.path,
+                lang,
                 method_types={"method_declaration"},
                 class_types={"class_declaration"},
             )
         elif lang == Lang.KOTLIN:
-            return self._extract_generic_ts(raw_bytes, content_str, fi.path, lang,
+            return self._extract_generic_ts(
+                raw_bytes,
+                content_str,
+                fi.path,
+                lang,
                 function_types={"function_declaration"},
                 method_types={"function_declaration"},
                 class_types={"class_declaration"},
             )
         elif lang == Lang.DART:
-            return self._extract_generic_ts(raw_bytes, content_str, fi.path, lang,
+            return self._extract_generic_ts(
+                raw_bytes,
+                content_str,
+                fi.path,
+                lang,
                 function_types={"function_declaration"},
                 method_types={"method_declaration"},
                 class_types={"class_definition"},
             )
         elif lang == Lang.BASH:
-            return self._extract_generic_ts(raw_bytes, content_str, fi.path, lang,
+            return self._extract_generic_ts(
+                raw_bytes,
+                content_str,
+                fi.path,
+                lang,
                 function_types={"function_definition"},
             )
         elif lang in (Lang.CSS, Lang.SQL):
@@ -471,9 +489,7 @@ class SymbolGraph:
         else:
             return []
 
-    def _extract_python(
-        self, raw_bytes: bytes, content_str: str, file: str
-    ) -> list[SymbolNode]:
+    def _extract_python(self, raw_bytes: bytes, content_str: str, file: str) -> list[SymbolNode]:
         """Python symbols via tree-sitter or ast."""
         symbols: list[SymbolNode] = []
 
@@ -506,13 +522,19 @@ class SymbolGraph:
                 end = getattr(node, "end_lineno", node.lineno) or node.lineno
                 sym = SymbolNode(
                     name=node.name,
-                    kind=SymbolKind.ASYNC_FUNCTION if isinstance(node, ast.AsyncFunctionDef) else SymbolKind.FUNCTION,
+                    kind=SymbolKind.ASYNC_FUNCTION
+                    if isinstance(node, ast.AsyncFunctionDef)
+                    else SymbolKind.FUNCTION,
                     file=file,
                     line=node.lineno,
                     end_line=end,
                     docstring=ast.get_docstring(node) or "",
                     language="python",
-                    decorators=[d.id if isinstance(d, ast.Name) else "" for d in node.decorator_list if isinstance(d, ast.Name)],
+                    decorators=[
+                        d.id if isinstance(d, ast.Name) else ""
+                        for d in node.decorator_list
+                        if isinstance(d, ast.Name)
+                    ],
                     params=[a.arg for a in node.args.args] if hasattr(node.args, "args") else [],
                     is_exported=not node.name.startswith("_") or file == "__init__.py",
                     hash=_content_hash(lines[node.lineno - 1] if node.lineno <= len(lines) else ""),
@@ -537,8 +559,13 @@ class SymbolGraph:
         return symbols
 
     def _walk_python(
-        self, node: Any, raw_bytes: bytes, content_str: str,
-        file: str, symbols: list[SymbolNode], parent_id: int | None
+        self,
+        node: Any,
+        raw_bytes: bytes,
+        content_str: str,
+        file: str,
+        symbols: list[SymbolNode],
+        parent_id: int | None,
     ) -> None:
         """Walk Python tree-sitter CST for function/class/route symbols."""
         buf = raw_bytes  # byte buffer for tree-sitter byte-offset lookups
@@ -561,7 +588,11 @@ class SymbolGraph:
             decorators = self._extract_decorators_buf(node, buf)
             params = self._extract_params_buf(node, buf)
             docstring = self._extract_docstring_buf(node, buf)
-            kind = SymbolKind.ASYNC_FUNCTION if node_type == "async_function_definition" else SymbolKind.FUNCTION
+            kind = (
+                SymbolKind.ASYNC_FUNCTION
+                if node_type == "async_function_definition"
+                else SymbolKind.FUNCTION
+            )
 
             is_route = any(d for d in decorators if "route" in d or "app." in d or "router." in d)
             sym_kind = SymbolKind.ROUTE if is_route else kind
@@ -589,7 +620,11 @@ class SymbolGraph:
             decorators = self._extract_decorators_buf(node, buf)
             for child in self._children(node):
                 child_type = getattr(child, "type", "") if hasattr(child, "type") else ""
-                if child_type in ("function_definition", "async_function_definition", "class_definition"):
+                if child_type in (
+                    "function_definition",
+                    "async_function_definition",
+                    "class_definition",
+                ):
                     self._walk_python(child, buf, content_str, file, symbols, parent_id)
                     if symbols:
                         symbols[-1].decorators = decorators
@@ -641,8 +676,13 @@ class SymbolGraph:
         return symbols
 
     def _walk_js_ts(
-        self, node: Any, raw_bytes: bytes, content_str: str,
-        file: str, symbols: list[SymbolNode], parent_id: int | None
+        self,
+        node: Any,
+        raw_bytes: bytes,
+        content_str: str,
+        file: str,
+        symbols: list[SymbolNode],
+        parent_id: int | None,
     ) -> None:
         buf = raw_bytes
         try:
@@ -659,8 +699,10 @@ class SymbolGraph:
             return
 
         func_types = {
-            "function_declaration", "function_definition",
-            "method_definition", "arrow_function",
+            "function_declaration",
+            "function_definition",
+            "method_definition",
+            "arrow_function",
             "generator_function_declaration",
         }
         class_types = {"class_declaration", "class_definition"}
@@ -671,7 +713,9 @@ class SymbolGraph:
             name = self._node_text_buf(name_node, buf) if name_node else "anon"
             decorators = self._extract_decorators_buf(node, buf)
             params = self._extract_params_buf(node, buf)
-            kind = SymbolKind.ASYNC_FUNCTION if node_type == "arrow_function" else SymbolKind.FUNCTION
+            kind = (
+                SymbolKind.ASYNC_FUNCTION if node_type == "arrow_function" else SymbolKind.FUNCTION
+            )
 
             is_route = any(d for d in decorators if "route" in d or "app." in d or "router." in d)
             sym_kind = SymbolKind.ROUTE if is_route else kind
@@ -721,9 +765,7 @@ class SymbolGraph:
             for child in self._children(node):
                 self._walk_js_ts(child, buf, content_str, file, symbols, parent_id)
 
-    def _extract_rust(
-        self, raw_bytes: bytes, content_str: str, file: str
-    ) -> list[SymbolNode]:
+    def _extract_rust(self, raw_bytes: bytes, content_str: str, file: str) -> list[SymbolNode]:
         symbols: list[SymbolNode] = []
         parser = get_parser(Lang.RUST)
         if not parser:
@@ -736,8 +778,13 @@ class SymbolGraph:
         return symbols
 
     def _walk_rust(
-        self, node: Any, raw_bytes: bytes, content_str: str,
-        file: str, symbols: list[SymbolNode], parent_id: int | None
+        self,
+        node: Any,
+        raw_bytes: bytes,
+        content_str: str,
+        file: str,
+        symbols: list[SymbolNode],
+        parent_id: int | None,
     ) -> None:
         buf = raw_bytes
         try:
@@ -784,7 +831,7 @@ class SymbolGraph:
                 hash=_node_hash_buf(node, buf),
             )
             if is_route and pending_route:
-                sym.decorators = [f"#[{pending_route[0].lower()}(\"{pending_route[1]}\")]"]
+                sym.decorators = [f'#[{pending_route[0].lower()}("{pending_route[1]}")]']
             symbols.append(sym)
 
         elif node_type == "struct_item":
@@ -822,7 +869,11 @@ class SymbolGraph:
             trait_node = self._child_by_field(node, "trait")
             name = ""
             if trait_node:
-                name = f"impl {self._node_text_buf(trait_node, buf)} for {self._node_text_buf(type_node, buf)}" if type_node else f"impl {self._node_text_buf(trait_node, buf)}"
+                name = (
+                    f"impl {self._node_text_buf(trait_node, buf)} for {self._node_text_buf(type_node, buf)}"
+                    if type_node
+                    else f"impl {self._node_text_buf(trait_node, buf)}"
+                )
             elif type_node:
                 name = f"impl {self._node_text_buf(type_node, buf)}"
             if name:
@@ -861,9 +912,7 @@ class SymbolGraph:
             for child in self._children(node):
                 self._walk_rust(child, buf, content_str, file, symbols, parent_id)
 
-    def _extract_svelte(
-        self, raw_bytes: bytes, content_str: str, file: str
-    ) -> list[SymbolNode]:
+    def _extract_svelte(self, raw_bytes: bytes, content_str: str, file: str) -> list[SymbolNode]:
         symbols: list[SymbolNode] = []
         parser = get_parser(Lang.SVELTE)
         if not parser:
@@ -876,8 +925,13 @@ class SymbolGraph:
         return symbols
 
     def _walk_svelte(
-        self, node: Any, raw_bytes: bytes, content_str: str,
-        file: str, symbols: list[SymbolNode], parent_id: int | None
+        self,
+        node: Any,
+        raw_bytes: bytes,
+        content_str: str,
+        file: str,
+        symbols: list[SymbolNode],
+        parent_id: int | None,
     ) -> None:
         buf = raw_bytes
         try:
@@ -897,7 +951,9 @@ class SymbolGraph:
         if node_type == "script_element":
             raw_tag = self._node_text_buf(node, buf)
             _SVELTE_SCRIPT_RE.match(raw_tag)
-            has_ts = "ts" in raw_tag[:80] or "lang=\"ts\"" in raw_tag[:80] or "lang='ts'" in raw_tag[:80]
+            has_ts = (
+                "ts" in raw_tag[:80] or 'lang="ts"' in raw_tag[:80] or "lang='ts'" in raw_tag[:80]
+            )
             js_lang = Lang.TYPESCRIPT if has_ts else Lang.JAVASCRIPT
             js_parser = get_parser(js_lang)
             if js_parser:
@@ -905,14 +961,18 @@ class SymbolGraph:
                 inner_bytes = inner_text.encode("utf-8")
                 try:
                     js_tree = js_parser.parse(inner_bytes)
-                    self._walk_js_ts(js_tree.root_node, inner_bytes, inner_text, file, symbols, parent_id)
+                    self._walk_js_ts(
+                        js_tree.root_node, inner_bytes, inner_text, file, symbols, parent_id
+                    )
                 except Exception as e:
                     _log.warning("SymbolGraph._walk_svelte failed: %s", e)
             return
 
         # Component tags (capitalized) → custom components referenced
         if node_type == "element":
-            tag_text = self._node_text_buf(node, buf).split()[0] if self._node_text_buf(node, buf) else ""
+            tag_text = (
+                self._node_text_buf(node, buf).split()[0] if self._node_text_buf(node, buf) else ""
+            )
             if tag_text and tag_text[0].isupper():
                 sym = SymbolNode(
                     name=tag_text,
@@ -931,9 +991,7 @@ class SymbolGraph:
 
     # ── Java extractor ─────────────────────────────────────────────────────
 
-    def _extract_java(
-        self, raw_bytes: bytes, content_str: str, file: str
-    ) -> list[SymbolNode]:
+    def _extract_java(self, raw_bytes: bytes, content_str: str, file: str) -> list[SymbolNode]:
         symbols: list[SymbolNode] = []
         parser = get_parser(Lang.JAVA)
         if not parser:
@@ -946,8 +1004,13 @@ class SymbolGraph:
         return symbols
 
     def _walk_java(
-        self, node: Any, raw_bytes: bytes, content_str: str,
-        file: str, symbols: list[SymbolNode], parent_id: int | None
+        self,
+        node: Any,
+        raw_bytes: bytes,
+        content_str: str,
+        file: str,
+        symbols: list[SymbolNode],
+        parent_id: int | None,
     ) -> None:
         buf = raw_bytes
         try:
@@ -966,9 +1029,14 @@ class SymbolGraph:
             name_node = self._child_by_field(node, "name")
             name = self._node_text_buf(name_node, buf) if name_node else "anon"
             sym = SymbolNode(
-                name=name, kind=SymbolKind.CLASS, file=file,
-                line=start_line, end_line=end_line, parent_id=parent_id,
-                language="java", hash=_node_hash_buf(node, buf),
+                name=name,
+                kind=SymbolKind.CLASS,
+                file=file,
+                line=start_line,
+                end_line=end_line,
+                parent_id=parent_id,
+                language="java",
+                hash=_node_hash_buf(node, buf),
             )
             symbols.append(sym)
             body = self._child_by_field(node, "body")
@@ -980,9 +1048,14 @@ class SymbolGraph:
             name_node = self._child_by_field(node, "name")
             name = self._node_text_buf(name_node, buf) if name_node else "anon"
             sym = SymbolNode(
-                name=f"interface {name}", kind=SymbolKind.CLASS, file=file,
-                line=start_line, end_line=end_line, parent_id=parent_id,
-                language="java", hash=_node_hash_buf(node, buf),
+                name=f"interface {name}",
+                kind=SymbolKind.CLASS,
+                file=file,
+                line=start_line,
+                end_line=end_line,
+                parent_id=parent_id,
+                language="java",
+                hash=_node_hash_buf(node, buf),
             )
             symbols.append(sym)
 
@@ -990,9 +1063,14 @@ class SymbolGraph:
             name_node = self._child_by_field(node, "name")
             name = self._node_text_buf(name_node, buf) if name_node else "anon"
             sym = SymbolNode(
-                name=f"@interface {name}", kind=SymbolKind.CLASS, file=file,
-                line=start_line, end_line=end_line, parent_id=parent_id,
-                language="java", hash=_node_hash_buf(node, buf),
+                name=f"@interface {name}",
+                kind=SymbolKind.CLASS,
+                file=file,
+                line=start_line,
+                end_line=end_line,
+                parent_id=parent_id,
+                language="java",
+                hash=_node_hash_buf(node, buf),
             )
             symbols.append(sym)
 
@@ -1000,14 +1078,25 @@ class SymbolGraph:
             name_node = self._child_by_field(node, "name")
             name = self._node_text_buf(name_node, buf) if name_node else "anon"
             decorators = self._extract_decorators_buf(node, buf)
-            is_route = any("GetMapping" in d or "PostMapping" in d or "RequestMapping" in d or
-                          "PutMapping" in d or "DeleteMapping" in d or "PatchMapping" in d
-                          for d in decorators)
+            is_route = any(
+                "GetMapping" in d
+                or "PostMapping" in d
+                or "RequestMapping" in d
+                or "PutMapping" in d
+                or "DeleteMapping" in d
+                or "PatchMapping" in d
+                for d in decorators
+            )
             kind = SymbolKind.ROUTE if is_route else SymbolKind.FUNCTION
             sym = SymbolNode(
-                name=name, kind=kind, file=file,
-                line=start_line, end_line=end_line, parent_id=parent_id,
-                language="java", decorators=decorators,
+                name=name,
+                kind=kind,
+                file=file,
+                line=start_line,
+                end_line=end_line,
+                parent_id=parent_id,
+                language="java",
+                decorators=decorators,
                 hash=_node_hash_buf(node, buf),
             )
             symbols.append(sym)
@@ -1018,9 +1107,14 @@ class SymbolGraph:
             name_node = self._child_by_field(node, "name")
             name = self._node_text_buf(name_node, buf) if name_node else "anon"
             sym = SymbolNode(
-                name=f"enum {name}", kind=SymbolKind.CLASS, file=file,
-                line=start_line, end_line=end_line, parent_id=parent_id,
-                language="java", hash=_node_hash_buf(node, buf),
+                name=f"enum {name}",
+                kind=SymbolKind.CLASS,
+                file=file,
+                line=start_line,
+                end_line=end_line,
+                parent_id=parent_id,
+                language="java",
+                hash=_node_hash_buf(node, buf),
             )
             symbols.append(sym)
 
@@ -1028,9 +1122,14 @@ class SymbolGraph:
             name_node = self._child_by_field(node, "name")
             name = self._node_text_buf(name_node, buf) if name_node else "anon"
             sym = SymbolNode(
-                name=f"record {name}", kind=SymbolKind.CLASS, file=file,
-                line=start_line, end_line=end_line, parent_id=parent_id,
-                language="java", hash=_node_hash_buf(node, buf),
+                name=f"record {name}",
+                kind=SymbolKind.CLASS,
+                file=file,
+                line=start_line,
+                end_line=end_line,
+                parent_id=parent_id,
+                language="java",
+                hash=_node_hash_buf(node, buf),
             )
             symbols.append(sym)
 
@@ -1040,9 +1139,7 @@ class SymbolGraph:
 
     # ── Go extractor ───────────────────────────────────────────────────────
 
-    def _extract_go(
-        self, raw_bytes: bytes, content_str: str, file: str
-    ) -> list[SymbolNode]:
+    def _extract_go(self, raw_bytes: bytes, content_str: str, file: str) -> list[SymbolNode]:
         symbols: list[SymbolNode] = []
         parser = get_parser(Lang.GO)
         if not parser:
@@ -1055,8 +1152,13 @@ class SymbolGraph:
         return symbols
 
     def _walk_go(
-        self, node: Any, raw_bytes: bytes, content_str: str,
-        file: str, symbols: list[SymbolNode], parent_id: int | None
+        self,
+        node: Any,
+        raw_bytes: bytes,
+        content_str: str,
+        file: str,
+        symbols: list[SymbolNode],
+        parent_id: int | None,
     ) -> None:
         buf = raw_bytes
         try:
@@ -1075,9 +1177,14 @@ class SymbolGraph:
             name_node = self._child_by_field(node, "name")
             name = self._node_text_buf(name_node, buf) if name_node else "anon"
             sym = SymbolNode(
-                name=name, kind=SymbolKind.FUNCTION, file=file,
-                line=start_line, end_line=end_line, parent_id=parent_id,
-                language="go", hash=_node_hash_buf(node, buf),
+                name=name,
+                kind=SymbolKind.FUNCTION,
+                file=file,
+                line=start_line,
+                end_line=end_line,
+                parent_id=parent_id,
+                language="go",
+                hash=_node_hash_buf(node, buf),
             )
             symbols.append(sym)
 
@@ -1089,9 +1196,14 @@ class SymbolGraph:
                 recv_text = self._node_text_buf(receiver_node, buf)
                 name = f"({recv_text}).{name}"
             sym = SymbolNode(
-                name=name, kind=SymbolKind.METHOD, file=file,
-                line=start_line, end_line=end_line, parent_id=parent_id,
-                language="go", hash=_node_hash_buf(node, buf),
+                name=name,
+                kind=SymbolKind.METHOD,
+                file=file,
+                line=start_line,
+                end_line=end_line,
+                parent_id=parent_id,
+                language="go",
+                hash=_node_hash_buf(node, buf),
             )
             symbols.append(sym)
 
@@ -1111,9 +1223,14 @@ class SymbolGraph:
                 elif ttype == "interface_type":
                     name = f"interface {name}"
             sym = SymbolNode(
-                name=name, kind=sub_kind, file=file,
-                line=start_line, end_line=end_line, parent_id=parent_id,
-                language="go", hash=_node_hash_buf(node, buf),
+                name=name,
+                kind=sub_kind,
+                file=file,
+                line=start_line,
+                end_line=end_line,
+                parent_id=parent_id,
+                language="go",
+                hash=_node_hash_buf(node, buf),
             )
             symbols.append(sym)
             if type_node:
@@ -1141,9 +1258,14 @@ class SymbolGraph:
         return symbols
 
     def _walk_c_cpp(
-        self, node: Any, raw_bytes: bytes, content_str: str,
-        file: str, symbols: list[SymbolNode], parent_id: int | None,
-        lang: Lang
+        self,
+        node: Any,
+        raw_bytes: bytes,
+        content_str: str,
+        file: str,
+        symbols: list[SymbolNode],
+        parent_id: int | None,
+        lang: Lang,
     ) -> None:
         buf = raw_bytes
         try:
@@ -1164,7 +1286,11 @@ class SymbolGraph:
             decl = self._child_by_field(node, "declarator")
             name = ""
             if decl:
-                name_node = self._child_by_field(decl, "declarator") if hasattr(decl, "child_by_field_name") else None
+                name_node = (
+                    self._child_by_field(decl, "declarator")
+                    if hasattr(decl, "child_by_field_name")
+                    else None
+                )
                 if not name_node:
                     name_node = self._child_by_field(decl, "name")
                 if name_node:
@@ -1172,9 +1298,14 @@ class SymbolGraph:
             if not name:
                 name = self._node_text_buf(node, buf)[:30]
             sym = SymbolNode(
-                name=name, kind=SymbolKind.FUNCTION, file=file,
-                line=start_line, end_line=end_line, parent_id=parent_id,
-                language=lang_str, hash=_node_hash_buf(node, buf),
+                name=name,
+                kind=SymbolKind.FUNCTION,
+                file=file,
+                line=start_line,
+                end_line=end_line,
+                parent_id=parent_id,
+                language=lang_str,
+                hash=_node_hash_buf(node, buf),
             )
             symbols.append(sym)
 
@@ -1182,9 +1313,14 @@ class SymbolGraph:
             name_node = self._child_by_field(node, "name")
             name = self._node_text_buf(name_node, buf) if name_node else "anon"
             sym = SymbolNode(
-                name=name, kind=SymbolKind.CLASS, file=file,
-                line=start_line, end_line=end_line, parent_id=parent_id,
-                language=lang_str, hash=_node_hash_buf(node, buf),
+                name=name,
+                kind=SymbolKind.CLASS,
+                file=file,
+                line=start_line,
+                end_line=end_line,
+                parent_id=parent_id,
+                language=lang_str,
+                hash=_node_hash_buf(node, buf),
             )
             symbols.append(sym)
 
@@ -1192,9 +1328,14 @@ class SymbolGraph:
             name_node = self._child_by_field(node, "name")
             name = self._node_text_buf(name_node, buf) if name_node else "anon"
             sym = SymbolNode(
-                name=name, kind=SymbolKind.CLASS, file=file,
-                line=start_line, end_line=end_line, parent_id=parent_id,
-                language=lang_str, hash=_node_hash_buf(node, buf),
+                name=name,
+                kind=SymbolKind.CLASS,
+                file=file,
+                line=start_line,
+                end_line=end_line,
+                parent_id=parent_id,
+                language=lang_str,
+                hash=_node_hash_buf(node, buf),
             )
             symbols.append(sym)
             body = self._child_by_field(node, "body")
@@ -1206,9 +1347,14 @@ class SymbolGraph:
             name_node = self._child_by_field(node, "name")
             name = self._node_text_buf(name_node, buf) if name_node else "anon"
             sym = SymbolNode(
-                name=f"namespace {name}", kind=SymbolKind.CLASS, file=file,
-                line=start_line, end_line=end_line, parent_id=parent_id,
-                language=lang_str, hash=_node_hash_buf(node, buf),
+                name=f"namespace {name}",
+                kind=SymbolKind.CLASS,
+                file=file,
+                line=start_line,
+                end_line=end_line,
+                parent_id=parent_id,
+                language=lang_str,
+                hash=_node_hash_buf(node, buf),
             )
             symbols.append(sym)
 
@@ -1216,9 +1362,7 @@ class SymbolGraph:
             for child in self._children(node):
                 self._walk_c_cpp(child, buf, content_str, file, symbols, parent_id, lang)
 
-    def _extract_swift(
-        self, raw_bytes: bytes, content_str: str, file: str
-    ) -> list[SymbolNode]:
+    def _extract_swift(self, raw_bytes: bytes, content_str: str, file: str) -> list[SymbolNode]:
         symbols: list[SymbolNode] = []
         parser = get_parser(Lang.SWIFT)
         if not parser:
@@ -1231,8 +1375,13 @@ class SymbolGraph:
         return symbols
 
     def _walk_swift(
-        self, node: Any, raw_bytes: bytes, content_str: str,
-        file: str, symbols: list[SymbolNode], parent_id: int | None
+        self,
+        node: Any,
+        raw_bytes: bytes,
+        content_str: str,
+        file: str,
+        symbols: list[SymbolNode],
+        parent_id: int | None,
     ) -> None:
         buf = raw_bytes
         try:
@@ -1255,9 +1404,14 @@ class SymbolGraph:
             name_node = self._child_by_field(node, "name")
             name = self._node_text_buf(name_node, buf) if name_node else "anon"
             sym = SymbolNode(
-                name=name, kind=SymbolKind.CLASS, file=file,
-                line=start_line, end_line=end_line, parent_id=parent_id,
-                language="swift", hash=_node_hash_buf(node, buf),
+                name=name,
+                kind=SymbolKind.CLASS,
+                file=file,
+                line=start_line,
+                end_line=end_line,
+                parent_id=parent_id,
+                language="swift",
+                hash=_node_hash_buf(node, buf),
             )
             symbols.append(sym)
             body = self._child_by_field(node, "body")
@@ -1269,9 +1423,14 @@ class SymbolGraph:
             name_node = self._child_by_field(node, "name")
             name = self._node_text_buf(name_node, buf) if name_node else "anon"
             sym = SymbolNode(
-                name=name, kind=SymbolKind.FUNCTION, file=file,
-                line=start_line, end_line=end_line, parent_id=parent_id,
-                language="swift", hash=_node_hash_buf(node, buf),
+                name=name,
+                kind=SymbolKind.FUNCTION,
+                file=file,
+                line=start_line,
+                end_line=end_line,
+                parent_id=parent_id,
+                language="swift",
+                hash=_node_hash_buf(node, buf),
             )
             symbols.append(sym)
             for child in self._children(node):
@@ -1282,9 +1441,14 @@ class SymbolGraph:
             name = self._node_text_buf(name_node, buf) if name_node else "anon"
             symbols.append(
                 SymbolNode(
-                    name=f"protocol {name}", kind=SymbolKind.CLASS, file=file,
-                    line=start_line, end_line=end_line, parent_id=parent_id,
-                    language="swift", hash=_node_hash_buf(node, buf),
+                    name=f"protocol {name}",
+                    kind=SymbolKind.CLASS,
+                    file=file,
+                    line=start_line,
+                    end_line=end_line,
+                    parent_id=parent_id,
+                    language="swift",
+                    hash=_node_hash_buf(node, buf),
                 )
             )
 
@@ -1294,9 +1458,7 @@ class SymbolGraph:
 
     # ── Ruby extractor ───────────────────────────────────────────────────────
 
-    def _extract_ruby(
-        self, raw_bytes: bytes, content_str: str, file: str
-    ) -> list[SymbolNode]:
+    def _extract_ruby(self, raw_bytes: bytes, content_str: str, file: str) -> list[SymbolNode]:
         symbols: list[SymbolNode] = []
         parser = get_parser(Lang.RUBY)
         if not parser:
@@ -1309,8 +1471,13 @@ class SymbolGraph:
         return symbols
 
     def _walk_ruby(
-        self, node: Any, raw_bytes: bytes, content_str: str,
-        file: str, symbols: list[SymbolNode], parent_id: int | None
+        self,
+        node: Any,
+        raw_bytes: bytes,
+        content_str: str,
+        file: str,
+        symbols: list[SymbolNode],
+        parent_id: int | None,
     ) -> None:
         buf = raw_bytes
         try:
@@ -1337,7 +1504,7 @@ class SymbolGraph:
                     if c.type == "argument_list":
                         for a in self._children(c):
                             if a.type == "string":
-                                arg = self._node_text_buf(a, buf).strip('"\'')
+                                arg = self._node_text_buf(a, buf).strip("\"'")
                                 break
                 if arg:
                     # Skip — imports handled by scanner
@@ -1351,9 +1518,14 @@ class SymbolGraph:
                     break
             name = self._node_text_buf(name_node, buf) if name_node else "anon"
             sym = SymbolNode(
-                name=name, kind=SymbolKind.FUNCTION, file=file,
-                line=start_line, end_line=end_line, parent_id=parent_id,
-                language="ruby", hash=_node_hash_buf(node, buf),
+                name=name,
+                kind=SymbolKind.FUNCTION,
+                file=file,
+                line=start_line,
+                end_line=end_line,
+                parent_id=parent_id,
+                language="ruby",
+                hash=_node_hash_buf(node, buf),
             )
             symbols.append(sym)
             body = None
@@ -1373,9 +1545,14 @@ class SymbolGraph:
                     break
             name = self._node_text_buf(name_node, buf) if name_node else "anon"
             sym = SymbolNode(
-                name=name, kind=SymbolKind.CLASS, file=file,
-                line=start_line, end_line=end_line, parent_id=parent_id,
-                language="ruby", hash=_node_hash_buf(node, buf),
+                name=name,
+                kind=SymbolKind.CLASS,
+                file=file,
+                line=start_line,
+                end_line=end_line,
+                parent_id=parent_id,
+                language="ruby",
+                hash=_node_hash_buf(node, buf),
             )
             symbols.append(sym)
             for c in self._children(node):
@@ -1392,9 +1569,13 @@ class SymbolGraph:
             name = self._node_text_buf(name_node, buf) if name_node else "anon"
             sym = SymbolNode(
                 name=f"module {name}" if node_type == "module" else name,
-                kind=SymbolKind.CLASS, file=file,
-                line=start_line, end_line=end_line, parent_id=parent_id,
-                language="ruby", hash=_node_hash_buf(node, buf),
+                kind=SymbolKind.CLASS,
+                file=file,
+                line=start_line,
+                end_line=end_line,
+                parent_id=parent_id,
+                language="ruby",
+                hash=_node_hash_buf(node, buf),
             )
             symbols.append(sym)
             for c in self._children(node):
@@ -1407,7 +1588,11 @@ class SymbolGraph:
                 self._walk_ruby(child, buf, content_str, file, symbols, parent_id)
 
     def _extract_generic_ts(
-        self, raw_bytes: bytes, content_str: str, file: str, lang: Lang,
+        self,
+        raw_bytes: bytes,
+        content_str: str,
+        file: str,
+        lang: Lang,
         function_types: set[str] | None = None,
         method_types: set[str] | None = None,
         class_types: set[str] | None = None,
@@ -1419,16 +1604,32 @@ class SymbolGraph:
             return []
         try:
             tree = parser.parse(raw_bytes)
-            self._walk_generic(tree.root_node, raw_bytes, file, lang, symbols, None,
-                               function_types or set(), method_types or set(), class_types or set())
+            self._walk_generic(
+                tree.root_node,
+                raw_bytes,
+                file,
+                lang,
+                symbols,
+                None,
+                function_types or set(),
+                method_types or set(),
+                class_types or set(),
+            )
         except Exception as e:
             _log.warning("SymbolGraph._extract_generic_ts failed: %s", e)
         return symbols
 
     def _walk_generic(
-        self, node: Any, buf: bytes, file: str, lang: Lang,
-        symbols: list[SymbolNode], parent_id: int | None,
-        function_types: set[str], method_types: set[str], class_types: set[str],
+        self,
+        node: Any,
+        buf: bytes,
+        file: str,
+        lang: Lang,
+        symbols: list[SymbolNode],
+        parent_id: int | None,
+        function_types: set[str],
+        method_types: set[str],
+        class_types: set[str],
     ) -> None:
         try:
             node_type = node.type if hasattr(node, "type") else ""
@@ -1459,19 +1660,42 @@ class SymbolGraph:
         if kind:
             lang_str = lang.value if hasattr(lang, "value") else str(lang)
             sym = SymbolNode(
-                name=name, kind=kind, file=file,
-                line=start_line, end_line=end_line, parent_id=parent_id,
-                language=lang_str, hash=_node_hash_buf(node, buf),
+                name=name,
+                kind=kind,
+                file=file,
+                line=start_line,
+                end_line=end_line,
+                parent_id=parent_id,
+                language=lang_str,
+                hash=_node_hash_buf(node, buf),
             )
             symbols.append(sym)
             for child in self._children(node):
-                self._walk_generic(child, buf, file, lang, symbols, sym.id,
-                                   function_types, method_types, class_types)
+                self._walk_generic(
+                    child,
+                    buf,
+                    file,
+                    lang,
+                    symbols,
+                    sym.id,
+                    function_types,
+                    method_types,
+                    class_types,
+                )
             return
 
         for child in self._children(node):
-            self._walk_generic(child, buf, file, lang, symbols, parent_id,
-                               function_types, method_types, class_types)
+            self._walk_generic(
+                child,
+                buf,
+                file,
+                lang,
+                symbols,
+                parent_id,
+                function_types,
+                method_types,
+                class_types,
+            )
 
     # ── Internal: Tree-sitter helpers ──────────────────────────────────────
 
@@ -1484,7 +1708,11 @@ class SymbolGraph:
 
     def _child_by_field(self, node: Any, field_name: str) -> Any | None:
         try:
-            return node.child_by_field_name(field_name) if hasattr(node, "child_by_field_name") else None
+            return (
+                node.child_by_field_name(field_name)
+                if hasattr(node, "child_by_field_name")
+                else None
+            )
         except Exception as e:
             _log.warning("SymbolGraph._child_by_field failed: %s", e)
             return None
@@ -1523,8 +1751,10 @@ class SymbolGraph:
         if not text:
             return []
         import re
+
         return [
-            p.strip() for p in re.split(r"[,:]", text.strip("()"))
+            p.strip()
+            for p in re.split(r"[,:]", text.strip("()"))
             if p.strip() and not p.strip().startswith("*")
         ]
 
@@ -1546,7 +1776,9 @@ class SymbolGraph:
     # ── Internal: SQLite helpers ───────────────────────────────────────────
 
     def _insert_symbol(self, conn: sqlite3.Connection, sym: SymbolNode, file: str) -> None:
-        content_hash = sym.hash or hashlib.md5(f"{sym.name}{sym.line}{sym.kind}".encode()).hexdigest()[:12]
+        content_hash = (
+            sym.hash or hashlib.md5(f"{sym.name}{sym.line}{sym.kind}".encode()).hexdigest()[:12]
+        )
         conn.execute(
             """INSERT OR IGNORE INTO symbols
                (name, kind, file, line, end_line, parent_id, docstring, language, hash, decorators, params, is_exported)
@@ -1568,9 +1800,7 @@ class SymbolGraph:
         )
 
     def _get_symbols_in_file(self, conn: sqlite3.Connection, file: str) -> list[SymbolNode]:
-        cur = conn.execute(
-            "SELECT * FROM symbols WHERE file = ? ORDER BY line", (file,)
-        )
+        cur = conn.execute("SELECT * FROM symbols WHERE file = ? ORDER BY line", (file,))
         return [self._row_to_symbol(r) for r in cur.fetchall()]
 
     def _get_symbol_by_id(self, sid: int) -> SymbolNode | None:
@@ -1657,8 +1887,12 @@ class SymbolGraph:
             return
 
         # Common call-like node types across grammars
-        if ntype in ("call_expression", "method_invocation",
-                     "function_call_expression", "invocation_expression"):
+        if ntype in (
+            "call_expression",
+            "method_invocation",
+            "function_call_expression",
+            "invocation_expression",
+        ):
             fn = self._child_by_field(node, "function") or self._child_by_field(node, "name")
             if fn:
                 try:
@@ -1685,7 +1919,7 @@ class SymbolGraph:
                 except Exception as e:
                     _log.warning("SymbolGraph._walk_calls failed: %s", e)
 
-        for child in (node.children if hasattr(node, "children") else []):
+        for child in node.children if hasattr(node, "children") else []:
             self._walk_calls(child, refs)
 
     def _find_local_symbol(

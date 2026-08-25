@@ -30,6 +30,7 @@ _thread_local = threading.local()
 @dataclass
 class TenantState:
     """State for a single project/tenant."""
+
     root: Path
     name: str
     active: bool = True
@@ -127,7 +128,9 @@ class TenantManager:
             return True
         return False
 
-    def discover_projects(self, near: Path | None = None, max_depth: int = 2, limit: int = 25) -> list[Path]:
+    def discover_projects(
+        self, near: Path | None = None, max_depth: int = 2, limit: int = 25
+    ) -> list[Path]:
         """Find Patchi projects on disk near a reference directory.
 
         Search bases (deduplicated):
@@ -217,6 +220,7 @@ class TenantManager:
 
         # Initialize cost tracker
         from patchi.core.ai import cost_tracker
+
         cost_tracker.init(root)
 
     def _load_state(self) -> None:
@@ -266,6 +270,7 @@ def get_tenant_manager() -> TenantManager:
 
 
 # ── Request-Scoped Tenant Context ───────────────────────────────────────────
+
 
 @contextmanager
 def tenant_context(root: Path):

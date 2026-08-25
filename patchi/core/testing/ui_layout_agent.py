@@ -42,6 +42,7 @@ import logging
 
 _log = logging.getLogger("patchi.testing.ui_layout_agent")
 
+
 @register
 class UILayoutAgent(BaseAgent):
     """Layout, responsive design, and visual structure testing."""

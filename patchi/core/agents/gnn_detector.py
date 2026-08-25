@@ -49,9 +49,7 @@ class GNNBugDetector(BaseAgent):
 
         from patchi.core.agents.gnn_models import GNNVulnerabilityClassifier
 
-        model = GNNVulnerabilityClassifier(
-            allow_untrained=allow_untrained, threshold=threshold
-        )
+        model = GNNVulnerabilityClassifier(allow_untrained=allow_untrained, threshold=threshold)
         if not model.available:
             # Honest skip: visible in result data AND agent logs.
             reason = model.skip_reason()

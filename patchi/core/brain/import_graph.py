@@ -25,31 +25,54 @@ if TYPE_CHECKING:
 
 KNOWN_EXTENSIONS = frozenset(
     {
-        ".py", ".pyw",
-        ".js", ".mjs", ".cjs", ".jsx",
-        ".ts", ".tsx", ".mts",
+        ".py",
+        ".pyw",
+        ".js",
+        ".mjs",
+        ".cjs",
+        ".jsx",
+        ".ts",
+        ".tsx",
+        ".mts",
         ".rs",
         ".go",
         ".java",
-        ".c", ".h",
-        ".cpp", ".cxx", ".cc", ".hpp",
+        ".c",
+        ".h",
+        ".cpp",
+        ".cxx",
+        ".cc",
+        ".hpp",
         ".swift",
         ".rb",
-        ".php", ".php3", ".php4", ".php5", ".phtml",
+        ".php",
+        ".php3",
+        ".php4",
+        ".php5",
+        ".phtml",
         ".kt",
         ".scala",
         ".cs",
         ".dart",
         ".svelte",
         # Config / data languages (parsed by scanner but not TREE_SITTER_LANGS)
-        ".html", ".htm", ".jinja", ".jinja2", ".j2",
-        ".css", ".scss", ".sass",
-        ".sh", ".bash", ".zsh",
-        ".json", ".jsonc",
-        ".yml", ".yaml",
+        ".html",
+        ".htm",
+        ".jinja",
+        ".jinja2",
+        ".j2",
+        ".css",
+        ".scss",
+        ".sass",
+        ".sh",
+        ".bash",
+        ".zsh",
+        ".json",
+        ".jsonc",
+        ".yml",
+        ".yaml",
         ".sql",
         # Extensionless filename-based languages (Dockerfile, Makefile, etc.)
-
     }
 )
 
@@ -135,7 +158,7 @@ class ImportGraph:
 # ── Builder ────────────────────────────────────────────────────────────────────
 
 
-def build_graph(files: "list[FileInfo]", root: Path) -> ImportGraph:
+def build_graph(files: list[FileInfo], root: Path) -> ImportGraph:
     """
     Build an import graph from a list of FileInfo objects.
 
@@ -191,7 +214,7 @@ def _resolve_to_local(
       - Rust :: separators (std::collections::HashMap, crate::mod::fn)
       - Simple filenames (stdio.h, myheader.h, json)
     """
-    imp = imp.strip('"\'<>')
+    imp = imp.strip("\"'<>")
     if not imp:
         return None
 
@@ -213,7 +236,7 @@ def _resolve_to_local(
             return candidate
         for prefix in ("crate/", "self/", "super/"):
             if path_style.startswith(prefix):
-                sub = path_style[len(prefix):]
+                sub = path_style[len(prefix) :]
                 r = _resolve_path(sub, source_dir, local_files)
                 if r:
                     return r
@@ -407,7 +430,7 @@ _ENTRY_POINT_STEMS = frozenset(
 
 
 def find_dead_files(
-    files: "list[FileInfo]",
+    files: list[FileInfo],
     graph: ImportGraph,
 ) -> list[str]:
     """

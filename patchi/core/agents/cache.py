@@ -21,17 +21,47 @@ from typing import Any
 
 from patchi.core.agents.base import AgentResult
 
-_SOURCE_EXTS = frozenset({
-    ".py", ".js", ".ts", ".jsx", ".tsx", ".go", ".rs", ".java", ".rb", ".php",
-    ".json", ".yaml", ".yml", ".toml", ".cfg", ".ini", ".env", ".html", ".css",
-    ".scss", ".vue", ".svelte", ".md", ".xml", ".gradle", ".kt", ".swift",
-    ".mjs", ".cjs", ".mts", ".cts",
-})
+_SOURCE_EXTS = frozenset(
+    {
+        ".py",
+        ".js",
+        ".ts",
+        ".jsx",
+        ".tsx",
+        ".go",
+        ".rs",
+        ".java",
+        ".rb",
+        ".php",
+        ".json",
+        ".yaml",
+        ".yml",
+        ".toml",
+        ".cfg",
+        ".ini",
+        ".env",
+        ".html",
+        ".css",
+        ".scss",
+        ".vue",
+        ".svelte",
+        ".md",
+        ".xml",
+        ".gradle",
+        ".kt",
+        ".swift",
+        ".mjs",
+        ".cjs",
+        ".mts",
+        ".cts",
+    }
+)
 
 
 import logging
 
 _log = logging.getLogger("patchi.agents.cache")
+
 
 def _file_fingerprint(root: Path) -> str:
     """One fingerprint per project: hash of every source file's content.
@@ -47,7 +77,23 @@ def _file_fingerprint(root: Path) -> str:
     # invalidating ITSELF mid-pipeline (found by the smoke-sweep --pipeline
     # orchestration gate: the Governor's SANDBOX_REVERIFY re-ran 267 agents
     # instead of hitting cache).
-    _IGNORED_DIRS = {"node_modules", ".git", "__pycache__", ".venv", "venv", ".tox", ".eggs", "eggs", "dist", "build", ".ruff_cache", ".pytest_cache", ".mypy_cache", ".coverage", ".patchi"}
+    _IGNORED_DIRS = {
+        "node_modules",
+        ".git",
+        "__pycache__",
+        ".venv",
+        "venv",
+        ".tox",
+        ".eggs",
+        "eggs",
+        "dist",
+        "build",
+        ".ruff_cache",
+        ".pytest_cache",
+        ".mypy_cache",
+        ".coverage",
+        ".patchi",
+    }
 
     hasher = hashlib.sha256()
     for fpath in sorted(root.rglob("*")):

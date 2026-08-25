@@ -12,13 +12,13 @@ import logging
 import subprocess
 import tempfile
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 from patchi.core.agents.base import (
-    AgentStatus,
     AgentGroup,
     AgentInput,
     AgentResult,
+    AgentStatus,
     BaseAgent,
     register,
 )
@@ -30,7 +30,7 @@ _log = logging.getLogger("patchi.security.agents.pysa_agent")
 class PysaAgent(BaseAgent):
     """
     PysaAgent - Python Static Analyzer integration.
-    
+
     Pysa is a static analysis tool for Python that focuses on security vulnerabilities
     through taint analysis. It tracks data flow from sources to sinks.
     """
@@ -59,33 +59,32 @@ class PysaAgent(BaseAgent):
     def _is_pysa_available(self) -> bool:
         """Check if Pysa is installed and available."""
         try:
-            result = subprocess.run(
-                ["pysa", "--version"],
-                capture_output=True,
-                timeout=10
-            )
+            result = subprocess.run(["pysa", "--version"], capture_output=True, timeout=10)
             return result.returncode == 0
         except FileNotFoundError:
             return False
 
-    def _run_pysa(self, root: Path) -> List[Dict[str, Any]]:
+    def _run_pysa(self, root: Path) -> list[dict[str, Any]]:
         """Run Pysa and parse JSON output."""
         findings = []
 
         with tempfile.TemporaryDirectory() as tmpdir:
-            output_file = Path(tmpdir) / "pysa_output.json"
+            Path(tmpdir) / "pysa_output.json"
 
             try:
-                result = subprocess.run(
+                subprocess.run(
                     [
-                        "pysa", "analyze",
-                        "--output-format", "json",
-                        "--output", str(tmpdir / "pysa_output"),
-                        str(root)
+                        "pysa",
+                        "analyze",
+                        "--output-format",
+                        "json",
+                        "--output",
+                        str(tmpdir / "pysa_output"),
+                        str(root),
                     ],
                     capture_output=True,
                     timeout=120,
-                    cwd=root
+                    cwd=root,
                 )
 
                 # Parse Pysa JSON output
@@ -103,23 +102,25 @@ class PysaAgent(BaseAgent):
 
         return findings
 
-    def _parse_pysa_output(self, data: Dict[str, Any]) -> List[Dict[str, Any]]:
+    def _parse_pysa_output(self, data: dict[str, Any]) -> list[dict[str, Any]]:
         """Parse Pysa JSON output into findings."""
         findings = []
 
         for issue in data.get("issues", []):
-            findings.append({
-                "type": issue.get("code", "pysa_finding"),
-                "severity": issue.get("severity", "MEDIUM").upper(),
-                "file": issue.get("file", ""),
-                "line": issue.get("line", 0),
-                "message": issue.get("message", ""),
-                "cwe": issue.get("cwe", ""),
-                "confidence": 0.8,
-            })
+            findings.append(
+                {
+                    "type": issue.get("code", "pysa_finding"),
+                    "severity": issue.get("severity", "MEDIUM").upper(),
+                    "file": issue.get("file", ""),
+                    "line": issue.get("line", 0),
+                    "message": issue.get("message", ""),
+                    "cwe": issue.get("cwe", ""),
+                    "confidence": 0.8,
+                }
+            )
         return findings
 
-    def _create_finding(self, finding_data: Dict[str, Any]):
+    def _create_finding(self, finding_data: dict[str, Any]):
         """Create a Finding object from Pysa output."""
         from patchi.core.security.tool_adapters import make_tool_finding
 

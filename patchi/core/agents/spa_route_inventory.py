@@ -54,6 +54,7 @@ import logging
 
 _log = logging.getLogger("patchi.agents.spa_route_inventory")
 
+
 def _extract_file_based_routes(root: Path, base_dir: str) -> list[str]:
     routes: list[str] = []
     routes_dir = root / base_dir
@@ -64,11 +65,20 @@ def _extract_file_based_routes(root: Path, base_dir: str) -> list[str]:
             rel = fp.relative_to(root).as_posix()
             route = rel.replace(base_dir + "/", "/").replace("\\", "/")
             route = route.replace("/index.", "/").replace("/page.", "/")
-            route = route.replace("/(.)", "").replace("/[...", "/:").replace("/[", "/:").replace("]", "")
+            route = (
+                route.replace("/(.)", "")
+                .replace("/[...", "/:")
+                .replace("/[", "/:")
+                .replace("]", "")
+            )
             route = re.sub(r"\.[a-z]+$", "", route)
             if route not in ("", "/"):
                 routes.append(route)
-        if fp.name.startswith("+page.svelte") or fp.name.startswith("page.tsx") or fp.name.startswith("page.jsx"):
+        if (
+            fp.name.startswith("+page.svelte")
+            or fp.name.startswith("page.tsx")
+            or fp.name.startswith("page.jsx")
+        ):
             rel = fp.relative_to(root).as_posix()
             parent = rel.rsplit("/", 1)[0] if "/" in rel else ""
             route = "/" + parent.replace(base_dir + "/", "")
@@ -112,7 +122,7 @@ class SPARouteInventoryAgent(BaseAgent):
                     _log.warning("SPARouteInventoryAgent._run failed: %s", e)
                     continue
 
-                for framework, patterns in _ROUTE_PATTERNS.items():
+                for _framework, patterns in _ROUTE_PATTERNS.items():
                     if patterns is None:
                         continue
                     for pat in patterns:

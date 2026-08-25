@@ -177,7 +177,7 @@ class SupplyChainAgent(BaseAgent):
             if license_info:
                 result.add_finding(license_info)
 
-        result.files_scanned = len(set(f for _, _, f in all_deps))
+        result.files_scanned = len({f for _, _, f in all_deps})
         result.data["total_deps"] = len(all_deps)
 
     def _check_license(self, name: str, file: str) -> Finding | None:

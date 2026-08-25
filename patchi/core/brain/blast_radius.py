@@ -33,7 +33,7 @@ class BlastRadius:
         return len(self.all_dependents)
 
 
-def calculate_blast_radius(target: str, graph: "ImportGraph") -> BlastRadius:
+def calculate_blast_radius(target: str, graph: ImportGraph) -> BlastRadius:
     """BFS on reverse graph to find all transitive dependents."""
     direct = sorted(graph.reverse.get(target, set()))
     all_affected: set[str] = set()
@@ -58,7 +58,7 @@ def calculate_blast_radius(target: str, graph: "ImportGraph") -> BlastRadius:
     )
 
 
-def build_blast_radius_map(graph: "ImportGraph") -> dict[str, BlastRadius]:
+def build_blast_radius_map(graph: ImportGraph) -> dict[str, BlastRadius]:
     return {node: calculate_blast_radius(node, graph) for node in graph.nodes}
 
 
@@ -81,8 +81,8 @@ class SymbolBlastResult:
     upstream_count: int = 0
     # Weighted scores
     test_coverage_score: float = 1.0  # 0-1, higher = better tested
-    criticality_score: float = 0.0   # 0-1, higher = more critical
-    risk_score: float = 0.0           # weighted combination
+    criticality_score: float = 0.0  # 0-1, higher = more critical
+    risk_score: float = 0.0  # weighted combination
     risk_level: str = "low"
     # Damage vs repair
     structural_change_count: int = 0
@@ -137,14 +137,18 @@ def calculate_symbol_blast_radius(
     target = symbol_graph.get_symbol(symbol_name, file)
     if not target:
         return SymbolBlastResult(
-            symbol_name=symbol_name, file=file, line=0,
+            symbol_name=symbol_name,
+            file=file,
+            line=0,
             risk_level="unknown",
             risk_score=0.0,
         )
 
     # Downstream: dependents
     downstream_set: dict[str, dict] = {}
-    queue: list[tuple[str, str, int]] = [(s.name, s.file, 1) for s in symbol_graph.get_dependents(symbol_name, file)]
+    queue: list[tuple[str, str, int]] = [
+        (s.name, s.file, 1) for s in symbol_graph.get_dependents(symbol_name, file)
+    ]
     visited: set[int] = {target.id}
     direct_downstream: list[dict] = []
 
@@ -191,7 +195,7 @@ def calculate_symbol_blast_radius(
     # Risk score: more downstream = higher risk, less test coverage = higher risk
     downstream_risk = min(len(downstream_set) / 50.0, 1.0)
     coverage_risk = 1.0 - test_coverage_score
-    risk_score = (downstream_risk * 0.4 + coverage_risk * 0.3 + criticality_score * 0.3)
+    risk_score = downstream_risk * 0.4 + coverage_risk * 0.3 + criticality_score * 0.3
     risk_score = min(risk_score, 1.0)
 
     risk_level = "low"

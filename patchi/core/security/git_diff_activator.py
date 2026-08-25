@@ -13,6 +13,7 @@ cutting scan time from minutes to seconds for small diffs.
 Usage::
 
     from patchi.core.security.git_diff_activator import activate_from_diff
+
     domains = activate_from_diff(root, commits=1)
 """
 
@@ -47,7 +48,6 @@ _PATH_DOMAIN_MAP: list[tuple[str, str, float]] = [
     ("admin", "authorization", 0.7),
     ("guard", "authorization", 0.6),
     ("middleware", "authentication", 0.5),
-
     # Injection / XSS
     ("query", "injection-sql", 0.6),
     ("sql", "injection-sql", 0.8),
@@ -57,7 +57,6 @@ _PATH_DOMAIN_MAP: list[tuple[str, str, float]] = [
     ("render", "xss-dom", 0.4),
     ("markup", "xss-stored", 0.5),
     ("form", "csrf", 0.5),
-
     # Secrets / crypto
     ("secret", "secrets-management", 0.9),
     ("credential", "secrets-management", 0.9),
@@ -69,7 +68,6 @@ _PATH_DOMAIN_MAP: list[tuple[str, str, float]] = [
     ("ssl", "tls-ssl", 0.8),
     ("tls", "tls-ssl", 0.8),
     ("cert", "tls-ssl", 0.7),
-
     # Network / API
     ("api", "api-security", 0.5),
     ("route", "api-security", 0.4),
@@ -81,7 +79,6 @@ _PATH_DOMAIN_MAP: list[tuple[str, str, float]] = [
     ("header", "security-headers", 0.7),
     ("rate", "rate-limiting", 0.6),
     ("limit", "rate-limiting", 0.5),
-
     # Config / infra
     ("config", "configuration-hardening", 0.5),
     ("setting", "configuration-hardening", 0.4),
@@ -93,14 +90,12 @@ _PATH_DOMAIN_MAP: list[tuple[str, str, float]] = [
     ("cloud", "cloud-security", 0.6),
     ("infra", "container-security", 0.5),
     ("iac", "container-security", 0.7),
-
     # Dependencies
     ("requirements", "dependency-vulnerability", 0.7),
     ("package.json", "dependency-vulnerability", 0.7),
     ("Cargo.toml", "supply-chain", 0.7),
     ("go.mod", "supply-chain", 0.7),
     ("lock", "supply-chain", 0.5),
-
     # Business logic / privacy
     ("payment", "business-logic", 0.8),
     ("order", "business-logic", 0.7),
@@ -112,7 +107,6 @@ _PATH_DOMAIN_MAP: list[tuple[str, str, float]] = [
     ("audit", "audit-logging", 0.7),
     ("log", "audit-logging", 0.4),
     ("history", "audit-logging", 0.5),
-
     # File / upload
     ("upload", "file-handling", 0.8),
     ("file", "file-handling", 0.4),
@@ -152,6 +146,7 @@ _ALWAYS_ACTIVE: list[tuple[str, str, float]] = [
 @dataclass
 class DiffActivationResult:
     """Result of git-diff-based domain activation."""
+
     changed_files: list[str] = field(default_factory=list)
     activated_domains: dict[str, float] = field(default_factory=dict)
     commits_analyzed: int = 0
@@ -163,7 +158,10 @@ def _get_head_hash(root: Path) -> str:
     try:
         result = subprocess.run(
             ["git", "rev-parse", "HEAD"],
-            capture_output=True, text=True, cwd=str(root), timeout=5,
+            capture_output=True,
+            text=True,
+            cwd=str(root),
+            timeout=5,
         )
         return result.stdout.strip() if result.returncode == 0 else ""
     except Exception:
@@ -197,7 +195,10 @@ def get_changed_files(root: Path, commits: int = 1) -> list[str]:
         # Try diff against N commits back
         result = subprocess.run(
             ["git", "diff", "--name-only", f"HEAD~{commits}", "HEAD"],
-            capture_output=True, text=True, cwd=str(root), timeout=10,
+            capture_output=True,
+            text=True,
+            cwd=str(root),
+            timeout=10,
         )
         if result.returncode == 0 and result.stdout.strip():
             return [f.strip() for f in result.stdout.strip().splitlines() if f.strip()]
@@ -205,7 +206,10 @@ def get_changed_files(root: Path, commits: int = 1) -> list[str]:
         # Fallback: uncommitted changes
         result = subprocess.run(
             ["git", "diff", "--name-only", "HEAD"],
-            capture_output=True, text=True, cwd=str(root), timeout=10,
+            capture_output=True,
+            text=True,
+            cwd=str(root),
+            timeout=10,
         )
         if result.returncode == 0 and result.stdout.strip():
             return [f.strip() for f in result.stdout.strip().splitlines() if f.strip()]
@@ -213,7 +217,10 @@ def get_changed_files(root: Path, commits: int = 1) -> list[str]:
         # Fallback: staged changes
         result = subprocess.run(
             ["git", "diff", "--cached", "--name-only"],
-            capture_output=True, text=True, cwd=str(root), timeout=10,
+            capture_output=True,
+            text=True,
+            cwd=str(root),
+            timeout=10,
         )
         if result.returncode == 0 and result.stdout.strip():
             return [f.strip() for f in result.stdout.strip().splitlines() if f.strip()]
@@ -297,10 +304,7 @@ def activate_from_diff(
             all_scores[domain] = max(all_scores.get(domain, 0), score)
 
     # Filter by minimum score
-    activated = {
-        d: s for d, s in all_scores.items()
-        if s >= min_score
-    }
+    activated = {d: s for d, s in all_scores.items() if s >= min_score}
 
     # Sort by score descending and limit
     sorted_domains = sorted(activated.items(), key=lambda x: -x[1])
@@ -310,7 +314,9 @@ def activate_from_diff(
 
     _log.info(
         "Git-diff activation: %d changed files → %d domains (from %d total signals)",
-        len(changed), len(activated), len(all_scores),
+        len(changed),
+        len(activated),
+        len(all_scores),
     )
 
     result = DiffActivationResult(
@@ -327,7 +333,10 @@ def activate_from_diff(
         try:
             u = subprocess.run(
                 ["git", "diff", "--name-only", "HEAD"],
-                capture_output=True, text=True, cwd=str(root), timeout=5,
+                capture_output=True,
+                text=True,
+                cwd=str(root),
+                timeout=5,
             )
             if u.returncode == 0:
                 uncommitted = len([line for line in u.stdout.strip().splitlines() if line.strip()])
@@ -338,7 +347,7 @@ def activate_from_diff(
             "head": head,
             "ts": time.time(),
             "changed_files": changed,
-            "domains": {k: v for k, v in activated.items()},
+            "domains": dict(activated.items()),
             "uncommitted_count": uncommitted,
         }
         _save_cache(root, cache)

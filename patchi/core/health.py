@@ -29,6 +29,7 @@ from patchi.core import memory as mem
 
 _log = logging.getLogger("patchi.core.health")
 
+
 @dataclass
 class HealthScore:
     total: int  # 0–100

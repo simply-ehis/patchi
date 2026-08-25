@@ -25,6 +25,7 @@ logger = logging.getLogger("patchi.detector.sigma")
 @dataclass
 class SigmaMatch:
     """Result of matching a rule against an event."""
+
     rule_name: str
     rule_id: str
     technique_id: TechniqueID | str
@@ -77,6 +78,7 @@ class SigmaRuleSet:
     @classmethod
     def load_directory(cls, path: Path) -> SigmaRuleSet:
         import yaml
+
         rules: list[SigmaRule] = []
         if not path.exists():
             logger.warning("Sigma rules directory not found: %s", path)
@@ -99,6 +101,7 @@ class SigmaRuleSet:
     @classmethod
     def load_text(cls, yaml_text: str) -> SigmaRuleSet:
         import yaml
+
         rules: list[SigmaRule] = []
         try:
             raw = yaml.safe_load(yaml_text)
@@ -127,7 +130,11 @@ class SigmaRuleSet:
     def _build_index(self) -> None:
         self._rule_index.clear()
         for rule in self._rules:
-            tid = rule.technique_id.value if isinstance(rule.technique_id, TechniqueID) else str(rule.technique_id)
+            tid = (
+                rule.technique_id.value
+                if isinstance(rule.technique_id, TechniqueID)
+                else str(rule.technique_id)
+            )
             self._rule_index.setdefault(tid, []).append(rule)
 
     @property
@@ -158,7 +165,9 @@ class SigmaRuleSet:
 
     def _match_logsource(self, logsource: dict[str, str], event: Event) -> bool:
         if "category" in logsource:
-            if not self._value_match(logsource["category"], event.source_details.get("category", event.source.value)):
+            if not self._value_match(
+                logsource["category"], event.source_details.get("category", event.source.value)
+            ):
                 return False
         if "product" in logsource:
             if not self._value_match(logsource["product"], event.source_details.get("product", "")):
@@ -167,6 +176,7 @@ class SigmaRuleSet:
             if not self._value_match(logsource["service"], event.source_details.get("service", "")):
                 return False
         return True
+
     def _match_selection(self, fields: dict[str, Any], event: Event) -> bool:
         for field_key, expected in fields.items():
             field_name, modifier = self._parse_sigma_field(field_key)
@@ -203,6 +213,7 @@ class SigmaRuleSet:
         if modifier == "base64":
             try:
                 import base64
+
                 decoded = base64.b64decode(actual_str).decode()
                 return str(expected) in decoded
             except Exception as e:
@@ -223,6 +234,7 @@ class SigmaRuleSet:
     def _match_cidr(self, cidr: str, ip: str) -> bool:
         try:
             import ipaddress
+
             net = ipaddress.ip_network(cidr, strict=False)
             addr = ipaddress.ip_address(ip)
             return addr in net
@@ -276,9 +288,15 @@ class SigmaRuleSet:
             return True
         lower = expr.lower()
         if " or " in lower:
-            return any(self._evaluate_condition(p.strip(), results) for p in re.split(r"\s+or\s+", expr, flags=re.IGNORECASE))
+            return any(
+                self._evaluate_condition(p.strip(), results)
+                for p in re.split(r"\s+or\s+", expr, flags=re.IGNORECASE)
+            )
         if " and " in lower:
-            return all(self._evaluate_condition(p.strip(), results) for p in re.split(r"\s+and\s+", expr, flags=re.IGNORECASE))
+            return all(
+                self._evaluate_condition(p.strip(), results)
+                for p in re.split(r"\s+and\s+", expr, flags=re.IGNORECASE)
+            )
         if lower in ("all of them", "all of the"):
             return all(results.values())
         if lower in ("any of them", "any of the"):
@@ -351,8 +369,10 @@ def sigma_match_to_event(match: SigmaMatch, parent_event: Event | None = None) -
         summary=match.description or match.rule_name,
         severity=_sigma_level_to_severity(match.severity),
         confidence=match.confidence,
-        payload={"rule_id": match.rule_id, "rule_name": match.rule_name, "matched_fields": match.matched_fields},
+        payload={
+            "rule_id": match.rule_id,
+            "rule_name": match.rule_name,
+            "matched_fields": match.matched_fields,
+        },
         suggested_agent=match.target_agent or "",
     )
-
-

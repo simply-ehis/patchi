@@ -16,7 +16,7 @@ import json
 import logging
 import os
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -32,7 +32,7 @@ class AuditEntry:
     event: Event
     previous_hash: str = ""
     entry_hash: str = field(default_factory=lambda: "")
-    written_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    written_at: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
 
     def __post_init__(self) -> None:
         if not self.entry_hash:
@@ -82,7 +82,7 @@ class AuditLog:
         # Load the last entry's hash if the file exists
         if log_path.exists() and log_path.stat().st_size > 0:
             try:
-                with open(log_path, "r", encoding="utf-8") as f:
+                with open(log_path, encoding="utf-8") as f:
                     for line in f:
                         if line.strip():
                             entry = json.loads(line)
@@ -126,7 +126,7 @@ class AuditLog:
         if not log_path.exists():
             return "[]"
         entries = []
-        with open(log_path, "r", encoding="utf-8") as f:
+        with open(log_path, encoding="utf-8") as f:
             for line in f:
                 if line.strip():
                     entries.append(json.loads(line))
@@ -141,7 +141,7 @@ class AuditLog:
             return True, 0
         prev_hash = ""
         count = 0
-        with open(log_path, "r", encoding="utf-8") as f:
+        with open(log_path, encoding="utf-8") as f:
             for line in f:
                 if not line.strip():
                     continue
@@ -160,7 +160,7 @@ class AuditLog:
             self._file.close()
             self._file = None
 
-    def __enter__(self) -> "AuditLog":
+    def __enter__(self) -> AuditLog:
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:

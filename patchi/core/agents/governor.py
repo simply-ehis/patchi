@@ -27,11 +27,12 @@ from __future__ import annotations
 import sqlite3
 import time
 from collections import deque
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from enum import Enum
+from datetime import UTC, datetime
+from enum import StrEnum
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 import yaml
 from loguru import logger
@@ -75,7 +76,8 @@ from patchi.core.agents.coordinator import Coordinator, CoordinatorProgress
 
 _log = logging.getLogger("patchi.agents.governor")
 
-class IncidentState(str, Enum):
+
+class IncidentState(StrEnum):
     DETECTED = "detected"
     CLASSIFIED = "classified"
     TEST_SCOPED = "test_scoped"
@@ -146,15 +148,15 @@ class Incident:
     bug_class: str | None = None
     domain_activation_state: str | None = None
     fix_retries: int = 0
-    created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
-    updated_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    created_at: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
+    updated_at: str = field(default_factory=lambda: datetime.now(UTC).isoformat())
     audit_trail: list[AuditEntry] = field(default_factory=list)
 
 
 # ── Pipeline phase enum ─────────────────────────────────────────────────────────
 
 
-class PipelinePhase(str, Enum):
+class PipelinePhase(StrEnum):
     IDLE = "idle"
     SCAN = "scan"
     GRAPH_UPDATE = "graph_update"
@@ -362,9 +364,7 @@ class Governor:
 
     def get_history(self, limit: int = 20) -> list[dict]:
         conn = self._get_conn()
-        cur = conn.execute(
-            "SELECT * FROM phase_history ORDER BY id DESC LIMIT ?", (limit,)
-        )
+        cur = conn.execute("SELECT * FROM phase_history ORDER BY id DESC LIMIT ?", (limit,))
         rows = [
             {
                 "id": r[0],
@@ -388,13 +388,13 @@ class Governor:
             (
                 result.phase.value,
                 result.status.value,
-                datetime.now(timezone.utc).isoformat(),
+                datetime.now(UTC).isoformat(),
                 result.duration_ms,
                 result.findings_count,
-                    result.agents_run,
-                    ";".join(result.errors[:5]),
-                ),
-            )
+                result.agents_run,
+                ";".join(result.errors[:5]),
+            ),
+        )
 
     def _check_criteria(self, phase: PipelinePhase, results: list[AgentResult]) -> list[str]:
         """Check acceptance criteria for a phase. Returns list of violations."""
@@ -403,9 +403,7 @@ class Governor:
 
         errors = [r for r in results if r.status == AgentStatus.FAILED]
         if len(errors) > crit.max_errors:
-            violations.append(
-                f"Too many agent errors: {len(errors)} > {crit.max_errors}"
-            )
+            violations.append(f"Too many agent errors: {len(errors)} > {crit.max_errors}")
 
         if crit.require_zero_errors and errors:
             violations.append(f"Agents failed: {', '.join(r.agent_name for r in errors)}")
@@ -418,20 +416,14 @@ class Governor:
 
         high = sum(1 for r in results for f in r.findings if f.severity.name == "HIGH")
         if high > crit.max_high_findings:
-            violations.append(
-                f"Too many HIGH findings: {high} > {crit.max_high_findings}"
-            )
+            violations.append(f"Too many HIGH findings: {high} > {crit.max_high_findings}")
 
         if len(results) < crit.min_agents_run:
-            violations.append(
-                f"Not enough agents ran: {len(results)} < {crit.min_agents_run}"
-            )
+            violations.append(f"Not enough agents ran: {len(results)} < {crit.min_agents_run}")
 
         return violations
 
-    def _transition_to(
-        self, target: PipelinePhase, results: list[AgentResult]
-    ) -> PhaseResult:
+    def _transition_to(self, target: PipelinePhase, results: list[AgentResult]) -> PhaseResult:
         """Attempt to transition to the target phase. Checks criteria."""
         current = self.current_phase
         if current == PipelinePhase.FAILED:
@@ -475,9 +467,7 @@ class Governor:
 
     # ── Graph neighborhood context (files-5 Testing Strategy §4) ──────────
 
-    def _build_graph_neighborhood(
-        self, symbol_names: list[str], radius: int = 1
-    ) -> list[dict]:
+    def _build_graph_neighborhood(self, symbol_names: list[str], radius: int = 1) -> list[dict]:
         """Build scoped context for a set of symbols.
 
         Returns list of symbol summaries with immediate callers/callees.
@@ -507,9 +497,13 @@ class Governor:
                     }
                     if radius >= 1:
                         for dep in sym_graph.get_dependents(sym.name, sym.file):
-                            entry["callers"].append({"name": dep.name, "file": dep.file, "kind": dep.kind})
+                            entry["callers"].append(
+                                {"name": dep.name, "file": dep.file, "kind": dep.kind}
+                            )
                         for dep in sym_graph.get_dependencies(sym.id):
-                            entry["callees"].append({"name": dep.name, "file": dep.file, "kind": dep.kind})
+                            entry["callees"].append(
+                                {"name": dep.name, "file": dep.file, "kind": dep.kind}
+                            )
                     neighborhood.append(entry)
         except Exception as e:
             logger.warning(f"build_graph_neighborhood error: {e}")
@@ -517,17 +511,13 @@ class Governor:
 
     # ── Pipeline execution ────────────────────────────────────────────────
 
-    def run_scan(
-        self, scope: list[str] | None = None, side: bool = True
-    ) -> PhaseResult:
+    def run_scan(self, scope: list[str] | None = None, side: bool = True) -> PhaseResult:
         """Phase 1: Run scanner agents."""
         logger.info(f"Pipeline phase: SCAN (scope={len(scope or [])} files, side={side})")
         results = self.coordinator.run_all_scanners(scope=scope, side=side)
         return self._transition_to(PipelinePhase.SCAN, results)
 
-    def run_scan_deep(
-        self, scope: list[str] | None = None
-    ) -> PhaseResult:
+    def run_scan_deep(self, scope: list[str] | None = None) -> PhaseResult:
         """Phase 1b: Deep scan with AI analysis."""
         logger.info(f"Pipeline phase: SCAN --deep (scope={len(scope or [])} files)")
         results = self.coordinator.run_group(AgentGroup.SCANNER, scope=scope)
@@ -555,9 +545,7 @@ class Governor:
                 _log.warning("Governor.run_scan_deep failed: %s", e)
         return self._transition_to(PipelinePhase.SCAN, results)
 
-    def run_test(
-        self, scope: list[str] | None = None
-    ) -> PhaseResult:
+    def run_test(self, scope: list[str] | None = None) -> PhaseResult:
         """Phase 2: Run test agents."""
         logger.info(f"Pipeline phase: TEST (scope={len(scope or [])} files)")
         results = self.coordinator.run_group(AgentGroup.TEST, scope=scope)
@@ -575,9 +563,7 @@ class Governor:
             results = []
         return self._transition_to(PipelinePhase.TEST_EXECUTION, results)
 
-    def run_security(
-        self, scope: list[str] | None = None
-    ) -> PhaseResult:
+    def run_security(self, scope: list[str] | None = None) -> PhaseResult:
         """Run security agents (part of scan phase or standalone)."""
         logger.info(f"Pipeline phase: SCAN --security (scope={len(scope or [])} files)")
         results = self.coordinator.run_group(AgentGroup.SECURITY, scope=scope)
@@ -590,9 +576,7 @@ class Governor:
             agents_run=len(results),
         )
 
-    def run_fix(
-        self, dry_run: bool = False
-    ) -> PhaseResult:
+    def run_fix(self, dry_run: bool = False) -> PhaseResult:
         """Phase: Run fix agents, then route every produced patch through the
         fix → verify → retry loop (verify_loop).
 
@@ -757,12 +741,12 @@ class Governor:
         total_findings = sum(r.finding_count for r in all_results)
         reverify = self._recheck_applied_patches()
 
-        crit = self.criteria.get(PipelinePhase.SANDBOX_REVERIFY, DEFAULT_CRITERIA[PipelinePhase.SANDBOX_REVERIFY])
+        crit = self.criteria.get(
+            PipelinePhase.SANDBOX_REVERIFY, DEFAULT_CRITERIA[PipelinePhase.SANDBOX_REVERIFY]
+        )
         violations: list[str] = []
         if total_findings > crit.max_critical_findings:
-            violations.append(
-                f"Re-verify failed: {total_findings} findings remain"
-            )
+            violations.append(f"Re-verify failed: {total_findings} findings remain")
         if reverify["regressed"]:
             violations.append(
                 f"Re-verify failed: {len(reverify['regressed'])} previously-verified "
@@ -931,9 +915,7 @@ class Governor:
                     "affected_symbols": affected_symbols,
                     "generation_mode": "scoped",
                 }
-                agent_results = self.coordinator.run_agents(
-                    ["SecurityTestAgent"], extra=extra
-                )
+                agent_results = self.coordinator.run_agents(["SecurityTestAgent"], extra=extra)
             else:
                 # Fallback: use test agent if available
                 agent_results = self.coordinator.run_group(
@@ -1054,8 +1036,10 @@ class Governor:
             self._record_phase(result)
             return result
 
-        for i, (candidate, fix_res) in enumerate(zip(candidates, fix_results)):
-            logger.info(f"Reverifying candidate {i+1}/{len(candidates)}: {candidate['agent_name']}")
+        for i, (candidate, _fix_res) in enumerate(zip(candidates, fix_results, strict=False)):
+            logger.info(
+                f"Reverifying candidate {i + 1}/{len(candidates)}: {candidate['agent_name']}"
+            )
 
             # Re-run scanner agents on the working tree
             try:
@@ -1134,7 +1118,7 @@ class Governor:
 
         # Sort by score descending
         ranked = sorted(
-            zip(candidates, fix_results),
+            zip(candidates, fix_results, strict=False),
             key=lambda x: x[0]["score"],
             reverse=True,
         )
@@ -1152,7 +1136,9 @@ class Governor:
         # Log all candidates and decision
         logger.info(f"Score-select: {len(candidates)} candidates evaluated")
         for w in winners:
-            logger.info(f"  {w['candidate']['agent_name']}: score={w['candidate']['score']:.2f} → {w['decision']}")
+            logger.info(
+                f"  {w['candidate']['agent_name']}: score={w['candidate']['score']:.2f} → {w['decision']}"
+            )
 
         self._last_selection = winners
 
@@ -1190,7 +1176,10 @@ class Governor:
         if score >= 0.8:
             return {"action": "auto_apply", "reason": f"Score {score:.2f} ≥ 0.8, all gates passed"}
         if score >= 0.5:
-            return {"action": "escalate", "reason": f"Score {score:.2f} moderate, needs human review"}
+            return {
+                "action": "escalate",
+                "reason": f"Score {score:.2f} moderate, needs human review",
+            }
 
         return {"action": "discard", "reason": f"Score {score:.2f} too low"}
 
@@ -1290,7 +1279,8 @@ class Governor:
             "current_phase": phase.value,
             "phase_order": phase.order,
             "next_phase": phase.next_phase.value if phase.next_phase else None,
-            "is_running": phase not in (PipelinePhase.IDLE, PipelinePhase.COMPLETE, PipelinePhase.FAILED),
+            "is_running": phase
+            not in (PipelinePhase.IDLE, PipelinePhase.COMPLETE, PipelinePhase.FAILED),
             "recent_history": history,
         }
 
@@ -1310,9 +1300,7 @@ class Governor:
         """Passthrough to Coordinator.run_agents."""
         return self.coordinator.run_agents(agent_names, scope=scope)
 
-    def run_group(
-        self, group: AgentGroup, scope: list[str] | None = None
-    ) -> list[AgentResult]:
+    def run_group(self, group: AgentGroup, scope: list[str] | None = None) -> list[AgentResult]:
         """Passthrough to Coordinator.run_group."""
         return self.coordinator.run_group(group, scope=scope)
 
@@ -1409,7 +1397,7 @@ class GovernorEngine:
         loaded = 0
         for yaml_path in sorted(self._rules_dir.glob("**/*.yaml")):
             try:
-                with open(yaml_path, "r") as f:
+                with open(yaml_path) as f:
                     data = yaml.safe_load(f)
                 if not data:
                     continue
@@ -1460,16 +1448,26 @@ class GovernorEngine:
         """Create a new incident, optionally from a finding dict."""
         if finding_dict:
             control_id = control_id or finding_dict.get("control_id")
-            symbol_id = symbol_id or finding_dict.get("symbol_id") or finding_dict.get("affected_node", {}).get("symbol")
+            symbol_id = (
+                symbol_id
+                or finding_dict.get("symbol_id")
+                or finding_dict.get("affected_node", {}).get("symbol")
+            )
             technique_id = technique_id or finding_dict.get("technique_id")
             confidence = confidence if confidence else finding_dict.get("confidence", 0.0)
-            criticality = criticality or finding_dict.get("affected_node", {}).get("criticality") or finding_dict.get("criticality")
+            criticality = (
+                criticality
+                or finding_dict.get("affected_node", {}).get("criticality")
+                or finding_dict.get("criticality")
+            )
             check_method = check_method or finding_dict.get("check_method")
             bug_class = bug_class or finding_dict.get("bug_class")
-            domain_activation_state = domain_activation_state or finding_dict.get("domain_activation_state")
+            domain_activation_state = domain_activation_state or finding_dict.get(
+                "domain_activation_state"
+            )
 
         incident_id = f"INC-{int(time.time() * 1000)}-{len(self._incidents) + 1}"
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
 
         incident = Incident(
             id=incident_id,
@@ -1496,7 +1494,9 @@ class GovernorEngine:
         )
         self._incidents[incident_id] = incident
         self._persist_incident(incident)
-        logger.info(f"Created incident {incident_id} (technique={technique_id}, confidence={confidence})")
+        logger.info(
+            f"Created incident {incident_id} (technique={technique_id}, confidence={confidence})"
+        )
         return incident
 
     def get_incident(self, incident_id: str) -> Incident | None:
@@ -1517,11 +1517,19 @@ class GovernorEngine:
                     fix_retries, created_at, updated_at)
                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
-                    incident.id, incident.state.value, incident.control_id,
-                    incident.symbol_id, incident.technique_id, incident.confidence,
-                    incident.criticality, incident.check_method, incident.bug_class,
-                    incident.domain_activation_state, incident.fix_retries,
-                    incident.created_at, incident.updated_at,
+                    incident.id,
+                    incident.state.value,
+                    incident.control_id,
+                    incident.symbol_id,
+                    incident.technique_id,
+                    incident.confidence,
+                    incident.criticality,
+                    incident.check_method,
+                    incident.bug_class,
+                    incident.domain_activation_state,
+                    incident.fix_retries,
+                    incident.created_at,
+                    incident.updated_at,
                 ),
             )
         except Exception as e:
@@ -1561,7 +1569,7 @@ class GovernorEngine:
             return None
 
         prior_state = incident.state
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
 
         entry = AuditEntry(
             prior_state=prior_state,
@@ -1578,7 +1586,9 @@ class GovernorEngine:
         self._persist_incident(incident)
         self._persist_audit_entry(incident_id, entry)
 
-        logger.debug(f"Incident {incident_id}: {prior_state.value} → {new_state.value} (rule={rule_id})")
+        logger.debug(
+            f"Incident {incident_id}: {prior_state.value} → {new_state.value} (rule={rule_id})"
+        )
         return incident
 
     # ── Dispatch rule evaluation (spec §2, first-match-wins) ──────────────
@@ -1586,7 +1596,7 @@ class GovernorEngine:
     def _resolve_field(self, incident: Incident, field_path: str) -> Any:
         """Resolve a dotted field path against an incident (e.g. finding.technique_id)."""
         if field_path.startswith("finding."):
-            key = field_path[len("finding."):]
+            key = field_path[len("finding.") :]
             mapping = {
                 "technique_id": incident.technique_id,
                 "confidence": incident.confidence,
@@ -1600,7 +1610,7 @@ class GovernorEngine:
             return mapping.get(key)
 
         if field_path.startswith("best_candidate."):
-            key = field_path[len("best_candidate."):]
+            key = field_path[len("best_candidate.") :]
             return getattr(self, f"_candidate_{key}", None)
 
         return getattr(incident, field_path, None)
@@ -1679,7 +1689,9 @@ class GovernorEngine:
 
     # ── Escalation rules: §3.2 Score-based ────────────────────────────────
 
-    def check_score_escalation(self, incident: Incident, best_score: float | None = None) -> str | None:
+    def check_score_escalation(
+        self, incident: Incident, best_score: float | None = None
+    ) -> str | None:
         """§3.2 — composite score below configurable threshold."""
         if incident.state != IncidentState.FIX_CANDIDATE_SCORING:
             return None
@@ -1699,7 +1711,10 @@ class GovernorEngine:
                 return "max-fix-retries-exceeded"
 
         now = time.time()
-        while self._dispatch_timestamps and self._dispatch_timestamps[0] < now - self._dispatch_window_seconds:
+        while (
+            self._dispatch_timestamps
+            and self._dispatch_timestamps[0] < now - self._dispatch_window_seconds
+        ):
             self._dispatch_timestamps.popleft()
 
         if len(self._dispatch_timestamps) >= self._max_dispatches_per_window:
@@ -1735,7 +1750,7 @@ class GovernorEngine:
             conn.execute(
                 """INSERT INTO dispatch_log (incident_id, rule_id, target_agent, timestamp)
                    VALUES (?, ?, ?, ?)""",
-                (incident_id, rule_id, None, datetime.now(timezone.utc).isoformat()),
+                (incident_id, rule_id, None, datetime.now(UTC).isoformat()),
             )
         except Exception as e:
             logger.warning(f"Failed to log dispatch for {incident_id}: {e}")
@@ -1743,7 +1758,10 @@ class GovernorEngine:
     def can_dispatch(self) -> bool:
         """Check dispatch rate — True if under the ceiling."""
         now = time.time()
-        while self._dispatch_timestamps and self._dispatch_timestamps[0] < now - self._dispatch_window_seconds:
+        while (
+            self._dispatch_timestamps
+            and self._dispatch_timestamps[0] < now - self._dispatch_window_seconds
+        ):
             self._dispatch_timestamps.popleft()
         return len(self._dispatch_timestamps) < self._max_dispatches_per_window
 
@@ -1810,12 +1828,18 @@ class GovernorEngine:
                         continue
 
                     control_id = finding_dict.get("control_id")
-                    symbol_id = finding_dict.get("symbol_id") or finding_dict.get("affected_node", {}).get("symbol")
+                    symbol_id = finding_dict.get("symbol_id") or finding_dict.get(
+                        "affected_node", {}
+                    ).get("symbol")
                     technique_id = finding_dict.get("technique_id")
 
                     existing: Incident | None = None
                     for inc in self._incidents.values():
-                        if inc.control_id == control_id and inc.symbol_id == symbol_id and not inc.state.is_terminal:
+                        if (
+                            inc.control_id == control_id
+                            and inc.symbol_id == symbol_id
+                            and not inc.state.is_terminal
+                        ):
                             existing = inc
                             break
 
@@ -1869,7 +1893,11 @@ class GovernorEngine:
                 )
                 escalated.append(incident.id)
 
-        if phases and phases[-1].status == AgentStatus.DONE and phases[-1].phase in (PipelinePhase.COMPLETE, PipelinePhase.SCORE_SELECT):
+        if (
+            phases
+            and phases[-1].status == AgentStatus.DONE
+            and phases[-1].phase in (PipelinePhase.COMPLETE, PipelinePhase.SCORE_SELECT)
+        ):
             for incident in self._incidents.values():
                 if not incident.state.is_terminal and incident.id not in escalated:
                     self.transition_incident(
@@ -1930,8 +1958,7 @@ class GovernorEngine:
         base = self.governor.status()
         base["incident_count"] = len(self._incidents)
         base["incidents_by_state"] = {
-            s.value: sum(1 for i in self._incidents.values() if i.state == s)
-            for s in IncidentState
+            s.value: sum(1 for i in self._incidents.values() if i.state == s) for s in IncidentState
         }
         base["rules_loaded"] = len(self._rules)
         base["dispatches_in_window"] = len(self._dispatch_timestamps)

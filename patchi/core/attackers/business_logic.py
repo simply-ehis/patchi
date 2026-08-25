@@ -18,37 +18,43 @@ class BusinessLogicAttacker(BaseAttacker):
             # Idempotency concerns
             if "idempoten" in claim.statement.lower():
                 if claim.verdict.value in ("not_proved", "unproven"):
-                    hypotheses.append(Hypothesis(
-                        attacker=self.name,
-                        objective=self.objective,
-                        target=claim.id,
-                        risk="medium",
-                        confidence=0.6,
-                        description=f"Idempotency unverified: {claim.statement}",
-                    ))
+                    hypotheses.append(
+                        Hypothesis(
+                            attacker=self.name,
+                            objective=self.objective,
+                            target=claim.id,
+                            risk="medium",
+                            confidence=0.6,
+                            description=f"Idempotency unverified: {claim.statement}",
+                        )
+                    )
 
             # Race conditions
             if "concurrent" in claim.statement.lower() or "race" in claim.statement.lower():
-                hypotheses.append(Hypothesis(
-                    attacker=self.name,
-                    objective=self.objective,
-                    target=claim.id,
-                    risk="high",
-                    confidence=0.5,
-                    description=f"Race condition unverified: {claim.statement}",
-                ))
+                hypotheses.append(
+                    Hypothesis(
+                        attacker=self.name,
+                        objective=self.objective,
+                        target=claim.id,
+                        risk="high",
+                        confidence=0.5,
+                        description=f"Race condition unverified: {claim.statement}",
+                    )
+                )
 
             # State machine integrity
             if "state" in claim.domain.lower() and "transition" in claim.statement.lower():
                 if claim.verdict.value == "unproven":
-                    hypotheses.append(Hypothesis(
-                        attacker=self.name,
-                        objective=self.objective,
-                        target=claim.id,
-                        risk="medium",
-                        confidence=0.4,
-                        description=f"State machine integrity unverified: {claim.statement}",
-                    ))
+                    hypotheses.append(
+                        Hypothesis(
+                            attacker=self.name,
+                            objective=self.objective,
+                            target=claim.id,
+                            risk="medium",
+                            confidence=0.4,
+                            description=f"State machine integrity unverified: {claim.statement}",
+                        )
+                    )
 
         return hypotheses
 

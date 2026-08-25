@@ -16,9 +16,10 @@ import logging
 import random
 import statistics
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from typing import Any, Callable
+from datetime import UTC, datetime
+from typing import Any
 
 _log = logging.getLogger("patchi.testing.stress_orchestrator")
 
@@ -26,6 +27,7 @@ _log = logging.getLogger("patchi.testing.stress_orchestrator")
 @dataclass
 class StressConfig:
     """Configuration for a stress test."""
+
     base_url: str
     scenario: str = "load"  # load, spike, soak, breakpoint
     users: int = 10
@@ -52,6 +54,7 @@ class StressConfig:
 @dataclass
 class RequestResult:
     """Result of a single HTTP request."""
+
     timestamp: float
     method: str
     url: str
@@ -65,6 +68,7 @@ class RequestResult:
 @dataclass
 class UserSession:
     """A single virtual user's session."""
+
     user_id: int
     start_time: float
     results: list[RequestResult] = field(default_factory=list)
@@ -74,6 +78,7 @@ class UserSession:
 @dataclass
 class StressTestReport:
     """Complete stress test report."""
+
     config: StressConfig
     started_at: str
     completed_at: str
@@ -98,7 +103,7 @@ class StressTestReport:
 class StressOrchestrator:
     """
     Orchestrates load/stress tests against a web application.
-    
+
     Usage:
         config = StressConfig(
             base_url="https://api.example.com",
@@ -127,7 +132,7 @@ class StressOrchestrator:
     async def run(self) -> StressTestReport:
         """Run the stress test based on scenario."""
         self._start_time = time.time()
-        started_at = datetime.now(timezone.utc).isoformat()
+        started_at = datetime.now(UTC).isoformat()
 
         # Initialize HTTP session
         await self._init_session()
@@ -148,7 +153,7 @@ class StressOrchestrator:
         finally:
             await self._close_session()
 
-        completed_at = datetime.now(timezone.utc).isoformat()
+        completed_at = datetime.now(UTC).isoformat()
         duration = time.time() - self._start_time
 
         return self._generate_report(started_at, completed_at, duration)
@@ -157,6 +162,7 @@ class StressOrchestrator:
         """Initialize aiohttp session."""
         try:
             import aiohttp
+
             self._session = aiohttp.ClientSession(
                 timeout=aiohttp.ClientTimeout(total=30),
                 connector=aiohttp.TCPConnector(limit=1000),
@@ -172,7 +178,9 @@ class StressOrchestrator:
 
     async def _run_load_test(self):
         """Run steady-state load test."""
-        self.on_progress(f"🚀 Starting load test: {self.config.users} users for {self.config.duration_seconds}s")
+        self.on_progress(
+            f"🚀 Starting load test: {self.config.users} users for {self.config.duration_seconds}s"
+        )
 
         # Ramp up users
         await self._ramp_up_users(self.config.users, self.config.ramp_up_seconds)
@@ -187,7 +195,9 @@ class StressOrchestrator:
 
     async def _run_spike_test(self):
         """Run spike test: baseline -> spike -> baseline."""
-        self.on_progress(f"⚡ Starting spike test: {self.config.users} baseline -> {int(self.config.users * self.config.spike_multiplier)} spike")
+        self.on_progress(
+            f"⚡ Starting spike test: {self.config.users} baseline -> {int(self.config.users * self.config.spike_multiplier)} spike"
+        )
 
         # Baseline
         await self._ramp_up_users(self.config.users, self.config.ramp_up_seconds)
@@ -210,7 +220,9 @@ class StressOrchestrator:
 
     async def _run_soak_test(self):
         """Run long-duration soak test."""
-        self.on_progress(f"🏃 Starting soak test: {self.config.users} users for {self.config.duration_seconds}s")
+        self.on_progress(
+            f"🏃 Starting soak test: {self.config.users} users for {self.config.duration_seconds}s"
+        )
 
         await self._ramp_up_users(self.config.users, self.config.ramp_up_seconds)
 
@@ -219,7 +231,9 @@ class StressOrchestrator:
         check_interval = self.config.soak_check_interval
 
         while elapsed < self.config.duration_seconds - self.config.ramp_up_seconds:
-            remaining = min(check_interval, self.config.duration_seconds - self.config.ramp_up_seconds - elapsed)
+            remaining = min(
+                check_interval, self.config.duration_seconds - self.config.ramp_up_seconds - elapsed
+            )
             await self._run_steady_state(remaining)
             elapsed += remaining
 
@@ -262,7 +276,7 @@ class StressOrchestrator:
         users_to_add = target_users - len(self._users)
         interval = duration / users_to_add if users_to_add > 0 else 0
 
-        for i in range(users_to_add):
+        for _i in range(users_to_add):
             user_id = len(self._users) + 1
             self._users.append(UserSession(user_id=user_id, start_time=time.time()))
 
@@ -339,7 +353,7 @@ class StressOrchestrator:
                     status_code=response.status,
                     response_time_ms=response_time,
                     success=200 <= response.status < 400,
-                    response_size=len(response.body) if hasattr(response, 'body') else 0,
+                    response_size=len(response.body) if hasattr(response, "body") else 0,
                 )
         except Exception as e:
             response_time = (time.time() - start) * 1000
@@ -360,14 +374,16 @@ class StressOrchestrator:
 
         if recent:
             latencies = [r.response_time_ms for r in recent]
-            self._time_series.append({
-                "timestamp": now,
-                "requests_per_sec": len(recent) / 5,
-                "latency_p50": statistics.median(latencies),
-                "latency_p95": self._percentile(latencies, 95),
-                "error_rate": sum(1 for r in recent if not r.success) / len(recent),
-                "active_users": len([u for u in self._users if u.active]),
-            })
+            self._time_series.append(
+                {
+                    "timestamp": now,
+                    "requests_per_sec": len(recent) / 5,
+                    "latency_p50": statistics.median(latencies),
+                    "latency_p95": self._percentile(latencies, 95),
+                    "error_rate": sum(1 for r in recent if not r.success) / len(recent),
+                    "active_users": len([u for u in self._users if u.active]),
+                }
+            )
 
     async def _check_soak_health(self) -> bool:
         """Check system health during soak test."""
@@ -470,8 +486,14 @@ class StressOrchestrator:
             },
             status_codes=status_codes,
             errors=errors,
-            throughput_over_time=[{"timestamp": ts["timestamp"], "rps": ts["requests_per_sec"]} for ts in self._time_series],
-            latency_over_time=[{"timestamp": ts["timestamp"], "p50": ts["latency_p50"], "p95": ts["latency_p95"]} for ts in self._time_series],
+            throughput_over_time=[
+                {"timestamp": ts["timestamp"], "rps": ts["requests_per_sec"]}
+                for ts in self._time_series
+            ],
+            latency_over_time=[
+                {"timestamp": ts["timestamp"], "p50": ts["latency_p50"], "p95": ts["latency_p95"]}
+                for ts in self._time_series
+            ],
             user_sessions=len(self._users),
             peak_users=max(len(self._users), 1),
         )

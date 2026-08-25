@@ -89,7 +89,9 @@ def run(
             bar_len = int(score * 20)
             bar = "█" * bar_len + "░" * (20 - bar_len)
             color = "green" if score >= 0.7 else "yellow" if score >= 0.4 else "red"
-            table.add_row(agent, f"[{color}]{score * 100:.0f}%[/{color}]", f"[{color}]{bar}[/{color}]")
+            table.add_row(
+                agent, f"[{color}]{score * 100:.0f}%[/{color}]", f"[{color}]{bar}[/{color}]"
+            )
         con.print(table)
         con.print()
     else:

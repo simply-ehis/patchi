@@ -29,12 +29,13 @@ from __future__ import annotations
 import hashlib
 import logging
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 try:
     import torch
     import torch.nn as nn
     import torch.nn.functional as F
+
     TORCH_AVAILABLE = True
 except ImportError:  # pragma: no cover — optional heavy deps
     TORCH_AVAILABLE = False
@@ -116,7 +117,8 @@ INPUT_DIM = 128
 
 # ── Feature encoding ──────────────────────────────────────────────────────────
 
-def encode_node(node: Dict[str, Any]) -> List[float]:
+
+def encode_node(node: dict[str, Any]) -> list[float]:
     """CPG node -> fixed-width feature vector (deterministic)."""
     feat = [0.0] * INPUT_DIM
     node_type = str(node.get("type", "")).lower()
@@ -134,7 +136,7 @@ def encode_node(node: Dict[str, Any]) -> List[float]:
     return feat
 
 
-def graph_to_tensors(graph_data: Dict[str, Any]):
+def graph_to_tensors(graph_data: dict[str, Any]):
     """CPG dict -> (x, edge_index, batch) torch tensors, or (None, None, None)."""
     nodes = graph_data.get("nodes", [])
     edges = graph_data.get("edges", [])
@@ -164,6 +166,7 @@ def graph_to_tensors(graph_data: Dict[str, Any]):
 
 # ── Checksums ─────────────────────────────────────────────────────────────────
 
+
 def sha256_file(path: Path) -> str:
     h = hashlib.sha256()
     with open(path, "rb") as fh:
@@ -191,7 +194,8 @@ def verify_checksum(model_path: Path) -> tuple[bool, str]:
 
 # ── Pure-tensor graph ops (ONNX-traceable; NO torch_geometric dependency) ─────
 
-def _scatter_sum(src: "torch.Tensor", index: "torch.Tensor", num_nodes: int) -> "torch.Tensor":
+
+def _scatter_sum(src: torch.Tensor, index: torch.Tensor, num_nodes: int) -> torch.Tensor:
     """Sum src rows into their destination node (index_add_ = ONNX ScatterElements)."""
     out = torch.zeros(num_nodes, src.size(1), dtype=src.dtype, device=src.device)
     return out.index_add_(0, index, src)
@@ -238,15 +242,13 @@ if TORCH_AVAILABLE:
             src, dst = edge_index[0], edge_index[1]
             n = x.size(0)
             hx = self.W(x).view(n, self.heads, self.head_dim)
-            h_src = hx.index_select(0, src)   # E,H,D
-            h_dst = hx.index_select(0, dst)   # E,H,D
-            score = F.leaky_relu(
-                (h_src * h_dst).sum(-1), negative_slope=0.2
-            )                                  # E,H
+            h_src = hx.index_select(0, src)  # E,H,D
+            h_dst = hx.index_select(0, dst)  # E,H,D
+            score = F.leaky_relu((h_src * h_dst).sum(-1), negative_slope=0.2)  # E,H
             # per-dst-node softmax (segment softmax, no PyG needed)
             exps = score.exp()
-            denom = _scatter_sum(exps, dst, n)             # N,H
-            denom = denom.index_select(0, dst)             # E,H
+            denom = _scatter_sum(exps, dst, n)  # N,H
+            denom = denom.index_select(0, dst)  # E,H
             alpha = exps / (denom + 1e-16)
             msgs = (alpha.unsqueeze(-1) * h_src).reshape(-1, self.heads * self.head_dim)
             out = _scatter_sum(msgs, dst, n)
@@ -255,11 +257,15 @@ if TORCH_AVAILABLE:
     class GINGATNet(nn.Module):
         """The trainable network. forward takes plain tensors (no PyG Data):
 
-            logits = net(x[N,128], edge_index[2,E], batch[N])
+        logits = net(x[N,128], edge_index[2,E], batch[N])
         """
 
-        def __init__(self, input_dim: int = INPUT_DIM, hidden_dim: int = 256,
-                     num_classes: int = len(CLASS_NAMES)):
+        def __init__(
+            self,
+            input_dim: int = INPUT_DIM,
+            hidden_dim: int = 256,
+            num_classes: int = len(CLASS_NAMES),
+        ):
             super().__init__()
             self.input_proj = nn.Linear(input_dim, hidden_dim)
             self.gin1 = _GINLayer(hidden_dim)
@@ -295,16 +301,19 @@ else:  # pragma: no cover
             raise RuntimeError("torch not available")
 
 
-def _scatter_amax(src: "torch.Tensor", index: "torch.Tensor", num_nodes: int) -> "torch.Tensor":
+def _scatter_amax(src: torch.Tensor, index: torch.Tensor, num_nodes: int) -> torch.Tensor:
     """Per-segment max via index_reduce_ (traces to ONNX opset-16 ScatterElements)."""
     out = torch.full(
-        (num_nodes, src.size(1)), float("-inf"),
-        dtype=src.dtype, device=src.device,
+        (num_nodes, src.size(1)),
+        float("-inf"),
+        dtype=src.dtype,
+        device=src.device,
     )
     return out.index_reduce_(0, index, src, "amax", include_self=True)
 
 
 # ── ONNX export ───────────────────────────────────────────────────────────────
+
 
 def export_onnx(net: GINGATNet, output_path: Path, num_nodes: int = 10) -> Path:
     output_path = Path(output_path)
@@ -338,6 +347,7 @@ def export_onnx(net: GINGATNet, output_path: Path, num_nodes: int = 10) -> Path:
 
 # ── The classifier facade ─────────────────────────────────────────────────────
 
+
 class GNNVulnerabilityClassifier:
     """
     Loads the ONNX classifier, verifies integrity, enforces the trust gate.
@@ -354,7 +364,7 @@ class GNNVulnerabilityClassifier:
 
     def __init__(
         self,
-        model_path: Optional[Path] = None,
+        model_path: Path | None = None,
         allow_untrained: bool = False,
         threshold: float = 0.5,
     ):
@@ -400,9 +410,7 @@ class GNNVulnerabilityClassifier:
     def skip_reason(self) -> str:
         return self.unavailable_reason
 
-    def detect_vulnerabilities(
-        self, graph_data: Dict[str, Any]
-    ) -> List[Dict[str, Any]]:
+    def detect_vulnerabilities(self, graph_data: dict[str, Any]) -> list[dict[str, Any]]:
         """Score one CPG. [] with logged reason whenever the gate fails."""
         if not self.available:
             logger.info("GNN classifier skipped: %s", self.unavailable_reason)
@@ -423,7 +431,7 @@ class GNNVulnerabilityClassifier:
             return []
 
         exps = _softmax(logits[0])
-        findings: List[Dict[str, Any]] = []
+        findings: list[dict[str, Any]] = []
         nodes = graph_data.get("nodes", [])
         for cls_idx in range(1, len(exps)):  # skip class 0 = safe
             conf = float(exps[cls_idx])
@@ -431,20 +439,22 @@ class GNNVulnerabilityClassifier:
                 continue
             vtype = CLASS_NAMES[cls_idx] if cls_idx < len(CLASS_NAMES) else f"class_{cls_idx}"
             anchor = nodes[min(cls_idx % max(len(nodes), 1), len(nodes) - 1)]
-            findings.append({
-                "type": vtype,
-                "severity": _severity_from_conf(conf),
-                "confidence": round(conf, 3),
-                "line": anchor.get("line", 0),
-                "cwe": CWE_MAP.get(vtype, ""),
-                "title": f"GNN: {vtype.replace('_', ' ')} pattern",
-                "description": (
-                    "Learned graph-pattern classifier flagged this function "
-                    "(high-recall signal — review before acting)."
-                ),
-                "suggestion": "Review flagged function against the referenced CWE.",
-                "function": anchor.get("function", ""),
-            })
+            findings.append(
+                {
+                    "type": vtype,
+                    "severity": _severity_from_conf(conf),
+                    "confidence": round(conf, 3),
+                    "line": anchor.get("line", 0),
+                    "cwe": CWE_MAP.get(vtype, ""),
+                    "title": f"GNN: {vtype.replace('_', ' ')} pattern",
+                    "description": (
+                        "Learned graph-pattern classifier flagged this function "
+                        "(high-recall signal — review before acting)."
+                    ),
+                    "suggestion": "Review flagged function against the referenced CWE.",
+                    "function": anchor.get("function", ""),
+                }
+            )
         return findings
 
 
@@ -458,7 +468,7 @@ def _softmax(logits: Any) -> Any:
 
 def _severity_from_conf(conf: float) -> str:
     if conf > 0.85:
-        return "medium"   # high-recall signal: capped at MEDIUM per plan
+        return "medium"  # high-recall signal: capped at MEDIUM per plan
     if conf > 0.65:
         return "low"
     return "info"

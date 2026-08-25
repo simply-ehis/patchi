@@ -79,10 +79,33 @@ def _make_patch(
 
 
 _SOURCE_EXTENSIONS = {
-    ".py", ".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx", ".mts",
-    ".java", ".kt", ".kts", ".go", ".rs", ".rb", ".php",
-    ".cs", ".swift", ".dart", ".c", ".cpp", ".cxx", ".cc",
-    ".h", ".hpp", ".scala", ".svelte", ".vue",
+    ".py",
+    ".js",
+    ".jsx",
+    ".mjs",
+    ".cjs",
+    ".ts",
+    ".tsx",
+    ".mts",
+    ".java",
+    ".kt",
+    ".kts",
+    ".go",
+    ".rs",
+    ".rb",
+    ".php",
+    ".cs",
+    ".swift",
+    ".dart",
+    ".c",
+    ".cpp",
+    ".cxx",
+    ".cc",
+    ".h",
+    ".hpp",
+    ".scala",
+    ".svelte",
+    ".vue",
 }
 
 
@@ -106,47 +129,60 @@ def compute_blast_radius(file_path: str, root: Path) -> int:
 # Domain-specific fix patterns: finding_type → (search_regex, replacement)
 _FIX_PATTERNS: list[tuple[str, str, str]] = [
     # Secrets
-    (r'(?:password|secret|api_key|token)\s*=\s*["\'][^"\']+["\']',
-     "hardcoded_secret",
-     "Use os.environ.get() or a secrets manager instead of hardcoded values"),
+    (
+        r'(?:password|secret|api_key|token)\s*=\s*["\'][^"\']+["\']',
+        "hardcoded_secret",
+        "Use os.environ.get() or a secrets manager instead of hardcoded values",
+    ),
     # Debug mode
-    (r'DEBUG\s*=\s*True',
-     "debug_mode",
-     "DEBUG = os.environ.get('DEBUG', 'false').lower() == 'true'"),
+    (
+        r"DEBUG\s*=\s*True",
+        "debug_mode",
+        "DEBUG = os.environ.get('DEBUG', 'false').lower() == 'true'",
+    ),
     # SQL injection
-    (r'execute\(.*%s.*\%',
-     "sqli",
-     "Use parameterized queries: cursor.execute('SELECT * FROM users WHERE id = %s', (user_id,))"),
+    (
+        r"execute\(.*%s.*\%",
+        "sqli",
+        "Use parameterized queries: cursor.execute('SELECT * FROM users WHERE id = %s', (user_id,))",
+    ),
     # Missing HTTPS redirect
-    (r'@app\.route.*methods.*GET',
-     "missing_header",
-     "Add @app.before_request to redirect HTTP to HTTPS"),
+    (
+        r"@app\.route.*methods.*GET",
+        "missing_header",
+        "Add @app.before_request to redirect HTTP to HTTPS",
+    ),
     # Weak hash
-    (r'hashlib\.(md5|sha1)\(',
-     "weak_hash",
-     "Use hashlib.sha256() or hashlib.sha3_256() instead"),
+    (r"hashlib\.(md5|sha1)\(", "weak_hash", "Use hashlib.sha256() or hashlib.sha3_256() instead"),
     # Eval/exec
-    (r'\b(eval|exec)\s*\(',
-     "injection",
-     "Avoid eval()/exec(); use ast.literal_eval() or safe parsing"),
+    (
+        r"\b(eval|exec)\s*\(",
+        "injection",
+        "Avoid eval()/exec(); use ast.literal_eval() or safe parsing",
+    ),
     # Pickle deserialization
-    (r'pickle\.loads?\s*\(',
-     "injection",
-     "Use json.loads() or a safe serialization format instead of pickle"),
+    (
+        r"pickle\.loads?\s*\(",
+        "injection",
+        "Use json.loads() or a safe serialization format instead of pickle",
+    ),
     # CORS wildcard
-    (r'Access-Control-Allow-Origin.*\*',
-     "cors_wildcard",
-     "Restrict CORS to specific trusted origins instead of wildcard (*)"),
+    (
+        r"Access-Control-Allow-Origin.*\*",
+        "cors_wildcard",
+        "Restrict CORS to specific trusted origins instead of wildcard (*)",
+    ),
     # Missing rate limiting
-    (r'@app\.route',
-     "missing_rate_limit",
-     "Add Flask-Limiter or similar rate limiting middleware"),
+    (r"@app\.route", "missing_rate_limit", "Add Flask-Limiter or similar rate limiting middleware"),
 ]
 
 
-def _find_vulnerable_line(content: str, finding_type: str, file_path: str) -> tuple[int, str] | None:
+def _find_vulnerable_line(
+    content: str, finding_type: str, file_path: str
+) -> tuple[int, str] | None:
     """Find the specific line that needs fixing based on finding type."""
     import re
+
     lines = content.splitlines()
     for search_re, ftype, _ in _FIX_PATTERNS:
         if ftype == finding_type or ftype in finding_type:
@@ -173,7 +209,9 @@ def _apply_fix_pattern(line: str, finding_type: str) -> str | None:
         return f"{indent}DEBUG = os.environ.get('DEBUG', 'false').lower() == 'true'"
 
     elif "weak_hash" in finding_type:
-        return line.replace("hashlib.md5(", "hashlib.sha256(").replace("hashlib.sha1(", "hashlib.sha256(")
+        return line.replace("hashlib.md5(", "hashlib.sha256(").replace(
+            "hashlib.sha1(", "hashlib.sha256("
+        )
 
     elif "eval" in finding_type or "exec" in finding_type:
         indent = line[: len(line) - len(line.lstrip())]
@@ -202,14 +240,14 @@ def _build_fix_prompt(
     lines = original.splitlines()
     start = max(0, line_num - 5) if line_num else 0
     end = min(len(lines), line_num + 10) if line_num else min(20, len(lines))
-    context = "\n".join(f"{i+1:4d} | {l}" for i, l in enumerate(lines[start:end], start))
+    context = "\n".join(f"{i + 1:4d} | {l}" for i, l in enumerate(lines[start:end], start))
 
     prompt = f"""You are a security expert. Fix the following vulnerability.
 
 ## Finding
 - Type: {finding_type}
 - File: {file_path}
-- Line: {line_num or 'unknown'}
+- Line: {line_num or "unknown"}
 - Message: {message or suggestion or finding_type}
 """
 
@@ -220,7 +258,7 @@ def _build_fix_prompt(
             prompt += f"- Template hint: {playbook['llm_template']}\n"
 
     prompt += f"""
-## Code Context (lines {start+1}-{end})
+## Code Context (lines {start + 1}-{end})
 ```python
 {context}
 ```
@@ -337,8 +375,15 @@ def generate_fix(
 
     # Strategy 1: AI-powered fix generation
     ai_change = _generate_fix_with_ai(
-        root, file_path, original, finding_type, line_num,
-        suggestion, playbook, config, message,
+        root,
+        file_path,
+        original,
+        finding_type,
+        line_num,
+        suggestion,
+        playbook,
+        config,
+        message,
     )
     if ai_change:
         changes.append(ai_change)
@@ -351,11 +396,13 @@ def generate_fix(
             line_idx, old_line = found
             fixed_line = _apply_fix_pattern(old_line, finding_type)
             if fixed_line and fixed_line != old_line:
-                changes.append(FileChange(
-                    path=file_path,
-                    original=old_line,
-                    proposed=fixed_line,
-                ))
+                changes.append(
+                    FileChange(
+                        path=file_path,
+                        original=old_line,
+                        proposed=fixed_line,
+                    )
+                )
 
     # Strategy 3: Playbook template fix (fallback)
     if not changes and playbook and playbook.get("llm_template"):
@@ -365,30 +412,36 @@ def generate_fix(
             line_idx, old_line = found
             fixed_line = _apply_fix_pattern(old_line, control_id)
             if fixed_line and fixed_line != old_line:
-                changes.append(FileChange(
-                    path=file_path,
-                    original=old_line,
-                    proposed=fixed_line,
-                ))
+                changes.append(
+                    FileChange(
+                        path=file_path,
+                        original=old_line,
+                        proposed=fixed_line,
+                    )
+                )
 
     # Strategy 4: Line-number targeted fix (fallback)
     if not changes and line_num and 0 < line_num <= len(lines):
         old_line = lines[line_num - 1]
         fixed_line = _apply_fix_pattern(old_line, finding_type)
         if fixed_line and fixed_line != old_line:
-            changes.append(FileChange(
-                path=file_path,
-                original=old_line,
-                proposed=fixed_line,
-            ))
+            changes.append(
+                FileChange(
+                    path=file_path,
+                    original=old_line,
+                    proposed=fixed_line,
+                )
+            )
 
     # Strategy 5: Suggestion-based fallback (last resort)
     if not changes and suggestion:
-        changes.append(FileChange(
-            path=file_path,
-            original=lines[0] if lines else "",
-            proposed=f"# TODO: {suggestion}\n{lines[0] if lines else ''}",
-        ))
+        changes.append(
+            FileChange(
+                path=file_path,
+                original=lines[0] if lines else "",
+                proposed=f"# TODO: {suggestion}\n{lines[0] if lines else ''}",
+            )
+        )
 
     if not changes:
         return None
@@ -409,6 +462,7 @@ def generate_fix(
     # Pass through RiskGate
     try:
         from patchi.core.fix.risk_gate import RiskGate
+
         gate = RiskGate(root)
         gate_result = gate.evaluate(patch)
         _log.info(

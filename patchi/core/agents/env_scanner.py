@@ -43,6 +43,7 @@ from .base import (
 
 _log = logging.getLogger("patchi.agents.env_scanner")
 
+
 @register
 class EnvScanner(BaseAgent):
     """Scanner for environment variables and secrets."""
@@ -152,17 +153,19 @@ class EnvScanner(BaseAgent):
 
         result.status = AgentStatus.SUCCEEDED
         result.findings = findings
-        result.data.update({
-            "secrets_found": len(
-                [
-                    f
-                    for f in findings
-                    if "Secret" in f.title or "Token" in f.title or "Key" in f.title
-        ]
-            ),
-            "passwords_found": len([f for f in findings if "Password" in f.title]),
-            "needs_ai": False,
-        })
+        result.data.update(
+            {
+                "secrets_found": len(
+                    [
+                        f
+                        for f in findings
+                        if "Secret" in f.title or "Token" in f.title or "Key" in f.title
+                    ]
+                ),
+                "passwords_found": len([f for f in findings if "Password" in f.title]),
+                "needs_ai": False,
+            }
+        )
         return
 
     def _should_skip_file(self, file_path: str, inp: AgentInput) -> bool:

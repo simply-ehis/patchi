@@ -101,11 +101,13 @@ class CampaignOrchestrator:
                 high += campaign_high
             except Exception as e:
                 _log.warning("Campaign %s failed: %s", name, e)
-                results.append(CampaignResult(
-                    name=name,
-                    steps=[CampaignStep(name="error", description=str(e), status="failed")],
-                    total_findings=1,
-                ))
+                results.append(
+                    CampaignResult(
+                        name=name,
+                        steps=[CampaignStep(name="error", description=str(e), status="failed")],
+                        total_findings=1,
+                    )
+                )
 
         return OrchestratorResult(
             campaigns=results,
@@ -118,7 +120,9 @@ class CampaignOrchestrator:
         """Run a specific campaign by name."""
         cls = CAMPAIGN_REGISTRY.get(name)
         if cls is None:
-            raise ValueError(f"Unknown campaign: {name}. Available: {list(CAMPAIGN_REGISTRY.keys())}")
+            raise ValueError(
+                f"Unknown campaign: {name}. Available: {list(CAMPAIGN_REGISTRY.keys())}"
+            )
 
         campaign = cls(self._graph)
         steps = campaign.run()

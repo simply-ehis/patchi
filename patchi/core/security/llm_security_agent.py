@@ -162,7 +162,8 @@ class LLMSecurityAgent(BaseAgent):
 
         # ── Sensitive data in prompt context ────────────────────────────────
         for m in re.finditer(
-            r'(?i)(?:db_url|api_key|password|\bsecret\b|\btoken\b).*llm\.|context.*=.*f["\']', content
+            r'(?i)(?:db_url|api_key|password|\bsecret\b|\btoken\b).*llm\.|context.*=.*f["\']',
+            content,
         ):
             result.add_finding(
                 Finding(

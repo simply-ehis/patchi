@@ -1,4 +1,4 @@
-"""Tests for noise reduction: NoiseFilter + ConfidenceGate enhancements.
+﻿"""Tests for noise reduction: NoiseFilter + ConfidenceGate enhancements.
 
 Covers the false-positive learning loop, agent-consensus enforcement,
 AI confidence calibration, and file-level noise classification.
@@ -20,7 +20,7 @@ from patchi.core.security.noise_filter import (
 )
 from patchi.core.security.orchestrator import CorrelatedFinding, Finding
 
-# ── Helpers ──────────────────────────────────────────────────────────────
+# â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 def make_finding(
@@ -48,7 +48,7 @@ def make_cf(**kwargs) -> CorrelatedFinding:
     return CorrelatedFinding(finding=make_finding(**kwargs), confirmed_by=["a1"])
 
 
-# ── classify(): path → category ──────────────────────────────────────────
+# â”€â”€ classify(): path â†’ category â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestClassify:
@@ -65,14 +65,14 @@ class TestClassify:
         # docs
         ("README.md", "docs"),
         ("docs/architecture.rst", "docs"),
-        # tests — filename patterns
+        # tests â€” filename patterns
         ("tests/test_auth.py", "tests"),           # dir marker anyway
         ("src/test_utils.py", "tests"),
         ("src/auth_test.py", "tests"),
         ("web/api.spec.ts", "tests"),
         ("web/component.test.tsx", "tests"),
         ("conftest.py", "tests"),
-        # tests — directory markers
+        # tests â€” directory markers
         ("tests/helpers.py", "tests"),
         ("spec/models/user.rb", "tests"),
         ("__snapshots__/ui.snap", "generated"),    # snapshot pattern wins
@@ -90,11 +90,11 @@ class TestClassify:
         assert classify("src\\tests\\test_x.py") == "tests"
 
 
-# ── NoiseFilter.apply() ──────────────────────────────────────────────────
+# â”€â”€ NoiseFilter.apply() â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestNoiseFilterDicts:
-    """merge_results() produces plain dicts — the filter must handle both."""
+    """merge_results() produces plain dicts â€” the filter must handle both."""
 
     def _d(self, file: str, severity: str = "high") -> dict:
         return {
@@ -201,7 +201,7 @@ class TestNoiseFilterApply:
         assert "noise_category" and True  # cap survives scoring
 
 
-# ── ConfidenceGate: FP memory ────────────────────────────────────────────
+# â”€â”€ ConfidenceGate: FP memory â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestFalsePositiveMemory:
@@ -274,7 +274,7 @@ class TestFalsePositiveMemory:
         assert penalized < baseline
 
 
-# ── ConfidenceGate: consensus enforcement ────────────────────────────────
+# â”€â”€ ConfidenceGate: consensus enforcement â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestAgentConsensus:
@@ -326,7 +326,7 @@ class TestAgentConsensus:
         assert gate.gate(cf).routing == "defend"
 
 
-# ── ConfidenceGate: AI calibration ───────────────────────────────────────
+# â”€â”€ ConfidenceGate: AI calibration â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestAICalibration:
@@ -335,7 +335,8 @@ class TestAICalibration:
         cf = make_cf()
         plain = gate.gate(cf).confidence_score
         blended = gate.gate(cf, ai_confidence=1.0).confidence_score
-        assert plain == blended
+        # weight=0 must mean "no blend" — compare with float tolerance
+        assert plain == pytest.approx(blended)
 
     def test_calibration_blends_model_verdict(self, tmp_path: Path):
         gate = ConfidenceGate(tmp_path, {"confidence_gate": {"ai_weight": 0.5}})
@@ -363,7 +364,7 @@ class TestAICalibration:
         assert 0.0 <= s_neg <= 1.0 and 0.0 <= s_big <= 1.0
 
 
-# ── Integration: pipeline stage ordering ─────────────────────────────────
+# â”€â”€ Integration: pipeline stage ordering â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestPipelineIntegration:

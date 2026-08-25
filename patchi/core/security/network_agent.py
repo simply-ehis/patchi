@@ -93,27 +93,29 @@ class NetworkAgent(BaseAgent):
 
         result.status = AgentStatus.SUCCEEDED
         result.findings = findings
-        result.data.update({
-            "network_findings": len(
-                [
-                    f
-                    for f in findings
-                    if any(
-                        word in f.title.lower()
-                        for word in [
-                            "ssl",
-                            "tls",
-                            "https",
-                            "cipher",
-                            "header",
-                            "redirect",
-                            "encryption",
-        ]
+        result.data.update(
+            {
+                "network_findings": len(
+                    [
+                        f
+                        for f in findings
+                        if any(
+                            word in f.title.lower()
+                            for word in [
+                                "ssl",
+                                "tls",
+                                "https",
+                                "cipher",
+                                "header",
+                                "redirect",
+                                "encryption",
+                            ]
+                        )
+                    ]
+                ),
+                "needs_ai": False,
+            }
         )
-        ]
-            ),
-            "needs_ai": False,
-        })
         return
 
     def _should_skip_file(self, file_path: str, inp: AgentInput) -> bool:
@@ -285,7 +287,7 @@ class NetworkAgent(BaseAgent):
 
         # Check if security headers are set
         lines = content.splitlines()
-        for i, line in enumerate(lines, 1):
+        for _i, line in enumerate(lines, 1):
             # Look for response header setting
             if any(header.lower() in line.lower() for header in security_headers):
                 continue  # Header is being set, no issue here

@@ -26,6 +26,7 @@ from rich.text import Text
 
 _log = logging.getLogger("patchi.cli.live_progress")
 
+
 @dataclass
 class _ProgressState:
     log_lines: list[tuple[str, str]] = field(default_factory=list)
@@ -83,7 +84,9 @@ class LiveProgress:
 
         elapsed = int((time.monotonic() - self._start_time) * 1000)
         if summary:
-            self.con.print(f"  [bold #A78BFA]{self._title}:[/bold #A78BFA] {summary} [dim]({elapsed}ms)[/dim]")
+            self.con.print(
+                f"  [bold #A78BFA]{self._title}:[/bold #A78BFA] {summary} [dim]({elapsed}ms)[/dim]"
+            )
 
     def update(self):
         if self._live:
@@ -151,9 +154,13 @@ class LiveProgress:
             )
 
             grid = Group(*lines, Text(""), footer)
-            icon = "[#4ADE80]v[/#4ADE80]" if self._state.done and not self._state.failed else \
-                   "[red]x[/red]" if self._state.failed else \
-                   "[yellow]~[/yellow]"
+            icon = (
+                "[#4ADE80]v[/#4ADE80]"
+                if self._state.done and not self._state.failed
+                else "[red]x[/red]"
+                if self._state.failed
+                else "[yellow]~[/yellow]"
+            )
             return Panel(
                 grid,
                 title=f"{icon} [bold #A78BFA]{self._title}[/bold #A78BFA]",

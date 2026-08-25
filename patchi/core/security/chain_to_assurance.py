@@ -60,7 +60,7 @@ def feed_chains_to_graph(root: Path) -> int:
         if len(steps) < 2:
             continue
 
-        claim_id = f"chain-{i+1}-{'-'.join(s.get('type', 'unknown')[:10] for s in steps[:3])}"
+        claim_id = f"chain-{i + 1}-{'-'.join(s.get('type', 'unknown')[:10] for s in steps[:3])}"
         entry_type = steps[0].get("type", "unknown")
         impact_type = steps[-1].get("type", "unknown")
 
@@ -82,15 +82,16 @@ def feed_chains_to_graph(root: Path) -> int:
             step_type = step.get("type", "")
             try:
                 from patchi.core.security.remediation import get_remediation
+
                 rem = get_remediation(step_type)
                 fix_hint = rem.action if rem else ""
             except ImportError:
                 fix_hint = ""
 
             ev = Evidence(
-                source=f"chain_analyzer.step{j+1}",
+                source=f"chain_analyzer.step{j + 1}",
                 detail=f"[{step.get('role', '?')}] {step.get('type', '?')} @ {step.get('file', '?')}:{step.get('line', '?')}"
-                       + (f" → FIX: {fix_hint}" if fix_hint else ""),
+                + (f" → FIX: {fix_hint}" if fix_hint else ""),
                 supports=False,  # refuting = vulnerability confirmed
                 timestamp=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
                 artifact={
@@ -157,7 +158,11 @@ def feed_chains_to_graph(root: Path) -> int:
     # Save
     if count > 0:
         graph.save(root)
-        _log.info("Fed %d evidence items into assurance graph (chains=%d, intent gaps=%d)",
-                   count, len(chains), len([c for c in gap_categories if intent.get(c[0])]) if intent else 0)
+        _log.info(
+            "Fed %d evidence items into assurance graph (chains=%d, intent gaps=%d)",
+            count,
+            len(chains),
+            len([c for c in gap_categories if intent.get(c[0])]) if intent else 0,
+        )
 
     return count

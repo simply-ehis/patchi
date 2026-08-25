@@ -66,8 +66,16 @@ _REF_NODE_TYPES = {
 
 _ENTRY_NAMES = frozenset(
     {
-        "main", "app", "index", "run", "start", "server", "init",
-        "__init__", "setup", "handler",
+        "main",
+        "app",
+        "index",
+        "run",
+        "start",
+        "server",
+        "init",
+        "__init__",
+        "setup",
+        "handler",
     }
 )
 
@@ -75,6 +83,7 @@ _ENTRY_NAMES = frozenset(
 import logging
 
 _log = logging.getLogger("patchi.brain.dead_symbols")
+
 
 def find_dead_symbols(content: str, lang: Lang, *, min_name_len: int = 3) -> list[dict]:
     """
@@ -129,7 +138,9 @@ def _find_dead_python(content: str, min_name_len: int) -> list[dict]:
         occurrences = ref_lines.get(name, set())
         used = any(ln != def_line for ln in occurrences)
         if not used:
-            dead.append({"name": name, "line": def_line, "kind": "function_or_class", "file_scope": True})
+            dead.append(
+                {"name": name, "line": def_line, "kind": "function_or_class", "file_scope": True}
+            )
     return dead
 
 

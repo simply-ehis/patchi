@@ -57,7 +57,10 @@ XSW_PATTERNS = [
 ]
 
 SIGNATURE_VALIDATION_PATTERNS = [
-    (r"check_signature|validate_signature|verify_signature|isValidSignature", "Signature validation present"),
+    (
+        r"check_signature|validate_signature|verify_signature|isValidSignature",
+        "Signature validation present",
+    ),
     (r"assertion.*valid|validate.*assertion", "Assertion validation"),
     (r"SignedInfo|Reference.*URI.*DigestValue", "XML signature structure detected"),
 ]
@@ -93,11 +96,12 @@ _log = logging.getLogger("patchi.security.saml_sso_agent")
 class SamlSSOAgent(BaseAgent):
     name = "SamlSSOAgent"
     group = AgentGroup.SECURITY
-    description = "SAML/SSO security: XSW, XXE, algorithm enforcement, assertion replay, certificate trust"
+    description = (
+        "SAML/SSO security: XSW, XXE, algorithm enforcement, assertion replay, certificate trust"
+    )
 
     def _run(self, inp: AgentInput, result: AgentResult) -> None:
         with trace_agent(self.name, inp.root) as trace:
-
             findings: list[Finding] = []
             files_scanned = 0
 
@@ -116,147 +120,180 @@ class SamlSSOAgent(BaseAgent):
                 for lib_name, lib_patterns in SAML_LIBRARIES.items():
                     for pattern_key, pattern in lib_patterns.items():
                         for m in re.finditer(pattern, content, re.IGNORECASE):
-                            line_no = content[:m.start()].count("\n") + 1
-                            findings.append(make_finding(
-                                Severity.INFO,
-                                rel,
-                                line_no,
-                                f"SAML library detected: {lib_name}",
-                                f"Code uses {lib_name} library ({pattern_key} pattern). Verify SAML security configuration.",
-                                code_snippet=m.group(),
-                                suggestion=f"Review {lib_name} configuration for security best practices",
-                                control_id="SAML-07",
-                            ))
+                            line_no = content[: m.start()].count("\n") + 1
+                            findings.append(
+                                make_finding(
+                                    Severity.INFO,
+                                    rel,
+                                    line_no,
+                                    f"SAML library detected: {lib_name}",
+                                    f"Code uses {lib_name} library ({pattern_key} pattern). Verify SAML security configuration.",
+                                    code_snippet=m.group(),
+                                    suggestion=f"Review {lib_name} configuration for security best practices",
+                                    control_id="SAML-07",
+                                )
+                            )
 
                 # Check for XXE patterns
                 for pattern, desc in XXE_PATTERNS:
                     for m in re.finditer(pattern, content, re.IGNORECASE):
-                        line_no = content[:m.start()].count("\n") + 1
-                        findings.append(make_finding(
-                            Severity.CRITICAL,
-                            rel,
-                            line_no,
-                            "SAML-01: XML External Entity (XXE) vulnerability",
-                            desc,
-                            code_snippet=m.group(),
-                            suggestion="Disable DTD loading and entity resolution in XML parser",
-                            cwe="CWE-611",
-                            control_id="SAML-01",
-                        ))
+                        line_no = content[: m.start()].count("\n") + 1
+                        findings.append(
+                            make_finding(
+                                Severity.CRITICAL,
+                                rel,
+                                line_no,
+                                "SAML-01: XML External Entity (XXE) vulnerability",
+                                desc,
+                                code_snippet=m.group(),
+                                suggestion="Disable DTD loading and entity resolution in XML parser",
+                                cwe="CWE-611",
+                                control_id="SAML-01",
+                            )
+                        )
 
                 # Check for XSW patterns
                 for pattern, desc in XSW_PATTERNS:
                     for m in re.finditer(pattern, content, re.IGNORECASE):
-                        line_no = content[:m.start()].count("\n") + 1
-                        findings.append(make_finding(
-                            Severity.CRITICAL,
-                            rel,
-                            line_no,
-                            "SAML-02: XML Signature Wrapping attack vector",
-                            desc,
-                            code_snippet=m.group(),
-                            suggestion="Use a SAML library that prevents Signature Wrapping attacks",
-                            cwe="CWE-327",
-                            control_id="SAML-02",
-                        ))
+                        line_no = content[: m.start()].count("\n") + 1
+                        findings.append(
+                            make_finding(
+                                Severity.CRITICAL,
+                                rel,
+                                line_no,
+                                "SAML-02: XML Signature Wrapping attack vector",
+                                desc,
+                                code_snippet=m.group(),
+                                suggestion="Use a SAML library that prevents Signature Wrapping attacks",
+                                cwe="CWE-327",
+                                control_id="SAML-02",
+                            )
+                        )
 
                 # Check for weak algorithms (SHA-1)
                 weak_algo = re.findall(r"sha-?1|SHA-?1|md5|MD5", content)
                 if weak_algo:
                     for m in re.finditer(r"sha-?1|SHA-?1|md5|MD5", content):
-                        line_no = content[:m.start()].count("\n") + 1
-                        findings.append(make_finding(
-                            Severity.HIGH,
-                            rel,
-                            line_no,
-                            "SAML-03: Weak cryptographic algorithm (SHA-1/MD5)",
-                            "SAML assertion uses deprecated hash algorithm. SHA-1 is vulnerable to collision attacks.",
-                            code_snippet=m.group(),
-                            suggestion="Upgrade to SHA-256 or stronger algorithms",
-                            cwe="CWE-327",
-                            control_id="SAML-03",
-                        ))
+                        line_no = content[: m.start()].count("\n") + 1
+                        findings.append(
+                            make_finding(
+                                Severity.HIGH,
+                                rel,
+                                line_no,
+                                "SAML-03: Weak cryptographic algorithm (SHA-1/MD5)",
+                                "SAML assertion uses deprecated hash algorithm. SHA-1 is vulnerable to collision attacks.",
+                                code_snippet=m.group(),
+                                suggestion="Upgrade to SHA-256 or stronger algorithms",
+                                cwe="CWE-327",
+                                control_id="SAML-03",
+                            )
+                        )
 
                 # Check for missing signature validation
                 has_sig_validation = any(
-                    re.search(p, content, re.IGNORECASE)
-                    for p, _ in SIGNATURE_VALIDATION_PATTERNS
+                    re.search(p, content, re.IGNORECASE) for p, _ in SIGNATURE_VALIDATION_PATTERNS
                 )
-                if re.search(r"saml2?\b|onelogin|AuthnRequest|SAMLResponse", content, re.IGNORECASE) and not has_sig_validation:
-                    findings.append(make_finding(
-                        Severity.HIGH,
-                        rel,
-                        0,
-                        "SAML-04: Missing signature validation",
-                        "SAML processing code detected without signature validation. Assertions may be forged.",
-                        suggestion="Implement XML signature validation before processing assertions",
-                        cwe="CWE-347",
-                        control_id="SAML-04",
-                    ))
-
-                # Check for assertion lifetime
-                has_lifetime = any(
-                    re.search(p, content, re.IGNORECASE)
-                    for p, _ in ASSERTION_LIFETIME_PATTERNS
-                )
-                if re.search(r"saml2?\b|assertion|SAMLResponse", content, re.IGNORECASE) and not has_lifetime:
-                    findings.append(make_finding(
-                        Severity.HIGH,
-                        rel,
-                        0,
-                        "SAML-05: No assertion lifetime enforcement",
-                        "SAML assertions processed without checking NotBefore/NotOnOrAfter. Replay attacks possible.",
-                        suggestion="Enforce assertion time bounds and session index tracking",
-                        cwe="CWE-294",
-                        control_id="SAML-05",
-                    ))
-
-                # Check for RelayState validation
-                has_relay = any(
-                    re.search(p, content, re.IGNORECASE)
-                    for p, _ in RELAYSTATE_PATTERNS
-                )
-                if has_relay:
-                    # Check if validation is present
-                    if not re.search(r"whitelist|allowlist|validate.*relay|check.*relay|sanitize.*relay", content, re.IGNORECASE):
-                        findings.append(make_finding(
-                            Severity.MEDIUM,
-                            rel,
-                            0,
-                            "SAML-06: RelayState open redirect potential",
-                            "RelayState parameter used without explicit validation. May allow open redirect attacks.",
-                            suggestion="Validate RelayState against an allowlist of permitted redirect URLs",
-                            cwe="CWE-601",
-                            control_id="SAML-06",
-                        ))
-
-                # Check for assertion replay protection
-                if re.search(r"saml2?\b|SAMLResponse", content, re.IGNORECASE):
-                    if not re.search(r"SessionIndex|session_index|replay|nonce|jti", content, re.IGNORECASE):
-                        findings.append(make_finding(
+                if (
+                    re.search(
+                        r"saml2?\b|onelogin|AuthnRequest|SAMLResponse", content, re.IGNORECASE
+                    )
+                    and not has_sig_validation
+                ):
+                    findings.append(
+                        make_finding(
                             Severity.HIGH,
                             rel,
                             0,
-                            "SAML-08: Assertion replay protection missing",
-                            "No session index or nonce tracking detected. SAML assertions may be replayed.",
-                            suggestion="Track assertion IDs and session indices to prevent replay attacks",
+                            "SAML-04: Missing signature validation",
+                            "SAML processing code detected without signature validation. Assertions may be forged.",
+                            suggestion="Implement XML signature validation before processing assertions",
+                            cwe="CWE-347",
+                            control_id="SAML-04",
+                        )
+                    )
+
+                # Check for assertion lifetime
+                has_lifetime = any(
+                    re.search(p, content, re.IGNORECASE) for p, _ in ASSERTION_LIFETIME_PATTERNS
+                )
+                if (
+                    re.search(r"saml2?\b|assertion|SAMLResponse", content, re.IGNORECASE)
+                    and not has_lifetime
+                ):
+                    findings.append(
+                        make_finding(
+                            Severity.HIGH,
+                            rel,
+                            0,
+                            "SAML-05: No assertion lifetime enforcement",
+                            "SAML assertions processed without checking NotBefore/NotOnOrAfter. Replay attacks possible.",
+                            suggestion="Enforce assertion time bounds and session index tracking",
                             cwe="CWE-294",
-                            control_id="SAML-08",
-                        ))
+                            control_id="SAML-05",
+                        )
+                    )
+
+                # Check for RelayState validation
+                has_relay = any(
+                    re.search(p, content, re.IGNORECASE) for p, _ in RELAYSTATE_PATTERNS
+                )
+                if has_relay:
+                    # Check if validation is present
+                    if not re.search(
+                        r"whitelist|allowlist|validate.*relay|check.*relay|sanitize.*relay",
+                        content,
+                        re.IGNORECASE,
+                    ):
+                        findings.append(
+                            make_finding(
+                                Severity.MEDIUM,
+                                rel,
+                                0,
+                                "SAML-06: RelayState open redirect potential",
+                                "RelayState parameter used without explicit validation. May allow open redirect attacks.",
+                                suggestion="Validate RelayState against an allowlist of permitted redirect URLs",
+                                cwe="CWE-601",
+                                control_id="SAML-06",
+                            )
+                        )
+
+                # Check for assertion replay protection
+                if re.search(r"saml2?\b|SAMLResponse", content, re.IGNORECASE):
+                    if not re.search(
+                        r"SessionIndex|session_index|replay|nonce|jti", content, re.IGNORECASE
+                    ):
+                        findings.append(
+                            make_finding(
+                                Severity.HIGH,
+                                rel,
+                                0,
+                                "SAML-08: Assertion replay protection missing",
+                                "No session index or nonce tracking detected. SAML assertions may be replayed.",
+                                suggestion="Track assertion IDs and session indices to prevent replay attacks",
+                                cwe="CWE-294",
+                                control_id="SAML-08",
+                            )
+                        )
 
                 # Check for certificate trust pinning
                 if re.search(r"certificate|cert|X509|trust", content, re.IGNORECASE):
-                    if not re.search(r"pin|trust_store|ca_bundle|certificate_file|verify.*cert", content, re.IGNORECASE):
-                        findings.append(make_finding(
-                            Severity.MEDIUM,
-                            rel,
-                            0,
-                            "SAML-09: Certificate trust not pinned",
-                            "SAML certificate handling without explicit trust pinning. May accept forged certificates.",
-                            suggestion="Pin IdP certificate or use a trusted CA bundle for validation",
-                            cwe="CWE-295",
-                            control_id="SAML-09",
-                        ))
+                    if not re.search(
+                        r"pin|trust_store|ca_bundle|certificate_file|verify.*cert",
+                        content,
+                        re.IGNORECASE,
+                    ):
+                        findings.append(
+                            make_finding(
+                                Severity.MEDIUM,
+                                rel,
+                                0,
+                                "SAML-09: Certificate trust not pinned",
+                                "SAML certificate handling without explicit trust pinning. May accept forged certificates.",
+                                suggestion="Pin IdP certificate or use a trusted CA bundle for validation",
+                                cwe="CWE-295",
+                                control_id="SAML-09",
+                            )
+                        )
 
             # Phase 2: Scan YAML/JSON configs for SAML metadata
             for fpath in safe_rglob(inp.root, "*.xml"):
@@ -273,29 +310,33 @@ class SamlSSOAgent(BaseAgent):
                 if re.search(r"EntityDescriptor|SPSSODescriptor|IDPSSODescriptor", content):
                     # Check for SHA-1 in metadata
                     if re.search(r"SHA-1|sha1|DigestMethod.*SHA-1", content):
-                        findings.append(make_finding(
-                            Severity.HIGH,
-                            rel,
-                            0,
-                            "SAML-03: Weak algorithm in SAML metadata",
-                            "SAML metadata specifies SHA-1 digest method. Upgrade to SHA-256.",
-                            suggestion="Update DigestMethod and SignatureMethod to SHA-256 or stronger",
-                            cwe="CWE-327",
-                            control_id="SAML-03",
-                        ))
+                        findings.append(
+                            make_finding(
+                                Severity.HIGH,
+                                rel,
+                                0,
+                                "SAML-03: Weak algorithm in SAML metadata",
+                                "SAML metadata specifies SHA-1 digest method. Upgrade to SHA-256.",
+                                suggestion="Update DigestMethod and SignatureMethod to SHA-256 or stronger",
+                                cwe="CWE-327",
+                                control_id="SAML-03",
+                            )
+                        )
 
                     # Check for WantAssertionsSigned
                     if re.search(r"WantAssertionsSigned\s*=\s*[\"']false[\"']", content):
-                        findings.append(make_finding(
-                            Severity.HIGH,
-                            rel,
-                            0,
-                            "SAML-04: Assertions not required to be signed",
-                            "WantAssertionsSigned=false allows unsigned assertions. Forged assertions accepted.",
-                            suggestion="Set WantAssertionsSigned=true in SP metadata",
-                            cwe="CWE-347",
-                            control_id="SAML-04",
-                        ))
+                        findings.append(
+                            make_finding(
+                                Severity.HIGH,
+                                rel,
+                                0,
+                                "SAML-04: Assertions not required to be signed",
+                                "WantAssertionsSigned=false allows unsigned assertions. Forged assertions accepted.",
+                                suggestion="Set WantAssertionsSigned=true in SP metadata",
+                                cwe="CWE-347",
+                                control_id="SAML-04",
+                            )
+                        )
 
             # Phase 3: Try external SAST tools (semgrep has SAML rules)
             semgrep_path = shutil.which("semgrep")
@@ -318,20 +359,27 @@ class SamlSSOAgent(BaseAgent):
                     )
                     if proc.returncode == 0 and proc.stdout:
                         import json
+
                         try:
                             data = json.loads(proc.stdout)
                             for r in data.get("results", []):
                                 rule_id = r.get("check_id", "")
-                                if "saml" in rule_id.lower() or "xxe" in rule_id.lower() or "xml" in rule_id.lower():
-                                    findings.append(make_finding(
-                                        Severity.HIGH,
-                                        r.get("path", ""),
-                                        r.get("start", {}).get("line", 0),
-                                        f"Semgrep: {rule_id}",
-                                        r.get("extra", {}).get("message", ""),
-                                        code_snippet=r.get("extra", {}).get("lines", ""),
-                                        suggestion="Review semgrep finding for SAML security impact",
-                                    ))
+                                if (
+                                    "saml" in rule_id.lower()
+                                    or "xxe" in rule_id.lower()
+                                    or "xml" in rule_id.lower()
+                                ):
+                                    findings.append(
+                                        make_finding(
+                                            Severity.HIGH,
+                                            r.get("path", ""),
+                                            r.get("start", {}).get("line", 0),
+                                            f"Semgrep: {rule_id}",
+                                            r.get("extra", {}).get("message", ""),
+                                            code_snippet=r.get("extra", {}).get("lines", ""),
+                                            suggestion="Review semgrep finding for SAML security impact",
+                                        )
+                                    )
                         except json.JSONDecodeError:
                             pass
                 except (subprocess.TimeoutExpired, Exception):

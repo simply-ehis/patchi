@@ -9,16 +9,25 @@ import asyncio
 import logging
 import time
 import uuid
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 from patchi.core.agents.base import AgentGroup, AgentInput, AgentResult
 from patchi.core.testing.live_test_runner import TestRunConfig, TestRunResult
-from patchi.core.testing.live_v2.browser_pool import BrowserPool, BrowserConfig, get_browser_pool
-from patchi.core.testing.live_v2.stress_orchestrator import StressOrchestrator, StressConfig, StressTestReport
-from patchi.core.testing.live_v2.screenshot_manager import ScreenshotManager, ScreenshotConfig, VisualRegressionAgent
-from patchi.core.testing.live_v2.video_recorder import VideoRecorder, RecordingConfig, TestRecording
+from patchi.core.testing.live_v2.browser_pool import BrowserConfig, BrowserPool, get_browser_pool
+from patchi.core.testing.live_v2.screenshot_manager import (
+    ScreenshotConfig,
+    ScreenshotManager,
+    VisualRegressionAgent,
+)
+from patchi.core.testing.live_v2.stress_orchestrator import (
+    StressConfig,
+    StressOrchestrator,
+    StressTestReport,
+)
+from patchi.core.testing.live_v2.video_recorder import RecordingConfig, TestRecording, VideoRecorder
 
 _log = logging.getLogger("patchi.testing.live_test_runner_v2")
 
@@ -26,8 +35,11 @@ _log = logging.getLogger("patchi.testing.live_test_runner_v2")
 @dataclass
 class LiveTestConfigV2:
     """Enhanced configuration for live test runs."""
+
     # Base config
-    test_types: list[str] = field(default_factory=lambda: ["unit", "regression", "browser", "visual"])
+    test_types: list[str] = field(
+        default_factory=lambda: ["unit", "regression", "browser", "visual"]
+    )
     area: str | None = None
     base_url: str | None = None
     parallel: bool = False
@@ -54,6 +66,7 @@ class LiveTestConfigV2:
 @dataclass
 class LiveTestResultV2:
     """Enhanced test run result with live testing data."""
+
     # Base results
     base_result: TestRunResult
 
@@ -69,14 +82,16 @@ class LiveTestResultV2:
 
     def to_dict(self) -> dict:
         base = self.base_result.to_dict()
-        base.update({
-            "browser_tests": self.browser_tests,
-            "visual_regression": self.visual_regression,
-            "stress_test": self.stress_test.__dict__ if self.stress_test else None,
-            "recordings": [r.__dict__ for r in self.recordings],
-            "screenshots": self.screenshots,
-            "live_test_summary": self.live_test_summary,
-        })
+        base.update(
+            {
+                "browser_tests": self.browser_tests,
+                "visual_regression": self.visual_regression,
+                "stress_test": self.stress_test.__dict__ if self.stress_test else None,
+                "recordings": [r.__dict__ for r in self.recordings],
+                "screenshots": self.screenshots,
+                "live_test_summary": self.live_test_summary,
+            }
+        )
         return base
 
 
@@ -84,7 +99,7 @@ class LiveTestRunnerV2:
     """
     Enhanced Live Test Runner with browser automation, visual regression,
     stress testing, and video recording.
-    
+
     Usage:
         config = LiveTestConfigV2(
             test_types=["unit", "browser", "visual", "stress"],
@@ -242,22 +257,26 @@ class LiveTestRunnerV2:
 
         # Add more scenarios based on test_types
         if "e2e" in config.test_types:
-            scenarios.append({
-                "name": "User Login Flow",
-                "url": f"{config.base_url}/login",
-                "actions": [
-                    {"action": "goto", "url": f"{config.base_url}/login"},
-                    {"action": "fill", "selector": "#username", "value": "testuser"},
-                    {"action": "fill", "selector": "#password", "value": "testpass"},
-                    {"action": "click", "selector": "button[type=submit]"},
-                    {"action": "wait_for_url", "url": "**/dashboard**"},
-                    {"action": "assert_element", "selector": ".user-menu"},
-                ],
-            })
+            scenarios.append(
+                {
+                    "name": "User Login Flow",
+                    "url": f"{config.base_url}/login",
+                    "actions": [
+                        {"action": "goto", "url": f"{config.base_url}/login"},
+                        {"action": "fill", "selector": "#username", "value": "testuser"},
+                        {"action": "fill", "selector": "#password", "value": "testpass"},
+                        {"action": "click", "selector": "button[type=submit]"},
+                        {"action": "wait_for_url", "url": "**/dashboard**"},
+                        {"action": "assert_element", "selector": ".user-menu"},
+                    ],
+                }
+            )
 
         return scenarios
 
-    async def _run_browser_scenario(self, page: Any, scenario: dict, config: LiveTestConfigV2) -> dict:
+    async def _run_browser_scenario(
+        self, page: Any, scenario: dict, config: LiveTestConfigV2
+    ) -> dict:
         """Run a single browser test scenario."""
         start_time = time.time()
         result = {
@@ -288,11 +307,13 @@ class LiveTestRunnerV2:
                     name=f"{scenario['name']}-final",
                     config=config.screenshot_config,
                 )
-                result["screenshots"].append({
-                    "name": "final",
-                    "base64": screenshot.image_base64[:100] + "...",  # Truncated for logging
-                    "dimensions": screenshot.dimensions,
-                })
+                result["screenshots"].append(
+                    {
+                        "name": "final",
+                        "base64": screenshot.image_base64[:100] + "...",  # Truncated for logging
+                        "dimensions": screenshot.dimensions,
+                    }
+                )
 
         except Exception as e:
             result["passed"] = False
@@ -353,8 +374,10 @@ class LiveTestRunnerV2:
 
             elif action == "screenshot":
                 screenshot = await self.screenshot_manager.capture(
-                    page, page.url, name=step.get("name", "step"),
-                    config=self._config.screenshot_config if self._config else None
+                    page,
+                    page.url,
+                    name=step.get("name", "step"),
+                    config=self._config.screenshot_config if self._config else None,
                 )
                 step_result["success"] = True
                 step_result["screenshot"] = screenshot.image_base64[:100] + "..."
@@ -374,9 +397,12 @@ class LiveTestRunnerV2:
 
         self.on_progress("👁️ Running visual regression tests...")
 
-        agent = VisualRegressionAgent(self.root, {
-            "visual_threshold": config.visual_threshold,
-        })
+        agent = VisualRegressionAgent(
+            self.root,
+            {
+                "visual_threshold": config.visual_threshold,
+            },
+        )
 
         # Define URLs to test
         urls = [
@@ -392,7 +418,9 @@ class LiveTestRunnerV2:
                 update_baselines=config.update_baselines,
             )
 
-            self.on_progress(f"  Visual regression: {result['passed']} passed, {result['failed']} failed")
+            self.on_progress(
+                f"  Visual regression: {result['passed']} passed, {result['failed']} failed"
+            )
             self.on_event("visual_regression_completed", result)
 
             return result
@@ -411,7 +439,9 @@ class LiveTestRunnerV2:
             orchestrator = StressOrchestrator(config.stress_config, on_progress=self.on_progress)
             report = await orchestrator.run()
 
-            self.on_progress(f"  Stress test: {report.requests_per_second:.1f} req/s, P95: {report.latency.get('p95', 0):.0f}ms")
+            self.on_progress(
+                f"  Stress test: {report.requests_per_second:.1f} req/s, P95: {report.latency.get('p95', 0):.0f}ms"
+            )
             self.on_event("stress_test_completed", report.__dict__)
 
             return report
@@ -439,12 +469,14 @@ class LiveTestRunnerV2:
                     result = await self.screenshot_manager.capture(
                         page, url, config=config.screenshot_config
                     )
-                    screenshots.append({
-                        "url": url,
-                        "dimensions": result.dimensions,
-                        "timestamp": result.timestamp,
-                        "base64_preview": result.image_base64[:100] + "...",
-                    })
+                    screenshots.append(
+                        {
+                            "url": url,
+                            "dimensions": result.dimensions,
+                            "timestamp": result.timestamp,
+                            "base64_preview": result.image_base64[:100] + "...",
+                        }
+                    )
                 except Exception as e:
                     _log.warning(f"Screenshot failed for {url}: {e}")
                     screenshots.append({"url": url, "error": str(e)})
@@ -489,7 +521,9 @@ class LiveTestRunnerV2:
                 "completed": stress_results is not None,
                 "requests_per_second": stress_results.requests_per_second if stress_results else 0,
                 "latency_p95_ms": stress_results.latency.get("p95", 0) if stress_results else 0,
-                "error_rate": stress_results.failed_requests / stress_results.total_requests if stress_results and stress_results.total_requests > 0 else 0,
+                "error_rate": stress_results.failed_requests / stress_results.total_requests
+                if stress_results and stress_results.total_requests > 0
+                else 0,
             },
             "overall_duration_ms": int((time.time() - self._start_time) * 1000),
         }
@@ -507,7 +541,7 @@ async def run_live_tests_v2(
 
 
 # Agent wrapper for integration
-from patchi.core.agents.base import BaseAgent, register, Finding, Severity
+from patchi.core.agents.base import BaseAgent, Finding, Severity, register
 
 
 @register
@@ -560,25 +594,29 @@ class LiveTestRunnerV2Agent(BaseAgent):
         if test_result.visual_regression and test_result.visual_regression.get("failed", 0) > 0:
             for diff in test_result.visual_regression.get("diffs", []):
                 if not diff.get("passed", True):
-                    result.add_finding(Finding(
-                        agent="LiveTestRunnerV2Agent",
-                        type="visual_regression",
-                        severity=Severity.MEDIUM,
-                        file="",
-                        line=0,
-                        message=f"Visual regression detected: {diff.get('difference_percent', 0):.1f}% difference",
-                        detail="Baseline comparison failed for visual test",
-                    ))
+                    result.add_finding(
+                        Finding(
+                            agent="LiveTestRunnerV2Agent",
+                            type="visual_regression",
+                            severity=Severity.MEDIUM,
+                            file="",
+                            line=0,
+                            message=f"Visual regression detected: {diff.get('difference_percent', 0):.1f}% difference",
+                            detail="Baseline comparison failed for visual test",
+                        )
+                    )
 
         if test_result.stress_test and test_result.stress_test.failed_requests > 0:
-            result.add_finding(Finding(
-                agent="LiveTestRunnerV2Agent",
-                type="stress_test_failure",
-                severity=Severity.HIGH,
-                file="",
-                line=0,
-                message=f"Stress test failures: {test_result.stress_test.failed_requests}/{test_result.stress_test.total_requests} requests failed",
-                detail=f"Error rate: {test_result.stress_test.failed_requests / test_result.stress_test.total_requests * 100:.1f}%",
-            ))
+            result.add_finding(
+                Finding(
+                    agent="LiveTestRunnerV2Agent",
+                    type="stress_test_failure",
+                    severity=Severity.HIGH,
+                    file="",
+                    line=0,
+                    message=f"Stress test failures: {test_result.stress_test.failed_requests}/{test_result.stress_test.total_requests} requests failed",
+                    detail=f"Error rate: {test_result.stress_test.failed_requests / test_result.stress_test.total_requests * 100:.1f}%",
+                )
+            )
 
         result.data["live_test_result"] = test_result.to_dict()

@@ -14,7 +14,7 @@ from __future__ import annotations
 import logging
 import time
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -24,6 +24,7 @@ _log = logging.getLogger("patchi.testing.video_recorder")
 @dataclass
 class RecordingConfig:
     """Configuration for video recording."""
+
     output_dir: Path = Path(".patchi/recordings")
     video_size: dict = field(default_factory=lambda: {"width": 1280, "height": 720})
     fps: int = 30
@@ -37,6 +38,7 @@ class RecordingConfig:
 @dataclass
 class RecordingSegment:
     """A single recording segment."""
+
     segment_id: str
     test_name: str
     start_time: float
@@ -50,6 +52,7 @@ class RecordingSegment:
 @dataclass
 class TestRecording:
     """Complete recording for a test run."""
+
     test_run_id: str
     started_at: str
     completed_at: str
@@ -61,15 +64,15 @@ class TestRecording:
 class VideoRecorder:
     """
     Records browser test sessions as video.
-    
+
     Usage:
         recorder = VideoRecorder()
-        
+
         # Get a browser context with video recording
         context, instance = await recorder.start_recording("test-login")
-        
+
         # ... run test ...
-        
+
         # Stop and get recording
         recording = await recorder.stop_recording(context, instance)
     """
@@ -88,7 +91,7 @@ class VideoRecorder:
     ) -> tuple[Any, Any]:
         """
         Start a new recording session.
-        
+
         Returns:
             Tuple of (browser_context, browser_instance)
         """
@@ -142,8 +145,10 @@ class VideoRecorder:
             _log.warning(f"No video file found for {recording_id}")
             return TestRecording(
                 test_run_id=recording_id,
-                started_at=datetime.fromtimestamp(recording["start_time"], timezone.utc).isoformat(),
-                completed_at=datetime.now(timezone.utc).isoformat(),
+                started_at=datetime.fromtimestamp(
+                    recording["start_time"], UTC
+                ).isoformat(),
+                completed_at=datetime.now(UTC).isoformat(),
                 total_duration_seconds=time.time() - recording["start_time"],
             )
 
@@ -168,25 +173,29 @@ class VideoRecorder:
 
         test_recording = TestRecording(
             test_run_id=recording_id,
-            started_at=datetime.fromtimestamp(recording["start_time"], timezone.utc).isoformat(),
-            completed_at=datetime.now(timezone.utc).isoformat(),
+            started_at=datetime.fromtimestamp(recording["start_time"], UTC).isoformat(),
+            completed_at=datetime.now(UTC).isoformat(),
             total_duration_seconds=duration,
             segments=[segment],
             total_size_bytes=segment.file_size,
         )
 
-        _log.info(f"Recording saved: {final_path} ({duration:.1f}s, {segment.file_size / 1024:.1f} KB)")
+        _log.info(
+            f"Recording saved: {final_path} ({duration:.1f}s, {segment.file_size / 1024:.1f} KB)"
+        )
         return test_recording
 
     async def add_metadata_marker(self, recording_id: str, marker: str, data: dict = None):
         """Add a metadata marker to the current recording."""
         if recording_id in self._active_recordings:
             recording = self._active_recordings[recording_id]
-            recording["segments"].append({
-                "marker": marker,
-                "data": data or {},
-                "timestamp": time.time(),
-            })
+            recording["segments"].append(
+                {
+                    "marker": marker,
+                    "data": data or {},
+                    "timestamp": time.time(),
+                }
+            )
 
     async def get_recording_info(self, recording_id: str) -> dict | None:
         """Get info about an active recording."""
@@ -197,13 +206,15 @@ class VideoRecorder:
         recordings = []
         for video_file in self.config.output_dir.glob("*.webm"):
             stat = video_file.stat()
-            recordings.append({
-                "name": video_file.stem,
-                "path": str(video_file),
-                "size_bytes": stat.st_size,
-                "created_at": datetime.fromtimestamp(stat.st_ctime, timezone.utc).isoformat(),
-                "duration_seconds": stat.st_size / (1024 * 100),  # Rough estimate
-            })
+            recordings.append(
+                {
+                    "name": video_file.stem,
+                    "path": str(video_file),
+                    "size_bytes": stat.st_size,
+                    "created_at": datetime.fromtimestamp(stat.st_ctime, UTC).isoformat(),
+                    "duration_seconds": stat.st_size / (1024 * 100),  # Rough estimate
+                }
+            )
         return sorted(recordings, key=lambda r: r["created_at"], reverse=True)
 
     async def cleanup_old(self, max_age_days: int = 7):
@@ -258,9 +269,7 @@ class RecordingBrowserPool:
 
     async def release_recording(self, context, instance, test_name: str):
         """Release recording context and save video."""
-        test_recording = await self.recorder.stop_recording(
-            f"{test_name}-{id(instance)}"
-        )
+        test_recording = await self.recorder.stop_recording(f"{test_name}-{id(instance)}")
 
         # Clean up browser instance
         try:

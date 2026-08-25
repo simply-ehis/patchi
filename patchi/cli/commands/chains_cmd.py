@@ -37,7 +37,9 @@ def run(
     ci_path = r / ".patchi" / "chain_intent.json"
     if not ci_path.is_file():
         con.print("[yellow]No chain/intent data found.[/yellow]")
-        con.print("[dim]Run [bold]p scan[/bold] first to generate exploit chains and intent analysis.[/dim]")
+        con.print(
+            "[dim]Run [bold]p scan[/bold] first to generate exploit chains and intent analysis.[/dim]"
+        )
         return
 
     try:
@@ -126,7 +128,9 @@ def run(
 
     # Intent gaps
     if intent and intent.get("gaps_total", 0) > 0:
-        con.print(f"[bold]Intent Gaps[/bold] ({intent['gaps_total']} across {intent.get('routes_total', '?')} routes)")
+        con.print(
+            f"[bold]Intent Gaps[/bold] ({intent['gaps_total']} across {intent.get('routes_total', '?')} routes)"
+        )
         con.print()
 
         for category, label, color in [
@@ -171,8 +175,7 @@ def _print_json(chains: list, intent: dict | None) -> None:
 
 def _apply_fixes(root: Path, chains: list[dict], con) -> None:
     """Apply auto-fixable remediations from chain steps via RiskGate."""
-    from patchi.core.fix.risk_gate import RiskGate
-    from patchi.core.fix.risk_gate import Patch
+    from patchi.core.fix.risk_gate import Patch, RiskGate
     from patchi.core.security.remediation import get_remediation, get_remediation_confidence
 
     gate = RiskGate(root)
@@ -181,9 +184,9 @@ def _apply_fixes(root: Path, chains: list[dict], con) -> None:
     blocked = 0
     not_fixable = 0
 
-    for chain_idx, chain in enumerate(chains):
+    for _chain_idx, chain in enumerate(chains):
         steps = chain.get("steps", [])
-        for step_idx, step in enumerate(steps):
+        for _step_idx, step in enumerate(steps):
             ftype = step.get("type", "")
             ffile = step.get("file", "")
             line = step.get("line", 0)
@@ -212,7 +215,9 @@ def _apply_fixes(root: Path, chains: list[dict], con) -> None:
                 file=str(filepath),
                 line=line,
                 description=f"Auto-fix for {ftype}: {rem.action}",
-                risk_score=10 if rem.risk_level == "low" else (30 if rem.risk_level == "medium" else 60),
+                risk_score=10
+                if rem.risk_level == "low"
+                else (30 if rem.risk_level == "medium" else 60),
                 blast_radius=1,
             )
 
@@ -226,17 +231,24 @@ def _apply_fixes(root: Path, chains: list[dict], con) -> None:
 
             if result.is_auto or confidence >= 0.7:
                 # Auto-apply
-                con.print(f"  [green]✓ APPLY[/green] {ffile}:{line} ({ftype}) — confidence {confidence:.0%}")
+                con.print(
+                    f"  [green]✓ APPLY[/green] {ffile}:{line} ({ftype}) — confidence {confidence:.0%}"
+                )
                 con.print(f"    Fix: {rem.action}")
                 if rem.code_pattern:
                     con.print(f"    Pattern: {rem.code_pattern[:80]}")
                 # Record the fix attempt
                 from patchi.core.security.attack_feedback import record_fix_outcome
+
                 record_fix_outcome(root, ftype, ffile, rem.action, accepted=True)
                 applied += 1
             else:
-                con.print(f"  [yellow]? REVIEW[/yellow] {ffile}:{line} ({ftype}) — confidence {confidence:.0%} (below 70%)")
+                con.print(
+                    f"  [yellow]? REVIEW[/yellow] {ffile}:{line} ({ftype}) — confidence {confidence:.0%} (below 70%)"
+                )
                 skipped += 1
 
     con.print()
-    con.print(f"[bold]Summary:[/bold] {applied} applied, {skipped} skipped, {blocked} blocked, {not_fixable} not auto-fixable")
+    con.print(
+        f"[bold]Summary:[/bold] {applied} applied, {skipped} skipped, {blocked} blocked, {not_fixable} not auto-fixable"
+    )

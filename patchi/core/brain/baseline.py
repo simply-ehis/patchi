@@ -13,12 +13,13 @@ import hashlib
 import json
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from patchi.core.agents.base import Finding, Severity
 
 _log = logging.getLogger("patchi.brain.baseline")
+
 
 @dataclass
 class BaselineSnapshot:
@@ -74,7 +75,7 @@ def _finding_hash(finding: Finding) -> str:
 
 
 def _finding_dict_hash(finding: dict) -> str:
-    raw = f"{finding.get('file','')}:{finding.get('line',0)}:{finding.get('type','')}:{finding.get('severity','')}:{finding.get('message','')}"
+    raw = f"{finding.get('file', '')}:{finding.get('line', 0)}:{finding.get('type', '')}:{finding.get('severity', '')}:{finding.get('message', '')}"
     return hashlib.sha256(raw.encode()).hexdigest()[:16]
 
 
@@ -85,7 +86,7 @@ def _baseline_path(root: Path) -> Path:
 def save_baseline(findings: list[Finding], root: Path) -> BaselineSnapshot:
     """Snapshot current findings as the new baseline."""
     snapshot = BaselineSnapshot(
-        created_at=datetime.now(timezone.utc).isoformat(),
+        created_at=datetime.now(UTC).isoformat(),
         total_findings=len(findings),
         by_severity={s.value: 0 for s in Severity},
         by_agent={},
@@ -118,9 +119,7 @@ def load_baseline(root: Path) -> BaselineSnapshot | None:
         return None
 
 
-def diff_baseline(
-    current_findings: list[dict | Finding], root: Path
-) -> BaselineDiff | None:
+def diff_baseline(current_findings: list[dict | Finding], root: Path) -> BaselineDiff | None:
     """
     Compare current findings against baseline.
     Returns None if no baseline exists.
