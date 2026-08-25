@@ -64,6 +64,8 @@ COMMANDS: list[Command] = [
         "patchi.cli.commands.doctor_cmd:run",
         args=(
             Arg("--verbose", dest="verbose", global_flag=True),
+            Arg("--json", dest="json_output", action="store_true",
+                help="Output as JSON"),
         ),
     ),
     Command(
@@ -110,6 +112,10 @@ COMMANDS: list[Command] = [
                 help="Run Red Team Engine: live attack simulation + auto-fix generation"),
             Arg("--dast", action="store_true",
                 help="Run DAST scanner: Playwright-based dynamic security testing with screenshots"),
+            Arg("--changed", action="store_true",
+                help="On-demand mode: only activate domains relevant to git-diff changed files"),
+            Arg("--changed-commits", dest="changed_commits", type=int, default=1,
+                help="Number of commits to diff (default: 1)"),
             Arg("--quiet", dest="quiet", global_flag=True),
         ),
     ),
@@ -266,11 +272,15 @@ COMMANDS: list[Command] = [
             args=(Arg("--sbom", action="store_true", help="Generate SBOM"),
                   Arg("--licenses", action="store_true", help="Check license compliance"),
                   Arg("--outdated", action="store_true", help="Check for outdated packages"),
-                  Arg("--cve", action="store_true", help="Check for known CVEs"))),
+                  Arg("--cve", action="store_true", help="Check for known CVEs"),
+                  Arg("--json", dest="json_output", action="store_true",
+                      help="Output as JSON"))),
     Command("explain", "Explain findings in plain English", "patchi.cli.commands.explain_cmd:run",
             args=(Arg("finding_id", nargs="?", help="Specific finding ID to explain"),
                   # drift fix: parser used --type (dest "type"), handler wants finding_type
-                  Arg("--type", dest="finding_type", type=str, help="Explain a category of findings"))),
+                  Arg("--type", dest="finding_type", type=str, help="Explain a category of findings"),
+                  Arg("--json", dest="json_output", action="store_true",
+                      help="Output as JSON"))),
     # `p blast` was merged into `p impact` (--all + alias). One blast-radius
     # implementation, one command.
     Command("brain", "Brain knowledge → readable markdown", "patchi.cli.commands.brain_cmd:run",

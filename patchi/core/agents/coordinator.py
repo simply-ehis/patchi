@@ -113,6 +113,7 @@ class Coordinator:
         self.on_progress = on_progress or (lambda _: None)
         self.last_security_report: Any = None
         self._circuit_breaker: dict[str, int] = {}
+        self._active_domains: list[str] = []  # git-diff on-demand domains
 
         try:
             self._config = cfg.load(root)
@@ -194,7 +195,31 @@ class Coordinator:
             )
         except Exception as e:
             _log.warning("Coordinator.run_group failed: %s", e)
-        results = self._run_classes(list_agents(group), scope=scope, extra=extra)
+        # ── On-demand domain filtering ────────────────────────────────────────
+        agent_classes = list_agents(group)
+        if self._active_domains:
+            try:
+                from patchi.core.security.domain_activator_v2 import (
+                    DomainActivatorV2,
+                )
+                activator = DomainActivatorV2(self.root)
+                relevant = activator.get_relevant_agents(self._active_domains)
+                # Always run core agents (PreCheckAgent, etc.)
+                core = ["PreCheckAgent", "PlanAuditorAgent"]
+                relevant.extend(core)
+                agent_classes = [
+                    a for a in agent_classes
+                    if getattr(a, "name", "") in relevant
+                ]
+                _log.info(
+                    "Domain filter: %d → %d agents (domains=%s)",
+                    len(list_agents(group)), len(agent_classes),
+                    self._active_domains[:5],
+                )
+            except Exception as e:
+                _log.debug("Domain filter failed: %s", e)
+
+        results = self._run_classes(agent_classes, scope=scope, extra=extra)
 
         # Annotate findings with git blame info (all agent groups)
         if self.root and results:
@@ -267,6 +292,10 @@ class Coordinator:
             "CommentScanner",
         }
     )
+
+    def set_active_domains(self, domains: list[str]) -> None:
+        """Set domains for on-demand activation (from git diff)."""
+        self._active_domains = domains
 
     def run_all_scanners(
         self, scope: list[str] | None = None, side: bool = True

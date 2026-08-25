@@ -65,6 +65,8 @@ def run(
     with_fuzz: bool = False,
     red_team: bool = False,
     dast: bool = False,
+    changed: bool = False,
+    changed_commits: int = 1,
     root: Path | None = None,
 ) -> None:
     """Entry point for `p scan [area]`."""
@@ -204,6 +206,29 @@ def run(
 
                 coord = Coordinator(r, on_progress=on_agent_progress)
                 scope = list(report.import_graph.nodes) if report.import_graph else []
+
+                # ── On-demand domain activation from git diff ────────────
+                if changed:
+                    try:
+                        from patchi.core.security.git_diff_activator import (
+                            activate_from_diff,
+                        )
+                        diff_result = activate_from_diff(r, commits=changed_commits)
+                        if diff_result.activated_domains:
+                            con.print(f"  [dim]Changed files: {len(diff_result.changed_files)}[/dim]")
+                            dom_str = ", ".join(
+                                f"{d} ({s:.1f})"
+                                for d, s in list(diff_result.activated_domains.items())[:8]
+                            )
+                            con.print(f"  [dim]Activated domains: {dom_str}[/dim]")
+                            coord.set_active_domains(
+                                list(diff_result.activated_domains.keys())
+                            )
+                        else:
+                            con.print("  [dim]No domain-relevant changes detected — running full scan[/dim]")
+                    except Exception as e:
+                        _log.debug("Git-diff activation failed: %s", e)
+
                 agent_results = coord.run_all_scanners(scope=scope if area else None, side=side)
 
                 # ── Self-profiling: record per-agent latency/cost ──────────
