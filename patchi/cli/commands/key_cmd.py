@@ -12,7 +12,6 @@ Only the nickname + provider name are stored in config.json — never the raw ke
 """
 
 from __future__ import annotations
-from patchi.cli.console import con
 
 import os
 from pathlib import Path
@@ -21,6 +20,7 @@ from rich.prompt import Confirm, Prompt
 from rich.table import Table
 from rich.text import Text
 
+from patchi.cli.console import con
 from patchi.core import config as cfg
 from patchi.core.config import require_project_root
 
@@ -102,6 +102,7 @@ PROVIDERS: list[dict] = [
 PROVIDER_NAMES = [p["name"] for p in PROVIDERS]
 
 import logging
+
 _log = logging.getLogger("patchi.cli.key_cmd")
 
 def _provider_by_name(name: str) -> dict | None:

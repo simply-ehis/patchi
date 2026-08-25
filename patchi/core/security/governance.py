@@ -6,8 +6,8 @@ Governance & Audit (Layer 3) — action logging and policy gates.
 """
 
 from __future__ import annotations
-import logging
 
+import logging
 import sqlite3
 import time
 from pathlib import Path

@@ -12,7 +12,6 @@ Checks:
 """
 
 from __future__ import annotations
-from patchi.cli.console import con
 
 import importlib
 import shutil
@@ -21,6 +20,8 @@ import sys
 from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
+
+from patchi.cli.console import con
 
 # ── Dependency manifests ───────────────────────────────────────────────────────
 
@@ -57,6 +58,7 @@ _OPTIONAL_SECURITY: list[tuple[str, str, str, str]] = [
 # ── Main entry point ───────────────────────────────────────────────────────────
 
 import logging
+
 _log = logging.getLogger("patchi.cli.doctor_cmd")
 
 def run(verbose: bool = False) -> None:
@@ -258,7 +260,7 @@ def run(verbose: bool = False) -> None:
     # is installed but not runnable (pyre without pyre.bin on Windows, codeql
     # without the CLI binary) must be reported as broken, not silently as
     # present-and-fine or absent. Unknown tools fall back to PATH/import.
-    from patchi.core.agents.tool_health import check_tool, _TOOLS  # noqa: F401
+    from patchi.core.agents.tool_health import _TOOLS, check_tool  # noqa: F401
 
     for cmd, import_name, pip_name, desc in _OPTIONAL_SECURITY:
         if cmd in _TOOLS or cmd == "pyre":

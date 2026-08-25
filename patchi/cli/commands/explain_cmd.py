@@ -11,10 +11,10 @@ No AI required — uses pre-built knowledge base.
 """
 
 from __future__ import annotations
-from patchi.cli.console import con
 
 from rich.panel import Panel
 
+from patchi.cli.console import con
 from patchi.core import memory as mem
 from patchi.core.config import require_project_root
 

@@ -18,6 +18,7 @@ MAX_BACKUPS = 3
 
 
 import logging
+
 _log = logging.getLogger("patchi.core.audit_log")
 
 def _log_path(root: Path) -> Path:

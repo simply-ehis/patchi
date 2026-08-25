@@ -53,18 +53,20 @@ class RouteMapper:
         self.stack = stack
 
     def extract(self, file_infos: "list[FileInfo]") -> list[RouteInfo]:
-        from patchi.core.brain.route_detector.python import PythonRouteDetector
-        from patchi.core.brain.route_detector.javascript import JavaScriptRouteDetector
-        from patchi.core.brain.route_detector.java import JavaRouteDetector
-        from patchi.core.brain.route_detector.go import GoRouteDetector
-        from patchi.core.brain.route_detector.rust import RustRouteDetector
-        from patchi.core.brain.route_detector.swift import SwiftRouteDetector
-        from patchi.core.brain.route_detector.ruby import RubyRouteDetector
-        from patchi.core.brain.route_detector.php import PhpRouteDetector
         from patchi.core.brain.route_detector.csharp import CSharpRouteDetector
         from patchi.core.brain.route_detector.file_based import (
-            NextJsRouteDetector, NuxtRouteDetector, SvelteKitRouteDetector,
+            NextJsRouteDetector,
+            NuxtRouteDetector,
+            SvelteKitRouteDetector,
         )
+        from patchi.core.brain.route_detector.go import GoRouteDetector
+        from patchi.core.brain.route_detector.java import JavaRouteDetector
+        from patchi.core.brain.route_detector.javascript import JavaScriptRouteDetector
+        from patchi.core.brain.route_detector.php import PhpRouteDetector
+        from patchi.core.brain.route_detector.python import PythonRouteDetector
+        from patchi.core.brain.route_detector.ruby import RubyRouteDetector
+        from patchi.core.brain.route_detector.rust import RustRouteDetector
+        from patchi.core.brain.route_detector.swift import SwiftRouteDetector
 
         active_fw = {f.name for f in self.stack.frameworks}
 

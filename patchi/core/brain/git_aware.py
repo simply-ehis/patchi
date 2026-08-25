@@ -11,13 +11,12 @@ Uses subprocess to call git — no Python git library required.
 
 from __future__ import annotations
 
+import logging
 import subprocess
 from pathlib import Path
 
 from patchi.core.agents.base import Finding
 
-
-import logging
 _log = logging.getLogger("patchi.brain.git_aware")
 
 def _git(args: list[str], root: Path) -> str | None:

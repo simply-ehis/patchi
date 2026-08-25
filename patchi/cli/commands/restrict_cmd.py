@@ -1,4 +1,5 @@
 from patchi.cli.console import con
+
 """
 `p restrict` — manage no-touch zones, scan-only paths, and sensitive files.
 

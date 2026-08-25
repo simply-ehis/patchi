@@ -10,13 +10,14 @@ Usage:
 """
 
 from __future__ import annotations
-from patchi.cli.console import con
 
 from pathlib import Path
 
+from patchi.cli.console import con
 from patchi.cli.display.live_progress import LiveProgress
 from patchi.core.agents.base import AgentGroup, AgentInput, list_agents
 from patchi.core.config import require_project_root
+
 
 def run(
     sbom: bool = False,

@@ -1,4 +1,5 @@
 from patchi.cli.console import con
+
 """
 `p init` - Initialize Patchi in the current project directory.
 
@@ -27,6 +28,7 @@ STEP_ARROW = "[#C8621A] >> [/#C8621A]"
 STEP_PENDING = "[dim] ... [/dim]"
 
 import logging
+
 _log = logging.getLogger("patchi.cli.init")
 
 def run(no_logo: bool = False) -> None:

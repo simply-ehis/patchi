@@ -13,7 +13,7 @@ from patchi.core.brain.brain_watcher import (
     mark_layers_stale,
     update_layers,
 )
-from patchi.core.brain.layered_brain import Layer, build_layers
+from patchi.core.brain.layered_brain import build_layers
 
 
 class _FI:

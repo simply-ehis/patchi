@@ -3,16 +3,32 @@
 from __future__ import annotations
 
 import json
-import os
 import tempfile
 from datetime import date, timedelta
 from pathlib import Path
 from unittest import mock
 
 from patchi.core.agents.base import AgentInput, AgentResult, AgentStatus, Finding, Severity
+from patchi.core.agents.build_tool_validator import BuildToolValidatorAgent
+from patchi.core.agents.cicd_generator import CICDGeneratorAgent
+from patchi.core.agents.coverage_prioritizer import CoveragePrioritizerAgent
+from patchi.core.agents.dead_code_hygiene import (
+    DeadCodeHygieneAgent,
+    _detect_duplicate_deps,
+    _find_feature_flags,
+)
+from patchi.core.agents.dead_code_scanner import DeadCodeScanner
+from patchi.core.agents.license_compliance import LicenseComplianceAgent
+from patchi.core.agents.refactoring_agent import (
+    RefactoringAgent,
+    _detect_file_handle_leaks,
+    _detect_interval_without_cleanup,
+    _detect_modernization_candidates,
+)
+from patchi.core.agents.sbom_generator import SBOMGeneratorAgent
+from patchi.core.agents.snapshot_drift_detector import SnapshotDriftDetectorAgent
+from patchi.core.agents.spa_route_inventory import SPARouteInventoryAgent
 from patchi.core.brain.baseline import (
-    BaselineDiff,
-    BaselineSnapshot,
     diff_baseline,
     load_baseline,
     save_baseline,
@@ -27,38 +43,26 @@ from patchi.core.brain.orphaned_endpoints import (
     FrontendCall,
     OrphanedEndpointResult,
     _normalize_path,
-    find_orphaned_endpoints,
     findings_from_orphaned_endpoints,
     scan_frontend_calls,
 )
-from patchi.core.testing.flake_detector_agent import (
-    FlakeDetectorAgent,
-    record_test_run,
-    _detect_flaky_tests,
-    _detect_duration_outliers,
-)
+from patchi.core.fix.code_fixer import CodeFixer
+from patchi.core.fix.dead_code_remover import DeadCodeRemover
+from patchi.core.fix.fix_agents import TypeFixer, _detect_language
+from patchi.core.security.auth_audit_agent import AuthenticationAuditAgent
+from patchi.core.security.authz_agent import AuthZAgent
+from patchi.core.security.business_logic_agent import BusinessLogicAgent
 from patchi.core.security.catch_block_auditor import CatchBlockAuditor
 from patchi.core.security.env_var_validator import EnvVarValidator
-from patchi.core.security.session_management_agent import SessionManagementAgent
-from patchi.core.security.authz_agent import AuthZAgent
-from patchi.core.security.auth_audit_agent import AuthenticationAuditAgent
-from patchi.core.security.business_logic_agent import BusinessLogicAgent
-from patchi.core.security.security_taint import TaintAnalyzer
 from patchi.core.security.insecure_randomness_agent import InsecureRandomnessAgent
-from patchi.core.agents.dead_code_hygiene import DeadCodeHygieneAgent, _find_feature_flags, _detect_duplicate_deps
-from patchi.core.agents.dead_code_scanner import DeadCodeScanner
-from patchi.core.fix.dead_code_remover import DeadCodeRemover
-from patchi.core.fix.code_fixer import CodeFixer
-from patchi.core.fix.fix_agents import TypeFixer, _detect_language
-from patchi.core.agents.cicd_generator import CICDGeneratorAgent
-from patchi.core.agents.refactoring_agent import RefactoringAgent, _detect_interval_without_cleanup, _detect_file_handle_leaks, _detect_modernization_candidates
-from patchi.core.agents.sbom_generator import SBOMGeneratorAgent
-from patchi.core.agents.spa_route_inventory import SPARouteInventoryAgent
-from patchi.core.agents.coverage_prioritizer import CoveragePrioritizerAgent
-from patchi.core.agents.build_tool_validator import BuildToolValidatorAgent
-from patchi.core.agents.license_compliance import LicenseComplianceAgent
-from patchi.core.agents.snapshot_drift_detector import SnapshotDriftDetectorAgent
-
+from patchi.core.security.security_taint import TaintAnalyzer
+from patchi.core.security.session_management_agent import SessionManagementAgent
+from patchi.core.testing.flake_detector_agent import (
+    FlakeDetectorAgent,
+    _detect_duration_outliers,
+    _detect_flaky_tests,
+    record_test_run,
+)
 
 # ── Test InsecureRandomnessAgent ────────────────────────────────────────────
 
@@ -643,8 +647,8 @@ class TestTrendMetrics:
         from patchi.core.security.history import (
             patchi_get_analytics,
             patchi_get_history,
-            patchi_record_scan,
             patchi_get_severity_trends,
+            patchi_record_scan,
         )
 
         with tempfile.TemporaryDirectory() as tmp:

@@ -12,8 +12,8 @@ Requires the app to be running (or spins up via Docker if available).
 """
 
 from __future__ import annotations
-import logging
 
+import logging
 import subprocess
 import urllib.error
 import urllib.request

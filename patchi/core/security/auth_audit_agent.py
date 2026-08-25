@@ -21,8 +21,8 @@ call AI. Does NOT write to disk. Does NOT touch the queue.
 """
 
 from __future__ import annotations
-import logging
 
+import logging
 import os
 import re
 from pathlib import Path

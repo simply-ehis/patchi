@@ -11,8 +11,8 @@ from __future__ import annotations
 def run(args):
     """Entry point for the cross-repo command."""
     from rich.console import Console
-    from rich.table import Table
     from rich.panel import Panel
+    from rich.table import Table
 
     console = Console()
 

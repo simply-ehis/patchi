@@ -18,8 +18,9 @@ from __future__ import annotations
 
 import ast as _py_ast
 
-from .helpers import child_by_field, node_text
 from patchi.core.brain.languages import Lang, get_parser
+
+from .helpers import child_by_field, node_text
 
 # Node types that introduce a named symbol at file scope.
 _DEF_NODE_TYPES = {
@@ -72,6 +73,7 @@ _ENTRY_NAMES = frozenset(
 
 
 import logging
+
 _log = logging.getLogger("patchi.brain.dead_symbols")
 
 def find_dead_symbols(content: str, lang: Lang, *, min_name_len: int = 3) -> list[dict]:

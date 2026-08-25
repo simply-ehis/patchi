@@ -33,6 +33,7 @@ IGNORE_PATTERN = re.compile(
 
 
 import logging
+
 _log = logging.getLogger("patchi.brain.ignore_parser")
 
 @dataclass

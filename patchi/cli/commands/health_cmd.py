@@ -13,6 +13,7 @@ This is the detailed version of the one-line health shown in `p status`.
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 
 from rich.table import Table
@@ -23,8 +24,6 @@ from patchi.core import health as hm
 from patchi.core import memory as mem
 from patchi.core.config import require_project_root
 
-
-import logging
 _log = logging.getLogger("patchi.cli.health_cmd")
 
 def run(root: Path | None = None) -> None:

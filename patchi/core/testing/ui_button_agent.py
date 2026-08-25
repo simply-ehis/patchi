@@ -16,6 +16,7 @@ Requires: playwright (pip install playwright && playwright install chromium)
 from __future__ import annotations
 
 import json
+import logging
 import time
 from pathlib import Path
 
@@ -31,8 +32,6 @@ from ..agents.base import (
     register,
 )
 
-
-import logging
 _log = logging.getLogger("patchi.testing.ui_button_agent")
 
 @register

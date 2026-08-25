@@ -1,12 +1,13 @@
 import re
 
-from patchi.core.brain.route_detector.registry import register_detector
 from patchi.core.brain.route_detector.base import BaseRouteDetector
+from patchi.core.brain.route_detector.registry import register_detector
 
 _RUST_HTTP_METHODS = {"get", "post", "put", "delete", "patch", "head", "options", "connect", "trace", "any"}
 
 
 import logging
+
 _log = logging.getLogger("patchi.brain.rust")
 
 @register_detector("rust")

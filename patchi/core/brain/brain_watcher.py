@@ -27,6 +27,9 @@ if TYPE_CHECKING:
     from patchi.core.brain.route_mapper import RouteInfo
     from patchi.core.brain.scanner import FileInfo
 
+# ── Change tracking ────────────────────────────────────────────────────────────
+import logging
+
 from patchi.core.brain.layered_brain import (
     Layer,
     _classify_subsystem,
@@ -37,11 +40,6 @@ from patchi.core.brain.layered_brain import (
 )
 from patchi.core.brain.layered_brain import build_layers as _full_build
 
-
-# ── Change tracking ────────────────────────────────────────────────────────────
-
-
-import logging
 _log = logging.getLogger("patchi.brain.brain_watcher")
 
 @dataclass

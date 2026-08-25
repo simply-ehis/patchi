@@ -8,6 +8,7 @@ Covers §6.1.1:
 
 from __future__ import annotations
 
+import logging
 import subprocess
 from collections import defaultdict
 from pathlib import Path
@@ -24,8 +25,6 @@ from .base import (
     safe_rglob,
 )
 
-
-import logging
 _log = logging.getLogger("patchi.agents.coverage_prioritizer")
 
 def _get_git_churn(root: Path, max_files: int = 100) -> dict[str, int]:

@@ -17,8 +17,8 @@ Also detects WAF bypass attempts in intercepted requests:
 """
 
 from __future__ import annotations
-import logging
 
+import logging
 import re
 
 from ..agents.base import (
@@ -32,7 +32,6 @@ from ..agents.base import (
     register,
     safe_rglob,
 )
-
 
 _log = logging.getLogger("patchi.security.cloud_waf_detector")
 

@@ -2,9 +2,9 @@
 
 from pathlib import Path
 
+from patchi.core import memory as mem
 from patchi.core.brain.layered_brain import build_layers, layers_to_dict
 from patchi.core.brain.reasoning import ReasoningEngine
-from patchi.core import memory as mem
 
 
 class _FI:

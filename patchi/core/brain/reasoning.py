@@ -27,12 +27,12 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from patchi.core.brain.layered_brain import Layer
 
+from patchi.core.brain.brain_watcher import ChangeSet, affected_layers
 from patchi.core.brain.layered_brain import (
     find_layers_for_file,
     get_layer_context,
     layers_from_dict,
 )
-from patchi.core.brain.brain_watcher import ChangeSet, affected_layers
 
 
 @dataclass

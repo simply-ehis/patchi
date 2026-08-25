@@ -83,6 +83,7 @@ _SVELTE_SCRIPT_RE = re.compile(r"<script[^>]*>", re.IGNORECASE)
 
 
 import logging
+
 _log = logging.getLogger("patchi.brain.symbol_graph")
 
 class SymbolKind(str, Enum):

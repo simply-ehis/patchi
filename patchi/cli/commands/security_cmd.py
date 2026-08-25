@@ -49,7 +49,6 @@ Usage:
 """
 
 from __future__ import annotations
-from patchi.cli.console import con
 
 import json
 import time
@@ -59,14 +58,15 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 
+from patchi.cli.console import con
 from patchi.cli.display.live_progress import LiveProgress
-
 from patchi.core import memory as mem
 from patchi.core.config import require_project_root
 
 _MAPS_DIR = Path(__file__).resolve().parent
 
 import logging
+
 _log = logging.getLogger("patchi.cli.security_cmd")
 
 def _load_maps() -> tuple[dict[str, str], list[str]]:

@@ -1,14 +1,13 @@
 """Tests for new ast_utils modules: assignments and taint tracking."""
 
 import unittest
-from pathlib import Path
 
 from patchi.core.brain.ast_utils import (
+    SANITIZERS,
+    SOURCES,
     find_assignments,
     find_dead_symbols,
     track_taint,
-    SOURCES,
-    SANITIZERS,
 )
 from patchi.core.brain.languages import Lang
 

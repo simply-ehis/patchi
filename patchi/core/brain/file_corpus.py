@@ -76,6 +76,7 @@ class FileCorpus:
         max_size: int = _MAX_FILE_SIZE,
         exclude_noise: bool = False,
         exclude_tests: bool = False,
+        ignore_learner=None,
     ):
         self.root = root.resolve()
         self._skip_dirs = skip_dirs
@@ -83,8 +84,10 @@ class FileCorpus:
         self._max_size = max_size
         self._exclude_noise = exclude_noise
         self._exclude_tests = exclude_tests
+        self._ignore_learner = ignore_learner
         # category -> count of files excluded during build (observability)
         self.noise_excluded: dict[str, int] = {}
+        self.learner_excluded: int = 0
         self._entries: dict[str, CorpusEntry] = {}  # rel_path -> entry
         self._built = False
 
@@ -122,6 +125,14 @@ class FileCorpus:
                 rel_path = f"{rel_dir}/{fname}" if rel_dir else fname
                 abs_path = Path(dirpath) / fname
 
+                if self._ignore_learner is not None:
+                    try:
+                        if self._ignore_learner.matches(rel_path) is not None:
+                            self.learner_excluded += 1
+                            continue
+                    except Exception:  # noqa: BLE001 — learner bugs never block scans
+                        pass
+
                 if classify is not None:
                     cat = classify(rel_path)
                     if cat is not None and (
@@ -154,6 +165,23 @@ class FileCorpus:
                 )
 
         self._built = True
+
+    def prune_with(self, learner) -> int:
+        """Drop entries matching an IgnoreLearner (post-build composition pass).
+
+        Used because composition analysis needs the discovered file list
+        first; returns number of pruned entries.
+        """
+        if not self._built or learner is None:
+            return 0
+        doomed = [
+            rel for rel in self._entries
+            if learner.matches(rel) is not None
+        ]
+        for rel in doomed:
+            del self._entries[rel]
+        self.learner_excluded += len(doomed)
+        return len(doomed)
 
     # ── Query API ──────────────────────────────────────────────────────────
 

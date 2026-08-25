@@ -19,6 +19,7 @@ May call AI for generating new test scripts.
 
 from __future__ import annotations
 
+import logging
 import subprocess
 import sys
 import time
@@ -37,8 +38,6 @@ from ..agents.base import (
 from ..ai.client import call_ai
 from ..ai.prompts import Skill, build_prompt, get_system_prompt
 
-
-import logging
 _log = logging.getLogger("patchi.testing.browser_test_agent")
 
 @register

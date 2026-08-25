@@ -12,8 +12,8 @@ what this walker relies on instead of guessing child position.
 import logging
 import re
 
-from patchi.core.brain.route_detector.registry import register_detector
 from patchi.core.brain.route_detector.base import BaseRouteDetector
+from patchi.core.brain.route_detector.registry import register_detector
 
 _log = logging.getLogger("patchi.brain.csharp")
 

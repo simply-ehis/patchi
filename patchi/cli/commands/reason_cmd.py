@@ -1,4 +1,5 @@
 from patchi.cli.console import con
+
 """
 `p ask` / `p why` / `p impact` — the Reasoning Engine (Pillar 3).
 

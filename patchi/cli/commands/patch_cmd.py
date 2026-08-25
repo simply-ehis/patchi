@@ -9,7 +9,6 @@ Subcommands:
 """
 
 from __future__ import annotations
-from patchi.cli.console import con
 
 from pathlib import Path
 
@@ -17,6 +16,7 @@ from rich.syntax import Syntax
 from rich.table import Table
 from rich.text import Text
 
+from patchi.cli.console import con
 from patchi.core import memory as mem
 from patchi.core.config import require_project_root
 from patchi.core.fix.patch import Patch, PatchState

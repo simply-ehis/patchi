@@ -18,7 +18,6 @@ Context is dynamically enriched based on what you ask about:
 """
 
 from __future__ import annotations
-from patchi.cli.console import con
 
 import json
 from pathlib import Path
@@ -26,12 +25,14 @@ from pathlib import Path
 from rich.markdown import Markdown
 from rich.panel import Panel
 
+from patchi.cli.console import con
 from patchi.core.config import require_project_root
 
 MAX_HISTORY = 50
 CHAT_HISTORY_FILE = ".patchi/memory/chat_history.json"
 
 import logging
+
 _log = logging.getLogger("patchi.cli.chat_cmd")
 
 def _load_chat_history(root: Path) -> list[dict]:

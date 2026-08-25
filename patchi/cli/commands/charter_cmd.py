@@ -1,4 +1,5 @@
 from patchi.cli.console import con
+
 """
 `p charter` — view and enforce the project's guard-rail charter (Pillar 2).
 
@@ -11,14 +12,14 @@ Subcommands:
   p charter hooks [--install]      — generate a git pre-commit hook that enforces the charter
 """
 
+import logging
 from pathlib import Path
 
 from rich.panel import Panel
 from rich.table import Table
 
-from patchi.core import memory as mem
-from patchi.core.config import require_project_root
 from patchi.core import config as cfg
+from patchi.core import memory as mem
 from patchi.core.brain.charter import (
     Charter,
     check_charter,
@@ -27,9 +28,8 @@ from patchi.core.brain.charter import (
     parse_charter_with_ai,
     save_charter,
 )
+from patchi.core.config import require_project_root
 
-
-import logging
 _log = logging.getLogger("patchi.cli.charter_cmd")
 
 def run_show(root: Path | None = None) -> None:

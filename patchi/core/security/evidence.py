@@ -8,8 +8,8 @@ Requires: Playwright
 """
 
 from __future__ import annotations
-import logging
 
+import logging
 from pathlib import Path
 
 from patchi.core.agents.base import (
@@ -21,7 +21,6 @@ from patchi.core.agents.base import (
     Severity,
     register,
 )
-
 
 _log = logging.getLogger("patchi.security.evidence")
 

@@ -75,3 +75,72 @@ class TestCorpusNoiseExclusion:
         root = _make_project(tmp_path)
         corpus = FileCorpus(root, exclude_noise=True)
         assert "x = 1" in corpus.read("src/app.py")
+
+
+class TestCorpusLearnerWiring:
+    def test_learner_skips_paths_at_discovery(self, tmp_path: Path):
+        from patchi.core.security.ignore_learner import IgnoreEntry, IgnoreLearner
+
+        root = _make_project(tmp_path)
+        learner = IgnoreLearner(root)
+        # Simulate a learned rule for a dir the corpus would otherwise keep
+        learner.entries = [
+            IgnoreEntry(pattern="docs/**", category="data_dir",
+                        source="composition", reason="test rule")
+        ]
+        corpus = FileCorpus(root, ignore_learner=learner)
+        assert "docs/guide.md" not in corpus.entries
+        assert corpus.learner_excluded >= 1
+        assert "src/app.py" in corpus.entries
+
+    def test_learner_crash_never_blocks_scan(self, tmp_path: Path):
+        class ExplodingLearner:
+            def matches(self, _p):
+                raise RuntimeError("boom")
+
+        root = _make_project(tmp_path)
+        corpus = FileCorpus(root, ignore_learner=ExplodingLearner())
+        assert len(corpus) == 5  # everything still scanned
+
+    def test_full_learning_loop(self, tmp_path: Path, monkeypatch):
+        """FP memory -> learner -> corpus pruning, the real scan sequence."""
+        from patchi.core.security.ignore_learner import IgnoreLearner
+
+        monkeypatch.setattr(
+            "patchi.core.security.ignore_learner.GLOBAL_STORE",
+            tmp_path / "global.json",
+        )
+        root = _make_project(tmp_path)
+        # Chronic FP history AND matching real files on disk
+        fx = root / "tests" / "fixtures"
+        fx.mkdir(parents=True, exist_ok=True)
+        for i in range(3):
+            (fx / f"bad{i}.py").write_text("x = 1\n", encoding="utf-8")
+        fp_dir = root / ".patchi" / "memory"
+        fp_dir.mkdir(parents=True, exist_ok=True)
+        fps = [{"file": f"tests/fixtures/bad{i}.py"} for i in range(6)]
+        (fp_dir / "known_false_positives.json").write_text(
+            __import__("json").dumps(fps), encoding="utf-8"
+        )
+
+        learner = IgnoreLearner(root)
+        known_fps = __import__("json").loads(
+            (fp_dir / "known_false_positives.json").read_text(encoding="utf-8")
+        )
+        learner.build(known_fps=known_fps)
+        assert learner.matches("tests/fixtures/anything.py") is not None
+
+        corpus = FileCorpus(root, exclude_noise=True, ignore_learner=learner)
+        learner.build(
+            known_fps=known_fps,
+            file_paths=list(corpus.entries.keys()),
+        )
+        corpus.prune_with(learner)
+        # Noisy fixture files never entered the corpus (discovery-time skip)
+        # or were removed by the composition pass — either way they're gone.
+        total_gone = (
+            sum(1 for p in ["tests/fixtures/bad0.py", "tests/fixtures/bad1.py"]
+                if p not in corpus.entries)
+        )
+        assert total_gone == 2
+        assert "src/app.py" in corpus.entries

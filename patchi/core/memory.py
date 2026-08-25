@@ -11,6 +11,9 @@ Rules:
 """
 
 import json
+
+# ── Low-level read/write ───────────────────────────────────────────────────────
+import logging
 import sys
 import threading
 import time
@@ -24,10 +27,6 @@ from patchi.core.constants import (
     MemoryCategory,
 )
 
-# ── Low-level read/write ───────────────────────────────────────────────────────
-
-
-import logging
 _log = logging.getLogger("patchi.core.memory")
 
 # Serializes read-modify-write ops (e.g. save_scan_result) that the Coordinator

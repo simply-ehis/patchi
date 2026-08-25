@@ -11,20 +11,20 @@ After review, accepted patches are applied via PatchApplier.
 """
 
 from __future__ import annotations
-from patchi.cli.console import con
 
+import logging
 from pathlib import Path
 
 from rich.panel import Panel
 from rich.prompt import Confirm, Prompt
 from rich.syntax import Syntax
 
+from patchi.cli.console import con
 from patchi.core import memory as mem
 from patchi.core.config import require_project_root
 from patchi.core.fix.applier import PatchApplier
 from patchi.core.fix.patch import Patch, PatchState
 
-import logging
 _log = logging.getLogger("patchi.cli.review_cmd")
 
 def run(root: Path | None = None) -> None:

@@ -83,6 +83,7 @@ _IMPORT_SIGNALS: dict[str, str] = {
 
 
 import logging
+
 _log = logging.getLogger("patchi.brain.classifier")
 
 def classify_file(rel_path: str, abs_path: Path) -> str:

@@ -1,8 +1,8 @@
 """SAML/SSO security agent — validates SAML implementations against known attack patterns."""
 
 from __future__ import annotations
-import logging
 
+import logging
 import re
 import shutil
 import subprocess

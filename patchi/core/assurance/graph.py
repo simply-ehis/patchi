@@ -191,6 +191,47 @@ class AssuranceGraph:
             ),
         }
 
+    # ── Diff ─────────────────────────────────────────────────────────────────
+
+    def diff(self, other: "AssuranceGraph") -> dict[str, Any]:
+        """Compute difference between two assurance graphs.
+
+        Returns a dict with:
+          - added: claims in ``other`` but not in ``self``
+          - removed: claims in ``self`` but not in ``other``
+          - changed: claims present in both but with different verdicts or evidence
+          - unchanged: claim IDs present in both with same verdict and evidence count
+        """
+        self_ids = set(self.claims.keys())
+        other_ids = set(other.claims.keys())
+
+        added_ids = other_ids - self_ids
+        removed_ids = self_ids - other_ids
+        common_ids = self_ids & other_ids
+
+        added = {cid: other.claims[cid].to_dict() for cid in added_ids}
+        removed = {cid: self.claims[cid].to_dict() for cid in removed_ids}
+
+        changed = {}
+        unchanged = []
+        for cid in common_ids:
+            c1 = self.claims[cid]
+            c2 = other.claims[cid]
+            if c1.verdict != c2.verdict or len(c1.evidence) != len(c2.evidence):
+                changed[cid] = {
+                    "self": c1.to_dict(),
+                    "other": c2.to_dict(),
+                }
+            else:
+                unchanged.append(cid)
+
+        return {
+            "added": added,
+            "removed": removed,
+            "changed": changed,
+            "unchanged": unchanged,
+        }
+
     # ── Persistence ─────────────────────────────────────────────────────────
 
     def save(self, root: Path) -> Path:

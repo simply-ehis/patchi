@@ -15,6 +15,7 @@ Does NOT call AI (unless creating new tests).
 from __future__ import annotations
 
 import json
+import logging
 import re
 import subprocess
 import sys
@@ -27,17 +28,13 @@ from ..agents.base import (
     AgentGroup,
     AgentInput,
     AgentResult,
-    AgentStatus,
     BaseAgent,
     Severity,
     make_finding,
     register,
 )
-
 from .flake_detector_agent import record_test_run
 
-
-import logging
 _log = logging.getLogger("patchi.testing.unit_test_agent")
 
 @dataclass

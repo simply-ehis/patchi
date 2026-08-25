@@ -1,7 +1,7 @@
 import ast
 
-from patchi.core.brain.route_detector.registry import register_detector
 from patchi.core.brain.route_detector.base import BaseRouteDetector
+from patchi.core.brain.route_detector.registry import register_detector
 
 _FASTAPI_METHODS = {"get", "post", "put", "delete", "patch", "head", "options", "websocket", "api_route"}
 _FLASK_METHODS = {"route"}

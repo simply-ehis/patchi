@@ -1,8 +1,8 @@
-from flask import Flask, request, jsonify
 import os
-import json
-from models import User, Database
-from utils import validate_email, format_response
+
+from flask import Flask, jsonify, request
+from models import Database, User
+from utils import format_response, validate_email
 
 app = Flask(__name__)
 db = Database()

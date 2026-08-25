@@ -22,6 +22,9 @@ Submodules:
 
 from __future__ import annotations
 
+from .assignments import find_assignments
+from .calls import find_calls
+
 # Re-export public API from submodules
 from .config import (
     CALL_NODE_TYPES,
@@ -31,6 +34,14 @@ from .config import (
     IMPORT_NODE_TYPES,
     SQL_SINKS,
 )
+from .control_flow import (
+    child_by_field_any,
+    collect_call_arguments,
+    named_children_of_type,
+    walk_blocks,
+)
+from .dead_symbols import find_dead_symbols
+from .decorators import find_decorators
 from .helpers import (
     child_by_field,
     children,
@@ -39,18 +50,8 @@ from .helpers import (
     node_text,
     parse_source,
 )
-from .calls import find_calls
 from .imports import find_imports
-from .decorators import find_decorators
-from .assignments import find_assignments
-from .control_flow import (
-    child_by_field_any,
-    collect_call_arguments,
-    named_children_of_type,
-    walk_blocks,
-)
-from .taint import SOURCES, SANITIZERS, track_taint
-from .dead_symbols import find_dead_symbols
+from .taint import SANITIZERS, SOURCES, track_taint
 
 __all__ = [
     "CALL_NODE_TYPES",

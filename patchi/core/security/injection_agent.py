@@ -36,13 +36,13 @@ from ..agents.base import (
 from ..brain.ast_utils import (
     EXEC_SINKS,
     SQL_SINKS,
-    find_calls,
     find_assignments,
+    find_calls,
     get_call_arg,
 )
 from ..brain.languages import Lang, detect_language
 from ..brain.trace_log import trace_agent
-from .pattern_loader import load_patterns, get_injection_sinks
+from .pattern_loader import get_injection_sinks, load_patterns
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
 

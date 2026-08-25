@@ -56,6 +56,7 @@ _COMPONENT_TYPES = {
 
 
 import logging
+
 _log = logging.getLogger("patchi.agents.sbom_generator")
 
 def _parse_deps(fp: Path) -> list[dict]:

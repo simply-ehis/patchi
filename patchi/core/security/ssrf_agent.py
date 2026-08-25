@@ -17,8 +17,8 @@ Does NOT call AI. Does NOT write to disk. Does NOT touch the queue.
 """
 
 from __future__ import annotations
-import logging
 
+import logging
 import os
 import re
 from pathlib import Path
@@ -34,14 +34,14 @@ from ..agents.base import (
     make_finding,
     register,
 )
-from ..brain.ast_utils import HTTP_CLIENTS, find_calls, find_assignments, get_call_arg
+from ..brain.ast_utils import HTTP_CLIENTS, find_assignments, find_calls, get_call_arg
 from ..brain.languages import DEFAULT_IGNORE_DIRS, Lang, detect_language
 from ..brain.trace_log import trace_agent
 from .pattern_loader import (
-    load_patterns,
-    get_ssrf_protocol_patterns,
-    get_ssrf_metadata_patterns,
     get_ssrf_internal_network_patterns,
+    get_ssrf_metadata_patterns,
+    get_ssrf_protocol_patterns,
+    load_patterns,
 )
 
 # Load YAML patterns once at module level

@@ -92,6 +92,7 @@ AXE_RULES_BY_SEVERITY = {
 
 
 import logging
+
 _log = logging.getLogger("patchi.testing.ui_accessibility_agent")
 
 @register

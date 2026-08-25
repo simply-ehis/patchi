@@ -19,7 +19,6 @@ All data comes from brain memory — no re-scan is triggered.
 """
 
 from __future__ import annotations
-from patchi.cli.console import con
 
 import json
 import time
@@ -29,6 +28,7 @@ from pathlib import Path
 from rich.panel import Panel
 from rich.rule import Rule
 
+from patchi.cli.console import con
 from patchi.core.config import require_project_root
 
 # ── Entry point ────────────────────────────────────────────────────────────────

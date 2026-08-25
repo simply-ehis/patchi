@@ -6,9 +6,9 @@ against code and findings. Supports SOC2, HIPAA, PCI-DSS, CIS packs.
 """
 
 from __future__ import annotations
-import logging
 
 import json
+import logging
 import re
 
 import yaml

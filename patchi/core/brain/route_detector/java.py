@@ -1,7 +1,7 @@
 import re
 
-from patchi.core.brain.route_detector.registry import register_detector
 from patchi.core.brain.route_detector.base import BaseRouteDetector
+from patchi.core.brain.route_detector.registry import register_detector
 
 _SPRING_MAPPINGS = {
     "getmapping": "GET",
@@ -15,6 +15,7 @@ _SPRING_AUTH_ANNOTATIONS = {"preauthorize", "secured", "rolesallowed"}
 
 
 import logging
+
 _log = logging.getLogger("patchi.brain.java")
 
 @register_detector("java")

@@ -18,8 +18,8 @@ Usage:
 """
 
 from __future__ import annotations
-from patchi.cli.console import con
 
+import logging
 import os
 from collections import deque
 from pathlib import Path
@@ -29,11 +29,11 @@ from rich.table import Table
 from rich.text import Text
 from rich.tree import Tree
 
+from patchi.cli.console import con
 from patchi.core.brain.import_graph import ImportGraph
 from patchi.core.brain.languages import DEFAULT_IGNORE_DIRS
 from patchi.core.config import require_project_root
 
-import logging
 _log = logging.getLogger("patchi.cli.blast_cmd")
 
 def run(file_path: str | None = None, show_all: bool = False, root: Path | None = None) -> None:

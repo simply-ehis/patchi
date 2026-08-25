@@ -38,6 +38,7 @@ _SKIP_FILES = frozenset(
 
 
 import logging
+
 _log = logging.getLogger("patchi.agents.base")
 
 def safe_rglob(

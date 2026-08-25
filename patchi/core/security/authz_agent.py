@@ -17,9 +17,9 @@ Does NOT touch the queue.
 """
 
 from __future__ import annotations
-import logging
 
 import ast as py_ast
+import logging
 import re
 from pathlib import Path
 
@@ -37,7 +37,6 @@ from ..agents.base import (
 )
 from ..brain.ast_utils import node_text, parse_source
 from ..brain.languages import TREE_SITTER_LANGS, Lang, detect_language, get_parser
-
 
 _log = logging.getLogger("patchi.security.authz_agent")
 

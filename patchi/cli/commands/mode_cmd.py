@@ -1,4 +1,5 @@
 from patchi.cli.console import con
+
 """
 `p mode` — view and change Patchi's operating mode.
 

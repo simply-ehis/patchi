@@ -9,7 +9,6 @@ Covers §10.1.1-4:
 
 from __future__ import annotations
 
-
 from .base import (
     AgentGroup,
     AgentInput,

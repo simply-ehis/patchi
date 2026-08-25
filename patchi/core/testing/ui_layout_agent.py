@@ -39,6 +39,7 @@ VIEWPORTS = [
 
 
 import logging
+
 _log = logging.getLogger("patchi.testing.ui_layout_agent")
 
 @register

@@ -14,6 +14,7 @@ This is the bridge between the CLI test command, web UI, and test agents.
 from __future__ import annotations
 
 import asyncio
+import logging
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -21,8 +22,6 @@ from typing import Callable
 
 from ..agents.base import AgentGroup, AgentInput, AgentResult, AgentStatus
 
-
-import logging
 _log = logging.getLogger("patchi.testing.live_test_runner")
 
 @dataclass

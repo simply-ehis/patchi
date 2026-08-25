@@ -102,16 +102,16 @@ class TestTypeCheckerPerformance:
     """Measure type checking speed per language."""
 
     def test_check_python(self):
-        from patchi.core.brain.type_checker import check_types
         from patchi.core.brain.languages import Lang
+        from patchi.core.brain.type_checker import check_types
         source = (FIXTURES / "python" / "app.py").read_text()
         ms, result = _time_it(check_types, source, Lang.PYTHON, "app.py")
         assert isinstance(result, list)
         print(f"\n  [BENCH] Type check Python: {ms:.1f}ms ({len(result)} issues)")
 
     def test_check_typescript(self):
-        from patchi.core.brain.type_checker import check_types
         from patchi.core.brain.languages import Lang
+        from patchi.core.brain.type_checker import check_types
         source = (FIXTURES / "typescript" / "app.ts").read_text()
         ms, result = _time_it(check_types, source, Lang.TYPESCRIPT, "app.ts")
         assert isinstance(result, list)
@@ -270,8 +270,8 @@ class TestBlastRadiusPerformance:
 
     @pytest.fixture(scope="class")
     def graph(self):
-        from patchi.core.brain.scanner import FileScanner
         from patchi.core.brain.import_graph import build_graph
+        from patchi.core.brain.scanner import FileScanner
         files = FileScanner(FIXTURES).scan()
         return build_graph(files, FIXTURES)
 
@@ -289,15 +289,15 @@ def _standalone_timing():
     """Run timing without pytest-benchmark."""
     print("\n=== Patchi Performance Benchmarks ===\n")
 
-    from patchi.core.brain.scanner import FileScanner
-    from patchi.core.brain.import_graph import build_graph, find_dead_files
-    from patchi.core.brain.blast_radius import build_blast_radius_map
-    from patchi.core.brain.type_checker import check_types
-    from patchi.core.brain.languages import Lang
     from patchi.core.agents.base import AgentInput
+    from patchi.core.brain.blast_radius import build_blast_radius_map
+    from patchi.core.brain.import_graph import build_graph, find_dead_files
+    from patchi.core.brain.languages import Lang
+    from patchi.core.brain.scanner import FileScanner
+    from patchi.core.brain.type_checker import check_types
+    from patchi.core.security.catch_block_auditor import CatchBlockAuditor
     from patchi.core.security.injection_agent import InjectionAgent
     from patchi.core.security.ssrf_agent import SSRFProtectionAgent
-    from patchi.core.security.catch_block_auditor import CatchBlockAuditor
 
     scanner = FileScanner(FIXTURES)
     ms, files = _time_it(scanner.scan, runs=5)

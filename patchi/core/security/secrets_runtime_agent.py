@@ -1,8 +1,8 @@
 """Secrets runtime management agent — validates secrets handling, rotation, and hardcoding."""
 
 from __future__ import annotations
-import logging
 
+import logging
 import re
 import shutil
 import subprocess

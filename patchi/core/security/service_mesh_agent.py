@@ -1,8 +1,8 @@
 """Service mesh security agent — validates Istio/Linkerd mesh configuration."""
 
 from __future__ import annotations
-import logging
 
+import logging
 import re
 import shutil
 import subprocess

@@ -11,14 +11,13 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 
 from patchi.core.agents.base import Finding, Severity
 
-
-import logging
 _log = logging.getLogger("patchi.brain.baseline")
 
 @dataclass

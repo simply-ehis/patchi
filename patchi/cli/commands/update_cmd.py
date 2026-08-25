@@ -15,6 +15,9 @@ Auto-update check:
 from __future__ import annotations
 
 import json
+
+# ── Config ────────────────────────────────────────────────────────────────────
+import os
 import sys
 import time
 from pathlib import Path
@@ -23,9 +26,6 @@ from rich.prompt import Confirm
 
 from patchi import __version__
 from patchi.cli.console import con
-
-# ── Config ────────────────────────────────────────────────────────────────────
-import os
 
 UPDATE_SOURCE: dict[str, str] = {
     "type": "github",
@@ -42,6 +42,7 @@ CHECK_INTERVAL_DAYS = 7
 
 
 import logging
+
 _log = logging.getLogger("patchi.cli.update_cmd")
 
 def run(

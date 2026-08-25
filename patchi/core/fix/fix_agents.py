@@ -31,7 +31,6 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 import re
 from pathlib import Path
 
@@ -40,9 +39,7 @@ from patchi.core.agents.base import (
     AgentInput,
     AgentResult,
     BaseAgent,
-    Finding,
     register,
-    safe_rglob,
 )
 from patchi.core.ai.client import call_ai
 from patchi.core.ai.prompts import (

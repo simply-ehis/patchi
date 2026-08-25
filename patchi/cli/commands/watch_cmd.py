@@ -11,6 +11,7 @@ re-scans the changed area and updates the brain.
 
 from __future__ import annotations
 
+import logging
 import signal
 import time
 from pathlib import Path
@@ -19,8 +20,6 @@ from patchi.cli.console import con
 from patchi.core.brain.freshness import BrainWatcher
 from patchi.core.config import require_project_root
 
-
-import logging
 _log = logging.getLogger("patchi.cli.watch_cmd")
 
 def run(

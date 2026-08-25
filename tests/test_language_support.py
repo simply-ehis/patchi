@@ -7,13 +7,14 @@ and security agents for each supported language.
 
 from __future__ import annotations
 
-import pytest
 from pathlib import Path
 
-from patchi.core.brain.languages import Lang, detect_language, get_parser, EXTENSION_MAP
+import pytest
+
+from patchi.core.brain.blast_radius import build_blast_radius_map, calculate_blast_radius
+from patchi.core.brain.import_graph import ImportGraph, build_graph, find_dead_files
+from patchi.core.brain.languages import Lang, detect_language, get_parser
 from patchi.core.brain.scanner import FileScanner
-from patchi.core.brain.import_graph import build_graph, find_dead_files, ImportGraph
-from patchi.core.brain.blast_radius import calculate_blast_radius, build_blast_radius_map
 from patchi.core.brain.type_checker import check_types
 
 FIXTURES = Path(__file__).parent / "fixtures" / "languages"

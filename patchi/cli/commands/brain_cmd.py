@@ -11,12 +11,13 @@ Usage:
 """
 
 from __future__ import annotations
-from patchi.cli.console import con
 
 import time
 from pathlib import Path
 
+from patchi.cli.console import con
 from patchi.core.config import require_project_root
+
 
 def run(
     show: bool = False,

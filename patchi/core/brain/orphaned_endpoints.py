@@ -13,10 +13,9 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from patchi.core.agents.base import Finding, Severity, safe_rglob
+from patchi.core.brain.framework import StackInfo
 from patchi.core.brain.route_mapper import RouteInfo, RouteMapper
 from patchi.core.brain.scanner import FileScanner
-from patchi.core.brain.framework import StackInfo
-
 
 # ── Frontend HTTP call patterns ─────────────────────────────────────────────
 
@@ -48,6 +47,7 @@ _FRONTEND_EXTENSIONS = (
 
 
 import logging
+
 _log = logging.getLogger("patchi.brain.orphaned_endpoints")
 
 @dataclass

@@ -17,7 +17,8 @@ Optional dependency: pymetasploit3 (pip install patchi[msf])
 from __future__ import annotations
 
 import json
-from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
+from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import TimeoutError as FutureTimeout
 
 from .base import (
     AgentGroup,

@@ -11,6 +11,7 @@ Scans for duplicated code blocks at the function/method level:
 from __future__ import annotations
 
 import ast as py_ast
+import logging
 import re
 from typing import Any
 
@@ -34,8 +35,6 @@ from .base import (
     safe_rglob,
 )
 
-
-import logging
 _log = logging.getLogger("patchi.agents.duplicate_scanner")
 
 def _ts_node_text(node: Any, buf: bytes) -> str:

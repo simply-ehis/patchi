@@ -16,14 +16,13 @@ Scoring:
 """
 
 from __future__ import annotations
-import logging
 
+import logging
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 from patchi.core.security.domain_loader import Domain, DomainLoader, normalize_component_type
-
 
 _log = logging.getLogger("patchi.security.app_profile")
 

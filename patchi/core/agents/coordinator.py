@@ -21,6 +21,8 @@ Design:
 
 from __future__ import annotations
 
+# ── Progress event ─────────────────────────────────────────────────────────────
+import logging
 import queue
 import threading
 from collections import defaultdict
@@ -44,10 +46,6 @@ from patchi.core.agents.base import (
 )
 from patchi.core.agents.cache import AgentCache
 
-# ── Progress event ─────────────────────────────────────────────────────────────
-
-
-import logging
 _log = logging.getLogger("patchi.agents.coordinator")
 
 

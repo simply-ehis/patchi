@@ -3,7 +3,6 @@
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from unittest.mock import patch
 
 from patchi.core.brain.languages import Lang
 from patchi.core.brain.scanner import ClassInfo, FileInfo, FunctionInfo

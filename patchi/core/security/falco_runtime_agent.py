@@ -14,8 +14,8 @@ Integration points:
 """
 
 from __future__ import annotations
-import logging
 
+import logging
 import re
 
 from ..agents.base import (
@@ -29,7 +29,6 @@ from ..agents.base import (
     register,
     safe_rglob,
 )
-
 
 _log = logging.getLogger("patchi.security.falco_runtime_agent")
 

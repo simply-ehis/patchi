@@ -49,6 +49,7 @@ _base_make_finding = make_finding
 
 
 import logging
+
 _log = logging.getLogger("patchi.agents.dependency_scanner")
 
 @register

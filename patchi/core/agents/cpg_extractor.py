@@ -5,7 +5,7 @@ Code Property Graph (CPG) extractor for Patchi's GNN-based bug detection system.
 import logging
 import time
 from pathlib import Path
-from typing import Dict, List, Optional, Any
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 

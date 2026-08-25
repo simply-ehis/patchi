@@ -28,6 +28,7 @@ _AUTO_BLOCK_THRESHOLD = 3  # IPs seen on 3+ lists
 
 
 import logging
+
 _log = logging.getLogger("patchi.core.ip_reputation")
 
 def _load(root: Path) -> dict:

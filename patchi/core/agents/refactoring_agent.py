@@ -10,6 +10,7 @@ Covers §7.1.3-4 and §7.3.1-3:
 
 from __future__ import annotations
 
+import logging
 import re
 from pathlib import Path
 
@@ -26,8 +27,6 @@ from .base import (
     safe_rglob,
 )
 
-
-import logging
 _log = logging.getLogger("patchi.agents.refactoring_agent")
 
 def _detect_interval_without_cleanup(content: str) -> list[dict]:

@@ -28,7 +28,9 @@ class _EngTestCase(unittest.TestCase):
         _cleanup_tmpdir(self.tmpdir)
 
 def _cleanup_tmpdir(tmpdir: tempfile.TemporaryDirectory) -> None:
-    import gc, time, os
+    import gc
+    import os
+    import time
     p = Path(tmpdir.name)
     # Remove stale SQLite WAL/SHM files that Windows still holds
     for f in p.rglob("*.db-wal"):

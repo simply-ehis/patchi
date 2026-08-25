@@ -63,6 +63,7 @@ _ROLE_MAP: dict[str, set[str]] = {
 
 
 import logging
+
 _log = logging.getLogger("patchi.brain.charter")
 
 @dataclass

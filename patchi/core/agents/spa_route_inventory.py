@@ -51,6 +51,7 @@ _LINK_PATTERNS = [
 
 
 import logging
+
 _log = logging.getLogger("patchi.agents.spa_route_inventory")
 
 def _extract_file_based_routes(root: Path, base_dir: str) -> list[str]:

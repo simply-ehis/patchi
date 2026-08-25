@@ -11,16 +11,17 @@ Usage:
 """
 
 from __future__ import annotations
-from patchi.cli.console import con
+
+import logging
 
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
+from patchi.cli.console import con
 from patchi.core import config as cfg
 from patchi.core.agents.base import AgentGroup, list_agents
 
-import logging
 _log = logging.getLogger("patchi.cli.dev_cmd")
 
 def run(action: str | None = None, verbose: bool = False) -> None:

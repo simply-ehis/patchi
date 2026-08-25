@@ -11,19 +11,18 @@ All network calls time out in 5s — they are informational checks, not blockers
 """
 
 from __future__ import annotations
-from patchi.cli.console import con
 
+# ── Subcommand runners ─────────────────────────────────────────────────────────
+import logging
 import time
 from pathlib import Path
 
 from rich.table import Table
 
+from patchi.cli.console import con
 from patchi.core.config import require_project_root
 from patchi.core.constants import OLLAMA_BASE_URL
 
-# ── Subcommand runners ─────────────────────────────────────────────────────────
-
-import logging
 _log = logging.getLogger("patchi.cli.model_cmd")
 
 def run_set(model_name: str, root: Path | None = None) -> None:

@@ -26,6 +26,7 @@ if TYPE_CHECKING:
 
 
 import logging
+
 _log = logging.getLogger("patchi.brain.contract")
 
 @dataclass

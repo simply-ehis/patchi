@@ -18,8 +18,9 @@ Escalation fires through the notification system when thresholds are crossed.
 """
 
 from __future__ import annotations
-from patchi.cli.console import con
 
+# ── Dispatch ───────────────────────────────────────────────────────────────────
+import logging
 import os
 import platform
 import time
@@ -30,11 +31,9 @@ from rich.prompt import Confirm, Prompt
 from rich.table import Table
 from rich.text import Text
 
+from patchi.cli.console import con
 from patchi.core.config import require_project_root
 
-# ── Dispatch ───────────────────────────────────────────────────────────────────
-
-import logging
 _log = logging.getLogger("patchi.cli.hosted_cmd")
 
 def run(args) -> None:

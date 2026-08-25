@@ -26,7 +26,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from patchi.core.brain.ast_utils import find_calls, find_imports
-from patchi.core.brain.languages import Lang, EXTENSION_MAP
+from patchi.core.brain.languages import EXTENSION_MAP, Lang
 
 from ..agents.base import (
     AgentGroup,

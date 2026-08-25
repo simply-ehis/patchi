@@ -19,7 +19,6 @@ Flow:
 """
 
 from __future__ import annotations
-from patchi.cli.console import con
 
 from pathlib import Path
 
@@ -27,14 +26,15 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 
+from patchi.cli.console import con
 from patchi.cli.display.live_progress import LiveProgress
-
 from patchi.core import memory as mem
 from patchi.core.config import require_project_root
 from patchi.core.fix.applier import PatchApplier
 from patchi.core.fix.patch import Patch, PatchState
 from patchi.core.fix.risk_gate import RiskGate
 from patchi.core.fix.verify_loop import run_verify_loop, should_flag_for_review
+
 
 def run(
     area: str | None = None,

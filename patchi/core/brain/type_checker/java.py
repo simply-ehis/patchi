@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from ..languages import Lang, get_parser
 from .base import BaseTypeChecker, _node_text, make_finding
 
-
-import logging
 _log = logging.getLogger("patchi.brain.java")
 
 class JavaTypeChecker(BaseTypeChecker):

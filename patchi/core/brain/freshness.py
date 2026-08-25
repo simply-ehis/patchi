@@ -22,6 +22,7 @@ FRESHNESS_FILE = ".patchi/brain_freshness.json"
 
 
 import logging
+
 _log = logging.getLogger("patchi.brain.freshness")
 
 def save_freshness_snapshot(root: Path, file_infos_paths: list[str]) -> None:

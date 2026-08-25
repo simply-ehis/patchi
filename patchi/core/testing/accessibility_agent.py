@@ -19,6 +19,7 @@ Does NOT call AI.
 
 from __future__ import annotations
 
+import logging
 import subprocess
 import sys
 import time
@@ -35,8 +36,6 @@ from ..agents.base import (
     register,
 )
 
-
-import logging
 _log = logging.getLogger("patchi.testing.accessibility_agent")
 
 @register

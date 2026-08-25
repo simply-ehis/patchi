@@ -18,8 +18,8 @@ import shutil
 import subprocess
 from pathlib import Path
 
-from ..brain.import_graph import ImportGraph, build_import_graph, find_dead_files
 from ..brain.ast_utils import find_dead_symbols
+from ..brain.import_graph import ImportGraph, build_import_graph, find_dead_files
 from ..brain.languages import EXTENSION_MAP, Lang
 from .base import (
     AgentGroup,
@@ -58,6 +58,7 @@ _SKIP_SEGMENTS = frozenset(
 
 
 import logging
+
 _log = logging.getLogger("patchi.agents.dead_code_scanner")
 
 @register

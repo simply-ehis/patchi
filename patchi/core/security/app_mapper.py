@@ -6,8 +6,8 @@ Returns structured map of pages, forms, links, and input fields.
 """
 
 from __future__ import annotations
-import logging
 
+import logging
 import re
 import urllib.error
 import urllib.request
@@ -24,7 +24,6 @@ from patchi.core.agents.base import (
     register,
 )
 from patchi.core.constants import is_offline
-
 
 _log = logging.getLogger("patchi.security.app_mapper")
 

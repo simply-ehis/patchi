@@ -9,6 +9,7 @@ Covers §8.3.1:
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 
 from ..brain.languages import DEFAULT_IGNORE_DIRS
@@ -24,8 +25,6 @@ from .base import (
     safe_rglob,
 )
 
-
-import logging
 _log = logging.getLogger("patchi.agents.build_tool_validator")
 
 def _check_vite_config(content: str, rel: str) -> list[dict]:

@@ -1,4 +1,5 @@
 from patchi.cli.console import con
+
 """
 `p status` — quick overview of Patchi's current state.
 
@@ -14,6 +15,7 @@ from rich.text import Text
 from patchi.core import config as cfg
 from patchi.core import memory as mem
 from patchi.core import queue as q
+
 
 def _health_bar(score: int, width: int = 20) -> str:
     """Build a visual health bar: [████████░░░░░░░░░░░░] 80/100."""

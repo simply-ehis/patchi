@@ -14,8 +14,8 @@ Does NOT write to disk. Does NOT touch the queue.
 """
 
 from __future__ import annotations
-import logging
 
+import logging
 import os
 import re
 from pathlib import Path
@@ -33,7 +33,6 @@ from ..agents.base import (
     make_finding,
     register,
 )
-
 
 _log = logging.getLogger("patchi.security.sensitive_data_agent")
 

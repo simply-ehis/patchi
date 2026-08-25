@@ -1,4 +1,5 @@
 from patchi.cli.console import con
+
 """
 `p queue` — view and control the task queue.
 
@@ -22,6 +23,7 @@ from rich.text import Text
 from patchi.core import config as cfg
 from patchi.core import queue as q
 from patchi.core.constants import QueueMode
+
 
 def _root(root: Path | None) -> Path | None:
     return root

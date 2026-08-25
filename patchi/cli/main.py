@@ -11,13 +11,13 @@ so cold start stays fast regardless of how many commands are registered.
 """
 
 import argparse
+
+# ── Lazy imports (only load what's needed for the called command) ──────────────
+import logging
 import sys
 
 from patchi import __version__
 
-# ── Lazy imports (only load what's needed for the called command) ──────────────
-
-import logging
 _log = logging.getLogger("patchi.cli.main")
 
 def _cmd_status():
@@ -155,8 +155,9 @@ def main() -> None:
     cmd = args.command
 
     # Auto-update check (background, weekly)
-    from patchi.cli.commands.update_cmd import auto_check_background
     import threading
+
+    from patchi.cli.commands.update_cmd import auto_check_background
     threading.Thread(target=auto_check_background, daemon=True).start()
 
     # Onboarding check (M-01): if project exists but onboarding not complete,
@@ -169,7 +170,7 @@ def main() -> None:
             if r:
                 conf = load(r)
                 if not conf.get("onboarding_complete", False):
-                    
+
 
                     con.print()
                     con.print("[bold #C8621A]Welcome to Patchi![/bold #C8621A]")

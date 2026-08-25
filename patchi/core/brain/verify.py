@@ -30,6 +30,7 @@ _BASELINE_FILE = ".patchi/verify_baseline.json"
 
 
 import logging
+
 _log = logging.getLogger("patchi.brain.verify")
 
 @dataclass

@@ -21,13 +21,12 @@ It is saved back to brain memory after every scan so `p status` can display it.
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from pathlib import Path
 
 from patchi.core import memory as mem
 
-
-import logging
 _log = logging.getLogger("patchi.core.health")
 
 @dataclass

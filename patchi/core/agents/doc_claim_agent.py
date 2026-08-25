@@ -121,6 +121,7 @@ Do NOT output anything else — no explanations, no markdown.
 
 
 import logging
+
 _log = logging.getLogger("patchi.agents.doc_claim_agent")
 
 @dataclass

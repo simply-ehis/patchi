@@ -1,4 +1,5 @@
 from patchi.cli.console import con
+
 """
 `p memory` — view and manage Patchi's memory.
 
@@ -19,6 +20,7 @@ from rich.text import Text
 from patchi.core import memory as mem
 from patchi.core.config import require_project_root
 from patchi.core.constants import MemoryCategory
+
 
 def run_show_all(root: Path | None = None) -> None:
     """p memory — show all categories."""

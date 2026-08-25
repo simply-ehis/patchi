@@ -24,6 +24,7 @@ _PLAN_FILE = ".patchi/plan.json"
 
 
 import logging
+
 _log = logging.getLogger("patchi.brain.audit")
 
 def _snapshot_scope(root: Path) -> dict:

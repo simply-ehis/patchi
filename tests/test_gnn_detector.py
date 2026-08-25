@@ -3,8 +3,8 @@ Tests for the GNN vulnerability classifier.
 """
 
 from patchi.core.agents.vulnerability_classifier import (
-    VulnerabilityClassifier,
     VULNERABILITY_TYPES,
+    VulnerabilityClassifier,
 )
 
 
@@ -135,8 +135,7 @@ def vulnerable_function(user_input):
         # without it the SECURITY group is empty in isolation (it only filled
         # up in the full suite via unrelated import side-effects).
         import patchi.core.security.security_agents  # noqa: F401
-
-        from patchi.core.agents.base import list_agents, AgentGroup
+        from patchi.core.agents.base import AgentGroup, list_agents
 
         agents = list_agents(AgentGroup.SECURITY)
         agent_names = [a.name for a in agents]

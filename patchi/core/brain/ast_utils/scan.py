@@ -5,7 +5,7 @@ Provides tree-sitter based code scanning capabilities.
 
 import logging
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
 logger = logging.getLogger(__name__)
 
@@ -36,18 +36,18 @@ def scan_python(
     except ImportError:
         logger.warning("ast module not available")
         return {"functions": [], "classes": [], "imports": [], "calls": []}
-    
+
     try:
         tree = ast.parse(source)
     except SyntaxError as e:
         logger.warning(f"Syntax error in {file_path}: {e}")
         return {"functions": [], "classes": [], "imports": [], "calls": []}
-    
+
     functions = []
     classes = []
     imports = []
     calls = []
-    
+
     for node in ast.walk(tree):
         if isinstance(node, ast.FunctionDef):
             functions.append({
@@ -88,7 +88,7 @@ def scan_python(
                 "function": func_name,
                 "line": node.lineno,
             })
-    
+
     return {
         "functions": functions,
         "classes": classes,
@@ -119,7 +119,7 @@ def scan_file(file_path: Path) -> Dict[str, Any]:
     except Exception as e:
         logger.warning(f"Failed to read {file_path}: {e}")
         return {"functions": [], "classes": [], "imports": [], "calls": []}
-    
+
     suffix = file_path.suffix.lower()
     if suffix == ".py":
         return scan_python(source, file_path)

@@ -69,6 +69,7 @@ _LOCK_FILES = {"Cargo.lock", "go.sum", "poetry.lock", "Gemfile.lock", "yarn.lock
 
 
 import logging
+
 _log = logging.getLogger("patchi.agents.dead_code_hygiene")
 
 def _get_lang(file_path: str) -> str | None:

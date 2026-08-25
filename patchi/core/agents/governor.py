@@ -62,6 +62,9 @@ try:
 except Exception as e:
     logger.debug(f"fix agents not available: {e}")
 
+# ── Incident state machine types ────────────────────────────────────────────────
+import logging
+
 from patchi.core import memory as mem
 from patchi.core.agents.base import (
     AgentGroup,
@@ -70,10 +73,6 @@ from patchi.core.agents.base import (
 )
 from patchi.core.agents.coordinator import Coordinator, CoordinatorProgress
 
-# ── Incident state machine types ────────────────────────────────────────────────
-
-
-import logging
 _log = logging.getLogger("patchi.agents.governor")
 
 class IncidentState(str, Enum):

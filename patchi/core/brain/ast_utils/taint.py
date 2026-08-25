@@ -14,10 +14,11 @@ from __future__ import annotations
 
 import ast
 
+from patchi.core.brain.languages import Lang, get_parser
+
 from .assignments import find_assignments
 from .config import CALL_NODE_TYPES
 from .helpers import child_by_field, children, node_text
-from patchi.core.brain.languages import Lang, get_parser
 
 # Untrusted data origins
 SOURCES = {
@@ -40,6 +41,7 @@ SANITIZERS = {
 
 
 import logging
+
 _log = logging.getLogger("patchi.brain.taint")
 
 def _is_source(text: str) -> bool:

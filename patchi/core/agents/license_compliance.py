@@ -13,6 +13,8 @@ import re
 import urllib.request
 from pathlib import Path
 
+from patchi.core.constants import is_offline
+
 from .base import (
     AgentGroup,
     AgentInput,
@@ -24,7 +26,6 @@ from .base import (
     register,
     safe_rglob,
 )
-from patchi.core.constants import is_offline
 
 _RESTRICTED_LICENSES = {
     "gpl", "gpl-2.0", "gpl-3.0", "gplv2", "gplv3",
@@ -46,6 +47,7 @@ _UNKNOWN_LICENSE_RISK = {
 
 
 import logging
+
 _log = logging.getLogger("patchi.agents.license_compliance")
 
 def _normalize_license(license_str: str) -> str:

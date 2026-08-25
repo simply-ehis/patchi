@@ -8,14 +8,15 @@ Usage:
 """
 
 from __future__ import annotations
-from patchi.cli.console import con
 
 from pathlib import Path
 
 from rich.table import Table
 
+from patchi.cli.console import con
 from patchi.core.brain.git_aware import changelog
 from patchi.core.config import require_project_root
+
 
 def run(since: str = "HEAD~10", root: Path | None = None) -> None:
     try:

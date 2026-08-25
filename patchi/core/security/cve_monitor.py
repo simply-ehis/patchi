@@ -7,9 +7,9 @@ Uses batch query and 24h local disk cache shared by all agents.
 """
 
 from __future__ import annotations
-import logging
 
 import json
+import logging
 import time
 import urllib.error
 import urllib.request

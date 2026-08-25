@@ -18,6 +18,7 @@ May call AI for generating test scripts.
 from __future__ import annotations
 
 import json
+import logging
 import shutil
 import subprocess
 import tempfile
@@ -27,15 +28,12 @@ from ..agents.base import (
     AgentGroup,
     AgentInput,
     AgentResult,
-    AgentStatus,
     BaseAgent,
     Severity,
     make_finding,
     register,
 )
 
-
-import logging
 _log = logging.getLogger("patchi.testing.stress_test_agent")
 
 @register

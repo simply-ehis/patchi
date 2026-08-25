@@ -21,6 +21,7 @@ _SCAN_EXTS = {
     ".pem", ".key", ".crt", ".pub", ".p12", ".keystore",
 }
 from patchi.core.brain.languages import DEFAULT_IGNORE_DIRS
+
 _SKIP_DIRS = DEFAULT_IGNORE_DIRS
 
 # (rule name, compiled pattern)
@@ -37,6 +38,7 @@ _PATTERNS: list[tuple[str, re.Pattern]] = [
 
 
 import logging
+
 _log = logging.getLogger("patchi.brain.secrets")
 
 @dataclass

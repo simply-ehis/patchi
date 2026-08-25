@@ -26,6 +26,7 @@ _POLL_INTERVAL_SECS = 60  # check every 60 seconds
 
 
 import logging
+
 _log = logging.getLogger("patchi.core.escalation")
 
 def _load_store(root: Path) -> dict:

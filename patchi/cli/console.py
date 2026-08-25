@@ -16,12 +16,14 @@ from __future__ import annotations
 
 import os
 import sys
+
 from rich.console import Console
 
 _encoding_fixed = False
 
 
 import logging
+
 _log = logging.getLogger("patchi.cli.console")
 
 def _ensure_utf8():

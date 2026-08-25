@@ -24,14 +24,13 @@ All modes are optional, opt-in via config:
 """
 
 from __future__ import annotations
-import logging
 
 import json
+import logging
 import time
 from pathlib import Path
 
 from loguru import logger
-
 
 _log = logging.getLogger("patchi.security.request_interceptor")
 

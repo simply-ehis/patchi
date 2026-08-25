@@ -3,14 +3,16 @@ Configuration and audit agents for Patchi security scanning.
 """
 
 from __future__ import annotations
-import logging
 
 import json
+import logging
 import os
 import re
 import shutil
 import subprocess
 from pathlib import Path
+
+from patchi.core.constants import is_offline
 
 from ..agents.base import (
     AgentGroup,
@@ -21,7 +23,6 @@ from ..agents.base import (
     make_finding,
     register,
 )
-from patchi.core.constants import is_offline
 
 # ── Shared subprocess runner ───────────────────────────────────────────────────
 

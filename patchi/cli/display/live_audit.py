@@ -23,6 +23,7 @@ Layout:
 
 from __future__ import annotations
 
+import logging
 import threading
 import time
 from dataclasses import dataclass, field
@@ -34,8 +35,6 @@ from rich.panel import Panel
 from rich.progress import BarColumn, Progress, TextColumn, TimeElapsedColumn
 from rich.text import Text
 
-
-import logging
 _log = logging.getLogger("patchi.cli.live_audit")
 
 class PhaseStatus(Enum):

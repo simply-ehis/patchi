@@ -1,7 +1,7 @@
 import re
 
-from patchi.core.brain.route_detector.registry import register_detector
 from patchi.core.brain.route_detector.base import BaseRouteDetector
+from patchi.core.brain.route_detector.registry import register_detector
 
 _GO_HTTP_METHODS = {"get", "post", "put", "delete", "patch", "head", "options"}
 
@@ -17,6 +17,7 @@ _FRAMEWORK_MAP: list[tuple[set[str], str]] = [
 
 
 import logging
+
 _log = logging.getLogger("patchi.brain.go")
 
 @register_detector("go")

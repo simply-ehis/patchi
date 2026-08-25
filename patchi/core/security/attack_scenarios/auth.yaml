@@ -1,0 +1,287 @@
+# Authentication & Authorization Attack Scenarios
+
+scenarios:
+  - id: auth-bypass-sql
+    name: "Authentication Bypass via SQL Injection"
+    category: authentication
+    subcategory: bypass
+    severity: critical
+    cwe: "CWE-287"
+    owasp: "A07:2021"
+    description: "Bypass login using SQL injection in username/password fields"
+    prerequisites:
+      - "Login form with username/password"
+      - "Backend uses string concatenation for query"
+    attack_steps:
+      - step: 1
+        action: "test_login_injection"
+        description: "Test classic auth bypass payloads"
+        tool: "http_request"
+        payloads:
+          - "username: admin'--"
+          - "username: admin' OR '1'='1"
+          - "username: ' OR '1'='1'--"
+          - "password: ' OR '1'='1'--"
+          - "username: admin';--"
+      - step: 2
+        action: "verify_bypass"
+        description: "Confirm logged in as target user"
+        tool: "http_request"
+        check: "session cookie set, redirect to dashboard"
+    detection_signatures:
+      - "Login succeeds without valid credentials"
+      - "SQL error messages on failed payloads"
+    verification:
+      - "Successful login with injected payload"
+      - "Check database query logs"
+    remediation_playbook: "fix-auth-parameterized-queries"
+    tags: ["auth-bypass", "sql-injection", "login"]
+
+  - id: auth-jwt-alg-none
+    name: "JWT Algorithm None Attack"
+    category: authentication
+    subcategory: jwt
+    severity: critical
+    cwe: "CWE-347"
+    owasp: "A07:2021"
+    description: "Forge JWT by changing algorithm to 'none'"
+    prerequisites:
+      - "Application uses JWT for authentication"
+      - "JWT library accepts 'none' algorithm"
+    attack_steps:
+      - step: 1
+        action: "capture_valid_jwt"
+        description: "Get a valid JWT from the application"
+        tool: "http_request"
+        action: "login and capture token"
+      - step: 2
+        action: "forge_none_alg_token"
+        description: "Create token with alg=none and modified claims"
+        tool: "jwt_tool"
+        payload:
+          header: '{"alg":"none","typ":"JWT"}'
+          payload: '{"sub":"admin","role":"admin","exp":9999999999}'
+          signature: ""
+      - step: 3
+        action: "test_forged_token"
+        description: "Use forged token to access protected endpoints"
+        tool: "http_request"
+        headers:
+          Authorization: "Bearer <forged_token>"
+    detection_signatures:
+      - "Server accepts token with alg=none"
+      - "Modified claims accepted"
+    verification:
+      - "Access admin endpoint with forged token"
+    remediation_playbook: "fix-jwt-alg-validation"
+    tags: ["jwt", "alg-none", "token-forgery"]
+
+  - id: auth-jwt-weak-secret
+    name: "JWT Weak Secret Brute Force"
+    category: authentication
+    subcategory: jwt
+    severity: high
+    cwe: "CWE-347"
+    owasp: "A07:2021"
+    description: "Brute force weak JWT signing secret"
+    prerequisites:
+      - "JWT uses HS256 (symmetric)"
+      - "Secret is weak/guessable"
+    attack_steps:
+      - step: 1
+        action: "capture_jwt"
+        description: "Get a valid JWT"
+        tool: "http_request"
+      - step: 2
+        action: "brute_force_secret"
+        description: "Try common secrets"
+        tool: "jwt_tool"
+        wordlist:
+          - "secret"
+          - "secretkey"
+          - "jwtsecret"
+          - "changeme"
+          - "password"
+          - ""
+      - step: 3
+        action: "forge_token"
+        description: "Sign new token with cracked secret"
+        tool: "jwt_tool"
+    detection_signatures:
+      - "Secret found in wordlist"
+      - "Forged token accepted"
+    verification:
+      - "Sign token with cracked secret, verify acceptance"
+    remediation_playbook: "fix-jwt-strong-secret"
+    tags: ["jwt", "brute-force", "weak-secret"]
+
+  - id: auth-session-fixation
+    name: "Session Fixation"
+    category: authentication
+    subcategory: session
+    severity: high
+    cwe: "CWE-384"
+    owasp: "A07:2021"
+    description: "Attacker sets victim's session ID before login"
+    prerequisites:
+      - "Application accepts session ID from URL/cookie before login"
+      - "Session ID not regenerated after login"
+    attack_steps:
+      - step: 1
+        action: "get_valid_session"
+        description: "Obtain a valid session ID (unauthenticated)"
+        tool: "http_request"
+        action: "visit login page, capture session cookie"
+      - step: 2
+        action: "fixate_victim"
+        description: "Trick victim into using attacker's session ID"
+        tool: "social_engineering"
+        method: "Send link with ?sessionid=ATTACKER_SESSION"
+      - step: 3
+        action: "victim_logs_in"
+        description: "Victim logs in, session now authenticated"
+        tool: "http_request"
+        action: "Victim authenticates with fixated session"
+      - step: 4
+        action: "attacker_access"
+        description: "Attacker uses same session ID to access account"
+        tool: "http_request"
+        cookies:
+          sessionid: "ATTACKER_SESSION"
+    detection_signatures:
+      - "Same session ID before and after login"
+      - "Session ID accepted from URL parameter"
+    verification:
+      - "Login with fixated session, verify access"
+    remediation_playbook: "fix-session-regeneration"
+    tags: ["session", "fixation", "session-id"]
+
+  - id: auth-id-or
+    name: "Insecure Direct Object Reference (IDOR)"
+    category: authorization
+    subcategory: idor
+    severity: high
+    cwe: "CWE-639"
+    owasp: "A01:2021"
+    description: "Access unauthorized resources by manipulating object IDs"
+    prerequisites:
+      - "Object references exposed in URLs/params"
+      - "No authorization check on object access"
+    attack_steps:
+      - step: 1
+        action: "enumerate_object_ids"
+        description: "Find pattern of object IDs (sequential, UUID, etc.)"
+        tool: "http_request"
+        endpoints:
+          - "/api/users/1"
+          - "/api/orders/100"
+          - "/api/documents/abc-123"
+      - step: 2
+        action: "test_cross_user_access"
+        description: "Try accessing other users' objects"
+        tool: "http_request"
+        payloads:
+          - "Change user_id=1 to user_id=2"
+          - "Change order_id=100 to order_id=101"
+      - step: 3
+        action: "escalate_to_admin"
+        description: "Try accessing admin-only objects"
+        tool: "http_request"
+        endpoints:
+          - "/api/admin/users"
+          - "/api/admin/settings"
+    detection_signatures:
+      - "Successful access to other users' data"
+      - "No 403/401 response"
+    verification:
+      - "Access another user's resource, verify data returned"
+    remediation_playbook: "fix-idor-authorization-checks"
+    tags: ["idor", "authorization", "object-reference"]
+
+  - id: auth-privilege-escalation
+    name: "Vertical Privilege Escalation"
+    category: authorization
+    subcategory: privilege-escalation
+    severity: critical
+    cwe: "CWE-269"
+    owasp: "A01:2021"
+    description: "Regular user gains admin/privileged functionality"
+    prerequisites:
+      - "Role-based access control"
+      - "Admin endpoints exist but may lack checks"
+    attack_steps:
+      - step: 1
+        action: "enumerate_admin_endpoints"
+        description: "Find admin-only endpoints"
+        tool: "code_scan"
+        patterns:
+          - "@admin_required"
+          - "@role_required.*admin"
+          - "/admin/"
+          - "is_admin|is_superuser"
+      - step: 2
+        action: "test_direct_access"
+        description: "Try accessing admin endpoints as regular user"
+        tool: "http_request"
+        endpoints:
+          - "/admin/dashboard"
+          - "/api/admin/users"
+          - "/api/admin/delete/1"
+      - step: 3
+        action: "test_parameter_pollution"
+        description: "Try role parameter manipulation"
+        tool: "http_request"
+        payloads:
+          - "?role=admin"
+          - "?user_type=administrator"
+          - "?permissions[]=admin"
+    detection_signatures:
+      - "Admin functionality accessible without admin role"
+      - "Role parameter accepted from user input"
+    verification:
+      - "Access admin endpoint as non-admin user"
+    remediation_playbook: "fix-authz-role-checks"
+    tags: ["privilege-escalation", "vertical", "rbac"]
+
+  - id: auth-2fa-bypass
+    name: "2FA Bypass"
+    category: authentication
+    subcategory: 2fa
+    severity: high
+    cwe: "CWE-308"
+    owasp: "A07:2021"
+    description: "Bypass two-factor authentication"
+    prerequisites:
+      - "Application has 2FA implementation"
+      - "Possible bypass vectors exist"
+    attack_steps:
+      - step: 1
+        action: "test_backup_codes"
+        description: "Test backup/recovery code usage"
+        tool: "http_request"
+        payloads:
+          - "Use backup code multiple times"
+          - "Brute force backup codes"
+      - step: 2
+        action: "test_sms_bypass"
+        description: "Test SMS 2FA bypass"
+        tool: "http_request"
+        methods:
+          - "SIM swap (manual)"
+          - "Intercept via SS7 (manual)"
+          - "Test 'remember device' bypass"
+      - step: 3
+        action: "test_totp_bypass"
+        description: "Test TOTP bypass"
+        tool: "http_request"
+        methods:
+          - "Replay valid TOTP within window"
+          - "Test rate limiting on TOTP endpoint"
+          - "Check for 'disable 2FA' without 2FA"
+    detection_signatures:
+      - "2FA can be bypassed or disabled without 2FA"
+      - "No rate limiting on 2FA endpoints"
+    verification:
+      - "Login without 2FA when enabled"
+    remediation_playbook: "fix-2fa-bypass"
+    tags: ["2fa", "mfa", "bypass"]

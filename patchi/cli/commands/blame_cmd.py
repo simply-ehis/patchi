@@ -7,14 +7,14 @@ Usage:
 """
 
 from __future__ import annotations
-from patchi.cli.console import con
 
+import logging
 from pathlib import Path
 
+from patchi.cli.console import con
 from patchi.core.brain.git_aware import blame_line
 from patchi.core.config import require_project_root
 
-import logging
 _log = logging.getLogger("patchi.cli.blame_cmd")
 
 def run(file_path: str, line: int | None = None, root: Path | None = None) -> None:

@@ -3,15 +3,17 @@ Taint analysis and secret detection agents for Patchi.
 """
 
 from __future__ import annotations
-import logging
 
 import json
+import logging
 import os
 import re
 import shutil
 import subprocess
 import tempfile
 from pathlib import Path
+
+from patchi.core.constants import is_offline
 
 from ..agents.base import (
     AgentGroup,
@@ -24,7 +26,6 @@ from ..agents.base import (
 )
 from ..brain.ast_utils import track_taint
 from ..brain.languages import EXTENSION_MAP
-from patchi.core.constants import is_offline
 
 # ── Shared subprocess runner ───────────────────────────────────────────────────
 

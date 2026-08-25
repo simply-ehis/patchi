@@ -13,6 +13,7 @@ Falls back gracefully when Playwright is not installed.
 """
 
 from __future__ import annotations
+
 import logging
 
 from patchi.core.agents.base import (

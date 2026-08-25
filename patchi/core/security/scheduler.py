@@ -24,8 +24,8 @@ Results persist to the existing SQLite history database.
 """
 
 from __future__ import annotations
-import logging
 
+import logging
 import re
 import threading
 import time
@@ -39,7 +39,6 @@ from loguru import logger
 from patchi.core import config as cfg
 from patchi.core import memory as mem
 from patchi.core.agents.base import AgentGroup, AgentInput, BaseAgent, list_agents
-
 
 _log = logging.getLogger("patchi.security.scheduler")
 

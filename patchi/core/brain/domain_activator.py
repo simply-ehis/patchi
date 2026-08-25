@@ -13,16 +13,14 @@ scanner with an 11-element tuple (see ``_DomainContext`` below).
 
 from __future__ import annotations
 
+# ---------------------------------------------------------------------------
+# Context passed to every checker
+# ---------------------------------------------------------------------------
+import logging
 import re
 from dataclasses import dataclass
 from typing import Any, Callable, Iterable, Sequence
 
-
-# ---------------------------------------------------------------------------
-# Context passed to every checker
-# ---------------------------------------------------------------------------
-
-import logging
 _log = logging.getLogger("patchi.brain.domain_activator")
 
 @dataclass(frozen=True)

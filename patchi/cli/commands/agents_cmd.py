@@ -9,7 +9,6 @@ Subcommands:
 """
 
 from __future__ import annotations
-from patchi.cli.console import con
 
 from pathlib import Path
 
@@ -19,9 +18,11 @@ from rich.text import Text
 
 # Import scanners to trigger @register decorators
 import patchi.core.agents.scanners  # noqa: F401
+
 # Security agents register lazily inside security_agents; import it so the
 # whole SECURITY group appears in `p agents list` (previously showed 0).
 import patchi.core.security.security_agents  # noqa: F401
+from patchi.cli.console import con
 from patchi.core import memory as mem
 from patchi.core.agents.base import AgentGroup, list_agents
 from patchi.core.agents.coordinator import Coordinator

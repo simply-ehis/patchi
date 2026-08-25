@@ -46,6 +46,7 @@ _FIX_META: dict[str, tuple[str, bool]] = {
 
 
 import logging
+
 _log = logging.getLogger("patchi.brain.proactive")
 
 @dataclass

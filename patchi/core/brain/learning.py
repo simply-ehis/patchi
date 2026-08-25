@@ -25,6 +25,7 @@ _DECAY_HALF_LIFE_DAYS = 30
 
 
 import logging
+
 _log = logging.getLogger("patchi.brain.learning")
 
 def _load(root: Path) -> dict:

@@ -5,14 +5,14 @@ AST utilities — import statement finding across languages.
 from __future__ import annotations
 
 import ast as _py_ast
+import logging
 from typing import Any
+
+from patchi.core.brain.languages import Lang, get_parser
 
 from .config import IMPORT_NODE_TYPES
 from .helpers import child_by_field, children, node_text
-from patchi.core.brain.languages import Lang, get_parser
 
-
-import logging
 _log = logging.getLogger("patchi.brain.imports")
 
 def find_imports(content: str, lang: Lang, names: set[str]) -> list[dict]:

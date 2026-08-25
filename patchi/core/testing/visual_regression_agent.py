@@ -37,6 +37,7 @@ VIEWPORTS = [
 
 
 import logging
+
 _log = logging.getLogger("patchi.testing.visual_regression_agent")
 
 @register

@@ -30,6 +30,7 @@ _SOURCE_EXTS = frozenset({
 
 
 import logging
+
 _log = logging.getLogger("patchi.agents.cache")
 
 def _file_fingerprint(root: Path) -> str:

@@ -12,8 +12,8 @@ Supports: Flutter (Dart), React Native (JS/TS), Android (Kotlin/Java), iOS (Swif
 """
 
 from __future__ import annotations
-import logging
 
+import logging
 import re
 from pathlib import Path
 
@@ -28,7 +28,6 @@ from ..agents.base import (
     register,
     safe_rglob,
 )
-
 
 _log = logging.getLogger("patchi.security.mobile_security_agent")
 

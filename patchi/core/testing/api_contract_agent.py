@@ -22,6 +22,7 @@ Does NOT call AI.
 from __future__ import annotations
 
 import json
+import logging
 import time
 from pathlib import Path
 from typing import Any
@@ -37,8 +38,6 @@ from ..agents.base import (
     register,
 )
 
-
-import logging
 _log = logging.getLogger("patchi.testing.api_contract_agent")
 
 @register

@@ -12,6 +12,9 @@ Supports:
 from __future__ import annotations
 
 import json
+
+# ── Public API ─────────────────────────────────────────────────────────────────
+import logging
 import os
 import re
 import time
@@ -35,10 +38,6 @@ from patchi.core.constants import (
     PROVIDERS,
 )
 
-# ── Public API ─────────────────────────────────────────────────────────────────
-
-
-import logging
 _log = logging.getLogger("patchi.core.client")
 
 def _ensure_env_loaded(root: str | None = None) -> None:

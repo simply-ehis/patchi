@@ -10,8 +10,9 @@ from __future__ import annotations
 
 from typing import Any
 
-from .helpers import children
 from patchi.core.brain.languages import Lang
+
+from .helpers import children
 
 # Tree-sitter node types that open a new scope / block
 _SCOPE_NODE_TYPES = {

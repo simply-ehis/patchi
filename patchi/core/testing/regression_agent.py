@@ -17,6 +17,7 @@ May call AI to interpret significant changes.
 
 from __future__ import annotations
 
+import logging
 import time
 from pathlib import Path
 
@@ -24,15 +25,12 @@ from ..agents.base import (
     AgentGroup,
     AgentInput,
     AgentResult,
-    AgentStatus,
     BaseAgent,
     Severity,
     make_finding,
     register,
 )
 
-
-import logging
 _log = logging.getLogger("patchi.testing.regression_agent")
 
 @register

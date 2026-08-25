@@ -21,6 +21,9 @@ from __future__ import annotations
 
 import ast as py_ast
 import hashlib
+
+# ── Data model ─────────────────────────────────────────────────────────────────
+import logging
 import os
 import re
 from concurrent.futures import ProcessPoolExecutor, as_completed
@@ -31,10 +34,6 @@ from typing import Any
 from patchi.core.brain.file_corpus import FileCorpus
 from patchi.core.brain.languages import Lang, detect_language, get_parser
 
-# ── Data model ─────────────────────────────────────────────────────────────────
-
-
-import logging
 _log = logging.getLogger("patchi.brain.scanner")
 
 @dataclass

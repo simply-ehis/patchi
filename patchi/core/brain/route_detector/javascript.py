@@ -1,7 +1,7 @@
 import re
 
-from patchi.core.brain.route_detector.registry import register_detector
 from patchi.core.brain.route_detector.base import BaseRouteDetector
+from patchi.core.brain.route_detector.registry import register_detector
 
 _AUTH_MIDDLEWARE = {"auth", "authenticate", "requireauth", "verifytoken", "isauthenticated"}
 
@@ -11,6 +11,7 @@ _HTTP_METHODS = {"get", "post", "put", "delete", "patch", "all", "use", "head", 
 
 
 import logging
+
 _log = logging.getLogger("patchi.brain.javascript")
 
 @register_detector("javascript")

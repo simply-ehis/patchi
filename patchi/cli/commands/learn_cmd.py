@@ -13,6 +13,7 @@ and lets you reset that learning.
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 
 from rich.table import Table
@@ -21,8 +22,6 @@ from patchi.cli.console import con
 from patchi.core.brain import learning
 from patchi.core.config import require_project_root
 
-
-import logging
 _log = logging.getLogger("patchi.cli.learn_cmd")
 
 def run(

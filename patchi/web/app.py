@@ -27,9 +27,10 @@ def create_app(root: Path) -> FastAPI:
     """Build and return the FastAPI application."""
     app = FastAPI(title="Patchi", docs_url=None, redoc_url=None)
 
-    from fastapi.middleware.cors import CORSMiddleware
     # Restrict CORS to localhost for security - allow_origins can be configured via env var
     import os
+
+    from fastapi.middleware.cors import CORSMiddleware
     allowed_origins = os.environ.get("PATCHI_CORS_ORIGINS", "http://localhost:3000,http://localhost:8000").split(",")
     app.add_middleware(
         CORSMiddleware,
