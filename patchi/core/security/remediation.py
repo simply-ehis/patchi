@@ -32,6 +32,13 @@ class Remediation:
     reference_url: str = ""
     auto_fixable: bool = False
     risk_level: str = "low"  # low / medium / high (risk of the fix itself)
+    lang_patterns: dict[str, str] | None = None  # lang -> code_pattern override
+
+    def for_language(self, lang: str) -> str:
+        """Get the code pattern for a specific language, falling back to default."""
+        if self.lang_patterns and lang in self.lang_patterns:
+            return self.lang_patterns[lang]
+        return self.code_pattern
 
 
 # ── Remediation Database ────────────────────────────────────────────────────
@@ -66,24 +73,52 @@ _REMEDIATIONS: dict[str, Remediation] = {
         code_pattern='cursor.execute("SELECT * FROM users WHERE id = %s", (user_id,))',
         playbook_id="data-layer",
         auto_fixable=True,
+        lang_patterns={
+            "go": 'db.QueryRow(ctx, "SELECT * FROM users WHERE id = $1", userID)',
+            "java": 'PreparedStatement ps = conn.prepareStatement("SELECT * FROM users WHERE id = ?"); ps.setInt(1, userId);',
+            "rust": 'sqlx::query!("SELECT * FROM users WHERE id = $1", user_id).fetch_one(&pool)',
+            "php": '$stmt = $pdo->prepare("SELECT * FROM users WHERE id = :id"); $stmt->execute(["id" => $userId]);',
+            "ruby": 'User.where(id: user_id).first  # ActiveRecord sanitizes automatically',
+        },
     ),
     "command_injection": Remediation(
         finding_type="command_injection",
         action="Use subprocess.run with list args instead of shell=True",
         code_pattern='subprocess.run(["ls", path], check=False)',
         auto_fixable=True,
+        lang_patterns={
+            "go": 'exec.Command("ls", path).Output()  # avoid exec.Command("sh", "-c", ...)',
+            "java": 'ProcessBuilder pb = new ProcessBuilder("ls", path); pb.start();',
+            "rust": 'std::process::Command::new("ls").arg(path).output()',
+            "php": '$output = shell_exec("ls " . escapeshellarg($path));',
+            "ruby": 'Open3.capture3("ls", path)  # array form avoids shell interpretation',
+        },
     ),
     "xss_reflected": Remediation(
         finding_type="xss_reflected",
         action="Escape user input before rendering, use template auto-escaping",
         code_pattern="Use {{ variable | e }} in Jinja2 templates",
         auto_fixable=False,
+        lang_patterns={
+            "go": 'template.HTML(template.HTMLEscapeString(userInput))  // or use html/template auto-escaping',
+            "java": '<%= request.getParameter("name") %>  // JSP auto-escapes; use OWASP Encoder for raw',
+            "rust": 'askama or tera templates auto-escape; avoid Markup::new()',
+            "php": 'htmlspecialchars($input, ENT_QUOTES, "UTF-8")',
+            "ruby": 'ERB::Util.html_escape(user_input)  // or Rails auto-escaping',
+        },
     ),
     "path_traversal": Remediation(
         finding_type="path_traversal",
         action="Validate and sanitize file paths, use pathlib.resolve()",
         code_pattern="Path(user_input).resolve().is_relative_to(base_dir)",
         auto_fixable=True,
+        lang_patterns={
+            "go": 'filepath.Clean(path) + must be inside baseDir; check with strings.HasPrefix',
+            "java": 'Path resolved = Paths.get(baseDir, userInput).normalize(); if (!resolved.startsWith(baseDir)) throw;',
+            "rust": 'let resolved = std::fs::canonicalize(base_dir.join(&user_input))?; if !resolved.starts_with(&base_dir) { return Err(...); }',
+            "php": 'realpath($baseDir . "/" . $userInput) must start with realpath($baseDir)',
+            "ruby": 'File.expand_path(user_input, base_dir).start_with?(base_dir)',
+        },
     ),
 
     # Auth
@@ -147,12 +182,26 @@ _REMEDIATIONS: dict[str, Remediation] = {
         action="Replace deprecated cipher with AES-256-GCM or ChaCha20",
         code_pattern="Use cryptography.hazmat.primitives.ciphers.aead.AESGCM",
         playbook_id="secrets-runtime-management",
+        lang_patterns={
+            "go": 'crypto/aes + crypto/cipher.NewGCM()  // AES-256-GCM',
+            "java": 'javax.crypto.Cipher.getInstance("AES/GCM/NoPadding")',
+            "rust": 'aes_gcm::Aes256Gcm::new(key)  // use aes-gcm crate',
+            "php": 'openssl_encrypt($data, "aes-256-gcm", $key, 0, $iv, $tag)',
+            "ruby": 'AES-256-GCM via OpenSSL::Cipher.new("aes-256-gcm")',
+        },
     ),
     "insecure_random": Remediation(
         finding_type="insecure_random",
         action="Replace random module with secrets for security-sensitive values",
         code_pattern='Use secrets.token_hex(32) instead of random.random()',
         auto_fixable=True,
+        lang_patterns={
+            "go": 'crypto/rand.Read(buf)  // never math/rand for security',
+            "java": 'java.security.SecureRandom.getInstanceStrong().nextBytes(buf)',
+            "rust": 'use rand::rngs::OsRng; rand::RngCore::fill_bytes(&mut OsRng, &mut buf)',
+            "php": 'random_bytes(32)  // never mt_rand or rand()',
+            "ruby": 'SecureRandom.hex(32)  // never rand() for security',
+        },
     ),
 
     # SSRF / Network
@@ -228,6 +277,48 @@ def get_remediation(finding_type: str) -> Remediation | None:
     """Look up remediation suggestion for a finding type."""
     key = _normalize_type(finding_type)
     return _REMEDIATIONS.get(key)
+
+
+def get_remediation_confidence(finding_type: str, root: Path | None = None) -> float:
+    """Return confidence 0.0-1.0 that this remediation will fix the issue.
+
+    Factors:
+      - Historical fix acceptance rate (from attack_feedback learning)
+      - Whether the fix is auto_fixable (higher base confidence)
+      - Whether we have a language-specific pattern (more precise)
+      - Risk level of the fix itself (high risk = lower confidence)
+    """
+    rem = get_remediation(finding_type)
+    if not rem:
+        return 0.3  # unknown type = low confidence
+
+    # Base confidence from fix properties
+    base = 0.5
+    if rem.auto_fixable:
+        base += 0.15
+    if rem.code_pattern:
+        base += 0.05
+    if rem.lang_patterns:
+        base += 0.05
+    risk_penalty = {"low": 0, "medium": 0.1, "high": 0.2}.get(rem.risk_level, 0)
+    base -= risk_penalty
+
+    # Historical acceptance rate (if root provided)
+    if root:
+        try:
+            from patchi.core.security.attack_feedback import get_learning_summary
+            summary = get_learning_summary(root)
+            accepted = summary.get("accepted_fixes", {}).get(finding_type, 0)
+            rejected = summary.get("rejected_fixes", {}).get(finding_type, 0)
+            total = accepted + rejected
+            if total >= 3:
+                acceptance_rate = accepted / total
+                # Blend: 60% base + 40% historical
+                base = 0.6 * base + 0.4 * acceptance_rate
+        except Exception:
+            pass
+
+    return max(0.1, min(0.95, base))
 
 
 def get_remediation_for_step(step: dict) -> dict | None:

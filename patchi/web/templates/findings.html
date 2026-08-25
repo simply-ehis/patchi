@@ -64,6 +64,11 @@
                 🔗 {{ in_chains|length }}
               </span>
               {% endif %}
+              {% if f.remediation %}
+              <span style="font-size:11px;cursor:pointer;color:{% if f.remediation.auto_fixable %}#4ADE80{% else %}var(--text-secondary){% endif %}" title="{{ f.remediation.action }}{% if f.remediation.auto_fixable %} (auto-fixable, {{ f.remediation.confidence }}%){% endif %}">
+                💊
+              </span>
+              {% endif %}
             </td>
           </tr>
           {% endfor %}

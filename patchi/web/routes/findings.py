@@ -32,11 +32,29 @@ async def findings(request: Request):
     mem.get_brain(root)
     scan_results = mem.get_scan_results(root)
 
-    # Flatten findings from all agents
+    # Flatten findings from all agents and attach remediation
     all_findings = []
+    try:
+        from patchi.core.security.remediation import get_remediation, get_remediation_confidence
+        has_remediation = True
+    except ImportError:
+        has_remediation = False
+
     for agent_name, data in scan_results.items():
         for f in data.get("findings", []):
             f["agent"] = agent_name
+            # Attach remediation suggestion for non-chain findings
+            if has_remediation:
+                ftype = f.get("type", "")
+                rem = get_remediation(ftype)
+                if rem:
+                    f["remediation"] = {
+                        "action": rem.action,
+                        "code_pattern": rem.code_pattern,
+                        "auto_fixable": rem.auto_fixable,
+                        "playbook_id": rem.playbook_id,
+                        "confidence": round(get_remediation_confidence(ftype, root), 2),
+                    }
             all_findings.append(f)
 
     # Sort by severity

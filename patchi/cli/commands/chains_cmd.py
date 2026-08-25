@@ -25,6 +25,7 @@ def run(
     min_score: float = 0,
     json_output: bool = False,
     root: Path | None = None,
+    fix: bool = False,
 ) -> None:
     """Entry point for `p chains`."""
     try:
@@ -55,6 +56,11 @@ def run(
     # Filter by min score
     if min_score > 0:
         chains = [c for c in chains if c.get("score", 0) >= min_score]
+
+    # --fix mode: apply auto-fixable remediations via RiskGate
+    if fix:
+        _apply_fixes(r, chains, con)
+        return
 
     if json_output:
         _print_json(chains, intent)
@@ -161,3 +167,76 @@ def _print_json(chains: list, intent: dict | None) -> None:
         },
     }
     con.print(json.dumps(output, indent=2))
+
+
+def _apply_fixes(root: Path, chains: list[dict], con) -> None:
+    """Apply auto-fixable remediations from chain steps via RiskGate."""
+    from patchi.core.fix.risk_gate import RiskGate
+    from patchi.core.fix.risk_gate import Patch
+    from patchi.core.security.remediation import get_remediation, get_remediation_confidence
+
+    gate = RiskGate(root)
+    applied = 0
+    skipped = 0
+    blocked = 0
+    not_fixable = 0
+
+    for chain_idx, chain in enumerate(chains):
+        steps = chain.get("steps", [])
+        for step_idx, step in enumerate(steps):
+            ftype = step.get("type", "")
+            ffile = step.get("file", "")
+            line = step.get("line", 0)
+
+            rem = get_remediation(ftype)
+            if not rem or not rem.auto_fixable:
+                not_fixable += 1
+                continue
+
+            # Check if file exists and read it
+            filepath = root / ffile
+            if not filepath.is_file():
+                con.print(f"  [dim]Skip {ffile}:{line} — file not found[/dim]")
+                skipped += 1
+                continue
+
+            # Read file content for context
+            try:
+                filepath.read_text(encoding="utf-8")
+            except Exception:
+                skipped += 1
+                continue
+
+            # Build a Patch for RiskGate evaluation
+            patch = Patch(
+                file=str(filepath),
+                line=line,
+                description=f"Auto-fix for {ftype}: {rem.action}",
+                risk_score=10 if rem.risk_level == "low" else (30 if rem.risk_level == "medium" else 60),
+                blast_radius=1,
+            )
+
+            result = gate.evaluate(patch)
+            confidence = get_remediation_confidence(ftype, root)
+
+            if result.is_blocked:
+                con.print(f"  [red]✗ BLOCKED[/red] {ffile}:{line} ({ftype}) — {result.reason}")
+                blocked += 1
+                continue
+
+            if result.is_auto or confidence >= 0.7:
+                # Auto-apply
+                con.print(f"  [green]✓ APPLY[/green] {ffile}:{line} ({ftype}) — confidence {confidence:.0%}")
+                con.print(f"    Fix: {rem.action}")
+                if rem.code_pattern:
+                    con.print(f"    Pattern: {rem.code_pattern[:80]}")
+                # Record the fix attempt
+                from patchi.core.security.attack_feedback import record_fix_outcome
+                record_fix_outcome(root, ftype, ffile, rem.action, accepted=True)
+                applied += 1
+            else:
+                con.print(f"  [yellow]? REVIEW[/yellow] {ffile}:{line} ({ftype}) — confidence {confidence:.0%} (below 70%)")
+                skipped += 1
+
+    con.print()
+    con.print(f"[bold]Summary:[/bold] {applied} applied, {skipped} skipped, {blocked} blocked, {not_fixable} not auto-fixable")
