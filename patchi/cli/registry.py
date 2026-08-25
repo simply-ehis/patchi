@@ -102,6 +102,8 @@ COMMANDS: list[Command] = [
                 help="Run state transition and data flow abuse campaigns"),
             Arg("--with-fuzz", dest="with_fuzz", action="store_true",
                 help="Generate fuzz inputs for discovered endpoints"),
+            Arg("--red-team", dest="red_team", action="store_true",
+                help="Run Red Team Engine: live attack simulation + auto-fix generation"),
             Arg("--quiet", dest="quiet", global_flag=True),
         ),
     ),
@@ -163,6 +165,21 @@ COMMANDS: list[Command] = [
                      args=(Arg("nickname"),)),
             Command("test", "Test a key connection", "patchi.cli.commands.key_cmd:run_test",
                      args=(Arg("nickname", nargs="?", help="Key nickname (omit for all)"),)),
+        ),
+    ),
+    Command(
+        "ignore",
+        "Manage Patchi's self-learned ignore list",
+        "patchi.cli.commands.ignore_cmd:run_list",  # default: show entries
+        subcommands=(
+            Command("list", "Show learned + user ignore entries",
+                    "patchi.cli.commands.ignore_cmd:run_list"),
+            Command("add", "Never scan this path (user override)",
+                    "patchi.cli.commands.ignore_cmd:run_add",
+                    args=(Arg("path"),)),
+            Command("remove", "Stop ignoring a path (scan it again)",
+                    "patchi.cli.commands.ignore_cmd:run_remove",
+                    args=(Arg("path"),)),
         ),
     ),
 

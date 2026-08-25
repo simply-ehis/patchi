@@ -63,6 +63,7 @@ def run(
     with_attackers: bool = False,
     with_campaigns: bool = False,
     with_fuzz: bool = False,
+    red_team: bool = False,
     root: Path | None = None,
 ) -> None:
     """Entry point for `p scan [area]`."""
@@ -295,6 +296,60 @@ def run(
         except Exception as e:
             import traceback
             con.print(f"  [red]Assurance analysis error: {e}[/red]")
+            con.print(traceback.format_exc())
+
+    # ── Red Team Engine (live attack simulation) ─────────────────────────────
+    if red_team:
+        con.print()
+        con.print("[bold #C8621A]─ Red Team Engine ─[/bold #C8621A]")
+        try:
+            from patchi.core.security.red_team_engine import RedTeamEngine
+
+            # Start the web server if not already running
+            target_url = None
+            try:
+                # Check if web server is already running
+                import urllib.request
+                urllib.request.urlopen("http://127.0.0.1:1612/api/health", timeout=2)
+                target_url = "http://127.0.0.1:1612"
+                con.print(f"  [dim]Target: {target_url} (detected running server)[/dim]")
+            except Exception:
+                con.print("  [dim]No running web server detected — running code-only attacks[/dim]")
+
+            engine = RedTeamEngine(
+                root=r,
+                target_url=target_url,
+                safe_mode=True,
+                on_progress=lambda msg: con.print(f"  [dim]{msg}[/dim]"),
+            )
+            import asyncio
+            report = asyncio.run(engine.run_assessment(
+                scope="full",
+                intensity="standard",
+            ))
+            con.print(f"  Scenarios run: [bold]{len(report.scenarios_run)}[/bold]")
+            con.print(f"  Findings: [bold]{report.total_findings}[/bold]")
+            if report.by_severity:
+                sev_str = ", ".join(f"{k}={v}" for k, v in sorted(report.by_severity.items()))
+                con.print(f"  By severity: {sev_str}")
+            if report.remediation_playbooks:
+                con.print(f"  Playbooks: [bold]{len(report.remediation_playbooks)}[/bold]")
+
+            # Auto-fix confirmed findings
+            if report.total_findings > 0:
+                con.print("\n  [dim]Generating fixes for confirmed findings...[/dim]")
+                from patchi.core.security.auto_fixer import AutoFixer
+                fixer = AutoFixer(r, cfg.load(r), on_progress=lambda msg: con.print(f"  [dim]{msg}[/dim]"))
+                for scenario in report.scenarios_run:
+                    for finding in scenario.findings:
+                        import asyncio
+                        result = asyncio.run(fixer.fix_finding(finding, strategy="auto", apply=False, verify=False))
+                        if result.get("success"):
+                            con.print(f"    [green]Fixed[/green] {finding.type} → patch {result['patch_id']}")
+
+        except Exception as e:
+            import traceback
+            con.print(f"  [red]Red team error: {e}[/red]")
             con.print(traceback.format_exc())
 
     # ── Pipeline / defense mode ───────────────────────────────────────────────

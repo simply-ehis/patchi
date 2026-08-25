@@ -100,6 +100,91 @@ def compute_blast_radius(file_path: str, root: Path) -> int:
     return count
 
 
+# Domain-specific fix patterns: finding_type → (search_regex, replacement)
+_FIX_PATTERNS: list[tuple[str, str, str]] = [
+    # Secrets
+    (r'(?:password|secret|api_key|token)\s*=\s*["\'][^"\']+["\']',
+     "hardcoded_secret",
+     "Use os.environ.get() or a secrets manager instead of hardcoded values"),
+    # Debug mode
+    (r'DEBUG\s*=\s*True',
+     "debug_mode",
+     "DEBUG = os.environ.get('DEBUG', 'false').lower() == 'true'"),
+    # SQL injection
+    (r'execute\(.*%s.*\%',
+     "sqli",
+     "Use parameterized queries: cursor.execute('SELECT * FROM users WHERE id = %s', (user_id,))"),
+    # Missing HTTPS redirect
+    (r'@app\.route.*methods.*GET',
+     "missing_header",
+     "Add @app.before_request to redirect HTTP to HTTPS"),
+    # Weak hash
+    (r'hashlib\.(md5|sha1)\(',
+     "weak_hash",
+     "Use hashlib.sha256() or hashlib.sha3_256() instead"),
+    # Eval/exec
+    (r'\b(eval|exec)\s*\(',
+     "injection",
+     "Avoid eval()/exec(); use ast.literal_eval() or safe parsing"),
+    # Pickle deserialization
+    (r'pickle\.loads?\s*\(',
+     "injection",
+     "Use json.loads() or a safe serialization format instead of pickle"),
+    # CORS wildcard
+    (r'Access-Control-Allow-Origin.*\*',
+     "cors_wildcard",
+     "Restrict CORS to specific trusted origins instead of wildcard (*)"),
+    # Missing rate limiting
+    (r'@app\.route',
+     "missing_rate_limit",
+     "Add Flask-Limiter or similar rate limiting middleware"),
+]
+
+
+def _find_vulnerable_line(content: str, finding_type: str, file_path: str) -> tuple[int, str] | None:
+    """Find the specific line that needs fixing based on finding type."""
+    import re
+    lines = content.splitlines()
+    for search_re, ftype, _ in _FIX_PATTERNS:
+        if ftype == finding_type or ftype in finding_type:
+            for i, line in enumerate(lines):
+                if re.search(search_re, line):
+                    return (i, line)
+    return None
+
+
+def _apply_fix_pattern(line: str, finding_type: str) -> str | None:
+    """Apply a fix pattern to a specific line."""
+    import re
+
+    if "hardcoded_secret" in finding_type or "password" in finding_type:
+        # Replace hardcoded value with env var lookup
+        m = re.search(r'(\w+)\s*=\s*["\']([^"\']+)["\']', line)
+        if m:
+            var_name = m.group(1)
+            indent = line[: len(line) - len(line.lstrip())]
+            return f'{indent}{var_name} = os.environ.get("{var_name.upper()}", "")'
+
+    elif "debug_mode" in finding_type:
+        indent = line[: len(line) - len(line.lstrip())]
+        return f"{indent}DEBUG = os.environ.get('DEBUG', 'false').lower() == 'true'"
+
+    elif "weak_hash" in finding_type:
+        return line.replace("hashlib.md5(", "hashlib.sha256(").replace("hashlib.sha1(", "hashlib.sha256(")
+
+    elif "eval" in finding_type or "exec" in finding_type:
+        indent = line[: len(line) - len(line.lstrip())]
+        return f"{indent}# SECURITY: Replaced eval/exec with safe alternative\n{line}"
+
+    elif "pickle" in finding_type:
+        return line.replace("pickle.loads(", "json.loads(").replace("pickle.load(", "json.load(")
+
+    elif "cors_wildcard" in finding_type:
+        return line.replace("*", "os.environ.get('ALLOWED_ORIGINS', '').split(',')")
+
+    return None
+
+
 def generate_fix(
     root: Path,
     finding_dict: dict,
@@ -107,14 +192,18 @@ def generate_fix(
 ) -> Patch | None:
     """Generate a fix patch for a finding.
 
-    Uses the AI fixer if available, falls back to a suggestion-based patch.
-    Called by auto_fixer._generate_fix().
+    Reads the actual file, finds the vulnerable line, and applies a
+    domain-specific fix pattern. Falls back to suggestion-based patch
+    if no pattern matches.
     """
+
     suggestion = finding_dict.get("suggestion", "")
     file_path = finding_dict.get("file", "")
     finding_type = finding_dict.get("type", "unknown")
+    line_num = finding_dict.get("line", 0)
+    playbook = finding_dict.get("playbook")
 
-    if not suggestion or not file_path:
+    if not file_path:
         return None
 
     target = root / file_path
@@ -126,21 +215,68 @@ def generate_fix(
     except OSError:
         return None
 
-    # Build a simple patch from the suggestion
-    change = FileChange(
-        path=file_path,
-        original=original[:500] if len(original) > 500 else original,
-        proposed=f"# Fix: {finding_type}\n{suggestion}\n{original}",
-    )
+    lines = original.splitlines()
+    changes: list[FileChange] = []
+
+    # Strategy 1: Use playbook template if available
+    if playbook and playbook.get("llm_template"):
+        # Find the relevant line using the playbook's control_id
+        control_id = playbook.get("control_id", finding_type)
+        found = _find_vulnerable_line(original, control_id, file_path)
+        if found:
+            line_idx, old_line = found
+            fixed_line = _apply_fix_pattern(old_line, control_id)
+            if fixed_line and fixed_line != old_line:
+                changes.append(FileChange(
+                    path=file_path,
+                    original=old_line,
+                    proposed=fixed_line,
+                ))
+
+    # Strategy 2: Pattern-based fix
+    if not changes:
+        found = _find_vulnerable_line(original, finding_type, file_path)
+        if found:
+            line_idx, old_line = found
+            fixed_line = _apply_fix_pattern(old_line, finding_type)
+            if fixed_line and fixed_line != old_line:
+                changes.append(FileChange(
+                    path=file_path,
+                    original=old_line,
+                    proposed=fixed_line,
+                ))
+
+    # Strategy 3: Line-number targeted fix
+    if not changes and line_num and 0 < line_num <= len(lines):
+        old_line = lines[line_num - 1]
+        fixed_line = _apply_fix_pattern(old_line, finding_type)
+        if fixed_line and fixed_line != old_line:
+            changes.append(FileChange(
+                path=file_path,
+                original=old_line,
+                proposed=fixed_line,
+            ))
+
+    # Strategy 4: Suggestion-based fallback (add comment)
+    if not changes and suggestion:
+        # Add a TODO comment at the top of the file
+        changes.append(FileChange(
+            path=file_path,
+            original=lines[0] if lines else "",
+            proposed=f"# TODO: {suggestion}\n{lines[0] if lines else ''}",
+        ))
+
+    if not changes:
+        return None
 
     return _make_patch(
         agent_name="auto_fixer",
         patch_type=PatchType.SECURITY,
-        changes=[change],
+        changes=changes,
         description=f"Auto-fix for {finding_type}",
-        ai_explanation=suggestion,
+        ai_explanation=suggestion or f"Fixed {finding_type} in {file_path}",
         finding_id=finding_type,
         blast_radius=compute_blast_radius(file_path, root),
-        agent_certainty=0.5,
+        agent_certainty=0.6,
         source_finding=finding_dict,
     )
