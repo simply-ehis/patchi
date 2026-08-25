@@ -11,8 +11,7 @@ Routes requests to the optimal model considering:
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass, field
-from typing import Any
+from dataclasses import dataclass
 
 from patchi.core.ai import cost_tracker
 
@@ -96,11 +95,13 @@ class TaskComplexity:
 class ModelRouter:
     """Routes AI requests to the optimal model based on cost and requirements."""
 
-    def __init__(self, config: dict | None = None):
+    def __init__(self, config: dict | None = None, root: Path | None = None):
         self.config = config or {}
+        self._root = root
         self._budget_limit = self.config.get("ai", {}).get("cost_limit", 0)
         self._prefer_local = self.config.get("ai", {}).get("prefer_local", False)
         self._default_model = self.config.get("ai", {}).get("default_model", "gpt-4o-mini")
+        self._profiler_cache: dict[str, dict] | None = None
 
     def select_model(
         self,
@@ -161,9 +162,49 @@ class ModelRouter:
         )
         return selected
 
+    def _load_profiler_stats(self) -> dict[str, dict]:
+        """Load and aggregate profiler data per model."""
+        if self._profiler_cache is not None:
+            return self._profiler_cache
+        if not self._root:
+            self._profiler_cache = {}
+            return self._profiler_cache
+        try:
+            from patchi.core.ai.agent_profiler import get_all_profiles
+            profiles = get_all_profiles(self._root)
+            if not profiles:
+                self._profiler_cache = {}
+                return self._profiler_cache
+            model_stats: dict[str, dict] = {}
+            for agent_name, profile in profiles.items():
+                if profile.run_count == 0 or not profile.most_used_model:
+                    continue
+                m = profile.most_used_model
+                if m not in model_stats:
+                    model_stats[m] = {"accuracy": [], "p95_ms": [], "cost": 0.0, "runs": 0}
+                if profile.run_count >= 3:
+                    model_stats[m]["accuracy"].append(profile.accuracy)
+                model_stats[m]["p95_ms"].append(profile.p95_wall_ms)
+                model_stats[m]["cost"] += profile.total_cost_usd
+                model_stats[m]["runs"] += profile.run_count
+            result = {}
+            for m, s in model_stats.items():
+                accs = s["accuracy"]
+                p95s = s["p95_ms"]
+                result[m] = {
+                    "accuracy": sum(accs) / len(accs) if accs else 0.5,
+                    "avg_p95_ms": sum(p95s) / len(p95s) if p95s else 0,
+                    "total_cost": s["cost"],
+                    "total_runs": s["runs"],
+                }
+            self._profiler_cache = result
+        except Exception as exc:
+            _log.debug("Profiler load failed: %s", exc)
+            self._profiler_cache = {}
+        return self._profiler_cache
+
     def _score_model(self, profile: ModelProfile, complexity: str) -> float:
-        """Score a model based on complexity requirements."""
-        # Weight factors by complexity
+        """Score a model based on complexity + historical profiler data."""
         weights = {
             TaskComplexity.SIMPLE: {"cost": 0.6, "quality": 0.2, "speed": 0.2},
             TaskComplexity.MODERATE: {"cost": 0.3, "quality": 0.5, "speed": 0.2},
@@ -171,21 +212,23 @@ class ModelRouter:
             TaskComplexity.CRITICAL: {"cost": 0.05, "quality": 0.9, "speed": 0.05},
         }
         w = weights.get(complexity, weights[TaskComplexity.MODERATE])
-
-        # Normalize cost (lower is better)
         avg_cost = (profile.cost_per_1k_input + profile.cost_per_1k_output) / 2
-        max_cost = 0.02  # Normalization ceiling
+        max_cost = 0.02
         cost_score = 1.0 - min(avg_cost / max_cost, 1.0)
-
-        # Local models get bonus if prefer_local
         if self._prefer_local and profile.provider == "local":
             cost_score = min(cost_score + 0.3, 1.0)
-
-        score = (
-            w["cost"] * cost_score
-            + w["quality"] * profile.quality_score
-            + w["speed"] * profile.speed_score
-        )
+        # Blend with profiler data
+        quality = profile.quality_score
+        speed = profile.speed_score
+        profiler = self._load_profiler_stats().get(profile.name)
+        if profiler and profiler["total_runs"] >= 3:
+            n = profiler["total_runs"]
+            weight = min(n / 20, 0.4)
+            quality = quality * (1 - weight) + profiler["accuracy"] * weight
+            if profiler["avg_p95_ms"] > 0:
+                hist_speed = max(0, 1.0 - (profiler["avg_p95_ms"] - 500) / 4500)
+                speed = speed * (1 - weight) + hist_speed * weight
+        score = w["cost"] * cost_score + w["quality"] * quality + w["speed"] * speed
         return score
 
     def _cheapest_available(self, require_tools: bool, require_vision: bool) -> str:

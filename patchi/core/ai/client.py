@@ -80,6 +80,7 @@ def call_ai(
     max_tokens: int = DEFAULT_MAX_TOKENS,
     temperature: float = DEFAULT_TEMPERATURE,
     timeout: float | None = None,
+    root: Path | None = None,
 ) -> str | None:
     """
     Send a system+user prompt to the configured AI.
@@ -112,7 +113,7 @@ def call_ai(
     # Use ModelRouter to select optimal model based on prompt complexity
     try:
         from patchi.core.ai.model_router import TaskComplexity, get_model_router
-        _router = get_model_router(config)
+        _router = get_model_router(config, root=root)
         # Estimate complexity from prompt length
         total_len = len(system_prompt) + len(user_prompt)
         if total_len < 500:
