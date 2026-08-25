@@ -33,7 +33,7 @@ _STATE_COLORS = {
     "undone": "dim",
 }
 
-def run_list(root: Path | None = None) -> None:
+def run_list(root: Path | None = None, json_output: bool = False) -> None:
     """p patch list"""
     try:
         r = root or require_project_root()
@@ -42,6 +42,12 @@ def run_list(root: Path | None = None) -> None:
         return
 
     patches_raw = mem.list_patches(r)
+    if json_output:
+        import json as _json
+
+        con.print(_json.dumps({"patches": patches_raw or []}, indent=2, default=str))
+        return
+
     if not patches_raw:
         con.print("[dim]No patches yet. Run [bold]p fix[/bold] to generate some.[/dim]")
         return
@@ -75,7 +81,7 @@ def run_list(root: Path | None = None) -> None:
     con.print("[dim]p patch show <id>  ·  p patch apply <id>  ·  p patch reject <id>[/dim]")
     con.print()
 
-def run_show(patch_id: str, root: Path | None = None) -> None:
+def run_show(patch_id: str, root: Path | None = None, json_output: bool = False) -> None:
     """p patch show <id>"""
     try:
         r = root or require_project_root()
@@ -85,7 +91,18 @@ def run_show(patch_id: str, root: Path | None = None) -> None:
 
     patch_dict = mem.get_patch(patch_id, r)
     if not patch_dict:
-        con.print(f"[red]Patch {patch_id!r} not found.[/red]")
+        if json_output:
+            import json as _json
+
+            con.print(_json.dumps({"error": f"Patch {patch_id!r} not found"}, indent=2))
+        else:
+            con.print(f"[red]Patch {patch_id!r} not found.[/red]")
+        return
+
+    if json_output:
+        import json as _json
+
+        con.print(_json.dumps(patch_dict, indent=2, default=str))
         return
 
     patch = Patch.from_dict(patch_dict)

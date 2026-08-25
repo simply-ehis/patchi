@@ -45,7 +45,7 @@ def _save(root: Path, entries: list[dict]) -> None:
     tmp.replace(path)
 
 
-def run_list(**_kw) -> None:
+def run_list(json_output: bool = False, **_kw) -> None:
     """Show every ignore entry with provenance."""
     root = require_project_root()
     entries = _load(root)
@@ -72,6 +72,12 @@ def run_list(**_kw) -> None:
                 })
     except Exception:  # noqa: BLE001 — listing must work even if learner fails
         pass
+
+    if json_output:
+        import json as _json
+
+        con.print(_json.dumps({"ignores": entries}, indent=2))
+        return
 
     if not entries:
         con.print(Text("No ignore entries yet. Patchi learns as you scan.", style="#4ADE80"))

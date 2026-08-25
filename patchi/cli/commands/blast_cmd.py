@@ -232,7 +232,7 @@ def _build_tree(
         child = parent_tree.add(dep)
         _build_tree(child, dep, graph, depth + 1, max_depth, visited)
 
-def _show_all_blast_radii(graph: "ImportGraph", root: Path) -> None:
+def _show_all_blast_radii(graph: "ImportGraph", root: Path, json_output: bool = False) -> None:
     """Show blast radius summary for all files."""
     radii = []
     for node in graph.nodes:
@@ -251,6 +251,17 @@ def _show_all_blast_radii(graph: "ImportGraph", root: Path) -> None:
 
     # Sort by total affected (highest first)
     radii.sort(key=lambda x: -x[2])
+
+    if json_output:
+        import json as _json
+
+        con.print(_json.dumps({
+            "blast_radii": [
+                {"file": node, "direct": d, "total_affected": t}
+                for node, d, t in radii
+            ]
+        }, indent=2))
+        return
 
     table = Table(show_header=True, header_style="bold #C8621A", box=None, pad_edge=False)
     table.add_column("File", style="bold #F2EDD6", width=40)

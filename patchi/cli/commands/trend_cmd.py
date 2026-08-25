@@ -33,7 +33,8 @@ from patchi.core.config import require_project_root
 
 _log = logging.getLogger("patchi.cli.trend_cmd")
 
-def run(metric: str | None = None, last_n: int = 20, root: Path | None = None) -> None:
+def run(metric: str | None = None, last_n: int = 20, root: Path | None = None,
+        json_output: bool = False) -> None:
     """Entry point for `p trend`."""
     try:
         r = root or require_project_root()
@@ -50,7 +51,18 @@ def run(metric: str | None = None, last_n: int = 20, root: Path | None = None) -
     trend_data = _build_trend_data(scans, brain)
 
     if not trend_data:
-        con.print("[dim]No scan history yet. Run `p scan` a few times to build trend data.[/dim]")
+        if json_output:
+            import json as _json
+
+            con.print(_json.dumps({"trend": [], "note": "no scan history yet"}))
+        else:
+            con.print("[dim]No scan history yet. Run `p scan` a few times to build trend data.[/dim]")
+        return
+
+    if json_output:
+        import json as _json
+
+        con.print(_json.dumps({"trend": trend_data[-last_n:]}, indent=2, default=str))
         return
 
     if metric == "security":

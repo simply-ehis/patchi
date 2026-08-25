@@ -76,6 +76,7 @@ def run_why(path: str, root: Path | None = None) -> None:
 def run_impact(
     files: list[str] | None = None,
     show_all: bool = False,
+    json_output: bool = False,
     root: Path | None = None,
 ) -> None:
     """p impact <file> [<file> ...] — change-impact / blast-radius report.
@@ -96,7 +97,7 @@ def run_impact(
         if not graph.nodes:
             con.print("[yellow]No import graph data. Run `p scan` first.[/yellow]")
             return
-        _show_all_blast_radii(graph, r)
+        _show_all_blast_radii(graph, r, json_output=json_output)
         return
 
     if not files:
@@ -107,6 +108,17 @@ def run_impact(
 
     engine = ReasoningEngine(r)
     analysis = engine.impact_analysis(files)
+
+    if json_output:
+        import json as _json
+
+        con.print(_json.dumps({
+            "files": list(files),
+            "summary": analysis.summary,
+            "affected_layers": list(analysis.affected_layers),
+            "impacted_layers": list(analysis.impacted_layers),
+        }, indent=2))
+        return
 
     con.print()
     con.print(f"[dim]{analysis.summary}[/dim]")
