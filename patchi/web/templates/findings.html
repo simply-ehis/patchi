@@ -178,6 +178,22 @@
       html += `<span style="color:var(--text-secondary)">Agent:</span><span>${step.agent}</span>`;
       html += '</div>';
 
+      // Remediation suggestion
+      const rem = currentChain.remediations ? currentChain.remediations[currentStep] : null;
+      if (rem) {
+        html += `<div style="margin-top:14px;padding:12px;background:#4ADE8010;border:1px solid #4ADE8030;border-radius:8px">`;
+        html += `<div style="font-size:12px;font-weight:600;color:#4ADE80;margin-bottom:6px">💡 Fix Suggestion</div>`;
+        html += `<div style="font-size:13px">${rem.action}</div>`;
+        if (rem.code_pattern) {
+          html += `<div style="margin-top:6px;font-family:var(--font-mono);font-size:12px;background:var(--bg-tertiary);padding:6px 8px;border-radius:4px;color:var(--text-secondary)">${rem.code_pattern}</div>`;
+        }
+        html += `<div style="margin-top:6px;font-size:11px;color:var(--text-secondary)">`;
+        if (rem.playbook_id) html += `Playbook: ${rem.playbook_id} `;
+        if (rem.auto_fixable) html += `<span style="color:#4ADE80">⚡ auto-fixable</span>`;
+        html += '</div>';
+        html += '</div>';
+      }
+
       // Arrow to next
       if (currentStep < total - 1) {
         html += `<div style="text-align:center;margin-top:16px;color:var(--text-secondary);font-size:20px">↓</div>`;

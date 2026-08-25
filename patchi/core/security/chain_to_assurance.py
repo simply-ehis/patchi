@@ -78,15 +78,26 @@ def feed_chains_to_graph(root: Path) -> int:
 
         # Each step is refuting evidence (the chain proves the path exists)
         for j, step in enumerate(steps):
+            # Attach remediation suggestion
+            step_type = step.get("type", "")
+            try:
+                from patchi.core.security.remediation import get_remediation
+                rem = get_remediation(step_type)
+                fix_hint = rem.action if rem else ""
+            except ImportError:
+                fix_hint = ""
+
             ev = Evidence(
                 source=f"chain_analyzer.step{j+1}",
-                detail=f"[{step.get('role', '?')}] {step.get('type', '?')} @ {step.get('file', '?')}:{step.get('line', '?')}",
+                detail=f"[{step.get('role', '?')}] {step.get('type', '?')} @ {step.get('file', '?')}:{step.get('line', '?')}"
+                       + (f" → FIX: {fix_hint}" if fix_hint else ""),
                 supports=False,  # refuting = vulnerability confirmed
                 timestamp=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
                 artifact={
                     "step": j + 1,
                     "role": step.get("role", ""),
                     "agent": step.get("agent", ""),
+                    "remediation": fix_hint,
                 },
             )
             graph.attach_evidence(claim_id, ev)

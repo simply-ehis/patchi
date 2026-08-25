@@ -43,10 +43,20 @@ async def findings(request: Request):
     sev_order = {"critical": 0, "high": 1, "medium": 2, "low": 3, "info": 4}
     all_findings.sort(key=lambda f: sev_order.get(f.get("severity", "info"), 5))
 
-    # Load chain/intent data
+    # Load chain/intent data with remediation suggestions
     ci = _load_chain_intent(root)
     chains = ci.get("chains", [])
     intent = ci.get("intent_report")
+
+    # Attach remediation to each chain step
+    try:
+        from patchi.core.security.remediation import get_remediation_for_step
+        for chain in chains:
+            chain["remediations"] = [
+                get_remediation_for_step(step) for step in chain.get("steps", [])
+            ]
+    except ImportError:
+        pass
 
     return templates.TemplateResponse(
         request,
