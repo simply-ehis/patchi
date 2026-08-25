@@ -228,7 +228,57 @@ class Brain:
         # bundles, and docs never enter the corpus, so no agent wastes a
         # pass on them and no findings can originate there. Supersedes the
         # old hardcoded 5-lockfile skip_files list.
-        corpus = FileCorpus(self.root, exclude_noise=True)
+        #
+        # IgnoreLearner adds self-learned rules on top: .gitignore patterns,
+        # directories with chronic false-positive history, and structurally
+        # tool-owned data dirs (e.g. YAML rule packs nothing imports).
+        learner = None
+        known_fps: list = []
+        try:
+            import json as _json
+
+            from patchi.core.security.ignore_learner import IgnoreLearner
+
+            fp_path = self.root / ".patchi/memory/known_false_positives.json"
+            if fp_path.is_file():
+                try:
+                    known_fps = _json.loads(
+                        fp_path.read_text(encoding="utf-8")
+                    )
+                except Exception:  # noqa: BLE001
+                    known_fps = []
+            scan_cfg = {}
+            try:
+                from patchi.core.config import load as _cfg_load
+
+                scan_cfg = _cfg_load(self.root)
+            except Exception:  # noqa: BLE001
+                scan_cfg = {}
+            if not isinstance(scan_cfg, dict):
+                scan_cfg = {}
+            learner = IgnoreLearner(self.root, scan_cfg)
+            learner.build(known_fps=known_fps or None)
+        except Exception as _le:  # noqa: BLE001 — learning is best-effort
+            logging.getLogger("patchi.brain").debug("ignore learner unavailable: %s", _le)
+            learner = None
+
+        corpus = FileCorpus(self.root, exclude_noise=True, ignore_learner=learner)
+
+        # Second pass: composition analysis needs the discovered file list.
+        # Tool-owned data dirs (YAML rule packs, changelog dirs, ...) found
+        # now are pruned immediately and remembered for future scans.
+        if learner is not None:
+            try:
+                learner.build(
+                    known_fps=known_fps or None,
+                    file_paths=list(corpus.entries.keys()),
+                )
+                corpus.prune_with(learner)
+                learner.promote_to_global()
+            except Exception as _pe:  # noqa: BLE001
+                logging.getLogger("patchi.brain").debug(
+                    "learner second pass failed: %s", _pe
+                )
 
         scanner = FileScanner(
             root=self.root,
@@ -368,7 +418,7 @@ class Brain:
                 )
                 violations = check_charter(
                     charter,
-                    {n: l.to_dict() for n, l in report.layers.items()},
+                    {name: lyr.to_dict() for name, lyr in report.layers.items()},
                     detected_frameworks=detected_fw,
                     routes=routes,
                     file_infos=file_infos,
@@ -449,6 +499,22 @@ class Brain:
             brain_data["doc_validation"] = brain_mem["doc_validation"]
 
         mem.save_brain(brain_data, self.root)
+
+        # ── Build assurance graph (auto-populated each scan) ──────────────────
+        try:
+            from patchi.core.assurance.builder import build_assurance_graph
+
+            assurance_graph = build_assurance_graph(
+                self.root,
+                brain_data=brain_data,
+                route_map=[r.to_dict() for r in report.routes] if report.routes else None,
+                import_graph_data=graph.to_dict() if graph else None,
+            )
+            assurance_graph.save(self.root)
+            report.assurance_graph = assurance_graph.to_dict() if hasattr(report, "assurance_graph") else assurance_graph.to_dict()
+        except Exception as e:
+            logger.debug("Assurance graph build skipped: %s", e)
+
         # Persist the layered brain (Pillar 1) as a separate memory file, plus the
         # file-content snapshot that powers incremental (no-op) rebuilds.
         try:

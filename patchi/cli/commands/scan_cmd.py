@@ -60,6 +60,9 @@ def run(
     pipeline: bool = False,
     daemon: bool = False,
     governor: bool = False,
+    with_attackers: bool = False,
+    with_campaigns: bool = False,
+    with_fuzz: bool = False,
     root: Path | None = None,
 ) -> None:
     """Entry point for `p scan [area]`."""
@@ -232,6 +235,67 @@ def run(
     con.print()
     _scan_elapsed = time.monotonic() - _scan_start
     _show_report_summary(report, agent_results, wall_time=_scan_elapsed, root=r)
+
+    # ── Assurance analysis (attackers, campaigns, fuzz) ─────────────────────
+    if with_attackers or with_campaigns or with_fuzz:
+        con.print()
+        con.print("[bold #C8621A]─ Assurance Analysis ─[/bold #C8621A]")
+        try:
+            from patchi.core.assurance.graph import AssuranceGraph
+
+            agraph = AssuranceGraph.load(r)
+            if not agraph.claims:
+                con.print("  [dim]No assurance graph found — run 'p scan' first to build one.[/dim]")
+            else:
+                con.print(f"  [dim]Loaded assurance graph: {len(agraph.claims)} claims[/dim]")
+
+                # ── Campaigns ────────────────────────────────────────────
+                if with_campaigns:
+                    from patchi.core.campaigns import CampaignOrchestrator
+
+                    orch = CampaignOrchestrator(agraph)
+                    campaign_result = orch.run_all()
+                    con.print(f"  Campaigns: [bold]{len(campaign_result.campaigns)}[/bold] run")
+                    for cr in campaign_result.campaigns:
+                        status = "[green]PASS[/green]" if cr.total_findings == 0 else f"[yellow]{cr.total_findings} findings[/yellow]"
+                        con.print(f"    {cr.name}: {status}")
+                        for step in cr.steps:
+                            if step.findings:
+                                for f in step.findings:
+                                    sev = f.get('severity', 'info')
+                                    con.print(f"      [{sev}] {f.get('detail', '')[:80]}")
+
+                # ── Attackers ────────────────────────────────────────────
+                if with_attackers:
+                    from patchi.core.attackers import AttackPlanner
+
+                    planner = AttackPlanner(agraph)
+                    attack_results = planner.run_all()
+                    confirmed = [r for r in attack_results if r.confirmed]
+                    con.print(f"  Attackers: [bold]{len(attack_results)}[/bold] hypotheses tested, "
+                              f"[bold]{len(confirmed)}[/bold] confirmed")
+                    for r in confirmed[:10]:
+                        con.print(f"    [red]●[/red] {r.hypothesis.attacker}: {r.evidence[:70]}")
+
+                # ── Fuzz ─────────────────────────────────────────────────
+                if with_fuzz:
+                    from patchi.core.fuzz import InputFuzzer
+
+                    fuzzer = InputFuzzer(seed=42)
+                    # Fuzz route parameters
+                    route_finds = 0
+                    for claim in agraph.claims.values():
+                        if 'endpoint' in claim.domain:
+                            route_finds += 1
+                    con.print(f"  Fuzz: [bold]{route_finds}[/bold] endpoints available for fuzzing")
+                    if route_finds > 0:
+                        sample = fuzzer.fuzz_string("test", count=5)
+                        con.print(f"    Generated {len(sample)} sample mutations")
+
+        except Exception as e:
+            import traceback
+            con.print(f"  [red]Assurance analysis error: {e}[/red]")
+            con.print(traceback.format_exc())
 
     # ── Pipeline / defense mode ───────────────────────────────────────────────
     if pipeline:
