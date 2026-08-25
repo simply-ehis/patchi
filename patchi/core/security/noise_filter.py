@@ -155,16 +155,16 @@ class NoiseFilter:
     def apply(self, findings: list) -> tuple[list, NoiseReport]:
         """Split findings into (kept, report).
 
+        Accepts Finding objects *or* plain dicts (as produced by
+        ``merge_results``); each entry needs a ``file`` key/attribute.
         In "cap" mode noisy findings stay in the kept list but their
         severity is downgraded to info and they gain a ``noise_category``
-        attribute. In "discard" mode they are removed entirely.
-        Works on any object with ``.file``, optional ``.severity``, and
-        tolerates missing attributes.
+        annotation. In "discard" mode they are removed entirely.
         """
         report = NoiseReport(total_in=len(findings))
         kept: list = []
         for f in findings:
-            path = getattr(f, "file", "") or ""
+            path = _get(f, "file", "") or ""
             cat = self.category_for(path) if (self.enabled and path) else None
             if cat is None:
                 kept.append(f)
@@ -175,15 +175,8 @@ class NoiseFilter:
                 report.discarded += 1
                 continue
             # cap mode: downgrade + annotate, never delete silently
-            try:
-                from patchi.core.agents.base import Severity
-                f.severity = Severity.INFO
-            except Exception:  # noqa: BLE001 — frozen/sealed objects: annotate only
-                pass
-            try:
-                f.noise_category = cat
-            except Exception:  # noqa: BLE001
-                pass
+            _set_severity_info(f)
+            _set(f, "noise_category", cat)
             kept.append(f)
             report.capped += 1
             report.kept += 1
@@ -195,3 +188,36 @@ class NoiseFilter:
                 ", ".join(f"{k}={v}" for k, v in sorted(report.by_category.items())),
             )
         return kept, report
+
+
+# ── Polymorphic accessors (Finding objects vs merged dicts) ─────────────
+
+
+def _get(f, key: str, default=None):
+    if isinstance(f, dict):
+        return f.get(key, default)
+    return getattr(f, key, default)
+
+
+def _set(f, key: str, value) -> None:
+    if isinstance(f, dict):
+        f[key] = value
+        return
+    try:
+        setattr(f, key, value)
+    except Exception:  # noqa: BLE001 — frozen/sealed objects: skip silently
+        pass
+
+
+def _set_severity_info(f) -> None:
+    """Downgrade severity to INFO, matching the container's own encoding."""
+    if isinstance(f, dict):
+        # merge_results dicts carry severity as a plain string
+        f["severity"] = "info"
+        return
+    try:
+        from patchi.core.agents.base import Severity
+
+        f.severity = Severity.INFO
+    except Exception:  # noqa: BLE001 — frozen/sealed objects: annotate only
+        pass

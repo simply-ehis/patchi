@@ -93,6 +93,50 @@ class TestClassify:
 # ── NoiseFilter.apply() ──────────────────────────────────────────────────
 
 
+class TestNoiseFilterDicts:
+    """merge_results() produces plain dicts — the filter must handle both."""
+
+    def _d(self, file: str, severity: str = "high") -> dict:
+        return {
+            "agent": "injection_agent",
+            "type": "sql_injection",
+            "severity": severity,
+            "file": file,
+            "line": 10,
+            "message": "possible sqli",
+        }
+
+    def test_cap_mode_downgrades_dict_severity(self):
+        nf = NoiseFilter(config={"noise_filter": {"mode": "cap"}})
+        dicts = [self._d("tests/test_login.py", "critical"), self._d("src/auth.py")]
+        kept, report = nf.apply(dicts)
+
+        assert len(kept) == 2
+        assert report.capped == 1
+        assert kept[0]["severity"] == "info"
+        assert kept[0]["noise_category"] == "tests"
+        assert kept[1]["severity"] == "high"          # source untouched
+        assert "noise_category" not in kept[1]
+
+    def test_discard_mode_removes_dict_noise(self):
+        nf = NoiseFilter(config={"noise_filter": {"mode": "discard"}})
+        kept, report = nf.apply([self._d("yarn.lock"), self._d("src/db.py")])
+        assert len(kept) == 1 and kept[0]["file"] == "src/db.py"
+        assert report.discarded == 1
+
+    def test_mixed_objects_and_dicts(self):
+        nf = NoiseFilter()
+        mixed = [make_finding(file="web/app.min.js"), self._d("docs/notes.md")]
+        kept, report = nf.apply(mixed)
+        assert len(kept) == 2
+        assert report.by_category == {"generated": 1, "docs": 1}
+        # object got enum, dict got string
+        from patchi.core.agents.base import Severity
+
+        assert mixed[0].severity == Severity.INFO
+        assert mixed[1]["severity"] == "info"
+
+
 class TestNoiseFilterApply:
     def test_cap_mode_downgrades_but_keeps(self):
         nf = NoiseFilter(config={"noise_filter": {"mode": "cap"}})

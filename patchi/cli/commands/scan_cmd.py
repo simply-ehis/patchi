@@ -231,7 +231,7 @@ def run(
     # ── Results summary ───────────────────────────────────────────────────────
     con.print()
     _scan_elapsed = time.monotonic() - _scan_start
-    _show_report_summary(report, agent_results, wall_time=_scan_elapsed)
+    _show_report_summary(report, agent_results, wall_time=_scan_elapsed, root=r)
 
     # ── Pipeline / defense mode ───────────────────────────────────────────────
     if pipeline:
@@ -680,7 +680,10 @@ _SEV_COLORS = {
 }
 
 def _show_report_summary(
-    report: BrainReport, agent_results: list | None = None, wall_time: float | None = None
+    report: BrainReport,
+    agent_results: list | None = None,
+    wall_time: float | None = None,
+    root: Path | None = None,
 ) -> None:
     """Print the post-scan results table."""
     if wall_time is not None:
@@ -756,18 +759,56 @@ def _show_report_summary(
 
     # Agent findings summary
     if agent_results:
-        _show_agent_findings_summary(agent_results)
+        _show_agent_findings_summary(agent_results, root=root)
 
-def _show_agent_findings_summary(agent_results: list) -> None:
-    """Show a condensed findings table from all scanner agents."""
+def _show_agent_findings_summary(agent_results: list, root: Path | None = None) -> None:
+    """Show a condensed findings table from all scanner agents.
+
+    Headline counts run through the NoiseFilter first: findings from
+    tests/lockfiles/generated/docs are severity-capped (or discarded) so
+    the summary reflects signal, not fixture noise.
+    """
     from patchi.core.agents.coordinator import merge_results
 
     merged = merge_results(agent_results)
-    total = merged["total_findings"]
+    findings = merged["findings"]
+
+    # Noise filter (non-fatal): cap or drop fixture/lockfile/bundle noise
+    noise_line = ""
+    if root is not None:
+        try:
+            from patchi.core.security.noise_filter import NoiseFilter
+
+            try:
+                config = cfg.load(root)
+            except Exception:  # noqa: BLE001 — config optional for filtering
+                config = None
+            nf = NoiseFilter(root, config if isinstance(config, dict) else None)
+            if nf.enabled and findings:
+                kept, nfr = nf.apply(findings)
+                if nfr.capped or nfr.discarded:
+                    cats = ", ".join(
+                        f"{k}={v}"
+                        for k, v in sorted(nfr.to_dict()["by_category"].items())
+                    )
+                    noise_line = (
+                        f"  [dim]Noise muted: {nfr.capped} capped, "
+                        f"{nfr.discarded} discarded"
+                        + (f" ({cats})" if cats else "")
+                        + "[/dim]"
+                    )
+            findings = kept
+        except Exception:  # noqa: BLE001 — display must never crash on filter bugs
+            pass
+
+    merged["findings"] = findings
+    total = len(findings)
 
     if total == 0:
         con.print()
         con.print(Text("✓ No issues found by scanner agents.", style="#4ADE80"))
+        if noise_line:
+            con.print(noise_line)
         return
 
     # Count by severity
@@ -792,6 +833,8 @@ def _show_agent_findings_summary(agent_results: list) -> None:
 
     sev_str = "  ".join(sev_parts)
     con.print(f"[bold #F2EDD6]Agent Findings:[/bold #F2EDD6]  {sev_str}")
+    if noise_line:
+        con.print(noise_line)
 
     # Show agent-by-agent summary
     con.print()
