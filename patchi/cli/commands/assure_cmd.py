@@ -34,7 +34,13 @@ _VERDICT_STYLE = {
 }
 
 
-def run(json_output: bool = False, reset: bool = False) -> int:
+def run(
+    json_output: bool = False,
+    reset: bool = False,
+    run_attackers: bool = False,
+    run_campaigns: bool = False,
+    run_all: bool = False,
+) -> int:
     """Entry point for `p assure`."""
     try:
         r = require_project_root()
@@ -99,6 +105,121 @@ def run(json_output: bool = False, reset: bool = False) -> int:
             if not already:
                 claim.record_repair(detail, outcome="awaiting-fix")
 
+    # ── Run attackers (if requested) ────────────────────────────────────────
+    if run_attackers or run_all:
+        con.print("\n[bold #C8621A]Attacker Analysis[/bold #C8621A]")
+        try:
+            from patchi.core.attackers import AttackPlanner
+
+            planner = AttackPlanner(graph)
+            plan = planner.plan()
+            con.print(f"  Hypotheses generated: [bold]{len(plan.hypotheses)}[/bold]")
+
+            attack_results = planner.run_all()
+            confirmed = [r for r in attack_results if r.confirmed]
+            con.print(f"  Tested: [bold]{len(attack_results)}[/bold], Confirmed: [bold]{len(confirmed)}[/bold]")
+
+            # Record confirmed attacks as evidence
+            for r in confirmed:
+                claim_id = f"attack-{r.hypothesis.attacker}-{r.hypothesis.target[:30]}"
+                graph.upsert_claim(
+                    claim_id,
+                    r.evidence[:100],
+                    domain="adversarial",
+                    severity_if_disproved=r.severity or r.hypothesis.risk,
+                )
+                graph.attach_evidence(
+                    claim_id,
+                    Evidence(
+                        source=f"attacker:{r.hypothesis.attacker}",
+                        detail=r.evidence,
+                        supports=True,  # confirmed = evidence supports the vulnerability
+                        artifact={
+                            "objective": r.hypothesis.objective,
+                            "risk": r.hypothesis.risk,
+                            "confidence": r.hypothesis.confidence,
+                        },
+                    ),
+                )
+
+            if confirmed:
+                con.print("  [red]Confirmed vulnerabilities:[/red]")
+                for r in confirmed[:10]:
+                    con.print(f"    [{r.severity}] {r.hypothesis.attacker}: {r.evidence[:60]}")
+            else:
+                con.print("  [green]No confirmed vulnerabilities from attackers.[/green]")
+
+        except Exception as e:
+            con.print(f"  [red]Attacker error: {e}[/red]")
+
+    # ── Run campaigns (if requested) ─────────────────────────────────────────
+    if run_campaigns or run_all:
+        con.print("\n[bold #C8621A]Security Campaigns[/bold #C8621A]")
+        try:
+            from patchi.core.campaigns import CampaignOrchestrator
+
+            orch = CampaignOrchestrator(graph)
+            campaign_result = orch.run_all()
+            con.print(f"  Campaigns: [bold]{len(campaign_result.campaigns)}[/bold] run")
+
+            for cr in campaign_result.campaigns:
+                status = "[green]PASS[/green]" if cr.total_findings == 0 else f"[yellow]{cr.total_findings} findings[/yellow]"
+                con.print(f"    {cr.name}: {status}")
+
+                # Record campaign findings as evidence
+                for step in cr.steps:
+                    for f in step.findings:
+                        sev = f.get('severity', 'info')
+                        detail = f.get('detail', '')
+                        claim_id = f"campaign-{cr.name}-{step.name}"
+                        graph.upsert_claim(
+                            claim_id,
+                            detail[:100],
+                            domain="campaign",
+                            severity_if_disproved=sev,
+                        )
+                        graph.attach_evidence(
+                            claim_id,
+                            Evidence(
+                                source=f"campaign:{cr.name}",
+                                detail=detail,
+                                supports=sev in ('info',),  # info = supports the claim
+                                artifact={"step": step.name, "severity": sev},
+                            ),
+                        )
+                        if sev in ('critical', 'high'):
+                            con.print(f"      [{sev}] {detail[:70]}")
+
+            if campaign_result.total_findings > 0:
+                con.print(f"  [yellow]Total findings: {campaign_result.total_findings}[/yellow]")
+            else:
+                con.print("  [green]All campaigns passed.[/green]")
+
+        except Exception as e:
+            con.print(f"  [red]Campaign error: {e}[/red]")
+
+    # ── Run fuzz (if requested) ──────────────────────────────────────────────
+    if run_all:
+        con.print("\n[bold #C8621A]Fuzz Analysis[/bold #C8621A]")
+        try:
+            from patchi.core.fuzz import InputFuzzer
+
+            fuzzer = InputFuzzer(seed=42)
+            endpoint_claims = [c for c in graph.claims.values() if 'endpoint' in c.domain]
+            con.print(f"  Endpoints discovered: [bold]{len(endpoint_claims)}[/bold]")
+
+            total_fuzz = 0
+            for claim in endpoint_claims[:20]:
+                path = claim.statement.split('Endpoint ')[-1].split(' requires')[0] if 'Endpoint' in claim.statement else claim.id
+                inputs = fuzzer.fuzz_string(path, count=5)
+                total_fuzz += len(inputs)
+
+            con.print(f"  Fuzz inputs generated: [bold]{total_fuzz}[/bold]")
+
+        except Exception as e:
+            con.print(f"  [red]Fuzz error: {e}[/red]")
+
+    # Save all new evidence
     graph.save(r)
 
     # ── Report ───────────────────────────────────────────────────────────────
