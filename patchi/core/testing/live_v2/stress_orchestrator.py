@@ -9,7 +9,7 @@ Supports:
 - Custom scenarios
 """
 
-from __future__ import __future__
+from __future__ import annotations
 
 import asyncio
 import logging

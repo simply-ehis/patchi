@@ -395,3 +395,78 @@ def compute_confidence(
         score -= 5
 
     return min(100, max(0, score))
+
+
+# ── PatchApplier (for auto_fixer integration) ─────────────────────────────────
+
+def list_patches(root: Path) -> list[dict]:
+    """List all patches in .patchi/patches/."""
+    patches_dir = root / ".patchi" / "patches"
+    if not patches_dir.is_dir():
+        return []
+    results = []
+    for p in patches_dir.glob("*.json"):
+        try:
+            data = json.loads(p.read_text(encoding="utf-8"))
+            results.append(data)
+        except Exception:
+            continue
+    return results
+
+
+def save_patch(root: Path, patch: Patch) -> Path:
+    """Save a patch to .patchi/patches/."""
+    patches_dir = root / ".patchi" / "patches"
+    patches_dir.mkdir(parents=True, exist_ok=True)
+    path = patches_dir / f"{patch.id}.json"
+    path.write_text(json.dumps(patch.to_dict(), indent=2), encoding="utf-8")
+    return path
+
+
+def save_patch_state(root: Path, patch_id: str, state: PatchState) -> None:
+    """Update the state of a saved patch."""
+    path = root / ".patchi" / "patches" / f"{patch_id}.json"
+    if path.is_file():
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+            data["state"] = state.value
+            path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+        except Exception:
+            pass
+
+
+class PatchApplier:
+    """Apply patches to the codebase."""
+
+    def __init__(self, root: Path):
+        self.root = root
+
+    def apply(self, patch: Patch) -> dict:
+        """Apply all changes in a patch. Returns a result dict."""
+        applied = []
+        errors = []
+        for change in patch.changes:
+            try:
+                target = self.root / change.path
+                if not target.parent.is_dir():
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                if change.original and target.is_file():
+                    content = target.read_text(encoding="utf-8", errors="ignore")
+                    if change.original in content:
+                        content = content.replace(change.original, change.proposed, 1)
+                        target.write_text(content, encoding="utf-8")
+                        applied.append(change.path)
+                    else:
+                        errors.append(f"Original text not found in {change.path}")
+                else:
+                    target.write_text(change.proposed, encoding="utf-8")
+                    applied.append(change.path)
+            except Exception as e:
+                errors.append(f"{change.path}: {e}")
+
+        # Save patch record
+        save_patch(self.root, patch)
+        if applied:
+            save_patch_state(self.root, patch.id, PatchState.APPLIED)
+
+        return {"applied": applied, "errors": errors, "patch_id": patch.id}

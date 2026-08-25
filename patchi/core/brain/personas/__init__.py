@@ -544,7 +544,3 @@ Your voice: Urgent but methodical, hypothesis-driven, learning-oriented.
             "get_brain",
             "get_layers",
         ]
-
-
-# Import all to register
-from patchi.core.brain.personas import architect, security_officer, test_engineer, performance_analyst, devops_engineer, code_reviewer, product_owner, incident_responder

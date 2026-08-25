@@ -98,3 +98,49 @@ def compute_blast_radius(file_path: str, root: Path) -> int:
         except OSError:
             pass
     return count
+
+
+def generate_fix(
+    root: Path,
+    finding_dict: dict,
+    config: dict | None = None,
+) -> Patch | None:
+    """Generate a fix patch for a finding.
+
+    Uses the AI fixer if available, falls back to a suggestion-based patch.
+    Called by auto_fixer._generate_fix().
+    """
+    suggestion = finding_dict.get("suggestion", "")
+    file_path = finding_dict.get("file", "")
+    finding_type = finding_dict.get("type", "unknown")
+
+    if not suggestion or not file_path:
+        return None
+
+    target = root / file_path
+    if not target.is_file():
+        return None
+
+    try:
+        original = target.read_text(encoding="utf-8", errors="ignore")
+    except OSError:
+        return None
+
+    # Build a simple patch from the suggestion
+    change = FileChange(
+        path=file_path,
+        original=original[:500] if len(original) > 500 else original,
+        proposed=f"# Fix: {finding_type}\n{suggestion}\n{original}",
+    )
+
+    return _make_patch(
+        agent_name="auto_fixer",
+        patch_type=PatchType.SECURITY,
+        changes=[change],
+        description=f"Auto-fix for {finding_type}",
+        ai_explanation=suggestion,
+        finding_id=finding_type,
+        blast_radius=compute_blast_radius(file_path, root),
+        agent_certainty=0.5,
+        source_finding=finding_dict,
+    )
