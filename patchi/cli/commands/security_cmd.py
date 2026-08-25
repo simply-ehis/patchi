@@ -95,6 +95,27 @@ def run(
         con.print(f"[red]{e}[/red]")
         return
 
+    # ── Set tenant context so profiler records the correct project root ────
+    from patchi.core.tenant import get_tenant_manager, tenant_context
+    try:
+        mgr = get_tenant_manager()
+        mgr.register_project(r)
+        mgr.switch_project(r)
+    except Exception:
+        pass  # non-critical
+
+    with tenant_context(r):
+        _run_security_inner(r, scan_type, area, policy_file)
+
+
+def _run_security_inner(
+    r: Path,
+    scan_type: str | None = None,
+    area: str | None = None,
+    policy_file: str | None = None,
+) -> None:
+    """Inner security logic — runs inside tenant_context."""
+
     # Import agents to trigger registration
     import patchi.core.security.security_agents  # noqa: F401
     from patchi.core import config as cfg

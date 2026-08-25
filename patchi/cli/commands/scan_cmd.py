@@ -76,6 +76,50 @@ def run(
         con.print(f"[red]{e}[/red]")
         return
 
+    # ── Set tenant context so profiler records the correct project root ────
+    from patchi.core.tenant import get_tenant_manager, tenant_context
+    try:
+        mgr = get_tenant_manager()
+        mgr.register_project(r)
+        mgr.switch_project(r)
+    except Exception:
+        pass  # non-critical
+
+    with tenant_context(r):
+        _run_scan_inner(r, area, dry_run, force, quiet, no_logo, deep,
+                        file_path, contract, all_flows, offline, json_output,
+                        side, pipeline, daemon, governor, with_attackers,
+                        with_campaigns, with_fuzz, red_team, dast,
+                        changed, changed_commits)
+
+
+def _run_scan_inner(
+    r: Path,
+    area: str | None = None,
+    dry_run: bool = False,
+    force: bool = False,
+    quiet: bool = False,
+    no_logo: bool = False,
+    deep: bool = False,
+    file_path: str | None = None,
+    contract: bool = False,
+    all_flows: bool = False,
+    offline: bool = False,
+    json_output: bool = False,
+    side: bool = True,
+    pipeline: bool = False,
+    daemon: bool = False,
+    governor: bool = False,
+    with_attackers: bool = False,
+    with_campaigns: bool = False,
+    with_fuzz: bool = False,
+    red_team: bool = False,
+    dast: bool = False,
+    changed: bool = False,
+    changed_commits: int = 1,
+) -> None:
+    """Inner scan logic — runs inside tenant_context."""
+
     # ── Contract review mode ──────────────────────────────────────────────────
     if contract:
         _run_contract_review(r, all_flows=all_flows)
