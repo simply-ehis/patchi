@@ -18,7 +18,18 @@ from pathlib import Path
 from patchi.core.security.confidence_gate import ConfidenceGate
 from patchi.core.security.gated_finding import GatedReport
 from patchi.core.security.layer2_orchestrator import Layer2Orchestrator
-from patchi.core.security.orchestrator import SecurityReport
+from patchi.core.security.orchestrator import CorrelatedFinding, SecurityReport
+
+
+def _as_correlated(finding) -> CorrelatedFinding:
+    """Wrap a raw Finding as a single-agent CorrelatedFinding."""
+    if isinstance(finding, CorrelatedFinding):
+        return finding
+    return CorrelatedFinding(
+        finding=finding,
+        confirmed_by=[getattr(finding, "agent", "") or "unknown"],
+        composite_score=0.0,
+    )
 
 
 class DetectionPipeline:
@@ -31,6 +42,7 @@ class DetectionPipeline:
         self.layer2 = Layer2Orchestrator(root, config)
         self._sigma_set = None
         self._domain_loader = None
+        self._noise_filter = None
         self._component_types = component_types
 
     def _get_sigma_set(self):
@@ -69,8 +81,26 @@ class DetectionPipeline:
                 stats={"total": 0, "defend": 0, "ai_analyze": 0, "human_review": 0, "discarded": 0}
             )
 
-        # Stage 1: Gate all findings
-        gated_list = [self.gate.gate(cf) for cf in report.findings]
+        # Stage 0: Noise filter — findings from tests/lockfiles/generated/docs
+        # are severity-capped (or discarded) before scoring. This kills the
+        # bulk of false-positive volume at the cheapest possible point.
+        noise_stats = None
+        try:
+            from patchi.core.security.noise_filter import NoiseFilter
+            if self._noise_filter is None:
+                self._noise_filter = NoiseFilter(self.root, self.config)
+            if self._noise_filter.enabled:
+                kept, nf_report = self._noise_filter.apply(report.findings)
+                noise_stats = nf_report.to_dict()
+                gated_list = [self.gate.gate(_as_correlated(f)) for f in kept]
+            else:
+                gated_list = [self.gate.gate(cf) for cf in report.findings]
+        except Exception as e:
+            import logging
+            logging.getLogger("patchi.detection").warning(
+                "Noise filter failed (non-fatal, scanning all): %s", e
+            )
+            gated_list = [self.gate.gate(cf) for cf in report.findings]
 
         # Stage 1a: Domain taxonomy matching — enrich findings with ASVS/domain context
         try:
@@ -105,6 +135,11 @@ class DetectionPipeline:
                 matches = sigma_set.match(event)
                 for match in matches:
                     for gf in gated_list:
+                        # Noise-capped findings are never Sigma-promoted:
+                        # test fixtures etc. legitimately contain attack
+                        # patterns and must not be re-escalated to defend.
+                        if getattr(gf.finding, "noise_category", None):
+                            continue
                         if match.technique_id and str(match.technique_id) != "unknown":
                             tid = match.technique_id.value if hasattr(match.technique_id, 'value') else str(match.technique_id)
                             if tid in gf.finding.message or \
@@ -125,22 +160,59 @@ class DetectionPipeline:
             ai_results = self.layer2.analyze(medium)
             for gf, ai_res in zip(medium, ai_results):
                 if ai_res.confirmed:
-                    gf.confidence_tier = "high"
+                    # Graded calibration: blend the model's confidence
+                    # adjustment into the heuristic score, not just a binary
+                    # yes/no. adjustment is roughly [-1, 1] -> map to [0, 1].
+                    if ai_res.confidence_adjustment:
+                        ai_conf = max(0.0, min(
+                            1.0, 0.5 + float(ai_res.confidence_adjustment) / 2
+                        ))
+                        recalc = self.gate.gate(
+                            _as_correlated(gf.finding), ai_confidence=ai_conf
+                        )
+                        gf.confidence_score = recalc.confidence_score
+                        if recalc.confidence_score >= 0.7:
+                            gf.confidence_tier = "high"
                     gf.routing = "defend"
-                    gf.routing_reason = f"AI confirmed: {ai_res.summary}"
+                    gf.routing_reason = (
+                        f"AI confirmed ({gf.confidence_score:.2f}): {ai_res.summary}"
+                    )
                     high.append(gf)
                 else:
                     gf.routing = "discard"
                     gf.routing_reason = f"AI dismissed: {ai_res.summary}"
                     discarded.append(gf)
 
+        # Stage 4: Noise learning loop — persist every rejected finding as a
+        # known false positive so future scans pre-penalize (or, with
+        # fp_auto_discard, drop it outright). This is what stops the same
+        # noise from resurfacing thousands of times.
+        try:
+            learned = self.gate.learn_from_dismissed(
+                GatedReport(findings=discarded, stats={})
+            )
+            if learned:
+                import logging
+                logging.getLogger("patchi.detection").info(
+                    "Learned %d new false positive(s) from rejected findings", learned
+                )
+        except Exception as e:
+            import logging
+            logging.getLogger("patchi.detection").warning(
+                "FP learning loop failed (non-fatal): %s", e
+            )
+
+        stats = {
+            "total": len(gated_list),
+            "defend": len(high),
+            "ai_analyze": len([g for g in medium if g.routing == "ai_analyze"]),
+            "human_review": len(low),
+            "discarded": len(discarded),
+        }
+        if noise_stats is not None:
+            stats["noise"] = noise_stats
+
         return GatedReport(
             findings=high + [g for g in medium if g.routing == "ai_analyze"] + low + discarded,
-            stats={
-                "total": len(gated_list),
-                "defend": len(high),
-                "ai_analyze": len([g for g in medium if g.routing == "ai_analyze"]),
-                "human_review": len(low),
-                "discarded": len(discarded),
-            },
+            stats=stats,
         )
