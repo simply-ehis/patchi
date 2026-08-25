@@ -7,6 +7,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, JSONResponse
+from patchi.core.tenant import tenant_context
 
 router = APIRouter(prefix="/api")
 
@@ -15,6 +16,8 @@ router = APIRouter(prefix="/api")
 async def trigger_scan(request: Request, scan_type: str = "all") -> JSONResponse:
     """Trigger a security scan. Runs in background, sends progress via WebSocket."""
     root = request.app.state.root
+    tenant_ctx = tenant_context(root)
+    tenant_ctx.__enter__()
     import patchi.core.security.security_agents  # noqa: F401
     from patchi.core import config as cfg
     from patchi.core import memory as mem

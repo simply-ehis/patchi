@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
+from patchi.core.tenant import tenant_context
 
 router = APIRouter(prefix="/api/fix")
 
@@ -11,6 +12,8 @@ router = APIRouter(prefix="/api/fix")
 @router.post("/apply/{patch_id}")
 async def apply_patch(patch_id: str, request: Request) -> JSONResponse:
     root = request.app.state.root
+    tenant_ctx = tenant_context(root)
+    tenant_ctx.__enter__()
     from patchi.core import memory as mem
 
     patches = mem.read("patches", root)
@@ -34,6 +37,8 @@ async def apply_patch(patch_id: str, request: Request) -> JSONResponse:
 @router.post("/reject/{patch_id}")
 async def reject_patch(patch_id: str, request: Request) -> JSONResponse:
     root = request.app.state.root
+    tenant_ctx = tenant_context(root)
+    tenant_ctx.__enter__()
     from patchi.core import memory as mem
 
     try:

@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from fastapi import APIRouter, Request
+from patchi.core.tenant import tenant_context
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
@@ -15,6 +16,8 @@ templates = Jinja2Templates(directory=str(Path(__file__).parent.parent / "templa
 @router.get("/assurance", response_class=HTMLResponse)
 async def assurance(request: Request):
     root = request.app.state.root
+    tenant_ctx = tenant_context(root)
+    tenant_ctx.__enter__()
 
     from patchi.core.assurance.graph import AssuranceGraph
 
