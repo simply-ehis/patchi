@@ -1,0 +1,176 @@
+<!-- Assurance page — graph, campaigns, attackers, fuzz -->
+<div class="page-assurance">
+  <style>
+    .assurance-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .assurance-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+    .assurance-card h3 { font-size: 14px; color: var(--text-secondary); margin: 0 0 8px 0; text-transform: uppercase; letter-spacing: 0.5px; }
+    .assurance-stat { font-size: 32px; font-weight: 700; color: var(--text-primary); }
+    .assurance-stat.green { color: #4ADE80; }
+    .assurance-stat.red { color: #FF4D6D; }
+    .assurance-stat.yellow { color: #FACC15; }
+    .assurance-stat.blue { color: #60A5FA; }
+    .verdict-badge { display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; }
+    .verdict-proved { background: rgba(74,222,128,0.15); color: #4ADE80; }
+    .verdict-disproved { background: rgba(255,77,109,0.15); color: #FF4D6D; }
+    .verdict-not_proved { background: rgba(250,204,21,0.15); color: #FACC15; }
+    .verdict-unproven { background: rgba(184,168,152,0.15); color: #B8A898; }
+    .severity-critical { color: #FF4D6D; }
+    .severity-high { color: #FF6B6B; }
+    .severity-medium { color: #FACC15; }
+    .severity-low { color: #B8A898; }
+    .coverage-bar { height: 8px; background: var(--bg-secondary); border-radius: 4px; overflow: hidden; margin-top: 4px; }
+    .coverage-fill { height: 100%; border-radius: 4px; transition: width 0.3s; }
+    .claims-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .claims-table th { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--border); color: var(--text-secondary); font-size: 11px; text-transform: uppercase; }
+    .claims-table td { padding: 8px 12px; border-bottom: 1px solid var(--border); }
+    .claims-table tr:hover { background: var(--bg-secondary); }
+    .campaign-step { padding: 4px 0; font-size: 12px; color: var(--text-secondary); }
+    .campaign-step .passed { color: #4ADE80; }
+    .campaign-step .failed { color: #FF4D6D; }
+    .attacker-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); }
+    .attacker-row:last-child { border-bottom: none; }
+    .section-title { font-size: 16px; font-weight: 600; color: var(--text-primary); margin: 24px 0 12px 0; display: flex; align-items: center; gap: 8px; }
+    .section-title .icon { font-size: 18px; }
+    .tab-bar { display: flex; gap: 4px; margin-bottom: 16px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+    .tab-btn { padding: 6px 12px; border-radius: 6px; font-size: 13px; cursor: pointer; background: none; border: none; color: var(--text-secondary); }
+    .tab-btn.active { background: var(--bg-secondary); color: var(--text-primary); font-weight: 600; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+  </style>
+
+  <!-- Summary Cards -->
+  <div class="assurance-grid">
+    <div class="assurance-card">
+      <h3>Total Claims</h3>
+      <div class="assurance-stat">{{ total_claims }}</div>
+    </div>
+    <div class="assurance-card">
+      <h3>Proved</h3>
+      <div class="assurance-stat green">{{ coverage.by_verdict.get('proved', 0) }}</div>
+    </div>
+    <div class="assurance-card">
+      <h3>Violated</h3>
+      <div class="assurance-stat red">{{ coverage.by_verdict.get('disproved', 0) }}</div>
+    </div>
+    <div class="assurance-card">
+      <h3>Unproven</h3>
+      <div class="assurance-stat yellow">{{ coverage.by_verdict.get('unproven', 0) + coverage.by_verdict.get('not_proved', 0) }}</div>
+    </div>
+    <div class="assurance-card">
+      <h3>Attackers</h3>
+      <div class="assurance-stat blue">{{ attacker_count }}</div>
+    </div>
+    <div class="assurance-card">
+      <h3>Campaigns</h3>
+      <div class="assurance-stat blue">{{ campaign_count }}</div>
+    </div>
+    <div class="assurance-card">
+      <h3>Fuzz Endpoints</h3>
+      <div class="assurance-stat blue">{{ fuzz_endpoints }}</div>
+    </div>
+  </div>
+
+  <!-- Status Statement -->
+  <div class="assurance-card" style="margin-bottom: 24px;">
+    <div style="font-size: 14px; color: var(--text-primary);">{{ coverage.statement }}</div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="showTab('claims')">Claims ({{ total_claims }})</button>
+    <button class="tab-btn" onclick="showTab('campaigns')">Campaigns ({{ campaign_count }})</button>
+    <button class="tab-btn" onclick="showTab('attackers')">Attackers ({{ attacker_count }})</button>
+    <button class="tab-btn" onclick="showTab('domains')">Domains</button>
+  </div>
+
+  <!-- Claims Tab -->
+  <div id="tab-claims" class="tab-content active">
+    <table class="claims-table">
+      <thead>
+        <tr>
+          <th>Verdict</th>
+          <th>Property</th>
+          <th>Domain</th>
+          <th>Evidence</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for claim in claims %}
+        <tr>
+          <td><span class="verdict-badge verdict-{{ claim.verdict }}">{{ claim.verdict|upper }}</span></td>
+          <td>{{ claim.statement[:80] }}{% if claim.statement|length > 80 %}...{% endif %}</td>
+          <td style="color: var(--text-secondary);">{{ claim.domain }}</td>
+          <td>{{ claim.evidence_count }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Campaigns Tab -->
+  <div id="tab-campaigns" class="tab-content">
+    {% for campaign in campaign_results %}
+    <div class="assurance-card" style="margin-bottom: 12px;">
+      <h3>{{ campaign.name }} — {{ campaign.total_findings }} findings</h3>
+      {% for step in campaign.steps %}
+      <div class="campaign-step">
+        <span class="{{ 'passed' if step.status == 'passed' else 'failed' }}">{{ step.status|upper }}</span>
+        {{ step.name }} ({{ step.findings_count }} findings)
+      </div>
+      {% endfor %}
+    </div>
+    {% endfor %}
+    {% if not campaign_results %}
+    <div class="assurance-card">
+      <div style="color: var(--text-secondary);">No campaigns run yet. Use <code>p assure --run-campaigns</code> to run them.</div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Attackers Tab -->
+  <div id="tab-attackers" class="tab-content">
+    {% if attacker_results %}
+    {% for result in attacker_results %}
+    <div class="assurance-card" style="margin-bottom: 12px;">
+      <div class="attacker-row">
+        <div>
+          <strong class="severity-{{ result.hypothesis.risk }}">{{ result.hypothesis.attacker }}</strong>
+          <span style="color: var(--text-secondary); margin-left: 8px;">{{ result.hypothesis.objective }}</span>
+        </div>
+        <span class="verdict-badge verdict-disproved">{{ result.severity|upper }}</span>
+      </div>
+      <div style="font-size: 12px; color: var(--text-secondary); margin-top: 4px;">{{ result.evidence[:120] }}</div>
+    </div>
+    {% endfor %}
+    {% else %}
+    <div class="assurance-card">
+      <div style="color: var(--text-secondary);">No confirmed attacker findings. Use <code>p assure --run-attackers</code> to run them.</div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Domains Tab -->
+  <div id="tab-domains" class="tab-content">
+    {% for domain, counts in coverage.by_domain.items() %}
+    <div class="assurance-card" style="margin-bottom: 12px;">
+      <h3>{{ domain }}</h3>
+      <div style="display: flex; justify-content: space-between; font-size: 13px; margin-top: 4px;">
+        <span>{{ counts.proved }} / {{ counts.total }} proved</span>
+        <span>{{ (counts.proved / counts.total * 100)|round(0)|int if counts.total > 0 else 0 }}%</span>
+      </div>
+      <div class="coverage-bar">
+        <div class="coverage-fill" style="width: {{ (counts.proved / counts.total * 100)|round(0)|int if counts.total > 0 else 0 }}%; background: {{ '#4ADE80' if counts.proved / counts.total >= 0.8 else '#FACC15' if counts.proved / counts.total >= 0.5 else '#FF4D6D' }};"></div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <script>
+    function showTab(name) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+      document.getElementById('tab-' + name).classList.add('active');
+      event.target.classList.add('active');
+    }
+  </script>
+</div>

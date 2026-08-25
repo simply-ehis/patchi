@@ -113,12 +113,20 @@ def create_app(root: Path) -> FastAPI:
     from patchi.web.routes.brain import router as brain_router
     from patchi.web.routes.chat import router as chat_router
     from patchi.web.routes.dashboard import router as dashboard_router
+    try:
+        from patchi.web.routes.dashboard_v2 import router as dashboard_v2_router
+    except Exception as e:  # v2 dashboard is additive — never break core UI
+        import logging as _logging
+
+        _logging.getLogger("patchi.web").warning("Dashboard v2 not available: %s", e)
+        dashboard_v2_router = None
     from patchi.web.routes.findings import router as findings_router
     from patchi.web.routes.guard import router as guard_router
     from patchi.web.routes.history import router as history_router
     from patchi.web.routes.review import router as review_router
     from patchi.web.routes.settings import router as settings_router
     from patchi.web.routes.tokens import router as tokens_router
+    from patchi.web.routes.assurance import router as assurance_router
 
     app.include_router(legacy_router)
     app.include_router(dashboard_router)
@@ -134,9 +142,12 @@ def create_app(root: Path) -> FastAPI:
     app.include_router(charts_router)
     app.include_router(fix_router)
     app.include_router(hosted_router)
+    app.include_router(assurance_router)
     app.include_router(chat_api_router)
     app.include_router(guard_api_router)
     app.include_router(tokens_router)
+    if dashboard_v2_router is not None:
+        app.include_router(dashboard_v2_router)
 
     # WebSocket endpoint
     @app.websocket("/ws")
