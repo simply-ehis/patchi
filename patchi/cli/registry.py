@@ -891,6 +891,15 @@ COMMANDS: list[Command] = [
         ),
     ),
     Command(
+        "ask",
+        "Ask the reasoning engine about your codebase",
+        "patchi.cli.commands.ask_cmd:run",
+        args=(
+            Arg("question", nargs="+", help="Your question in natural language"),
+            Arg("--json", dest="json_output", action="store_true", help="Output as JSON"),
+        ),
+    ),
+    Command(
         "chains",
         "Show exploit chains and intent gaps from last scan",
         "patchi.cli.commands.chains_cmd:run",
