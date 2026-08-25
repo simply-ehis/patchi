@@ -14,9 +14,9 @@ Shows:
 """
 
 from __future__ import annotations
-from patchi.cli.console import con
 
 import hashlib
+import logging
 import time
 from pathlib import Path
 from typing import Any
@@ -34,6 +34,7 @@ from rich.progress import (
 from rich.table import Table
 from rich.text import Text
 
+from patchi.cli.console import con
 from patchi.core import config as cfg
 from patchi.core import memory as mem
 from patchi.core.agents.base import AgentGroup, list_agents
@@ -41,7 +42,6 @@ from patchi.core.brain.brain import Brain, BrainReport, ScanProgress
 from patchi.core.brain.freshness import check_freshness
 from patchi.core.config import require_project_root
 
-import logging
 _log = logging.getLogger("patchi.cli.scan_cmd")
 
 def run(
@@ -262,6 +262,16 @@ def run(
                 f"human_review={len(gated.human_review)}, "
                 f"discarded={len(gated.discarded)})"
             )
+            noise_stats = gated.stats.get("noise")
+            if noise_stats:
+                cats = ", ".join(
+                    f"{k}={v}" for k, v in sorted(noise_stats.get("by_category", {}).items())
+                )
+                con.print(
+                    f"  Noise muted: [bold]{noise_stats.get('capped', 0)}[/bold] capped, "
+                    f"[bold]{noise_stats.get('discarded', 0)}[/bold] discarded"
+                    + (f" ({cats})" if cats else "")
+                )
             if gated.defend:
                 defense = DefenseLayer(r, cfg.load(r))
                 results = defense.defend_all(gated.defend)

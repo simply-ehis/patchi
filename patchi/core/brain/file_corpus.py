@@ -25,7 +25,6 @@ import hashlib
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Iterator
 
 from patchi.core.brain.languages import DEFAULT_IGNORE_DIRS, Lang, detect_language
 
@@ -75,11 +74,17 @@ class FileCorpus:
         skip_dirs: frozenset[str] = _SKIP_DIRS,
         skip_files: frozenset[str] = _SKIP_FILES,
         max_size: int = _MAX_FILE_SIZE,
+        exclude_noise: bool = False,
+        exclude_tests: bool = False,
     ):
         self.root = root.resolve()
         self._skip_dirs = skip_dirs
         self._skip_files = skip_files
         self._max_size = max_size
+        self._exclude_noise = exclude_noise
+        self._exclude_tests = exclude_tests
+        # category -> count of files excluded during build (observability)
+        self.noise_excluded: dict[str, int] = {}
         self._entries: dict[str, CorpusEntry] = {}  # rel_path -> entry
         self._built = False
 
@@ -91,8 +96,19 @@ class FileCorpus:
 
     def _build(self) -> None:
         self._entries.clear()
+        self.noise_excluded.clear()
         skip_dirs = self._skip_dirs
         root = self.root
+
+        # Lazy import: keeps noise classification optional and avoids a
+        # brain -> security dependency at module load time.
+        classify = None
+        if self._exclude_noise or self._exclude_tests:
+            from patchi.core.security.noise_filter import (
+                classify as _classify,
+            )
+
+            classify = _classify
 
         for dirpath, dirnames, filenames in os.walk(root):
             dirnames[:] = [d for d in dirnames if d not in skip_dirs]
@@ -105,6 +121,17 @@ class FileCorpus:
                     continue
                 rel_path = f"{rel_dir}/{fname}" if rel_dir else fname
                 abs_path = Path(dirpath) / fname
+
+                if classify is not None:
+                    cat = classify(rel_path)
+                    if cat is not None and (
+                        (cat != "tests" and self._exclude_noise)
+                        or (cat == "tests" and self._exclude_tests)
+                    ):
+                        self.noise_excluded[cat] = (
+                            self.noise_excluded.get(cat, 0) + 1
+                        )
+                        continue
 
                 try:
                     stat = abs_path.stat()

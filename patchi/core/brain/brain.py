@@ -34,6 +34,7 @@ from patchi.core.brain.blast_radius import (
     build_blast_radius_map,
 )
 from patchi.core.brain.contract import ContractBuilder, ContractFlow
+from patchi.core.brain.file_corpus import FileCorpus
 from patchi.core.brain.framework import FrameworkDetector, StackInfo
 from patchi.core.brain.freshness import save_freshness_snapshot
 from patchi.core.brain.import_graph import (
@@ -44,7 +45,6 @@ from patchi.core.brain.import_graph import (
 )
 from patchi.core.brain.layered_brain import build_layers, layers_to_dict
 from patchi.core.brain.route_mapper import RouteInfo, RouteMapper
-from patchi.core.brain.file_corpus import FileCorpus
 from patchi.core.brain.scanner import FileInfo, FileScanner
 from patchi.core.constants import RestrictionType
 
@@ -224,10 +224,11 @@ class Brain:
         _load_ast_cache(self.root)
         _load_file_info_cache(self.root)
 
-        corpus = FileCorpus(
-            self.root,
-            skip_files=frozenset({"package-lock.json", "yarn.lock", "pnpm-lock.yaml", "composer.lock", "Gemfile.lock"}),
-        )
+        # Noise exclusion at discovery time: lockfiles, generated/minified
+        # bundles, and docs never enter the corpus, so no agent wastes a
+        # pass on them and no findings can originate there. Supersedes the
+        # old hardcoded 5-lockfile skip_files list.
+        corpus = FileCorpus(self.root, exclude_noise=True)
 
         scanner = FileScanner(
             root=self.root,
