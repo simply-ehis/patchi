@@ -238,6 +238,34 @@ def run(
     _scan_elapsed = time.monotonic() - _scan_start
     _show_report_summary(report, agent_results, wall_time=_scan_elapsed, root=r)
 
+    # ── Threat Model Generation ─────────────────────────────────────────────
+    try:
+        from patchi.core.security.threat_model_generator import ThreatModelGenerator
+        tm_gen = ThreatModelGenerator(r)
+        threat_model = tm_gen.generate()
+        if threat_model.applicable_scenarios > 0:
+            con.print()
+            con.print("[bold #C8621A]─ Threat Model ─[/bold #C8621A]")
+            con.print(
+                f"  Scenarios: [bold]{threat_model.applicable_scenarios}[/bold] applicable "
+                f"out of {threat_model.total_scenarios} total"
+            )
+            if threat_model.by_severity:
+                sev_str = ", ".join(
+                    f"{k}={v}" for k, v in sorted(threat_model.by_severity.items())
+                )
+                con.print(f"  By severity: {sev_str}")
+            if threat_model.recommendations:
+                for rec in threat_model.recommendations[:3]:
+                    con.print(f"  [dim]• {rec}[/dim]")
+            # Persist for web UI and assurance
+            tm_path = r / ".patchi" / "threat_model.json"
+            tm_path.parent.mkdir(parents=True, exist_ok=True)
+            import json as _json
+            tm_path.write_text(_json.dumps(threat_model.to_dict(), indent=2), encoding="utf-8")
+    except Exception as e:
+        _log.debug("Threat model generation failed: %s", e)
+
     # ── Assurance analysis (attackers, campaigns, fuzz) ─────────────────────
     if with_attackers or with_campaigns or with_fuzz:
         con.print()
