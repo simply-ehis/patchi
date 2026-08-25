@@ -79,6 +79,14 @@ def main() -> int:
         for rp in route_paths:
             if "{" in rp and re.fullmatch(re.sub(r"\{[^}]+\}", "[^/]+", rp), path):
                 return True
+        # dynamically-built URL: captured part ends at a separator that is
+        # followed by JS concatenation (e.g. fetch('/x/' + id)) — accept when
+        # some registered route extends this prefix.
+        if path.endswith("/"):
+            base = path.rstrip("/")
+            for rp in route_paths:
+                if rp.startswith(path):
+                    return True
         return False
 
     templates = sorted(list(TPL_V2.glob("*.html")) + list(TPL_V1.glob("*.html")))
@@ -185,8 +193,9 @@ def main() -> int:
     )
     html = (TPL_V2 / "dashboard_v2.html").read_text(encoding="utf-8")
     ids_defined = set(extract(r'id="([A-Za-z0-9_-]+)"', html))
-    # IDs created dynamically by JS itself
-    dyn_ids = set(extract(r"id=\\?['\"]([A-Za-z0-9_-]+)", js)) | {"browserStatus"}
+    # IDs created dynamically by JS itself (element.id = '...' or id='...' strings)
+    dyn_ids = set(extract(r"id=\\?['\"]([A-Za-z0-9_-]+)", js))
+    dyn_ids |= set(extract(r"\.id\s*=\s*['\"]([A-Za-z0-9_-]+)['\"]", js))
     missing_ids = sorted(i for i in ids_used if i not in ids_defined and i not in dyn_ids)
     # IDs only needed when their section renders (other pages use shared JS too)
     other_pages_ids = set()

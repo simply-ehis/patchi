@@ -10,8 +10,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from fastapi import APIRouter, Request
-from fastapi.responses import HTMLResponse
+from fastapi import APIRouter
 from starlette.templating import Jinja2Templates as _Jinja2Templates
 
 router = APIRouter()

@@ -58,3 +58,31 @@
   -> legacy copy removed, canonical one in api/hosted.py.
 - /live-testing page had invalid TemplateResponse signature (never worked)
   -> now redirects to unified /live-tests.
+
+### Deep web audit round (user-requested ultra scan)
+New tooling: `tools/deep_audit_web.py` - validates every href/fetch/static-ref
+across all templates+JS against the live route table, template existence,
+WS action coverage, JS DOM-ID contract, full render sweep, and a LIVE
+multi-project discover->switch->verify cycle. Run after any UI change.
+
+### Fixed in this round
+- PERF: GET /api/security/report ran ALL security agents synchronously per
+  request (measured 174s). Now cached-first from memory (0.1s); ?fresh=1
+  opts into a live run; empty cache returns instant empty payload.
+- Missing endpoint: POST /api/fix/apply-all-safe (button existed in
+  review.html, route did not). Implemented via RiskGate: applies only
+  ALLOW_AUTO patches; BLOCK/REVIEW are skipped and reported.
+- Multi-project: added TenantManager.discover_projects() (bounded scan of
+  parent/sibling dirs for .patchi), GET /api/tenant/discover, project
+  switcher dropdown in the dashboard header wired to /api/tenant/list +
+  switch + reload, and `p web --project <path>` flag with smart resolution:
+  ancestor .patchi -> single child-of-cwd workspace pattern -> error listing
+  candidates.
+- Hardened POST /api/tenant/switch: refuses paths without .patchi unless
+  init=true explicitly passed (previously would create .patchi inside ANY
+  directory handed to it).
+- Council page now calls real REST endpoint POST /api/v2/council/deliberate;
+  sessions persist to memory so history renders (was calling nonexistent
+  window.PATCHI_WS and never persisted).
+- Mode selector JS posted to nonexistent /api/config/set -> fixed to legacy
+  POST /api/config contract.

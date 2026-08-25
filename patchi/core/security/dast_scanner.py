@@ -12,14 +12,12 @@ for visual evidence capture. Tests a running web app for:
 
 from __future__ import annotations
 
-import asyncio
 import logging
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable
+from typing import Callable
 
-from patchi.core.agents.base import Finding, Severity
 
 _log = logging.getLogger("patchi.security.dast")
 

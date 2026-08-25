@@ -16,11 +16,11 @@ import logging
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable, Optional
+from typing import Any, Callable
 
-from patchi.core.agents.base import Finding, Severity
+from patchi.core.agents.base import Finding
 from patchi.core.testing.live_v2.browser_pool import BrowserPool, BrowserConfig, get_browser_pool
-from patchi.core.testing.live_v2.screenshot_manager import ScreenshotManager, ScreenshotConfig
+from patchi.core.testing.live_v2.screenshot_manager import ScreenshotManager
 
 _log = logging.getLogger("patchi.testing.browser_runner")
 
@@ -177,13 +177,13 @@ class BrowserTestRunner:
                 raise AssertionError(
                     f"Expected '{step.value}' in text, got: '{(text or '')[:100]}'"
                 )
-            self.on_progress(f"  ✅ Assert text passed")
+            self.on_progress("  ✅ Assert text passed")
 
         elif step.action == "assert_visible":
             visible = await page.is_visible(step.target)
             if not visible:
                 raise AssertionError(f"Element {step.target} not visible")
-            self.on_progress(f"  ✅ Assert visible passed")
+            self.on_progress("  ✅ Assert visible passed")
 
         elif step.action == "wait":
             timeout = int(step.value) if step.value else 1000

@@ -10,7 +10,6 @@ GET  /smart          — the control console page (type a goal, watch it run).
 from __future__ import annotations
 
 import asyncio
-import json
 import logging
 from pathlib import Path
 

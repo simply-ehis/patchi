@@ -15,12 +15,11 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 from patchi.core.agents.base import (
+    AgentStatus,
     AgentGroup,
     AgentInput,
     AgentResult,
     BaseAgent,
-    Finding,
-    Severity,
     register,
 )
 
@@ -44,7 +43,7 @@ class PysaAgent(BaseAgent):
     def _run(self, inp: AgentInput, result: AgentResult) -> None:
         """Run Pysa analysis on the project."""
         if not self._is_pysa_available():
-            result.status = "SKIPPED"
+            result.status = AgentStatus.SKIPPED
             result.data["error"] = "Pysa not installed"
             return
 
@@ -54,7 +53,7 @@ class PysaAgent(BaseAgent):
             finding = self._create_finding(finding_data)
             result.add_finding(finding)
 
-        result.status = "DONE"
+        result.status = AgentStatus.DONE
         result.files_scanned = 1
 
     def _is_pysa_available(self) -> bool:

@@ -17,13 +17,10 @@ import logging
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
 
-from patchi.core.brain.domain_activator import build_project_context
 from patchi.core.brain.scanner import FileInfo
 from patchi.core.security.domain_loader import Domain, DomainLoader
 from patchi.core import memory as mem
-from patchi.core import config as cfg
 
 _log = logging.getLogger("patchi.security.domain_activator_v2")
 
@@ -364,11 +361,11 @@ DOMAIN_SIGNALS: dict[str, dict[str, list[tuple[str, float, str]]]] = {
 
 class SignalExtractor:
     """Extracts activation signals from project artifacts."""
-    
+
     def __init__(self, root: Path):
         self.root = root
         self._code_cache: dict[str, str] = {}
-    
+
     def extract_all_signals(
         self,
         file_infos: list[FileInfo],
@@ -376,36 +373,36 @@ class SignalExtractor:
     ) -> list[ActivationSignal]:
         """Extract all signals from code, config, and context."""
         signals = []
-        
+
         # Code signals
         signals.extend(self._extract_code_signals(file_infos))
-        
+
         # Config signals
         signals.extend(self._extract_config_signals())
-        
+
         # Context signals (frameworks, domains, etc.)
         signals.extend(self._extract_context_signals(project_context))
-        
+
         # History signals (past findings)
         signals.extend(self._extract_history_signals())
-        
+
         return signals
-    
+
     def _extract_code_signals(self, file_infos: list[FileInfo]) -> list[ActivationSignal]:
         signals = []
-        
+
         for fi in file_infos:
             if fi.error:
                 continue
-            
+
             # Get file content (cached)
             content = self._get_file_content(fi.path)
             if not content:
                 continue
-            
+
             content_lower = content.lower()
             file_path = fi.path
-            
+
             # Check each domain's code signals
             for domain, signal_defs in DOMAIN_SIGNALS.items():
                 code_signals = signal_defs.get("code", [])
@@ -418,12 +415,12 @@ class SignalExtractor:
                             evidence=f"{description} in {file_path}",
                             metadata={"file": file_path, "pattern": pattern},
                         ))
-        
+
         return signals
-    
+
     def _extract_config_signals(self) -> list[ActivationSignal]:
         signals = []
-        
+
         # Check common config files
         config_files = [
             ".env", "config.yaml", "config.yml", "settings.py",
@@ -434,7 +431,7 @@ class SignalExtractor:
             "package.json", "requirements.txt", "pyproject.toml",
             "Cargo.toml", "go.mod", "pom.xml",
         ]
-        
+
         for config_path in config_files:
             full_path = self.root / config_path
             if not full_path.exists():
@@ -446,7 +443,7 @@ class SignalExtractor:
                     full_path = matches[0]
                 else:
                     continue
-            
+
             try:
                 if full_path.is_file():
                     content = full_path.read_text(encoding="utf-8", errors="ignore")
@@ -454,9 +451,9 @@ class SignalExtractor:
                     continue
             except Exception:
                 continue
-            
+
             content_lower = content.lower()
-            
+
             for domain, signal_defs in DOMAIN_SIGNALS.items():
                 config_signals = signal_defs.get("config", [])
                 for pattern, weight, description in config_signals:
@@ -468,17 +465,17 @@ class SignalExtractor:
                             evidence=f"{description} in {config_path}",
                             metadata={"config_file": config_path, "pattern": pattern},
                         ))
-        
+
         return signals
-    
+
     def _extract_context_signals(self, project_context: dict) -> list[ActivationSignal]:
         signals = []
-        
+
         # Framework-based signals
         frameworks = project_context.get("frameworks", [])
         for fw in frameworks:
             fw_name = fw.get("name", "").lower()
-            
+
             # Framework implies certain domains
             if fw_name in ("django", "flask", "fastapi", "express", "spring", "gin"):
                 signals.append(ActivationSignal(
@@ -499,7 +496,7 @@ class SignalExtractor:
                     weight=0.4,
                     evidence=f"Web framework {fw_name} needs security headers",
                 ))
-            
+
             if fw_name in ("react", "vue", "svelte", "angular", "next.js", "nuxt"):
                 signals.append(ActivationSignal(
                     source="context",
@@ -513,7 +510,7 @@ class SignalExtractor:
                     weight=0.5,
                     evidence=f"Frontend framework {fw_name} consumes APIs",
                 ))
-        
+
         # Component type signals
         comp_type = project_context.get("component_type", "")
         if comp_type:
@@ -551,7 +548,7 @@ class SignalExtractor:
                     weight=0.5,
                     evidence="Infrastructure component type",
                 ))
-        
+
         # Active security domains from brain
         active_domains = project_context.get("active_security_domains", [])
         for domain in active_domains:
@@ -561,7 +558,7 @@ class SignalExtractor:
                 weight=0.8,
                 evidence=f"Previously activated domain: {domain}",
             ))
-        
+
         # Deployment model
         deploy_model = project_context.get("deployment_model", "")
         if deploy_model in ("kubernetes", "k8s", "container"):
@@ -584,16 +581,16 @@ class SignalExtractor:
                 weight=0.7,
                 evidence=f"Deployment model: {deploy_model}",
             ))
-        
+
         return signals
-    
+
     def _extract_history_signals(self) -> list[ActivationSignal]:
         signals = []
-        
+
         # Check past scan results for recurring findings
         scan_results = mem.get_scan_results(self.root)
         domain_finding_counts: dict[str, int] = {}
-        
+
         for scanner_name, data in scan_results.items():
             for finding in data.get("findings", []):
                 if isinstance(finding, dict):
@@ -602,7 +599,7 @@ class SignalExtractor:
                     domain = self._map_finding_to_domain(finding_type)
                     if domain:
                         domain_finding_counts[domain] = domain_finding_counts.get(domain, 0) + 1
-        
+
         # If a domain had findings before, it's more likely to be relevant
         for domain, count in domain_finding_counts.items():
             if count >= 2:  # At least 2 historical findings
@@ -613,13 +610,13 @@ class SignalExtractor:
                     evidence=f"{count} historical findings in {domain}",
                     metadata={"historical_count": count},
                 ))
-        
+
         return signals
-    
+
     def _map_finding_to_domain(self, finding_type: str) -> str | None:
         """Map finding type to security domain."""
         type_lower = finding_type.lower()
-        
+
         mapping = {
             "sql_injection": "injection-sql",
             "nosql_injection": "injection-nosql",
@@ -655,21 +652,21 @@ class SignalExtractor:
             "api": "api-security",
             "audit": "audit-logging",
         }
-        
+
         for key, domain in mapping.items():
             if key in type_lower:
                 return domain
         return None
-    
+
     def _get_file_content(self, file_path: str) -> str | None:
         """Get file content with caching."""
         if file_path in self._code_cache:
             return self._code_cache[file_path]
-        
+
         full_path = self.root / file_path
         if not full_path.exists():
             return None
-        
+
         try:
             content = full_path.read_text(encoding="utf-8", errors="ignore")
             # Cache only smaller files to avoid memory issues
@@ -684,7 +681,7 @@ class SignalExtractor:
 
 class DomainActivatorV2:
     """Main domain activation engine."""
-    
+
     def __init__(
         self,
         root: Path,
@@ -696,7 +693,7 @@ class DomainActivatorV2:
         self.max_domains = max_domains
         self.extractor = SignalExtractor(root)
         self.domain_loader = DomainLoader(root)
-    
+
     def activate_domains(
         self,
         file_infos: list[FileInfo],
@@ -715,53 +712,53 @@ class DomainActivatorV2:
             DomainActivationResult with activated domains and scoring details
         """
         forced_domains = forced_domains or []
-        
+
         # Extract all signals
         signals = self.extractor.extract_all_signals(file_infos, project_context)
-        
+
         # Score each domain
         domain_scores: dict[str, float] = {}
         domain_evidence: dict[str, list[str]] = {}
-        
+
         for signal in signals:
             domain = signal.domain
             domain_scores[domain] = domain_scores.get(domain, 0) + signal.weight
             if domain not in domain_evidence:
                 domain_evidence[domain] = []
             domain_evidence[domain].append(signal.evidence)
-        
+
         # Add forced domains with high score
         for domain in forced_domains:
             domain_scores[domain] = max(domain_scores.get(domain, 0), 1.0)
             if domain not in domain_evidence:
                 domain_evidence[domain] = []
             domain_evidence[domain].append("Forced activation (user/config)")
-        
+
         # Filter by threshold
         activated = [
             domain for domain, score in domain_scores.items()
             if score >= self.activation_threshold
         ]
-        
+
         # Sort by score descending
         activated.sort(key=lambda d: domain_scores[d], reverse=True)
-        
+
         # Limit to max_domains
         if len(activated) > self.max_domains:
             skipped = activated[self.max_domains:]
             activated = activated[:self.max_domains]
         else:
             skipped = []
-        
+
         # Get all known domains for reporting skipped
         all_known = set(domain_scores.keys())
         all_known.update(self.domain_loader.list_domains())
         skipped_domains = sorted(all_known - set(activated))
-        
+
         _log.info(f"Activated {len(activated)} domains (threshold={self.activation_threshold})")
         for d in activated:
             _log.debug(f"  {d}: score={domain_scores[d]:.2f}, evidence={domain_evidence[d][:2]}")
-        
+
         return DomainActivationResult(
             activated_domains=activated,
             signals=signals,
@@ -769,7 +766,7 @@ class DomainActivatorV2:
             skipped_domains=skipped_domains,
             activation_threshold=self.activation_threshold,
         )
-    
+
     def get_activated_domain_objects(self, activated_domains: list[str]) -> dict[str, Domain]:
         """Load full Domain objects for activated domains."""
         domains = {}
@@ -780,7 +777,7 @@ class DomainActivatorV2:
             else:
                 _log.warning(f"Activated domain not found in loader: {domain_id}")
         return domains
-    
+
     def get_relevant_agents(self, activated_domains: list[str]) -> list[str]:
         """Map activated domains to relevant security agents."""
         # Domain -> agent mapping
@@ -820,15 +817,15 @@ class DomainActivatorV2:
             "api-security": ["SecurityProber", "APIContractAgent"],
             "audit-logging": ["HistoryAgent", "GovernanceAgent"],
         }
-        
+
         agents = set()
         for domain in activated_domains:
             agents.update(domain_agent_map.get(domain, []))
-        
+
         # Always include core agents
         core_agents = ["RedTeamAgent", "PreCheckAgent", "PlanAuditorAgent"]
         agents.update(core_agents)
-        
+
         return sorted(agents)
 
 
@@ -845,6 +842,6 @@ def activate_security_domains(
     threshold = config.get("security", {}).get("domain_activation_threshold", 0.5)
     max_domains = config.get("security", {}).get("max_active_domains", 20)
     forced = config.get("security", {}).get("forced_domains", [])
-    
+
     activator = DomainActivatorV2(root, threshold, max_domains)
     return activator.activate_domains(file_infos, project_context, forced)

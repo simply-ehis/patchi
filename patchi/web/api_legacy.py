@@ -654,7 +654,22 @@ async def get_security_report(request: Request, fresh: str = "0") -> JSONRespons
                 payload["hint"] = "Pass ?fresh=1 to re-run agents live."
                 return JSONResponse(payload)
 
-        # Fresh run (explicit) or nothing cached yet
+            if fresh != "1":
+                # Nothing cached yet and no explicit fresh request — never run
+                # a multi-minute agent suite on a plain GET.
+                return JSONResponse({
+                    "total_findings": 0,
+                    "by_severity": {},
+                    "by_owasp": {},
+                    "agents_run": [],
+                    "correlation_count": 0,
+                    "findings": [],
+                    "cached": True,
+                    "last_scan": "",
+                    "hint": "No scan data yet. Run `p security` or ?fresh=1 to populate.",
+                })
+
+        # Explicit fresh run
         import patchi.core.security.security_agents  # noqa
         from patchi.core.agents.coordinator import Coordinator
         from patchi.core.security.pattern_context import suppress_findings

@@ -41,3 +41,68 @@ async def reject_patch(patch_id: str, request: Request) -> JSONResponse:
         return JSONResponse({"ok": True, "message": f"Rejected patch {patch_id}"})
     except Exception as e:
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+
+@router.post("/apply-all-safe")
+async def apply_all_safe(request: Request) -> JSONResponse:
+    """Apply every pending patch that passes the risk gate for auto-apply.
+
+    Patches the gate flags as BLOCK or REQUIRE_REVIEW are skipped and reported,
+    never applied. This backs the "Apply all safe" button in the review UI.
+    """
+    root = request.app.state.root
+    from patchi.core import memory as mem
+    from patchi.core.fix.applier import PatchApplier
+    from patchi.core.fix.patch import Patch
+    from patchi.core.fix.risk_gate import RiskGate
+
+    patches_raw = mem.read("patches", root)
+    if not patches_raw:
+        return JSONResponse({"ok": True, "applied": [], "skipped": [], "failed": [],
+                             "message": "No patches pending"})
+
+    gate = RiskGate(root)
+    applier = PatchApplier(root)
+
+    applied: list[dict] = []
+    skipped: list[dict] = []
+    failed: list[dict] = []
+
+    for raw in patches_raw:
+        pid = raw.get("id", "?")
+        state = raw.get("state", "")
+        if state in ("applied", "rejected"):
+            continue  # only pending patches
+        try:
+            patch = Patch.from_dict(raw)
+        except Exception as e:
+            failed.append({"id": pid, "reason": f"unparseable: {e}"})
+            continue
+
+        decision = gate.evaluate(patch)
+        if decision.is_blocked() or decision.needs_review():
+            skipped.append({
+                "id": pid,
+                "reason": decision.decision.value if hasattr(decision.decision, "value") else str(decision.decision),
+                "detail": getattr(decision, "reasons", None) or "",
+            })
+            continue
+
+        try:
+            result = applier.apply(patch)
+            entry = {"id": pid}
+            if result.success:
+                applied.append(entry)
+            else:
+                entry["reason"] = getattr(result, "error", "") or "applier refused"
+                failed.append(entry)
+        except Exception as e:
+            failed.append({"id": pid, "reason": str(e)})
+
+    return JSONResponse({
+        "ok": True,
+        "applied": applied,
+        "skipped": skipped,
+        "failed": failed,
+        "message": f"{len(applied)} applied, {len(skipped)} need review, {len(failed)} failed",
+    })

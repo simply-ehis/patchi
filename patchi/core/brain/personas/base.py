@@ -12,7 +12,6 @@ from __future__ import annotations
 
 import json
 import logging
-import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -20,9 +19,9 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Callable, Optional
 
-from patchi.core.ai.client import call_ai_structured, call_ai
+from patchi.core.ai.client import call_ai_structured
 from patchi.core.ai.prompts import Skill, get_system_prompt
-from patchi.core.brain.layered_brain import Layer, layers_from_dict
+from patchi.core.brain.layered_brain import Layer
 
 _log = logging.getLogger("patchi.brain.personas")
 
@@ -68,7 +67,7 @@ class BasePersona(ABC):
     - get_tool_permissions(): Which tools this persona can call
     - get_style(): Decision-making style
     """
-    
+
     def __init__(
         self,
         name: str,
@@ -86,27 +85,27 @@ class BasePersona(ABC):
         self.on_progress = on_progress or (lambda _: None)
         self.memory = self._load_memory()
         self._decision_count = 0
-    
+
     @abstractmethod
     def get_expertise_areas(self) -> list[str]:
         """Return list of domains this persona specializes in."""
         pass
-    
+
     @abstractmethod
     def get_style(self) -> PersonaStyle:
         """Return the persona's decision-making style."""
         pass
-    
+
     @abstractmethod
     def get_system_prompt_additions(self) -> str:
         """Additional system prompt content specific to this persona."""
         pass
-    
+
     def get_tool_permissions(self) -> list[str]:
         """Return list of tool names this persona is allowed to call."""
         # Default: all tools. Override to restrict.
         return ["*"]
-    
+
     def _load_memory(self) -> PersonaMemory:
         """Load persona memory from disk."""
         mem_path = self.root / ".patchi" / "memory" / f"persona_{self.name.lower()}.json"
@@ -122,7 +121,7 @@ class BasePersona(ABC):
             except Exception as e:
                 _log.warning(f"Failed to load memory for {self.name}: {e}")
         return PersonaMemory()
-    
+
     def _save_memory(self) -> None:
         """Save persona memory to disk."""
         mem_path = self.root / ".patchi" / "memory" / f"persona_{self.name.lower()}.json"
@@ -137,33 +136,33 @@ class BasePersona(ABC):
             mem_path.write_text(json.dumps(data, indent=2), encoding="utf-8")
         except Exception as e:
             _log.warning(f"Failed to save memory for {self.name}: {e}")
-    
+
     def _build_context(self, issue: str, additional_context: dict = None) -> str:
         """Build context string for AI analysis."""
         ctx_parts = [
-            f"=== PROJECT CONTEXT ===",
+            "=== PROJECT CONTEXT ===",
             f"Project: {self.project_context.get('project_purpose', 'Unknown')}",
             f"Domain: {self.project_context.get('project_domain', 'Unknown')}",
             f"Frameworks: {', '.join(f.get('name', '') for f in self.project_context.get('frameworks', []))}",
             f"Active Security Domains: {', '.join(self.project_context.get('active_security_domains', []))}",
-            f"",
-            f"=== LAYERED BRAIN SUMMARY ===",
+            "",
+            "=== LAYERED BRAIN SUMMARY ===",
         ]
-        
+
         # Add relevant layer summaries
         for layer_name, layer in self.layers.items():
             if layer.level <= 2:  # Project and subsystem levels
                 ctx_parts.append(f"[{layer.name}] {layer.summary}")
-        
+
         if additional_context:
-            ctx_parts.append(f"\n=== ADDITIONAL CONTEXT ===")
+            ctx_parts.append("\n=== ADDITIONAL CONTEXT ===")
             ctx_parts.append(json.dumps(additional_context, indent=2))
-        
-        ctx_parts.append(f"\n=== CURRENT ISSUE ===")
+
+        ctx_parts.append("\n=== CURRENT ISSUE ===")
         ctx_parts.append(issue)
-        
+
         return "\n".join(ctx_parts)
-    
+
     def _call_ai_with_persona(
         self,
         prompt: str,
@@ -175,7 +174,7 @@ class BasePersona(ABC):
         if system_prompt is None:
             base_prompt = get_system_prompt(Skill.DEEP_ANALYSIS)
             system_prompt = f"{base_prompt}\n\n{self.get_system_prompt_additions()}"
-        
+
         try:
             result = call_ai_structured(
                 config=self.config,
@@ -188,7 +187,7 @@ class BasePersona(ABC):
         except Exception as e:
             _log.warning(f"{self.name} AI call failed: {e}")
             return None
-    
+
     def analyze(self, issue: str, context: dict = None) -> PersonaDecision:
         """
         Analyze an issue and produce a decision.
@@ -197,10 +196,10 @@ class BasePersona(ABC):
         """
         self._decision_count += 1
         self.on_progress(f"[{self.name}] Analyzing: {issue[:80]}...")
-        
+
         # Build context
         full_context = self._build_context(issue, context)
-        
+
         # Create analysis prompt
         analysis_prompt = f"""
 Analyze the following issue from your perspective as {self.name}.
@@ -220,9 +219,9 @@ Provide your analysis in this JSON format:
     "reasoning_trace": ["step 1", "step 2", "step 3"]
 }}
 """
-        
+
         result = self._call_ai_with_persona(analysis_prompt, max_tokens=3000)
-        
+
         if result:
             decision = PersonaDecision(
                 persona_name=self.name,
@@ -237,14 +236,14 @@ Provide your analysis in this JSON format:
         else:
             # Fallback heuristic decision
             decision = self._heuristic_decision(issue, context)
-        
+
         # Store in memory
         self.memory.decisions.append(decision)
         self._save_memory()
-        
+
         self.on_progress(f"[{self.name}] Decision: {decision.recommendation[:80]}... (confidence: {decision.confidence:.0%})")
         return decision
-    
+
     def _heuristic_decision(self, issue: str, context: dict = None) -> PersonaDecision:
         """Fallback heuristic decision when AI is unavailable."""
         return PersonaDecision(
@@ -257,7 +256,7 @@ Provide your analysis in this JSON format:
             risks=["AI unavailable - limited analysis"],
             reasoning_trace=["AI call failed, using fallback"],
         )
-    
+
     def record_outcome(self, decision: PersonaDecision, success: bool, details: str = "") -> None:
         """Record the outcome of a decision for learning."""
         key = decision.issue[:50]
@@ -270,15 +269,15 @@ Provide your analysis in this JSON format:
             "timestamp": datetime.now(timezone.utc).isoformat(),
         }
         self._save_memory()
-    
+
     def get_relevant_context(self, issue: str) -> dict:
         """Extract relevant context from brain layers for this issue."""
         # Use reasoning engine to find relevant layers
         from patchi.core.brain.reasoning import ReasoningEngine
-        
+
         engine = ReasoningEngine(self.root)
         relevant = {}
-        
+
         # Find layers matching issue keywords
         issue_lower = issue.lower()
         for name, layer in self.layers.items():
@@ -292,7 +291,7 @@ Provide your analysis in this JSON format:
                     "depends_on": layer.depends_on,
                     "dependents": layer.dependents,
                 }
-        
+
         return relevant
 
 

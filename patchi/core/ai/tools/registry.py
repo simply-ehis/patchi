@@ -7,16 +7,15 @@ Tools are the atomic operations that AI agents (personas, council) can invoke.
 
 from __future__ import annotations
 
-import json
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Callable, Optional
+from typing import Any, Callable
 
 from patchi.core import config as cfg
 from patchi.core import memory as mem
-from patchi.core.brain.brain import Brain, ScanProgress
+from patchi.core.brain.brain import Brain
 from patchi.core.brain.reasoning import ReasoningEngine
 from patchi.core.ai.tools import realize as _realize
 
@@ -46,7 +45,7 @@ class ToolDefinition:
     requires_confirmation: bool = False  # If True, needs user confirmation before execution
     side_effects: str = ""  # Description of side effects
     examples: list[dict] = field(default_factory=list)  # Example invocations
-    
+
     def to_schema(self) -> dict:
         """Convert to JSON schema for AI consumption."""
         properties = {}
@@ -65,7 +64,7 @@ class ToolDefinition:
             properties[p.name] = prop
             if p.required:
                 required.append(p.name)
-        
+
         return {
             "name": self.name,
             "description": self.description,
@@ -83,12 +82,12 @@ class ToolDefinition:
 
 class ToolRegistry:
     """Registry of all available tools."""
-    
+
     def __init__(self):
         self._tools: dict[str, ToolDefinition] = {}
         self._handlers: dict[str, Callable] = {}
         self._register_all()
-    
+
     def _register_all(self) -> None:
         """Register all built-in tools."""
         # Brain tools
@@ -104,7 +103,7 @@ class ToolRegistry:
             category="brain",
             examples=[{"area": "src/auth", "incremental": True}],
         ), self._handle_scan_project)
-        
+
         self.register(ToolDefinition(
             name="explain_layer",
             description="Get detailed explanation of a brain layer (module, subsystem, or project).",
@@ -116,7 +115,7 @@ class ToolRegistry:
             category="brain",
             examples=[{"layer_name": "auth", "depth": 2}],
         ), self._handle_explain_layer)
-        
+
         self.register(ToolDefinition(
             name="impact_analysis",
             description="Analyze the blast radius of changes to specific files.",
@@ -127,7 +126,7 @@ class ToolRegistry:
             category="brain",
             examples=[{"changed_files": ["src/auth/login.py", "src/auth/models.py"]}],
         ), self._handle_impact_analysis)
-        
+
         self.register(ToolDefinition(
             name="why_file_matters",
             description="Explain why a specific file matters in the codebase.",
@@ -138,7 +137,7 @@ class ToolRegistry:
             category="brain",
             examples=[{"file_path": "src/auth/jwt.py"}],
         ), self._handle_why_file)
-        
+
         self.register(ToolDefinition(
             name="ask_brain",
             description="Ask a natural language question about the codebase using the layered brain.",
@@ -149,7 +148,7 @@ class ToolRegistry:
             category="brain",
             examples=[{"question": "What are the main data models?"}],
         ), self._handle_ask_brain)
-        
+
         # Security tools
         self.register(ToolDefinition(
             name="scan_vulnerabilities",
@@ -164,7 +163,7 @@ class ToolRegistry:
             requires_confirmation=False,
             examples=[{"include_red_team": True}],
         ), self._handle_scan_vulns)
-        
+
         self.register(ToolDefinition(
             name="attack_simulate",
             description="Run red team attack simulation against the application.",
@@ -179,7 +178,7 @@ class ToolRegistry:
             side_effects="May send HTTP requests to target_url if provided",
             examples=[{"scenarios": ["sqli", "xss", "ssrf"], "safe_mode": True}],
         ), self._handle_attack_simulate)
-        
+
         self.register(ToolDefinition(
             name="red_team",
             description="Full red team assessment: attack surface mapping + exploitation attempts + reporting.",
@@ -192,7 +191,7 @@ class ToolRegistry:
             requires_confirmation=True,
             side_effects="Active probing of application endpoints",
         ), self._handle_red_team)
-        
+
         self.register(ToolDefinition(
             name="check_compliance",
             description="Check compliance against security standards (OWASP ASVS, PCI DSS, etc.).",
@@ -204,7 +203,7 @@ class ToolRegistry:
             category="security",
             examples=[{"standard": "owasp-asvs", "level": 2}],
         ), self._handle_check_compliance)
-        
+
         # Testing tools
         self.register(ToolDefinition(
             name="run_tests",
@@ -219,7 +218,7 @@ class ToolRegistry:
             category="testing",
             examples=[{"test_types": ["unit", "browser", "stress"], "base_url": "http://localhost:3000"}],
         ), self._handle_run_tests)
-        
+
         self.register(ToolDefinition(
             name="generate_tests",
             description="AI-generate test cases for untested or changed code.",
@@ -233,7 +232,7 @@ class ToolRegistry:
             side_effects="Creates test files in the project",
             examples=[{"target_files": ["src/auth/login.py"], "test_type": "unit"}],
         ), self._handle_generate_tests)
-        
+
         self.register(ToolDefinition(
             name="stress_test",
             description="Run load/stress test against a running application.",
@@ -250,7 +249,7 @@ class ToolRegistry:
             side_effects="Generates load on target application",
             examples=[{"base_url": "http://localhost:3000", "scenario": "spike", "users": 100, "duration_seconds": 30}],
         ), self._handle_stress_test)
-        
+
         self.register(ToolDefinition(
             name="screenshot",
             description="Take a screenshot of a web page or element.",
@@ -265,7 +264,7 @@ class ToolRegistry:
             side_effects="Launches browser, navigates to URL",
             examples=[{"url": "http://localhost:3000/login", "full_page": True}],
         ), self._handle_screenshot)
-        
+
         self.register(ToolDefinition(
             name="browser_test",
             description="Run a browser automation test script.",
@@ -280,7 +279,7 @@ class ToolRegistry:
             side_effects="Launches browser, executes script",
             examples=[{"script": "goto('/login'); fill('#user', 'test'); click('#submit'); expect('#dashboard')"}],
         ), self._handle_browser_test)
-        
+
         self.register(ToolDefinition(
             name="visual_regression",
             description="Compare screenshots against baselines for visual regression detection.",
@@ -293,7 +292,7 @@ class ToolRegistry:
             side_effects="Captures new screenshots, compares to baselines",
             examples=[{"urls": ["http://localhost:3000/", "http://localhost:3000/dashboard"]}],
         ), self._handle_visual_regression)
-        
+
         # Fix tools
         self.register(ToolDefinition(
             name="generate_fix",
@@ -307,7 +306,7 @@ class ToolRegistry:
             side_effects="May create patch files",
             examples=[{"finding_id": "sql-injection-001", "strategy": "llm-template"}],
         ), self._handle_generate_fix)
-        
+
         self.register(ToolDefinition(
             name="apply_patch",
             description="Apply a generated patch to the codebase.",
@@ -321,7 +320,7 @@ class ToolRegistry:
             side_effects="Modifies source files",
             examples=[{"patch_id": "patch-abc123", "create_backup": True}],
         ), self._handle_apply_patch)
-        
+
         self.register(ToolDefinition(
             name="verify_fix",
             description="Verify that a fix actually resolves the original finding.",
@@ -333,7 +332,7 @@ class ToolRegistry:
             category="fix",
             examples=[{"patch_id": "patch-abc123", "re_run_attack": True}],
         ), self._handle_verify_fix)
-        
+
         self.register(ToolDefinition(
             name="rollback_patch",
             description="Roll back a previously applied patch.",
@@ -347,7 +346,7 @@ class ToolRegistry:
             side_effects="Restores previous file versions",
             examples=[{"patch_id": "patch-abc123"}],
         ), self._handle_rollback_patch)
-        
+
         # Config tools
         self.register(ToolDefinition(
             name="get_config",
@@ -359,7 +358,7 @@ class ToolRegistry:
             category="config",
             examples=[{"key": "ai.local_model_name"}],
         ), self._handle_get_config)
-        
+
         self.register(ToolDefinition(
             name="set_config",
             description="Update Patchi configuration.",
@@ -373,7 +372,7 @@ class ToolRegistry:
             side_effects="Persists configuration to disk",
             examples=[{"key": "mode", "value": "auto"}],
         ), self._handle_set_config)
-        
+
         self.register(ToolDefinition(
             name="add_restriction",
             description="Add a path restriction (no-touch, no-scan, etc.).",
@@ -388,7 +387,7 @@ class ToolRegistry:
             side_effects="Modifies project restrictions",
             examples=[{"path": "src/legacy", "type": "no_touch", "reason": "Deprecated module"}],
         ), self._handle_add_restriction)
-        
+
         # Memory tools
         self.register(ToolDefinition(
             name="get_brain",
@@ -400,7 +399,7 @@ class ToolRegistry:
             category="memory",
             examples=[{"include_layers": True}],
         ), self._handle_get_brain)
-        
+
         self.register(ToolDefinition(
             name="get_layers",
             description="Get the layered brain structure.",
@@ -411,7 +410,7 @@ class ToolRegistry:
             category="memory",
             examples=[{"level": 2}],
         ), self._handle_get_layers)
-        
+
         self.register(ToolDefinition(
             name="get_scan_results",
             description="Get results from previous security/test scans.",
@@ -422,7 +421,7 @@ class ToolRegistry:
             category="memory",
             examples=[{"scanner": "RedTeamAgent"}],
         ), self._handle_get_scan_results)
-        
+
         self.register(ToolDefinition(
             name="query_findings",
             description="Query findings with filters.",
@@ -437,7 +436,7 @@ class ToolRegistry:
             category="memory",
             examples=[{"severity": "high", "type": "injection"}],
         ), self._handle_query_findings)
-        
+
         # Web tools
         self.register(ToolDefinition(
             name="start_web_server",
@@ -451,7 +450,7 @@ class ToolRegistry:
             side_effects="Starts HTTP server in background",
             examples=[{"port": 8000}],
         ), self._handle_start_web_server)
-        
+
         self.register(ToolDefinition(
             name="get_dashboard_data",
             description="Get current dashboard data for web UI.",
@@ -583,33 +582,33 @@ class ToolRegistry:
             category="cli",
             examples=[{"format": "json"}],
         ), self._handle_p_report)
-    
+
     def register(self, definition: ToolDefinition, handler: Callable) -> None:
         """Register a tool with its handler."""
         self._tools[definition.name] = definition
         self._handlers[definition.name] = handler
-    
+
     def get_tool(self, name: str) -> ToolDefinition | None:
         """Get tool definition by name."""
         return self._tools.get(name)
-    
+
     def get_handler(self, name: str) -> Callable | None:
         """Get tool handler by name."""
         return self._handlers.get(name)
-    
+
     def list_tools(self, category: str = None) -> list[ToolDefinition]:
         """List all tools, optionally filtered by category."""
         tools = list(self._tools.values())
         if category:
             tools = [t for t in tools if t.category == category]
         return tools
-    
+
     def get_schemas(self, category: str = None) -> list[dict]:
         """Get JSON schemas for all tools (for AI consumption)."""
         return [t.to_schema() for t in self.list_tools(category)]
-    
+
     # ── Tool Handlers ───────────────────────────────────────────────────────────
-    
+
     def _handle_scan_project(self, root: Path, area: str = None, depth: int = None, incremental: bool = True) -> dict:
         brain = Brain(root)
         report = brain.scan(area)
@@ -620,30 +619,30 @@ class ToolRegistry:
             "route_count": report.route_count,
             "duration_seconds": report.duration_seconds,
         }
-    
+
     def _handle_explain_layer(self, root: Path, layer_name: str, depth: int = 1) -> dict:
         engine = ReasoningEngine(root)
         result = engine.explain(layer_name)
         return {"success": True, "explanation": result}
-    
+
     def _handle_impact_analysis(self, root: Path, changed_files: list[str]) -> dict:
         engine = ReasoningEngine(root)
         result = engine.impact_analysis(changed_files)
         return {"success": True, "analysis": result.to_dict()}
-    
+
     def _handle_why_file(self, root: Path, file_path: str) -> dict:
         engine = ReasoningEngine(root)
         result = engine.why(file_path)
         return {"success": True, "explanation": result}
-    
+
     def _handle_ask_brain(self, root: Path, question: str) -> dict:
         engine = ReasoningEngine(root)
         answer = engine.ask(question)
         return {"success": True, "answer": answer}
-    
+
     def _handle_scan_vulns(self, root: Path, area: str = None, domains: list[str] = None, include_red_team: bool = False) -> dict:
         return _realize.scan_vulnerabilities(root, area=area, domains=domains, include_red_team=include_red_team)
-    
+
     def _handle_attack_simulate(self, root: Path, scenarios: list[str] = None, target_url: str = None, safe_mode: bool = True) -> dict:
         return _realize.attack_simulate(root, scenarios=scenarios, target_url=target_url, safe_mode=safe_mode)
 
@@ -670,33 +669,33 @@ class ToolRegistry:
 
     def _handle_visual_regression(self, root: Path, urls: list[str], threshold: float = 0.1) -> dict:
         return _realize.visual_regression(root, urls=urls, threshold=threshold)
-    
+
     def _handle_generate_fix(self, root: Path, finding_id: str, strategy: str = "llm-template") -> dict:
         return {
             "success": True,
             "message": f"Fix generation for {finding_id} initiated.",
             "patch_id": f"patch-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}",
         }
-    
+
     def _handle_apply_patch(self, root: Path, patch_id: str, create_backup: bool = True) -> dict:
         return {
             "success": True,
             "message": f"Patch {patch_id} applied successfully.",
         }
-    
+
     def _handle_verify_fix(self, root: Path, patch_id: str, re_run_attack: bool = True) -> dict:
         return {
             "success": True,
             "message": f"Fix verification for {patch_id} completed.",
             "verified": True,
         }
-    
+
     def _handle_rollback_patch(self, root: Path, patch_id: str, snapshot_id: str = None) -> dict:
         return {
             "success": True,
             "message": f"Patch {patch_id} rolled back.",
         }
-    
+
     def _handle_get_config(self, root: Path, key: str = None) -> dict:
         config = cfg.load(root)
         if key:
@@ -706,18 +705,18 @@ class ToolRegistry:
                 node = node.get(part, {})
             return {"success": True, "value": node}
         return {"success": True, "config": config}
-    
+
     def _handle_set_config(self, root: Path, key: str, value: Any) -> dict:
         cfg.set_value(key, value, root)
         return {"success": True, "message": f"Config {key} updated"}
-    
+
     def _handle_add_restriction(self, root: Path, path: str, type: str, reason: str = "") -> dict:
-        from patchi.core.config import add_restriction, RestrictionType
+        from patchi.core.config import add_restriction
         from patchi.core.constants import RestrictionType as RT
         rt = RT(type.upper()) if hasattr(RT, type.upper()) else RT.NO_TOUCH
         add_restriction(path, rt, reason, root)
         return {"success": True, "message": f"Restriction added for {path}"}
-    
+
     def _handle_get_brain(self, root: Path, include_layers: bool = False) -> dict:
         brain = mem.get_brain(root)
         result = {"success": True, "brain": brain}
@@ -725,20 +724,20 @@ class ToolRegistry:
             layers = mem.get_layers(root)
             result["layers"] = layers
         return result
-    
+
     def _handle_get_layers(self, root: Path, level: int = None) -> dict:
         layers_data = mem.get_layers(root)
         if level and layers_data.get("layers"):
             filtered = {k: v for k, v in layers_data["layers"].items() if v.get("level") == level}
             layers_data = {"layers": filtered, "version": layers_data.get("version", 1)}
         return {"success": True, "layers": layers_data}
-    
+
     def _handle_get_scan_results(self, root: Path, scanner: str = None) -> dict:
         results = mem.get_scan_results(root)
         if scanner:
             results = {scanner: results.get(scanner, {})}
         return {"success": True, "results": results}
-    
+
     def _handle_query_findings(self, root: Path, severity: str = None, type: str = None, file: str = None, agent: str = None, limit: int = 50) -> dict:
         results = mem.get_scan_results(root)
         all_findings = []
@@ -748,7 +747,7 @@ class ToolRegistry:
                     f = f.copy()
                     f["source_scanner"] = scanner_name
                     all_findings.append(f)
-        
+
         # Filter
         if severity:
             all_findings = [f for f in all_findings if f.get("severity") == severity]
@@ -758,12 +757,12 @@ class ToolRegistry:
             all_findings = [f for f in all_findings if file in f.get("file", "")]
         if agent:
             all_findings = [f for f in all_findings if f.get("agent") == agent]
-        
+
         return {"success": True, "findings": all_findings[:limit], "total": len(all_findings)}
-    
+
     def _handle_start_web_server(self, root: Path, port: int = 8000, host: str = "127.0.0.1") -> dict:
         return _realize.start_web_server(root, port=port, host=host)
-    
+
     def _handle_get_dashboard_data(self, root: Path, include_charts: bool = True) -> dict:
         brain = mem.get_brain(root)
         health = brain.get("health_score", {})

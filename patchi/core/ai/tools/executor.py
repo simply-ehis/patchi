@@ -22,7 +22,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Optional
 
-from patchi.core.ai.tools.registry import ToolRegistry, get_tool_registry
+from patchi.core.ai.tools.registry import get_tool_registry
 
 _log = logging.getLogger("patchi.ai.tool_executor")
 
@@ -63,7 +63,7 @@ class ExecutionResult:
 
 class ConfirmationProvider:
     """Interface for getting user confirmation."""
-    
+
     async def confirm(self, tool_name: str, parameters: dict, side_effects: str, description: str) -> bool:
         """Return True if user confirms, False otherwise."""
         raise NotImplementedError
@@ -71,25 +71,25 @@ class ConfirmationProvider:
 
 class CLIConfirmationProvider(ConfirmationProvider):
     """CLI-based confirmation using rich prompts."""
-    
+
     def __init__(self, auto_confirm: bool = False):
         self.auto_confirm = auto_confirm
-    
+
     async def confirm(self, tool_name: str, parameters: dict, side_effects: str, description: str) -> bool:
         if self.auto_confirm:
             return True
-        
+
         try:
             from rich.console import Console
             from rich.prompt import Confirm
-            
+
             console = Console()
             console.print(f"\n[yellow]⚠ Tool requires confirmation:[/yellow] {tool_name}")
             console.print(f"  Description: {description}")
             console.print(f"  Parameters: {json.dumps(parameters, indent=2)}")
             if side_effects:
                 console.print(f"  [red]Side effects:[/red] {side_effects}")
-            
+
             return Confirm.ask("  Proceed?", default=False)
         except Exception:
             # Fallback to simple input
@@ -124,7 +124,7 @@ class ToolExecutor:
     - State snapshots and rollback on failure
     - Tool chain execution with automatic rollback
     """
-    
+
     def __init__(
         self,
         root: Path,
@@ -137,17 +137,17 @@ class ToolExecutor:
         self.confirmation_provider = confirmation_provider or CLIConfirmationProvider()
         self.default_timeout = default_timeout
         self.on_progress = on_progress or (lambda _: None)
-        
+
         # Audit log
         self.invocation_log: list[ToolInvocation] = []
         self._log_path = root / ".patchi" / "logs" / "tool_invocations.jsonl"
         self._log_path.parent.mkdir(parents=True, exist_ok=True)
-        
+
         # Rollback state
         self._snapshots: dict[str, StateSnapshot] = {}
         self._snapshot_dir = root / ".patchi" / "snapshots"
         self._snapshot_dir.mkdir(parents=True, exist_ok=True)
-    
+
     async def execute(
         self,
         tool_name: str,
@@ -173,7 +173,7 @@ class ToolExecutor:
         """
         invocation_id = str(uuid.uuid4())[:8]
         start_time = time.monotonic()
-        
+
         # Create invocation record
         invocation = ToolInvocation(
             id=invocation_id,
@@ -183,23 +183,23 @@ class ToolExecutor:
             persona_name=persona_name,
             started_at=start_time,
         )
-        
+
         self.on_progress(f"🔧 Executing tool: {tool_name}")
         _log.info(f"Tool invocation {invocation_id}: {tool_name}({parameters}) by {invoked_by}")
-        
+
         try:
             # 1. Validate tool exists
             tool_def = self.registry.get_tool(tool_name)
             if not tool_def:
                 raise ValueError(f"Unknown tool: {tool_name}")
-            
+
             handler = self.registry.get_handler(tool_name)
             if not handler:
                 raise ValueError(f"No handler for tool: {tool_name}")
-            
+
             # 2. Validate parameters against schema
             validated_params = self._validate_parameters(tool_def, parameters)
-            
+
             # 3. Confirmation gate
             if tool_def.requires_confirmation and not skip_confirmation:
                 confirmed = await self.confirmation_provider.confirm(
@@ -216,49 +216,49 @@ class ToolExecutor:
                         invocation_id=invocation_id,
                         duration_ms=int((time.monotonic() - start_time) * 1000),
                     )
-            
+
             # 4. Execute with timeout
             exec_timeout = timeout or self.default_timeout
             result = await self._execute_with_timeout(
                 handler, validated_params, exec_timeout
             )
-            
+
             # 5. Normalize result
             normalized = self._normalize_result(result)
-            
+
             invocation.success = True
             invocation.result = normalized
             invocation.completed_at = time.monotonic()
-            
+
             self._log_invocation(invocation)
-            
+
             self.on_progress(f"✅ {tool_name} completed in {invocation.duration_ms}ms")
-            
+
             return ExecutionResult(
                 success=True,
                 result=normalized,
                 invocation_id=invocation_id,
                 duration_ms=invocation.duration_ms,
             )
-            
+
         except Exception as e:
             _log.error(f"Tool {tool_name} failed: {e}", exc_info=True)
             invocation.success = False
             invocation.error = str(e)
             invocation.completed_at = time.monotonic()
             self._log_invocation(invocation)
-            
+
             return ExecutionResult(
                 success=False,
                 error=str(e),
                 invocation_id=invocation_id,
                 duration_ms=int((time.monotonic() - start_time) * 1000),
             )
-    
+
     def _validate_parameters(self, tool_def: "ToolDefinition", parameters: dict) -> dict:
         """Validate and coerce parameters against tool schema."""
         validated = {}
-        
+
         for param in tool_def.parameters:
             if param.name in parameters:
                 value = parameters[param.name]
@@ -267,15 +267,15 @@ class ToolExecutor:
                 raise ValueError(f"Missing required parameter: {param.name}")
             elif param.default is not None:
                 validated[param.name] = param.default
-        
+
         # Check for unknown parameters
         known_params = {p.name for p in tool_def.parameters}
         unknown = set(parameters.keys()) - known_params
         if unknown:
             _log.warning(f"Tool {tool_def.name} received unknown parameters: {unknown}")
-        
+
         return validated
-    
+
     def _coerce_value(self, value: Any, param: "ToolParameter") -> Any:
         """Coerce a value to the expected type."""
         if param.type == "string":
@@ -289,6 +289,8 @@ class ToolExecutor:
                 return value.lower() in ("true", "1", "yes", "on")
             return bool(value)
         elif param.type == "array":
+            if value is None:
+                return None
             if isinstance(value, list):
                 return value
             return [value]
@@ -297,7 +299,7 @@ class ToolExecutor:
                 return value
             return {}
         return value
-    
+
     async def _execute_with_timeout(
         self,
         handler: Callable,
@@ -309,7 +311,7 @@ class ToolExecutor:
         sig = inspect.signature(handler)
         if "root" in sig.parameters:
             parameters["root"] = self.root
-        
+
         # Check if handler is async
         if inspect.iscoroutinefunction(handler):
             return await asyncio.wait_for(handler(**parameters), timeout=timeout)
@@ -325,7 +327,7 @@ class ToolExecutor:
             # internal timeouts (e.g. realize's PATCHI_AGENT_TIMEOUT) still bound
             # any individual tool that would otherwise hang.
             return handler(**parameters)
-    
+
     def _normalize_result(self, result: Any) -> dict:
         """Normalize tool result to a standard dict format."""
         if isinstance(result, dict):
@@ -337,11 +339,11 @@ class ToolExecutor:
             return {"success": True, "data": result}
         else:
             return {"success": True, "data": str(result)}
-    
+
     def _log_invocation(self, invocation: ToolInvocation) -> None:
         """Log invocation to audit trail."""
         self.invocation_log.append(invocation)
-        
+
         # Write to JSONL file
         try:
             log_entry = {
@@ -360,15 +362,15 @@ class ToolExecutor:
                 f.write(json.dumps(log_entry) + "\n")
         except Exception as e:
             _log.warning(f"Failed to write invocation log: {e}")
-    
+
     def get_invocation_history(self, limit: int = 100) -> list[ToolInvocation]:
         """Get recent invocation history."""
         return self.invocation_log[-limit:]
-    
+
     def get_tool_schemas(self, category: str = None) -> list[dict]:
         """Get JSON schemas for tools (for AI consumption)."""
         return self.registry.get_schemas(category)
-    
+
     def list_available_tools(self, category: str = None) -> list[dict]:
         """List available tools with metadata."""
         tools = self.registry.list_tools(category)
@@ -396,7 +398,7 @@ class ToolExecutor:
         """
         snapshot_id = str(uuid.uuid4())[:8]
         files: dict[str, bytes] = {}
-        
+
         # Snapshot common tool targets
         patterns = [
             "**/*.py",
@@ -407,7 +409,7 @@ class ToolExecutor:
             "**/*.cfg",
             "**/*.ini",
         ]
-        
+
         for pattern in patterns:
             for path in self.root.glob(pattern):
                 # Skip .patchi, .git, __pycache__, node_modules, venv
@@ -422,10 +424,10 @@ class ToolExecutor:
                         files[str(rel)] = content
                 except Exception:
                     pass
-        
+
         snapshot = StateSnapshot(id=snapshot_id, files=files)
         self._snapshots[snapshot_id] = snapshot
-        
+
         # Persist to disk for cross-session rollback
         snapshot_path = self._snapshot_dir / f"{snapshot_id}.json"
         try:
@@ -439,10 +441,10 @@ class ToolExecutor:
             snapshot_path.write_text(json.dumps(data), encoding="utf-8")
         except Exception as e:
             _log.warning(f"Failed to persist snapshot: {e}")
-        
+
         self.on_progress(f"📸 Snapshot {snapshot_id} created ({len(files)} files)")
         return snapshot_id
-    
+
     def rollback(self, snapshot_id: str) -> bool:
         """Restore files from a snapshot.
         
@@ -453,11 +455,11 @@ class ToolExecutor:
         if not snapshot:
             # Try loading from disk
             snapshot = self._load_snapshot(snapshot_id)
-        
+
         if not snapshot:
             _log.error(f"Snapshot {snapshot_id} not found")
             return False
-        
+
         restored = 0
         for rel_path, content in snapshot.files.items():
             full_path = self.root / rel_path
@@ -467,17 +469,17 @@ class ToolExecutor:
                 restored += 1
             except Exception as e:
                 _log.warning(f"Failed to restore {rel_path}: {e}")
-        
+
         self.on_progress(f"↩️ Rollback {snapshot_id} restored {restored} files")
         _log.info(f"Rollback {snapshot_id}: restored {restored}/{len(snapshot.files)} files")
         return True
-    
+
     def _load_snapshot(self, snapshot_id: str) -> StateSnapshot | None:
         """Load a snapshot from disk."""
         snapshot_path = self._snapshot_dir / f"{snapshot_id}.json"
         if not snapshot_path.exists():
             return None
-        
+
         try:
             import base64
             data = json.loads(snapshot_path.read_text(encoding="utf-8"))
@@ -490,7 +492,7 @@ class ToolExecutor:
         except Exception as e:
             _log.warning(f"Failed to load snapshot {snapshot_id}: {e}")
             return None
-    
+
     async def execute_with_rollback(
         self,
         tool_name: str,
@@ -505,12 +507,12 @@ class ToolExecutor:
         """
         # Create snapshot before execution
         snapshot_id = self.create_snapshot(f"pre-{tool_name}")
-        
+
         # Execute the tool
         result = await self.execute(
             tool_name, parameters, invoked_by, persona_name
         )
-        
+
         # Rollback on failure
         if not result.success:
             self.on_progress(f"⚠️ {tool_name} failed, rolling back...")
@@ -518,9 +520,9 @@ class ToolExecutor:
         else:
             # Clean up old snapshot on success
             self._cleanup_snapshot(snapshot_id)
-        
+
         return result
-    
+
     def _cleanup_snapshot(self, snapshot_id: str) -> None:
         """Remove a snapshot after successful use."""
         self._snapshots.pop(snapshot_id, None)
@@ -529,7 +531,7 @@ class ToolExecutor:
             snapshot_path.unlink(missing_ok=True)
         except Exception:
             pass
-    
+
     async def execute_chain(
         self,
         steps: list[dict],
@@ -548,18 +550,18 @@ class ToolExecutor:
         """
         results = []
         snapshot_id = self.create_snapshot("chain-pre-execution")
-        
+
         for i, step in enumerate(steps):
             tool_name = step.get("tool")
             parameters = step.get("parameters", {})
-            
+
             self.on_progress(f"🔗 Chain step {i+1}/{len(steps)}: {tool_name}")
-            
+
             result = await self.execute(
                 tool_name, parameters, invoked_by
             )
             results.append(result)
-            
+
             if not result.success and stop_on_failure:
                 self.on_progress(f"❌ Chain failed at step {i+1}, rolling back...")
                 self.rollback(snapshot_id)
@@ -570,12 +572,12 @@ class ToolExecutor:
                         error=f"Skipped: chain stopped at step {i+1}",
                     ))
                 break
-        
+
         # Clean up snapshot if chain succeeded
         all_success = all(r.success for r in results)
         if all_success:
             self._cleanup_snapshot(snapshot_id)
-        
+
         return results
 
 
@@ -589,14 +591,14 @@ def execute_tool_sync(
 ) -> ExecutionResult:
     """Synchronous tool execution for CLI use."""
     executor = ToolExecutor(root)
-    
+
     # Run async executor in event loop
     try:
         loop = asyncio.get_event_loop()
     except RuntimeError:
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
-    
+
     return loop.run_until_complete(
         executor.execute(tool_name, parameters, invoked_by, timeout=timeout)
     )

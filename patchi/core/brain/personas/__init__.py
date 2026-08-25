@@ -18,7 +18,7 @@ from patchi.core.brain.layered_brain import Layer
 @register_persona
 class ArchitectPersona(BasePersona):
     """The Architect — sees the big picture, guards structural integrity."""
-    
+
     def get_expertise_areas(self) -> list[str]:
         return [
             "architecture",
@@ -32,10 +32,10 @@ class ArchitectPersona(BasePersona):
             "technical_debt",
             "refactoring",
         ]
-    
+
     def get_style(self) -> PersonaStyle:
         return PersonaStyle.BALANCED
-    
+
     def get_system_prompt_additions(self) -> str:
         return """
 You are the ARCHITECT — the guardian of system structure and design integrity.
@@ -61,11 +61,11 @@ Your tool preferences:
 
 Your voice: Precise, structural, forward-looking. Use architectural terminology.
 """
-    
+
     def get_tool_permissions(self) -> list[str]:
         return [
             "scan_project",
-            "impact_analysis", 
+            "impact_analysis",
             "explain",
             "why",
             "ask",
@@ -74,7 +74,7 @@ Your voice: Precise, structural, forward-looking. Use architectural terminology.
             "query_findings",
             "get_config",
         ]
-    
+
     def analyze(self, issue: str, context: dict = None) -> "PersonaDecision":
         # Enhance context with architectural view
         arch_context = self._get_architectural_context(issue)
@@ -83,12 +83,12 @@ Your voice: Precise, structural, forward-looking. Use architectural terminology.
         else:
             context = arch_context
         return super().analyze(issue, context)
-    
+
     def _get_architectural_context(self, issue: str) -> dict:
         """Extract architectural context from brain layers."""
         relevant = {}
         issue_lower = issue.lower()
-        
+
         for name, layer in self.layers.items():
             if layer.level >= 2:  # Subsystem and project level
                 layer_text = f"{name} {layer.summary} {layer.purpose}".lower()
@@ -101,7 +101,7 @@ Your voice: Precise, structural, forward-looking. Use architectural terminology.
                         "dependents": layer.dependents,
                         "public_api": layer.public_api[:20],  # Limit
                     }
-        
+
         # Add circular dependencies if any
         from patchi.core import memory as mem
         brain = mem.get_brain(self.root)
@@ -111,14 +111,14 @@ Your voice: Precise, structural, forward-looking. Use architectural terminology.
                 {"label": c.get("short_label", ""), "files": c.get("files", [])}
                 for c in circular[:10]
             ]
-        
+
         return {"architectural_view": relevant}
 
 
 @register_persona
 class SecurityOfficerPersona(BasePersona):
     """The Security Officer — threat modeling, attack surfaces, defense."""
-    
+
     def get_expertise_areas(self) -> list[str]:
         return [
             "vulnerabilities",
@@ -136,10 +136,10 @@ class SecurityOfficerPersona(BasePersona):
             "encryption",
             "secure_coding",
         ]
-    
+
     def get_style(self) -> PersonaStyle:
         return PersonaStyle.CAUTIOUS
-    
+
     def get_system_prompt_additions(self) -> str:
         return """
 You are the SECURITY OFFICER — the guardian against threats and vulnerabilities.
@@ -165,7 +165,7 @@ Your tool preferences:
 
 Your voice: Vigilant, precise, risk-quantified. Reference standards (OWASP, CWE, CVE).
 """
-    
+
     def get_tool_permissions(self) -> list[str]:
         return [
             "scan_vulns",
@@ -184,7 +184,7 @@ Your voice: Vigilant, precise, risk-quantified. Reference standards (OWASP, CWE,
 @register_persona
 class TestEngineerPersona(BasePersona):
     """The Test Engineer — quality, coverage, reliability, test strategy."""
-    
+
     def get_expertise_areas(self) -> list[str]:
         return [
             "unit_testing",
@@ -200,10 +200,10 @@ class TestEngineerPersona(BasePersona):
             "visual_regression",
             "accessibility_testing",
         ]
-    
+
     def get_style(self) -> PersonaStyle:
         return PersonaStyle.PRAGMATIC
-    
+
     def get_system_prompt_additions(self) -> str:
         return """
 You are the TEST ENGINEER — the advocate for verified quality.
@@ -229,7 +229,7 @@ Your tool preferences:
 
 Your voice: Practical, coverage-aware, automation-focused. Think in test pyramids.
 """
-    
+
     def get_tool_permissions(self) -> list[str]:
         return [
             "run_tests",
@@ -248,7 +248,7 @@ Your voice: Practical, coverage-aware, automation-focused. Think in test pyramid
 @register_persona
 class PerformanceAnalystPersona(BasePersona):
     """The Performance Analyst — bottlenecks, scalability, resource optimization."""
-    
+
     def get_expertise_areas(self) -> list[str]:
         return [
             "performance",
@@ -264,10 +264,10 @@ class PerformanceAnalystPersona(BasePersona):
             "resource_management",
             "load_testing",
         ]
-    
+
     def get_style(self) -> PersonaStyle:
         return PersonaStyle.BALANCED
-    
+
     def get_system_prompt_additions(self) -> str:
         return """
 You are the PERFORMANCE ANALYST — the hunter of bottlenecks and waste.
@@ -293,7 +293,7 @@ Your tool preferences:
 
 Your voice: Data-driven, quantitative, tradeoff-aware. Show the numbers.
 """
-    
+
     def get_tool_permissions(self) -> list[str]:
         return [
             "stress_test",
@@ -309,7 +309,7 @@ Your voice: Data-driven, quantitative, tradeoff-aware. Show the numbers.
 @register_persona
 class DevOpsEngineerPersona(BasePersona):
     """The DevOps Engineer — deployment, infrastructure, CI/CD, observability."""
-    
+
     def get_expertise_areas(self) -> list[str]:
         return [
             "ci_cd",
@@ -325,10 +325,10 @@ class DevOpsEngineerPersona(BasePersona):
             "rollback_strategy",
             "feature_flags",
         ]
-    
+
     def get_style(self) -> PersonaStyle:
         return PersonaStyle.PRAGMATIC
-    
+
     def get_system_prompt_additions(self) -> str:
         return """
 You are the DEVOPS ENGINEER — the builder of reliable delivery pipelines.
@@ -355,7 +355,7 @@ Your tool preferences:
 
 Your voice: Automation-first, reliability-focused, pipeline-aware.
 """
-    
+
     def get_tool_permissions(self) -> list[str]:
         return [
             "get_config",
@@ -370,7 +370,7 @@ Your voice: Automation-first, reliability-focused, pipeline-aware.
 @register_persona
 class CodeReviewerPersona(BasePersona):
     """The Code Reviewer — code quality, patterns, maintainability, docs."""
-    
+
     def get_expertise_areas(self) -> list[str]:
         return [
             "code_quality",
@@ -385,10 +385,10 @@ class CodeReviewerPersona(BasePersona):
             "style_consistency",
             "error_handling",
         ]
-    
+
     def get_style(self) -> PersonaStyle:
         return PersonaStyle.BALANCED
-    
+
     def get_system_prompt_additions(self) -> str:
         return """
 You are the CODE REVIEWER — the keeper of craftsmanship and clarity.
@@ -414,7 +414,7 @@ Your tool preferences:
 
 Your voice: Constructive, specific, educational. Show the better way.
 """
-    
+
     def get_tool_permissions(self) -> list[str]:
         return [
             "explain",
@@ -430,7 +430,7 @@ Your voice: Constructive, specific, educational. Show the better way.
 @register_persona
 class ProductOwnerPersona(BasePersona):
     """The Product Owner — business logic, user flows, requirements, acceptance."""
-    
+
     def get_expertise_areas(self) -> list[str]:
         return [
             "business_logic",
@@ -444,10 +444,10 @@ class ProductOwnerPersona(BasePersona):
             "compliance_business",
             "domain_knowledge",
         ]
-    
+
     def get_style(self) -> PersonaStyle:
         return PersonaStyle.PRAGMATIC
-    
+
     def get_system_prompt_additions(self) -> str:
         return """
 You are the PRODUCT OWNER — the voice of the user and the business.
@@ -473,7 +473,7 @@ Your tool preferences:
 
 Your voice: User-centric, outcome-focused, priority-aware.
 """
-    
+
     def get_tool_permissions(self) -> list[str]:
         return [
             "ask",
@@ -489,7 +489,7 @@ Your voice: User-centric, outcome-focused, priority-aware.
 @register_persona
 class IncidentResponderPersona(BasePersona):
     """The Incident Responder — runtime issues, debugging, root cause, recovery."""
-    
+
     def get_expertise_areas(self) -> list[str]:
         return [
             "debugging",
@@ -503,10 +503,10 @@ class IncidentResponderPersona(BasePersona):
             "alerting",
             "recovery",
         ]
-    
+
     def get_style(self) -> PersonaStyle:
         return PersonaStyle.AGGRESSIVE
-    
+
     def get_system_prompt_additions(self) -> str:
         return """
 You are the INCIDENT RESPONDER — the calm in the storm, the finder of root causes.
@@ -533,7 +533,7 @@ Your tool preferences:
 
 Your voice: Urgent but methodical, hypothesis-driven, learning-oriented.
 """
-    
+
     def get_tool_permissions(self) -> list[str]:
         return [
             "query_findings",

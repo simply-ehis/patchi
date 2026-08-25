@@ -17,7 +17,6 @@ fixed deliberately. Run it with ``python -m patchi.core.ai.agent_audit``.
 
 from __future__ import annotations
 
-import asyncio
 import inspect
 import logging
 from dataclasses import dataclass, field
@@ -80,7 +79,7 @@ def audit(root: Path | None = None) -> AuditReport:
     except Exception:
         pass
 
-    from patchi.core.agents.base import AgentGroup, list_agents
+    from patchi.core.agents.base import list_agents
 
     for group in _all_groups():
         report.groups_scanned.append(group.value)

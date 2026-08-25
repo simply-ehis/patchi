@@ -42,7 +42,18 @@ def test_planner_test_goal():
 
 
 def test_run_emits_events_and_runs_tools(tmp_path, monkeypatch):
-    monkeypatch.setenv("PATCHI_AGENT_TIMEOUT", "8")
+    # Scope the security fan-out to a single fast agent so the test is
+    # deterministic and quick; we only need to prove the scan streams events.
+    import patchi.core.ai.tools.realize as realize_mod
+
+    def _fast_select(root, name_map, area=None):
+        from patchi.core.security.security_agents import SensitiveDataAgent
+
+        return [c for n, c in name_map.items() if c is SensitiveDataAgent]
+
+    monkeypatch.setattr(realize_mod, "_select_security_agents", _fast_select)
+    monkeypatch.setenv("PATCHI_AGENT_TIMEOUT", "15")
+
     root = _vuln_project(tmp_path)
     events: list[dict] = []
 

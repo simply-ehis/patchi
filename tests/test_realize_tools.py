@@ -121,7 +121,7 @@ def test_stress_test_real_load(tmp_path):
         assert res["success"] is True
         assert res["requests"] > 0
         assert 0.0 <= res["error_rate"] <= 1.0
-        assert res["p95"] >= 0
+        assert res["p95_ms"] >= 0
     finally:
         srv.shutdown()
 

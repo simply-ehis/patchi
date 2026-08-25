@@ -19,7 +19,7 @@ import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Callable, Optional
+from typing import Callable
 
 import yaml
 
@@ -557,7 +557,7 @@ class RedTeamEngine:
     
     Orchestrates attack scenarios, manages execution, and produces reports.
     """
-    
+
     def __init__(
         self,
         root: Path,
@@ -572,12 +572,12 @@ class RedTeamEngine:
         self.scenarios_dir = root / "patchi" / "core" / "security" / "attack_scenarios"
         self._scenarios_cache: dict[str, dict] = {}
         self.domain_loader = DomainLoader(root)
-    
+
     def _load_scenarios(self) -> dict[str, dict]:
         """Load all attack scenarios from YAML files."""
         if self._scenarios_cache:
             return self._scenarios_cache
-        
+
         scenarios = {}
         if self.scenarios_dir.exists():
             for yaml_file in self.scenarios_dir.glob("*.yaml"):
@@ -589,10 +589,10 @@ class RedTeamEngine:
                             scenarios[scenario["id"]] = scenario
                 except Exception as e:
                     _log.warning(f"Failed to load scenarios from {yaml_file}: {e}")
-        
+
         self._scenarios_cache = scenarios
         return scenarios
-    
+
     def select_scenarios(
         self,
         project_context: dict,
@@ -603,12 +603,12 @@ class RedTeamEngine:
         """Select relevant attack scenarios based on project context."""
         all_scenarios = self._load_scenarios()
         forced_scenarios = forced_scenarios or []
-        
+
         # Get active security domains
         active_domains = project_context.get("active_security_domains", [])
         frameworks = [f.get("name", "").lower() for f in project_context.get("frameworks", [])]
         component_type = project_context.get("component_type", "")
-        
+
         # Score scenarios
         # Active domains use compound ids ("injection-sql"); scenario categories
         # are simple tokens ("injection", "sql"). Match on both the full id and
@@ -667,17 +667,17 @@ class RedTeamEngine:
 
             if score > 0:
                 scored.append((score, scenario))
-        
+
         # Sort by score
         scored.sort(key=lambda x: x[0], reverse=True)
-        
+
         # Limit based on intensity
         max_scenarios = {"passive": 10, "active": 25, "aggressive": 50}.get(intensity, 25)
         selected = [s for _, s in scored[:max_scenarios]]
-        
+
         _log.info(f"Selected {len(selected)} scenarios for {scope}/{intensity} assessment")
         return selected
-    
+
     async def run_assessment(
         self,
         project_context: dict,
@@ -689,17 +689,17 @@ class RedTeamEngine:
         """Run a complete red team assessment."""
         assessment_id = f"rt-{uuid.uuid4().hex[:8]}"
         start_time = time.monotonic()
-        
+
         self.on_progress(f"🎯 Starting Red Team Assessment: {assessment_id}")
         self.on_progress(f"   Scope: {scope} | Intensity: {intensity} | Safe Mode: {self.safe_mode}")
-        
+
         # Select scenarios
         scenarios = self.select_scenarios(project_context, scope, intensity, forced_scenarios)
         if max_scenarios:
             scenarios = scenarios[:max_scenarios]
-        
+
         self.on_progress(f"📋 Selected {len(scenarios)} attack scenarios")
-        
+
         # Initialize executor
         evidence_dir = self.root / ".patchi" / "evidence" / assessment_id
         executor = AttackExecutor(
@@ -710,28 +710,28 @@ class RedTeamEngine:
             evidence_dir=evidence_dir,
         )
         await executor.initialize()
-        
+
         report = RedTeamReport(
             assessment_id=assessment_id,
             project_root=str(self.root),
             scope=scope,
             intensity=intensity,
         )
-        
+
         try:
             # Run scenarios
             for i, scenario in enumerate(scenarios):
                 self.on_progress(f"⚔️  Scenario {i+1}/{len(scenarios)}: {scenario['name']}")
-                
+
                 result = await self._run_scenario(scenario, executor, project_context)
                 report.scenarios_run.append(result)
-                
+
                 # Count findings
                 report.total_findings += len(result.findings)
                 for finding in result.findings:
                     sev = finding.severity.value
                     report.by_severity[sev] = report.by_severity.get(sev, 0) + 1
-                
+
                 # Collect remediation playbooks
                 playbook = scenario.get("remediation_playbook")
                 if playbook and playbook not in report.remediation_playbooks:
@@ -750,14 +750,14 @@ class RedTeamEngine:
 
         report.completed_at = datetime.now(timezone.utc).isoformat()
         report.duration_ms = int((time.monotonic() - start_time) * 1000)
-        
+
         self.on_progress(f"✅ Assessment complete: {report.total_findings} findings in {report.duration_ms}ms")
-        
+
         # Save report
         await self._save_report(report)
-        
+
         return report
-    
+
     async def _run_scenario(
         self,
         scenario: dict,
@@ -767,47 +767,47 @@ class RedTeamEngine:
         """Run a single attack scenario."""
         scenario_id = scenario["id"]
         start_time = time.monotonic()
-        
+
         result = ScenarioResult(
             scenario_id=scenario_id,
             scenario_name=scenario["name"],
             status="running",
             total_steps=len(scenario.get("attack_steps", [])),
         )
-        
+
         steps = scenario.get("attack_steps", [])
         context = {"scenario": scenario, "project_context": project_context}
-        
+
         for step in steps:
             step_result = await executor.execute_step(step, scenario, context)
             result.step_results.append(step_result)
             result.steps_completed += 1
-            
+
             if not step_result.success and step.get("required", True):
                 result.status = "failed"
                 break
-        
+
         if result.status == "running":
             result.status = "success"
-        
+
         # Generate findings from successful steps
         result.findings = self._generate_findings(scenario, result)
-        
+
         # Collect exploit evidence
         result.exploit_evidence = self._collect_evidence(scenario, result)
-        
+
         result.completed_at = datetime.now(timezone.utc).isoformat()
         result.duration_ms = int((time.monotonic() - start_time) * 1000)
-        
+
         return result
-    
+
     def _generate_findings(self, scenario: dict, result: ScenarioResult) -> list[Finding]:
         """Generate findings from scenario results."""
         findings = []
-        
+
         if result.status != "success":
             return findings
-        
+
         # Create finding based on scenario
         finding = Finding(
             agent="RedTeamEngine",
@@ -827,7 +827,7 @@ class RedTeamEngine:
             },
         )
         findings.append(finding)
-        
+
         # Add findings for each successful step with evidence
         for step_result in result.step_results:
             if step_result.success and step_result.evidence:
@@ -842,9 +842,9 @@ class RedTeamEngine:
                     tags=["evidence", "step"],
                 )
                 findings.append(step_finding)
-        
+
         return findings
-    
+
     def _collect_evidence(self, scenario: dict, result: ScenarioResult) -> dict:
         """Collect exploit evidence for reporting."""
         return {
@@ -862,11 +862,11 @@ class RedTeamEngine:
             "detection_signatures": scenario.get("detection_signatures", []),
             "verification_method": scenario.get("verification", []),
         }
-    
+
     async def _save_report(self, report: RedTeamReport):
         """Save report to memory and file."""
         from patchi.core import memory as mem
-        
+
         # Save to scan results
         mem.save_scan_result(
             "RedTeamEngine",
@@ -882,11 +882,11 @@ class RedTeamEngine:
             },
             self.root,
         )
-        
+
         # Save detailed report as JSON
         report_path = self.root / ".patchi" / "reports" / f"redteam_{report.assessment_id}.json"
         report_path.parent.mkdir(parents=True, exist_ok=True)
-        
+
         import json
         report_data = {
             "assessment_id": report.assessment_id,
@@ -913,12 +913,12 @@ class RedTeamEngine:
             ],
             "remediation_playbooks": report.remediation_playbooks,
         }
-        
+
         try:
             report_path.write_text(json.dumps(report_data, indent=2))
         except Exception as e:
             _log.warning(f"Failed to save red team report: {e}")
-    
+
     async def verify_fixes(
         self,
         patch_ids: list[str],
@@ -926,21 +926,20 @@ class RedTeamEngine:
     ) -> dict:
         """Verify fixes by re-running relevant attack scenarios."""
         self.on_progress(f"🔍 Verifying {len(patch_ids)} fixes...")
-        
+
         # Get findings associated with patches
-        from patchi.core import memory as mem
         from patchi.core.fix.patch import list_patches
-        
+
         patches = list_patches(self.root)
         relevant_findings = []
-        
+
         for patch_id in patch_ids:
             patch = next((p for p in patches if p.get("id") == patch_id), None)
             if patch:
                 # Find related findings
                 for sr in patches:  # This is wrong, should get scan results
                     pass
-        
+
         # For now, run a focused assessment
         verification_report = await self.run_assessment(
             project_context,
@@ -948,12 +947,12 @@ class RedTeamEngine:
             intensity="active",
             max_scenarios=10,
         )
-        
+
         verified = 0
         for sr in verification_report.scenarios_run:
             if sr.status != "success":
                 verified += 1
-        
+
         return {
             "verified_fixes": verified,
             "total_patches": len(patch_ids),
@@ -975,7 +974,7 @@ async def run_red_team(
     # Get project context from brain
     from patchi.core import memory as mem
     brain = mem.get_brain(root)
-    
+
     project_context = {
         "project_purpose": brain.get("project_purpose", ""),
         "project_domain": brain.get("project_domain", ""),
@@ -983,7 +982,7 @@ async def run_red_team(
         "active_security_domains": brain.get("active_security_domains", []),
         "component_type": brain.get("component_type", ""),
     }
-    
+
     engine = RedTeamEngine(root, target_url, safe_mode, on_progress)
     return await engine.run_assessment(project_context, scope, intensity)
 
@@ -992,11 +991,11 @@ async def run_red_team(
 @register
 class RedTeamEngineAgent(BaseAgent):
     """Red Team Engine as a Patchi agent."""
-    
+
     name = "RedTeamEngineAgent"
     group = AgentGroup.SECURITY
     timeout = 600  # 10 minutes
-    
+
     def _run(self, inp: AgentInput, result: AgentResult) -> None:
         # Get project context from brain
         project_context = {
@@ -1006,13 +1005,13 @@ class RedTeamEngineAgent(BaseAgent):
             "active_security_domains": inp.brain.get("active_security_domains", []),
             "component_type": inp.brain.get("component_type", ""),
         }
-        
+
         # Get config
         target_url = inp.extra.get("target_url")
         safe_mode = inp.extra.get("safe_mode", True)
         scope = inp.extra.get("scope", "full")
         intensity = inp.extra.get("intensity", "active")
-        
+
         # Run assessment
         async def run():
             engine = RedTeamEngine(
@@ -1022,20 +1021,20 @@ class RedTeamEngineAgent(BaseAgent):
                 on_progress=lambda m: result.add_log(m),
             )
             return await engine.run_assessment(project_context, scope, intensity)
-        
+
         try:
             loop = asyncio.get_event_loop()
         except RuntimeError:
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
-        
+
         report = loop.run_until_complete(run())
-        
+
         # Add findings to result
         for sr in report.scenarios_run:
             for finding in sr.findings:
                 result.add_finding(finding)
-        
+
         result.data["red_team_report"] = {
             "assessment_id": report.assessment_id,
             "total_findings": report.total_findings,

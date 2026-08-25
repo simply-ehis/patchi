@@ -18,8 +18,7 @@ import statistics
 import time
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from pathlib import Path
-from typing import Any, Callable, Optional
+from typing import Any, Callable
 
 _log = logging.getLogger("patchi.testing.stress_orchestrator")
 
@@ -110,7 +109,7 @@ class StressOrchestrator:
         orchestrator = StressOrchestrator(config)
         report = await orchestrator.run()
     """
-    
+
     def __init__(
         self,
         config: StressConfig,
@@ -124,15 +123,15 @@ class StressOrchestrator:
         self._start_time = 0
         self._results: list[RequestResult] = []
         self._time_series: list[dict] = []
-    
+
     async def run(self) -> StressTestReport:
         """Run the stress test based on scenario."""
         self._start_time = time.time()
         started_at = datetime.now(timezone.utc).isoformat()
-        
+
         # Initialize HTTP session
         await self._init_session()
-        
+
         try:
             if self.config.scenario == "load":
                 await self._run_load_test()
@@ -148,12 +147,12 @@ class StressOrchestrator:
                 raise ValueError(f"Unknown scenario: {self.config.scenario}")
         finally:
             await self._close_session()
-        
+
         completed_at = datetime.now(timezone.utc).isoformat()
         duration = time.time() - self._start_time
-        
+
         return self._generate_report(started_at, completed_at, duration)
-    
+
     async def _init_session(self):
         """Initialize aiohttp session."""
         try:
@@ -165,174 +164,174 @@ class StressOrchestrator:
         except ImportError:
             _log.error("aiohttp not installed. Install with: pip install aiohttp")
             raise
-    
+
     async def _close_session(self):
         """Close aiohttp session."""
         if self._session:
             await self._session.close()
-    
+
     async def _run_load_test(self):
         """Run steady-state load test."""
         self.on_progress(f"🚀 Starting load test: {self.config.users} users for {self.config.duration_seconds}s")
-        
+
         # Ramp up users
         await self._ramp_up_users(self.config.users, self.config.ramp_up_seconds)
-        
+
         # Steady state
         steady_duration = self.config.duration_seconds - self.config.ramp_up_seconds
         if steady_duration > 0:
             await self._run_steady_state(steady_duration)
-        
+
         # Ramp down
         await self._ramp_down_users()
-    
+
     async def _run_spike_test(self):
         """Run spike test: baseline -> spike -> baseline."""
         self.on_progress(f"⚡ Starting spike test: {self.config.users} baseline -> {int(self.config.users * self.config.spike_multiplier)} spike")
-        
+
         # Baseline
         await self._ramp_up_users(self.config.users, self.config.ramp_up_seconds)
         baseline_duration = (self.config.duration_seconds - self.config.spike_duration_seconds) // 2
         await self._run_steady_state(baseline_duration)
-        
+
         # Spike
         spike_users = int(self.config.users * self.config.spike_multiplier)
         self.on_progress(f"📈 Spiking to {spike_users} users")
         await self._ramp_up_users(spike_users, 5)  # Fast ramp
         await self._run_steady_state(self.config.spike_duration_seconds)
-        
+
         # Return to baseline
-        self.on_progress(f"📉 Returning to baseline")
+        self.on_progress("📉 Returning to baseline")
         await self._ramp_down_users(spike_users - self.config.users)
         await self._run_steady_state(baseline_duration)
-        
+
         # Final ramp down
         await self._ramp_down_users()
-    
+
     async def _run_soak_test(self):
         """Run long-duration soak test."""
         self.on_progress(f"🏃 Starting soak test: {self.config.users} users for {self.config.duration_seconds}s")
-        
+
         await self._ramp_up_users(self.config.users, self.config.ramp_up_seconds)
-        
+
         # Run with periodic checks
         elapsed = 0
         check_interval = self.config.soak_check_interval
-        
+
         while elapsed < self.config.duration_seconds - self.config.ramp_up_seconds:
             remaining = min(check_interval, self.config.duration_seconds - self.config.ramp_up_seconds - elapsed)
             await self._run_steady_state(remaining)
             elapsed += remaining
-            
+
             # Check for degradation
             await self._check_soak_health()
-        
+
         await self._ramp_down_users()
-    
+
     async def _run_breakpoint_test(self):
         """Run breakpoint test: gradually increase load until failure."""
         self.on_progress(f"🔍 Starting breakpoint test: up to {self.config.max_users} users")
-        
+
         current_users = self.config.step_users
         breakpoint_found = False
-        
+
         while current_users <= self.config.max_users and not breakpoint_found:
             self.on_progress(f"  Testing {current_users} users...")
-            
+
             await self._ramp_up_users(current_users, self.config.ramp_up_seconds)
             await self._run_steady_state(self.config.step_duration)
-            
+
             # Check if system is degrading
             if await self._check_breakpoint():
                 breakpoint_found = True
                 self.on_progress(f"💥 Breakpoint found at {current_users} users")
                 break
-            
+
             # Ramp down before next step
             await self._ramp_down_users()
             current_users += self.config.step_users
-        
+
         if not breakpoint_found:
             self.on_progress(f"✅ No breakpoint found up to {self.config.max_users} users")
-    
+
     async def _ramp_up_users(self, target_users: int, duration: float):
         """Gradually ramp up virtual users."""
         if target_users <= len(self._users):
             return
-        
+
         users_to_add = target_users - len(self._users)
         interval = duration / users_to_add if users_to_add > 0 else 0
-        
+
         for i in range(users_to_add):
             user_id = len(self._users) + 1
             self._users.append(UserSession(user_id=user_id, start_time=time.time()))
-            
+
             # Start user task
             asyncio.create_task(self._run_user(user_id))
-            
+
             if interval > 0:
                 await asyncio.sleep(interval)
-        
+
         self.on_progress(f"  Ramped up to {target_users} users")
-    
+
     async def _ramp_down_users(self, count: int = None):
         """Ramp down virtual users."""
         if count is None:
             count = len(self._users)
-        
+
         for _ in range(min(count, len(self._users))):
             if self._users:
                 user = self._users.pop()
                 user.active = False
-        
+
         self.on_progress(f"  Ramped down to {len(self._users)} users")
-    
+
     async def _run_steady_state(self, duration: float):
         """Run steady state for specified duration."""
         end_time = time.time() + duration
-        
+
         while time.time() < end_time and self._running:
             # Collect time series data
             await self._collect_time_series()
             await asyncio.sleep(1)
-    
+
     async def _run_user(self, user_id: int):
         """Run a single virtual user's workload."""
         user = next((u for u in self._users if u.user_id == user_id), None)
         if not user:
             return
-        
+
         endpoints = self.config.endpoints or [{"method": "GET", "path": "/"}]
-        
+
         while user.active and self._running:
             # Select endpoint
             endpoint = random.choice(endpoints)
             method = endpoint.get("method", "GET")
             path = endpoint.get("path", "/")
             url = f"{self.config.base_url.rstrip('/')}{path}"
-            
+
             # Execute request
             result = await self._make_request(method, url)
             user.results.append(result)
             self._results.append(result)
-            
+
             # Think time
             if self.config.think_time_ms > 0:
                 await asyncio.sleep(self.config.think_time_ms / 1000)
-            
+
             # Rate limiting
             if self.config.requests_per_second:
                 await asyncio.sleep(1.0 / self.config.requests_per_second)
-    
+
     async def _make_request(self, method: str, url: str) -> RequestResult:
         """Make an HTTP request and record result."""
         start = time.time()
-        
+
         try:
             async with self._session.request(method, url) as response:
                 await response.read()
                 response_time = (time.time() - start) * 1000
-                
+
                 return RequestResult(
                     timestamp=time.time(),
                     method=method,
@@ -353,12 +352,12 @@ class StressOrchestrator:
                 success=False,
                 error=str(e),
             )
-    
+
     async def _collect_time_series(self):
         """Collect time series metrics."""
         now = time.time()
         recent = [r for r in self._results if now - r.timestamp < 5]
-        
+
         if recent:
             latencies = [r.response_time_ms for r in recent]
             self._time_series.append({
@@ -369,44 +368,44 @@ class StressOrchestrator:
                 "error_rate": sum(1 for r in recent if not r.success) / len(recent),
                 "active_users": len([u for u in self._users if u.active]),
             })
-    
+
     async def _check_soak_health(self) -> bool:
         """Check system health during soak test."""
         # Check for memory leaks, error rate increase, latency degradation
         recent = [r for r in self._results if time.time() - r.timestamp < 60]
         if not recent:
             return True
-        
+
         error_rate = sum(1 for r in recent if not r.success) / len(recent)
         if error_rate > 0.05:  # 5% error rate
             self.on_progress(f"⚠️ High error rate: {error_rate:.1%}")
             return False
-        
+
         latencies = [r.response_time_ms for r in recent]
         p99 = self._percentile(latencies, 99)
         if p99 > 10000:  # 10 seconds
             self.on_progress(f"⚠️ High latency P99: {p99:.0f}ms")
             return False
-        
+
         return True
-    
+
     async def _check_breakpoint(self) -> bool:
         """Check if breakpoint has been reached."""
         recent = [r for r in self._results if time.time() - r.timestamp < 10]
         if not recent:
             return False
-        
+
         error_rate = sum(1 for r in recent if not r.success) / len(recent)
         if error_rate > 0.10:  # 10% error rate
             return True
-        
+
         latencies = [r.response_time_ms for r in recent]
         p99 = self._percentile(latencies, 99)
         if p99 > 30000:  # 30 seconds
             return True
-        
+
         return False
-    
+
     def _percentile(self, data: list[float], percentile: int) -> float:
         """Calculate percentile."""
         if not data:
@@ -414,7 +413,7 @@ class StressOrchestrator:
         sorted_data = sorted(data)
         index = int(len(sorted_data) * percentile / 100)
         return sorted_data[min(index, len(sorted_data) - 1)]
-    
+
     def _generate_report(
         self,
         started_at: str,
@@ -440,16 +439,16 @@ class StressOrchestrator:
                 user_sessions=len(self._users),
                 peak_users=max(len(self._users), 1),
             )
-        
+
         latencies = [r.response_time_ms for r in self._results]
         status_codes = {}
         errors = {}
-        
+
         for r in self._results:
             status_codes[str(r.status_code)] = status_codes.get(str(r.status_code), 0) + 1
             if not r.success:
                 errors[r.error or "unknown"] = errors.get(r.error or "unknown", 0) + 1
-        
+
         return StressTestReport(
             config=self.config,
             started_at=started_at,

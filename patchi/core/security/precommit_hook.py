@@ -46,8 +46,8 @@ def generate_hook(
     if with_scan:
         lines.append("#   " + str(3 if with_tests else 2) + ". p scan --changed (security)")
 
-    lines.append('set -e')
-    lines.append("")
+    # NOTE: no `set -e` — each step checks $? manually so warnings
+    # are non-blocking when STRICT=0.
     lines.append('STRICT=' + ('1' if strict else '0'))
     lines.append('FAIL=0')
     lines.append("")
