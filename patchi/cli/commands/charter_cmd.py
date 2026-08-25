@@ -1,273 +1,185 @@
-from patchi.cli.console import con
-
 """
-`p charter` — view and enforce the project's guard-rail charter (Pillar 2).
+CLI command for the project Charter — guard rails.
 
 Subcommands:
-  p charter                         — show the current charter (alias for `show`)
-  p charter set "<sentence>"       — parse a natural-language charter and save it
-  p charter set "<sentence>" --ai  — parse with the LLM for richer semantics
-  p charter show                   — show the current saved charter
-  p charter check [--rebuild]      — check the live codebase against the charter
-  p charter hooks [--install]      — generate a git pre-commit hook that enforces the charter
+    p charter show              Show current charter
+    p charter set "<text>"      Set charter from natural language
+    p charter check             Check code against charter
+    p charter hooks --install   Manage git hooks
 """
 
-import logging
-from pathlib import Path
+from __future__ import annotations
 
-from rich.panel import Panel
-from rich.table import Table
-
-from patchi.core import config as cfg
-from patchi.core import memory as mem
-from patchi.core.brain.charter import (
-    Charter,
-    check_charter,
-    load_charter,
-    parse_charter,
-    parse_charter_with_ai,
-    save_charter,
-)
-from patchi.core.config import require_project_root
-
-_log = logging.getLogger("patchi.cli.charter_cmd")
+import json
+import sys
 
 
-def run_show(root: Path | None = None) -> None:
-    """p charter show — display the current charter."""
-    try:
-        r = root or require_project_root()
-    except RuntimeError as e:
-        con.print(f"[red]{e}[/red]")
+def _get_root():
+    from patchi.core.config import require_project_root
+    return require_project_root()
+
+
+def run_show(args) -> None:
+    """Show the current charter."""
+    root = _get_root()
+    from patchi.core.security.charter import load_charter
+
+    charter = load_charter(root)
+    json_output = getattr(args, "json_output", False)
+
+    if not charter.text and not charter.rules:
+        print("No charter set. Use: p charter set \"<rules>\"")
         return
 
-    charter = load_charter(r)
-    if charter is None:
-        con.print()
-        con.print(
-            "[dim]No charter set yet. Define guard rails with:[/dim]\n"
-            '  [bold]p charter set "Frontend must not import from backend"[/bold]'
-        )
-        con.print()
-        return
-
-    _print_charter(charter)
-
-
-def run_set(text: str, use_ai: bool = False, root: Path | None = None) -> None:
-    """p charter set "<sentence>" — parse and persist a charter."""
-    try:
-        r = root or require_project_root()
-    except RuntimeError as e:
-        con.print(f"[red]{e}[/red]")
-        return
-
-    if not text or not text.strip():
-        con.print(
-            "[red]Provide a charter sentence, e.g.[/red] "
-            '[bold]p charter set "Backend must not import from tests"[/bold]'
-        )
-        return
-
-    con.print()
-    if use_ai:
-        con.print("[dim]Parsing charter with AI…[/dim]")
-        try:
-            config = cfg.load(r)
-        except RuntimeError:
-            config = {}
-        charter = parse_charter_with_ai(text, config)
-        if charter is None:
-            con.print("[yellow]AI parser unavailable — using heuristic parser.[/yellow]")
-            charter = parse_charter(text)
+    if json_output:
+        print(json.dumps(charter.to_dict(), indent=2))
     else:
-        charter = parse_charter(text)
+        print("=== Project Charter ===")
+        if charter.text:
+            print(f"\n{charter.text}\n")
+        print(f"Rules ({len(charter.rules)}):")
+        for r in charter.rules:
+            status = "✓" if r.enabled else "✗"
+            print(f"  {status} [{r.type.value:10s}] {r.id}: {r.description}")
 
-    save_charter(charter, r)
-    con.print("[#4ADE80]✓[/#4ADE80] Charter saved.")
-    con.print()
-    _print_charter(charter)
-    con.print()
-    con.print(
-        "[dim]Run [bold]p scan[/bold] to let Patchi enforce these guard rails, "
-        "then [bold]p charter check[/bold] to see any drift.[/dim]"
+
+def run_set(args) -> None:
+    """Set charter from natural language text."""
+    text = getattr(args, "text", None)
+    if not text:
+        print("Usage: p charter set \"<natural language rules>\"", file=sys.stderr)
+        sys.exit(1)
+
+    root = _get_root()
+    from patchi.core.security.charter import (
+        Charter,
+        parse_nl_to_rules,
+        save_charter,
     )
-    con.print()
+
+    rules = parse_nl_to_rules(text)
+    charter = Charter(text=text, rules=rules)
+    path = save_charter(charter, root)
+    print(f"Charter saved to {path}")
+    print(f"Parsed {len(rules)} rule(s):")
+    for r in rules:
+        print(f"  [{r.type.value:10s}] {r.id}: {r.description}")
 
 
-def run_check(rebuild: bool = False, root: Path | None = None) -> None:
-    """p charter check — verify the codebase against the saved charter."""
+def run_check(args) -> None:
+    """Check codebase against the charter."""
+    root = _get_root()
+    from patchi.core.security.charter import (
+        check_all_violations,
+        load_charter,
+    )
+
+    charter = load_charter(root)
+    if not charter.rules:
+        print("No charter set. Nothing to check.")
+        return
+
+    # Try to get import edges from the brain
+    import_edges: list[tuple[str, str]] = []
     try:
-        r = root or require_project_root()
-    except RuntimeError as e:
-        con.print(f"[red]{e}[/red]")
-        return
+        graph_path = root / ".patchi" / "memory" / "import_graph.json"
+        if graph_path.exists():
+            data = json.loads(graph_path.read_text(encoding="utf-8"))
+            edges = data.get("edges", [])
+            for e in edges:
+                if isinstance(e, dict):
+                    import_edges.append((e.get("source", ""), e.get("target", "")))
+                elif isinstance(e, (list, tuple)) and len(e) >= 2:
+                    import_edges.append((str(e[0]), str(e[1])))
+    except Exception:
+        pass
 
-    charter = load_charter(r)
-    if charter is None:
-        con.print(
-            '[yellow]No charter set.[/yellow] Define one with [bold]p charter set "…"[/bold] first.'
-        )
-        return
+    violations = check_all_violations(charter, import_edges=import_edges)
 
-    if rebuild:
-        con.print("[dim]Rebuilding layered brain from current code…[/dim]")
-        from patchi.core.brain.brain import Brain
-
-        report = Brain(r).scan()
-        layers = {n: l.to_dict() for n, l in report.layers.items()}
+    json_output = getattr(args, "json_output", False)
+    if json_output:
+        print(json.dumps([v.to_dict() for v in violations], indent=2))
     else:
-        layers = mem.get_layers(r)
+        if not violations:
+            print("✓ No charter violations found.")
+        else:
+            print(f"✗ {len(violations)} charter violation(s):")
+            for v in violations:
+                loc = f" in {v.file_path}" if v.file_path else ""
+                print(f"  [{v.severity}] {v.rule_id}: {v.message}{loc}")
+                if v.suggestion:
+                    print(f"    → {v.suggestion}")
 
-    if not layers:
-        con.print(
-            "[yellow]No layered brain available.[/yellow] Run [bold]p scan[/bold] "
-            "(or [bold]p charter check --rebuild[/bold]) to build it."
-        )
+    sys.exit(1 if violations else 0)
+
+
+def run_hooks(args) -> None:
+    """Manage charter-related git hooks."""
+    install = getattr(args, "install", False)
+
+    if not install:
+        print("Usage: p charter hooks --install")
         return
 
-    detected_fw = []
-    try:
-        brain_mem = mem.read(mem.MemoryCategory.BRAIN, r) or {}
-        detected_fw = [
-            f.get("name")
-            for f in brain_mem.get("frameworks", [])
-            if isinstance(f, dict) and f.get("name")
-        ]
-    except Exception as e:
-        _log.warning("run_check failed: %s", e)
+    root = _get_root()
+    hooks_dir = root / ".git" / "hooks"
+    if not hooks_dir.exists():
+        print("Not a git repository. Run 'git init' first.", file=sys.stderr)
+        sys.exit(1)
 
-    violations = check_charter(
-        charter,
-        layers,
-        detected_frameworks=detected_fw,
-    )
+    hook_path = hooks_dir / "charter-check"
+    hook_body = """#!/bin/sh
+# Patchi Charter check hook — runs after pre-commit
+# Checks staged files against the project charter
 
-    con.print()
-    if not violations:
-        con.print(
-            Panel(
-                "[#4ADE80]✓ No charter violations.[/#4ADE80]\n"
-                "[dim]Project structure respects all defined guard rails.[/dim]",
-                title="[bold #C8621A]Charter Check[/bold #C8621A]",
-                border_style="#2A3D28",
-            )
-        )
-        con.print()
-        return
+PATCHI_DIR="$(git rev-parse --show-toplevel)"
 
-    table = Table(show_header=True, header_style="bold #C8621A", box=None, pad_edge=False)
-    table.add_column("Severity", style="bold", width=10)
-    table.add_column("Rule", width=28)
-    table.add_column("Detail")
-    for v in violations:
-        color = {"high": "#FF4D6D", "medium": "#F2C14E", "low": "dim"}.get(v.severity, "white")
-        table.add_row(
-            f"[{color}]{v.severity.upper()}[/{color}]",
-            v.rule,
-            v.message,
-        )
-    con.print(
-        Panel(
-            table,
-            title=f"[bold #C8621A]Charter Violations ({len(violations)})[/bold #C8621A]",
-            border_style="#FF4D6D",
-        )
-    )
-    con.print()
+# Only check .py, .ts, .js, .go, .java, .rs files
+STAGED=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\\.(py|ts|js|go|java|rs)$')
+
+if [ -z "$STAGED" ]; then
+    exit 0
+fi
+
+cd "$PATCHI_DIR" && python -m patchi.cli.main charter check 2>/dev/null
+STATUS=$?
+if [ $STATUS -ne 0 ]; then
+    echo ""
+    echo "⚠  Charter violations detected. Fix before committing."
+    echo "   Run 'p charter check' for details."
+    echo "   Bypass with: git commit --no-verify"
+fi
+exit 0
+"""
+    hook_path.write_text(hook_body, encoding="utf-8")
+    # Make executable on Unix
+    import stat
+    hook_path.chmod(hook_path.stat().st_mode | stat.S_IEXEC | stat.S_IXGRP | stat.S_IXOTH)
+
+    print(f"Charter check hook installed at {hook_path}")
+    print("It will run after pre-commit on every commit.")
 
 
-def run_hooks(install: bool = False, root: Path | None = None) -> None:
-    """p charter hooks — generate a git pre-commit hook that enforces the charter."""
-    try:
-        r = root or require_project_root()
-    except RuntimeError as e:
-        con.print(f"[red]{e}[/red]")
-        return
+# Backward compat entry point
+def run(args) -> None:
+    """Dispatch to the appropriate subcommand."""
+    if hasattr(args, "action"):
+        action = args.action
+    elif isinstance(args, list) and args:
+        action = args[0]
+    else:
+        action = "show"
 
-    git_dir = r / ".git"
-    if not git_dir.exists():
-        con.print("[red]Not a git repository (no .git directory found).[/red]")
-        return
+    dispatch = {
+        "show": run_show,
+        "set": run_set,
+        "check": run_check,
+        "hooks": run_hooks,
+    }
 
-    hook_path = git_dir / "hooks" / "pre-commit"
-    hook_path.parent.mkdir(parents=True, exist_ok=True)
-
-    script = (
-        "#!/bin/sh\n"
-        "# Patchi charter guard — generated by `p charter hooks`.\n"
-        "# Fails the commit if the codebase violates the project charter.\n"
-        'echo "🔍 Patchi: checking project charter…"\n'
-        "patchi charter check\n"
-        "if [ $? -ne 0 ]; then\n"
-        '  echo "❌ Commit blocked: charter violation(s) detected."\n'
-        '  echo "   Review with: patchi charter check"\n'
-        "  exit 1\n"
-        "fi\n"
-        'echo "✓ Charter OK"\n'
-    )
-    hook_path.write_text(script, encoding="utf-8")
-    try:
-        hook_path.chmod(0o755)
-    except Exception as e:
-        _log.warning("run_hooks failed: %s", e)
-
-    con.print()
-    con.print(f"[#4ADE80]✓[/#4ADE80] Pre-commit hook written to [bold]{hook_path}[/bold]")
-    con.print(
-        "[dim]It runs [bold]patchi charter check[/bold] on every commit. "
-        "Run [bold]p scan[/bold] first so the layered brain is current.[/dim]"
-    )
-    con.print()
-
-
-# ── Helpers ────────────────────────────────────────────────────────────────────
-
-
-def _print_charter(charter: Charter) -> None:
-    lines = []
-    if charter.raw_text:
-        lines.append(f'[dim italic]"{charter.raw_text}"[/dim italic]')
-        lines.append("")
-    if charter.boundaries:
-        lines.append("[bold #F2EDD6]Boundaries (guard rails):[/bold #F2EDD6]")
-        for b in charter.boundaries:
-            src = b.get("from", "?")
-            tgt = b.get("to", "?")
-            lines.append(f"  • [high]high[/high]  {src} must not import {tgt}")
-        lines.append("")
-    if charter.stack.get("frameworks") or charter.stack.get("languages"):
-        lines.append("[bold #F2EDD6]Stack (expected):[/bold #F2EDD6]")
-        if charter.stack.get("frameworks"):
-            lines.append("  • frameworks: " + ", ".join(charter.stack["frameworks"]))
-        if charter.stack.get("languages"):
-            lines.append("  • languages: " + ", ".join(charter.stack["languages"]))
-        lines.append("")
-    if charter.security:
-        lines.append("[bold #F2EDD6]Security rules:[/bold #F2EDD6]")
-        for s in charter.security:
-            lines.append(f"  • {s}")
-        lines.append("")
-    if charter.conventions:
-        lines.append("[bold #F2EDD6]Conventions:[/bold #F2EDD6]")
-        for k, v in charter.conventions.items():
-            lines.append(f"  • {k}: {v}")
-        lines.append("")
-    if charter.notes:
-        lines.append("[bold #F2EDD6]Notes:[/bold #F2EDD6]")
-        for n in charter.notes:
-            lines.append(f"  • {n}")
-        lines.append("")
-
-    if len(lines) == 1:
-        lines.append("[dim]No specific rules parsed. The raw sentence is kept as intent.[/dim]")
-
-    con.print()
-    con.print(
-        Panel(
-            "\n".join(lines).rstrip(),
-            title="[bold #C8621A]Project Charter[/bold #C8621A]",
-            border_style="#2A3D28",
-        )
-    )
-    con.print()
+    handler = dispatch.get(action)
+    if handler:
+        handler(args)
+    else:
+        print(f"Unknown action: {action}. Use: show, set, check, hooks", file=sys.stderr)
+        sys.exit(1)

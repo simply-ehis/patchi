@@ -18,6 +18,7 @@ Design decisions:
 """
 
 import json
+import logging
 import os
 import subprocess
 from pathlib import Path
@@ -33,6 +34,8 @@ from ..agents.base import (
     make_finding,
     register,
 )
+
+_log = logging.getLogger("patchi.security.agents.sast_agent")
 
 
 @register
@@ -194,5 +197,5 @@ class SemgrepAgent(BaseAgent):
     def _run_fallback_regex(self, root: Path, scope: list[str] | None) -> list[Finding]:
         """Fallback regex-based SAST detection with false positive filtering."""
         # This would contain the original regex-based approach as fallback
-        # For now, return an empty list since we're focusing on implementing the primary functionality
+        # For now, empty: the local rule pack covers the primary path.
         return []

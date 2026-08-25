@@ -13,6 +13,9 @@
     <button class="tab-btn" onclick="showTab('intent')" id="tab-intent">
       Intent Gaps <span class="tab-count">{{ intent.gap_count if intent else 0 }}</span>
     </button>
+    <button class="tab-btn" onclick="showTab('charter')" id="tab-charter">
+      Charter <span class="tab-count">{{ charter_violations|length }}</span>
+    </button>
   </div>
 
   <!-- Findings tab -->
@@ -331,6 +334,38 @@
     <div class="empty-state">
       <div class="empty-state-icon">🎯</div>
       <div class="empty-state-text">No intent gaps detected. Run a scan to analyze route authorization.</div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Charter violations tab -->
+  <div id="panel-charter" class="tab-panel" style="display:none">
+    {% if charter_violations %}
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Charter Violations ({{ charter_violations|length }})</span>
+      </div>
+      <div style="padding:12px">
+        {% for v in charter_violations %}
+        <div style="display:flex;gap:8px;align-items:flex-start;padding:8px 12px;border-left:2px solid {% if v.severity == 'critical' %}#ef4444{% elif v.severity == 'high' %}#f97316{% elif v.severity == 'medium' %}#eab308{% else %}#64748b{% endif %};margin-bottom:8px;border-radius:0 6px 6px 0;background:{% if v.severity == 'critical' %}#ef444410{% elif v.severity == 'high' %}#f9731610{% elif v.severity == 'medium' %}#eab30810{% else %}#64748b10{% endif %}">
+          <div style="flex:1">
+            <div style="display:flex;gap:8px;align-items:center;margin-bottom:4px">
+              <span class="badge" style="background:{% if v.severity == 'critical' %}#ef4444{% elif v.severity == 'high' %}#f97316{% elif v.severity == 'medium' %}#eab308{% else %}#64748b{% endif %}20;color:{% if v.severity == 'critical' %}#ef4444{% elif v.severity == 'high' %}#f97316{% elif v.severity == 'medium' %}#eab308{% else %}#64748b{% endif %}">{{ v.severity }}</span>
+              <span style="font-weight:500;font-size:13px">{{ v.rule_id }}</span>
+            </div>
+            <div style="font-size:13px;color:var(--text-primary)">{{ v.message }}</div>
+            {% if v.suggestion %}
+            <div style="font-size:12px;color:var(--text-secondary);margin-top:4px">→ {{ v.suggestion }}</div>
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <div class="empty-state-icon">📜</div>
+      <div class="empty-state-text">No charter violations. Set a charter with <code>p charter set "..."</code></div>
     </div>
     {% endif %}
   </div>

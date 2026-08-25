@@ -51,6 +51,7 @@ class SecurityReport:
     correlation_count: int = 0
     chains: list[Chain] = field(default_factory=list)
     intent_report: IntentReport | None = None
+    charter_violations: list[dict] = field(default_factory=list)
 
     def to_dict(self) -> dict:
         d = {
@@ -78,6 +79,8 @@ class SecurityReport:
         }
         if self.intent_report:
             d["intent_report"] = self.intent_report.to_dict()
+        if self.charter_violations:
+            d["charter_violations"] = self.charter_violations
         return d
 
 
@@ -274,6 +277,25 @@ class SecurityOrchestrator:
         except Exception:
             pass
 
+        # ── Charter drift detection ───────────────────────────────────────────
+        charter_violations: list[dict] = []
+        try:
+            from patchi.core.security.charter import (
+                check_all_violations,
+                load_charter,
+            )
+            charter = load_charter(Path("."))
+            if charter.rules:
+                flat_edges: list[tuple[str, str]] = []
+                for src, dsts in import_edges.items():
+                    for dst in dsts:
+                        flat_edges.append((src, dst))
+                charter_violations = [
+                    v.to_dict() for v in check_all_violations(charter, flat_edges)
+                ]
+        except Exception:
+            pass
+
         return SecurityReport(
             findings=correlated,
             total_findings=len(correlated),
@@ -283,4 +305,5 @@ class SecurityOrchestrator:
             correlation_count=sum(1 for c in correlated if len(c.confirmed_by) > 1),
             chains=chains,
             intent_report=intent_report,
+            charter_violations=charter_violations,
         )

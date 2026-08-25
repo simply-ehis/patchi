@@ -85,6 +85,16 @@ async def findings(request: Request):
             key = f"{step.get('file', '')}:{step.get('line', 0)}:{step.get('type', '')}"
             chain_members.setdefault(key, []).append(ci)
 
+    # Load charter violations
+    charter_violations: list[dict] = []
+    try:
+        from patchi.core.security.charter import check_all_violations, load_charter
+        charter = load_charter(root)
+        if charter.rules:
+            charter_violations = [v.to_dict() for v in check_all_violations(charter)]
+    except Exception:
+        pass
+
     return templates.TemplateResponse(
         request,
         "findings.html",
@@ -95,6 +105,7 @@ async def findings(request: Request):
             "chains": chains,
             "intent": intent,
             "chain_members": chain_members,
+            "charter_violations": charter_violations,
         },
     )
 

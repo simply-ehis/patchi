@@ -143,7 +143,8 @@ class TestPerFindingBatch:
         results = o._analyze_batch(batch)
 
         assert len(results) == 2
-        assert results[0].confirmed is True and results[0].confidence_adjustment == pytest.approx(0.7)
+        assert results[0].confirmed is True
+        assert results[0].confidence_adjustment == pytest.approx(0.7)
         assert results[1].confirmed is False
 
     def test_legacy_single_verdict_replicates(self, tmp_path: Path, monkeypatch):
