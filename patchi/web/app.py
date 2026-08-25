@@ -137,18 +137,19 @@ def create_app(root: Path) -> FastAPI:
 
         _logging.getLogger("patchi.web").warning("Dashboard v2 not available: %s", e)
         dashboard_v2_router = None
-    from patchi.web.routes.findings import router as findings_router
-    from patchi.web.routes.guard import router as guard_router
-    from patchi.web.routes.history import router as history_router
-    from patchi.web.routes.review import router as review_router
-    from patchi.web.routes.settings import router as settings_router
-    from patchi.web.routes.tokens import router as tokens_router
-    from patchi.web.routes.assurance import router as assurance_router
-    from patchi.web.routes.live_testing import router as live_testing_router
     from patchi.web.api.cicd import router as cicd_router
     from patchi.web.api.live_testing import router as live_testing_api_router
     from patchi.web.api.smart import router as smart_api_router
     from patchi.web.api.tenant import router as tenant_router
+    from patchi.web.routes.assurance import router as assurance_router
+    from patchi.web.routes.findings import router as findings_router
+    from patchi.web.routes.guard import router as guard_router
+    from patchi.web.routes.history import router as history_router
+    from patchi.web.routes.live_testing import router as live_testing_router
+    from patchi.web.routes.review import router as review_router
+    from patchi.web.routes.self_improvement import router as self_improvement_router
+    from patchi.web.routes.settings import router as settings_router
+    from patchi.web.routes.tokens import router as tokens_router
 
     app.include_router(legacy_router)
     app.include_router(dashboard_router)
@@ -171,6 +172,7 @@ def create_app(root: Path) -> FastAPI:
     app.include_router(guard_api_router)
     app.include_router(tokens_router)
     app.include_router(live_testing_router)
+    app.include_router(self_improvement_router)
     app.include_router(cicd_router)
     app.include_router(live_testing_api_router)
     app.include_router(smart_api_router)
