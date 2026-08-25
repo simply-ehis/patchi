@@ -19,14 +19,80 @@ Usage from CI/CD:
 from __future__ import annotations
 
 import asyncio
+import hashlib
+import logging
+import os
 import time
 from pathlib import Path
 
-from fastapi import APIRouter, Query, Request
+from fastapi import APIRouter, Depends, Header, Query, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
+_log = logging.getLogger("patchi.web.cicd")
+
 router = APIRouter(prefix="/api/cicd")
+
+# ── API Key Authentication ───────────────────────────────────────────────────
+# The API key is read from:
+#   1. Environment variable PATCHI_API_KEY (recommended for production)
+#   2. .patchi/api_key file (auto-generated on first run if missing)
+#   3. If neither exists, auth is disabled (local-only mode)
+#
+# Clients send the key via X-API-Key header.
+# Health check endpoint is always unauthenticated.
+
+def _get_api_key(root: Path | None = None) -> str | None:
+    """Resolve the API key from env or .patchi/api_key file."""
+    # 1. Environment variable (always checked first)
+    env_key = os.environ.get("PATCHI_API_KEY", "")
+    if env_key:
+        return env_key.strip()
+    # 2. File-based key (generated lazily)
+    if root is None:
+        try:
+            from patchi.core.config import require_project_root
+            root = require_project_root()
+        except Exception:
+            return None
+    try:
+        key_file = root / ".patchi" / "api_key"
+        if key_file.is_file():
+            return key_file.read_text(encoding="utf-8").strip()
+        # Auto-generate on first access
+        import secrets
+        new_key = secrets.token_urlsafe(32)
+        key_file.parent.mkdir(parents=True, exist_ok=True)
+        key_file.write_text(new_key, encoding="utf-8")
+        _log.info("Generated CI/CD API key: %s...", new_key[:8])
+        return new_key
+    except Exception:
+        return None
+
+
+def _verify_api_key(x_api_key: str | None = Header(None)) -> str | None:
+    """FastAPI dependency: verify X-API-Key header.
+
+    Returns the API key if valid, or None if auth is disabled.
+    Raises HTTPException 401 if auth is enabled but key is missing/wrong.
+    """
+    required = _get_api_key()
+    if not required:
+        return None  # auth disabled
+    if not x_api_key:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=401, detail={
+            "error": "Missing X-API-Key header",
+            "hint": "Send X-API-Key header with your request",
+        })
+    # Constant-time comparison to prevent timing attacks
+    if not hashlib.compare_digest(x_api_key, required):
+        from fastapi import HTTPException
+        raise HTTPException(status_code=401, detail={
+            "error": "Invalid API key",
+            "hint": "Send X-API-Key header with your request",
+        })
+    return x_api_key
 
 
 # â”€â”€ Models â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -87,7 +153,7 @@ async def health(request: Request) -> JSONResponse:
 
 
 @router.post("/scan")
-async def scan_sync(request: Request, body: ScanRequest = None) -> JSONResponse:
+async def scan_sync(request: Request, body: ScanRequest = None, _key: str | None = Depends(_verify_api_key)) -> JSONResponse:
     """Trigger scan and wait for results (synchronous, for CI/CD).
 
     Returns scan results when complete. Timeout: 300s.
@@ -124,7 +190,7 @@ async def scan_sync(request: Request, body: ScanRequest = None) -> JSONResponse:
 
 
 @router.post("/scan/async")
-async def scan_async(request: Request, body: ScanRequest = None) -> JSONResponse:
+async def scan_async(request: Request, body: ScanRequest = None, _key: str | None = Depends(_verify_api_key)) -> JSONResponse:
     """Trigger scan and return immediately (async, for CI/CD).
 
     Poll /api/cicd/scan/status for completion.
@@ -164,7 +230,7 @@ async def scan_async(request: Request, body: ScanRequest = None) -> JSONResponse
 
 
 @router.get("/scan/status")
-async def scan_status() -> JSONResponse:
+async def scan_status(_key: str | None = Depends(_verify_api_key)) -> JSONResponse:
     """Get current scan status."""
     return JSONResponse({
         "running": _scan_state["running"],
@@ -177,7 +243,7 @@ async def scan_status() -> JSONResponse:
 
 
 @router.get("/scan/results")
-async def scan_results(request: Request) -> JSONResponse:
+async def scan_results(request: Request, _key: str | None = Depends(_verify_api_key)) -> JSONResponse:
     """Get latest scan results."""
     root = request.app.state.root
 
@@ -217,6 +283,7 @@ async def findings(
     agent: str | None = None,
     limit: int = Query(50, ge=1, le=500),
     offset: int = Query(0, ge=0),
+    _key: str | None = Depends(_verify_api_key),
 ) -> JSONResponse:
     """Get findings with filters."""
     root = request.app.state.root
@@ -255,7 +322,7 @@ async def findings(
 
 
 @router.get("/assurance")
-async def assurance(request: Request) -> JSONResponse:
+async def assurance(request: Request, _key: str | None = Depends(_verify_api_key)) -> JSONResponse:
     """Get assurance graph data."""
     root = request.app.state.root
 
@@ -286,7 +353,7 @@ async def assurance(request: Request) -> JSONResponse:
 
 
 @router.get("/summary")
-async def summary(request: Request) -> JSONResponse:
+async def summary(request: Request, _key: str | None = Depends(_verify_api_key)) -> JSONResponse:
     """Project summary for CI/CD dashboards."""
     root = request.app.state.root
 
