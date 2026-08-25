@@ -127,6 +127,7 @@ def create_app(root: Path) -> FastAPI:
     from patchi.web.routes.settings import router as settings_router
     from patchi.web.routes.tokens import router as tokens_router
     from patchi.web.routes.assurance import router as assurance_router
+    from patchi.web.api.cicd import router as cicd_router
 
     app.include_router(legacy_router)
     app.include_router(dashboard_router)
@@ -146,6 +147,7 @@ def create_app(root: Path) -> FastAPI:
     app.include_router(chat_api_router)
     app.include_router(guard_api_router)
     app.include_router(tokens_router)
+    app.include_router(cicd_router)
     if dashboard_v2_router is not None:
         app.include_router(dashboard_v2_router)
 
