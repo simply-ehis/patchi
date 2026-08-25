@@ -18,12 +18,17 @@ Usage::
 
 from __future__ import annotations
 
+import json
 import logging
 import subprocess
+import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
 _log = logging.getLogger("patchi.security.git_diff_activator")
+
+_CACHE_FILE = ".patchi/diff_activation_cache.json"
+_CACHE_TTL = 300  # 5 minutes max age even if HEAD unchanged
 
 
 # ── Path → Domain Mapping ────────────────────────────────────────────────────
@@ -153,6 +158,36 @@ class DiffActivationResult:
     error: str = ""
 
 
+def _get_head_hash(root: Path) -> str:
+    """Get the current HEAD commit hash."""
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            capture_output=True, text=True, cwd=str(root), timeout=5,
+        )
+        return result.stdout.strip() if result.returncode == 0 else ""
+    except Exception:
+        return ""
+
+
+def _load_cache(root: Path) -> dict:
+    path = root / _CACHE_FILE
+    if not path.is_file():
+        return {}
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+
+
+def _save_cache(root: Path, data: dict) -> None:
+    path = root / _CACHE_FILE
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(".json.tmp")
+    tmp.write_text(json.dumps(data, indent=2), encoding="utf-8")
+    tmp.replace(path)
+
+
 def get_changed_files(root: Path, commits: int = 1) -> list[str]:
     """Get files changed in the last N commits via git diff.
 
@@ -217,6 +252,7 @@ def activate_from_diff(
     commits: int = 1,
     min_score: float = 0.4,
     max_domains: int = 20,
+    use_cache: bool = True,
 ) -> DiffActivationResult:
     """Activate security domains based on git-diff changed files.
 
@@ -225,10 +261,30 @@ def activate_from_diff(
         commits: How many commits back to diff (1 = last commit only)
         min_score: Minimum domain score to activate
         max_domains: Maximum domains to activate
+        use_cache: Whether to use persisted cache (default True)
 
     Returns:
         DiffActivationResult with activated domains and their scores
     """
+    # ── Cache lookup ──────────────────────────────────────────────────────
+    cache_key = f"{commits}:{min_score}:{max_domains}"
+    if use_cache:
+        head = _get_head_hash(root)
+        cache = _load_cache(root)
+        cached = cache.get(cache_key)
+        if (
+            cached
+            and cached.get("head") == head
+            and cached.get("uncommitted_count", 0) == 0
+            and (time.time() - cached.get("ts", 0)) < _CACHE_TTL
+        ):
+            _log.debug("Using cached diff activation (head=%s)", head[:8])
+            return DiffActivationResult(
+                changed_files=cached["changed_files"],
+                activated_domains={k: float(v) for k, v in cached["domains"].items()},
+                commits_analyzed=commits,
+            )
+
     changed = get_changed_files(root, commits)
     if not changed:
         return DiffActivationResult(error="No changed files found (not a git repo or no changes)")
@@ -257,11 +313,37 @@ def activate_from_diff(
         len(changed), len(activated), len(all_scores),
     )
 
-    return DiffActivationResult(
+    result = DiffActivationResult(
         changed_files=changed,
         activated_domains=activated,
         commits_analyzed=commits,
     )
+
+    # ── Persist cache ─────────────────────────────────────────────────────
+    if use_cache:
+        head = _get_head_hash(root)
+        # Count uncommitted changes to invalidate cache on dirty tree
+        uncommitted = 0
+        try:
+            u = subprocess.run(
+                ["git", "diff", "--name-only", "HEAD"],
+                capture_output=True, text=True, cwd=str(root), timeout=5,
+            )
+            if u.returncode == 0:
+                uncommitted = len([l for l in u.stdout.strip().splitlines() if l.strip()])
+        except Exception:
+            pass
+        cache = _load_cache(root)
+        cache[cache_key] = {
+            "head": head,
+            "ts": time.time(),
+            "changed_files": changed,
+            "domains": {k: v for k, v in activated.items()},
+            "uncommitted_count": uncommitted,
+        }
+        _save_cache(root, cache)
+
+    return result
 
 
 def read_changed_file_content(root: Path, file_path: str, max_lines: int = 100) -> str:
