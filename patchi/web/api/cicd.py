@@ -322,6 +322,23 @@ async def summary(request: Request) -> JSONResponse:
         except Exception:
             pass
 
+        # Model routing stats
+        routing_stats = {}
+        try:
+            from patchi.core.ai.model_router import get_model_router
+            router = get_model_router(root=root)
+            routing_stats = router.get_routing_stats()
+        except Exception:
+            pass
+
+        # Tenant cost
+        tenant_cost = 0.0
+        try:
+            from patchi.core.tenant import get_tenant_cost
+            tenant_cost = get_tenant_cost(root)
+        except Exception:
+            pass
+
         return JSONResponse({
             "ok": True,
             "project": str(root),
@@ -335,6 +352,8 @@ async def summary(request: Request) -> JSONResponse:
                 "claims": assurance_claims,
                 "proved": assurance_proved,
             },
+            "routing": routing_stats,
+            "tenant_cost": tenant_cost,
             "health_score": _compute_health_score(all_findings, assurance_claims, assurance_proved),
         })
     except Exception as e:

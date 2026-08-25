@@ -103,6 +103,20 @@ def create_app(root: Path) -> FastAPI:
         logging.getLogger("patchi.web").warning("RequestInterceptor init failed: %s", e)
         app.state.interceptor = None
 
+    # ── Tenant context middleware ──────────────────────────────────────────
+    # Wraps every request so get_current_tenant_root() returns the active
+    # project, and call_ai() can resolve the model router's profiler data.
+    try:
+        from patchi.core.tenant import tenant_context
+
+        @app.middleware("http")
+        async def tenant_middleware(request, call_next):
+            root = request.app.state.root
+            with tenant_context(root):
+                return await call_next(request)
+    except Exception:
+        pass  # non-critical
+
     # Mount static files
     import sys as _sys
     if getattr(_sys, 'frozen', False):

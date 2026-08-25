@@ -110,6 +110,14 @@ def call_ai(
     _ensure_env_loaded()
     ai_config = config.get("ai", {})
 
+    # ── Resolve root from tenant context if not provided ─────────────────
+    if root is None:
+        try:
+            from patchi.core.tenant import get_current_tenant_root
+            root = get_current_tenant_root()
+        except Exception:
+            pass
+
     # ── Cost-aware model routing ───────────────────────────────────────────
     # Use ModelRouter to select optimal model based on prompt complexity
     try:
