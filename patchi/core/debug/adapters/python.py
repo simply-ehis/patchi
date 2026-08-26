@@ -97,7 +97,9 @@ class PythonDebugAdapter:
         return None
 
     def _resolve_variables(self, var_ref: int, max_depth: int = 2, depth: int = 0) -> dict:
-        raise NotImplementedError("Python adapter uses harness, not DAP protocol")
+        # Python adapter uses harness-based debugging, not DAP protocol variables
+        msg = "Python adapter uses harness-based debugging; variable resolution not available via DAP"
+        return {"__not_supported__": msg}
 
 
 def _looks_like_test_file(script: Path) -> bool:

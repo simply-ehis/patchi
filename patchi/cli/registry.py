@@ -367,12 +367,6 @@ COMMANDS: list[Command] = [
         args=(Arg("patch_id"),),
     ),
     Command(
-        "ask",
-        "Ask the Brain a natural-language question",
-        "patchi.cli.commands.reason_cmd:run_ask",
-        args=(Arg("question", help='Your question, e.g. "what does the auth subsystem do?"'),),
-    ),
-    Command(
         "why",
         "Explain why a file matters",
         "patchi.cli.commands.reason_cmd:run_why",
@@ -455,10 +449,11 @@ COMMANDS: list[Command] = [
                 "action",
                 nargs="?",
                 default=None,
-                help="Dev action: info | test | security | playwright | docs | hook",
+                help="Dev action: check | test | security | playwright | docs | hook",
             ),
             # dev has its own --verbose, separate from the global one
             Arg("--verbose", dest="verbose", action="store_true", help="Show detailed output"),
+            Arg("--json", dest="json_output", action="store_true", help="Output as JSON (for check)"),
         ),
     ),
     Command(

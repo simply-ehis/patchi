@@ -472,6 +472,24 @@ def _run_scan_inner(
                     for r in intent.unprotected_among_protected[:3]:
                         con.print(f"      [dim]{r.method} {r.path} @ {r.file}:{r.line}[/dim]")
 
+            if _sec_report.charter_violations:
+                con.print(
+                    f"  [bold]{len(_sec_report.charter_violations)}[/bold] "
+                    f"[yellow]charter violation(s)[/yellow]"
+                )
+                for cv in _sec_report.charter_violations[:5]:
+                    sev = cv.get("severity", "medium")
+                    con.print(
+                        f"    [yellow]● [{sev}] {cv.get('rule_id', '?')}[/yellow]: "
+                        f"{cv.get('message', '')}"
+                    )
+                    if cv.get("suggestion"):
+                        con.print(f"      [dim]→ {cv['suggestion']}[/dim]")
+                if len(_sec_report.charter_violations) > 5:
+                    con.print(
+                        f"    [dim]… and {len(_sec_report.charter_violations) - 5} more[/dim]"
+                    )
+
             # Persist for web UI
             import json as _cjson
 

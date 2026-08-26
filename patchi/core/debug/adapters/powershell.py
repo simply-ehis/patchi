@@ -65,7 +65,9 @@ class PowerShellDebugAdapter:
         return None
 
     def _resolve_variables(self, var_ref: int, max_depth: int = 2, depth: int = 0) -> dict:
-        raise NotImplementedError("PowerShell adapter uses harness, not DAP protocol")
+        # PowerShell adapter uses harness-based debugging, not DAP protocol variables
+        msg = "PowerShell adapter uses harness-based debugging; variable resolution not available via DAP"
+        return {"__not_supported__": msg}
 
 
 def _find_pwsh() -> Path | None:

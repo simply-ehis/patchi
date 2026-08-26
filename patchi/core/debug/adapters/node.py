@@ -110,7 +110,9 @@ class NodeDebugAdapter:
         return None
 
     def _resolve_variables(self, var_ref: int, max_depth: int = 2, depth: int = 0) -> dict:
-        raise NotImplementedError("Node adapter uses harness, not DAP protocol")
+        # Node adapter uses harness-based debugging, not DAP protocol variables
+        msg = "Node adapter uses harness-based debugging; variable resolution not available via DAP"
+        return {"__not_supported__": msg}
 
 
 def _find_node() -> Path | None:

@@ -26,7 +26,7 @@ from patchi.core.agents.base import AgentGroup, list_agents
 _log = logging.getLogger("patchi.cli.dev_cmd")
 
 
-def run(action: str | None = None, verbose: bool = False) -> None:
+def run(action: str | None = None, verbose: bool = False, json_output: bool = False) -> None:
 
     if action == "test":
         _show_test_docs(con)
@@ -38,6 +38,9 @@ def run(action: str | None = None, verbose: bool = False) -> None:
         _show_cli_reference(con)
     elif action == "hook":
         _install_hook(con)
+    elif action == "check":
+        from patchi.cli.commands.dev_check_cmd import run as check_run
+        check_run(json_output=json_output)
     else:
         _show_dev_overview(con, verbose)
 
