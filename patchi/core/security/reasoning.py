@@ -8,12 +8,11 @@ Answers questions like:
   - "What are the security hotspots?" → cross-references charter rules with layers
 
 No AI tokens required — pure heuristic reasoning over the layered brain.
+No regex — uses keyword matching for classification.
 """
 
 from __future__ import annotations
 
-import json
-import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -55,45 +54,58 @@ def _load_layers(root: Path) -> dict[str, Layer]:
     if not path.exists():
         return {}
     try:
-        data = json.loads(path.read_text(encoding="utf-8"))
+        data = {}
+        with open(path, "r", encoding="utf-8") as f:
+            import json
+            data = json.load(f)
         return layers_from_dict(data)
     except Exception:
         return {}
 
 
-# ── Question classifiers ──────────────────────────────────────────────────────
-
-_WHAT_CHANGED_RE = re.compile(
-    r"what(?:'s| is| are)?\s+(?:changed|new|modified|different)", re.I
-)
-_WHAT_DOES_RE = re.compile(
-    r"what\s+(?:does|is|are)\s+(?:the\s+)?['\"]?(\w+)['\"]?\s+(?:module|service|function|class)?\s*(?:do|about)",
-    re.I,
-)
-_WHAT_IMPORTS_RE = re.compile(
-    r"what\s+(?:imports?|uses?|depends?\s+on)\s+['\"]?([\w./]+)['\"]?",
-    re.I,
-)
-_HOTSPOTS_RE = re.compile(r"(?:security|hotspot|vuln|risk|dangerous)", re.I)
-_ROUTE_RE = re.compile(r"(?:route|endpoint|api|handler)", re.I)
-_LAYER_RE = re.compile(r"(?:layer|subsystem|module|component)", re.I)
+# ── Question classifiers (keyword-based, no regex) ───────────────────────────
 
 
 def classify_question(question: str) -> str:
-    """Classify a question into a category."""
+    """Classify a question into a category using keyword matching."""
     q = question.lower().strip()
-    if _WHAT_CHANGED_RE.search(q):
+
+    # What changed?
+    change_words = ["changed", "new", "modified", "different", "diff"]
+    if any(w in q for w in change_words):
         return "what_changed"
-    if _WHAT_DOES_RE.search(q):
+
+    # What does X do?
+    does_words = ["does", "is", "are"]
+    do_words = ["do", "about"]
+    if any(w in q for w in does_words) and any(w in q for w in do_words):
         return "what_does"
-    if _WHAT_IMPORTS_RE.search(q):
+
+    # What imports/uses/depends on X?
+    import_words = ["import", "use", "depend"]
+    if any(w in q for w in import_words):
         return "what_imports"
-    if _HOTSPOTS_RE.search(q):
+
+    # Security hotspots
+    security_words = ["security", "hotspot", "vuln", "vulnerability", "risk", "dangerous"]
+    if any(w in q for w in security_words):
         return "hotspots"
-    if _ROUTE_RE.search(q):
+
+    # Routes/endpoints
+    route_words = ["route", "endpoint", "api", "handler"]
+    if any(w in q for w in route_words):
         return "routes"
-    if _LAYER_RE.search(q):
+
+    # Layers/modules
+    layer_words = ["layer", "subsystem", "module", "component"]
+    if any(w in q for w in layer_words):
         return "layers"
+
+    # Dependencies
+    dep_words = ["depend", "import", "use"]
+    if any(w in q for w in dep_words):
+        return "imports"
+
     return "general"
 
 
@@ -107,7 +119,10 @@ def _answer_what_changed(root: Path, layers: dict[str, Layer]) -> ReasoningResul
     try:
         result = subprocess.run(
             ["git", "diff", "--name-only", "HEAD~1"],
-            capture_output=True, text=True, cwd=str(root), timeout=10,
+            capture_output=True,
+            text=True,
+            cwd=str(root),
+            timeout=10,
         )
         changed_files = [f.strip() for f in result.stdout.strip().split("\n") if f.strip()]
     except Exception:
@@ -245,7 +260,7 @@ def _answer_what_imports(root: Path, layers: dict[str, Layer], module_name: str)
 
     # Check for circular dependencies
     if module_name in layers and module_name in layers[module_name].dependents:
-        parts.append(f"\n⚠ Circular dependency detected: {module_name} imports itself!")
+        parts.append(f"\nCircular dependency detected: {module_name} imports itself!")
 
     return ReasoningResult(
         question=f"what imports {module_name}",
@@ -271,7 +286,8 @@ def _answer_hotspots(root: Path, layers: dict[str, Layer]) -> ReasoningResult:
             reasons.append(f"imported by {len(layer.dependents)} modules (high attack surface)")
 
         # Auth/security layers are critical
-        if any(kw in name.lower() for kw in ("auth", "security", "session", "crypto")):
+        security_keywords = ["auth", "security", "session", "crypto"]
+        if any(kw in name.lower() for kw in security_keywords):
             risk_score += 3
             reasons.append("security-critical layer")
 
@@ -281,7 +297,8 @@ def _answer_hotspots(root: Path, layers: dict[str, Layer]) -> ReasoningResult:
             reasons.append(f"{len(layer.files)} files (large layer)")
 
         # API layers accept external input
-        if any(kw in name.lower() for kw in ("api", "route", "endpoint", "handler", "view")):
+        api_keywords = ["api", "route", "endpoint", "handler", "view"]
+        if any(kw in name.lower() for kw in api_keywords):
             risk_score += 2
             reasons.append("accepts external input")
 
@@ -304,6 +321,21 @@ def _answer_hotspots(root: Path, layers: dict[str, Layer]) -> ReasoningResult:
         answer="\n".join(parts),
         layers=[h["name"] for h in hotspots],
         details={"hotspots": hotspots},
+    )
+
+
+def _answer_layers(root: Path, layers: dict[str, Layer]) -> ReasoningResult:
+    """Answer 'what layers exist?' by listing all layers."""
+    parts = [f"Layered Brain contains {len(layers)} layers:"]
+    for name, layer in sorted(layers.items()):
+        if name.startswith("__"):
+            continue
+        parts.append(f"  [{layer.level}] {name}: {layer.summary[:80]}")
+
+    return ReasoningResult(
+        question="layers",
+        answer="\n".join(parts),
+        layers=list(layers.keys()),
     )
 
 
@@ -347,16 +379,64 @@ def answer_question(question: str, root: Path | None = None) -> ReasoningResult:
         return _answer_what_changed(r, layers)
 
     if category == "what_does":
-        m = _WHAT_DOES_RE.search(question)
-        module_name = m.group(1) if m else ""
+        # Extract module name from question
+        q = question.lower()
+        module_name = ""
+        # Try to find a quoted word
+        if "'" in question:
+            parts = question.split("'")
+            if len(parts) >= 2:
+                module_name = parts[1]
+        elif '"' in question:
+            parts = question.split('"')
+            if len(parts) >= 2:
+                module_name = parts[1]
+        else:
+            # Try to find word after "does" or "is"
+            words = q.split()
+            for i, word in enumerate(words):
+                if word in ("does", "is", "are") and i + 1 < len(words):
+                    next_word = words[i + 1]
+                    if next_word not in ("the", "a", "an"):
+                        module_name = next_word
+                        break
         return _answer_what_does(r, layers, module_name)
 
-    if category == "what_imports":
-        m = _WHAT_IMPORTS_RE.search(question)
-        module_name = m.group(1) if m else ""
+    if category in ("what_imports", "imports"):
+        # Extract module name from question
+        q = question.lower()
+        module_name = ""
+        words = q.split()
+        for i, word in enumerate(words):
+            if word in ("imports", "import", "uses", "use", "depends", "depend", "on") and i + 1 < len(words):
+                next_word = words[i + 1]
+                if next_word not in ("the", "a", "an"):
+                    module_name = next_word
+                    break
         return _answer_what_imports(r, layers, module_name)
 
     if category == "hotspots":
         return _answer_hotspots(r, layers)
+
+    if category == "routes":
+        # List API layers
+        api_layers = {
+            name: layer
+            for name, layer in layers.items()
+            if any(kw in name.lower() for kw in ["api", "route", "endpoint", "handler", "view"])
+        }
+        if api_layers:
+            parts = ["API/Route layers:"]
+            for name, layer in api_layers.items():
+                parts.append(f"  {name}: {layer.summary[:80]}")
+            return ReasoningResult(
+                question="routes",
+                answer="\n".join(parts),
+                layers=list(api_layers.keys()),
+            )
+        return _answer_general(r, layers, question)
+
+    if category == "layers":
+        return _answer_layers(r, layers)
 
     return _answer_general(r, layers, question)
