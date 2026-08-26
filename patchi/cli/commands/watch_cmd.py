@@ -2,8 +2,9 @@
 `p watch` — Watch mode. Auto-scans on file saves.
 
 Usage:
-  p watch           — watch entire project
-  p watch src/auth  — watch specific area only
+  p watch               — watch entire project
+  p watch src/auth      — watch specific area only
+  p watch --dry-run     — preview auto-fixes without applying
 
 Runs until Ctrl+C. Every time a source file is saved, Patchi
 re-scans the changed area and updates the brain.
@@ -26,8 +27,15 @@ _log = logging.getLogger("patchi.cli.watch_cmd")
 def run(
     area: str | None = None,
     root: Path | None = None,
+    dry_run: bool = False,
 ) -> None:
-    """Entry point for `p watch [area]`."""
+    """Entry point for `p watch [area]`.
+
+    Args:
+        area: Optional subpath to watch.
+        root: Override project root.
+        dry_run: If True, preview auto-fixes without applying them.
+    """
     try:
         r = root or require_project_root()
     except RuntimeError as e:
@@ -35,8 +43,9 @@ def run(
         return
 
     area_label = f" [dim]→ {area}[/dim]" if area else " [dim](full project)[/dim]"
+    dry_label = " [yellow](dry-run)[/yellow]" if dry_run else ""
     con.print()
-    con.print(f"[bold #C8621A]Watch mode{area_label}[/bold #C8621A]")
+    con.print(f"[bold #C8621A]Watch mode{area_label}{dry_label}[/bold #C8621A]")
     con.print("[dim]Patchi is watching for file changes. Press Ctrl+C to stop.[/dim]")
     con.print()
 
@@ -103,10 +112,13 @@ def run(
             if not norm:
                 norm = changed_paths
 
-            result = run_proactive(r, norm, apply=af_enabled, unsafe=af_unsafe)
+            # Apply only if auto_fix enabled AND not in dry-run mode
+            should_apply = af_enabled and not dry_run
+            result = run_proactive(r, norm, apply=should_apply, unsafe=af_unsafe)
             if result["fixes"]:
+                mode = "preview" if dry_run else "apply"
                 con.print(
-                    f"[dim]Proactive: {len(result['fixes'])} fix(es) proposed "
+                    f"[dim]Proactive ({mode}): {len(result['fixes'])} fix(es) proposed "
                     f"({len(result['applied'])} applied, "
                     f"{len(result['escalated'])} need review).[/dim]"
                 )

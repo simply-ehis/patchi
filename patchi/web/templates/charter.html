@@ -73,22 +73,22 @@
     {% endif %}
   </div>
 
-  <!-- Auto-Fix -->
+  <!-- Fix Charter -->
   <div class="card">
     <div class="card-header">
-      <span class="card-title">Auto-Fix Charter Violations</span>
+      <span class="card-title">Fix Charter</span>
       <span id="fix-count" class="tab-count"></span>
     </div>
     <p style="color:var(--text-secondary);margin:0 0 12px;font-size:13px">
       Automatically fix safe charter violations (missing headers, formatting) in all project files.
-      Dangerous violations (security, boundaries) are flagged but not fixed.
+      Dangerous violations (security, boundaries) are flagged but not auto-fixed.
     </p>
     <div style="display:flex;gap:8px;align-items:center">
       <label class="toggle-label" style="font-size:13px;cursor:pointer;display:flex;align-items:center;gap:6px;">
         <input type="checkbox" id="preview-mode" checked style="cursor:pointer;">
-        <span>Preview only (don't apply)</span>
+        <span>Dry-run (preview only)</span>
       </label>
-      <button class="btn btn-primary" onclick="runAutoFix()" id="btn-fix">🔧 Run Auto-Fix</button>
+      <button class="btn btn-primary" onclick="runAutoFix()" id="btn-fix">Fix Charter</button>
       <span id="fix-status" style="font-size:13px"></span>
     </div>
     <div id="fix-results" style="margin-top:12px;display:none"></div>
@@ -198,7 +198,7 @@ async function runAutoFix() {
   const countEl = document.getElementById('fix-count');
   
   btn.disabled = true;
-  btn.textContent = preview ? '🔍 Previewing...' : '⏳ Fixing...';
+  btn.textContent = preview ? '⏳ Previewing...' : '⏳ Fixing...';
   status.textContent = 'Scanning files...';
   status.style.color = 'var(--text-secondary)';
   results.style.display = 'none';
@@ -213,50 +213,83 @@ async function runAutoFix() {
     
     if (data.ok && data.report) {
       const r = data.report;
-      const modeLabel = preview ? 'Preview' : 'Fixed';
+      const modeLabel = preview ? 'Dry Run' : 'Fixed';
       countEl.textContent = `${r.files_scanned} files scanned`;
       
       if (r.violations_found === 0) {
         status.textContent = '✅ No violations found!';
         status.style.color = '#4ade80';
         results.style.display = 'block';
-        results.innerHTML = '<div style="padding:12px;border-radius:8px;background:rgba(74,222,128,0.1);border:1px solid rgba(74,222,128,0.2)">All files are compliant with the charter. ✅</div>';
+        results.innerHTML = `<div style="padding:16px;border-radius:8px;background:rgba(74,222,128,0.08);border:1px solid rgba(74,222,128,0.2)">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <span style="font-size:20px">✅</span>
+            <span style="font-weight:600;font-size:14px">All Clear</span>
+          </div>
+          <div style="color:var(--text-secondary);font-size:13px">All ${r.files_scanned} files are compliant with the charter. No fixes needed.</div>
+        </div>`;
       } else {
-        status.textContent = `${modeLabel}: ${r.auto_fixed} fixed, ${r.blocked} flagged`;
+        status.textContent = `${modeLabel}: ${r.auto_fixed} ${preview ? 'would be fixed' : 'fixed'}, ${r.blocked} flagged`;
         status.style.color = r.auto_fixed > 0 ? '#4ade80' : '#eab308';
         
-        // Build results HTML
-        let html = `<div style="display:flex;gap:16px;margin-bottom:12px;font-size:13px">`;
-        html += `<span>📄 ${r.files_scanned} files scanned</span>`;
-        html += `<span style="color:#f87171">⚠ ${r.violations_found} violations</span>`;
-        if (r.auto_fixed > 0) html += `<span style="color:#4ade80">🔧 ${r.auto_fixed} ${preview ? 'would be fixed' : 'fixed'}</span>`;
-        if (r.blocked > 0) html += `<span style="color:#eab308">🚫 ${r.blocked} flagged for review</span>`;
+        // Summary card
+        let html = `<div style="display:flex;gap:16px;margin-bottom:12px;padding:12px;border-radius:8px;background:var(--bg-secondary);border:1px solid var(--border);font-size:13px">`;
+        html += `<div style="display:flex;flex-direction:column;align-items:center;gap:4px;min-width:60px">`;
+        html += `<span style="font-size:24px;font-weight:700">${r.violations_found}</span>`;
+        html += `<span style="color:var(--text-secondary);font-size:11px">VIOLATIONS</span>`;
         html += `</div>`;
-        
-        // Show each result
-        html += '<div style="display:flex;flex-direction:column;gap:8px">';
-        for (const item of r.results) {
-          const color = item.auto_fixed ? 'rgba(74,222,128,0.1)' : 'rgba(234,197,9,0.1)';
-          const borderColor = item.auto_fixed ? 'rgba(74,222,128,0.3)' : 'rgba(234,197,9,0.3)';
-          html += `<div style="padding:10px;border-radius:6px;background:${color};border:1px solid ${borderColor}">`;
-          html += `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">`;
-          html += `<span style="font-family:monospace;font-size:12px">${item.file_path}</span>`;
-          html += `<span class="badge badge-${item.rule_type}" style="font-size:10px">${item.rule_type}</span>`;
-          html += `</div>`;
-          if (item.changes_made && item.changes_made.length > 0) {
-            html += `<div style="font-size:12px;color:var(--text-secondary)">Changes: ${item.changes_made.join(', ')}</div>`;
-          }
-          if (item.blocked_reason) {
-            html += `<div style="font-size:12px;color:#eab308">⚠ ${item.blocked_reason}</div>`;
-          }
-          if (preview && item.fixed_content) {
-            html += `<details style="margin-top:4px;font-size:11px"><summary style="cursor:pointer;color:var(--text-secondary)">Preview diff</summary>`;
-            html += `<pre style="margin-top:4px;padding:8px;background:rgba(0,0,0,0.2);border-radius:4px;overflow-x:auto;font-size:11px;max-height:200px;overflow-y:auto">${escapeHtml(item.fixed_content)}</pre>`;
-            html += `</details>`;
-          }
+        if (r.auto_fixed > 0) {
+          html += `<div style="display:flex;flex-direction:column;align-items:center;gap:4px;min-width:60px;border-left:1px solid var(--border);padding-left:16px">`;
+          html += `<span style="font-size:24px;font-weight:700;color:#4ade80">${r.auto_fixed}</span>`;
+          html += `<span style="color:#4ade80;font-size:11px">${preview ? 'TO FIX' : 'FIXED'}</span>`;
           html += `</div>`;
         }
-        html += '</div>';
+        if (r.blocked > 0) {
+          html += `<div style="display:flex;flex-direction:column;align-items:center;gap:4px;min-width:60px;border-left:1px solid var(--border);padding-left:16px">`;
+          html += `<span style="font-size:24px;font-weight:700;color:#eab308">${r.blocked}</span>`;
+          html += `<span style="color:#eab308;font-size:11px">FLAGGED</span>`;
+          html += `</div>`;
+        }
+        html += `</div>`;
+        
+        // Before/After table for each file
+        for (const item of r.results) {
+          const isFixed = item.auto_fixed;
+          const bgColor = isFixed ? 'rgba(74,222,128,0.06)' : 'rgba(234,197,9,0.06)';
+          const borderColor = isFixed ? 'rgba(74,222,128,0.2)' : 'rgba(234,197,9,0.2)';
+          
+          html += `<div style="margin-bottom:12px;border-radius:8px;border:1px solid ${borderColor};background:${bgColor};overflow:hidden">`;
+          
+          // File header
+          html += `<div style="padding:8px 12px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid ${borderColor};background:rgba(0,0,0,0.15)">`;
+          html += `<span style="font-family:monospace;font-size:12px;font-weight:500">${item.file_path}</span>`;
+          html += `<div style="display:flex;gap:6px;align-items:center">`;
+          html += `<span class="badge badge-${item.rule_type}" style="font-size:10px">${item.rule_type}</span>`;
+          if (item.changes_made && item.changes_made.length > 0) {
+            html += `<span style="font-size:11px;color:${isFixed ? '#4ade80' : 'var(--text-secondary)'}">${isFixed ? 'Fixed' : 'Would fix'}: ${item.changes_made.join(', ')}</span>`;
+          }
+          html += `</div></div>`;
+          
+          // Content area
+          if (item.blocked_reason) {
+            html += `<div style="padding:10px 12px;font-size:12px;color:#eab308">⚠ ${item.blocked_reason}</div>`;
+          }
+          
+          if (preview && item.fixed_content) {
+            // Show before/after comparison
+            html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--border);font-size:11px">`;
+            html += `<div style="background:rgba(0,0,0,0.2);padding:8px 10px;font-weight:600;color:var(--text-secondary)">BEFORE</div>`;
+            html += `<div style="background:rgba(74,222,128,0.05);padding:8px 10px;font-weight:600;color:#4ade80">AFTER</div>`;
+            html += `<div style="background:rgba(0,0,0,0.15);padding:10px;overflow-x:auto;max-height:160px;overflow-y:auto"><pre style="margin:0;white-space:pre-wrap;word-break:break-word;line-height:1.4">${escapeHtml(item.original_content || '(original)')}</pre></div>`;
+            html += `<div style="background:rgba(74,222,128,0.08);padding:10px;overflow-x:auto;max-height:160px;overflow-y:auto"><pre style="margin:0;white-space:pre-wrap;word-break:break-word;line-height:1.4">${escapeHtml(item.fixed_content)}</pre></div>`;
+            html += `</div>`;
+          } else if (item.original_content) {
+            html += `<details style="padding:8px 12px"><summary style="cursor:pointer;font-size:12px;color:var(--text-secondary)">View file content</summary>`;
+            html += `<pre style="margin-top:8px;padding:10px;background:rgba(0,0,0,0.15);border-radius:4px;overflow-x:auto;font-size:11px;max-height:200px;overflow-y:auto">${escapeHtml(item.original_content)}</pre>`;
+            html += `</details>`;
+          }
+          
+          html += `</div>`;
+        }
         results.innerHTML = html;
         results.style.display = 'block';
       }
@@ -269,7 +302,7 @@ async function runAutoFix() {
     status.style.color = '#f87171';
   } finally {
     btn.disabled = false;
-    btn.textContent = preview ? '🔧 Run Auto-Fix' : '🔧 Run Auto-Fix';
+    btn.textContent = 'Fix Charter';
   }
 }
 

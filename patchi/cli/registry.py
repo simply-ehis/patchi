@@ -68,7 +68,10 @@ COMMANDS: list[Command] = [
         "watch",
         "Auto-scan on file saves",
         "patchi.cli.commands.watch_cmd:run",
-        args=(Arg("area", nargs="?", help="Watch specific area only"),),
+        args=(
+            Arg("area", nargs="?", help="Watch specific area only"),
+            Arg("--dry-run", action="store_true", help="Preview auto-fixes without applying them"),
+        ),
     ),
     Command(
         "scan",
