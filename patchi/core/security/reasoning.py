@@ -67,7 +67,7 @@ _WHAT_CHANGED_RE = re.compile(
     r"what(?:'s| is| are)?\s+(?:changed|new|modified|different)", re.I
 )
 _WHAT_DOES_RE = re.compile(
-    r"what\s+(?:does|is|are)\s+(?:the\s+)?['\"]?(\w+)['\"]?\s*(?:do|about)",
+    r"what\s+(?:does|is|are)\s+(?:the\s+)?['\"]?(\w+)['\"]?\s+(?:module|service|function|class)?\s*(?:do|about)",
     re.I,
 )
 _WHAT_IMPORTS_RE = re.compile(

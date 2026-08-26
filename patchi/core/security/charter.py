@@ -176,6 +176,9 @@ _CONVENTION_KEYWORDS = [
     r"tests?\s+(?:for|covering)\s+(?:all\s+)?(.+)",
     r"no\s+(?:globals?|singletons?)\b",
     r"max\s+file\s+(?:size|length)\s+(\d+)",
+    r"all\s+files?\s+must\s+have\s+(?:file\s+)?headers?",
+    r"files?\s+require\s+headers?",
+    r"include\s+headers?\s+in\s+all\s+files?",
 ]
 
 _STACK_KEYWORDS = [
