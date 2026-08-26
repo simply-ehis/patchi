@@ -160,7 +160,59 @@ class RiskGate:
                             "Modify restrictions with 'p restrict'."
                         )
 
-        # 3. Blast radius report required for high-risk patches
+        # 3. Charter boundary check — agent fixes must not violate guard rails
+        try:
+            from patchi.core.security.charter import (
+                RuleType,
+                check_boundary_violations,
+                load_charter,
+            )
+
+            charter = load_charter(self.root)
+            if charter.rules:
+                # Build import edges from proposed changes
+                import_edges: list[tuple[str, str]] = []
+                for change in patch.changes:
+                    if change.proposed:
+                        # Extract import statements from proposed code
+                        import re as _re
+                        for m in _re.finditer(
+                            r'from\s+(\S+)\s+import\s+\w+', change.proposed
+                        ):
+                            import_edges.append((change.path, m.group(1)))
+                        for m in _re.finditer(
+                            r'import\s+(\S+)', change.proposed
+                        ):
+                            import_edges.append((change.path, m.group(1)))
+
+                # Check boundary rules
+                boundary_violations = check_boundary_violations(charter, import_edges)
+                for v in boundary_violations:
+                    blocks.append(
+                        f"Charter violation [{v.rule_id}]: {v.message}. "
+                        f"{v.suggestion}"
+                    )
+
+                # Check convention rules (file size limits)
+                for rule in charter.rules:
+                    if rule.type == RuleType.CONVENTION and rule.enabled:
+                        max_lines = rule.metadata.get("max_lines")
+                        if max_lines:
+                            for change in patch.changes:
+                                if change.path.endswith((".py", ".ts", ".js")):
+                                    new_lines = (
+                                        (change.proposed or "").count("\n") + 1
+                                    )
+                                    if new_lines > max_lines:
+                                        blocks.append(
+                                            f"Charter violation [{rule.id}]: "
+                                            f"{change.path} would be {new_lines} lines "
+                                            f"(max {max_lines}). {rule.description}"
+                                        )
+        except Exception as e:
+            _log.debug("Charter check skipped: %s", e)
+
+        # 4. Blast radius report required for high-risk patches
         if (
             self._config.get("require_blast_radius_on_high_risk", True)
             and patch.risk_score >= 61

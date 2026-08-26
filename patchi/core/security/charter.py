@@ -328,9 +328,14 @@ def check_boundary_violations(
         desc_lower = rule.description.lower()
         # Try to extract "X must not import Y" or "no cross-module" patterns
         forbid_match = re.search(
-            r"(?:from|import)\s+(\w+)\s+(?:must\s+not|cannot|never)\s+(?:import|depend)\s+(\w+)",
+            r"(\w+)\s+(?:must\s+not|cannot|never)\s+(?:import|depend(?:\s+on)?)\s+(\w+)",
             desc_lower,
         )
+        if not forbid_match:
+            forbid_match = re.search(
+                r"(?:no|without)\s+(?:cross[- ]?)?(?:import(?:s)?|depend(?:ency|encies)?)\s+(?:of\s+)?(\w+)\s+(?:to|into|with)\s+(\w+)",
+                desc_lower,
+            )
         if forbid_match:
             source_sub = forbid_match.group(1)
             target_sub = forbid_match.group(2)
