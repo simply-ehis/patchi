@@ -26,7 +26,7 @@ from patchi.core.agents.base import AgentGroup, list_agents
 _log = logging.getLogger("patchi.cli.dev_cmd")
 
 
-def run(action: str | None = None, verbose: bool = False, json_output: bool = False) -> None:
+def run(action: str | None = None, verbose: bool = False, json_output: bool = False, strict: bool = False) -> None:
 
     if action == "test":
         _show_test_docs(con)
@@ -37,7 +37,7 @@ def run(action: str | None = None, verbose: bool = False, json_output: bool = Fa
     elif action == "docs":
         _show_cli_reference(con)
     elif action == "hook":
-        _install_hook(con)
+        _install_hook(con, strict=strict)
     elif action == "check":
         from patchi.cli.commands.dev_check_cmd import run as check_run
         check_run(json_output=json_output)
@@ -397,7 +397,7 @@ def _get_version() -> str:
         return "unknown"
 
 
-def _install_hook(con: Console) -> None:
+def _install_hook(con: Console, strict: bool = False) -> None:
     """Install the Patchi pre-commit hook."""
     from patchi.core.config import require_project_root
     from patchi.core.security.precommit_hook import install_hook, read_hook_status
@@ -419,19 +419,26 @@ def _install_hook(con: Console) -> None:
             parts.append("pytest")
         if status.get("has_scan"):
             parts.append("scan --changed")
+        if status.get("strict"):
+            parts.append("strict")
         con.print(f"  Gates: {', '.join(parts) or 'none'}")
         con.print()
 
     # Install
+    mode_label = "[bold red]STRICT[/bold red]" if strict else "[dim]warn-only[/dim]"
     try:
-        hook_path = install_hook(root, strict=False, with_tests=True, with_scan=True)
+        hook_path = install_hook(root, strict=strict, with_tests=True, with_scan=True)
         con.print(f"[#4ADE80]✓[/#4ADE80] Pre-commit hook installed: [bold]{hook_path}[/bold]")
+        con.print(f"  Mode: {mode_label}")
         con.print()
         con.print("  Gates on every commit:")
         con.print("    1. [dim]ruff check patchi/[/dim] — lint")
         con.print("    2. [dim]pytest tests/[/dim] — tests")
         con.print("    3. [dim]p scan --changed[/dim] — security scan of changed files")
         con.print()
-        con.print("[dim]Run [bold]p dev hook --strict[/bold] to fail commits on violations.[/dim]")
+        if strict:
+            con.print("[bold red]Strict mode ON:[/bold red] violations block the commit.")
+        else:
+            con.print("[dim]Run [bold]p dev hook --strict[/bold] to fail commits on violations.[/dim]")
     except Exception as e:
         con.print(f"[red]Failed to install hook: {e}[/red]")

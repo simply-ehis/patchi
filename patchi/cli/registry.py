@@ -90,6 +90,12 @@ COMMANDS: list[Command] = [
                 help="Preview what would be scanned without parsing",
             ),
             Arg(
+                "--quiet",
+                dest="quiet",
+                action="store_true",
+                help="Suppress non-essential output",
+            ),
+            Arg(
                 "--deep",
                 action="store_true",
                 help="Include LLM analysis of changed files (uses AI tokens)",
@@ -449,11 +455,12 @@ COMMANDS: list[Command] = [
                 "action",
                 nargs="?",
                 default=None,
-                help="Dev action: check | test | security | playwright | docs | hook",
+                help="Dev action: check | test | security | playwright | docs | hook (--strict)",
             ),
             # dev has its own --verbose, separate from the global one
             Arg("--verbose", dest="verbose", action="store_true", help="Show detailed output"),
             Arg("--json", dest="json_output", action="store_true", help="Output as JSON (for check)"),
+            Arg("--strict", dest="strict", action="store_true", help="Fail commits on violations (hook)"),
         ),
     ),
     Command(
