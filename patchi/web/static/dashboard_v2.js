@@ -499,6 +499,8 @@
         async function runDevCheck() {
             const resultDiv = document.getElementById('devCheckResult');
             const runBtn = document.getElementById('runDevCheckBtn');
+            const strictToggle = document.getElementById('strictModeToggle');
+            const isStrict = strictToggle ? strictToggle.checked : false;
             
             if (runBtn) {
                 runBtn.disabled = true;
@@ -509,16 +511,20 @@
                 resultDiv.innerHTML = '<p class="feed-empty">Running p dev check...</p>';
             }
             
-            addFeedEntry('devcheck', 'Running p dev check...', '');
+            addFeedEntry('devcheck', `Running p dev check${isStrict ? ' (strict mode)' : ''}...`, '');
             
             try {
-                const resp = await fetch('/api/dev-check', { method: 'POST' });
+                const resp = await fetch('/api/dev-check', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ strict: isStrict })
+                });
                 const data = await resp.json();
                 
                 // Build result HTML
                 const gates = data.gates || [];
                 let resultHtml = '<div class="dev-check-result">';
-                resultHtml += `<div class="dev-check-header">${data.overall === 'PASS' ? '✓ All Passed' : '✗ Failed'}</div>`;
+                resultHtml += `<div class="dev-check-header">${data.overall === 'PASS' ? '✓ All Passed' : '✗ Failed'}${isStrict ? ' (strict)' : ''}</div>`;
                 
                 gates.forEach(gate => {
                     const statusClass = gate.status === 'PASS' ? 'pass' : 'fail';
@@ -540,6 +546,15 @@
                 if (resultDiv) {
                     resultDiv.innerHTML = resultHtml;
                 }
+                
+                // Save to history
+                saveDevCheckHistory({
+                    timestamp: new Date().toISOString(),
+                    overall: data.overall,
+                    strict: isStrict,
+                    gates: gates.map(g => ({ name: g.name, status: g.status, elapsed: g.elapsed }))
+                });
+                updateDevCheckHistory();
                 
                 addFeedEntry('devcheck', resultHtml, data.overall === 'PASS' ? 'success' : 'error');
             } catch (e) {
@@ -753,7 +768,85 @@
     // Heartbeat ping every 30s
     setInterval(() => send({ action: 'ping', data: {} }), 30000);
 
-    // Refresh scan results after scan completes
+    // ── Dev Check History ──────────────────────────────────────────
+    const DEV_CHECK_HISTORY_KEY = 'patchi_dev_check_history';
+    const MAX_HISTORY_ENTRIES = 10;
+
+    function loadDevCheckHistory() {
+        try {
+            const stored = localStorage.getItem(DEV_CHECK_HISTORY_KEY);
+            return stored ? JSON.parse(stored) : [];
+        } catch (e) {
+            return [];
+        }
+    }
+
+    function saveDevCheckHistory(entry) {
+        const history = loadDevCheckHistory();
+        history.unshift(entry); // Add to front
+        // Keep only last 10 entries
+        while (history.length > MAX_HISTORY_ENTRIES) {
+            history.pop();
+        }
+        localStorage.setItem(DEV_CHECK_HISTORY_KEY, JSON.stringify(history));
+    }
+
+    function clearDevCheckHistory() {
+        localStorage.removeItem(DEV_CHECK_HISTORY_KEY);
+        updateDevCheckHistory();
+    }
+
+    function updateDevCheckHistory() {
+        const historyDiv = document.getElementById('devCheckHistory');
+        if (!historyDiv) return;
+
+        const history = loadDevCheckHistory();
+        if (history.length === 0) {
+            historyDiv.innerHTML = '<p class="feed-empty">No runs yet</p>';
+            return;
+        }
+
+        let html = '';
+        history.forEach(entry => {
+            const time = new Date(entry.timestamp).toLocaleString();
+            const statusClass = entry.overall === 'PASS' ? 'pass' : 'fail';
+            const strictBadge = entry.strict ? '<span class="badge badge-medium" style="font-size:10px;margin-left:4px;">STRICT</span>' : '';
+            
+            html += `<div class="history-entry">`;
+            html += `<div class="history-header">`;
+            html += `<span class="history-time">${time}</span>`;
+            html += `<span class="gate-status status-${statusClass}">${entry.overall}</span>`;
+            html += strictBadge;
+            html += `</div>`;
+            
+            if (entry.gates && entry.gates.length > 0) {
+                html += `<div class="history-gates">`;
+                entry.gates.forEach(gate => {
+                    const gateStatusClass = gate.status === 'PASS' ? 'pass' : 'fail';
+                    html += `<span class="history-gate">
+                        <span class="gate-name" style="font-size:11px;">${gate.name}:</span>
+                        <span class="gate-status status-${gateStatusClass}" style="font-size:10px;">${gate.status}</span>
+                        <span style="font-size:10px;color:var(--text-muted);">${gate.elapsed}s</span>
+                    </span>`;
+                });
+                html += `</div>`;
+            }
+            html += `</div>`;
+        });
+
+        historyDiv.innerHTML = html;
+    }
+
+    // Clear history button
+    const clearHistBtn = document.getElementById('clearDevHistory');
+    if (clearHistBtn) {
+        clearHistBtn.addEventListener('click', clearDevCheckHistory);
+    }
+
+    // Initialize history on load
+    updateDevCheckHistory();
+
+    // ── Auto-refresh dev check after scan completes ────────────────
     function refreshScanResults() {
         // Refresh findings list
         fetch('/api/scan')
@@ -771,6 +864,10 @@
                     if (el) el.textContent = bySev[s];
                 });
                 addFeedEntry('system', `Findings updated: ${findings.length} total (${Object.entries(bySev).map(([k,v]) => v + ' ' + k).join(', ')})`, 'success');
+                
+                // Auto-refresh dev check card after scan completes
+                addFeedEntry('devcheck', 'Scan complete - refreshing dev check...', '');
+                setTimeout(() => runDevCheck(), 1000);
             })
             .catch(e => addFeedEntry('system', 'Failed to refresh findings: ' + e.message, 'error'));
     }

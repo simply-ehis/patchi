@@ -343,11 +343,34 @@
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/><path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                                 Dev Check
                             </h2>
-                            <button class="btn btn-primary btn-sm" id="runDevCheckBtn">Run</button>
+                            <div class="panel-actions" style="display:flex;align-items:center;gap:8px;">
+                                <label class="toggle-switch" title="Strict mode: violations block the commit">
+                                    <input type="checkbox" id="strictModeToggle">
+                                    <span class="toggle-slider"></span>
+                                    <span class="toggle-label">Strict</span>
+                                </label>
+                                <button class="btn btn-primary btn-sm" id="runDevCheckBtn">Run</button>
+                            </div>
                         </header>
                         <div class="panel-body">
                             <div id="devCheckResult">
                                 <p class="feed-empty">Click Run or press <kbd>D</kbd> to run dev check</p>
+                            </div>
+                        </div>
+                    </section>
+
+                    <!-- Dev Check History -->
+                    <section class="panel" aria-labelledby="devCheckHistoryTitle">
+                        <header class="panel-header">
+                            <h2 id="devCheckHistoryTitle" class="panel-title">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                                Dev Check History
+                            </h2>
+                            <button class="btn btn-ghost btn-sm" id="clearDevHistory" title="Clear history">Clear</button>
+                        </header>
+                        <div class="panel-body">
+                            <div id="devCheckHistory" class="dev-check-history">
+                                <p class="feed-empty">No runs yet</p>
                             </div>
                         </div>
                     </section>
