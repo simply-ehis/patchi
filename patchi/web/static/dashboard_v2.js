@@ -98,9 +98,14 @@
             case 'tool_result':
                 handleToolResult(data);
                 break;
+            case 'scan_progress':
+                updateScanProgress(data);
+                break;
             case 'scan_completed':
-                addFeedEntry('brain', `Scan complete: ${data.file_count} files, ${data.route_count} routes in ${(data.duration || 0).toFixed(1)}s`, 'success');
+                scanProgress.completed = scanProgress.total;
+                addFeedEntry('brain', 'Scan complete: ' + data.file_count + ' files, ' + data.route_count + ' routes in ' + (data.duration || 0).toFixed(1) + 's', 'success');
                 refreshScanResults();
+                setTimeout(function() { var pDiv = document.getElementById('scan-progress-feed'); if (pDiv) pDiv.remove(); }, 3000);
                 break;
             case 'red_team_completed':
                 addFeedEntry('redteam', `Assessment done: ${data.findings} findings across scenarios`, data.findings > 0 ? 'warning' : 'success');
@@ -128,6 +133,11 @@
     // ── Feed ───────────────────────────────────────────────────────
     function addFeedEntry(agent, message, cls) {
         if (!agentFeed || state.feedPaused) return;
+        if (cls === '' && message.indexOf('started') >= 0) {
+            updateScanProgress({ agent: agent, status: 'running' });
+        } else if (cls === 'success' && message.indexOf('done') >= 0) {
+            updateScanProgress({ agent: agent, status: 'done' });
+        }
 
         // Remove empty placeholder
         const empty = agentFeed.querySelector('.feed-empty');
@@ -351,68 +361,144 @@
         addFeedEntry(data.tool || 'tool', `→ ${resultStr}${resultStr.length >= 200 ? '…' : ''}`, 'success');
     }
 
+    // ── Button loading state helpers ─────────────────────────────
+    function setButtonLoading(btn, loading, originalText) {
+        if (!btn) return;
+        if (loading) {
+            btn.disabled = true;
+            btn._origText = btn.textContent;
+            btn.innerHTML = '<span class="spinner"></span> ' + (originalText || btn.textContent);
+            btn.style.opacity = '0.7';
+            btn.style.pointerEvents = 'none';
+        } else {
+            btn.disabled = false;
+            btn.textContent = btn._origText || originalText || btn.textContent;
+            btn.style.opacity = '';
+            btn.style.pointerEvents = '';
+        }
+    }
+
+    // ── Scan progress tracking ──────────────────────────────────
+    const scanProgress = { total: 0, completed: 0, agents: {}, startTime: 0 };
+
+    function updateScanProgress(data) {
+        if (data.agent) scanProgress.agents[data.agent] = data.status || 'running';
+        if (data.total) scanProgress.total = data.total;
+        if (data.completed !== undefined) scanProgress.completed = data.completed;
+        const elapsed = ((Date.now() - scanProgress.startTime) / 1000).toFixed(1);
+        const pct = scanProgress.total > 0 ? Math.round((scanProgress.completed / scanProgress.total) * 100) : 0;
+        const active = Object.values(scanProgress.agents).filter(s => s === 'running').length;
+        const done = Object.values(scanProgress.agents).filter(s => s === 'done').length;
+        const feedEl = document.getElementById('scan-progress-feed');
+        if (feedEl) {
+            feedEl.innerHTML = '<div style="display:flex;align-items:center;gap:12px;margin:8px 0"><div style="flex:1"><div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-size:12px;font-weight:600">Scanning...</span><span style="font-size:11px;color:var(--text-secondary)">' + elapsed + 's elapsed</span></div><div style="height:6px;background:var(--bg-secondary);border-radius:3px;overflow:hidden"><div style="height:100%;width:' + pct + '%;background:var(--accent);border-radius:3px;transition:width 0.3s"></div></div><div style="display:flex;gap:12px;margin-top:6px;font-size:11px;color:var(--text-secondary)"><span>' + scanProgress.completed + '/' + (scanProgress.total || '?') + ' tests</span><span>' + active + ' active</span><span>' + done + ' done</span></div></div></div>';
+        }
+    }
+
+    // ── Confirmation dialog ─────────────────────────────────────
+    function showConfirmDialog(title, message, confirmText, onConfirm) {
+        const existing = document.getElementById('confirm-dialog-overlay');
+        if (existing) existing.remove();
+        const overlay = document.createElement('div');
+        overlay.id = 'confirm-dialog-overlay';
+        overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:10000;display:flex;align-items:center;justify-content:center;animation:fadeIn 0.15s';
+        var btnColor = confirmText.indexOf('Fix') >= 0 ? '#f59e0b' : 'var(--accent)';
+        overlay.innerHTML = '<div style="background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:24px;max-width:420px;width:90%;box-shadow:0 16px 48px rgba(0,0,0,0.3)"><div style="font-size:16px;font-weight:600;margin-bottom:8px">' + title + '</div><div style="font-size:14px;color:var(--text-secondary);line-height:1.5;margin-bottom:20px">' + message + '</div><div style="display:flex;gap:8px;justify-content:flex-end"><button id="confirm-cancel" class="btn" style="padding:8px 16px">Cancel</button><button id="confirm-ok" class="btn btn-primary" style="padding:8px 16px;background:' + btnColor + ';border-color:' + btnColor + '">' + confirmText + '</button></div></div>';
+        document.body.appendChild(overlay);
+        document.getElementById('confirm-cancel').onclick = function() { overlay.remove(); };
+        document.getElementById('confirm-ok').onclick = function() { overlay.remove(); onConfirm(); };
+        overlay.onclick = function(e) { if (e.target === overlay) overlay.remove(); };
+    }
+
     // ── Quick actions ──────────────────────────────────────────────
     async function runScan(type) {
+        var scanBtn = document.querySelector('[onclick*="runScan"]');
+        setButtonLoading(scanBtn, true);
+        scanProgress.total = 0; scanProgress.completed = 0; scanProgress.agents = {}; scanProgress.startTime = Date.now();
         addFeedEntry('scan', 'Starting scan...', '');
+        var progressDiv = document.createElement('div');
+        progressDiv.id = 'scan-progress-feed';
+        progressDiv.style.cssText = 'padding:8px;background:var(--bg-secondary);border-radius:6px;margin:4px 0;border:1px solid var(--border)';
+        if (agentFeed) agentFeed.prepend(progressDiv);
         try {
-            const resp = await fetch('/api/scan', { method: 'POST' });
-            const data = await resp.json();
+            var resp = await fetch('/api/scan', { method: 'POST' });
+            var data = await resp.json();
             if (data.ok) {
-                addFeedEntry('scan', data.message || 'Scan started', 'success');
-                // Refresh findings after a delay
-                setTimeout(refreshFindings, 5000);
+                addFeedEntry('scan', data.message || 'Scan started successfully', 'success');
+                setTimeout(function() { refreshFindings(); setButtonLoading(scanBtn, false); }, 3000);
             } else {
-                addFeedEntry('scan', `Scan failed: ${data.error || 'unknown error'}`, 'error');
+                addFeedEntry('scan', 'Scan failed: ' + (data.error || 'unknown error'), 'error');
+                setButtonLoading(scanBtn, false);
             }
         } catch (e) {
-            addFeedEntry('scan', `Scan error: ${e.message}`, 'error');
+            addFeedEntry('scan', 'Scan error: ' + e.message, 'error');
+            setButtonLoading(scanBtn, false);
         }
     }
 
     async function runFix() {
-        addFeedEntry('fix', 'Applying safe fixes...', '');
-        try {
-            const resp = await fetch('/api/fix/apply-all-safe', { method: 'POST' });
-            const data = await resp.json();
-            if (data.ok) {
-                addFeedEntry('fix', data.message || 'Fixes applied', 'success');
-            } else {
-                addFeedEntry('fix', `Fix failed: ${data.error || 'unknown error'}`, 'error');
+        showConfirmDialog(
+            'Fix Safe Issues',
+            'This will automatically fix safe charter violations (missing headers, formatting) in all project files. <strong>Dangerous violations (security, boundaries) will NOT be fixed.</strong> This action can be undone with <code>git checkout</code>.',
+            'Apply Fixes',
+            async function() {
+                var fixBtn = document.querySelector('[onclick*="runFix"]');
+                setButtonLoading(fixBtn, true);
+                addFeedEntry('fix', 'Applying safe fixes...', '');
+                try {
+                    var resp = await fetch('/api/fix/apply-all-safe', { method: 'POST' });
+                    var data = await resp.json();
+                    if (data.ok) {
+                        addFeedEntry('fix', data.message || 'Fixes applied successfully', 'success');
+                        setTimeout(refreshFindings, 2000);
+                    } else {
+                        addFeedEntry('fix', 'Fix failed: ' + (data.error || 'unknown error'), 'error');
+                    }
+                } catch (e) {
+                    addFeedEntry('fix', 'Fix error: ' + e.message, 'error');
+                } finally {
+                    setButtonLoading(fixBtn, false);
+                }
             }
-        } catch (e) {
-            addFeedEntry('fix', `Fix error: ${e.message}`, 'error');
-        }
+        );
     }
 
     async function runAssurance() {
+        var btn = document.querySelector('[onclick*="runAssurance"]');
+        setButtonLoading(btn, true);
         addFeedEntry('assurance', 'Running assurance checks...', '');
         try {
-            const resp = await fetch('/api/assurance');
-            const data = await resp.json();
+            var resp = await fetch('/api/assurance');
+            var data = await resp.json();
             if (data) {
-                addFeedEntry('assurance', `Coverage: ${data.coverage || 0}%, Attacker tests: ${data.attacker?.confirmed || 0} confirmed`, 'success');
+                addFeedEntry('assurance', 'Coverage: ' + (data.coverage || 0) + '%, Attacker tests: ' + (data.attacker ? data.attacker.confirmed : 0) + ' confirmed', 'success');
             } else {
                 addFeedEntry('assurance', 'Assurance check completed', 'success');
             }
         } catch (e) {
-            addFeedEntry('assurance', `Assurance error: ${e.message}`, 'error');
+            addFeedEntry('assurance', 'Assurance error: ' + e.message, 'error');
+        } finally {
+            setButtonLoading(btn, false);
         }
     }
 
     async function runDAST() {
+        var btn = document.querySelector('[onclick*="runDAST"]');
+        setButtonLoading(btn, true);
         addFeedEntry('dast', 'Starting DAST scan with Playwright...', '');
         try {
-            const resp = await fetch('/api/scan/dast', { method: 'POST' });
-            const data = await resp.json();
+            var resp = await fetch('/api/scan/dast', { method: 'POST' });
+            var data = await resp.json();
             if (data.ok) {
                 addFeedEntry('dast', data.message || 'DAST scan started', 'success');
-                // Refresh findings after scan completes
-                setTimeout(refreshFindings, 10000);
+                setTimeout(function() { refreshFindings(); setButtonLoading(btn, false); }, 10000);
             } else {
-                addFeedEntry('dast', `DAST scan failed: ${data.error || 'unknown error'}`, 'error');
+                addFeedEntry('dast', 'DAST scan failed: ' + (data.error || 'unknown error'), 'error');
+                setButtonLoading(btn, false);
             }
         } catch (e) {
-            addFeedEntry('dast', `DAST scan error: ${e.message}`, 'error');
+            addFeedEntry('dast', 'DAST scan error: ' + e.message, 'error');
+            setButtonLoading(btn, false);
         }
     }
 

@@ -695,3 +695,92 @@ body {
   .nav-label { display: none; }
   .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
 }
+
+/* -- Loading / working states --------------------------------------- */
+.loading-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: color-mix(in srgb, var(--bg) 75%, transparent);
+  backdrop-filter: blur(2px);
+  border-radius: var(--radius, 10px);
+  z-index: 5;
+}
+.loading-spinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid var(--bg-tertiary);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: patchi-spin 0.8s linear infinite;
+}
+.loading-text {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.chart-container { position: relative; min-height: 160px; }
+@keyframes patchi-spin { to { transform: rotate(360deg); } }
+
+.spinner {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid currentColor;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: patchi-spin 0.8s linear infinite;
+    vertical-align: middle;
+    margin-right: 4px;
+}
+
+.confirm-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.15s;
+}
+
+.skeleton {
+  position: relative;
+  color: transparent !important;
+  background: linear-gradient(90deg, var(--bg-tertiary) 25%, var(--bg-secondary) 50%, var(--bg-tertiary) 75%);
+  background-size: 200% 100%;
+  border-radius: 6px;
+  animation: patchi-shimmer 1.2s ease-in-out infinite;
+  min-width: 24px;
+  display: inline-block;
+}
+@keyframes patchi-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+.btn.loading { position: relative; pointer-events: none; opacity: 0.85; }
+.btn.loading .btn-text { visibility: hidden; }
+.btn.loading .btn-spinner {
+  display: inline-block !important;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  animation: patchi-spin 0.8s linear infinite;
+}
+
+/* Global page loading overlay (toggled by base.html) */
+#global-loading {
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 16px;
+  background: color-mix(in srgb, var(--bg) 60%, transparent);
+  z-index: 1000;
+}
+#global-loading.active { display: flex; }
