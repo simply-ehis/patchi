@@ -174,6 +174,7 @@ def create_app(root: Path) -> FastAPI:
     from patchi.web.api.smart import router as smart_api_router
     from patchi.web.api.tenant import router as tenant_router
     from patchi.web.routes.assurance import router as assurance_router
+    from patchi.web.routes.charter import router as charter_router
     from patchi.web.routes.findings import router as findings_router
     from patchi.web.routes.guard import router as guard_router
     from patchi.web.routes.history import router as history_router
@@ -186,6 +187,7 @@ def create_app(root: Path) -> FastAPI:
     app.include_router(legacy_router)
     app.include_router(dashboard_router)
     app.include_router(findings_router)
+    app.include_router(charter_router)
     app.include_router(review_router)
     app.include_router(guard_router)
     app.include_router(chat_router)

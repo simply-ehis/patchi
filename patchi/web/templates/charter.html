@@ -1,0 +1,211 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="charter-page">
+  <!-- Header -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">📋 Charter — Project Guard Rails</span>
+      <span class="tab-count">{{ rule_count }} rules · {{ violation_count }} violations</span>
+    </div>
+    <p style="color:var(--text-secondary);margin:0 0 16px">
+      Define what your project should be. Rules are enforced on every scan and auto-reject agent fixes that violate them.
+    </p>
+  </div>
+
+  <!-- Set Charter Form -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Set Charter</span>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <textarea id="charter-input" rows="3" 
+        style="flex:1;min-width:300px;padding:8px;border-radius:6px;background:var(--bg-secondary);color:var(--text);border:1px solid var(--border);font-family:inherit;resize:vertical"
+        placeholder="e.g. Frontend must not import backend. No hardcoded secrets. All files must have headers. Services under 200 lines.">{{ charter_text }}</textarea>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
+      <button class="btn btn-primary" onclick="setCharter()" id="btn-save">💾 Save Charter</button>
+      <button class="btn" onclick="checkViolations()">🔍 Check Now</button>
+      <span id="charter-status" style="font-size:13px"></span>
+    </div>
+  </div>
+
+  <!-- Rules -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Active Rules ({{ rule_count }})</span>
+    </div>
+    {% if rules %}
+    <table style="width:100%;border-collapse:collapse;font-size:13px">
+      <thead>
+        <tr style="border-bottom:1px solid var(--border);text-align:left">
+          <th style="padding:8px">ID</th>
+          <th style="padding:8px">Type</th>
+          <th style="padding:8px">Severity</th>
+          <th style="padding:8px">Description</th>
+          <th style="padding:8px">Details</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for rule in rules %}
+        <tr style="border-bottom:1px solid var(--border)">
+          <td style="padding:8px;font-family:monospace;font-size:12px">{{ rule.id }}</td>
+          <td style="padding:8px">
+            <span class="badge badge-{{ rule.type }}">{{ rule.type }}</span>
+          </td>
+          <td style="padding:8px">
+            <span class="severity-badge severity-{{ rule.severity }}">{{ rule.severity }}</span>
+          </td>
+          <td style="padding:8px">{{ rule.description }}</td>
+          <td style="padding:8px;color:var(--text-secondary);font-size:12px">
+            {% if rule.from_pattern %}from: {{ rule.from_pattern }} → to: {{ rule.to_pattern }}{% endif %}
+            {% if rule.max_value %}max: {{ rule.max_value }} {{ rule.metric }}{% endif %}
+            {% if rule.keywords %}keywords: {{ rule.keywords|join(', ') }}{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">
+      <div class="empty-state-text">No rules defined. Set a charter above to get started.</div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Violations -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Violations ({{ violation_count }})</span>
+    </div>
+    {% if violations %}
+    <div style="display:flex;flex-direction:column;gap:8px">
+      {% for v in violations %}
+      <div style="padding:12px;border-radius:8px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2)">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+          <span class="severity-badge severity-{{ v.severity }}">{{ v.severity }}</span>
+          <span style="font-size:12px;color:var(--text-secondary)">{{ v.rule_id }}</span>
+        </div>
+        <div style="font-weight:500;margin-bottom:4px">{{ v.message }}</div>
+        {% if v.suggestion %}
+        <div style="font-size:12px;color:var(--text-secondary)">💡 {{ v.suggestion }}</div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <div class="empty-state-text">No violations found. 
+        {% if rules %}Your code is compliant! ✅{% else %}Set a charter first.{% endif %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+async function setCharter() {
+  const input = document.getElementById('charter-input');
+  const status = document.getElementById('charter-status');
+  const btn = document.getElementById('btn-save');
+  
+  const text = input.value.trim();
+  if (!text) {
+    status.textContent = '❌ Please enter charter text';
+    status.style.color = '#f87171';
+    return;
+  }
+  
+  btn.disabled = true;
+  status.textContent = 'Saving...';
+  status.style.color = 'var(--text-secondary)';
+  
+  try {
+    const resp = await fetch('/api/charter', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+    });
+    const data = await resp.json();
+    
+    if (data.ok) {
+      status.textContent = `✅ Saved ${data.rule_count} rule(s)`;
+      status.style.color = '#4ade80';
+      // Reload page to show new rules
+      setTimeout(() => location.reload(), 1000);
+    } else {
+      status.textContent = `❌ ${data.error || 'Failed to save'}`;
+      status.style.color = '#f87171';
+    }
+  } catch (e) {
+    status.textContent = `❌ ${e.message}`;
+    status.style.color = '#f87171';
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function checkViolations() {
+  const status = document.getElementById('charter-status');
+  status.textContent = 'Checking...';
+  status.style.color = 'var(--text-secondary)';
+  
+  try {
+    const resp = await fetch('/api/charter/check', { method: 'POST' });
+    const data = await resp.json();
+    
+    if (data.ok) {
+      status.textContent = `Found ${data.violations.length} violation(s)`;
+      status.style.color = data.violations.length > 0 ? '#f87171' : '#4ade80';
+      // Reload to show updated violations
+      setTimeout(() => location.reload(), 1000);
+    } else {
+      status.textContent = `❌ ${data.error || 'Check failed'}`;
+      status.style.color = '#f87171';
+    }
+  } catch (e) {
+    status.textContent = `❌ ${e.message}`;
+    status.style.color = '#f87171';
+  }
+}
+
+// Auto-save on Ctrl+Enter
+document.getElementById('charter-input').addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+    setCharter();
+  }
+});
+</script>
+
+<style>
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+.badge-boundary { background: rgba(239,68,68,0.15); color: #f87171; }
+.badge-convention { background: rgba(59,130,246,0.15); color: #3b82f6; }
+.badge-security { background: rgba(168,85,247,0.15); color: #a855f7; }
+.badge-stack { background: rgba(34,197,94,0.15); color: #22c55e; }
+
+.severity-badge {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+.severity-critical { background: rgba(239,68,68,0.2); color: #ef4444; }
+.severity-high { background: rgba(249,115,22,0.2); color: #f97316; }
+.severity-medium { background: rgba(234,179,8,0.2); color: #eab308; }
+.severity-low { background: rgba(34,197,94,0.2); color: #22c55e; }
+
+.charter-page .card {
+  margin-bottom: 16px;
+}
+</style>
+{% endblock %}
