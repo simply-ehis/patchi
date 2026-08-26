@@ -399,6 +399,23 @@
         }
     }
 
+    async function runDAST() {
+        addFeedEntry('dast', 'Starting DAST scan with Playwright...', '');
+        try {
+            const resp = await fetch('/api/scan/dast', { method: 'POST' });
+            const data = await resp.json();
+            if (data.ok) {
+                addFeedEntry('dast', data.message || 'DAST scan started', 'success');
+                // Refresh findings after scan completes
+                setTimeout(refreshFindings, 10000);
+            } else {
+                addFeedEntry('dast', `DAST scan failed: ${data.error || 'unknown error'}`, 'error');
+            }
+        } catch (e) {
+            addFeedEntry('dast', `DAST scan error: ${e.message}`, 'error');
+        }
+    }
+
     async function refreshFindings() {
         try {
             const resp = await fetch('/api/scan');
@@ -425,6 +442,9 @@
                         break;
                     case 'assurance':
                         await runAssurance();
+                        break;
+                    case 'dast':
+                        await runDAST();
                         break;
                     case 'redteam':
                         openToolConfirmation('red_team');
@@ -582,6 +602,14 @@
                 const active = document.activeElement;
                 if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) return;
                 runAssurance();
+                return;
+            }
+            // B key → DAST scan
+            if (e.key.toLowerCase() === 'b' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+                if (paletteModal && !paletteModal.hidden) return;
+                const active = document.activeElement;
+                if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) return;
+                runDAST();
                 return;
             }
             // Escape closes modals

@@ -192,6 +192,48 @@ async def quick_scan(request: Request) -> JSONResponse:
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
 
+@router.post("/scan/dast")
+async def trigger_dast(request: Request) -> JSONResponse:
+    """Trigger DAST (Dynamic Application Security Testing) scan with Playwright."""
+    root = request.app.state.root
+    tenant_ctx = tenant_context(root)
+    tenant_ctx.__enter__()
+
+    from patchi.core import config as cfg
+    from patchi.core import memory as mem
+    from patchi.core.agents.base import AgentInput
+    from patchi.web.ws import evt_scan_complete, evt_scan_progress, evt_scan_started
+
+    try:
+        config = cfg.load(root)
+    except Exception:
+        config = {}
+
+    brain = mem.get_brain(root)
+
+    # Import DAST agent
+    try:
+        from patchi.core.security.dast_agent import DASTAgent
+    except ImportError:
+        return JSONResponse({"ok": False, "error": "Playwright not installed. Run: pip install playwright && playwright install"}, status_code=500)
+
+    async def _run():
+        await evt_scan_started(1)
+        await evt_scan_progress("DASTAgent", "scanning", 0, 1)
+
+        inp = AgentInput(root=root, scope=[], brain=brain, config=config)
+        agent = DASTAgent()
+        result = agent.run(inp)
+
+        total_findings = result.finding_count
+        await evt_scan_progress("DASTAgent", "done", 1, 1)
+        await evt_scan_complete(total_findings, 0)
+
+    asyncio.create_task(_run())
+
+    return JSONResponse({"ok": True, "message": "DAST scan started"})
+
+
 @router.get("/findings-table")
 async def get_findings(request: Request, limit: int = 20) -> HTMLResponse:
     """Get recent findings as HTML fragment."""
