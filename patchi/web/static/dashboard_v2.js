@@ -352,14 +352,79 @@
     }
 
     // ── Quick actions ──────────────────────────────────────────────
+    async function runScan(type) {
+        addFeedEntry('scan', 'Starting scan...', '');
+        try {
+            const resp = await fetch('/api/scan', { method: 'POST' });
+            const data = await resp.json();
+            if (data.ok) {
+                addFeedEntry('scan', data.message || 'Scan started', 'success');
+                // Refresh findings after a delay
+                setTimeout(refreshFindings, 5000);
+            } else {
+                addFeedEntry('scan', `Scan failed: ${data.error || 'unknown error'}`, 'error');
+            }
+        } catch (e) {
+            addFeedEntry('scan', `Scan error: ${e.message}`, 'error');
+        }
+    }
+
+    async function runFix() {
+        addFeedEntry('fix', 'Applying safe fixes...', '');
+        try {
+            const resp = await fetch('/api/fix/apply-all-safe', { method: 'POST' });
+            const data = await resp.json();
+            if (data.ok) {
+                addFeedEntry('fix', data.message || 'Fixes applied', 'success');
+            } else {
+                addFeedEntry('fix', `Fix failed: ${data.error || 'unknown error'}`, 'error');
+            }
+        } catch (e) {
+            addFeedEntry('fix', `Fix error: ${e.message}`, 'error');
+        }
+    }
+
+    async function runAssurance() {
+        addFeedEntry('assurance', 'Running assurance checks...', '');
+        try {
+            const resp = await fetch('/api/assurance');
+            const data = await resp.json();
+            if (data) {
+                addFeedEntry('assurance', `Coverage: ${data.coverage || 0}%, Attacker tests: ${data.attacker?.confirmed || 0} confirmed`, 'success');
+            } else {
+                addFeedEntry('assurance', 'Assurance check completed', 'success');
+            }
+        } catch (e) {
+            addFeedEntry('assurance', `Assurance error: ${e.message}`, 'error');
+        }
+    }
+
+    async function refreshFindings() {
+        try {
+            const resp = await fetch('/api/scan');
+            const data = await resp.json();
+            if (data.ok && data.findings) {
+                const count = data.findings.length;
+                addFeedEntry('scan', `Found ${count} findings`, 'success');
+            }
+        } catch (e) {
+            // Silent failure for refresh
+        }
+    }
+
     function bindQuickActions() {
         document.querySelectorAll('.action-item[data-action]').forEach(item => {
-            item.addEventListener('click', () => {
+            item.addEventListener('click', async () => {
                 const action = item.dataset.action;
                 switch (action) {
                     case 'scan':
-                        send({ action: 'start_scan', data: {} });
-                        addFeedEntry('brain', 'Full scan started...', '');
+                        await runScan();
+                        break;
+                    case 'fix':
+                        await runFix();
+                        break;
+                    case 'assurance':
+                        await runAssurance();
                         break;
                     case 'redteam':
                         openToolConfirmation('red_team');
@@ -501,6 +566,22 @@
                 const active = document.activeElement;
                 if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) return;
                 runDevCheck();
+                return;
+            }
+            // F key → fix safe
+            if (e.key.toLowerCase() === 'f' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+                if (paletteModal && !paletteModal.hidden) return;
+                const active = document.activeElement;
+                if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) return;
+                runFix();
+                return;
+            }
+            // A key → assurance
+            if (e.key.toLowerCase() === 'a' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+                if (paletteModal && !paletteModal.hidden) return;
+                const active = document.activeElement;
+                if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) return;
+                runAssurance();
                 return;
             }
             // Escape closes modals
