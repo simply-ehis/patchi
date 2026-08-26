@@ -76,6 +76,53 @@ async def trigger_scan(request: Request, scan_type: str = "all") -> JSONResponse
     return JSONResponse({"ok": True, "message": f"Scan started with {len(to_run)} agents"})
 
 
+@router.get("/scan")
+async def get_scan_report(request: Request) -> JSONResponse:
+    """GET /api/scan — return cached scan results / report."""
+    root = request.app.state.root
+    from patchi.core import memory as mem
+
+    scan_results = mem.get_scan_results(root)
+    all_findings = []
+    for agent_name, data in scan_results.items():
+        if not isinstance(data, dict):
+            continue
+        for f in data.get("findings", []):
+            if isinstance(f, dict):
+                f["agent"] = agent_name
+                all_findings.append(f)
+
+    try:
+        from patchi.core.security.orchestrator import SecurityOrchestrator
+        from patchi.core.agents.base import AgentGroup, AgentResult, Finding
+
+        synth = []
+        for name, data in scan_results.items():
+            if not isinstance(data, dict):
+                continue
+            ar = AgentResult(agent_name=name, agent_group=AgentGroup.SECURITY)
+            for f in data.get("findings", []):
+                if isinstance(f, dict):
+                    ar.findings.append(Finding.from_dict(f))
+            synth.append(ar)
+        if synth:
+            report = SecurityOrchestrator().correlate(synth)
+            payload = report.to_dict()
+            payload["ok"] = True
+            payload["cached"] = True
+            payload["total_findings"] = report.total_findings
+            return JSONResponse(payload)
+    except Exception:
+        pass
+
+    return JSONResponse({
+        "ok": True,
+        "total_findings": len(all_findings),
+        "findings": all_findings[:50],
+        "cached": True,
+    })
+
+
 @router.post("/scan/quick")
 async def quick_scan(request: Request) -> JSONResponse:
     """On-demand scan: runs only agents relevant to git-diff changed files."""

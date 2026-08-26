@@ -18,3 +18,19 @@ build/
 dist/
 
 tests/fixtures/rust-panic/target/
+
+# Patchi runtime artifacts
+*.tmp
+*.bak
+*.log
+.coverage
+.coverage.*
+coverage.xml
+.pytest_cache/
+
+# IDE / editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~

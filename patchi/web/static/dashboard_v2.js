@@ -100,6 +100,7 @@
                 break;
             case 'scan_completed':
                 addFeedEntry('brain', `Scan complete: ${data.file_count} files, ${data.route_count} routes in ${(data.duration || 0).toFixed(1)}s`, 'success');
+                refreshScanResults();
                 break;
             case 'red_team_completed':
                 addFeedEntry('redteam', `Assessment done: ${data.findings} findings across scenarios`, data.findings > 0 ? 'warning' : 'success');
@@ -567,4 +568,26 @@
 
     // Heartbeat ping every 30s
     setInterval(() => send({ action: 'ping', data: {} }), 30000);
+
+    // Refresh scan results after scan completes
+    function refreshScanResults() {
+        // Refresh findings list
+        fetch('/api/scan')
+            .then(r => r.json())
+            .then(data => {
+                const findings = data.findings || [];
+                const bySev = { critical: 0, high: 0, medium: 0, low: 0 };
+                findings.forEach(f => {
+                    const s = (f.severity || 'info').toLowerCase();
+                    if (bySev[s] !== undefined) bySev[s]++;
+                });
+                // Update severity counts
+                Object.keys(bySev).forEach(s => {
+                    const el = document.getElementById('count-' + s);
+                    if (el) el.textContent = bySev[s];
+                });
+                addFeedEntry('system', `Findings updated: ${findings.length} total (${Object.entries(bySev).map(([k,v]) => v + ' ' + k).join(', ')})`, 'success');
+            })
+            .catch(e => addFeedEntry('system', 'Failed to refresh findings: ' + e.message, 'error'));
+    }
 })();
