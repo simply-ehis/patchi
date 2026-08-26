@@ -461,6 +461,7 @@ COMMANDS: list[Command] = [
             Arg("--verbose", dest="verbose", action="store_true", help="Show detailed output"),
             Arg("--json", dest="json_output", action="store_true", help="Output as JSON (for check)"),
             Arg("--strict", dest="strict", action="store_true", help="Fail commits on violations (hook)"),
+            Arg("--auto-fix", dest="auto_fix", action="store_true", help="Auto-fix charter violations on commit (hook)"),
         ),
     ),
     Command(

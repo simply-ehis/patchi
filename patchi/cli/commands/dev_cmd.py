@@ -26,7 +26,7 @@ from patchi.core.agents.base import AgentGroup, list_agents
 _log = logging.getLogger("patchi.cli.dev_cmd")
 
 
-def run(action: str | None = None, verbose: bool = False, json_output: bool = False, strict: bool = False) -> None:
+def run(action: str | None = None, verbose: bool = False, json_output: bool = False, strict: bool = False, auto_fix: bool = False) -> None:
 
     if action == "test":
         _show_test_docs(con)
@@ -37,7 +37,7 @@ def run(action: str | None = None, verbose: bool = False, json_output: bool = Fa
     elif action == "docs":
         _show_cli_reference(con)
     elif action == "hook":
-        _install_hook(con, strict=strict)
+        _install_hook(con, strict=strict, auto_fix=auto_fix)
     elif action == "check":
         from patchi.cli.commands.dev_check_cmd import run as check_run
         check_run(json_output=json_output)
@@ -134,9 +134,7 @@ def _show_test_docs(con: Console) -> None:
         "accessibility",
         "WCAG a11y via axe-core injection via UIAccessibilityAgent",
     )
-    t.add_row(
-        "p test visual", "visual", "Screenshot comparison at 3 viewports via VisualRegressionAgent"
-    )
+    t.add_row("p test visual", "visual", "Screenshot comparison at 3 viewports via VisualRegressionAgent")
     t.add_row("p test api", "api", "OpenAPI/JSON Schema contract tests via APIContractAgent")
     t.add_row("p test stress", "stress", "Locust load testing via StressTestAgent")
     t.add_row(
@@ -144,13 +142,9 @@ def _show_test_docs(con: Console) -> None:
         "security",
         "Route-specific security pytest generation via SecurityTestAgent",
     )
-    t.add_row(
-        "p test regression", "regression", "Snapshot-based regression tests via RegressionAgent"
-    )
+    t.add_row("p test regression", "regression", "Snapshot-based regression tests via RegressionAgent")
     t.add_row("p test smoke", "smoke", "Quick smoke: buttons + layout + accessibility")
-    t.add_row(
-        "p test full", "full", f"ALL test agents ({len(list_agents(AgentGroup.TEST))} agents)"
-    )
+    t.add_row("p test full", "full", f"ALL test agents ({len(list_agents(AgentGroup.TEST))} agents)")
     t.add_row("p test generate", "generate", "AI generates a full test suite")
     t.add_row("p test report", "report", "Show test run history (last 50)")
     t.add_row("p test config show", "config", "Show test configuration")
@@ -250,7 +244,7 @@ def _show_security_status(con: Console) -> None:
         root = cfg.require_project_root()
         config = cfg.load(root)
     except Exception as e:
-        _log.warning("_show_security_status failed: %s", e)
+        _log.warning("_show_security_status: %s", e)
         root = None
         config = {}
 
@@ -278,20 +272,14 @@ def _show_security_status(con: Console) -> None:
         f"{len(list_agents(AgentGroup.SECURITY))} agents",
         "All registered via @register decorator",
     )
-    t.add_row(
-        "ConfidenceGate", "Active", "Routes findings: defend / ai_analyze / human_review / discard"
-    )
+    t.add_row("ConfidenceGate", "Active", "Routes findings: defend / ai_analyze / human_review / discard")
     t.add_row(
         "Layer2 AI",
         "Active" if ai_keys else "No AI keys",
         "Batches medium-confidence findings for AI confirmation",
     )
-    t.add_row(
-        "DefenseLayer", "Active", "Creates patches / blocks IPs / rotates secrets / escalates"
-    )
-    t.add_row(
-        "RiskGate", "Always active", "Enforces mode, no-touch paths, quiet hours, secrets gate"
-    )
+    t.add_row("DefenseLayer", "Active", "Creates patches / blocks IPs / rotates secrets / escalates")
+    t.add_row("RiskGate", "Always active", "Enforces mode, no-touch paths, quiet hours, secrets gate")
     t.add_row("Sigma Engine", "Standby", "Loaded from .patchi/sigma/ (if rules exist)")
     t.add_row("SecretsGuard", "Always active", "Gate-checks proposed code for secrets before apply")
 
@@ -397,7 +385,7 @@ def _get_version() -> str:
         return "unknown"
 
 
-def _install_hook(con: Console, strict: bool = False) -> None:
+def _install_hook(con: Console, strict: bool = False, auto_fix: bool = False) -> None:
     """Install the Patchi pre-commit hook."""
     from patchi.core.config import require_project_root
     from patchi.core.security.precommit_hook import install_hook, read_hook_status
@@ -413,6 +401,8 @@ def _install_hook(con: Console, strict: bool = False) -> None:
     if status.get("installed"):
         con.print(f"[dim]Current hook:[/dim] {status.get('path', '?')}")
         parts = []
+        if status.get("auto_fix"):
+            parts.append("auto-fix")
         if status.get("has_ruff"):
             parts.append("ruff")
         if status.get("has_pytest"):
@@ -426,19 +416,30 @@ def _install_hook(con: Console, strict: bool = False) -> None:
 
     # Install
     mode_label = "[bold red]STRICT[/bold red]" if strict else "[dim]warn-only[/dim]"
+    fix_label = "[bold green]ON[/bold green]" if auto_fix else "[dim]OFF[/dim]"
     try:
-        hook_path = install_hook(root, strict=strict, with_tests=True, with_scan=True)
+        hook_path = install_hook(root, strict=strict, with_tests=True, with_scan=True, auto_fix=auto_fix)
         con.print(f"[#4ADE80]✓[/#4ADE80] Pre-commit hook installed: [bold]{hook_path}[/bold]")
-        con.print(f"  Mode: {mode_label}")
+        con.print(f"  Mode: {mode_label}  |  Auto-fix: {fix_label}")
         con.print()
         con.print("  Gates on every commit:")
-        con.print("    1. [dim]ruff check patchi/[/dim] — lint")
-        con.print("    2. [dim]pytest tests/[/dim] — tests")
-        con.print("    3. [dim]p scan --changed[/dim] — security scan of changed files")
+        if auto_fix:
+            con.print("    1. [dim]proactive auto-fix[/dim] — charter violations (imports, headers)")
+        step = 1 if auto_fix else 0
+        step += 1
+        con.print(f"    {step}. [dim]ruff check patchi/[/dim] — lint")
+        step += 1
+        con.print(f"    {step}. [dim]pytest tests/[/dim] — tests")
+        step += 1
+        con.print(f"    {step}. [dim]p scan --changed[/dim] — security scan of changed files")
         con.print()
         if strict:
             con.print("[bold red]Strict mode ON:[/bold red] violations block the commit.")
         else:
             con.print("[dim]Run [bold]p dev hook --strict[/bold] to fail commits on violations.[/dim]")
+        if auto_fix:
+            con.print("[dim]Auto-fix will fix safe charter violations (headers, imports) automatically.[/dim]")
+        else:
+            con.print("[dim]Run [bold]p dev hook --auto-fix[/bold] to auto-fix charter violations on commit.[/dim]")
     except Exception as e:
         con.print(f"[red]Failed to install hook: {e}[/red]")
