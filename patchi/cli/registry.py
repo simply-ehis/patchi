@@ -1205,4 +1205,22 @@ COMMANDS: list[Command] = [
             ),
         ),
     ),
+    Command(
+        "cleanup",
+        "Clean stale .patchi/ artifacts (JUnit, caches, logs, DBs)",
+        "patchi.cli.commands.cleanup_cmd:cleanup",
+        args=(
+            Arg("--apply", action="store_true", help="Actually delete files (default is dry-run)"),
+            Arg("--all", action="store_true", help="Also remove evidence/screenshots"),
+        ),
+    ),
+    Command(
+        "cleanup",
+        "Clean stale .patchi/ artifacts",
+        "patchi.cli.commands.cleanup_cmd:cleanup",
+        args=(
+            Arg("--apply", action="store_true", help="Actually delete files"),
+            Arg("--all", action="store_true", help="Also remove evidence"),
+        ),
+    ),
 ]
