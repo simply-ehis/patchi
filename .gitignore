@@ -10,6 +10,7 @@ __pycache__/
 *.pyc
 .pytest_cache/
 .coverage
+coverage.xml
 htmlcov/
 .mypy_cache/
 .ruff_cache/
@@ -17,16 +18,32 @@ htmlcov/
 build/
 dist/
 
+# Test artifacts
 tests/fixtures/rust-panic/target/
 
 # Patchi runtime artifacts
 *.tmp
 *.bak
 *.log
-.coverage
-.coverage.*
-coverage.xml
-.pytest_cache/
+
+# Patchi database and state files
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Patchi cache and profile files
+*.stats
+*.prof
+*.lprof
+
+# Patchi JUnit test results
+*junit*.xml
+*test-results*.xml
+
+# Patchi charter and memory snapshots
+*.snapshot
+*.backup
 
 # IDE / editor
 .vscode/
@@ -34,3 +51,18 @@ coverage.xml
 *.swp
 *.swo
 *~
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Node (if web assets use npm)
+node_modules/
+package-lock.json
+
+# Temporary files
+*.temp
+*~
+.*.swp
+.*.swo
