@@ -20,18 +20,12 @@ Safe auto-fixes:
 from __future__ import annotations
 
 import logging
-import os
-import re
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
 
 from patchi.core.security.charter import (
-    Charter,
     CharterRule,
     RuleType,
-    Severity,
     load_charter,
 )
 
