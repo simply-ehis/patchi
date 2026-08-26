@@ -134,3 +134,62 @@ async def check_violations(request: Request) -> JSONResponse:
             "violations": violations,
             "rule_count": len(charter.rules),
         })
+
+
+@router.post("/api/charter/autofix")
+async def charter_autofix(request: Request) -> JSONResponse:
+    """Run proactive auto-fix on project files.
+
+    POST /api/charter/autofix
+    Body: {"preview": true/false, "paths": ["optional", "file", "list"]}
+
+    - preview=true: dry-run, returns what would be fixed without applying
+    - preview=false: actually applies fixes
+    - paths: optional list of file paths to fix (default: all Python files)
+    """
+    root = request.app.state.root
+    try:
+        body = await request.json() if request.headers.get("content-type") == "application/json" else {}
+    except Exception:
+        body = {}
+
+    preview = body.get("preview", False)
+    paths = body.get("paths", [])
+
+    with tenant_context(root):
+        from patchi.core.security.auto_fix_proactive import (
+            proactive_fix_files,
+        )
+        from patchi.core.security.charter import load_charter
+        from pathlib import Path
+
+        charter = load_charter(root)
+        if not charter.rules:
+            return JSONResponse({
+                "ok": True,
+                "message": "No charter set. Set a charter first.",
+                "report": None,
+            })
+
+        # Collect files to check
+        if paths:
+            file_paths = [Path(p) for p in paths if (Path(p).is_file() if not Path(p).is_absolute() else Path(p).is_file())]
+        else:
+            # Default: scan all Python files in the project
+            file_paths = [f for f in root.rglob("*.py") if f.is_file() and ".patchi" not in str(f) and "node_modules" not in str(f)]
+            # Limit to 500 files for performance
+            file_paths = file_paths[:500]
+
+        if not file_paths:
+            return JSONResponse({
+                "ok": True,
+                "message": "No files found to check",
+                "report": None,
+            })
+
+        report = proactive_fix_files(root, file_paths, apply=not preview)
+        return JSONResponse({
+            "ok": True,
+            "preview": preview,
+            "report": report.to_dict(),
+        })

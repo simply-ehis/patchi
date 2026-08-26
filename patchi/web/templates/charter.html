@@ -73,6 +73,27 @@
     {% endif %}
   </div>
 
+  <!-- Auto-Fix -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Auto-Fix Charter Violations</span>
+      <span id="fix-count" class="tab-count"></span>
+    </div>
+    <p style="color:var(--text-secondary);margin:0 0 12px;font-size:13px">
+      Automatically fix safe charter violations (missing headers, formatting) in all project files.
+      Dangerous violations (security, boundaries) are flagged but not fixed.
+    </p>
+    <div style="display:flex;gap:8px;align-items:center">
+      <label class="toggle-label" style="font-size:13px;cursor:pointer;display:flex;align-items:center;gap:6px;">
+        <input type="checkbox" id="preview-mode" checked style="cursor:pointer;">
+        <span>Preview only (don't apply)</span>
+      </label>
+      <button class="btn btn-primary" onclick="runAutoFix()" id="btn-fix">🔧 Run Auto-Fix</button>
+      <span id="fix-status" style="font-size:13px"></span>
+    </div>
+    <div id="fix-results" style="margin-top:12px;display:none"></div>
+  </div>
+
   <!-- Violations -->
   <div class="card">
     <div class="card-header">
@@ -167,6 +188,95 @@ async function checkViolations() {
     status.textContent = `❌ ${e.message}`;
     status.style.color = '#f87171';
   }
+}
+
+async function runAutoFix() {
+  const preview = document.getElementById('preview-mode').checked;
+  const status = document.getElementById('fix-status');
+  const btn = document.getElementById('btn-fix');
+  const results = document.getElementById('fix-results');
+  const countEl = document.getElementById('fix-count');
+  
+  btn.disabled = true;
+  btn.textContent = preview ? '🔍 Previewing...' : '⏳ Fixing...';
+  status.textContent = 'Scanning files...';
+  status.style.color = 'var(--text-secondary)';
+  results.style.display = 'none';
+  
+  try {
+    const resp = await fetch('/api/charter/autofix', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ preview }),
+    });
+    const data = await resp.json();
+    
+    if (data.ok && data.report) {
+      const r = data.report;
+      const modeLabel = preview ? 'Preview' : 'Fixed';
+      countEl.textContent = `${r.files_scanned} files scanned`;
+      
+      if (r.violations_found === 0) {
+        status.textContent = '✅ No violations found!';
+        status.style.color = '#4ade80';
+        results.style.display = 'block';
+        results.innerHTML = '<div style="padding:12px;border-radius:8px;background:rgba(74,222,128,0.1);border:1px solid rgba(74,222,128,0.2)">All files are compliant with the charter. ✅</div>';
+      } else {
+        status.textContent = `${modeLabel}: ${r.auto_fixed} fixed, ${r.blocked} flagged`;
+        status.style.color = r.auto_fixed > 0 ? '#4ade80' : '#eab308';
+        
+        // Build results HTML
+        let html = `<div style="display:flex;gap:16px;margin-bottom:12px;font-size:13px">`;
+        html += `<span>📄 ${r.files_scanned} files scanned</span>`;
+        html += `<span style="color:#f87171">⚠ ${r.violations_found} violations</span>`;
+        if (r.auto_fixed > 0) html += `<span style="color:#4ade80">🔧 ${r.auto_fixed} ${preview ? 'would be fixed' : 'fixed'}</span>`;
+        if (r.blocked > 0) html += `<span style="color:#eab308">🚫 ${r.blocked} flagged for review</span>`;
+        html += `</div>`;
+        
+        // Show each result
+        html += '<div style="display:flex;flex-direction:column;gap:8px">';
+        for (const item of r.results) {
+          const color = item.auto_fixed ? 'rgba(74,222,128,0.1)' : 'rgba(234,197,9,0.1)';
+          const borderColor = item.auto_fixed ? 'rgba(74,222,128,0.3)' : 'rgba(234,197,9,0.3)';
+          html += `<div style="padding:10px;border-radius:6px;background:${color};border:1px solid ${borderColor}">`;
+          html += `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">`;
+          html += `<span style="font-family:monospace;font-size:12px">${item.file_path}</span>`;
+          html += `<span class="badge badge-${item.rule_type}" style="font-size:10px">${item.rule_type}</span>`;
+          html += `</div>`;
+          if (item.changes_made && item.changes_made.length > 0) {
+            html += `<div style="font-size:12px;color:var(--text-secondary)">Changes: ${item.changes_made.join(', ')}</div>`;
+          }
+          if (item.blocked_reason) {
+            html += `<div style="font-size:12px;color:#eab308">⚠ ${item.blocked_reason}</div>`;
+          }
+          if (preview && item.fixed_content) {
+            html += `<details style="margin-top:4px;font-size:11px"><summary style="cursor:pointer;color:var(--text-secondary)">Preview diff</summary>`;
+            html += `<pre style="margin-top:4px;padding:8px;background:rgba(0,0,0,0.2);border-radius:4px;overflow-x:auto;font-size:11px;max-height:200px;overflow-y:auto">${escapeHtml(item.fixed_content)}</pre>`;
+            html += `</details>`;
+          }
+          html += `</div>`;
+        }
+        html += '</div>';
+        results.innerHTML = html;
+        results.style.display = 'block';
+      }
+    } else {
+      status.textContent = `❌ ${data.message || 'Auto-fix failed'}`;
+      status.style.color = '#f87171';
+    }
+  } catch (e) {
+    status.textContent = `❌ ${e.message}`;
+    status.style.color = '#f87171';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = preview ? '🔧 Run Auto-Fix' : '🔧 Run Auto-Fix';
+  }
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.appendChild(document.createTextNode(text));
+  return div.innerHTML;
 }
 
 // Auto-save on Ctrl+Enter
