@@ -1,8 +1,9 @@
-"""Findings route — findings list with filters + chain/intent tabs."""
+"""Findings route — findings list with filters + chain/intent tabs, DAST screenshots."""
 
 from __future__ import annotations
 
 import json as _json
+import os
 from pathlib import Path
 
 from fastapi import APIRouter, Request
@@ -24,6 +25,30 @@ def _load_chain_intent(root: Path) -> dict:
     return {"chains": [], "intent_report": None}
 
 
+def _load_dast_evidence(root: Path) -> dict[str, dict]:
+    """Load DAST screenshot evidence from .patchi/evidence/dast/."""
+    evidence_dir = root / ".patchi" / "evidence" / "dast"
+    evidence_map: dict[str, dict] = {}
+    if not evidence_dir.is_dir():
+        return evidence_map
+    for entry in os.scandir(evidence_dir):
+        if not entry.is_file():
+            continue
+        name = entry.name
+        stem = Path(name).stem  # e.g. "dast_xss_reflected_abc123"
+        # Strip the random suffix (last _XXXXX) to get the test name
+        parts = stem.rsplit("_", 1)
+        test_name = parts[0] if len(parts) > 1 else stem
+        # Extract category from test name: "dast_xss_reflected" -> "xss"
+        cat = ""
+        if test_name.startswith("dast_"):
+            cat = test_name[5:].split("_")[0]
+        evidence_map.setdefault(cat, {}).setdefault(test_name, []).append(
+            f"/evidence/dast/{name}"
+        )
+    return evidence_map
+
+
 @router.get("/findings", response_class=HTMLResponse)
 async def findings(request: Request):
     root = request.app.state.root
@@ -41,9 +66,24 @@ async def findings(request: Request):
     except ImportError:
         has_remediation = False
 
+    # Collect DAST-specific metadata and scan stats
+    dast_findings_count = 0
+    dast_tests_run = 0
+    dast_target = ""
+    scan_agent_count = len(scan_results)
+
     for agent_name, data in scan_results.items():
+        # Accumulate DAST metadata from the DASTAgent result
+        if agent_name == "DASTAgent":
+            dast_findings_count = data.get("findings_count", 0)
+            dast_tests_run = data.get("tests_run", 0)
+            dast_target = data.get("target_url", "")
+
         for f in data.get("findings", []):
             f["agent"] = agent_name
+            # Flag DAST findings for template
+            if agent_name == "DASTAgent" or f.get("type", "").startswith("dast_"):
+                f["is_dast"] = True
             # Attach remediation suggestion for non-chain findings
             if has_remediation:
                 ftype = f.get("type", "")
@@ -60,7 +100,24 @@ async def findings(request: Request):
 
     # Sort by severity
     sev_order = {"critical": 0, "high": 1, "medium": 2, "low": 3, "info": 4}
-    all_findings.sort(key=lambda f: sev_order.get(f.get("severity", "info"), 5))
+    all_findings.sort(key=lambda f: (0 if f.get("is_dast") else 1, sev_order.get(f.get("severity", "info"), 5)))
+
+    # Load DAST screenshot evidence
+    dast_evidence = _load_dast_evidence(root)
+
+    # Attach screenshot paths to DAST findings
+    for f in all_findings:
+        if f.get("is_dast"):
+            ftype = f.get("type", "")
+            cat = ftype.replace("dast_", "") if ftype.startswith("dast_") else ""
+            if cat in dast_evidence:
+                # Get first screenshot for this category
+                screenshots = []
+                for test_name, paths in dast_evidence[cat].items():
+                    screenshots.extend(paths[:1])  # one per test type
+                f["screenshots"] = screenshots[:3]  # max 3 per finding
+            else:
+                f["screenshots"] = []
 
     # Load chain/intent data with remediation suggestions
     ci = _load_chain_intent(root)
@@ -106,6 +163,10 @@ async def findings(request: Request):
             "intent": intent,
             "chain_members": chain_members,
             "charter_violations": charter_violations,
+            "dast_findings_count": dast_findings_count,
+            "dast_tests_run": dast_tests_run,
+            "dast_target": dast_target,
+            "scan_agent_count": scan_agent_count,
         },
     )
 
@@ -115,3 +176,10 @@ async def api_chains(request: Request):
     """JSON endpoint for chain/intent data."""
     root = request.app.state.root
     return JSONResponse(_load_chain_intent(root))
+
+
+@router.get("/api/findings/dast-evidence")
+async def api_dast_evidence(request: Request):
+    """JSON endpoint for DAST screenshot evidence."""
+    root = request.app.state.root
+    return JSONResponse(_load_dast_evidence(root))

@@ -1,5 +1,85 @@
 <!-- Assurance page — graph, campaigns, attackers, fuzz -->
 <div class="page-assurance">
+
+
+  <!-- DAST Scan Tab -->
+  <div id="tab-dast" class="tab-content" style="display:none">
+    {% if dast_findings %}
+    <div style="margin-bottom:16px;padding:12px;background:var(--bg-secondary);border-radius:8px;border:1px solid var(--border)">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:18px">&#x1f512;</span>
+          <div>
+            <div style="font-weight:600">DAST Scan Results</div>
+            <div style="font-size:12px;color:var(--text-secondary)">
+              {{ dast_tests_run }} tests run
+              {% if dast_target %} against {{ dast_target }}{% endif %}
+              &middot; <span style="color:#ef4444">{{ dast_findings|length }} findings</span>
+            </div>
+          </div>
+        </div>
+        <span style="font-size:12px;color:var(--text-secondary)">
+          {{ dast_correlations|length }} correlated with static analysis
+        </span>
+      </div>
+    </div>
+
+    {% if dast_correlations %}
+    <div class="card" style="margin-bottom:12px;border-left:3px solid #f97316">
+      <div class="card-header"><span class="card-title" style="color:#f97312">Correlated Findings (DAST + Static)</span></div>
+      <div style="padding:12px;display:flex;flex-direction:column;gap:10px">
+        {% for c in dast_correlations %}
+        <div style="padding:10px 14px;border-radius:8px;background:rgba(249,115,22,0.06);border:1px solid rgba(249,115,22,0.2)">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+            <div>
+              <span class="badge badge-{{ c.dast.severity }}" style="font-size:10px">{{ c.dast.severity }}</span>
+              <span style="font-weight:600;margin-left:6px">{{ c.dast.type }}</span>
+            </div>
+            <span style="font-size:11px;color:var(--text-secondary)">{{ c.dast.file }}</span>
+          </div>
+          <div style="font-size:13px;margin-bottom:6px">{{ c.dast.message }}</div>
+          {% if c.static_matches %}
+          <div style="font-size:11px;color:var(--text-secondary)">
+            Correlated static findings:
+            {% for m in c.static_matches %}
+            <span style="background:rgba(239,68,68,0.1);padding:1px 6px;border-radius:3px;margin-left:4px">{{ m.agent }}: {{ m.type }}</span>
+            {% endfor %}
+          </div>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="card">
+      <div class="card-header"><span class="card-title">All DAST Findings</span></div>
+      <div style="padding:12px;display:flex;flex-direction:column;gap:8px">
+        {% for f in dast_findings %}
+        <div style="padding:10px 14px;border-radius:8px;border:1px solid var(--border)">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+            <span class="badge badge-{{ f.severity }}" style="font-size:10px">{{ f.severity }}</span>
+            <span style="font-family:monospace;font-size:11px;color:var(--text-secondary)">{{ f.type }}</span>
+          </div>
+          <div style="font-size:13px">{{ f.message }}</div>
+          {% if f.suggestion %}<div style="font-size:12px;color:var(--text-secondary);margin-top:4px">{{ f.suggestion }}</div>{% endif %}
+          {% if f.code_snippet %}
+          <pre style="margin-top:6px;padding:8px;background:var(--bg-tertiary);border-radius:4px;font-size:11px;overflow-x:auto;max-height:100px">{{ f.code_snippet }}</pre>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    {% else %}
+    <div style="text-align:center;padding:60px;color:var(--text-secondary)">
+      <div style="font-size:40px;margin-bottom:12px">&#x1f512;</div>
+      <div>No DAST scan results. Run a DAST scan from the dashboard.</div>
+    </div>
+    {% endif %}
+  </div>
+
+
   <style>
     .assurance-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 24px; }
     .assurance-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
@@ -82,6 +162,9 @@
     <button class="tab-btn" onclick="showTab('attackers')">Attackers ({{ attacker_count }})</button>
     <button class="tab-btn" onclick="showTab('domains')">Domains</button>
     <button class="tab-btn" onclick="showTab('chainclaims')">Chains ({{ chain_claims|length }})</button>
+    {% if dast_findings %}
+    <button class="tab-btn" onclick="showTab('dast')" style="color:#ef4444">DAST ({{ dast_findings|length }})</button>
+    {% endif %}
   </div>
 
   <!-- Claims Tab -->

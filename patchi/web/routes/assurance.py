@@ -52,6 +52,61 @@ async def assurance(request: Request):
     # Fuzz stats
     fuzz_endpoints = len([c for c in graph.claims.values() if "endpoint" in c.domain])
 
+    # DAST scan results (correlated with static analysis)
+    dast_findings = []
+    dast_tests_run = 0
+    dast_target = ""
+    try:
+        from patchi.core import memory as mem
+        mem.get_brain(root)
+        scan_results = mem.get_scan_results(root)
+        if "DASTAgent" in scan_results:
+            dast_data = scan_results["DASTAgent"]
+            dast_tests_run = dast_data.get("tests_run", 0)
+            dast_target = dast_data.get("target_url", "")
+            for f in dast_data.get("findings", []):
+                dast_findings.append({
+                    "type": f.get("type", "dast_unknown"),
+                    "severity": f.get("severity", "low"),
+                    "message": f.get("message", ""),
+                    "file": f.get("file", dast_target),
+                    "suggestion": f.get("suggestion", ""),
+                    "code_snippet": (f.get("code_snippet", "") or "")[:500],
+                    "source": "dast",
+                })
+        # Also load static analysis findings for cross-correlation
+        static_high = []
+        for agent_name, data in scan_results.items():
+            if agent_name == "DASTAgent":
+                continue
+            for f in data.get("findings", []):
+                if f.get("severity") in ("critical", "high"):
+                    static_high.append({
+                        "agent": agent_name,
+                        "type": f.get("type", ""),
+                        "severity": f.get("severity", ""),
+                        "message": f.get("message", ""),
+                        "file": f.get("file", ""),
+                    })
+    except Exception:
+        pass
+
+    # Correlate DAST findings with static analysis findings (same severity/type)
+    dast_correlations = []
+    for df in dast_findings:
+        matches = [
+            s for s in static_high
+            if s["severity"] == df["severity"] or s["type"] in df["type"]
+        ]
+        if matches:
+            dast_correlations.append({
+                "dast": df,
+                "static_matches": matches[:3],  # max 3 per DAST finding
+            })
+    dast_uncorrelated = [f for f in dast_findings if not any(
+        c["dast"] == f for c in dast_correlations
+    )]
+
     # Build claims data for the template
     claims_data = []
     for claim in graph.claims.values():
@@ -103,6 +158,11 @@ async def assurance(request: Request):
             "campaign_count": len(campaign_results),
             "fuzz_endpoints": fuzz_endpoints,
             "chain_raw": chain_raw,
+            "dast_findings": dast_findings,
+            "dast_tests_run": dast_tests_run,
+            "dast_target": dast_target,
+            "dast_correlations": dast_correlations,
+            "dast_uncorrelated": dast_uncorrelated,
         },
     )
 

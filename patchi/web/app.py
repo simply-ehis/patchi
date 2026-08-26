@@ -174,6 +174,7 @@ def create_app(root: Path) -> FastAPI:
     from patchi.web.api.live_testing import router as live_testing_api_router
     from patchi.web.api.smart import router as smart_api_router
     from patchi.web.api.tenant import router as tenant_router
+    from patchi.web.api.dast_evidence import router as dast_evidence_router
     from patchi.web.routes.assurance import router as assurance_router
     from patchi.web.routes.charter import router as charter_router
     from patchi.web.routes.findings import router as findings_router
@@ -213,6 +214,7 @@ def create_app(root: Path) -> FastAPI:
     app.include_router(live_testing_api_router)
     app.include_router(smart_api_router)
     app.include_router(tenant_router)
+    app.include_router(dast_evidence_router)
     if dashboard_v2_router is not None:
         app.include_router(dashboard_v2_router)
 
