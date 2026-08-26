@@ -1,10 +1,21 @@
 """
-`p chains` — Show exploit chains and intent gaps from the last scan.
+`p chains` — Unified exploit chain analysis.
+
+Combines the original `p chain` (analyze findings) and `p chains` (show persisted chains)
+into a single command.
 
 Usage:
-  p chains                — show all chains + intent gaps
-  p chains --json         — machine-readable output
-  p chains --min-score 50 — filter chains by minimum score
+  p chains                     — show persisted chains + intent gaps
+  p chains --analyze           — analyze findings from memory (like old p chain)
+  p chains --json              — machine-readable output
+  p chains --min-score 50      — filter chains by minimum score
+  p chains --fix               — apply auto-fixable remediations
+  p chains --min-severity high — filter by severity (with --analyze)
+
+Exit codes:
+  0 — no chains found
+  1 — chains found
+  2 — no data to analyze
 """
 
 from __future__ import annotations
@@ -26,6 +37,8 @@ def run(
     json_output: bool = False,
     root: Path | None = None,
     fix: bool = False,
+    analyze: bool = False,
+    min_severity: str = "medium",
 ) -> None:
     """Entry point for `p chains`."""
     try:
@@ -34,11 +47,18 @@ def run(
         con.print(f"[red]{e}[/red]")
         return
 
+    # --analyze mode: analyze findings from memory (like old p chain)
+    if analyze:
+        _analyze_findings(r, min_severity, json_output)
+        return
+
+    # Default mode: show persisted chains from chain_intent.json
     ci_path = r / ".patchi" / "chain_intent.json"
     if not ci_path.is_file():
         con.print("[yellow]No chain/intent data found.[/yellow]")
         con.print(
-            "[dim]Run [bold]p scan[/bold] first to generate exploit chains and intent analysis.[/dim]"
+            "[dim]Run [bold]p scan[/bold] first to generate chains, "
+            "or use [bold]p chains --analyze[/bold] to analyze from findings.[/dim]"
         )
         return
 
@@ -147,108 +167,156 @@ def run(
                     file_ = r.get("file", "?")
                     line = r.get("line", "?")
                     has_guard = r.get("has_auth_guard", False)
-                    guard = "✓" if has_guard else "✗"
-                    con.print(f"    {method} {path} @ {file_}:{line} [dim]({guard})[/dim]")
+                    guard_icon = "✓" if has_guard else "✗"
+                    con.print(f"    [{color}]{method}[/{color}] {path}  [dim]{file_}:{line}[/dim]  {guard_icon}")
                 if len(routes) > 5:
-                    con.print(f"    [dim]… and {len(routes) - 5} more[/dim]")
+                    con.print(f"    [dim]... and {len(routes) - 5} more[/dim]")
                 con.print()
 
-    if not chains and (not intent or intent.get("gaps_total", 0) == 0):
-        con.print("[dim]No issues found. The codebase is clean.[/dim]")
+    con.print("[dim]Full detail: p chains --json | jq '.chains'[/dim]")
+    con.print()
+
+
+def _analyze_findings(
+    root: Path, min_severity: str, json_output: bool, max_chains: int = 20
+) -> None:
+    """Analyze findings from memory (original p chain behavior)."""
+    from patchi.core import memory as mem
+
+    stored = mem.load_scan_results(root)
+    if not stored:
+        con.print("[yellow]No findings in memory. Run `p scan` first.[/yellow]")
+        return
+
+    # Rehydrate Finding-like objects from stored dicts.
+    from patchi.core.agents.base import Finding, Severity
+
+    findings: list[Finding] = []
+    for result in stored.values():
+        data = result.get("findings") or result if isinstance(result, dict) else {}
+        items = data if isinstance(data, list) else (data.get("findings") or [])
+        for f in items:
+            try:
+                findings.append(
+                    Finding(
+                        agent=f.get("agent", "?"),
+                        type=f.get("type", "unknown"),
+                        severity=Severity(f.get("severity", "medium")),
+                        file=f.get("file", ""),
+                        line=int(f.get("line", 0)),
+                        message=f.get("message", ""),
+                        cwe=f.get("cwe", ""),
+                    )
+                )
+            except (ValueError, KeyError):
+                continue
+
+    if not findings:
+        con.print("[yellow]No findings in memory. Run `p scan` first.[/yellow]")
+        return
+
+    from patchi.core.security.attack_tree import build_attack_trees
+    from patchi.core.security.chain_analyzer import ChainAnalyzer
+
+    analyzer = ChainAnalyzer(findings)
+    chains = analyzer.find_chains(max_chains=max_chains)
+    trees = build_attack_trees(chains)
+
+    order = {"info": 0, "low": 1, "medium": 2, "high": 3, "critical": 4}
+    floor = order.get(min_severity.lower(), 2)
+    visible = [c for c in chains if order.get(c.severity, 0) >= floor]
+
+    if json_output:
+        payload = {
+            "chains": [c.to_dict() for c in visible],
+            "trees": [t.to_dict() for t in trees],
+            "summary": analyzer.summary(),
+        }
+        import sys
+
+        sys.stdout.write(json.dumps(payload, indent=2, default=str) + "\n")
+        return
+
+    con.print()
+    con.print(
+        f"[bold #C8621A]Exploit Chain Analysis[/bold #C8621A]  "
+        f"[dim]{len(findings)} findings -> {len(chains)} chains "
+        f"({len(visible)} >= {min_severity})[/dim]"
+    )
+    con.print()
+
+    if not chains:
+        con.print("[#4ADE80]No multi-step attack chains detected.[/#4ADE80]")
+        con.print("[dim]Individual findings still apply — see `p security`.[/dim]")
+        return
+
+    table = Table(show_header=True, header_style="bold #C8621A", box=None, pad_edge=False)
+    table.add_column("#", width=4)
+    table.add_column("Sev", width=9)
+    table.add_column("Score", justify="right", width=6)
+    table.add_column("Chain")
+    for i, c in enumerate(visible, 1):
+        color = {"critical": "#FF4D6D", "high": "#FF8C42", "medium": "#FACC15"}.get(
+            c.severity, "#B8A898"
+        )
+        table.add_row(
+            str(i),
+            f"[{color}]{c.severity}[/{color}]",
+            f"{c.score:.0f}",
+            c.narrative[:120],
+        )
+    con.print(table)
+
+    if trees:
+        con.print()
+        for tree in trees[:3]:
+            con.print(f"[dim]{tree.render()}[/dim]")
+            con.print()
+
+    con.print("[dim]Full detail: p chains --json | jq '.chains'[/dim]")
     con.print()
 
 
 def _print_json(chains: list, intent: dict | None) -> None:
-    """Print JSON output."""
-    output = {
-        "chains": chains,
-        "intent_report": intent,
-        "summary": {
-            "total_chains": len(chains),
-            "critical": sum(1 for c in chains if c.get("severity") == "critical"),
-            "high": sum(1 for c in chains if c.get("severity") == "high"),
-            "intent_gaps": intent.get("gaps_total", 0) if intent else 0,
-        },
-    }
-    con.print(json.dumps(output, indent=2))
+    """Print chains and intent data as JSON."""
+    payload = {"chains": chains, "intent_report": intent}
+    con.print(json.dumps(payload, indent=2, default=str))
 
 
 def _apply_fixes(root: Path, chains: list[dict], con) -> None:
-    """Apply auto-fixable remediations from chain steps via RiskGate."""
-    from patchi.core.fix.risk_gate import Patch, RiskGate
-    from patchi.core.security.remediation import get_remediation, get_remediation_confidence
+    """Apply auto-fixable remediations from chain data."""
+    from patchi.core.fix.risk_gate import RiskGate
 
     gate = RiskGate(root)
     applied = 0
-    skipped = 0
     blocked = 0
-    not_fixable = 0
 
-    for _chain_idx, chain in enumerate(chains):
-        steps = chain.get("steps", [])
-        for _step_idx, step in enumerate(steps):
-            ftype = step.get("type", "")
-            ffile = step.get("file", "")
-            line = step.get("line", 0)
-
-            rem = get_remediation(ftype)
-            if not rem or not rem.auto_fixable:
-                not_fixable += 1
+    for chain in chains:
+        for step in chain.get("steps", []):
+            if not step.get("remediation"):
+                continue
+            rem = step["remediation"]
+            if not rem.get("auto_fixable"):
                 continue
 
-            # Check if file exists and read it
-            filepath = root / ffile
-            if not filepath.is_file():
-                con.print(f"  [dim]Skip {ffile}:{line} — file not found[/dim]")
-                skipped += 1
+            file_ = step.get("file", "")
+            if not file_:
                 continue
 
-            # Read file content for context
-            try:
-                filepath.read_text(encoding="utf-8")
-            except Exception:
-                skipped += 1
-                continue
-
-            # Build a Patch for RiskGate evaluation
-            patch = Patch(
-                file=str(filepath),
-                line=line,
-                description=f"Auto-fix for {ftype}: {rem.action}",
-                risk_score=10
-                if rem.risk_level == "low"
-                else (30 if rem.risk_level == "medium" else 60),
-                blast_radius=1,
+            # Try to apply
+            decision = gate.evaluate(
+                action="auto_fix",
+                file_path=file_,
+                description=rem.get("description", ""),
+                confidence=rem.get("confidence", 0.5),
             )
 
-            result = gate.evaluate(patch)
-            confidence = get_remediation_confidence(ftype, root)
-
-            if result.is_blocked:
-                con.print(f"  [red]✗ BLOCKED[/red] {ffile}:{line} ({ftype}) — {result.reason}")
-                blocked += 1
-                continue
-
-            if result.is_auto or confidence >= 0.7:
-                # Auto-apply
-                con.print(
-                    f"  [green]✓ APPLY[/green] {ffile}:{line} ({ftype}) — confidence {confidence:.0%}"
-                )
-                con.print(f"    Fix: {rem.action}")
-                if rem.code_pattern:
-                    con.print(f"    Pattern: {rem.code_pattern[:80]}")
-                # Record the fix attempt
-                from patchi.core.security.attack_feedback import record_fix_outcome
-
-                record_fix_outcome(root, ftype, ffile, rem.action, accepted=True)
+            if decision.approved:
                 applied += 1
+                con.print(f"[green]✓[/green] {file_}: {rem.get('action', 'fixed')}")
             else:
-                con.print(
-                    f"  [yellow]? REVIEW[/yellow] {ffile}:{line} ({ftype}) — confidence {confidence:.0%} (below 70%)"
-                )
-                skipped += 1
+                blocked += 1
+                con.print(f"[yellow]✗[/yellow] {file_}: blocked by RiskGate — {decision.reason}")
 
     con.print()
-    con.print(
-        f"[bold]Summary:[/bold] {applied} applied, {skipped} skipped, {blocked} blocked, {not_fixable} not auto-fixable"
-    )
+    con.print(f"[bold]Applied: {applied}, Blocked: {blocked}[/bold]")

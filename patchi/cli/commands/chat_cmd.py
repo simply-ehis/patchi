@@ -174,6 +174,68 @@ def _build_injected_context(brain: dict, message: str) -> str:
     return "\n".join(parts) if parts else ""
 
 
+def _try_explain(message: str, root: Path) -> tuple[bool, str]:
+    """Try to answer using the explain knowledge base. Returns (success, formatted_answer)."""
+    m_lower = message.lower().strip()
+
+    # Detect explain-like queries
+    explain_patterns = [
+        "explain", "what is", "what does", "what are", "how does",
+        "why is", "tell me about", "describe", "meaning of",
+    ]
+    is_explain = any(p in m_lower for p in explain_patterns)
+    if not is_explain:
+        return False, ""
+
+    # Try to extract a finding type from the message
+    from patchi.cli.commands.explain_cmd import _EXPLANATIONS
+
+    # Direct match
+    for ftype, info in _EXPLANATIONS.items():
+        if ftype.replace("_", " ") in m_lower or ftype in m_lower:
+            return True, _format_explanation(ftype, info)
+
+    # Keyword match
+    keyword_map = {
+        "secret": "hardcoded_secret", "password": "hardcoded_secret",
+        "sql": "sql_injection", "injection": "sql_injection",
+        "xss": "xss", "cross-site": "xss", "script": "xss",
+        "csrf": "csrf", "cross-site request": "csrf",
+        "header": "missing_security_header", "csp": "missing_security_header",
+        "debug": "debug_mode", "hardcoded": "hardcoded_secret",
+        "eval": "dangerous_eval", "exec": "dangerous_exec",
+        "pickle": "unsafe_deserialization", "yaml": "yaml_load",
+        "directory": "directory_traversal", "traversal": "directory_traversal",
+    }
+    for keyword, ftype in keyword_map.items():
+        if keyword in m_lower and ftype in _EXPLANATIONS:
+            return True, _format_explanation(ftype, _EXPLANATIONS[ftype])
+
+    # If explain-like but no specific finding, show all
+    if "explain" in m_lower and ("findings" in m_lower or "issues" in m_lower or "all" in m_lower):
+        output_lines = ["[bold]Security Knowledge Base:[/bold]", ""]
+        for ftype, info in _EXPLANATIONS.items():
+            output_lines.append(f"  [bold]{info['title']}[/bold] (CWE-{info.get('cwe', '?')})")
+            output_lines.append(f"    {info['what']}")
+            output_lines.append(f"    Fix: {info['how'].split(chr(10))[0]}")
+            output_lines.append("")
+        return True, chr(10).join(output_lines)
+
+    return False, ""
+
+
+def _format_explanation(ftype: str, info: dict) -> str:
+    """Format a single explanation for display."""
+    lines = [
+        f"[bold]{info['title']}[/bold]  [dim](CWE-{info.get('cwe', '?')}, {info.get('severity', '?')})[/dim]",
+        "",
+        f"[bold]What:[/bold] {info['what']}",
+        f"[bold]Why it matters:[/bold] {info['why']}",
+        f"[bold]How to fix:[/bold] {info['how'].split(chr(10))[0]}",
+    ]
+    return chr(10).join(lines)
+
+
 def _try_reasoning_engine(message: str, root: Path) -> tuple[bool, str]:
     """Try to answer using the reasoning engine. Returns (success, formatted_answer)."""
     from patchi.core.security.reasoning import classify_question, answer_question
