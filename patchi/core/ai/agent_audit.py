@@ -145,8 +145,12 @@ def _audit_class(cls: Any, group: str, report: AuditReport) -> None:
 
 def main() -> None:
     rep = audit()
-    for _i in rep.issues[:50]:
-        pass
+    print(f"Total agents scanned: {rep.total_agents}")
+    print(f"Groups scanned: {', '.join(rep.groups_scanned)}")
+    print(f"Issues found: {len(rep.issues)}")
+    print(f"By severity: {rep.by_severity}")
+    for i in rep.issues:
+        print(f"  [{i.severity.upper()}] {i.group}/{i.agent}: {i.issue} ({i.evidence})")
 
 
 if __name__ == "__main__":
