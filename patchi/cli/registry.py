@@ -895,10 +895,10 @@ COMMANDS: list[Command] = [
     ),
     Command(
         "ask",
-        "Ask the reasoning engine about your codebase",
-        "patchi.cli.commands.ask_cmd:run",
+        "Ask about your codebase (auto-routes to reasoning or AI)",
+        "patchi.cli.commands.chat_cmd:run",
         args=(
-            Arg("question", nargs="+", help="Your question in natural language"),
+            Arg("message", nargs="+", help="Your question in natural language"),
             Arg("--json", dest="json_output", action="store_true", help="Output as JSON"),
         ),
     ),
@@ -1125,6 +1125,17 @@ COMMANDS: list[Command] = [
                 type=str,
                 help="Run policy engine with a specific policy file (e.g. --policy soc2.yaml)",
             ),
+        ),
+    ),
+    Command(
+        "command",
+        "List all commands with tags and arguments",
+        "patchi.cli.commands.help_cmd:run",
+        namespace_handler=True,
+        args=(
+            Arg("--all", action="store_true", help="Show all commands with arguments and subcommands"),
+            Arg("--json", action="store_true", help="Output as JSON"),
+            Arg("--write-md", action="store_true", help="Write command_list.md"),
         ),
     ),
     Command(
