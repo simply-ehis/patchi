@@ -193,7 +193,7 @@ class SmartAgent:
             self._emit(
                 "agent.progress", {"agent": "smart", "progress_pct": pct, "current_file": name}
             )
-            self.on_progress(f"SmartAgent: step {i + 1}/{len(plan)} → {name}")
+            self.on_progress(f"SmartAgent: step {i + 1}/{len(plan)} -> {name}")
             try:
                 res = await executor.execute(
                     name, params, invoked_by="council", skip_confirmation=True

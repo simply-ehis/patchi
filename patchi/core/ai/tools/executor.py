@@ -189,7 +189,7 @@ class ToolExecutor:
             started_at=start_time,
         )
 
-        self.on_progress(f"🔧 Executing tool: {tool_name}")
+        self.on_progress(f"[EXEC] Executing tool: {tool_name}")
         _log.info(f"Tool invocation {invocation_id}: {tool_name}({parameters}) by {invoked_by}")
 
         try:
@@ -235,7 +235,7 @@ class ToolExecutor:
 
             self._log_invocation(invocation)
 
-            self.on_progress(f"✅ {tool_name} completed in {invocation.duration_ms}ms")
+            self.on_progress(f"[OK] {tool_name} completed in {invocation.duration_ms}ms")
 
             return ExecutionResult(
                 success=True,
@@ -449,7 +449,7 @@ class ToolExecutor:
         except Exception as e:
             _log.warning(f"Failed to persist snapshot: {e}")
 
-        self.on_progress(f"📸 Snapshot {snapshot_id} created ({len(files)} files)")
+        self.on_progress(f"[SNAP] Snapshot {snapshot_id} created ({len(files)} files)")
         return snapshot_id
 
     def rollback(self, snapshot_id: str) -> bool:
@@ -561,13 +561,13 @@ class ToolExecutor:
             tool_name = step.get("tool")
             parameters = step.get("parameters", {})
 
-            self.on_progress(f"🔗 Chain step {i + 1}/{len(steps)}: {tool_name}")
+            self.on_progress(f"[CHAIN] Chain step {i + 1}/{len(steps)}: {tool_name}")
 
             result = await self.execute(tool_name, parameters, invoked_by)
             results.append(result)
 
             if not result.success and stop_on_failure:
-                self.on_progress(f"❌ Chain failed at step {i + 1}, rolling back...")
+                self.on_progress(f"[FAIL] Chain failed at step {i + 1}, rolling back...")
                 self.rollback(snapshot_id)
                 # Mark remaining steps as skipped
                 for _j in range(i + 1, len(steps)):
