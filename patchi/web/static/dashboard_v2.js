@@ -370,6 +370,9 @@
                     case 'council':
                         openPalette();
                         break;
+                    case 'devcheck':
+                        runDevCheck();
+                        break;
                 }
             });
         });
@@ -407,6 +410,66 @@
             });
         }
 
+        // Dev Check action
+        async function runDevCheck() {
+            const resultDiv = document.getElementById('devCheckResult');
+            const runBtn = document.getElementById('runDevCheckBtn');
+            
+            if (runBtn) {
+                runBtn.disabled = true;
+                runBtn.textContent = 'Running...';
+            }
+            
+            if (resultDiv) {
+                resultDiv.innerHTML = '<p class="feed-empty">Running p dev check...</p>';
+            }
+            
+            addFeedEntry('devcheck', 'Running p dev check...', '');
+            
+            try {
+                const resp = await fetch('/api/dev-check', { method: 'POST' });
+                const data = await resp.json();
+                
+                // Build result HTML
+                const gates = data.gates || [];
+                let resultHtml = '<div class="dev-check-result">';
+                resultHtml += `<div class="dev-check-header">${data.overall === 'PASS' ? '✓ All Passed' : '✗ Failed'}</div>`;
+                
+                gates.forEach(gate => {
+                    const statusClass = gate.status === 'PASS' ? 'pass' : 'fail';
+                    resultHtml += `<div class="gate-result">`;
+                    resultHtml += `<span class="gate-name">${gate.name}</span>`;
+                    resultHtml += `<span class="gate-status status-${statusClass}">${gate.status}</span>`;
+                    resultHtml += `<span class="gate-time">${gate.elapsed}s</span>`;
+                    if (gate.status !== 'PASS' && gate.parsed) {
+                        if (gate.parsed.summary) {
+                            resultHtml += `<span class="gate-detail">${gate.parsed.summary}</span>`;
+                        } else if (gate.parsed.error_count !== undefined) {
+                            resultHtml += `<span class="gate-detail">${gate.parsed.error_count} errors</span>`;
+                        }
+                    }
+                    resultHtml += `</div>`;
+                });
+                resultHtml += '</div>';
+                
+                if (resultDiv) {
+                    resultDiv.innerHTML = resultHtml;
+                }
+                
+                addFeedEntry('devcheck', resultHtml, data.overall === 'PASS' ? 'success' : 'error');
+            } catch (e) {
+                if (resultDiv) {
+                    resultDiv.innerHTML = `<p class="feed-empty">Error: ${e.message}</p>`;
+                }
+                addFeedEntry('devcheck', `Dev check failed: ${e.message}`, 'error');
+            } finally {
+                if (runBtn) {
+                    runBtn.disabled = false;
+                    runBtn.textContent = 'Run';
+                }
+            }
+        }
+
         const pauseBtn = $('#pauseFeed');
         if (pauseBtn) {
             pauseBtn.addEventListener('click', () => {
@@ -430,6 +493,14 @@
                 e.preventDefault();
                 if (paletteModal.hidden) openPalette();
                 else closePalette();
+                return;
+            }
+            // D key → dev check
+            if (e.key.toLowerCase() === 'd' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+                if (paletteModal && !paletteModal.hidden) return;
+                const active = document.activeElement;
+                if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) return;
+                runDevCheck();
                 return;
             }
             // Escape closes modals
@@ -464,6 +535,10 @@
 
         const cmdBtn = $('#commandPalette');
         if (cmdBtn) cmdBtn.addEventListener('click', openPalette);
+
+        // Dev Check Run button
+        const devCheckBtn = $('#runDevCheckBtn');
+        if (devCheckBtn) devCheckBtn.addEventListener('click', runDevCheck);
 
         if (paletteInput) {
             paletteInput.addEventListener('input', (e) => renderPaletteResults(e.target.value));

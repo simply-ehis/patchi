@@ -156,6 +156,7 @@ def create_app(root: Path) -> FastAPI:
         _logging = __import__("logging")
         _logging.getLogger("patchi.web").warning("Hosted v2 API not available: %s", e)
         hosted_v2_router = None
+    from patchi.web.api.dev_check import router as dev_check_router
     from patchi.web.api.scan import router as scan_router
     from patchi.web.api_legacy import router as legacy_router
     from patchi.web.routes.brain import router as brain_router
@@ -195,6 +196,7 @@ def create_app(root: Path) -> FastAPI:
     app.include_router(settings_router)
     app.include_router(history_router)
     app.include_router(brain_map_router)
+    app.include_router(dev_check_router)
     app.include_router(scan_router)
     app.include_router(charts_router)
     app.include_router(fix_router)

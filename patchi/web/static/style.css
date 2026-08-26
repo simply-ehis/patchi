@@ -416,6 +416,64 @@ body {
 .badge-put { background: rgba(250,204,21,0.15); color: var(--medium); }
 .badge-delete { background: rgba(255,77,109,0.15); color: var(--critical); }
 
+
+/* ── Dev Check Results ─────────────────────────────────────── */
+
+.dev-check-result {
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.dev-check-header {
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.gate-result {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.gate-result:last-child {
+  border-bottom: none;
+}
+
+.gate-name {
+  flex: 1;
+  color: var(--text-secondary);
+}
+
+.gate-status {
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+}
+
+.gate-time {
+  font-size: 11px;
+  color: var(--text-muted);
+  min-width: 40px;
+  text-align: right;
+}
+
+.gate-detail {
+  font-size: 11px;
+  color: var(--text-muted);
+  flex-basis: 100%;
+}
+
+.status-pass { color: var(--low); background: rgba(74,222,128,0.15); }
+.status-fail { color: var(--critical); background: rgba(255,77,109,0.15); }
+.status-timeout { color: var(--medium); background: rgba(250,204,21,0.15); }
+.status-error { color: var(--medium); background: rgba(250,204,21,0.15); }
+.status-pass-inline { color: var(--low); }
+.status-fail-inline { color: var(--critical); }
+
 /* ── Buttons ─────────────────────────────────────────────────────── */
 
 .btn {

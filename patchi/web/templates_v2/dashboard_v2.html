@@ -199,6 +199,11 @@
                                     <span>Ask Council</span>
                                     <kbd>C</kbd>
                                 </li>
+                                <li class="nav-item action-item" data-action="devcheck">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/><path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                    <span>Dev Check</span>
+                                    <kbd>D</kbd>
+                                </li>
                             </ul>
                         </section>
                     </nav>
@@ -316,6 +321,22 @@
                         </div>
                     </section>
                     
+                    <!-- Dev Check Card -->
+                    <section class="panel" aria-labelledby="devCheckTitle">
+                        <header class="panel-header">
+                            <h2 id="devCheckTitle" class="panel-title">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/><path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                Dev Check
+                            </h2>
+                            <button class="btn btn-primary btn-sm" id="runDevCheckBtn">Run</button>
+                        </header>
+                        <div class="panel-body">
+                            <div id="devCheckResult">
+                                <p class="feed-empty">Click Run or press <kbd>D</kbd> to run dev check</p>
+                            </div>
+                        </div>
+                    </section>
+
                     <!-- Command Palette Preview -->
                     <section class="panel" aria-labelledby="commandsTitle">
                         <header class="panel-header">
