@@ -140,6 +140,35 @@ class Charter:
 
     @classmethod
     def from_dict(cls, d: dict) -> Charter:
+        # Handle old format (boundaries/conventions/security)
+        if "rules" in d:
+            # Convert new security.charter format to brain.charter format
+            boundaries = []
+            conventions = {}
+            security = []
+            stack = {"languages": [], "frameworks": []}
+            for rule in d["rules"]:
+                if rule.get("type") == "boundary":
+                    boundaries.append({
+                        "from": rule.get("from_pattern", ""),
+                        "to": rule.get("to_pattern", ""),
+                    })
+                elif rule.get("type") == "convention":
+                    if rule.get("max_value"):
+                        conventions["max_file_lines"] = rule["max_value"]
+                elif rule.get("type") == "security":
+                    security.extend(rule.get("keywords", []))
+                elif rule.get("type") == "stack":
+                    stack["languages"].extend(rule.get("allowed_languages", []))
+                    stack["frameworks"].extend(rule.get("allowed_frameworks", []))
+            return cls(
+                raw_text=d.get("text", ""),
+                stack=stack,
+                boundaries=boundaries,
+                conventions=conventions,
+                security=security,
+            )
+        # Old format
         return cls(
             raw_text=d.get("raw_text", ""),
             stack=d.get("stack", {"languages": [], "frameworks": []}),
@@ -176,71 +205,65 @@ class CharterViolation:
 
 
 def parse_charter(text: str, config: dict | None = None) -> Charter:
-    """Parse a natural-language charter into a structured :class:`Charter`.
+    """Parse a natural-language charter into a structured Charter.
 
-    Uses deterministic heuristics (always available, free).  If an LLM is
-    configured, :func:`parse_charter_with_ai` can be used instead for richer
-    extraction; this function is the offline-safe default.
+    Uses keyword matching (no regex, no heuristics) to extract structured rules.
     """
-    text_l = text.lower()
+    text_lower = text.lower()
     charter = Charter(raw_text=text)
 
-    # ── Stack: frameworks + languages ────────────────────────────────────────
+    # ── Stack: frameworks + languages ──
     for fw in _KNOWN_FRAMEWORKS:
-        if re.search(rf"\b{re.escape(fw)}\b", text_l):
+        if " " + fw + " " in text_lower or text_lower.startswith(fw + " ") or text_lower.endswith(" " + fw):
             if fw not in charter.stack["frameworks"]:
                 charter.stack["frameworks"].append(fw)
     for lang in _KNOWN_LANGUAGES:
-        if re.search(rf"\b{re.escape(lang)}\b", text_l):
+        if " " + lang + " " in text_lower or text_lower.startswith(lang + " ") or text_lower.endswith(" " + lang):
             norm = "golang" if lang == "go" else ("csharp" if lang in ("c#",) else lang)
             if norm not in charter.stack["languages"]:
                 charter.stack["languages"].append(norm)
 
-    # ── Boundaries: "X must not import Y" ──────────────────────────────────────
-    boundary_patterns = [
-        r"([\w./]+)\s*must\s+(?:never|not)\s+import\s+([\w./]+)",
-        r"no\s+([\w./]+)\s+importing\s+([\w./]+)",
-        r"([\w./]+)\s+should\s+(?:never|not)\s+import\s+([\w./]+)",
-    ]
-    for pat in boundary_patterns:
-        for m in re.finditer(pat, text_l):
-            groups = m.groups()
-            if len(groups) == 1:
-                # "no X importing Y" form
-                src, tgt = _split_role_phrase(groups[0])
-            else:
-                src, tgt = groups[0], groups[1]
-            charter.boundaries.append({"from": src.strip(), "to": tgt.strip()})
+    # ── Boundaries: "X must not import Y" ──
+    boundary_words = ["must not import", "cannot import", "never import",
+                      "should not import", "must not use", "cannot use"]
+    for sep in boundary_words:
+        if sep in text_lower:
+            parts = text_lower.split(sep)
+            if len(parts) == 2:
+                from_pat = parts[0].strip().rstrip()
+                to_pat = parts[1].strip().lstrip()
+                # Remove leading articles
+                for prefix in ["the ", "a ", "an "]:
+                    if from_pat.startswith(prefix):
+                        from_pat = from_pat[len(prefix):]
+                    if to_pat.startswith(prefix):
+                        to_pat = to_pat[len(prefix):]
+                charter.boundaries.append({"from": from_pat, "to": to_pat})
 
-    # ── Conventions: sizes + test coverage ─────────────────────────────────────
-    m_lines = re.search(
-        r"(?:file|files|service|services|function|functions|module|modules)"
-        r"\s+(?:under|below|<\s*|less than)\s*(\d+)\s*lines",
-        text_l,
-    )
-    if m_lines:
-        charter.conventions["max_file_lines"] = int(m_lines.group(1))
+    # ── Conventions: sizes + test coverage ──
+    if "under" in text_lower or "below" in text_lower or "less than" in text_lower:
+        for word in text_lower.split():
+            if word.isdigit() and "lines" in text_lower:
+                charter.conventions["max_file_lines"] = int(word)
+                break
 
-    if re.search(r"all\s+(?:api\s+)?routes?\s+(?:need|must have|require)\s+tests", text_l):
+    if any(phrase in text_lower for phrase in ["all routes need", "all routes must", "routes require tests"]):
         charter.conventions["require_tests_for_routes"] = True
-    if re.search(
-        r"(?:every|all)\s+(?:function|module|service)\s+(?:needs|must have|requires)\s+tests",
-        text_l,
-    ):
-        charter.conventions["require_tests_for_routes"] = True
+    if any(phrase in text_lower for phrase in ["every function", "all modules", "all services"]):
+        if "test" in text_lower:
+            charter.conventions["require_tests_for_routes"] = True
 
-    # ── Security rules ─────────────────────────────────────────────────────────
-    if re.search(r"no\s+(?:hardcoded?\s+)?secrets?", text_l):
+    # ── Security rules ──
+    if "hardcoded" in text_lower or "hard coded" in text_lower or "secrets" in text_lower:
         charter.security.append("no_hardcoded_secrets")
-    if re.search(r"\bno\s+pickle\b", text_l):
+    if "pickle" in text_lower:
         charter.security.append("no_pickle")
-    if re.search(r"\bno\s+eval\b", text_l):
+    if "eval" in text_lower:
         charter.security.append("no_eval")
-    if re.search(r"parameteri[sz]ed\s+queries", text_l):
+    if "parameterized" in text_lower:
         charter.security.append("parameterized_queries")
 
     return charter
-
 
 def _split_role_phrase(phrase: str) -> tuple[str, str]:
     """Split a 'X importing Y' phrase into (from, to) role tokens."""

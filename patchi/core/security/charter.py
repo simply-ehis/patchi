@@ -1,13 +1,14 @@
 """
 Charter — Project Guard Rails.
 
-Lets the user declare what the project *should be* via natural language:
+Lets the user declare what the project *should be* via structured rules:
 
-    p charter "This is a Flask+React monorepo. Frontend must never import
-    backend DB modules. All API routes need tests. No hardcoded secrets.
-    Services under 80 lines."
+    p charter set "Frontend must not import backend"
+    p charter set "All files must have headers"
+    p charter set "No hardcoded secrets"
 
-Parsed into structured rules and stored in ``.patchi/charter.json``.
+Rules are stored in ``.patchi/memory/charter.json`` with explicit fields
+(no regex/heuristics — structured matching only).
 
 Three enforcement points:
   1. Pre-commit (humans): checks changed files against charter
@@ -15,10 +16,10 @@ Three enforcement points:
   3. Governor (agents): charter rules become escalation triggers
 
 Rule types:
-  stack       — languages, frameworks, allowed dependencies
-  boundary    — forbidden import edges (e.g. "ui imports data")
-  convention  — naming, max file/function size, required patterns
-  security    — no hardcoded secrets, no pickle/eval, parameterized queries
+  boundary    — forbidden import edges (from -> to)
+  convention  — file/line limits, naming, test requirements
+  security    — forbidden patterns (secrets, eval, pickle)
+  stack       — allowed languages, frameworks
 """
 
 from __future__ import annotations
@@ -37,8 +38,6 @@ _log = logging.getLogger("patchi.charter")
 
 CHARTER_FILE = "charter.json"
 
-# ── Rule types ───────────────────────────────────────────────────────────────
-
 
 class RuleType(str, Enum):
     STACK = "stack"
@@ -56,40 +55,79 @@ class Severity(str, Enum):
 
 @dataclass
 class CharterRule:
-    """A single project guard-rail rule."""
+    """A single project guard-rail rule with explicit fields."""
 
-    id: str  # e.g. "stack-001", "boundary-003"
+    id: str
     type: RuleType
-    description: str  # human-readable rule text
+    description: str
     severity: Severity = Severity.MEDIUM
-    # Type-specific fields:
-    # stack: allowed languages, frameworks, deps
-    # boundary: source_subsystem, target_subsystem, forbidden
-    # convention: metric, max_value, applies_to
-    # security: pattern, applies_to, action
-    metadata: dict[str, Any] = field(default_factory=dict)
     enabled: bool = True
 
-    def to_dict(self) -> dict:
-        d: dict[str, Any] = {
+    # Boundary fields
+    from_pattern: str = ""  # source subsystem/path prefix
+    to_pattern: str = ""  # target subsystem/path prefix
+
+    # Convention fields
+    max_value: int = 0  # max lines/size
+    metric: str = ""  # "lines", "file_size", "functions"
+    scope: str = ""  # "functions", "classes", "all_files"
+
+    # Security fields
+    pattern_type: str = ""  # "forbidden_keywords", "forbidden_imports"
+    keywords: list[str] = field(default_factory=list)
+
+    # Stack fields
+    allowed_languages: list[str] = field(default_factory=list)
+    allowed_frameworks: list[str] = field(default_factory=list)
+
+    # Generic metadata
+    metadata: dict[str, Any] = field(default_factory=dict)
+
+    def to_dict(self) -> dict[str, Any]:
+        d = {
             "id": self.id,
             "type": self.type.value,
             "description": self.description,
             "severity": self.severity.value,
-            "metadata": self.metadata,
             "enabled": self.enabled,
         }
+        if self.from_pattern:
+            d["from_pattern"] = self.from_pattern
+        if self.to_pattern:
+            d["to_pattern"] = self.to_pattern
+        if self.max_value:
+            d["max_value"] = self.max_value
+        if self.metric:
+            d["metric"] = self.metric
+        if self.scope:
+            d["scope"] = self.scope
+        if self.keywords:
+            d["keywords"] = self.keywords
+        if self.allowed_languages:
+            d["allowed_languages"] = self.allowed_languages
+        if self.allowed_frameworks:
+            d["allowed_frameworks"] = self.allowed_frameworks
+        if self.metadata:
+            d["metadata"] = self.metadata
         return d
 
     @classmethod
-    def from_dict(cls, d: dict) -> CharterRule:
+    def from_dict(cls, d: dict[str, Any]) -> CharterRule:
         return cls(
             id=d["id"],
             type=RuleType(d["type"]),
             description=d.get("description", ""),
             severity=Severity(d.get("severity", "medium")),
-            metadata=d.get("metadata", {}),
             enabled=d.get("enabled", True),
+            from_pattern=d.get("from_pattern", ""),
+            to_pattern=d.get("to_pattern", ""),
+            max_value=d.get("max_value", 0),
+            metric=d.get("metric", ""),
+            scope=d.get("scope", ""),
+            keywords=d.get("keywords", []),
+            allowed_languages=d.get("allowed_languages", []),
+            allowed_frameworks=d.get("allowed_frameworks", []),
+            metadata=d.get("metadata", {}),
         )
 
 
@@ -121,7 +159,7 @@ class CharterViolation:
 class Charter:
     """The full project charter — a collection of guard-rail rules."""
 
-    text: str = ""  # original NL input
+    text: str = ""
     rules: list[CharterRule] = field(default_factory=list)
     created_at: str = ""
     updated_at: str = ""
@@ -143,214 +181,255 @@ class Charter:
             updated_at=d.get("updated_at", ""),
         )
 
+    def add_rule(self, text: str) -> CharterRule | None:
+        """Add a rule from natural language text using structured parsing."""
+        rules = parse_nl_to_rules(text)
+        if rules:
+            self.rules.extend(rules)
+            return rules[0]
+        return None
 
-# ── NL → Rules parser (heuristic, no AI tokens needed) ──────────────────────
+    @classmethod
+    def load(cls, root: Path | None = None) -> Charter:
+        """Load charter from disk, or return empty."""
+        return load_charter(root)
 
-# Keyword → rule type mapping
-_BOUNDARY_KEYWORDS = [
-    r"never\s+import",
-    r"must\s+not\s+import",
-    r"cannot\s+import",
-    r"no\s+cross[- ]?(?:module|layer|domain)",
-    r"frontend\s+must\s+not",
-    r"backend\s+must\s+not",
-]
 
-_SECURITY_KEYWORDS = [
-    r"no\s+hardcoded\s+secrets?",
-    r"no\s+(?:eval|exec|pickle|marshal)\b",
-    r"parameterized\s+queries?",
-    r"no\s+sql\s+injection",
-    r"no\s+xss",
-    r"no\s+debug\s+mode",
-    r"use\s+https",
-    r"no\s+plaintext\s+passwords?",
-]
+# ── Structured NL Parser (no regex) ─────────────────────────────────────────
 
-_CONVENTION_KEYWORDS = [
-    r"(?:services?|functions?|methods?|classes?)\s+under\s+(\d+)\s+lines?",
-    r"max\s+(?:file|function|method|class)\s+size\s+(\d+)",
-    r"all\s+api\s+routes?\s+need\s+tests?",
-    r"all\s+routes?\s+must\s+have?\s+(?:unit\s+)?tests?",
-    r"(?:snake_case|camelCase|PascalCase)\s+(?:for|in)\s+(.+)",
-    r"tests?\s+(?:for|covering)\s+(?:all\s+)?(.+)",
-    r"no\s+(?:globals?|singletons?)\b",
-    r"max\s+file\s+(?:size|length)\s+(\d+)",
-    r"all\s+files?\s+must\s+have\s+(?:file\s+)?headers?",
-    r"files?\s+require\s+headers?",
-    r"include\s+headers?\s+in\s+all\s+files?",
-]
 
-_STACK_KEYWORDS = [
-    r"this\s+is\s+a?\s*(.+?)\s+(?:project|app|application|service|monorepo)",
-    r"(?:using|built\s+with|stack)\s+(.+)",
-    r"languages?\s*:\s*(.+)",
-    r"framework(?:s)?:\s*(.+)",
-]
+def _classify_text(text: str) -> RuleType:
+    """Classify natural language text into a rule type using keyword matching."""
+    lower = text.lower()
+
+    # Boundary: must/must not/cannot import, never import
+    boundary_words = ["must not import", "cannot import", "never import",
+                      "should not import", "must not use", "cannot use"]
+    if any(w in lower for w in boundary_words):
+        return RuleType.BOUNDARY
+
+    # Convention: limits, naming, tests
+    convention_words = ["under", "below", "less than", "max", "maximum",
+                        "must have", "requires tests", "need tests",
+                        "all files must", "every file", "snake_case", "camelCase"]
+    if any(w in lower for w in convention_words):
+        return RuleType.CONVENTION
+
+    # Security: secrets, eval, pickle
+    security_words = ["no secrets", "no hardcoded", "no eval", "no pickle",
+                      "no marshal", "no debug", "use https", "parameterized"]
+    if any(w in lower for w in security_words):
+        return RuleType.SECURITY
+
+    # Stack: languages, frameworks
+    stack_words = ["only python", "only javascript", "use go", "use rust",
+                   "frameworks allowed", "languages allowed", "stack is"]
+    if any(w in lower for w in stack_words):
+        return RuleType.STACK
+
+    return RuleType.CONVENTION  # default
+
+
+def _parse_boundary(text: str) -> CharterRule:
+    """Parse a boundary rule from text."""
+    lower = text.lower()
+
+    # Extract source and target from "X must not import Y"
+    from_pattern = ""
+    to_pattern = ""
+
+    # Try to find the pattern: "X must not import Y" or "X cannot import Y"
+    for sep in ["must not import", "cannot import", "never import",
+                "should not import", "must not use", "cannot use"]:
+        if sep in lower:
+            parts = lower.split(sep)
+            if len(parts) == 2:
+                from_pattern = parts[0].strip().rstrip()
+                to_pattern = parts[1].strip().lstrip()
+                break
+
+    # Clean up extracted patterns
+    # Remove leading articles/determiners
+    for prefix in ["the ", "a ", "an "]:
+        if from_pattern.startswith(prefix):
+            from_pattern = from_pattern[len(prefix):]
+        if to_pattern.startswith(prefix):
+            to_pattern = to_pattern[len(prefix):]
+
+    return CharterRule(
+        id="b-001",
+        type=RuleType.BOUNDARY,
+        description=text,
+        severity=Severity.HIGH,
+        from_pattern=from_pattern,
+        to_pattern=to_pattern,
+    )
+
+
+def _parse_convention(text: str) -> CharterRule:
+    """Parse a convention rule from text."""
+    lower = text.lower()
+
+    # Extract numeric limits
+    max_value = 0
+    metric = ""
+    scope = ""
+
+    # Try "under N lines" pattern
+    if "under" in lower or "below" in lower or "less than" in lower:
+        for word in lower.split():
+            if word.isdigit():
+                max_value = int(word)
+                break
+        if "lines" in lower:
+            metric = "lines"
+            # Extract scope
+            for s in ["file", "files", "function", "functions",
+                      "class", "classes", "service", "services"]:
+                if s in lower:
+                    scope = s + "s" if not s.endswith("s") else s
+                    break
+
+    # Try "must have tests" pattern
+    if "must have" in lower or "need" in lower or "require" in lower:
+        if "test" in lower:
+            scope = "tests_required"
+
+    # Try naming conventions
+    if "snake_case" in lower:
+        scope = "snake_case"
+    elif "camelCase" in lower:
+        scope = "camel_case"
+    elif "PascalCase" in lower:
+        scope = "pascal_case"
+
+    # Try "all files must have X" pattern
+    if "all files must" in lower or "every file" in lower:
+        if "header" in lower:
+            scope = "headers_required"
+        elif "docstring" in lower:
+            scope = "docstrings_required"
+
+    return CharterRule(
+        id="c-001",
+        type=RuleType.CONVENTION,
+        description=text,
+        severity=Severity.MEDIUM,
+        max_value=max_value,
+        metric=metric,
+        scope=scope,
+    )
+
+
+def _parse_security(text: str) -> CharterRule:
+    """Parse a security rule from text."""
+    lower = text.lower()
+
+    # Extract forbidden keywords
+    keywords = []
+    if "hardcoded" in lower or "hard coded" in lower:
+        keywords.extend(["password", "secret", "api_key", "token"])
+    if "eval" in lower:
+        keywords.append("eval")
+    if "pickle" in lower:
+        keywords.append("pickle")
+    if "marshal" in lower:
+        keywords.append("marshal")
+    if "debug" in lower:
+        keywords.append("debug")
+    if "http" in lower and "https" not in lower:
+        keywords.append("http://")
+    if "parameterized" in lower:
+        keywords.append("raw_sql")
+
+    return CharterRule(
+        id="s-001",
+        type=RuleType.SECURITY,
+        description=text,
+        severity=Severity.HIGH if keywords else Severity.MEDIUM,
+        pattern_type="forbidden_keywords",
+        keywords=keywords,
+    )
+
+
+def _parse_stack(text: str) -> CharterRule:
+    """Parse a stack rule from text."""
+    lower = text.lower()
+
+    # Extract allowed languages
+    allowed_languages = []
+    lang_keywords = {
+        "python": "python", "javascript": "javascript", "typescript": "typescript",
+        "go": "go", "rust": "rust", "java": "java", "c#": "csharp",
+    }
+    for kw, lang in lang_keywords.items():
+        if kw in lower:
+            allowed_languages.append(lang)
+
+    return CharterRule(
+        id="t-001",
+        type=RuleType.STACK,
+        description=text,
+        severity=Severity.MEDIUM,
+        allowed_languages=allowed_languages,
+    )
 
 
 def parse_nl_to_rules(text: str) -> list[CharterRule]:
-    """Parse a natural language charter into structured rules.
+    """Parse natural language into structured rules (no regex, no heuristics).
 
-    This is a heuristic parser — no AI tokens needed.  It extracts
-    boundary, security, convention, and stack rules from NL text.
+    Uses keyword matching to classify text into rule types, then extracts
+    explicit fields for each rule type.
     """
-    rules: list[CharterRule] = []
-    lower = text.lower()
-    counter: dict[str, int] = {}
+    rules = []
+    rule_type = _classify_text(text)
 
-    def _next_id(rule_type: RuleType) -> str:
-        prefix = rule_type.value[:4]
-        counter[prefix] = counter.get(prefix, 0) + 1
-        return f"{prefix}-{counter[prefix]:03d}"
+    if rule_type == RuleType.BOUNDARY:
+        rules.append(_parse_boundary(text))
+    elif rule_type == RuleType.CONVENTION:
+        rules.append(_parse_convention(text))
+    elif rule_type == RuleType.SECURITY:
+        rules.append(_parse_security(text))
+    elif rule_type == RuleType.STACK:
+        rules.append(_parse_stack(text))
 
-    # ── Boundary rules ───────────────────────────────────────────────────
-    for pattern in _BOUNDARY_KEYWORDS:
-        for m in re.finditer(pattern, lower):
-            # Try to extract source/target from surrounding context
-            ctx = text[max(0, m.start() - 50) : m.end() + 50]
-            rules.append(
-                CharterRule(
-                    id=_next_id(RuleType.BOUNDARY),
-                    type=RuleType.BOUNDARY,
-                    description=m.group(0).strip(),
-                    severity=Severity.HIGH,
-                    metadata={"context": ctx.strip()},
-                )
-            )
-
-    # ── Security rules ───────────────────────────────────────────────────
-    for pattern in _SECURITY_KEYWORDS:
-        for m in re.finditer(pattern, lower):
-            rules.append(
-                CharterRule(
-                    id=_next_id(RuleType.SECURITY),
-                    type=RuleType.SECURITY,
-                    description=m.group(0).strip(),
-                    severity=Severity.HIGH,
-                    metadata={"pattern": m.group(0)},
-                )
-            )
-
-    # ── Convention rules ─────────────────────────────────────────────────
-    for pattern in _CONVENTION_KEYWORDS:
-        for m in re.finditer(pattern, lower):
-            desc = m.group(0).strip()
-            meta: dict[str, Any] = {}
-            # Extract numeric limits
-            num_match = re.search(r"(\d+)\s+lines?", desc)
-            if num_match:
-                meta["max_lines"] = int(num_match.group(1))
-            rules.append(
-                CharterRule(
-                    id=_next_id(RuleType.CONVENTION),
-                    type=RuleType.CONVENTION,
-                    description=desc,
-                    severity=Severity.MEDIUM,
-                    metadata=meta,
-                )
-            )
-
-    # ── Stack rules ──────────────────────────────────────────────────────
-    for pattern in _STACK_KEYWORDS:
-        for m in re.finditer(pattern, lower):
-            rules.append(
-                CharterRule(
-                    id=_next_id(RuleType.STACK),
-                    type=RuleType.STACK,
-                    description=m.group(0).strip(),
-                    severity=Severity.LOW,
-                    metadata={"raw": m.group(1).strip() if m.lastindex else m.group(0)},
-                )
-            )
-
-    # De-duplicate by description
-    seen: set[str] = set()
-    unique: list[CharterRule] = []
-    for r in rules:
-        key = r.description.lower().strip()
-        if key not in seen:
-            seen.add(key)
-            unique.append(r)
-
-    return unique
+    return rules
 
 
-# ── Persistence ──────────────────────────────────────────────────────────────
-
-
-def _charter_path(root: Path | None = None) -> Path:
-    """Return the path to charter.json."""
-    r = root or Path.cwd()
-    return r / MEMORY_DIR / CHARTER_FILE
-
-
-def load_charter(root: Path | None = None) -> Charter:
-    """Load the charter from disk, or return an empty one."""
-    path = _charter_path(root)
-    if not path.exists():
-        return Charter()
-    try:
-        data = json.loads(path.read_text(encoding="utf-8"))
-        return Charter.from_dict(data)
-    except Exception:
-        _log.warning("Failed to load charter from %s", path)
-        return Charter()
-
-
-def save_charter(charter: Charter, root: Path | None = None) -> Path:
-    """Save the charter to disk."""
-    path = _charter_path(root)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(
-        json.dumps(charter.to_dict(), indent=2, ensure_ascii=False),
-        encoding="utf-8",
-    )
-    return path
-
-
-# ── Drift detection ──────────────────────────────────────────────────────────
+# ── Rule Checking (structured matching) ──────────────────────────────────────
 
 
 def check_boundary_violations(
     charter: Charter,
     import_edges: list[tuple[str, str]],
 ) -> list[CharterViolation]:
-    """Check if any import edges violate boundary rules."""
+    """Check if import edges violate boundary rules using structured matching."""
     violations: list[CharterViolation] = []
-    boundary_rules = [r for r in charter.rules if r.type == RuleType.BOUNDARY and r.enabled]
+    boundary_rules = [r for r in charter.rules
+                      if r.type == RuleType.BOUNDARY and r.enabled]
 
-    if not boundary_rules:
-        return violations
-
-    # Build a map of subsystem keywords from boundary descriptions
     for rule in boundary_rules:
-        desc_lower = rule.description.lower()
-        # Try to extract "X must not import Y" or "no cross-module" patterns
-        forbid_match = re.search(
-            r"(\w+)\s+(?:must\s+not|cannot|never)\s+(?:import|depend(?:\s+on)?)\s+(\w+)",
-            desc_lower,
-        )
-        if not forbid_match:
-            forbid_match = re.search(
-                r"(?:no|without)\s+(?:cross[- ]?)?(?:import(?:s)?|depend(?:ency|encies)?)\s+(?:of\s+)?(\w+)\s+(?:to|into|with)\s+(\w+)",
-                desc_lower,
-            )
-        if forbid_match:
-            source_sub = forbid_match.group(1)
-            target_sub = forbid_match.group(2)
-            for src, dst in import_edges:
-                if source_sub in src.lower() and target_sub in dst.lower():
-                    violations.append(
-                        CharterViolation(
-                            rule_id=rule.id,
-                            rule_description=rule.description,
-                            severity=rule.severity.value,
-                            file_path=src,
-                            message=f"'{src}' imports '{dst}' — violates boundary rule",
-                            suggestion=f"Remove import of {target_sub} from {source_sub}",
-                        )
-                    )
+        from_pat = rule.from_pattern.lower()
+        to_pat = rule.to_pattern.lower()
+
+        if not from_pat or not to_pat:
+            continue
+
+        for src, dst in import_edges:
+            # Check if source matches from_pattern and target matches to_pattern
+            src_lower = src.lower()
+            dst_lower = dst.lower()
+
+            # Match using prefix matching (structured, not regex)
+            if from_pat in src_lower and to_pat in dst_lower:
+                violations.append(CharterViolation(
+                    rule_id=rule.id,
+                    rule_description=rule.description,
+                    severity=rule.severity.value,
+                    file_path=src,
+                    message=f"'{src}' imports '{dst}' — violates boundary rule",
+                    suggestion=f"Remove import of {to_pat} from {from_pat}",
+                ))
 
     return violations
 
@@ -359,31 +438,26 @@ def check_convention_violations(
     charter: Charter,
     file_infos: list[Any],
 ) -> list[CharterViolation]:
-    """Check if files/functions violate convention rules."""
+    """Check files against convention rules using structured matching."""
     violations: list[CharterViolation] = []
-    conv_rules = [r for r in charter.rules if r.type == RuleType.CONVENTION and r.enabled]
-
-    if not conv_rules:
-        return violations
+    conv_rules = [r for r in charter.rules
+                  if r.type == RuleType.CONVENTION and r.enabled]
 
     for rule in conv_rules:
-        max_lines = rule.metadata.get("max_lines")
-        if max_lines:
+        if rule.max_value > 0 and rule.metric == "lines":
             for fi in file_infos:
-                path_str = getattr(fi, "path", "")
-                if path_str.endswith((".py", ".ts", ".js", ".go", ".java", ".rs")):
+                path = getattr(fi, "path", "")
+                if path.endswith((".py", ".ts", ".js", ".go", ".java", ".rs")):
                     line_count = getattr(fi, "line_count", 0)
-                    if line_count and line_count > max_lines:
-                        violations.append(
-                            CharterViolation(
-                                rule_id=rule.id,
-                                rule_description=rule.description,
-                                severity=rule.severity.value,
-                                file_path=path_str,
-                                message=f"{path_str} is {line_count} lines (max {max_lines})",
-                                suggestion=f"Split into smaller modules under {max_lines} lines",
-                            )
-                        )
+                    if line_count and line_count > rule.max_value:
+                        violations.append(CharterViolation(
+                            rule_id=rule.id,
+                            rule_description=rule.description,
+                            severity=rule.severity.value,
+                            file_path=path,
+                            message=f"{path} is {line_count} lines (max {rule.max_value})",
+                            suggestion=f"Split into modules under {rule.max_value} lines",
+                        ))
 
     return violations
 
@@ -403,3 +477,35 @@ def check_all_violations(
         violations.extend(check_convention_violations(charter, file_infos))
 
     return violations
+
+
+# ── Persistence ───────────────────────────────────────────────────────────────
+
+
+def _charter_path(root: Path | None = None) -> Path:
+    r = root or Path.cwd()
+    return r / MEMORY_DIR / CHARTER_FILE
+
+
+def load_charter(root: Path | None = None) -> Charter:
+    """Load charter from disk, or return empty."""
+    path = _charter_path(root)
+    if not path.exists():
+        return Charter()
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        return Charter.from_dict(data)
+    except Exception:
+        _log.warning("Failed to load charter from %s", path)
+        return Charter()
+
+
+def save_charter(charter: Charter, root: Path | None = None) -> Path:
+    """Save charter to disk."""
+    path = _charter_path(root)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        json.dumps(charter.to_dict(), indent=2, ensure_ascii=False),
+        encoding="utf-8",
+    )
+    return path

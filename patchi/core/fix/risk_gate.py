@@ -196,8 +196,9 @@ class RiskGate:
                 # Check convention rules (file size limits)
                 for rule in charter.rules:
                     if rule.type == RuleType.CONVENTION and rule.enabled:
-                        max_lines = rule.metadata.get("max_lines")
-                        if max_lines:
+                        if rule.max_value > 0 and rule.metric == "lines":
+                            max_lines = rule.max_value
+                        if max_lines and max_lines > 0:
                             for change in patch.changes:
                                 if change.path.endswith((".py", ".ts", ".js")):
                                     new_lines = (

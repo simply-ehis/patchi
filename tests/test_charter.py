@@ -138,10 +138,9 @@ def test_parse_charter_with_ai_falls_back(monkeypatch):
 
 def test_cli_set_and_check(tmp_path, monkeypatch):
     from patchi.cli.commands import charter_cmd
-    from patchi.core.config import require_project_root
 
-    monkeypatch.setattr(require_project_root, "__call__", lambda: tmp_path)
-    charter_cmd.run_set("Frontend must not import backend", root=tmp_path)
+    monkeypatch.setattr(charter_cmd, "_get_root", lambda: tmp_path)
+    charter_cmd.run_set(type("Args", (), {"text": "Frontend must not import backend"})())
 
     mem.save_layers({
         "frontend": _layer("frontend", deps=["backend"]),
