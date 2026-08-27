@@ -3,31 +3,45 @@
 {% block content %}
 <div class="smart-console">
   <div class="smart-header">
-    <h1>🧠 Smart Agent</h1>
-    <p class="muted">Goal-driven AI tool-calling. The agent plans with its Council,
-       then runs <em>real</em> tools (security scan, live tests, attack simulation,
-       stress test) and streams every step here, live.</p>
+    <h1>🧠 The Brain</h1>
+    <p class="muted">Natural language orchestrator with full project control.
+       Uses LLM reasoning to understand goals, plan execution, and run tools.
+       Direct access to files, agents, and the entire Patchi system.</p>
   </div>
 
   <div class="smart-controls">
     <input id="smart-goal" class="smart-input" type="text"
-           placeholder="e.g. audit this project for security vulnerabilities"
-           value="audit this project for security vulnerabilities" />
+           placeholder="e.g. scan this project, fix critical issues, explain src/auth.py"
+           value="scan this project for vulnerabilities" />
     <label class="smart-steps-label">steps
       <input id="smart-steps" class="smart-steps" type="number" min="1" max="12" value="6" />
     </label>
-    <button id="smart-run" class="btn btn-primary">▶ Run Agent</button>
+    <button id="smart-run" class="btn btn-primary">
+      <span class="btn-text">▶ Run Agent</span>
+      <span class="btn-spinner" style="display:none;">⏳</span>
+    </button>
+    <button id="smart-cancel" class="btn btn-cancel" style="display:none;">
+      <span>✕ Cancel</span>
+    </button>
   </div>
 
-  <div class="smart-status" id="smart-status">Idle. Press Run to start.</div>
+  <div class="smart-status" id="smart-status" data-state="idle">Idle. Press Run to start.</div>
 
   <div class="smart-progress">
     <div class="smart-progress-bar" id="smart-progress-bar"></div>
+    <div class="smart-progress-labels">
+      <span id="smart-progress-current">Planning</span>
+      <span id="smart-progress-percent">0%</span>
+    </div>
   </div>
+
+  <div class="smart-tools" id="smart-tools"></div>
 
   <div class="smart-stream" id="smart-stream">
     <div class="smart-stream-empty muted">Live event stream will appear here…</div>
   </div>
+
+  <div class="smart-summary" id="smart-summary" style="display:none;"></div>
 </div>
 
 <style>
@@ -40,12 +54,50 @@
   .smart-steps-label { color: var(--text-secondary); font-size: 12px; }
   .smart-steps { width: 56px; padding: 8px; background: var(--bg-card); border: 1px solid var(--border);
                  border-radius: var(--radius); color: var(--text-primary); }
-  .smart-status { font-size: 13px; color: var(--text-secondary); margin-bottom: 8px; }
-  .smart-progress { height: 6px; background: var(--bg-card); border-radius: 999px; overflow: hidden; margin-bottom: 14px; }
-  .smart-progress-bar { height: 100%; width: 0%; background: linear-gradient(90deg, #C8621A, #FACC15); transition: width .3s; }
+  .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px;
+         background: var(--accent); color: var(--bg); border: none; border-radius: var(--radius);
+         font-weight: 600; cursor: pointer; transition: opacity 0.2s, transform 0.1s; }
+  .btn:hover { opacity: 0.9; }
+  .btn:active { transform: scale(0.98); }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-primary { background: var(--accent); }
+  .btn-cancel { background: #FF4D6D; color: white; }
+  .btn-cancel:hover { background: #e63956; }
+  .btn-spinner { display: inline-block; animation: spin 1s linear infinite; }
+  @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+  .smart-status { font-size: 13px; color: var(--text-secondary); margin-bottom: 8px; min-height: 20px; }
+  .smart-status[data-state="idle"] { color: var(--text-secondary); }
+  .smart-status[data-state="running"] { color: var(--accent); }
+  .smart-status[data-state="success"] { color: #4ADE80; }
+  .smart-status[data-state="error"] { color: #FF4D6D; }
+
+  .smart-progress { height: 6px; background: var(--bg-card); border-radius: 999px; overflow: hidden; margin-bottom: 6px; }
+  .smart-progress-bar { height: 100%; width: 0%; background: linear-gradient(90deg, #C8621A, #FACC15); transition: width .3s ease; }
+  .smart-progress-labels { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-secondary); margin-top: 4px; }
+
+  .smart-tools { display: flex; gap: 8px; flex-wrap: wrap; margin: 14px 0; min-height: 28px; }
+  .tool-pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px;
+               background: var(--bg-card); border: 1px solid var(--border); border-radius: 999px;
+               font-size: 12px; color: var(--text-secondary); opacity: 0.6; transition: all 0.2s; }
+  .tool-pill.pending { border-color: var(--accent); opacity: 1; color: var(--accent); }
+  .tool-pill.running { border-color: #C8621A; background: rgba(200, 98, 26, 0.15); color: #C8621A; }
+  .tool-pill.done { border-color: #4ADE80; background: rgba(74, 222, 128, 0.15); color: #4ADE80; }
+  .tool-pill.error { border-color: #FF4D6D; background: rgba(255, 77, 109, 0.15); color: #FF4D6D; }
+  .tool-spinner { width: 12px; height: 12px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; }
+
+  /* Progress Ring */
+  .progress-ring { width: 28px; height: 28px; transform: rotate(-90deg); }
+  .progress-ring__bg { fill: none; stroke: var(--border); stroke-width: 3; }
+  .progress-ring__fill { fill: none; stroke-width: 3; stroke-linecap: round; transition: stroke-dashoffset 0.3s ease; }
+  .progress-ring__fill.running { stroke: #C8621A; }
+  .progress-ring__fill.done { stroke: #4ADE80; }
+  .progress-ring__fill.error { stroke: #FF4D6D; }
+  .progress-ring__text { font-size: 8px; fill: currentColor; text-anchor: middle; dominant-baseline: central; transform: rotate(90deg); transform-origin: center; }
+
   .smart-stream { background: #0d0f12; border: 1px solid var(--border); border-radius: var(--radius);
                   padding: 14px; height: 460px; overflow-y: auto; font-family: ui-monospace, Menlo, monospace; font-size: 12.5px; }
-  .smart-stream-empty { padding: 20px; }
+  .smart-stream-empty { padding: 20px; text-align: center; }
   .ev { padding: 4px 8px; border-bottom: 1px solid rgba(255,255,255,0.04); display: flex; gap: 10px; }
   .ev .tag { color: #6b7280; min-width: 170px; }
   .ev.finding .tag { color: #FACC15; }
@@ -55,6 +107,13 @@
   .ev.agent .tag { color: #C8621A; }
   .ev.brain .tag { color: #60a5fa; }
   .ev.stress .tag { color: #c084fc; }
+
+  .smart-summary { margin-top: 16px; padding: 16px; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); }
+  .smart-summary h3 { margin: 0 0 12px; font-size: 14px; }
+  .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+  .summary-item { background: var(--bg); padding: 12px; border-radius: var(--radius); border: 1px solid var(--border); }
+  .summary-item .label { font-size: 11px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
+  .summary-item .value { font-size: 18px; font-weight: 600; color: var(--text-primary); }
 </style>
 
 <script>
@@ -62,10 +121,93 @@
   const goalEl = document.getElementById('smart-goal');
   const stepsEl = document.getElementById('smart-steps');
   const runBtn = document.getElementById('smart-run');
+  const cancelBtn = document.getElementById('smart-cancel');
   const statusEl = document.getElementById('smart-status');
   const barEl = document.getElementById('smart-progress-bar');
+  const currentEl = document.getElementById('smart-progress-current');
+  const percentEl = document.getElementById('smart-progress-percent');
+  const toolsEl = document.getElementById('smart-tools');
   const streamEl = document.getElementById('smart-stream');
+  const summaryEl = document.getElementById('smart-summary');
 
+  let currentToolPills = {};
+  let abortController = null;
+  let isRunning = false;
+
+  // ── localStorage persistence ───────────────────────────────────────
+  const STORAGE_KEY = 'patchi_scan_progress';
+
+  function saveProgress(data) {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch(e) {}
+  }
+
+  function loadProgress() {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) return JSON.parse(saved);
+    } catch(e) {}
+    return null;
+  }
+
+  function clearProgress() {
+    try { localStorage.removeItem(STORAGE_KEY); } catch(e) {}
+  }
+
+  // Restore progress on page load
+  function restoreProgress() {
+    const saved = loadProgress();
+    if (saved && saved.isRunning) {
+      // Show that a scan was in progress
+      setStatus('running', `Previous scan was interrupted: "${saved.goal}"`);
+      goalEl.value = saved.goal || '';
+      stepsEl.value = saved.maxSteps || 6;
+    } else if (saved && saved.lastGoal) {
+      goalEl.value = saved.lastGoal;
+    }
+  }
+
+  // ── Progress Ring SVG ──────────────────────────────────────────────
+  function createProgressRing(pct = 0, state = 'pending') {
+    const r = 11;
+    const circumference = 2 * Math.PI * r;
+    const offset = circumference - (pct / 100) * circumference;
+
+    return `<svg class="progress-ring" viewBox="0 0 28 28">
+      <circle class="progress-ring__bg" cx="14" cy="14" r="${r}" />
+      <circle class="progress-ring__fill ${state}" cx="14" cy="14" r="${r}"
+              stroke-dasharray="${circumference}" stroke-dashoffset="${offset}" />
+      <text class="progress-ring__text" x="14" y="14">${pct > 0 ? pct + '%' : ''}</text>
+    </svg>`;
+  }
+
+  function updateProgressRing(pill, pct, state) {
+    let ring = pill.querySelector('.progress-ring');
+    if (!ring) {
+      ring = document.createElement('span');
+      ring.className = 'progress-ring-wrap';
+      ring.innerHTML = createProgressRing(pct, state);
+      pill.insertBefore(ring, pill.firstChild);
+    } else {
+      const r = 11;
+      const circumference = 2 * Math.PI * r;
+      const offset = circumference - (pct / 100) * circumference;
+      const fill = ring.querySelector('.progress-ring__fill');
+      const text = ring.querySelector('.progress-ring__text');
+      if (fill) {
+        fill.style.strokeDashoffset = offset;
+        fill.className.baseVal = 'progress-ring__fill ' + state;
+      }
+      if (text) text.textContent = pct > 0 ? pct + '%' : '';
+    }
+  }
+
+  // ── Status ─────────────────────────────────────────────────────────
+  function setStatus(state, text) {
+    statusEl.dataset.state = state;
+    statusEl.textContent = text;
+  }
+
+  // ── Event Stream ───────────────────────────────────────────────────
   function addEvent(event, data) {
     const empty = streamEl.querySelector('.smart-stream-empty');
     if (empty) empty.remove();
@@ -83,10 +225,23 @@
     else if (event === 'test.suite.completed') text = `tests passed=${data.passed} failed=${data.failed}`;
     else if (event === 'test.stress.update') text = `stress ${data.rps} rps  p95=${data.p95}ms  err=${data.error_rate}`;
     else if (event === 'brain.scan.completed') text = `brain ${data.file_count} files, ${data.route_count} routes`;
-    else if (event === 'agent.progress') { text = `step: ${data.current_file} (${data.progress_pct}%)`; if (barEl) barEl.style.width = (data.progress_pct || 0) + '%'; }
+    else if (event === 'agent.progress') {
+      text = `step: ${data.current_file} (${data.progress_pct}%)`;
+      if (barEl) barEl.style.width = (data.progress_pct || 0) + '%';
+      if (currentEl) currentEl.textContent = data.current_file;
+      if (percentEl) percentEl.textContent = data.progress_pct + '%';
+      updateToolPill(data.current_file, 'running', data.progress_pct || 0);
+    }
+    else if (event === 'orchestrator.planned') {
+      text = `plan: ${data.steps} steps — ${data.reasoning || ''}`;
+    }
+    else if (event === 'orchestrator.completed') {
+      text = `done — success=${data.success}, findings=${data.findings}`;
+    }
     else if (event === 'agent.completed') text = `agent done — ${data.findings_count} findings, ${data.steps} steps`;
     else if (event === 'security.scan.started') text = `security scan started (${data.agent_count} agents)`;
     else if (event === 'security.scan.completed') text = `security scan done — crit=${data.critical_count} high=${data.high_count} med=${data.medium_count}`;
+    else if (event === 'test.suite.started') text = `test suite started (${data.test_type})`;
     else text = JSON.stringify(data).slice(0, 200);
 
     row.innerHTML = `<span class="tag">${event}</span><span class="msg">${escapeHtml(text)}</span>`;
@@ -94,42 +249,158 @@
     streamEl.scrollTop = streamEl.scrollHeight;
   }
 
+  // ── Tool Pills with Progress Rings ─────────────────────────────────
+  function updateToolPill(toolName, state, pct = 0) {
+    let pill = currentToolPills[toolName];
+    if (!pill) {
+      pill = document.createElement('span');
+      pill.className = 'tool-pill';
+      pill.dataset.tool = toolName;
+      pill.innerHTML = `<span class="tool-name">${toolName}</span>`;
+      toolsEl.appendChild(pill);
+      currentToolPills[toolName] = pill;
+    }
+    pill.className = 'tool-pill ' + state;
+
+    // Add/update progress ring
+    if (state === 'running') {
+      updateProgressRing(pill, pct, 'running');
+      if (!pill.querySelector('.tool-spinner')) {
+        const spinner = document.createElement('span');
+        spinner.className = 'tool-spinner';
+        pill.appendChild(spinner);
+      }
+    } else {
+      const spinner = pill.querySelector('.tool-spinner');
+      if (spinner) spinner.remove();
+      if (state === 'done') {
+        updateProgressRing(pill, 100, 'done');
+        if (!pill.querySelector('.pill-check')) {
+          const check = document.createElement('span');
+          check.className = 'pill-check';
+          check.textContent = '✓';
+          pill.appendChild(check);
+        }
+      } else if (state === 'error') {
+        updateProgressRing(pill, 100, 'error');
+        if (!pill.querySelector('.pill-check')) {
+          const check = document.createElement('span');
+          check.className = 'pill-check';
+          check.textContent = '✗';
+          pill.appendChild(check);
+        }
+      }
+    }
+  }
+
+  // ── Summary ────────────────────────────────────────────────────────
+  function showSummary(report) {
+    summaryEl.style.display = 'block';
+    const steps = report.steps_executed || [];
+    const passed = steps.filter(s => s.success).length;
+    const failed = steps.filter(s => !s.success).length;
+    summaryEl.innerHTML = `
+      <h3>Run Summary</h3>
+      <div class="summary-grid">
+        <div class="summary-item"><span class="label">Goal</span><span class="value">${escapeHtml(report.goal)}</span></div>
+        <div class="summary-item"><span class="label">Steps Planned</span><span class="value">${report.steps_planned?.length || 0}</span></div>
+        <div class="summary-item"><span class="label">Steps Executed</span><span class="value">${steps.length}</span></div>
+        <div class="summary-item"><span class="label">Passed</span><span class="value" style="color:#4ADE80">${passed}</span></div>
+        <div class="summary-item"><span class="label">Failed</span><span class="value" style="color:#FF4D6D">${failed}</span></div>
+        <div class="summary-item"><span class="label">Total Findings</span><span class="value">${report.total_findings}</span></div>
+      </div>
+    `;
+  }
+
   function escapeHtml(s) {
     return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  // ── Run / Cancel ───────────────────────────────────────────────────
+  function setRunning(running) {
+    isRunning = running;
+    runBtn.disabled = running;
+    cancelBtn.style.display = running ? 'inline-flex' : 'none';
+    runBtn.querySelector('.btn-text').textContent = running ? 'Running…' : '▶ Run Agent';
+    runBtn.querySelector('.btn-spinner').style.display = running ? 'inline-block' : 'none';
+
+    if (running) {
+      saveProgress({ isRunning: true, goal: goalEl.value, maxSteps: stepsEl.value, startedAt: Date.now() });
+    } else {
+      const saved = loadProgress() || {};
+      clearProgress();
+      if (saved.goal) saveProgress({ lastGoal: saved.goal, maxSteps: saved.maxSteps });
+    }
   }
 
   runBtn.addEventListener('click', async () => {
     const goal = goalEl.value.trim();
     if (!goal) return;
-    runBtn.disabled = true;
-    statusEl.textContent = 'Agent running…';
+
+    setRunning(true);
+    setStatus('running', 'Agent starting…');
     barEl.style.width = '0%';
+    currentEl.textContent = 'Starting';
+    percentEl.textContent = '0%';
+    toolsEl.innerHTML = '';
+    currentToolPills = {};
     streamEl.innerHTML = '';
+    summaryEl.style.display = 'none';
+
+    abortController = new AbortController();
+
     try {
       const resp = await fetch('/api/smart/run', {
-        method: 'POST', headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ goal, max_steps: parseInt(stepsEl.value || '6', 10) })
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ goal, max_steps: parseInt(stepsEl.value || '6', 10) }),
+        signal: abortController.signal,
       });
       const j = await resp.json();
-      statusEl.textContent = j.success ? 'Agent started — streaming live events…' : ('Error: ' + (j.message || ''));
+      setStatus(j.success ? 'running' : 'error', j.success ? 'Agent started — streaming live events…' : ('Error: ' + (j.message || '')));
     } catch (e) {
-      statusEl.textContent = 'Failed to start: ' + e;
+      if (e.name === 'AbortError') {
+        setStatus('error', 'Scan cancelled by user');
+      } else {
+        setStatus('error', 'Failed to start: ' + e);
+      }
     } finally {
-      setTimeout(() => { runBtn.disabled = false; }, 1500);
+      setRunning(false);
+      abortController = null;
     }
   });
 
-  // Hook into the global WS handler so agent events show up live.
+  cancelBtn.addEventListener('click', () => {
+    if (abortController) {
+      abortController.abort();
+      setStatus('error', 'Cancelling…');
+      // Also try to cancel the server-side run
+      fetch('/api/smart/cancel', { method: 'POST' }).catch(() => {});
+    }
+  });
+
+  // ── WebSocket Events ───────────────────────────────────────────────
   const orig = window.handleWSEvent;
   window.handleWSEvent = function (event, data) {
     if (event && (event.startsWith('security.') || event.startsWith('test.')
-        || event.startsWith('agent.') || event.startsWith('brain.'))) {
+        || event.startsWith('agent.') || event.startsWith('brain.')
+        || event.startsWith('orchestrator.'))) {
       addEvent(event, data);
+    }
+    if (event === 'agent.completed' || event === 'orchestrator.completed') {
+      setStatus('success', 'Agent completed successfully');
+      setRunning(false);
+      // Save last successful run
+      const saved = loadProgress() || {};
+      clearProgress();
+      saveProgress({ lastGoal: saved.goal || goalEl.value, maxSteps: stepsEl.value });
     }
     if (orig) orig(event, data);
   };
 
-  // If the WS isn't connected yet, wait for it.
+  // ── Restore on load ────────────────────────────────────────────────
+  restoreProgress();
+
   if (!window._ws) {
     const iv = setInterval(() => { if (window._ws) { clearInterval(iv); } }, 500);
   }

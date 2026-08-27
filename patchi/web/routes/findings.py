@@ -1,9 +1,11 @@
-"""Findings route — findings list with filters + chain/intent tabs, DAST screenshots."""
+"""Findings route — findings list with filters + chain/intent tabs, DAST screenshots, history."""
 
 from __future__ import annotations
 
 import json as _json
 import os
+import sqlite3
+from datetime import datetime
 from pathlib import Path
 
 from fastapi import APIRouter, Request
@@ -152,6 +154,9 @@ async def findings(request: Request):
     except Exception:
         pass
 
+    # Load scan history
+    scan_history = _load_scan_history(root)
+
     return templates.TemplateResponse(
         request,
         "findings.html",
@@ -167,6 +172,7 @@ async def findings(request: Request):
             "dast_tests_run": dast_tests_run,
             "dast_target": dast_target,
             "scan_agent_count": scan_agent_count,
+            "scan_history": scan_history,
         },
     )
 
@@ -183,3 +189,73 @@ async def api_dast_evidence(request: Request):
     """JSON endpoint for DAST screenshot evidence."""
     root = request.app.state.root
     return JSONResponse(_load_dast_evidence(root))
+
+
+def _load_scan_history(root: Path, limit: int = 50) -> list[dict]:
+    """Load scan history from the SQLite database."""
+    db_path = root / ".patchi" / "patchi_history.db"
+    if not db_path.is_file():
+        return []
+    try:
+        db = sqlite3.connect(str(db_path))
+        cursor = db.cursor()
+        cursor.execute(
+            "SELECT scan_id, timestamp, tool, findings_count, "
+            "severity_breakdown, duration_ms, health_score, metrics "
+            "FROM scan_history ORDER BY timestamp DESC LIMIT ?",
+            (limit,),
+        )
+        rows = cursor.fetchall()
+        db.close()
+        results = []
+        for row in rows:
+            entry = {
+                "scan_id": row[0],
+                "timestamp": row[1],
+                "tool": row[2],
+                "findings_count": row[3],
+                "severity_breakdown": _json.loads(row[4]) if row[4] else {},
+                "duration_ms": row[5],
+                "health_score": row[6],
+                "metrics": _json.loads(row[7]) if row[7] else {},
+            }
+            results.append(entry)
+        return results
+    except Exception:
+        return []
+
+
+@router.get("/api/findings/history")
+async def api_findings_history(request: Request, limit: int = 50):
+    """JSON endpoint for scan history."""
+    root = request.app.state.root
+    return JSONResponse(_load_scan_history(root, limit))
+
+
+@router.get("/api/findings/history/export")
+async def api_findings_history_export(request: Request):
+    """Export full scan history + current findings as JSON for CI/CD."""
+    root = request.app.state.root
+    history = _load_scan_history(root, limit=500)
+
+    # Also include current findings snapshot
+    from patchi.core import memory as mem
+    scan_results = mem.get_scan_results(root)
+    current_findings = []
+    for agent_name, data in scan_results.items():
+        for f in data.get("findings", []):
+            f["agent"] = agent_name
+            current_findings.append(f)
+
+    export = {
+        "exported_at": datetime.utcnow().isoformat() + "Z",
+        "project": str(root),
+        "history": history,
+        "current_findings": current_findings,
+        "summary": {
+            "total_scans": len(history),
+            "total_findings": len(current_findings),
+            "latest_health_score": history[0]["health_score"] if history else None,
+        },
+    }
+    return JSONResponse(export)

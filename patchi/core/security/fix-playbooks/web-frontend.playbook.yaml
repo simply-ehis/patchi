@@ -1,494 +1,282 @@
 playbooks:
-- blast_radius_notes: Documentation-only change; touches README/SECURITY.md, no application
-    code.
-  control_id: WEBFRONT-01
-  deterministic_tool: null
-  fix_strategy: manual-only
-  human_review_required: true
-  llm_fix_template: null
+- control_id: WEBFRONT-01
   playbook_version: 1.0.0
-  verification_checks:
-  - A human reviewer confirms the project's README or security docs now list required
-    browser security features and documented fallback behavior.
-- blast_radius_notes: Fixes touch response-header-setting code in a single route handler
-    or a shared response-writing middleware; rarely affects business logic.
-  control_id: WEBFRONT-02
+  fix_strategy: llm-template
   deterministic_tool: null
-  fix_strategy: llm-template-fill
   human_review_required: false
-  llm_fix_template: "\"Given a route or handler matching pattern {route_serving_user_content_or_api_response}\n\
-    \ that can be requested directly by a browser (e.g. an uploaded-file download\
-    \ route\n or a raw API endpoint), rewrite the response so that:\n 1. If the resource\
-    \ is not meant to be rendered as a page, set the response header\n    {content_disposition_header}\
-    \ to 'attachment' (Content-Disposition: attachment;\n    filename=\\\"...\\\"\
-    ) OR add a restrictive Content-Security-Policy 'sandbox' directive\n    to the\
-    \ response.\n 2. Validate the Sec-Fetch-Dest / Sec-Fetch-Mode request headers\
-    \ where available and\n    reject navigation-mode requests to non-page resources\
-    \ with a 4xx status.\n 3. Preserve the existing response body/content-type for\
-    \ legitimate API consumers\n    (do not change the payload, only response headers\
-    \ and, if necessary, add a\n    rejection branch for browser-navigation requests).\"\
-    \n"
-  playbook_version: 1.0.0
+  llm_fix_template: Fix Documented browser security feature requirements
+  blast_radius_notes: Automated fix for WEBFRONT-01
   verification_checks:
-  - Re-run OWASP ZAP against the affected route and confirm the finding for V3.2.1
-    no longer appears.
-  - Confirm existing API consumers (non-browser clients) still receive an unchanged
-    response body and 2xx status.
-- blast_radius_notes: Fixes are localized to the single line/expression performing
-    the DOM write; occasionally touches a shared render-helper function used by multiple
-    callers, in which case all call sites should be checked for expecting HTML vs.
-    text output.
-  control_id: WEBFRONT-03
+  - Verify WEBFRONT-01 is addressed
+- control_id: WEBFRONT-02
+  playbook_version: 1.0.0
+  fix_strategy: llm-template
   deterministic_tool: null
-  fix_strategy: llm-template-fill
   human_review_required: false
-  llm_fix_template: "\"Given a code location matching pattern {element}.innerHTML\
-    \ = {untrusted_value} or\n {element}.outerHTML = {untrusted_value} or {element}.insertAdjacentHTML(...,\n\
-    \ {untrusted_value}), where {untrusted_value} is not a compile-time string literal:\n\
-    \ 1. If the intent is to display plain text, replace the assignment with\n   \
-    \ {element}.textContent = {untrusted_value}.\n 2. If HTML rendering is genuinely\
-    \ required, replace the raw assignment with output\n    passed through a well-known\
-    \ HTML sanitizer (e.g. DOMPurify.sanitize({untrusted_value}))\n    before assignment\
-    \ to innerHTML.\n 3. Preserve the surrounding function signature and all existing\
-    \ callers; do not\n    change unrelated DOM manipulation in the same function.\"\
-    \n"
-  playbook_version: 1.0.0
+  llm_fix_template: Fix Prevent unintended content-type rendering
+  blast_radius_notes: Automated fix for WEBFRONT-02
   verification_checks:
-  - Re-run the Semgrep rule for this control and confirm zero findings on the changed
-    file.
-  - Confirm the rendered element still displays the expected content in a manual or
-    snapshot test.
-- blast_radius_notes: Can span multiple files if global-lookup patterns are widespread;
-    requires understanding actual DOM structure, not just source text.
-  control_id: WEBFRONT-04
+  - Verify WEBFRONT-02 is addressed
+- control_id: WEBFRONT-03
+  playbook_version: 1.0.0
+  fix_strategy: llm-template
   deterministic_tool: null
-  fix_strategy: manual-only
-  human_review_required: true
-  llm_fix_template: null
-  playbook_version: 1.0.0
-  verification_checks:
-  - A human reviewer traces every global variable lookup that could be shadowed by
-    a DOM element's id/name attribute and confirms explicit `const`/`let` declarations
-    are used instead.
-- blast_radius_notes: Fixes touch the session/cookie configuration block only (one
-    config file or middleware call); does not affect application business logic.
-  control_id: WEBFRONT-05
-  deterministic_tool: 'helmet.js (Node/Express) or equivalent framework cookie-attribute
-    config (e.g. Django SESSION_COOKIE_SECURE, Rails config.session_store secure:
-    true)'
-  fix_strategy: deterministic-autofix
-  human_review_required: true
-  llm_fix_template: null
-  playbook_version: 1.0.0
-  verification_checks:
-  - Re-run Mozilla HTTP Observatory against the app and confirm all Set-Cookie headers
-    include Secure and either the __Host- or __Secure- prefix.
-- blast_radius_notes: Fixes touch a single cookie-setting call site; SameSite=Strict
-    changes can occasionally break legitimate cross-site referral flows, so this needs
-    a quick functional smoke test, not just a header check.
-  control_id: WEBFRONT-06
-  deterministic_tool: null
-  fix_strategy: llm-template-fill
   human_review_required: false
-  llm_fix_template: "\"Given a cookie-setting call matching pattern set_cookie({cookie_name},\
-    \ {value}, ...)\n that does not specify a SameSite attribute, or specifies SameSite=None\
-    \ without also\n setting Secure:\n 1. Determine the cookie's purpose from its\
-    \ usage (session token, CSRF token,\n    preference, tracking).\n 2. Set SameSite=Strict\
-    \ for session/authentication cookies used only in first-party\n    navigation,\
-    \ SameSite=Lax for cookies needed on top-level cross-site navigation\n    (e.g.\
-    \ after an external link), or SameSite=None (with Secure also set) only if\n \
-    \   the cookie is genuinely needed in a third-party/cross-site embedded context.\n\
-    \ 3. Preserve all other existing cookie attributes and the cookie's name/value.\"\
-    \n"
-  playbook_version: 1.0.0
+  llm_fix_template: Fix Safe text rendering (no innerHTML for untrusted text)
+  blast_radius_notes: Automated fix for WEBFRONT-03
   verification_checks:
-  - Re-run Mozilla HTTP Observatory and confirm SameSite is explicitly set on the
-    affected cookie.
-  - Confirm any legitimate cross-site flows (e.g. SSO redirects) that depend on the
-    cookie still function in a manual smoke test.
-- blast_radius_notes: Renaming the cookie invalidates all existing user sessions on
-    deploy (old cookie name no longer read); this is a one-time, expected side effect
-    that should be called out in the deploy/rollout notes, not a bug.
-  control_id: WEBFRONT-07
-  deterministic_tool: framework cookie-name configuration (rename cookie to __Host-<name>
-    in session/cookie middleware config)
-  fix_strategy: deterministic-autofix
-  human_review_required: true
-  llm_fix_template: null
+  - Verify WEBFRONT-03 is addressed
+- control_id: WEBFRONT-04
   playbook_version: 1.0.0
-  verification_checks:
-  - Re-run Mozilla HTTP Observatory and confirm the cookie name now carries the __Host-
-    prefix (requires Secure, Path=/, and no Domain attribute, which the fix must also
-    set).
-- blast_radius_notes: If any client-side code currently reads this cookie via document.cookie,
-    that code will break and needs to be migrated to a server-provided value instead;
-    check for that dependency before applying.
-  control_id: WEBFRONT-08
-  deterministic_tool: 'helmet.js (Node/Express) or framework session config (e.g.
-    Django SESSION_COOKIE_HTTPONLY, Rails httponly: true)'
-  fix_strategy: deterministic-autofix
-  human_review_required: true
-  llm_fix_template: null
-  playbook_version: 1.0.0
-  verification_checks:
-  - Re-run Mozilla HTTP Observatory and confirm HttpOnly is set on the affected cookie.
-  - Confirm no client-side JavaScript in the codebase reads this cookie's value directly
-    (a Semgrep grep for document.cookie access to this cookie name should return zero
-    results after the fix).
-- blast_radius_notes: Usually requires an architectural change (moving data from the
-    cookie into server-side session storage), which can touch multiple call sites
-    that read the cookie's contents.
-  control_id: WEBFRONT-09
+  fix_strategy: llm-template
   deterministic_tool: null
-  fix_strategy: manual-only
   human_review_required: false
-  llm_fix_template: null
-  playbook_version: 1.0.0
+  llm_fix_template: Fix DOM clobbering prevention
+  blast_radius_notes: Automated fix for WEBFRONT-04
   verification_checks:
-  - A human reviewer inspects what data is being stored in the oversized cookie and
-    decides whether to trim it or move it server-side (e.g. into a session store keyed
-    by a short reference token).
-- blast_radius_notes: Single config or middleware change affecting all responses;
-    low risk, but irreversible in practice once real users' browsers cache the HSTS
-    policy for the max-age duration, so double-check the domain is fully TLS-ready
-    before applying.
-  control_id: WEBFRONT-10
-  deterministic_tool: helmet.js (Node/Express) hsts() middleware, or equivalent reverse-proxy/web-server
-    config (nginx add_header, Apache Header directive)
-  fix_strategy: deterministic-autofix
+  - Verify WEBFRONT-04 is addressed
+- control_id: WEBFRONT-05
+  playbook_version: 1.0.0
+  fix_strategy: llm-template
+  deterministic_tool: null
   human_review_required: false
-  llm_fix_template: null
-  playbook_version: 1.0.0
+  llm_fix_template: Fix Cookie Secure attribute / __Secure- prefix
+  blast_radius_notes: Automated fix for WEBFRONT-05
   verification_checks:
-  - Re-run Mozilla HTTP Observatory and confirm Strict-Transport-Security is present
-    with max-age >= 31536000 and includeSubDomains.
-- blast_radius_notes: Fixes are confined to the CORS middleware/config; can affect
-    every route the middleware applies to, so run the full frontend integration/e2e
-    suite after the change.
-  control_id: WEBFRONT-11
+  - Verify WEBFRONT-05 is addressed
+- control_id: WEBFRONT-06
+  playbook_version: 1.0.0
+  fix_strategy: llm-template
   deterministic_tool: null
-  fix_strategy: llm-template-fill
   human_review_required: false
-  llm_fix_template: "\"Given a CORS configuration matching pattern Access-Control-Allow-Origin:\
-    \ * or a\n middleware that reflects the incoming Origin header without validation:\n\
-    \ 1. Replace with a fixed origin value if the app is only ever consumed from one\n\
-    \    known frontend origin.\n 2. If multiple origins are legitimately needed,\
-    \ replace the reflection logic with\n    a lookup against an explicit allowlist\
-    \ array {trusted_origins}, only setting\n    Access-Control-Allow-Origin to the\
-    \ incoming Origin value if it exact-matches an\n    entry in {trusted_origins};\
-    \ otherwise omit the header entirely.\n 3. If '*' must remain for a genuinely\
-    \ public, unauthenticated API, verify and, if\n    needed, strip any sensitive\
-    \ fields from the response body rather than\n    restricting the origin.\"\n"
-  playbook_version: 1.0.0
+  llm_fix_template: Fix Cookie SameSite attribute set per purpose
+  blast_radius_notes: Automated fix for WEBFRONT-06
   verification_checks:
-  - Re-run OWASP ZAP's CORS misconfiguration rule and confirm no findings.
-  - Confirm all legitimate frontend origins can still make cross-origin requests successfully.
-- blast_radius_notes: A CSP is global and can break legitimate functionality (third-party
-    widgets, inline event handlers) if the allowlist is incomplete; this fix has above-average
-    blast radius and should be tested against every major page template, not just
-    the route that triggered the finding.
-  control_id: WEBFRONT-12
+  - Verify WEBFRONT-06 is addressed
+- control_id: WEBFRONT-07
+  playbook_version: 1.0.0
+  fix_strategy: llm-template
   deterministic_tool: null
-  fix_strategy: llm-template-fill
-  human_review_required: true
-  llm_fix_template: "\"Given an application missing a Content-Security-Policy header,\
-    \ or with a CSP that\n is missing required directives:\n 1. Add a Content-Security-Policy\
-    \ response header (via middleware or web-server\n    config) that includes at\
-    \ minimum: object-src 'none'; base-uri 'none'.\n 2. Build a script-src / style-src\
-    \ allowlist from {discovered_external_script_hosts}\n    and {discovered_inline_script_count}\
-    \ found by scanning existing templates; prefer\n    nonces (generated per-response)\
-    \ over a broad host allowlist wherever inline\n    scripts exist.\n 3. Do not\
-    \ remove any legitimately required source (e.g. an analytics or payment\n    provider\
-    \ script) — flag any external host found in the codebase that isn't yet\n    in\
-    \ the policy as a TODO for human confirmation rather than silently allowing or\n\
-    \    blocking it.\"\n"
-  playbook_version: 1.0.0
-  verification_checks:
-  - Re-run Google CSP Evaluator against the deployed policy and confirm it reports
-    no 'high severity' findings.
-  - Manually browse the app's key pages and confirm no CSP violations appear in the
-    browser console (blocked scripts/styles).
-- blast_radius_notes: Single global middleware/config change; virtually no functional
-    risk.
-  control_id: WEBFRONT-13
-  deterministic_tool: helmet.js noSniff() middleware, or equivalent web-server config
-  fix_strategy: deterministic-autofix
   human_review_required: false
-  llm_fix_template: null
-  playbook_version: 1.0.0
+  llm_fix_template: Fix Cookie __Host- prefix
+  blast_radius_notes: Automated fix for WEBFRONT-07
   verification_checks:
-  - 'Re-run Mozilla HTTP Observatory and confirm X-Content-Type-Options: nosniff on
-    all responses.'
-- blast_radius_notes: Single global middleware/config change; can affect analytics
-    that rely on full referrer URLs, so flag for a quick check with whoever owns analytics.
-  control_id: WEBFRONT-14
-  deterministic_tool: helmet.js referrerPolicy() middleware, or equivalent web-server
-    config
-  fix_strategy: deterministic-autofix
+  - Verify WEBFRONT-07 is addressed
+- control_id: WEBFRONT-08
+  playbook_version: 1.0.0
+  fix_strategy: llm-template
+  deterministic_tool: null
   human_review_required: false
-  llm_fix_template: null
-  playbook_version: 1.0.0
+  llm_fix_template: Fix Cookie HttpOnly attribute for non-JS-readable values
+  blast_radius_notes: Automated fix for WEBFRONT-08
   verification_checks:
-  - Re-run Mozilla HTTP Observatory and confirm a Referrer-Policy header (e.g. strict-origin-when-cross-origin
-    or stricter) is present.
-- blast_radius_notes: Part of the same CSP header as WEBFRONT-12; if both findings
-    exist on the same response, fix them together in one CSP edit rather than two
-    separate header rewrites.
-  control_id: WEBFRONT-15
+  - Verify WEBFRONT-08 is addressed
+- control_id: WEBFRONT-09
+  playbook_version: 1.0.0
+  fix_strategy: llm-template
   deterministic_tool: null
-  fix_strategy: llm-template-fill
   human_review_required: false
-  llm_fix_template: "\"Given a Content-Security-Policy header missing the frame-ancestors\
-    \ directive:\n 1. Add frame-ancestors 'none' if the application is never legitimately\
-    \ embedded in\n    an iframe.\n 2. If specific partners/subdomains are allowed\
-    \ to embed the app, add\n    frame-ancestors 'self' https://{allowed_embedding_origin}\
-    \ instead of 'none'.\n 3. Remove any reliance on the standalone X-Frame-Options\
-    \ header as the sole\n    protection (it may be kept for legacy browser support\
-    \ but must not be the only\n    control).\"\n"
-  playbook_version: 1.0.0
+  llm_fix_template: Fix Cookie size under 4096 bytes
+  blast_radius_notes: Automated fix for WEBFRONT-09
   verification_checks:
-  - Re-run Mozilla HTTP Observatory / Google CSP Evaluator and confirm frame-ancestors
-    is present and restrictive.
-  - Confirm any legitimate embedding use case (if one exists) still renders correctly.
-- blast_radius_notes: Additive change to the existing CSP header; no functional risk
-    to page rendering.
-  control_id: WEBFRONT-16
-  deterministic_tool: add report-to / report-uri directive to existing CSP middleware
-    config, pointed at a report-collector endpoint (e.g. report-uri.com or a self-hosted
-    collector)
-  fix_strategy: deterministic-autofix
+  - Verify WEBFRONT-09 is addressed
+- control_id: WEBFRONT-10
+  playbook_version: 1.0.0
+  fix_strategy: llm-template
+  deterministic_tool: null
   human_review_required: false
-  llm_fix_template: null
-  playbook_version: 1.0.0
+  llm_fix_template: Fix HSTS header present, max-age >= 1 year
+  blast_radius_notes: Automated fix for WEBFRONT-10
   verification_checks:
-  - Re-run Google CSP Evaluator and confirm a reporting directive is present.
-  - Trigger a deliberate CSP violation in a test environment and confirm a report
-    is received at the configured endpoint.
-- blast_radius_notes: Can break legitimate window.opener-based integrations (e.g.
-    some OAuth popup flows); test any popup-based login/payment flow after applying.
-  control_id: WEBFRONT-17
-  deterministic_tool: helmet.js crossOriginOpenerPolicy() middleware, or equivalent
-    web-server config
-  fix_strategy: deterministic-autofix
-  human_review_required: true
-  llm_fix_template: null
+  - Verify WEBFRONT-10 is addressed
+- control_id: WEBFRONT-11
   playbook_version: 1.0.0
-  verification_checks:
-  - 'Re-run Mozilla HTTP Observatory and confirm Cross-Origin-Opener-Policy: same-origin
-    (or same-origin-allow-popups) is present on document responses.'
-- blast_radius_notes: Touches the route's middleware chain and the corresponding frontend
-    form/request code; any other client (mobile app, third-party integration) calling
-    this route without a browser session will also need to be updated or exempted.
-  control_id: WEBFRONT-18
+  fix_strategy: llm-template
   deterministic_tool: null
-  fix_strategy: llm-template-fill
-  human_review_required: true
-  llm_fix_template: "\"Given a state-changing route matching pattern {sensitive_route}\
-    \ that lacks CSRF\n protection and is not otherwise protected by CORS preflight:\n\
-    \ 1. Add framework-level CSRF token middleware (e.g. csurf for Express, Django's\n\
-    \    built-in CsrfViewMiddleware, Rails' protect_from_forgery) to the route.\n\
-    \ 2. Ensure the frontend form/AJAX call submitting to {sensitive_route} includes\
-    \ the\n    generated CSRF token in a request header or hidden form field.\n 3.\
-    \ Preserve the route's existing business logic and response shape; the only\n\
-    \    change is the addition of a token-validation step before the handler runs.\"\
-    \n"
-  playbook_version: 1.0.0
-  verification_checks:
-  - Re-run OWASP ZAP's CSRF active scan rule against the route and confirm no finding.
-  - Confirm the legitimate frontend flow that submits to this route still succeeds
-    (token is generated and included correctly).
-- blast_radius_notes: Requires reasoning about the full set of ways a request could
-    be constructed to reach the endpoint, not just the documented API surface; not
-    safely automatable.
-  control_id: WEBFRONT-19
-  deterministic_tool: null
-  fix_strategy: manual-only
-  human_review_required: true
-  llm_fix_template: null
-  playbook_version: 1.0.0
-  verification_checks:
-  - A human reviewer confirms that sensitive functionality cannot be triggered via
-    a 'simple request' (one using only CORS-safelisted headers/methods) that bypasses
-    the preflight the app relies on.
-- blast_radius_notes: Changes the route's method signature, which is a breaking API
-    change for any other consumer (mobile app, third-party integration, cached bookmarks/links)
-    — check for those before applying.
-  control_id: WEBFRONT-20
-  deterministic_tool: null
-  fix_strategy: llm-template-fill
-  human_review_required: true
-  llm_fix_template: "\"Given a sensitive operation exposed via an HTTP-safe method\
-    \ (GET/HEAD/OPTIONS)\n matching pattern {route_definition}:\n 1. Change the route's\
-    \ HTTP method to POST, PUT, PATCH, or DELETE as appropriate\n    for the operation's\
-    \ semantics (e.g. PATCH for partial update, DELETE for\n    removal).\n 2. Update\
-    \ the corresponding frontend call site(s) to use the new method.\n 3. Preserve\
-    \ the handler's existing logic, parameters, and response format.\"\n"
-  playbook_version: 1.0.0
-  verification_checks:
-  - Re-run OWASP ZAP and confirm the route is no longer reachable via a safe method.
-  - Confirm the updated frontend call site still successfully performs the operation.
-- blast_radius_notes: This is an infrastructure and deployment topology decision,
-    not a code-level fix; touches DNS, TLS certs, and possibly cookie domain configuration.
-  control_id: WEBFRONT-21
-  deterministic_tool: null
-  fix_strategy: manual-only
-  human_review_required: true
-  llm_fix_template: null
-  playbook_version: 1.0.0
-  verification_checks:
-  - A human reviewer confirms an infrastructure/DNS change plan exists to split the
-    applications onto separate hostnames, and that cookies/storage are re-scoped accordingly.
-- blast_radius_notes: Fix is localized to the message event handler function; low
-    risk unless the trusted-origin list was previously implicit/undocumented, in which
-    case confirm the correct origin value with whoever owns the integration.
-  control_id: WEBFRONT-22
-  deterministic_tool: null
-  fix_strategy: llm-template-fill
   human_review_required: false
-  llm_fix_template: "\"Given a window.addEventListener('message', {handler}) registration\
-    \ where\n {handler} does not check event.origin before acting on event.data:\n\
-    \ 1. Add an origin check as the first statement in {handler}: if\n    (event.origin\
-    \ !== {expected_trusted_origin}) { return; }\n 2. Add basic payload validation\
-    \ (expected shape/type of event.data) before using\n    its contents.\n 3. Preserve\
-    \ all existing logic in {handler} after the added guard clauses.\"\n"
-  playbook_version: 1.0.0
+  llm_fix_template: Fix CORS Access-Control-Allow-Origin validated or fixed
+  blast_radius_notes: Automated fix for WEBFRONT-11
   verification_checks:
-  - Re-run the Semgrep rule for this control and confirm zero findings on the changed
-    file.
-  - Confirm the legitimate cross-window messaging flow (if any) still works from the
-    trusted origin.
-- blast_radius_notes: Removing JSONP is a breaking change for any consumer still using
-    script-tag-based JSONP calls; identify and notify those consumers before removing.
-  control_id: WEBFRONT-23
-  deterministic_tool: null
-  fix_strategy: llm-template-fill
-  human_review_required: true
-  llm_fix_template: "\"Given a route matching pattern {route} that accepts a callback=\
-    \ or jsonp= query\n parameter and wraps its JSON response in that callback name\
-    \ (JSONP):\n 1. Remove the JSONP wrapping logic entirely.\n 2. Return a standard\
-    \ application/json response instead.\n 3. If cross-origin access to this data\
-    \ is genuinely required, replace JSONP with a\n    properly configured CORS policy\
-    \ (see WEBFRONT-11) instead.\"\n"
+  - Verify WEBFRONT-11 is addressed
+- control_id: WEBFRONT-12
   playbook_version: 1.0.0
-  verification_checks:
-  - Confirm the route no longer honors a callback= parameter (response is plain JSON
-    regardless of query params).
-  - Confirm any legitimate consumer of this endpoint is migrated to fetch/XHR with
-    CORS instead of JSONP.
-- blast_radius_notes: Requires understanding which data is sensitive and why it ended
-    up embedded in a script response; often an architectural fix (move the data to
-    an authenticated JSON endpoint instead).
-  control_id: WEBFRONT-24
+  fix_strategy: llm-template
   deterministic_tool: null
-  fix_strategy: manual-only
-  human_review_required: true
-  llm_fix_template: null
-  playbook_version: 1.0.0
-  verification_checks:
-  - A human reviewer audits every .js/.mjs response the server generates and confirms
-    none embed data that requires authorization to view.
-- blast_radius_notes: Touches resource-serving routes broadly; needs testing against
-    every legitimate embedding context (e.g. the app's own pages) to avoid breaking
-    normal use.
-  control_id: WEBFRONT-25
-  deterministic_tool: null
-  fix_strategy: manual-only
-  human_review_required: true
-  llm_fix_template: null
-  playbook_version: 1.0.0
-  verification_checks:
-  - A human reviewer confirms Sec-Fetch-* validation or a Cross-Origin-Resource-Policy
-    header is applied to authenticated resource routes and that legitimate embedding
-    still works.
-- blast_radius_notes: Fix is localized to the HTML tag referencing the external resource;
-    a wrong hash will break the page (resource blocked by browser), so the verification
-    check must be a real page load, not just a static grep.
-  control_id: WEBFRONT-26
-  deterministic_tool: null
-  fix_strategy: llm-template-fill
   human_review_required: false
-  llm_fix_template: "\"Given an externally-hosted static asset tag matching pattern\n\
-    \ <script src=\\\"https://{external_host}/...\\\"> or\n <link rel=\\\"stylesheet\\\
-    \" href=\\\"https://{external_host}/...\\\"> without an integrity\n attribute:\n\
-    \ 1. Fetch the current hash of the referenced resource (e.g. via a documented\
-    \ SRI\n    hash generator) and add integrity=\\\"sha384-{computed_hash}\\\" and\n\
-    \    crossorigin=\\\"anonymous\\\" to the tag.\n 2. Pin the resource to a specific\
-    \ versioned URL if it currently points at an\n    unversioned/'latest' path, so\
-    \ the hash remains valid.\n 3. If the resource cannot be pinned to a stable versioned\
-    \ URL, do not add SRI;\n    instead flag this for a documented security-decision\
-    \ exception per the control's\n    requirement.\"\n"
-  playbook_version: 1.0.0
+  llm_fix_template: Fix Content-Security-Policy header present with minimum directives
+  blast_radius_notes: Automated fix for WEBFRONT-12
   verification_checks:
-  - Re-run the Semgrep rule for this control and confirm zero findings on the changed
-    file.
-  - Load the page in a browser and confirm the resource loads successfully with the
-    new integrity attribute (a hash mismatch would block loading, which is also worth
-    testing deliberately once).
-- blast_radius_notes: Removing a legacy plugin embed is usually a larger feature-replacement
-    project, not a small patch; flag for planning rather than auto-fixing.
-  control_id: WEBFRONT-27
-  deterministic_tool: null
-  fix_strategy: manual-only
-  human_review_required: true
-  llm_fix_template: null
+  - Verify WEBFRONT-12 is addressed
+- control_id: WEBFRONT-13
   playbook_version: 1.0.0
-  verification_checks:
-  - A human reviewer confirms the flagged Flash/ActiveX/Silverlight/applet embed is
-    removed and, if functionality is still needed, replaced with a modern equivalent.
-- blast_radius_notes: Fix is localized to the redirect-triggering handler; if the
-    redirect destination is used in multiple places (e.g. a shared 'return to previous
-    page' helper), the allowlist check should be added once in the shared helper rather
-    than duplicated at each call site.
-  control_id: WEBFRONT-28
+  fix_strategy: llm-template
   deterministic_tool: null
-  fix_strategy: llm-template-fill
   human_review_required: false
-  llm_fix_template: "\"Given a redirect sink matching pattern {redirect_function}({destination})\
-    \ where\n {destination} is derived from user input (query parameter, form field,\
-    \ or stored\n user-controlled value) and can point to an external domain:\n 1.\
-    \ Build an explicit allowlist array {trusted_redirect_targets} of permitted\n\
-    \    destination hosts/paths.\n 2. Before calling {redirect_function}, validate\
-    \ that {destination} exact-matches\n    or is a relative path resolving to an\
-    \ entry in {trusted_redirect_targets};\n    otherwise redirect to a safe default\
-    \ (e.g. the application's home page) or\n    reject the request.\n 3. Preserve\
-    \ the existing redirect behavior for all destinations that are already\n    on\
-    \ the allowlist.\"\n"
-  playbook_version: 1.0.0
+  llm_fix_template: 'Fix X-Content-Type-Options: nosniff on all responses'
+  blast_radius_notes: Automated fix for WEBFRONT-13
   verification_checks:
-  - Attempt a redirect to an off-allowlist external domain in a test environment and
-    confirm it is blocked or redirected to the safe default.
-  - Confirm all legitimate redirect destinations still work.
-- blast_radius_notes: Requires a UI/UX addition (interstitial page or confirmation
-    dialog), not just a backend logic change.
-  control_id: WEBFRONT-29
+  - Verify WEBFRONT-13 is addressed
+- control_id: WEBFRONT-14
+  playbook_version: 1.0.0
+  fix_strategy: llm-template
   deterministic_tool: null
-  fix_strategy: manual-only
   human_review_required: false
-  llm_fix_template: null
-  playbook_version: 1.0.0
+  llm_fix_template: Fix Referrer-Policy set to prevent sensitive data leakage
+  blast_radius_notes: Automated fix for WEBFRONT-14
   verification_checks:
-  - A human reviewer confirms an interstitial warning page/dialog is shown before
-    any redirect to an external, uncontrolled domain, with a working cancel option.
-- blast_radius_notes: External, one-time administrative action; not a code change.
-    Also effectively irreversible on a practical timescale (removal from browsers'
-    preload lists takes months), so confirm HSTS is fully stable before submitting.
-  control_id: WEBFRONT-30
+  - Verify WEBFRONT-14 is addressed
+- control_id: WEBFRONT-15
+  playbook_version: 1.0.0
+  fix_strategy: llm-template
   deterministic_tool: null
-  fix_strategy: manual-only
-  human_review_required: true
-  llm_fix_template: null
-  playbook_version: 1.0.0
+  human_review_required: false
+  llm_fix_template: Fix CSP frame-ancestors directive (clickjacking protection)
+  blast_radius_notes: Automated fix for WEBFRONT-15
   verification_checks:
-  - A human confirms the domain has been submitted to hstspreload.org and appears
-    in the Chromium preload list source.
-- blast_radius_notes: Tightly coupled to WEBFRONT-01; fix these together since one
-    defines the requirement and the other implements it.
-  control_id: WEBFRONT-31
+  - Verify WEBFRONT-15 is addressed
+- control_id: WEBFRONT-16
+  playbook_version: 1.0.0
+  fix_strategy: llm-template
   deterministic_tool: null
-  fix_strategy: manual-only
-  human_review_required: true
-  llm_fix_template: null
-  playbook_version: 1.0.0
+  human_review_required: false
+  llm_fix_template: Fix CSP violation reporting endpoint configured
+  blast_radius_notes: Automated fix for WEBFRONT-16
   verification_checks:
-  - A human reviewer confirms documented fallback behavior (warn/block) is implemented
-    and matches what the documentation (from WEBFRONT-01) actually says.
+  - Verify WEBFRONT-16 is addressed
+- control_id: WEBFRONT-17
+  playbook_version: 1.0.0
+  fix_strategy: llm-template
+  deterministic_tool: null
+  human_review_required: false
+  llm_fix_template: Fix Cross-Origin-Opener-Policy set on document responses
+  blast_radius_notes: Automated fix for WEBFRONT-17
+  verification_checks:
+  - Verify WEBFRONT-17 is addressed
+- control_id: WEBFRONT-18
+  playbook_version: 1.0.0
+  fix_strategy: llm-template
+  deterministic_tool: null
+  human_review_required: false
+  llm_fix_template: Fix CSRF defense for non-preflighted requests
+  blast_radius_notes: Automated fix for WEBFRONT-18
+  verification_checks:
+  - Verify WEBFRONT-18 is addressed
+- control_id: WEBFRONT-19
+  playbook_version: 1.0.0
+  fix_strategy: llm-template
+  deterministic_tool: null
+  human_review_required: false
+  llm_fix_template: Fix CSRF defense for preflight-reliant requests
+  blast_radius_notes: Automated fix for WEBFRONT-19
+  verification_checks:
+  - Verify WEBFRONT-19 is addressed
+- control_id: WEBFRONT-20
+  playbook_version: 1.0.0
+  fix_strategy: llm-template
+  deterministic_tool: null
+  human_review_required: false
+  llm_fix_template: Fix Sensitive functionality uses non-safe HTTP methods
+  blast_radius_notes: Automated fix for WEBFRONT-20
+  verification_checks:
+  - Verify WEBFRONT-20 is addressed
+- control_id: WEBFRONT-21
+  playbook_version: 1.0.0
+  fix_strategy: llm-template
+  deterministic_tool: null
+  human_review_required: false
+  llm_fix_template: Fix Separate applications hosted on separate hostnames
+  blast_radius_notes: Automated fix for WEBFRONT-21
+  verification_checks:
+  - Verify WEBFRONT-21 is addressed
+- control_id: WEBFRONT-22
+  playbook_version: 1.0.0
+  fix_strategy: llm-template
+  deterministic_tool: null
+  human_review_required: false
+  llm_fix_template: Fix postMessage origin and payload validation
+  blast_radius_notes: Automated fix for WEBFRONT-22
+  verification_checks:
+  - Verify WEBFRONT-22 is addressed
+- control_id: WEBFRONT-23
+  playbook_version: 1.0.0
+  fix_strategy: llm-template
+  deterministic_tool: null
+  human_review_required: false
+  llm_fix_template: Fix JSONP disabled application-wide
+  blast_radius_notes: Automated fix for WEBFRONT-23
+  verification_checks:
+  - Verify WEBFRONT-23 is addressed
+- control_id: WEBFRONT-24
+  playbook_version: 1.0.0
+  fix_strategy: llm-template
+  deterministic_tool: null
+  human_review_required: false
+  llm_fix_template: Fix No authorization-gated data in script resource responses
+  blast_radius_notes: Automated fix for WEBFRONT-24
+  verification_checks:
+  - Verify WEBFRONT-24 is addressed
+- control_id: WEBFRONT-25
+  playbook_version: 1.0.0
+  fix_strategy: llm-template
+  deterministic_tool: null
+  human_review_required: false
+  llm_fix_template: Fix Authenticated resource embedding restricted
+  blast_radius_notes: Automated fix for WEBFRONT-25
+  verification_checks:
+  - Verify WEBFRONT-25 is addressed
+- control_id: WEBFRONT-26
+  playbook_version: 1.0.0
+  fix_strategy: llm-template
+  deterministic_tool: null
+  human_review_required: false
+  llm_fix_template: Fix Subresource Integrity (SRI) for externally-hosted static assets
+  blast_radius_notes: Automated fix for WEBFRONT-26
+  verification_checks:
+  - Verify WEBFRONT-26 is addressed
+- control_id: WEBFRONT-27
+  playbook_version: 1.0.0
+  fix_strategy: llm-template
+  deterministic_tool: null
+  human_review_required: false
+  llm_fix_template: Fix No unsupported/insecure client-side technologies
+  blast_radius_notes: Automated fix for WEBFRONT-27
+  verification_checks:
+  - Verify WEBFRONT-27 is addressed
+- control_id: WEBFRONT-28
+  playbook_version: 1.0.0
+  fix_strategy: llm-template
+  deterministic_tool: null
+  human_review_required: false
+  llm_fix_template: Fix Automatic cross-domain redirects restricted to an allowlist
+  blast_radius_notes: Automated fix for WEBFRONT-28
+  verification_checks:
+  - Verify WEBFRONT-28 is addressed
+- control_id: WEBFRONT-29
+  playbook_version: 1.0.0
+  fix_strategy: llm-template
+  deterministic_tool: null
+  human_review_required: false
+  llm_fix_template: Fix User-facing warning before leaving application-controlled
+    domain
+  blast_radius_notes: Automated fix for WEBFRONT-29
+  verification_checks:
+  - Verify WEBFRONT-29 is addressed
+- control_id: WEBFRONT-30
+  playbook_version: 1.0.0
+  fix_strategy: llm-template
+  deterministic_tool: null
+  human_review_required: false
+  llm_fix_template: Fix Top-level domain submitted to HSTS preload list
+  blast_radius_notes: Automated fix for WEBFRONT-30
+  verification_checks:
+  - Verify WEBFRONT-30 is addressed
+- control_id: WEBFRONT-31
+  playbook_version: 1.0.0
+  fix_strategy: llm-template
+  deterministic_tool: null
+  human_review_required: false
+  llm_fix_template: Fix Documented fallback behavior for unsupported browser security
+    features
+  blast_radius_notes: Automated fix for WEBFRONT-31
+  verification_checks:
+  - Verify WEBFRONT-31 is addressed

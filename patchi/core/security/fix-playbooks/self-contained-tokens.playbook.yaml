@@ -1,0 +1,90 @@
+playbooks:
+- blast_radius_notes: Automated fix for TOKEN-01
+  control_id: TOKEN-01
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Validate token signature/MAC before trusting contents: Self-contained
+    tokens must be validated using their digital signature or MAC to protect against
+    tampering before the token''s contents are accepted or used for any decision.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify TOKEN-01 is properly addressed
+- blast_radius_notes: Automated fix for TOKEN-02
+  control_id: TOKEN-02
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Enforce an algorithm allowlist; reject ''none'' and prevent
+    algorithm confusion: Only algorithms on an explicit allowlist may be used to create
+    and verify self-contained tokens for a given context; the allowlist must not include
+    the ''None'' algorithm, and if both symmetric and asymmetric algorithms are supported,
+    additional controls are needed to prevent key-confusion attacks (an attacker resigning
+    a token with a public key treated as an HMAC secret).'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify TOKEN-02 is properly addressed
+- blast_radius_notes: Automated fix for TOKEN-03
+  control_id: TOKEN-03
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Validate signing-key source headers against a trusted allowlist:
+    Key material used to validate self-contained tokens must come from trusted, pre-configured
+    sources for the token issuer; for JWTs and other JWS structures, headers such
+    as ''jku'', ''x5u'', and ''jwk'' must be validated against an allowlist of trusted
+    sources, preventing an attacker from specifying their own untrusted key source.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify TOKEN-03 is properly addressed
+- blast_radius_notes: Automated fix for TOKEN-04
+  control_id: TOKEN-04
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Enforce token validity time window: If a validity time span
+    is present in the token data, the token and its content must be accepted only
+    if the verification time falls within that span  -  for JWTs, the ''nbf'' (not before)
+    and ''exp'' (expiry) claims must be verified.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify TOKEN-04 is properly addressed
+- blast_radius_notes: Automated fix for TOKEN-05
+  control_id: TOKEN-05
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Validate token type matches its intended purpose: The service
+    receiving a token must validate the token is of the correct type and intended
+    for the specific purpose before accepting its contents  -  for example, only an
+    access token may be accepted for authorization decisions, and only an ID Token
+    may be used for proving user authentication; the two must never be interchangeable.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify TOKEN-05 is properly addressed
+- blast_radius_notes: Automated fix for TOKEN-06
+  control_id: TOKEN-06
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Validate token audience before accepting: The service must
+    only accept tokens intended for use with that specific service (audience)  -  for
+    JWTs, this is achieved by validating the ''aud'' claim against an allowlist defined
+    in the service.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify TOKEN-06 is properly addressed
+- blast_radius_notes: Automated fix for TOKEN-07
+  control_id: TOKEN-07
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Uniquely restrict audience when a shared signing key issues
+    tokens to multiple audiences: If a token issuer uses the same private key for
+    issuing tokens to different audiences, the issued tokens must contain an audience
+    restriction that uniquely identifies the intended audiences, preventing a token
+    from being reused with an unintended audience; if the audience identifier is dynamically
+    provisioned, the issuer must validate audiences to prevent audience impersonation.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify TOKEN-07 is properly addressed

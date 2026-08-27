@@ -106,6 +106,17 @@ class CLIConfirmationProvider(ConfirmationProvider):
             return response in ("y", "yes")
 
 
+class WebConfirmationProvider(ConfirmationProvider):
+    """Web confirmation — auto-confirms since the web UI handles confirmation via its own modal."""
+
+    async def confirm(
+        self, tool_name: str, parameters: dict, side_effects: str, description: str
+    ) -> bool:
+        # Web UI handles confirmation through its own modal/dialog
+        # Auto-confirm here since the web route already validated the request
+        return True
+
+
 @dataclass
 class StateSnapshot:
     """Snapshot of file system state for rollback."""

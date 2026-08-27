@@ -21,6 +21,9 @@
       DAST <span class="tab-count" style="background:#ef4444;color:white">{{ dast_findings_count }}</span>
     </button>
     {% endif %}
+    <button class="tab-btn" onclick="showTab('history')" id="tab-history">
+      History <span class="tab-count">—</span>
+    </button>
   </div>
 
   <!-- Findings tab -->
@@ -427,6 +430,17 @@
     {% endif %}
   </div>
 
+  <!-- Scan History tab -->
+  <div id="panel-history" class="tab-panel" style="display:none">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <h3 style="margin:0;font-size:16px">📋 Scan History</h3>
+      <button class="btn" onclick="exportHistoryJSON()" style="font-size:12px">⬇ Export JSON</button>
+    </div>
+    <div id="history-list" style="display:flex;flex-direction:column;gap:8px">
+      <div style="text-align:center;padding:24px;color:var(--text-secondary)">Loading history…</div>
+    </div>
+  </div>
+
   <!-- Charter violations tab -->
   <div id="panel-charter" class="tab-panel" style="display:none">
     {% if charter_violations %}
@@ -515,6 +529,61 @@ function showTab(name) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'))
   document.getElementById('panel-' + name).style.display = '';
   document.getElementById('tab-' + name).classList.add('active');
+  if (name === 'history') loadHistory();
+}
+
+// Scan history
+async function loadHistory() {
+  const list = document.getElementById('history-list');
+  try {
+    const res = await fetch('/api/findings/history?limit=50');
+    const history = await res.json();
+    if (!history.length) {
+      list.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-secondary)"><div style="font-size:24px;margin-bottom:8px">📋</div>No scan history yet. Run <code>p scan</code> to start recording.</div>';
+      return;
+    }
+    list.innerHTML = history.map(h => {
+      const sev = h.severity_breakdown || {};
+      const healthColor = h.health_score >= 80 ? '#22c55e' : h.health_score >= 50 ? '#eab308' : '#ef4444';
+      const dur = h.duration_ms ? (h.duration_ms / 1000).toFixed(1) + 's' : '—';
+      const ts = h.timestamp ? new Date(h.timestamp).toLocaleString() : '—';
+      return `<div class="card" style="padding:12px 16px;display:flex;align-items:center;gap:16px;cursor:default">
+        <div style="min-width:48px;text-align:center">
+          <div style="font-size:22px;font-weight:700;color:${healthColor}">${h.health_score != null ? Math.round(h.health_score) : '—'}</div>
+          <div style="font-size:10px;color:var(--text-secondary)">health</div>
+        </div>
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:500;font-size:13px;margin-bottom:2px">${h.tool || 'scan'}</div>
+          <div style="font-size:12px;color:var(--text-secondary)">${ts} · ${dur}</div>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center">
+          ${sev.critical ? `<span style="background:#ef444420;color:#ef4444;padding:2px 6px;border-radius:4px;font-size:11px">${sev.critical}C</span>` : ''}
+          ${sev.high ? `<span style="background:#f9731620;color:#f97316;padding:2px 6px;border-radius:4px;font-size:11px">${sev.high}H</span>` : ''}
+          ${sev.medium ? `<span style="background:#eab30820;color:#eab308;padding:2px 6px;border-radius:4px;font-size:11px">${sev.medium}M</span>` : ''}
+          ${sev.low ? `<span style="background:#64748b20;color:#94a3b8;padding:2px 6px;border-radius:4px;font-size:11px">${sev.low}L</span>` : ''}
+          <span style="font-size:12px;color:var(--text-secondary);margin-left:4px">${h.findings_count} findings</span>
+        </div>
+      </div>`;
+    }).join('');
+  } catch (e) {
+    list.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text-secondary)">Failed to load history.</div>';
+  }
+}
+
+async function exportHistoryJSON() {
+  try {
+    const res = await fetch('/api/findings/history/export');
+    const data = await res.json();
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'patchi-findings-export-' + new Date().toISOString().slice(0, 10) + '.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch (e) {
+    alert('Export failed: ' + e.message);
+  }
 }
 
 function filterFindings() {

@@ -5,6 +5,25 @@ Add deep tree-sitter-based AST support for Rust and Svelte (Phase 1), then Java,
 
 ---
 
+## Status (verified against code, 2026-08-26)
+
+> Verified by inspecting `patchi/core/brain/languages.py`, `framework.py`,
+> `scanner.py`, `symbol_graph.py`, `route_mapper.py`.
+
+| Phase | Scope | Status | Evidence |
+|---|---|---|---|
+| 1 — Rust + Svelte | Lang registration + parsers + framework detect | ✅ Done | `Lang.RUST`/`Lang.SVELTE` registered; `_parse_rust`/`_parse_svelte`, `_walk_rust`/`_walk_svelte`; Cargo.toml / Svelte detection |
+| 2 — Java + Go + C/C++ | Lang registration + parsers + framework detect | ✅ Done | `Lang.JAVA`/`Lang.GO`/`Lang.C`/`Lang.CPP` registered; parsers + walkers present; Spring/Go-framework detection |
+| 3 — Swift + Ruby | Lang registration + parsers + framework detect | ✅ Done | `Lang.SWIFT`/`Lang.RUBY` registered; parsers/walkers; Vapor/Rails detection |
+| 4 — Framework Registry + Bun | JS/TS extras, Tauri, Bun, ext map | ✅ Mostly done | Extension map + framework detectors present; Bun/Tauri detection added |
+
+**Net:** All four phases complete for language/framework *registration and
+parsing*. The 7 new security-domain YAMLs (Phase 4) and the `domain_activator`
+Rust signals should be re-confirmed against `patchi/core/security/` before
+marking the domain layer 100%.
+
+---
+
 ## Phase 1 — Rust + Svelte (immediate)
 
 ### Rust

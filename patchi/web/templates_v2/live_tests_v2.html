@@ -1,8 +1,8 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Live Tests â€” Patchi Mission Control</title>
+    <title>Live Tests " Patchi Mission Control</title>
     <link rel="stylesheet" href="/static/dashboard_v2.css">
 </head>
 <body class="theme-dark">
@@ -65,7 +65,7 @@
                                     <span style="color:var(--danger)">â—</span>
                                     <span style="color:var(--warning)">â—</span>
                                     <span style="color:var(--success)">â—</span>
-                                    <div class="browser-url" id="browserUrl">â€”</div>
+                                    <div class="browser-url" id="browserUrl">"</div>
                                 </div>
                                 <div class="browser-viewport" id="browserViewport">
                                     <span style="color:var(--text-muted);font-size:13px">Screenshots appear here during test runs</span>
@@ -83,19 +83,19 @@
                             <canvas class="stress-chart" id="stressChart"></canvas>
                             <div class="metric-cards">
                                 <div class="metric-card">
-                                    <div class="metric-value" id="mRps">â€”</div>
+                                    <div class="metric-value" id="mRps">"</div>
                                     <div class="metric-label">Req/sec</div>
                                 </div>
                                 <div class="metric-card">
-                                    <div class="metric-value" id="mP95">â€”</div>
+                                    <div class="metric-value" id="mP95">"</div>
                                     <div class="metric-label">P95 (ms)</div>
                                 </div>
                                 <div class="metric-card">
-                                    <div class="metric-value" id="mErr">â€”</div>
+                                    <div class="metric-value" id="mErr">"</div>
                                     <div class="metric-label">Error rate</div>
                                 </div>
                                 <div class="metric-card">
-                                    <div class="metric-value" id="mUsers">â€”</div>
+                                    <div class="metric-value" id="mUsers">"</div>
                                     <div class="metric-label">Peak users</div>
                                 </div>
                             </div>
@@ -106,7 +106,7 @@
                 <!-- Previous Results -->
                 <section class="panel">
                     <header class="panel-header">
-                        <h2 class="panel-title">ðŸ“Š Last Run Summary</h2>
+                        <h2 class="panel-title">ðŸ&#8220;Š Last Run Summary</h2>
                     </header>
                     <div class="panel-body">
                         {% if test_data %}
@@ -120,8 +120,8 @@
         </main>
 
         <footer class="footer">
-            <span>Patchi v2.0 â€” Live Testing Platform</span>
-            <div class="footer-links"><a href="/v2" class="footer-link">â† Overview</a></div>
+            <span>Patchi v2.0 " Live Testing Platform</span>
+            <div class="footer-links"><a href="/v2" class="footer-link">&#8592; Overview</a></div>
         </footer>
     </div>
 
@@ -135,9 +135,9 @@
             runBtn.addEventListener('click', async () => {
                 const types = Array.from(document.querySelectorAll('.test-type-cb:checked')).map(cb => cb.value);
                 const url = baseUrl.value.trim() || 'http://localhost:3000';
-                document.getElementById('browserStatus').textContent = 'runningâ€¦';
+                document.getElementById('browserStatus').textContent = 'running\u2026';
                 runBtn.disabled = true;
-                runBtn.textContent = 'â³ Runningâ€¦';
+                runBtn.textContent = 'â³ Running\u2026';
 
                 try {
                     const res = await fetch('/api/v2/tools/execute', {
@@ -162,7 +162,7 @@
                 if (!data || !data.summary) return;
                 const s = data.summary;
                 const el = (id, v) => { const e = document.getElementById(id); if (e && v != null) e.textContent = v; };
-                el('mRps', (s.requests_per_second || 0).toFixed ? s.requests_per_second.toFixed(1) : 'â€”');
+                el('mRps', (s.requests_per_second || 0).toFixed ? s.requests_per_second.toFixed(1) : '"');
                 el('mP95', Math.round(s.latency_p95_ms || 0));
                 el('mErr', ((s.error_rate || 0) * 100).toFixed(1) + '%');
             }).catch(() => {});

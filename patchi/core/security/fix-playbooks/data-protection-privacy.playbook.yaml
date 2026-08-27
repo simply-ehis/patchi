@@ -1,0 +1,164 @@
+playbooks:
+- blast_radius_notes: Automated fix for DATAPROT-01
+  control_id: DATAPROT-01
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Identify and classify all sensitive data into protection
+    levels: All sensitive data created and processed by the application must be identified
+    and classified into protection levels, including data that is only encoded (not
+    encrypted) and therefore easily decoded, such as Base64 strings or the plaintext
+    payload inside a JWT. Protection levels must account for any applicable data protection/privacy
+    regulations.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify DATAPROT-01 is properly addressed
+- blast_radius_notes: Automated fix for DATAPROT-02
+  control_id: DATAPROT-02
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Document protection requirements per sensitivity level: Every
+    sensitive data protection level must have a documented set of protection requirements,
+    including (at minimum) encryption, integrity verification, retention, logging
+    treatment, access controls around sensitive data in logs, database-level encryption,
+    and privacy-enhancing technologies to be used.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify DATAPROT-02 is properly addressed
+- blast_radius_notes: Automated fix for DATAPROT-03
+  control_id: DATAPROT-03
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Never place sensitive data in URLs or query strings: Sensitive
+    data must only be sent to the server in the HTTP message body or header fields;
+    the URL and query string must not contain sensitive information such as an API
+    key or session token, since URLs are commonly logged by proxies, browsers, and
+    servers.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify DATAPROT-03 is properly addressed
+- blast_radius_notes: Automated fix for DATAPROT-04
+  control_id: DATAPROT-04
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Prevent sensitive data from being cached in server-side infrastructure:
+    The application must prevent sensitive data from being cached in server components
+    such as load balancers and application caches, or ensure the data is securely
+    purged after use.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify DATAPROT-04 is properly addressed
+- blast_radius_notes: Automated fix for DATAPROT-05
+  control_id: DATAPROT-05
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Do not send classified sensitive data to untrusted third
+    parties: Defined sensitive data must not be sent to untrusted parties, such as
+    third-party user-tracking/analytics scripts, to prevent unwanted collection of
+    data outside the application''s control.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify DATAPROT-05 is properly addressed
+- blast_radius_notes: Automated fix for DATAPROT-06
+  control_id: DATAPROT-06
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Implement documented protection controls per data sensitivity
+    level: Controls around sensitive data  -  encryption, integrity verification, retention,
+    logging treatment, access controls in logs, privacy-enhancing technologies  -  must
+    be implemented exactly as defined in the documentation for that data''s specific
+    protection level (per DATAPROT-02).'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify DATAPROT-06 is properly addressed
+- blast_radius_notes: Automated fix for DATAPROT-07
+  control_id: DATAPROT-07
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Prevent Web Cache Deception via strict cache content-type/existence
+    checks: Caching mechanisms must only cache responses matching the expected content
+    type for that resource and must not cache sensitive dynamic content; the web server
+    must return 404/302 (not a different valid file) when a non-existent file is accessed,
+    to prevent Web Cache Deception attacks.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify DATAPROT-07 is properly addressed
+- blast_radius_notes: Automated fix for DATAPROT-08
+  control_id: DATAPROT-08
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Return only the minimum required sensitive data; mask by
+    default: The application must return only the minimum required sensitive data
+    for its functionality  -  for example, returning only some digits of a credit card
+    number rather than the full number; if complete data is genuinely required, it
+    must be masked in the UI unless the user specifically chooses to reveal it.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify DATAPROT-08 is properly addressed
+- blast_radius_notes: Automated fix for DATAPROT-09
+  control_id: DATAPROT-09
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Enforce data retention classification and automatic deletion:
+    Sensitive information must be subject to a data retention classification, ensuring
+    outdated or unnecessary data is deleted automatically, on a defined schedule,
+    or as the situation requires.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify DATAPROT-09 is properly addressed
+- blast_radius_notes: Automated fix for DATAPROT-10
+  control_id: DATAPROT-10
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Strip sensitive metadata from user-submitted files: Sensitive
+    information must be removed from the metadata of user-submitted files (e.g. GPS
+    location and device details embedded in photo EXIF data) unless the user has explicitly
+    consented to its storage.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify DATAPROT-10 is properly addressed
+- blast_radius_notes: Automated fix for DATAPROT-11
+  control_id: DATAPROT-11
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Clear authenticated data from client storage on session termination:
+    Authenticated data must be cleared from client storage (such as the browser DOM)
+    after the client or session is terminated; the ''Clear-Site-Data'' HTTP response
+    header can help, but client-side logic should also clear data if the server connection
+    is unavailable when the session ends.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify DATAPROT-11 is properly addressed
+- blast_radius_notes: Automated fix for DATAPROT-12
+  control_id: DATAPROT-12
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Set sufficient anti-caching headers on sensitive responses:
+    The application must set sufficient anti-caching HTTP response header fields (e.g.
+    Cache-Control: no-store) so that sensitive data is not cached in browsers.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify DATAPROT-12 is properly addressed
+- blast_radius_notes: Automated fix for DATAPROT-13
+  control_id: DATAPROT-13
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Do not store sensitive data in browser storage, except session
+    tokens: Data stored in browser storage (localStorage, sessionStorage, IndexedDB,
+    or cookies) must not contain sensitive data, with the sole exception of session
+    tokens.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify DATAPROT-13 is properly addressed

@@ -27,8 +27,12 @@
     <div id="top-threats"
       hx-get="/api/guard/threats"
       hx-trigger="every 10s"
-      hx-swap="innerHTML">
+      hx-swap="innerHTML"
+      hx-indicator="#guard-threats-spin">
       Loading threats…
+      <span id="guard-threats-spin" class="htmx-indicator" style="display:inline-flex;margin-left:8px">
+        <span class="loading-spinner" style="width:14px;height:14px;border-width:2px"></span>
+      </span>
     </div>
 
     <!-- Live Events -->

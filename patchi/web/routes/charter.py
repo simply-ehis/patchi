@@ -193,3 +193,36 @@ async def charter_autofix(request: Request) -> JSONResponse:
             "preview": preview,
             "report": report.to_dict(),
         })
+
+
+@router.get("/api/charter/fix-history")
+async def get_fix_history(request: Request) -> JSONResponse:
+    """Load fix history for the charter page."""
+    root = request.app.state.root
+    try:
+        from patchi.core.brain.proactive import load_fix_history
+        history = load_fix_history(root, limit=20)
+        return JSONResponse({"ok": True, "history": history})
+    except Exception as e:
+        return JSONResponse({"ok": False, "error": str(e), "history": []})
+
+
+@router.post("/api/charter/revert")
+async def revert_fix(request: Request) -> JSONResponse:
+    """Revert a fix operation by restoring files from git."""
+    root = request.app.state.root
+    try:
+        body = await request.json() if request.headers.get("content-type") == "application/json" else {}
+    except Exception:
+        body = {}
+
+    fix_id = body.get("fix_id", "")
+    if not fix_id:
+        return JSONResponse({"ok": False, "error": "No fix_id provided"})
+
+    try:
+        from patchi.core.brain.proactive import revert_fix
+        result = revert_fix(root, fix_id)
+        return JSONResponse({"ok": result["success"], **result})
+    except Exception as e:
+        return JSONResponse({"ok": False, "error": str(e)})

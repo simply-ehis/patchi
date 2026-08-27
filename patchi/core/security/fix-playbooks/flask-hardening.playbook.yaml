@@ -1,0 +1,135 @@
+playbooks:
+- blast_radius_notes: Automated fix for FLK-001
+  control_id: FLK-001
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Debug mode enabled (Werkzeug debugger RCE): Detect Flask
+    app.run(debug=True) or app.debug = True or app.config[''DEBUG''] = True in production
+    code, or FLASK_DEBUG=1 in the deployment environment. Flask''s debug mode enables
+    the Werkzeug interactive debugger, which executes arbitrary Python code via the
+    debugger console - if the debugger PIN is bypassed or weak (default is derived
+    from username + modname + appname + getattr(sys, ''executable'') + UUID.getnode()
+    which is the MAC address, all attacker-known on shared hosts), an attacker can
+    RCE the application. CVE-2024-34069 (Werkzeug < 3.0.3) allows debugger PIN bypass
+    via crafted cookies. NEVER enable debug mode in production. The fix is app.run(debug=False)
+    and remove FLASK_DEBUG from the production env, and use a production WSGI server
+    (gunicorn, uWSGI) instead of app.run().'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify FLK-001 is properly addressed
+- blast_radius_notes: Automated fix for FLK-002
+  control_id: FLK-002
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix SECRET_KEY hardcoded, default, or weak: Detect Flask app.config[''SECRET_KEY'']
+    assignments where the value is hardcoded (app.config[''SECRET_KEY''] = ''my-secret''),
+    the Flask default (''dev'' or None - Flask warns ''no secret key set'' but does
+    not fail), or a weak value (shorter than 32 chars, the word ''secret''/''key''/''dev''/''password'',
+    or app.config[''SECRET_KEY''] = os.environ.get(''SECRET_KEY'', ''dev'') with a
+    hardcoded fallback). The SECRET_KEY is used to sign session cookies (Flask sessions
+    are signed but NOT encrypted - the contents are visible to the client, just tamper-proof)
+    and CSRF tokens. If leaked, an attacker can forge sessions and CSRF tokens. The
+    fix is app.config[''SECRET_KEY''] = os.environ[''SECRET_KEY''] (no fallback, raises
+    KeyError if missing) and rotate the key if it was leaked. Use a 50+ char random
+    string from secrets.token_urlsafe(64).'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify FLK-002 is properly addressed
+- blast_radius_notes: Automated fix for FLK-003
+  control_id: FLK-003
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix SQL injection via f-string / % formatting in raw SQL: Detect
+    raw SQL execution in Flask (whether via sqlite3, psycopg2, SQLAlchemy text(),
+    or db.engine.execute) where the SQL string is constructed via f-string, .format(),
+    or % string formatting with user input. Flag: db.session.execute(text(f"SELECT
+    * FROM users WHERE name = ''{request.form[''name'']}''")), cursor.execute("SELECT
+    * FROM users WHERE id = %d" % user_id), db.engine.execute(f"SELECT * FROM users
+    WHERE email = ''{email}''"). Flask does not include an ORM by default, so many
+    tutorials use raw SQL with f-strings - this is a common source of SQLi. The fix
+    is to use parameterized queries: cursor.execute("SELECT * FROM users WHERE name
+    = %s", (name,)), db.session.execute(text("SELECT * FROM users WHERE name = :name"),
+    {''name'': name}), or use SQLAlchemy ORM: User.query.filter_by(name=name).all().'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify FLK-003 is properly addressed
+- blast_radius_notes: Automated fix for FLK-004
+  control_id: FLK-004
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix CSRF protection missing (Flask-WTF not used): Detect Flask
+    applications that read session cookies (Flask''s default session uses a signed
+    cookie) but do not initialize Flask-WTF''s CSRFProtect or flask-csrf, and do not
+    perform a custom Origin check. Flask does NOT include CSRF protection by default
+    - it must be added via Flask-WTF (CSRFProtect(app)) or a custom middleware. Without
+    it, any cookie-authenticated form POST can be CSRF''d. Flag: app = Flask(__name__)
+    without CSRFProtect(app) later, and @app.route that accepts POST without @csrf_protect
+    or a manual origin check. Bearer-token-authenticated APIs (Authorization header,
+    no Flask sessions) are NOT vulnerable and can skip CSRF. The fix is ''from flask_wtf.csrf
+    import CSRFProtect; csrf = CSRFProtect(app);'' and add {{ csrf_token() }} to forms
+    OR set X-CSRFToken header on AJAX.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify FLK-004 is properly addressed
+- blast_radius_notes: Automated fix for FLK-005
+  control_id: FLK-005
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Insecure session cookies (signed not encrypted, missing flags):
+    Detect Flask session configuration issues: (1) SESSION_COOKIE_SECURE = False (default)
+    - cookie sent over HTTP, sniffable. (2) SESSION_COOKIE_HTTPONLY = False (default
+    is True but legacy code overrides) - cookie accessible via document.cookie. (3)
+    SESSION_COOKIE_SAMESITE = None (default) - cookie sent on cross-site requests,
+    enabling CSRF. (4) Storing sensitive data in session (Flask sessions are signed,
+    NOT encrypted - the client can read the contents by base64-decoding the cookie).
+    Flag: session[''password''] = ..., session[''api_key''] = .... The fix is to set
+    SESSION_COOKIE_SECURE = True, SESSION_COOKIE_HTTPONLY = True, SESSION_COOKIE_SAMESITE
+    = ''Lax'' in production, and NEVER store secrets in the session - use server-side
+    sessions (Flask-Session with Redis/Filesystem backend) for sensitive data.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify FLK-005 is properly addressed
+- blast_radius_notes: Automated fix for FLK-006
+  control_id: FLK-006
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Server-Side Template Injection via render_template_string:
+    Detect Flask render_template_string(user_input) or Template(user_input).render()
+    calls where the template string is derived from user input. Flask uses Jinja2
+    which autoescapes by default in render_template (with .html/.htm/.xml/.xhtml files),
+    but render_template_string autoescapes only if the string contains the {% autoescape
+    %} directive or if the app enables autoescape for all templates. SSTI in Jinja2
+    allows RCE via {{ ''''.__class__.__mro__[1].__subclasses__() }} to find subprocess.Popen.
+    The most common pattern is render_template_string(f"Hello {request.args.get(''name'')}")
+    - the f-string is rendered as a template, so the user input is interpreted as
+    Jinja2. The fix is render_template(''hello.html'', name=name) with a static template,
+    or render_template_string(''Hello {{ name }}'', name=name) - pass user input as
+    a context variable, not as part of the template string.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify FLK-006 is properly addressed
+- blast_radius_notes: Automated fix for FLK-007
+  control_id: FLK-007
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Path traversal via send_file / send_from_directory: Detect
+    Flask send_file, send_from_directory, or open() calls where the path argument
+    includes user input without sanitization. send_file(request.args.get(''path''))
+    allows ../../etc/passwd. send_from_directory(UPLOAD_FOLDER, request.args.get(''filename''))
+    is safer (Flask''s send_from_directory does check for .. in the path and rejects
+    it) but is still vulnerable if filename contains null bytes or if UPLOAD_FOLDER
+    is constructed with user input. Flag: send_file(os.path.join(UPLOAD_FOLDER, request.args.get(''file''))),
+    open(os.path.join(UPLOAD_FOLDER, request.args.get(''file''))). The fix is to use
+    send_from_directory(UPLOAD_FOLDER, filename) (which validates the path) and to
+    validate filename against an allow-list: if not re.match(r''^[a-zA-Z0-9._-]+$'',
+    filename): abort(400).'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify FLK-007 is properly addressed

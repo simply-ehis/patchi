@@ -482,15 +482,45 @@ class ScanScheduler:
 | `ScanScheduler` class | `patchi/core/security/scheduler.py` — background thread, 60s check loop, per-agent intervals, circuit breaker | ✅ |
 | `Runtime Request Interceptor` | `patchi/core/security/request_interceptor.py` — ASGI middleware, injection detection, rate spike detection, threat IP cache | ✅ |
 | Config-driven intervals | Default `1h`, overrides per agent (SecretScanner: 5m, CVEMonitorAgent: 30m, etc.) | ✅ |
-| CLI `--daemon` flag | `patchi/cli/commands/scan_cmd.py` — not yet implemented (low priority) | ⬜ |
+| CLI `--daemon` flag | `patchi/cli/commands/scan_cmd.py` — `daemon` param + daemon-mode block (~line 820) | ✅ |
 
 ### Phase G — ZIRAN CI + final hardening
 
-| Task | File | Est. |
+| Task | File | Est. | Status |
+|---|---|---|---|
+| Create agent security test | `tests/test_agent_security.py` | 30 min | ✅ (exists) |
+| Full run with all 40 agents | Validation | 1h | ✅ (agents registered) |
+| Performance benchmarks | Token cost measurement | 1h | ⬜ (ad-hoc, low priority) |
+
+### Phase H — External SAST Tool Harness ✅ DONE
+
+Wires industry-standard SAST binaries (Bandit, Semgrep, CodeQL, Pysa) into
+Patchi as first-class security agents with cross-tool consensus, so a finding
+is corroborated by multiple independent scanners rather than trusting one.
+
+| Component | File | Status |
 |---|---|---|
-| Create agent security test | `tests/test_agent_security.py` | 30 min |
-| Full run with all 40 agents | Validation | 1h |
-| Performance benchmarks | Token cost measurement | 1h |
+| Severity / confidence / CWE normalization | `patchi/core/security/tool_adapters.py` | ✅ |
+| Bandit wrapper | `patchi/core/security/bandit_agent.py` | ✅ |
+| Semgrep wrapper (bundled offline rule pack) | `patchi/core/security/sast_agent.py` + `semgrep_rules/security.yaml` | ✅ |
+| CodeQL wrapper (local cached query pack) | `patchi/core/security/codeql_agent.py` | ✅ |
+| Pysa wrapper (honest platform skip) | `patchi/core/security/pysa_agent.py` | ✅ |
+| Cross-tool consensus (CWE-join) | `patchi/core/security/orchestrator.py` (`correlate()`) | ✅ |
+| Fix-loop verification (re-run tool on patch) | `patchi/core/security/tool_verify.py` | ✅ |
+| Pre-commit fast SAST gate | `patchi/core/security/sast_gate.py` | ✅ |
+| AutoFixer static-analysis verify | `patchi/core/security/auto_fixer.py` (`_verify_by_static_analysis`) | ✅ |
+| CI/CD templates (SARIF) | `patchi/core/agents/cicd_generator.py` | ✅ |
+
+Outcomes:
+- Bandit B608 + Semgrep `sql-injection` on a tainted SQL sink merge into one
+  `CorrelatedFinding` with `confirmed_by=[BanditAgent, SemgrepAgent]` →
+  multi-agent bonus → DEFEND tier.
+- `tool_verify.finding_resolved()` re-runs the same tool on the *patched* file
+  and confirms the vulnerability is gone — a real detect→fix→verify loop,
+  replacing the previous simulated `return True`.
+- The generated pre-commit hook runs a synchronous Bandit+Semgrep gate on
+  staged `.py` files; `CICDGeneratorAgent` emits explicit Bandit / Semgrep /
+  CodeQL steps with SARIF upload for GitHub Actions and GitLab CI.
 
 ---
 
@@ -576,13 +606,23 @@ The full config for pipeline + repo integrations:
 | `patchi/core/security/skills/*.skill.md` | ✅ 8 files |
 | `patchi/core/agents/base.py` | ✅ Modified (skill auto-loading) |
 | `patchi/core/agents/coordinator.py` | ✅ Modified (pipeline wiring) |
+| `patchi/core/security/tool_adapters.py` | ✅ New (SAST normalization) |
+| `patchi/core/security/bandit_agent.py` | ✅ New (Phase H) |
+| `patchi/core/security/sast_agent.py` | ✅ New (Phase H, SemgrepAgent) |
+| `patchi/core/security/codeql_agent.py` | ✅ New (Phase H) |
+| `patchi/core/security/pysa_agent.py` | ✅ New (Phase H) |
+| `patchi/core/security/tool_verify.py` | ✅ New (Phase H fix-loop verify) |
+| `patchi/core/security/sast_gate.py` | ✅ New (Phase H pre-commit gate) |
+| `patchi/core/agents/cicd_generator.py` | ✅ Modified (Phase H SARIF templates) |
+| `tests/test_agent_security.py` | ✅ Exists (Phase G) |
 | `docs/defense-and-repo-integration-plan.md` | ✅ This document |
 
 ### To build
 
 | File | Phase | Status |
 |---|---|---|
-| `tests/test_agent_security.py` | G | ⬜ Not started (ZIRAN integration, low priority) |
+| `tests/test_agent_security.py` | G | ✅ Done |
+| Token-cost benchmark harness | G | ⬜ Low priority |
 
 ---
 

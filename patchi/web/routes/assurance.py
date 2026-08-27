@@ -211,3 +211,184 @@ async def assurance_api(request: Request):
             "fuzz_endpoints": len([c for c in graph.claims.values() if "endpoint" in c.domain]),
         }
     )
+
+
+@router.post("/api/assurance/run-dast")
+async def run_dast_scan(request: Request):
+    """Trigger a DAST scan and return results."""
+    root = request.app.state.root
+    try:
+        from patchi.core.security.dast_agent import DASTAgent
+        from patchi.core import memory as mem
+
+        # Discover running app URL
+        import httpx
+        target_url = None
+        for port in (8000, 3000, 5000, 8080, 1612):
+            url = f"http://127.0.0.1:{port}"
+            try:
+                r = httpx.get(url, timeout=2.0)
+                if r.status_code < 500:
+                    target_url = url
+                    break
+            except Exception:
+                continue
+
+        if not target_url:
+            return JSONResponse({
+                "ok": False,
+                "error": "No running app found. Start your app first (e.g. p web).",
+            })
+
+        # Run DAST agent
+        agent = DASTAgent(root)
+        result = agent.scan(target_url)
+
+        # Save results to memory
+        scan_results = mem.get_scan_results(root)
+        scan_results["DASTAgent"] = {
+            "tests_run": result.get("tests_run", 0),
+            "target_url": target_url,
+            "findings": result.get("findings", []),
+        }
+        mem.save_scan_results(scan_results, root)
+
+        return JSONResponse({
+            "ok": True,
+            "target_url": target_url,
+            "tests_run": result.get("tests_run", 0),
+            "findings_count": len(result.get("findings", [])),
+            "findings": result.get("findings", []),
+        })
+    except Exception as e:
+        return JSONResponse({"ok": False, "error": str(e)})
+
+
+@router.get("/api/assurance/dast-screenshots")
+async def list_dast_screenshots(request: Request):
+    """List DAST screenshots for comparison view."""
+    root = request.app.state.root
+    evidence_dir = root / ".patchi" / "evidence" / "dast"
+    visual_dir = root / ".patchi" / "visual_baselines"
+
+    screenshots = []
+
+    # Scan evidence/dast/ directory
+    if evidence_dir.is_dir():
+        for f in sorted(evidence_dir.rglob("*.png"), key=lambda x: x.stat().st_mtime, reverse=True):
+            try:
+                screenshots.append({
+                    "path": str(f.relative_to(root)),
+                    "name": f.stem,
+                    "timestamp": datetime.fromtimestamp(f.stat().st_mtime, UTC).isoformat(),
+                    "size": f.stat().st_size,
+                    "source": "dast",
+                })
+            except Exception:
+                pass
+
+    # Scan visual_baselines/current/ directory
+    current_dir = visual_dir / "current"
+    if current_dir.is_dir():
+        for f in sorted(current_dir.rglob("*.png"), key=lambda x: x.stat().st_mtime, reverse=True):
+            try:
+                screenshots.append({
+                    "path": str(f.relative_to(root)),
+                    "name": f.stem,
+                    "timestamp": datetime.fromtimestamp(f.stat().st_mtime, UTC).isoformat(),
+                    "size": f.stat().st_size,
+                    "source": "visual",
+                })
+            except Exception:
+                pass
+
+    # Scan visual_baselines/baselines/ directory (saved baselines)
+    baselines_dir = visual_dir / "baselines"
+    baselines = []
+    if baselines_dir.is_dir():
+        for f in sorted(baselines_dir.glob("*.png")):
+            try:
+                meta_file = f.with_suffix(".json")
+                meta = {}
+                if meta_file.exists():
+                    import json
+                    meta = json.loads(meta_file.read_text(encoding="utf-8"))
+                baselines.append({
+                    "path": str(f.relative_to(root)),
+                    "name": f.stem,
+                    "timestamp": meta.get("created_at", datetime.fromtimestamp(f.stat().st_mtime, UTC).isoformat()),
+                    "size": f.stat().st_size,
+                })
+            except Exception:
+                pass
+
+    return JSONResponse({
+        "ok": True,
+        "screenshots": screenshots[:50],  # Limit to 50 most recent
+        "baselines": baselines[:20],  # Limit to 20 baselines
+        "total": len(screenshots),
+    })
+
+
+@router.get("/api/assurance/screenshot/{path:path}")
+async def serve_screenshot(path: str, request: Request):
+    """Serve a screenshot file."""
+    root = request.app.state.root
+    file_path = root / path
+
+    # Security: only allow serving from .patchi directory
+    try:
+        file_path.resolve().relative_to(root.resolve())
+    except ValueError:
+        return JSONResponse({"error": "Access denied"}, status_code=403)
+
+    if not file_path.exists() or not file_path.is_file():
+        return JSONResponse({"error": "File not found"}, status_code=404)
+
+    from starlette.responses import FileResponse
+    return FileResponse(file_path, media_type="image/png")
+
+
+@router.post("/api/assurance/fix-headers")
+async def fix_security_headers(request: Request):
+    """Fix missing security headers based on DAST findings."""
+    root = request.app.state.root
+    try:
+        body = await request.json() if request.headers.get("content-type") == "application/json" else {}
+    except Exception:
+        body = {}
+
+    dry_run = body.get("dry_run", False)
+
+    # Get DAST findings from memory
+    from patchi.core import memory as mem
+    scan_results = mem.get_scan_results(root)
+    dast_findings = []
+
+    if "DASTAgent" in scan_results:
+        for f in scan_results["DASTAgent"].get("findings", []):
+            # Only include header-related findings
+            ftype = f.get("type", "")
+            if "header" in ftype or "csp" in ftype or "hsts" in ftype or "frame" in ftype:
+                dast_findings.append(f)
+
+    if not dast_findings:
+        return JSONResponse({
+            "ok": True,
+            "message": "No header findings to fix",
+            "fixed_count": 0,
+        })
+
+    # Apply fixes
+    from patchi.core.security.auto_fixer import fix_missing_headers
+    result = fix_missing_headers(root, dast_findings, apply=not dry_run)
+
+    return JSONResponse({
+        "ok": True,
+        "dry_run": dry_run,
+        "fixed_count": result.get("fixed_count", 0),
+        "fixes": result.get("fixes", []),
+        "skipped": result.get("skipped", []),
+        "file": result.get("file"),
+        "error": result.get("error"),
+    })

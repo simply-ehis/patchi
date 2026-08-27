@@ -1,8 +1,8 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Attack Timeline â€” Patchi Mission Control</title>
+    <title>Attack Timeline " Patchi Mission Control</title>
     <link rel="stylesheet" href="/static/dashboard_v2.css">
 </head>
 <body class="theme-dark">
@@ -26,7 +26,7 @@
                 </nav>
             </div>
             <div class="header-right">
-                <button class="btn btn-primary" id="launchRedTeam">âš” Launch Red Team</button>
+                <button class="btn btn-primary" id="launchRedTeam">&#9889; Launch Red Team</button>
             </div>
         </header>
 
@@ -40,15 +40,15 @@
                         <div class="metric-label">Findings</div>
                     </div>
                     <div class="metric-card">
-                        <div class="metric-value">{{ attack_data.summary.by_severity.critical|default(0) if attack_data.summary else 'â€”' }}</div>
+                        <div class="metric-value">{{ attack_data.summary.by_severity.critical|default(0) if attack_data.summary else '"' }}</div>
                         <div class="metric-label">Critical</div>
                     </div>
                     <div class="metric-card">
-                        <div class="metric-value">{{ attack_data.summary.scenarios_run if attack_data.summary else 'â€”' }}</div>
+                        <div class="metric-value">{{ attack_data.summary.scenarios_run if attack_data.summary else '"' }}</div>
                         <div class="metric-label">Scenarios Run</div>
                     </div>
                     <div class="metric-card">
-                        <div class="metric-value">{{ (attack_data.summary.duration_ms / 1000)|round(1)|default('â€”') if attack_data.summary else 'â€”' }}s</div>
+                        <div class="metric-value">{{ (attack_data.summary.duration_ms / 1000)|round(1)|default('"') if attack_data.summary else '"' }}s</div>
                         <div class="metric-label">Duration</div>
                     </div>
                 </div>
@@ -56,7 +56,7 @@
                 <!-- Timeline -->
                 <section class="panel">
                     <header class="panel-header">
-                        <h2 class="panel-title">ðŸŽ¯ Attack Simulation Timeline</h2>
+                        <h2 class="panel-title">&#127919; Attack Simulation Timeline</h2>
                         <span class="badge">Latest assessment</span>
                     </header>
                     <div class="panel-body">
@@ -82,7 +82,7 @@
                     <div class="panel-body">
                         <div class="feed-empty">
                             No red team assessments yet.<br><br>
-                            Click <strong>âš” Launch Red Team</strong> to run attack simulations against your app.
+                            Click <strong>&#9889; Launch Red Team</strong> to run attack simulations against your app.
                         </div>
                     </div>
                 </section>
@@ -91,8 +91,8 @@
         </main>
 
         <footer class="footer">
-            <span>Patchi v2.0 â€” Red Team Engine</span>
-            <div class="footer-links"><a href="/v2" class="footer-link">â† Overview</a></div>
+            <span>Patchi v2.0 " Red Team Engine</span>
+            <div class="footer-links"><a href="/v2" class="footer-link">&#8592; Overview</a></div>
         </footer>
     </div>
 
@@ -103,7 +103,7 @@
             if (btn) {
                 btn.addEventListener('click', () => {
                     btn.disabled = true;
-                    btn.textContent = 'âš” Runningâ€¦';
+                    btn.textContent = '&#9889; Running\u2026';
                     // Trigger via tool execution API
                     fetch('/api/v2/tools/execute', {
                         method: 'POST',
@@ -111,11 +111,11 @@
                         body: JSON.stringify({tool: 'red_team', parameters: {scope: 'full', intensity: 'active'}})
                     }).then(r => r.json()).then(json => {
                         btn.disabled = false;
-                        btn.textContent = 'âš” Launch Red Team';
+                        btn.textContent = '&#9889; Launch Red Team';
                         setTimeout(() => location.reload(), 1500);
                     }).catch(e => {
                         btn.disabled = false;
-                        btn.textContent = 'âš” Launch Red Team';
+                        btn.textContent = '&#9889; Launch Red Team';
                         alert('Failed to launch: ' + e.message);
                     });
                 });

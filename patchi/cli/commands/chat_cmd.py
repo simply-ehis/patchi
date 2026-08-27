@@ -1,34 +1,35 @@
 """
-`p chat` — Unified AI chat with automatic reasoning engine routing.
+`p chat` — The Brain. The single intelligence that controls everything.
+
+The chat IS the orchestrator. It has direct access to:
+  - Read/write any file in the project
+  - Run any CLI command
+  - Spawn any agent (security, testing, fixing, etc.)
+  - Access the full brain/memory state
+  - Make decisions based on context
 
 Usage:
-  p chat                          — start interactive chat session
-  p chat "what changed?"          — auto-routes to reasoning engine
-  p chat "what does auth do?"     — auto-routes to reasoning engine
-  p chat "security hotspots"      — auto-routes to reasoning engine
-  p chat "explain this code"      — uses AI chat
-  p ask "what changed?"           — alias for p chat (backward compatible)
-
-Auto-routing:
-  - Questions about changes, imports, layers, hotspots → Reasoning Engine (no AI tokens)
-  - Everything else → AI Chat (uses tokens)
-
-Force routing:
-  - Prefix with "ai:" to force AI chat:  p chat "ai: explain this"
-  - Prefix with "reason:" to force reasoning: p chat "reason: what changed"
+  p chat                              — interactive brain session
+  p chat "scan this project"          — executes security scan
+  p chat "what's in src/auth.py"      — reads and explains the file
+  p chat "fix all critical findings"  — scans and fixes
+  p chat "run tests and check coverage" — multi-step orchestration
+  p chat "write a rate limiter"       — creates the file
+  p ask "what changed?"               — backward-compatible alias
 """
 
 from __future__ import annotations
 
+import asyncio
 import json
 import sys
+import time
 from pathlib import Path
 
 from rich.console import Console
 from rich.markdown import Markdown
 from rich.panel import Panel
 from rich.table import Table
-from rich.text import Text
 
 from patchi.cli.console import con
 
@@ -39,6 +40,8 @@ import logging
 
 _log = logging.getLogger("patchi.cli.chat_cmd")
 
+
+# ── History persistence ────────────────────────────────────────────────
 
 def _load_chat_history(root: Path) -> list[dict]:
     path = root / CHAT_HISTORY_FILE
@@ -56,56 +59,47 @@ def _save_chat_history(root: Path, history: list[dict]) -> None:
     path.write_text(json.dumps(history[-MAX_HISTORY:], indent=2), encoding="utf-8")
 
 
-BASE_PROMPT = """You are Patchi, an intelligent code assistant integrated into a project analysis tool.
+# ── System prompt ──────────────────────────────────────────────────────
 
-You are helping the developer understand their project and its issues.
+BASE_PROMPT = """You are Patchi, the intelligent brain that controls the entire Patchi system.
 
-Your role:
-- Explain code issues in simple, clear language the developer can understand
-- When asked about a finding, explain what it means, why it matters, and how to fix it
-- Help the developer understand their architecture and codebase
-- Be concise but thorough -- prefer bullet points over walls of text
-- If you don't know something specific about the code, say so honestly
+You are NOT just a chat interface — you ARE the orchestrator with direct control over:
+- Reading and writing files in the project
+- Running any CLI command (scan, test, fix, etc.)
+- Spawning specialized agents (security, testing, fixing, etc.)
+- Accessing the full brain/memory state
+- Making decisions based on context
 
-You are NOT a general-purpose AI assistant. You are a specialized code assistant for the project in the current directory."""
+When the user asks you to DO something, you should:
+1. Determine what tools/agents are needed
+2. Execute them using the brain's capabilities
+3. Report results with context
 
+When the user asks about files, you can:
+- Read the file contents directly
+- Explain what the code does
+- Suggest improvements
+- Write changes if asked
+
+You have full control. Use it wisely."""
+
+
+# ── Context injection ──────────────────────────────────────────────────
 
 def _build_injected_context(brain: dict, message: str) -> str:
     """Build relevant context from the brain based on what the user is asking about."""
     m_lower = message.lower()
     parts = []
 
-    # Project overview
     file_count = brain.get("file_count", 0)
     framework = brain.get("framework", "Unknown")
     route_count = brain.get("route_count", 0)
     health = brain.get("health_score", {})
     health_total = health.get("total", 0) if isinstance(health, dict) else health
 
-    parts.append(
-        f"Project: {file_count} files, {route_count} routes, framework: {framework}, health: {health_total}/100"
-    )
+    parts.append(f"Project: {file_count} files, {route_count} routes, framework: {framework}, health: {health_total}/100")
 
-    # Routes
-    if any(w in m_lower for w in ["route", "endpoint", "api", "path"]):
-        routes = brain.get("routes", [])
-        if routes and isinstance(routes, list):
-            samples = []
-            for r in routes[:15]:
-                if isinstance(r, dict):
-                    samples.append(
-                        f"  {r.get('method', '?')} {r.get('path', '?')} ({r.get('file', '?')})"
-                    )
-                else:
-                    samples.append(f"  {r}")
-            if samples:
-                parts.append(f"Routes ({len(routes)} total):\n" + "\n".join(samples[:15]))
-
-    # Findings / issues
-    if any(
-        w in m_lower
-        for w in ["finding", "issue", "vulnerability", "bug", "critical", "high", "error"]
-    ):
+    if any(w in m_lower for w in ["finding", "issue", "vulnerability", "bug", "critical", "high", "error"]):
         issues = brain.get("issues", []) or brain.get("findings", [])
         if issues:
             by_sev = {}
@@ -116,269 +110,413 @@ def _build_injected_context(brain: dict, message: str) -> str:
             if by_sev:
                 sev_str = ", ".join(f"{c} {s}" for s, c in sorted(by_sev.items()))
                 parts.append(f"Issues ({len(issues)} total): {sev_str}")
-                top = [
-                    f
-                    for f in issues
-                    if isinstance(f, dict) and f.get("severity") in ("critical", "high")
-                ][:5]
+                top = [f for f in issues if isinstance(f, dict) and f.get("severity") in ("critical", "high")][:5]
                 for f in top:
-                    parts.append(
-                        f"  [{f.get('severity', 'info')}] {f.get('file', '')}:{f.get('line', 0)} -- {f.get('message', '')[:80]}"
-                    )
-
-    # Security
-    if any(w in m_lower for w in ["security", "cve", "secret", "injection", "xss", "sqli", "auth"]):
-        sec_str = brain.get("security_str", brain.get("security_report", {}))
-        if isinstance(sec_str, dict):
-            parts.append(
-                f"Security: {sec_str.get('critical', 0)} critical, {sec_str.get('high', 0)} high, {sec_str.get('medium', 0)} medium"
-            )
-
-    # Patches / fixes
-    if any(w in m_lower for w in ["patch", "fix", "apply", "change", "modify", "edit"]):
-        patches = brain.get("patches", [])
-        if patches:
-            applied = sum(
-                1
-                for p in patches
-                if isinstance(p, dict) and p.get("state") in ("applied", "auto_applied")
-            )
-            pending = sum(1 for p in patches if isinstance(p, dict) and p.get("state") == "pending")
-            parts.append(f"Patches: {applied} applied, {pending} pending")
-
-    # Tests
-    if any(w in m_lower for w in ["test", "coverage", "pytest"]):
-        test_info = brain.get("test_results", {})
-        if test_info:
-            parts.append(
-                f"Tests: {test_info.get('passed', 0)} passed, {test_info.get('failed', 0)} failed"
-            )
-
-    # Dead code / architecture
-    if any(w in m_lower for w in ["dead", "unused", "circular", "import", "dependency", "dep"]):
-        dead = brain.get("dead_files", [])
-        circ = brain.get("circular_dependencies", [])
-        if dead:
-            parts.append(f"Dead files ({len(dead)}): {', '.join(str(d)[:40] for d in dead[:8])}")
-        if circ:
-            parts.append(f"Circular dependencies ({len(circ)})")
-
-    # Blast radius
-    if any(w in m_lower for w in ["break", "affect", "impact", "change", "modify"]):
-        import_graph = brain.get("import_graph", {})
-        if import_graph:
-            node_count = len(import_graph.get("nodes", []))
-            edge_count = len(import_graph.get("edges", {}))
-            parts.append(f"Import graph: {node_count} nodes, {edge_count} edges")
+                    parts.append(f"  [{f.get('severity', 'info')}] {f.get('file', '')}:{f.get('line', 0)} -- {f.get('message', '')[:80]}")
 
     return "\n".join(parts) if parts else ""
 
 
-def _try_explain(message: str, root: Path) -> tuple[bool, str]:
-    """Try to answer using the explain knowledge base. Returns (success, formatted_answer)."""
-    m_lower = message.lower().strip()
+# ── Force routing ──────────────────────────────────────────────────────
 
-    # Detect explain-like queries
-    explain_patterns = [
-        "explain", "what is", "what does", "what are", "how does",
-        "why is", "tell me about", "describe", "meaning of",
-    ]
-    is_explain = any(p in m_lower for p in explain_patterns)
-    if not is_explain:
-        return False, ""
+def _check_force_routing(message: str) -> tuple[str, str | None]:
+    """Check for forced routing prefixes. Returns (cleaned_message, force_mode)."""
+    msg = message.strip()
+    if msg.lower().startswith("reason:"):
+        return msg[7:].strip(), "reasoning"
+    if msg.lower().startswith("ai:"):
+        return msg[3:].strip(), "ai"
+    if msg.lower().startswith("tool:"):
+        return msg[5:].strip(), "tool"
+    return msg, None
 
-    # Try to extract a finding type from the message
+
+# ── Explain All ────────────────────────────────────────────────────────────
+
+def _show_explain_all() -> None:
+    """Show the full security knowledge base in a formatted table."""
+    from rich.table import Table
     from patchi.cli.commands.explain_cmd import _EXPLANATIONS
 
-    # Direct match
-    for ftype, info in _EXPLANATIONS.items():
-        if ftype.replace("_", " ") in m_lower or ftype in m_lower:
-            return True, _format_explanation(ftype, info)
+    con.print()
+    con.print("[bold #C8621A]Security Knowledge Base[/bold #C8621A]")
+    con.print("[dim]Complete reference for all security finding types.[/dim]")
+    con.print()
 
-    # Keyword match
-    keyword_map = {
-        "secret": "hardcoded_secret", "password": "hardcoded_secret",
-        "sql": "sql_injection", "injection": "sql_injection",
-        "xss": "xss", "cross-site": "xss", "script": "xss",
-        "csrf": "csrf", "cross-site request": "csrf",
-        "header": "missing_security_header", "csp": "missing_security_header",
-        "debug": "debug_mode", "hardcoded": "hardcoded_secret",
-        "eval": "dangerous_eval", "exec": "dangerous_exec",
-        "pickle": "unsafe_deserialization", "yaml": "yaml_load",
-        "directory": "directory_traversal", "traversal": "directory_traversal",
+    table = Table(show_header=True, header_style="bold #C8621A", box=None)
+    table.add_column("Type", style="cyan", min_width=25)
+    table.add_column("Title", style="white", min_width=25)
+    table.add_column("Severity", width=10)
+    table.add_column("CWE", width=12)
+    table.add_column("What", max_width=50)
+    table.add_column("How to Fix", max_width=40)
+
+    severity_colors = {
+        "critical": "red",
+        "high": "yellow",
+        "medium": "blue",
+        "low": "dim",
     }
-    for keyword, ftype in keyword_map.items():
-        if keyword in m_lower and ftype in _EXPLANATIONS:
-            return True, _format_explanation(ftype, _EXPLANATIONS[ftype])
 
-    # If explain-like but no specific finding, show all
-    if "explain" in m_lower and ("findings" in m_lower or "issues" in m_lower or "all" in m_lower):
-        output_lines = ["[bold]Security Knowledge Base:[/bold]", ""]
-        for ftype, info in _EXPLANATIONS.items():
-            output_lines.append(f"  [bold]{info['title']}[/bold] (CWE-{info.get('cwe', '?')})")
-            output_lines.append(f"    {info['what']}")
-            output_lines.append(f"    Fix: {info['how'].split(chr(10))[0]}")
-            output_lines.append("")
-        return True, chr(10).join(output_lines)
+    for ftype, info in sorted(_EXPLANATIONS.items()):
+        sev = info.get("severity", "?")
+        color = severity_colors.get(sev, "white")
+        table.add_row(
+            ftype,
+            info.get("title", "?"),
+            f"[{color}]{sev}[/{color}]",
+            info.get("cwe", "?"),
+            info.get("what", "?")[:50],
+            info.get("how", "?").split("\n")[0][:40],
+        )
 
-    return False, ""
-
-
-def _format_explanation(ftype: str, info: dict) -> str:
-    """Format a single explanation for display."""
-    lines = [
-        f"[bold]{info['title']}[/bold]  [dim](CWE-{info.get('cwe', '?')}, {info.get('severity', '?')})[/dim]",
-        "",
-        f"[bold]What:[/bold] {info['what']}",
-        f"[bold]Why it matters:[/bold] {info['why']}",
-        f"[bold]How to fix:[/bold] {info['how'].split(chr(10))[0]}",
-    ]
-    return chr(10).join(lines)
+    con.print(table)
+    con.print()
+    con.print(f"[dim]{len(_EXPLANATIONS)} finding types in knowledge base.[/dim]")
+    con.print("[dim]Use `p chat 'explain sql injection'` for detailed info on any type.[/dim]")
+    con.print()
 
 
-def _try_reasoning_engine(message: str, root: Path) -> tuple[bool, str]:
-    """Try to answer using the reasoning engine. Returns (success, formatted_answer)."""
-    from patchi.core.security.reasoning import classify_question, answer_question
+# ── Process message through the Brain ─────────────────────────────────
 
-    # Check if reasoning can handle this
-    category = classify_question(message)
+def _process_message(
+    message: str,
+    root: Path,
+    config: dict,
+    brain_state: dict,
+    json_output: bool = False,
+    history: list[dict] | None = None,
+    stream: bool = False,
+) -> str:
+    """Process a message using the Brain as the central intelligence."""
+    from patchi.core.ai.client import call_ai
+    from patchi.core.ai.orchestrator import Orchestrator, Brain
 
-    # For "general" category, check if there are layers to report on
-    if category == "general":
-        from patchi.core.brain.layered_brain import layers_from_dict
-        import json
+    clean_msg, force_mode = _check_force_routing(message)
 
-        path = root / ".patchi" / "memory" / "layers.json"
-        if path.exists():
-            try:
-                data = json.loads(path.read_text(encoding="utf-8"))
-                layers = layers_from_dict(data)
-                if not layers:
-                    return False, ""
-            except Exception:
-                return False, ""
+    # Create brain instance with appropriate progress callback
+    if stream:
+        # Real-time streaming progress with rich formatting
+        _tool_count = [0]
+        _step_start = [0]
+
+        def on_progress(msg):
+            import time as _time
+            if "Executing" in msg:
+                _tool_count[0] += 1
+                _step_start[0] = _time.monotonic()
+                tool_name = msg.replace("Executing ", "").replace("...", "")
+                con.print(f"  [bold cyan]⟳ Step {_tool_count[0]}:[/bold cyan] [bold]{tool_name}[/bold]")
+            elif "Spawning" in msg:
+                con.print(f"  [bold magenta]🤖 {msg}[/bold magenta]")
+            elif "Planning" in msg or "Understanding" in msg:
+                con.print(f"  [bold yellow]🧠 {msg}[/bold yellow]")
+            else:
+                con.print(f"  [dim]{msg}[/dim]")
+
+        def on_event(payload: dict):
+            import time as _time
+            ev = payload.get("event", "")
+            data = payload.get("data", {})
+            if ev == "orchestrator.planned":
+                steps = data.get("steps", 0)
+                reasoning = data.get("reasoning", "")
+                con.print(f"  [bold green]📋 Plan:[/bold green] {steps} steps")
+                if reasoning:
+                    con.print(f"  [dim]{reasoning[:100]}{'...' if len(reasoning) > 100 else ''}[/dim]")
+            elif ev == "orchestrator.completed":
+                success = data.get("success", False)
+                findings = data.get("findings", 0)
+                icon = "[green]✓[/green]" if success else "[red]✗[/red]"
+                con.print(f"  {icon} [bold]Orchestration complete[/bold]")
+                if findings:
+                    con.print(f"  [dim]Findings: {findings}[/dim]")
+            elif ev == "security.finding":
+                sev = data.get("severity", "?").upper()
+                desc = data.get("description", data.get("type", ""))
+                con.print(f"    [red][{sev}][/red] {desc[:80]}")
+            elif ev == "test.suite.completed":
+                passed = data.get("passed", 0)
+                failed = data.get("failed", 0)
+                con.print(f"    [green]Tests: {passed} passed[/green], [red]{failed} failed[/red]")
+            elif ev == "agent.progress":
+                pct = data.get("progress_pct", 0)
+                current = data.get("current_file", "")
+                if current and current not in ["planning", "done"]:
+                    con.print(f"    [dim]→ {current} ({pct}%)[/dim]")
+
+        def on_progress(msg):
+            import time as _time
+            if "Executing" in msg:
+                _tool_count[0] += 1
+                _step_start[0] = _time.monotonic()
+                tool_name = msg.replace("Executing ", "").replace("...", "")
+                con.print(f"  [bold cyan]⟳ Step {_tool_count[0]}:[/bold cyan] [bold]{tool_name}[/bold]")
+            elif "Spawning" in msg:
+                con.print(f"  [bold magenta]🤖 {msg}[/bold magenta]")
+            elif "Planning" in msg or "Understanding" in msg:
+                con.print(f"  [bold yellow]🧠 {msg}[/bold yellow]")
+            else:
+                con.print(f"  [dim]{msg}[/dim]")
+    else:
+        def on_progress(msg):
+            con.print(f"  [dim]{msg}[/dim]")
+        def on_event(payload: dict):
+            pass
+
+    orchestrator = Orchestrator(root, on_progress=on_progress, on_event=on_event)
+
+    # ── File operations (direct brain access) ──
+
+    # Check if user wants to read a file
+    read_patterns = ["read ", "show ", "cat ", "what's in ", "what is in ", "open ", "display "]
+    if any(clean_msg.lower().startswith(p) for p in read_patterns):
+        file_path = clean_msg
+        for p in read_patterns:
+            if file_path.lower().startswith(p):
+                file_path = file_path[len(p):].strip()
+                break
+
+        content = orchestrator.read_file(file_path)
+        if not content.startswith("ERROR:"):
+            con.print(f"\n[bold]📄 {file_path}[/bold]\n")
+            con.print(f"```python\n{content}\n```")
+            return f"[File: {file_path}]\n{content}"
         else:
-            return False, ""
+            con.print(f"[yellow]{content}[/yellow]")
+            return content
 
-    # Reasoning can handle this
-    result = answer_question(message, root)
+    # Check if user wants to write a file
+    write_patterns = ["write ", "create ", "save ", "make "]
+    if any(clean_msg.lower().startswith(p) for p in write_patterns):
+        # Extract file path and content
+        parts = clean_msg.split(":", 1) if ":" in clean_msg else clean_msg.split(" to ", 1)
+        if len(parts) == 2:
+            file_path = parts[0]
+            for p in write_patterns:
+                if file_path.lower().startswith(p):
+                    file_path = file_path[len(p):].strip()
+                    break
+            content = parts[1].strip()
 
-    # Format the result
-    output = []
+            result = orchestrator.write_file(file_path, content)
+            if result.get("success"):
+                con.print(f"\n[green]✓ Written {result['size']} bytes to {file_path}[/green]")
+                return f"[Written: {file_path}]"
+            else:
+                con.print(f"[red]Failed: {result.get('error', 'unknown')}[/red]")
+                return f"Failed: {result.get('error', 'unknown')}"
 
-    # Answer
-    output.append("[bold]Reasoning Engine:[/bold]")
-    for line in result.answer.split("\n"):
-        if line.startswith("==="):
-            output.append(f"  [bold yellow]{line}[/bold yellow]")
-        elif line.startswith("  "):
-            output.append(f"  [dim]{line.strip()}[/dim]")
-        elif line.startswith("-"):
-            output.append(f"  {line}")
-        elif ":" in line:
-            parts = line.split(":", 1)
-            output.append(f"  [bold]{parts[0]}:[/bold]{parts[1]}")
+    # ── Command execution ──
+    if clean_msg.lower().startswith("run ") or clean_msg.lower().startswith("exec "):
+        command = clean_msg
+        for p in ["run ", "exec "]:
+            if command.lower().startswith(p):
+                command = command[len(p):].strip()
+                break
+
+        result = orchestrator.run_command(command)
+        if result.get("success"):
+            con.print(f"\n[green]✓ Command succeeded[/green]")
+            if result.get("stdout"):
+                con.print(f"```\n{result['stdout']}\n```")
+            return result.get("stdout", "Command succeeded")
         else:
-            output.append(f"  {line}")
-    output.append("")
+            con.print(f"[red]Command failed: {result.get('error', result.get('stderr', 'unknown'))}[/red]")
+            return f"Command failed: {result.get('error', result.get('stderr', 'unknown'))}"
 
-    # Layers
-    if result.layers:
-        output.append("[dim]Affected layers: " + ", ".join(sorted(result.layers)[:5]))
-        if len(result.layers) > 5:
-            output.append(f"  ... and {len(result.layers) - 5} more")
-        output.append("[/dim]")
-        output.append("")
+    # ── Agent spawning ──
+    spawn_patterns = ["spawn ", "run agent ", "use agent ", "activate "]
+    if any(clean_msg.lower().startswith(p) for p in spawn_patterns):
+        agent_type = clean_msg
+        for p in spawn_patterns:
+            if agent_type.lower().startswith(p):
+                agent_type = agent_type[len(p):].strip()
+                break
 
-    # Hotspots table
-    if "hotspots" in result.details:
-        table = Table(title="Security Hotspots", box=None, show_lines=False)
-        table.add_column("Score", style="red")
-        table.add_column("Layer", style="cyan")
-        table.add_column("Reasons", style="yellow")
-        for h in result.details["hotspots"][:10]:
-            table.add_row(
-                str(h["risk_score"]),
-                h["name"],
-                ", ".join(h["reasons"][:3]),
-            )
-        output.append(str(table))
-        output.append("")
+        # Extract agent type from the message
+        for atype in ["security", "scanner", "proactive", "council", "smart"]:
+            if atype in agent_type.lower():
+                con.print(f"\n[bold cyan]🤖 Spawning {atype} agent...[/bold cyan]\n")
+                result = orchestrator.spawn_agent(atype, goal=clean_msg)
+                if result.get("success"):
+                    con.print(f"[green]✓ Agent completed[/green]")
+                    return json.dumps(result.get("result", {}), indent=2, default=str)[:2000]
+                else:
+                    con.print(f"[red]Agent failed: {result.get('error', 'unknown')}[/red]")
+                    return f"Agent failed: {result.get('error', 'unknown')}"
 
-    # Dependencies
-    if "depends" in result.details and result.details["depends"]:
-        deps = result.details["depends"]
-        output.append(f"[bold]Dependencies:[/bold] {', '.join(deps)}")
-        output.append("")
+    # ── LLM-powered orchestration (default) ──
 
-    if "dependents" in result.details and result.details["dependents"]:
-        deps = result.details["dependents"]
-        output.append(f"[bold]Dependents:[/bold] {', '.join(deps)}")
-        output.append("")
+    # Build context
+    context = _build_injected_context(brain_state, clean_msg)
+    extra = f"\n\nRelevant context:\n{context}" if context else ""
 
-    return True, "\n".join(output)
+    # Build conversation history
+    history_text = ""
+    if history:
+        for msg in history[-10:]:
+            role = "Developer" if msg["role"] == "user" else "Brain"
+            history_text += f"{role}: {msg['content']}\n"
 
+    full_prompt = clean_msg
+    if history_text:
+        full_prompt = f"Previous conversation:\n{history_text}\nCurrent question: {clean_msg}"
 
-def _print_ai_response(response: str) -> None:
-    """Print an AI response with formatting."""
+    # Get AI response
+    response = call_ai(config, BASE_PROMPT + extra, full_prompt)
+    if not response:
+        response = "I don't have an AI model configured. Set up with `p key add` or `p model set <model>`."
+
     con.print()
     con.print("[bold #4ADE80]Patchi:[/bold #4ADE80]")
     con.print(Markdown(response))
     con.print()
 
-
-def _check_force_routing(message: str) -> tuple[str, bool]:
-    """Check for forced routing prefixes. Returns (cleaned_message, use_reasoning)."""
-    msg = message.strip()
-    if msg.lower().startswith("reason:"):
-        return msg[7:].strip(), True
-    if msg.lower().startswith("ai:"):
-        return msg[3:].strip(), False
-    return msg, None  # None means auto-route
+    return response
 
 
-def _should_use_reasoning(message: str, root: Path) -> bool:
-    """Determine if the reasoning engine should handle this query."""
-    from patchi.core.security.reasoning import classify_question
+# ── Help commands ──────────────────────────────────────────────────────
 
-    category = classify_question(message)
+def _print_help():
+    """Print help information."""
+    con.print(Panel(
+        "[bold]Patchi Chat — The Brain[/bold]\n\n"
+        "[bold]Direct File Access:[/bold]\n"
+        "  [cyan]read[/cyan] src/auth.py          — read and explain a file\n"
+        "  [cyan]write[/cyan] src/utils.py:code   — create/overwrite a file\n\n"
+        "[bold]Command Execution:[/bold]\n"
+        "  [cyan]run[/cyan] pytest tests/          — run any shell command\n"
+        "  [cyan]exec[/cyan] ruff check src/      — execute a command\n\n"
+        "[bold]Agent Spawning:[/bold]\n"
+        "  [cyan]spawn[/cyan] security             — run security scan\n"
+        "  [cyan]spawn[/cyan] council              — multi-persona deliberation\n"
+        "  [cyan]spawn[/cyan] smart                — goal-driven smart agent\n\n"
+        "[bold]Natural Language:[/bold]\n"
+        "  [cyan]scan[/cyan] this project          — security scan\n"
+        "  [cyan]fix[/cyan] critical findings      — scan + fix pipeline\n"
+        "  [cyan]test[/cyan] and check coverage    — run tests\n"
+        "  [cyan]what's in[/cyan] src/auth.py      — read file\n\n"
+        "[bold]Commands:[/bold]\n"
+        "  [green]tools[/green]    — list available tools\n"
+        "  [green]council[/green]  — show council/persona info\n"
+        "  [green]history[/green]  — show chat history\n"
+        "  [green]help[/green]     — this help\n"
+        "  [green]clear[/green]    — clear chat history\n\n"
+        "[bold]Forced Routing:[/bold]\n"
+        "  [yellow]reason:[/yellow] what changed?       — force reasoning engine\n"
+        "  [yellow]ai:[/yellow] explain this code       — force AI chat\n"
+        "  [yellow]tool:[/yellow] scan_vulnerabilities  — force tool execution\n",
+        border_style="#C8621A",
+    ))
 
-    # Always use reasoning for these categories
-    if category in ("what_changed", "what_does", "what_imports", "imports", "hotspots"):
-        return True
 
-    # For routes/layers, use reasoning only if we have layered brain data
-    if category in ("routes", "layers"):
-        path = root / ".patchi" / "memory" / "layers.json"
-        if path.exists():
-            return True
+def _print_tools():
+    """Print available tools."""
+    try:
+        from patchi.core.ai.tools.registry import get_tool_registry
+        registry = get_tool_registry()
 
-    # For general queries, use reasoning if we have data but the question
-    # is about the codebase (contains relevant keywords)
-    if category == "general":
-        keywords = [
-            "what", "how", "where", "which", "why", "who",
-            "does", "is", "are", "was", "were",
-            "import", "depend", "module", "layer", "file",
-            "route", "api", "endpoint", "handler",
-            "security", "vulnerability", "risk",
-        ]
-        q = message.lower()
-        if any(kw in q for kw in keywords):
-            # Check if we have data
-            path = root / ".patchi" / "memory" / "layers.json"
-            if path.exists():
-                return True
+        table = Table(title="Available Tools", box=None, show_lines=False)
+        table.add_column("Tool", style="cyan", min_width=20)
+        table.add_column("Description", style="white")
+        table.add_column("Category", style="yellow")
 
-    return False
+        categories = {
+            "scan": ["analyze_project", "scan_vulnerabilities", "scan_project"],
+            "test": ["run_tests", "generate_tests", "browser_test", "screenshot", "visual_regression"],
+            "fix": ["generate_fix", "apply_patch", "verify_fix", "rollback_patch"],
+            "attack": ["attack_simulate", "red_team"],
+            "stress": ["stress_test"],
+            "knowledge": ["ask_brain", "explain_layer", "impact_analysis", "why_file_matters"],
+            "compliance": ["check_compliance"],
+            "code": ["write_file", "generate_code"],
+        }
 
+        tool_to_cat = {}
+        for cat, tools in categories.items():
+            for t in tools:
+                tool_to_cat[t] = cat
+
+        for tool in registry.list_tools():
+            table.add_row(
+                tool.name,
+                tool.description[:60] + "..." if len(tool.description) > 60 else tool.description,
+                tool_to_cat.get(tool.name, "other"),
+            )
+
+        con.print(table)
+    except Exception as e:
+        con.print(f"[red]Failed to load tools: {e}[/red]")
+
+
+def _print_council_info(root: Path):
+    """Print council/persona information."""
+    try:
+        from patchi.core.brain.personas.base import list_personas
+
+        personas = list_personas()
+        con.print(f"\n[bold]🏛️ Council — {len(personas)} Personas[/bold]\n")
+
+        table = Table(box=None, show_lines=False)
+        table.add_column("Persona", style="cyan", min_width=20)
+        table.add_column("Style", style="yellow")
+        table.add_column("Focus", style="white")
+
+        style_names = {
+            "aggressive": "🔴 Aggressive",
+            "cautious": "🟡 Cautious",
+            "balanced": "🟢 Balanced",
+            "methodical": "🔵 Methodical",
+            "creative": "🟣 Creative",
+        }
+
+        for p in personas:
+            table.add_row(
+                p.name,
+                style_names.get(p.style.value if hasattr(p.style, 'value') else str(p.style), str(p.style)),
+                p.focus_domain,
+            )
+
+        con.print(table)
+        con.print("\n[dim]The Council deliberates on complex issues, combining multiple personas' perspectives.[/dim]")
+        con.print("[dim]Ask 'council' or mention 'council' in your message to trigger deliberation.[/dim]\n")
+    except Exception as e:
+        con.print(f"[red]Failed to load council info: {e}[/red]")
+
+
+def _print_chat_history(history: list[dict]):
+    """Print chat history."""
+    if not history:
+        con.print("[dim]No chat history yet.[/dim]")
+        return
+
+    con.print(f"\n[bold]📋 Chat History ({len(history)} messages)[/bold]\n")
+    for msg in history[-20:]:
+        role = "You" if msg["role"] == "user" else "Brain"
+        content = msg["content"][:100] + "..." if len(msg["content"]) > 100 else msg["content"]
+        con.print(f"  [bold]{role}:[/bold] {content}")
+    con.print()
+
+
+# ── Main entry point ───────────────────────────────────────────────────
 
 def run(
     message: list[str] | str | None = None,
     json_output: bool = False,
     root: Path | None = None,
+    stream: bool = False,
+    explain_all: bool = False,
 ) -> None:
-    """Entry point for `p chat` and `p ask` (backward compatible)."""
+    """Entry point for `p chat` and `p ask` (backward compatible).
+
+    Args:
+        message: Single message or list of words.
+        json_output: Output as JSON.
+        root: Override project root.
+        stream: Show real-time tool execution progress.
+        explain_all: Show full security knowledge base.
+    """
     try:
         from patchi.core.config import require_project_root
         r = root or require_project_root()
@@ -388,90 +526,34 @@ def run(
 
     from patchi.core import config as cfg
     from patchi.core import memory as mem
-    from patchi.core.ai.client import call_ai
 
     config = cfg.load(r)
-    brain = mem.get_brain(r)
+    brain_state = mem.get_brain(r)
+
+    # --explain-all: show full security knowledge base
+    if explain_all:
+        _show_explain_all()
+        return
 
     # Single message mode
     if message:
         if isinstance(message, list):
             message = " ".join(message)
-
         if not message.strip():
             con.print("[red]Error: no message provided[/red]")
             return
 
-        # Check for forced routing
-        clean_msg, force_reason = _check_force_routing(message)
-
-        if force_reason is True:
-            # Force reasoning engine
-            success, answer = _try_reasoning_engine(clean_msg, r)
-            if success:
-                if json_output:
-                    from patchi.core.security.reasoning import answer_question
-                    result = answer_question(clean_msg, r)
-                    print(json.dumps(result.to_dict(), indent=2))
-                else:
-                    con.print()
-                    con.print(answer)
-                return
-            else:
-                con.print("[yellow]Reasoning engine couldn't answer this. Falling back to AI...[/yellow]")
-
-        elif force_reason is False:
-            # Force AI
-            context = _build_injected_context(brain, clean_msg)
-            extra = f"\n\nRelevant context:\n{context}" if context else ""
-            response = call_ai(config, BASE_PROMPT + extra, clean_msg)
-            if not response:
-                con.print(
-                    "[yellow]No AI configured. Set up with `p key add` or `p model set <model>`.[/yellow]"
-                )
-                return
-            if json_output:
-                print(json.dumps({"answer": response, "source": "ai"}, indent=2))
-            else:
-                _print_ai_response(response)
-            return
-
-        else:
-            # Auto-route: try reasoning first, then AI
-            if _should_use_reasoning(clean_msg, r):
-                success, answer = _try_reasoning_engine(clean_msg, r)
-                if success:
-                    if json_output:
-                        from patchi.core.security.reasoning import answer_question
-                        result = answer_question(clean_msg, r)
-                        print(json.dumps(result.to_dict(), indent=2))
-                    else:
-                        con.print()
-                        con.print(answer)
-                    return
-
-            # Fall back to AI
-            context = _build_injected_context(brain, clean_msg)
-            extra = f"\n\nRelevant context:\n{context}" if context else ""
-            response = call_ai(config, BASE_PROMPT + extra, clean_msg)
-            if not response:
-                con.print(
-                    "[yellow]No AI configured. Set up with `p key add` or `p model set <model>`.[/yellow]"
-                )
-                return
-            if json_output:
-                print(json.dumps({"answer": response, "source": "ai"}, indent=2))
-            else:
-                _print_ai_response(response)
-            return
+        _process_message(message, r, config, brain_state, json_output=json_output, stream=stream)
+        return
 
     # Interactive mode
     con.print()
+    stream_label = " [green](streaming)[/green]" if stream else ""
     con.print(
         Panel(
-            "[bold]Patchi Chat[/bold]  [dim]Type your message, or 'quit' to exit.[/dim]\n"
-            "[dim]Ask about findings, routes, security, architecture, or anything else.[/dim]\n"
-            "[dim]Prefix with 'reason:' for reasoning engine, 'ai:' for AI chat.[/dim]",
+            f"[bold]Patchi Chat — The Brain[/bold]{stream_label}\n"
+            "[dim]Direct access to files, commands, agents, and intelligence.[/dim]\n"
+            "[dim]Type 'quit' to exit, 'help' for commands, 'tools' to list available tools.[/dim]",
             border_style="#C8621A",
         )
     )
@@ -493,83 +575,28 @@ def run(
             _save_chat_history(r, history)
             con.print("[dim]Chat ended.[/dim]")
             return
-
-        # Check for forced routing
-        clean_msg, force_reason = _check_force_routing(user_input)
-
-        if force_reason is True:
-            # Force reasoning
-            success, answer = _try_reasoning_engine(clean_msg, r)
-            if success:
-                con.print()
-                con.print(answer)
-                history.append({"role": "user", "content": user_input})
-                history.append({"role": "assistant", "content": f"[Reasoning Engine]\n{answer}"})
-                _save_chat_history(r, history)
-                continue
-            else:
-                con.print("[yellow]Reasoning engine couldn't handle this. Trying AI...[/yellow]")
-
-        elif force_reason is False:
-            # Force AI
-            context = _build_injected_context(brain, clean_msg)
-            extra = f"\n\nRelevant context:\n{context}" if context else ""
-            full_system = BASE_PROMPT + extra
-
-            history_text = ""
-            for msg in history[-10:]:
-                role = "Developer" if msg["role"] == "user" else "Patchi"
-                history_text += f"{role}: {msg['content']}\n"
-
-            full_prompt = clean_msg
-            if history_text:
-                full_prompt = f"Previous conversation:\n{history_text}\nCurrent question: {clean_msg}"
-
-            response = call_ai(config, full_system, full_prompt)
-            if not response:
-                response = "I don't have an AI model configured. Set up with `p key add`."
-
-            history.append({"role": "user", "content": user_input})
-            history.append({"role": "assistant", "content": response})
-            history[:] = history[-MAX_HISTORY:]
+        if user_input.lower() == "help":
+            _print_help()
+            continue
+        if user_input.lower() == "tools":
+            _print_tools()
+            continue
+        if user_input.lower() == "council":
+            _print_council_info(r)
+            continue
+        if user_input.lower() == "history":
+            _print_chat_history(history)
+            continue
+        if user_input.lower().startswith("clear"):
+            history.clear()
             _save_chat_history(r, history)
-
-            _print_ai_response(response)
+            con.print("[dim]Chat history cleared.[/dim]")
             continue
 
-        else:
-            # Auto-route
-            if _should_use_reasoning(clean_msg, r):
-                success, answer = _try_reasoning_engine(clean_msg, r)
-                if success:
-                    con.print()
-                    con.print(answer)
-                    history.append({"role": "user", "content": user_input})
-                    history.append({"role": "assistant", "content": f"[Reasoning Engine]\n{answer}"})
-                    _save_chat_history(r, history)
-                    continue
-
-            # Fall back to AI
-            context = _build_injected_context(brain, clean_msg)
-            extra = f"\n\nRelevant context:\n{context}" if context else ""
-            full_system = BASE_PROMPT + extra
-
-            history_text = ""
-            for msg in history[-10:]:
-                role = "Developer" if msg["role"] == "user" else "Patchi"
-                history_text += f"{role}: {msg['content']}\n"
-
-            full_prompt = clean_msg
-            if history_text:
-                full_prompt = f"Previous conversation:\n{history_text}\nCurrent question: {clean_msg}"
-
-            response = call_ai(config, full_system, full_prompt)
-            if not response:
-                response = "I don't have an AI model configured. Set up with `p key add`."
-
+        # Process the message through the Brain
+        response = _process_message(user_input, r, config, brain_state, history=history, stream=stream)
+        if response:
             history.append({"role": "user", "content": user_input})
             history.append({"role": "assistant", "content": response})
             history[:] = history[-MAX_HISTORY:]
             _save_chat_history(r, history)
-
-            _print_ai_response(response)

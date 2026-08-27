@@ -44,23 +44,22 @@ COMMANDS: list[Command] = [
         ),
     ),
     Command(
-        "health",
-        "Deep-dive health report with per-component breakdown",
-        "patchi.cli.commands.health_cmd:run",
-        args=(Arg("--json", dest="json_output", action="store_true", help="Output as JSON"),),
-    ),
-    Command(
         "status",
         "Show Brain health, mode, queue state, and key status",
         "patchi.cli.commands.status_cmd:run",
-        args=(Arg("--json", dest="json_output", action="store_true", help="Output as JSON"),),
+        args=(
+            Arg("--json", dest="json_output", action="store_true", help="Output as JSON"),
+            Arg("--deep", dest="deep", action="store_true", help="Show detailed health breakdown (was p health)"),
+            Arg("--validate", dest="validate", action="store_true", help="Run system validation checks (was p doctor)"),
+            Arg("--verbose", dest="verbose", action="store_true", help="Show detailed output"),
+        ),
     ),
     Command(
         "doctor",
-        "Validate setup, check dependencies, test AI connection",
+        "System health check — stale commands, dependencies, config",
         "patchi.cli.commands.doctor_cmd:run",
         args=(
-            Arg("--verbose", dest="verbose", global_flag=True),
+            Arg("--verbose", dest="verbose", action="store_true", help="Show detailed output"),
             Arg("--json", dest="json_output", action="store_true", help="Output as JSON"),
         ),
     ),
@@ -71,6 +70,8 @@ COMMANDS: list[Command] = [
         args=(
             Arg("area", nargs="?", help="Watch specific area only"),
             Arg("--dry-run", action="store_true", help="Preview auto-fixes without applying them"),
+            Arg("--preview", action="store_true", help="Show detailed before/after of proposed fixes"),
+            Arg("--auto-fix", action="store_true", help="Enable proactive fixing on file saves (overrides config)"),
         ),
     ),
     Command(
@@ -223,13 +224,11 @@ COMMANDS: list[Command] = [
             Command(
                 "skip", "Skip the current active task", "patchi.cli.commands.queue_cmd:run_skip"
             ),
-            Command("clear", "Remove all waiting tasks", "patchi.cli.commands.queue_cmd:run_clear"),
+    # `p mode` merged into `p settings` — use `p settings set mode <name>`
             Command(
                 "mode",
                 "Set queue mode",
                 "patchi.cli.commands.queue_cmd:run_set_mode",
-                # Positional name must be the handler's actual kwarg (mode_str) --
-                # argparse forbids overriding dest separately for positionals.
                 args=(Arg("mode_str", choices=("single", "multi", "off")),),
             ),
         ),
@@ -310,33 +309,7 @@ COMMANDS: list[Command] = [
             ),
         ),
     ),
-    Command(
-        "ignore",
-        "Manage Patchi's self-learned ignore list",
-        "patchi.cli.commands.ignore_cmd:run_list",  # default: show entries
-        subcommands=(
-            Command(
-                "list",
-                "Show learned + user ignore entries",
-                "patchi.cli.commands.ignore_cmd:run_list",
-                args=(
-                    Arg("--json", dest="json_output", action="store_true", help="Output as JSON"),
-                ),
-            ),
-            Command(
-                "add",
-                "Never scan this path (user override)",
-                "patchi.cli.commands.ignore_cmd:run_add",
-                args=(Arg("path"),),
-            ),
-            Command(
-                "remove",
-                "Stop ignoring a path (scan it again)",
-                "patchi.cli.commands.ignore_cmd:run_remove",
-                args=(Arg("path"),),
-            ),
-        ),
-    ),
+    # `p ignore` merged into `p memory` — use `p memory ignore`
     # â”€â”€ Batch 3: 22 more commands. Every handler signature checked directly
     # against the real code, not assumed from the parser's attribute names --
     # 7 more drift fixes found this batch (running total: 11 across the whole
@@ -435,19 +408,16 @@ COMMANDS: list[Command] = [
             ),
         ),
     ),
-    Command(
-        "mode",
-        "View or set operating mode",
-        "patchi.cli.commands.mode_cmd:run",
-        args=(
-            Arg("mode_str", nargs="?", choices=("confirm", "auto", "autopilot"), help="New mode"),
-        ),
-    ),
+    # `p mode` merged into `p settings` - use `p settings set mode <name>`
     Command(
         "chat",
         "Interactive AI chat with Patchi",
         "patchi.cli.commands.chat_cmd:run",
-        args=(Arg("message", nargs="?", help="Single message (non-interactive)"),),
+        args=(
+            Arg("message", nargs="?", help="Single message (non-interactive)"),
+            Arg("--stream", action="store_true", help="Show real-time tool execution progress"),
+            Arg("--explain-all", action="store_true", dest="explain_all", help="Show full security knowledge base"),
+        ),
     ),
     Command(
         "dev",
@@ -479,28 +449,9 @@ COMMANDS: list[Command] = [
             Arg("--json", dest="json_output", action="store_true", help="Output as JSON"),
         ),
     ),
-    Command(
-        "explain",
-        "Explain findings in plain English",
-        "patchi.cli.commands.explain_cmd:run",
-        args=(
-            Arg("finding_id", nargs="?", help="Specific finding ID to explain"),
-            # drift fix: parser used --type (dest "type"), handler wants finding_type
-            Arg("--type", dest="finding_type", type=str, help="Explain a category of findings"),
-            Arg("--json", dest="json_output", action="store_true", help="Output as JSON"),
-        ),
-    ),
     # `p blast` was merged into `p impact` (--all + alias). One blast-radius
     # implementation, one command.
-    Command(
-        "brain",
-        "Brain knowledge â†’ readable markdown",
-        "patchi.cli.commands.brain_cmd:run",
-        args=(
-            Arg("--show", action="store_true", help="Print BRAIN.md to terminal"),
-            Arg("--force", action="store_true", help="Force regeneration"),
-        ),
-    ),
+        # `p brain` merged into `p agents list --brain` — use `p agents list --brain`
     Command(
         "trend",
         "Health and quality trend over time",
@@ -704,28 +655,6 @@ COMMANDS: list[Command] = [
         ),
     ),
     Command(
-        "chain",
-        "Exploit chain analysis over current findings",
-        "patchi.cli.commands.chain_cmd:run",
-        args=(
-            Arg(
-                "--min-severity",
-                dest="min_severity",
-                default="medium",
-                choices=("info", "low", "medium", "high", "critical"),
-                help="Minimum chain severity to display",
-            ),
-            Arg("--json", dest="json_output", action="store_true", help="JSON output"),
-            Arg("--max", dest="max_chains", type=int, default=20, help="Max chains to show"),
-        ),
-    ),
-    Command(
-        "intent",
-        "Business-logic / access-control route analysis",
-        "patchi.cli.commands.intent_cmd:run",
-        args=(Arg("--json", dest="json_output", action="store_true", help="JSON output"),),
-    ),
-    Command(
         "assure",
         "Assurance campaigns â€” prove properties, record evidence",
         "patchi.cli.commands.assure_cmd:run",
@@ -790,6 +719,14 @@ COMMANDS: list[Command] = [
                 "Set a configuration value",
                 "patchi.cli.commands.settings_cmd:run_set",
                 args=(Arg("key"), Arg("value")),
+            ),
+            Command(
+                "mode",
+                "View or set operating mode (confirm/auto/autopilot)",
+                "patchi.cli.commands.mode_cmd:run",
+                args=(
+                    Arg("mode_str", nargs="?", choices=("confirm", "auto", "autopilot"), help="New mode"),
+                ),
             ),
         ),
     ),
@@ -897,15 +834,6 @@ COMMANDS: list[Command] = [
         ),
     ),
     Command(
-        "ask",
-        "Ask about your codebase (auto-routes to reasoning or AI)",
-        "patchi.cli.commands.chat_cmd:run",
-        args=(
-            Arg("message", nargs="+", help="Your question in natural language"),
-            Arg("--json", dest="json_output", action="store_true", help="Output as JSON"),
-        ),
-    ),
-    Command(
         "chains",
         "Show exploit chains and intent gaps from last scan",
         "patchi.cli.commands.chains_cmd:run",
@@ -913,22 +841,9 @@ COMMANDS: list[Command] = [
             Arg("--min-score", type=float, default=0, help="Filter chains by minimum score"),
             Arg("--json", dest="json_output", action="store_true", help="Output as JSON"),
             Arg("--fix", action="store_true", help="Apply auto-fixable remediations via RiskGate"),
+            Arg("--analyze", action="store_true", help="Analyze findings from memory (like old p chain)"),
+            Arg("--min-severity", dest="min_severity", default="medium", help="Minimum severity for --analyze mode"),
         ),
-    ),
-    Command(
-        "profile",
-        "Show agent profiler stats (latency, accuracy, cost)",
-        "patchi.cli.commands.profile_cmd:run",
-        args=(
-            Arg("agent_name", nargs="?", default=None, help="Show details for a specific agent"),
-            Arg("--json", dest="json_output", action="store_true", help="Output as JSON"),
-        ),
-    ),
-    Command(
-        "learning",
-        "Show learning brain state (accept/reject patterns, trust)",
-        "patchi.cli.commands.learning_cmd:run",
-        args=(Arg("--json", dest="json_output", action="store_true", help="Output as JSON"),),
     ),
     Command(
         "findings",
@@ -1066,70 +981,7 @@ COMMANDS: list[Command] = [
             ),
         ),
     ),
-    Command(
-        "security",
-        "Run security scans",
-        "patchi.cli.commands.security_cmd:run_security",
-        namespace_handler=True,
-        args=(
-            Arg(
-                "type",
-                nargs="?",
-                choices=(
-                    "taint",
-                    "secrets",
-                    "config",
-                    "headers",
-                    "ratelimit",
-                    "cors",
-                    "deps",
-                    "probe",
-                    "jwt",
-                    "sensitive",
-                    "auth",
-                    "ssrf",
-                    "injection",
-                    "authz",
-                    "crypto",
-                    "network",
-                    "privacy",
-                    "depvuln",
-                    "compliance",
-                    "secrets_guard",
-                    "supply",
-                    "iac",
-                    "container",
-                    "policy",
-                    "cve",
-                    "redteam",
-                    "precheck",
-                    "runtime",
-                    "appmap",
-                    "browsertest",
-                    "evidence",
-                    "blast",
-                    "governance",
-                    "history",
-                    "report",
-                    "cdn",
-                    "dns",
-                    "emailauth",
-                    "push",
-                    "saml",
-                    "secrets_runtime",
-                    "mesh",
-                    "k8s",
-                ),
-                help="Scan type",
-            ),
-            Arg("area", nargs="?"),
-            Arg(
-                "--policy",
-                type=str,
-                help="Run policy engine with a specific policy file (e.g. --policy soc2.yaml)",
-            ),
-        ),
-    ),
+    # `p security` merged into `p scan` — use `p scan --deep` or `p scan <area>`
     Command(
         "command",
         "List all commands with tags and arguments",
@@ -1147,32 +999,7 @@ COMMANDS: list[Command] = [
         "patchi.cli.commands.help_cmd:run",
         args=(Arg("group", nargs="?", help="Command group"),),
     ),
-    Command(
-        "smart",
-        "Smart agent â€” goal-driven AI tool-calling over real tools",
-        "patchi.cli.commands.smart_cmd:run",
-        namespace_handler=True,
-        args=(
-            Arg(
-                "goal",
-                nargs="*",
-                help='Natural-language goal, e.g. "audit this project for security"',
-            ),
-            Arg(
-                "--json",
-                dest="json_output",
-                action="store_true",
-                help="Output the agent report as JSON",
-            ),
-            Arg(
-                "--max-steps",
-                dest="max_steps",
-                type=int,
-                default=6,
-                help="Maximum number of tool calls the agent may make",
-            ),
-        ),
-    ),
+        # `p smart` merged into `p chat` — use `p chat --stream` for the same functionality
     Command(
         "cross-repo",
         "Cross-repository dependency intelligence",
@@ -1212,15 +1039,19 @@ COMMANDS: list[Command] = [
         args=(
             Arg("--apply", action="store_true", help="Actually delete files (default is dry-run)"),
             Arg("--all", action="store_true", help="Also remove evidence/screenshots"),
+            Arg("--older-than", dest="older_than", default=None, help="Only remove files older than this (e.g. 7d, 24h, 30m)"),
+            Arg("--json", dest="json_output", action="store_true", help="Output as JSON for CI integration"),
         ),
     ),
     Command(
-        "cleanup",
-        "Clean stale .patchi/ artifacts",
-        "patchi.cli.commands.cleanup_cmd:cleanup",
+        "agent-stats",
+        "Agent profiling stats and learning state",
+        "patchi.cli.commands.agent_stats_cmd:run",
         args=(
-            Arg("--apply", action="store_true", help="Actually delete files"),
-            Arg("--all", action="store_true", help="Also remove evidence"),
+            Arg("agent_name", nargs="?", default=None, help="Show details for a specific agent"),
+            Arg("--profile", dest="show_profile", action="store_true", help="Show only profiler stats"),
+            Arg("--learning", dest="show_learning", action="store_true", help="Show only learning state"),
+            Arg("--json", dest="json_output", action="store_true", help="Output as JSON"),
         ),
     ),
 ]

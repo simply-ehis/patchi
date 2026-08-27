@@ -1,0 +1,128 @@
+playbooks:
+- blast_radius_notes: Automated fix for NJS-001
+  control_id: NJS-001
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Command injection via child_process with shell expansion:
+    Detect calls to child_process.exec, child_process.execSync, child_process.spawn
+    with shell=true, or child_process.spawnSync with shell=true where any argument
+    is derived from user input (req.body, req.query, req.params, process.argv, external
+    API response). The exec functions invoke a shell (/bin/sh -c on Unix, cmd.exe
+    /c on Windows) so shell metacharacters (;, |, &&, $(), `) in user input lead to
+    arbitrary command execution. The fix is to use execFile / spawn with shell=false
+    (the default for spawn) and pass arguments as an array, which avoids shell interpretation
+    entirely. For TypeScript the same patterns apply - the type system does not prevent
+    taint flow to child_process.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify NJS-001 is properly addressed
+- blast_radius_notes: Automated fix for NJS-002
+  control_id: NJS-002
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Code injection via eval / Function / vm.runInNewContext:
+    Detect use of eval(), new Function(), vm.runInNewContext(), vm.runInThisContext(),
+    vm.Script.runInNewContext(), or node:vm module functions where the code argument
+    is derived from user input. eval and new Function execute in the caller''s scope
+    or a fresh scope with full access to globals; vm.runInNewContext is NOT a security
+    boundary (the Node.js docs explicitly state this - sandbox escapes via WeakRef,
+    Proxy, or Error.prepareStackTrace are well-documented). For TypeScript, the same
+    patterns apply - the type system does not prevent runtime eval. The fix is to
+    use a proper sandbox (isolated-vm package with its own V8 isolate, or a separate
+    process) or, better, parse the input as data (JSON.parse, a custom DSL parser)
+    instead of executing it as code.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify NJS-002 is properly addressed
+- blast_radius_notes: Automated fix for NJS-003
+  control_id: NJS-003
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Prototype pollution via __proto__ / constructor / merge:
+    Detect prototype pollution vulnerabilities where user-controlled object keys __proto__,
+    constructor, or prototype are merged into existing objects without filtering.
+    Flag patterns: Object.assign(target, req.body) where req.body contains __proto__;
+    custom merge/deepMerge functions that recursively copy keys without a hasOwnProperty
+    check; usage of vulnerable merge libraries (lodash < 4.17.20 _.merge, lodash <
+    4.17.11 _.defaultsDeep, lodash < 4.17.5 _.merge, jQuery < 3.4 $.extend(true, ...,
+    userObj), just-extend < 4.0.1). Prototype pollution can escalate to RCE in some
+    stacks (e.g. via polluted Object.prototype.env in child_process.spawn options
+    on Linux, or polluted type templates in EJS/Pug).'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify NJS-003 is properly addressed
+- blast_radius_notes: Automated fix for NJS-004
+  control_id: NJS-004
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix ReDoS via catastrophic backtracking regex: Detect regex patterns
+    that exhibit catastrophic backtracking when run on attacker-controlled input.
+    Flag patterns containing: (1) nested quantifiers like (a+)+, (a*)*, (a|a)*, (a|aa)+;
+    (2) overlapping alternation with quantifiers like (a|ab)*c; (3) quantifiers applied
+    to groups containing optional elements like (a?)+; (4) use of RegExp(userInput)
+    where the user controls the pattern. Common vulnerable patterns in real code:
+    email validation regexes, phone number regexes, URL parsing regexes, markdown
+    parsers. The fix is to use atomic groups (not supported in JS until ES2025) or
+    rewrite the regex without nested quantifiers, or use the safe-regex2 / re2 package
+    (Google''s RE2 engine, linear time, no backtracking) for user-facing regex.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify NJS-004 is properly addressed
+- blast_radius_notes: Automated fix for NJS-005
+  control_id: NJS-005
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Path traversal in fs operations: Detect fs.readFile, fs.writeFile,
+    fs.createReadStream, fs.createWriteStream, fs.unlink, fs.mkdir, fs.readdir, and
+    path.join / path.resolve calls where the path argument includes user input without
+    prior sanitization. The classic exploit is req.params.filename passed directly
+    to fs.readFile, allowing ../../etc/passwd. path.join does NOT prevent traversal
+    if the user input starts with .. - path.join(''/app/uploads'', ''../../etc/passwd'')
+    returns ''/etc/passwd''. The fix is to: (1) compute the resolved path with path.resolve,
+    (2) confirm it starts with the allowed base directory, (3) reject otherwise. Also
+    flag use of Buffer.from(userInput) concatenated into paths, and use of fs.realpath
+    that may resolve symlinks outside the base dir.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify NJS-005 is properly addressed
+- blast_radius_notes: Automated fix for NJS-006
+  control_id: NJS-006
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Dynamic require / import() with user input: Detect require(userInput),
+    import(userInput), or dynamic require(''./'' + userInput) where the module path
+    is derived from user input. require and import() load and execute arbitrary JavaScript
+    files from the filesystem; combined with path traversal this can load attacker-controlled
+    code (e.g. an uploaded file). Flag patterns: require(req.body.module), require(`./modules/${req.params.name}`),
+    await import(req.query.plugin). Also flag require.resolve with user input, and
+    import() with a URL in environments that allow remote modules (rare but exists
+    in Deno-compat shims). The fix is to use a static map of permitted module names
+    to imported modules, and reject any name not in the map.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify NJS-006 is properly addressed
+- blast_radius_notes: Automated fix for NJS-007
+  control_id: NJS-007
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Event loop blocking via synchronous I/O in request handlers:
+    Detect synchronous I/O and CPU-bound operations in HTTP request handlers, Express
+    middleware, or any code path that runs on the main event loop. Flag fs.readFileSync,
+    fs.writeFileSync, fs.mkdirSync, fs.statSync in non-startup code; child_process.execSync
+    in request handlers; crypto.pbkdf2Sync / scryptSync (use the async versions);
+    large JSON.parse on untrusted input (can take seconds); large regex with backtracking;
+    while loops without a bound. The Node.js event loop is single-threaded, so any
+    blocking operation stalls ALL concurrent requests. An attacker can DoS the service
+    with a single slow request. The fix is to use the async version (fs.readFile instead
+    of fs.readFileSync), offload CPU-bound work to worker_threads, or stream large
+    inputs.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify NJS-007 is properly addressed

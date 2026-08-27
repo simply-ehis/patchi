@@ -1,0 +1,249 @@
+playbooks:
+- blast_radius_notes: Automated fix for CONFIG-01
+  control_id: CONFIG-01
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Document all external communication needs: All communication
+    needs for the application must be documented, including external services the
+    application relies upon and cases where an end user might supply an external location
+    the application will then connect to (relevant to SSRF risk).'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify CONFIG-01 is properly addressed
+- blast_radius_notes: Automated fix for CONFIG-02
+  control_id: CONFIG-02
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Document per-service connection limits and reached-limit
+    behavior: For each service the application uses, documentation must define the
+    maximum number of concurrent connections and how the application behaves when
+    that limit is reached, including fallback/recovery, to prevent denial-of-service
+    conditions.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify CONFIG-02 is properly addressed
+- blast_radius_notes: Automated fix for CONFIG-03
+  control_id: CONFIG-03
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Document resource-management strategy per external system:
+    Documentation must define resource-management strategies for every external system/service
+    used, including release procedures, timeouts, failure handling, and retry limits/delays/backoff;
+    synchronous HTTP request-response operations should mandate short timeouts with
+    disabled or strictly-limited retries to prevent cascading delays and resource
+    exhaustion.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify CONFIG-03 is properly addressed
+- blast_radius_notes: Automated fix for CONFIG-04
+  control_id: CONFIG-04
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Document a secret-rotation schedule: Documentation must define
+    which secrets are critical to the application''s security and a rotation schedule
+    for them, based on the organization''s threat model and business requirements.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify CONFIG-04 is properly addressed
+- blast_radius_notes: Automated fix for CONFIG-05
+  control_id: CONFIG-05
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Authenticate backend-to-backend communication with non-static
+    credentials: Communications between backend application components that don''t
+    use the app''s standard user-session mechanism (APIs, middleware, data layers)
+    must be authenticated using individual service accounts, short-term tokens, or
+    certificate-based authentication  -  not unchanging credentials such as static passwords,
+    API keys, or shared privileged accounts.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify CONFIG-05 is properly addressed
+- blast_radius_notes: Automated fix for CONFIG-06
+  control_id: CONFIG-06
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Enforce least-privilege accounts for backend component communication:
+    Communications between backend application components, including local/OS services,
+    APIs, middleware, and data layers, must be performed with accounts assigned the
+    least privileges necessary.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify CONFIG-06 is properly addressed
+- blast_radius_notes: Automated fix for CONFIG-07
+  control_id: CONFIG-07
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Never use default credentials for service authentication:
+    If a credential is used for service authentication, it must not be a default credential
+    (e.g. root/root, admin/admin).'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify CONFIG-07 is properly addressed
+- blast_radius_notes: Automated fix for CONFIG-08
+  control_id: CONFIG-08
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Allowlist permitted external destinations for outbound communication:
+    An allowlist must define the external resources/systems the application is permitted
+    to communicate with (outbound requests, data loads, file access), implementable
+    at the application layer, web server, firewall, or a combination.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify CONFIG-08 is properly addressed
+- blast_radius_notes: Automated fix for CONFIG-09
+  control_id: CONFIG-09
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Configure the web/app server with its own outbound allowlist:
+    The web or application server itself must be configured with an allowlist of resources/systems
+    it can send requests to or load data/files from, as a defense-in-depth layer alongside
+    application-level allowlisting.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify CONFIG-09 is properly addressed
+- blast_radius_notes: Automated fix for CONFIG-10
+  control_id: CONFIG-10
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Follow documented per-connection configuration for external
+    services: Where the application connects to separate services, it must follow
+    the documented configuration for each connection  -  maximum parallel connections,
+    behavior at the connection limit, timeouts, and retry strategies.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify CONFIG-10 is properly addressed
+- blast_radius_notes: Automated fix for CONFIG-11
+  control_id: CONFIG-11
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Use a secrets management solution; never commit secrets to
+    source or build artifacts: A secrets management solution (key vault) must securely
+    create, store, control access to, and destroy backend secrets. Secrets must never
+    be included in application source code or build artifacts. L3 applications must
+    use a hardware-backed solution (HSM).'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify CONFIG-11 is properly addressed
+- blast_radius_notes: Automated fix for CONFIG-12
+  control_id: CONFIG-12
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Enforce least-privilege access to secret assets: Access to
+    secret assets stored in the vault/secrets manager must adhere to the principle
+    of least privilege.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify CONFIG-12 is properly addressed
+- blast_radius_notes: Automated fix for CONFIG-13
+  control_id: CONFIG-13
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Perform cryptographic operations within an isolated security
+    module: All cryptographic operations must be performed using an isolated security
+    module (a vault or hardware security module) to securely manage and protect key
+    material from exposure outside that module.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify CONFIG-13 is properly addressed
+- blast_radius_notes: Automated fix for CONFIG-14
+  control_id: CONFIG-14
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Configure secrets to expire and rotate per documentation:
+    Secrets must be configured to expire and be rotated based on the application''s
+    documentation.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify CONFIG-14 is properly addressed
+- blast_radius_notes: Automated fix for CONFIG-15
+  control_id: CONFIG-15
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Exclude source-control metadata from deployed artifacts:
+    The application must be deployed either without any source-control metadata (.git,
+    .svn folders) or in a way that these folders are inaccessible both externally
+    and to the application itself.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify CONFIG-15 is properly addressed
+- blast_radius_notes: Automated fix for CONFIG-16
+  control_id: CONFIG-16
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Disable debug modes in production: Debug modes must be disabled
+    for all components in production environments to prevent exposure of debugging
+    features and information leakage.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify CONFIG-16 is properly addressed
+- blast_radius_notes: Automated fix for CONFIG-17
+  control_id: CONFIG-17
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Disable directory listing on web servers: Web servers must
+    not expose directory listings to clients unless explicitly intended.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify CONFIG-17 is properly addressed
+- blast_radius_notes: Automated fix for CONFIG-18
+  control_id: CONFIG-18
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Disable the HTTP TRACE method in production: Use of the HTTP
+    TRACE method must not be supported in production environments, to avoid potential
+    information leakage.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify CONFIG-18 is properly addressed
+- blast_radius_notes: Automated fix for CONFIG-19
+  control_id: CONFIG-19
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Restrict exposure of internal documentation and monitoring
+    endpoints: Documentation (such as for internal APIs) and monitoring endpoints
+    must not be exposed unless explicitly intended.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify CONFIG-19 is properly addressed
+- blast_radius_notes: Automated fix for CONFIG-20
+  control_id: CONFIG-20
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Do not expose detailed backend component version information:
+    The application must not expose detailed version information of backend components
+    in response headers or error pages.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify CONFIG-20 is properly addressed
+- blast_radius_notes: Automated fix for CONFIG-21
+  control_id: CONFIG-21
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Restrict the web tier to serving only intended file extensions:
+    The web tier must be configured to only serve files with specific, intended file
+    extensions, to prevent unintentional information, configuration, and source code
+    leakage.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify CONFIG-21 is properly addressed

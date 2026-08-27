@@ -1,0 +1,24 @@
+playbooks:
+- blast_radius_notes: Automated fix for GRAPHQL-01
+  control_id: GRAPHQL-01
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Limit query depth/cost to prevent GraphQL DoS: A query allowlist,
+    depth limiting, amount limiting, or query cost analysis must be used to prevent
+    GraphQL or data-layer expression denial-of-service resulting from expensive, deeply-nested
+    queries.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify GRAPHQL-01 is properly addressed
+- blast_radius_notes: Automated fix for GRAPHQL-02
+  control_id: GRAPHQL-02
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Disable GraphQL introspection in production unless intentionally
+    public: GraphQL introspection queries must be disabled in the production environment
+    unless the GraphQL API is specifically meant to be used/discovered by other parties.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify GRAPHQL-02 is properly addressed

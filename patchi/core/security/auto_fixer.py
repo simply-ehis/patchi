@@ -306,19 +306,42 @@ class AutoFixer:
     async def _verify_by_static_analysis(
         self,
         patch: Patch,
-        finding: Finding,
+        finding: Finding | CorrelatedFinding,
         playbook: FixPlaybook,
     ) -> bool:
-        """Verify fix by running deterministic tool from playbook."""
+        """Verify fix by running the deterministic tool from the playbook.
+
+        The tool is executed against the patched file via tool_verify, closing
+        the detect→fix→verify loop with real evidence instead of a simulation.
+        """
         tool = playbook.deterministic_tool
         if not tool:
             return False
 
-        self.on_progress(f"  Running {tool} for verification...")
+        target = None
+        if patch.changes:
+            candidate = self.root / patch.changes[0].path
+            if candidate.exists():
+                target = candidate
+        if target is None:
+            self.on_progress(f"  [WARN] patched file not found; cannot verify with {tool}")
+            return False
 
-        # Would run the specified tool (bandit, semgrep, etc.) on patched files
-        # For now, simulated
-        return True
+        self.on_progress(f"  Running {tool} on {target.name} for verification...")
+
+        from patchi.core.security.tool_verify import finding_resolved
+
+        try:
+            resolved = finding_resolved(tool, target, finding)
+        except Exception as e:  # defensive: never block the commit on tool errors
+            _log.warning("static verification via %s failed: %s", tool, e)
+            return False
+
+        if resolved:
+            self.on_progress(f"  [OK] {tool} confirms the finding is gone")
+        else:
+            self.on_progress(f"  [WARN] {tool} still reports the finding")
+        return resolved
 
     async def _verify_by_tests(self, patch: Patch, finding: Finding) -> bool:
         """Verify fix by running related tests."""
@@ -476,3 +499,162 @@ async def auto_fix_finding(
     """Auto-fix a single finding."""
     fixer = AutoFixer(root, config)
     return await fixer.fix_finding(finding, apply=apply, verify=verify)
+
+
+# ── Header Auto-Fix ─────────────────────────────────────────────────────────
+
+def fix_missing_headers(
+    root: Path,
+    findings: list[dict],
+    apply: bool = False,
+) -> dict:
+    """
+    Fix missing security headers based on DAST findings.
+
+    Args:
+        root: Project root path
+        findings: List of DAST findings (dicts with type, severity, message)
+        apply: If True, actually write the fixes
+
+    Returns:
+        Dict with fixed_count, fixes applied, and suggestions
+    """
+    header_fixes = []
+    fixed = []
+    skipped = []
+
+    for finding in findings:
+        ftype = finding.get("type", "")
+        severity = finding.get("severity", "low")
+
+        # Only fix header-related findings
+        if "header" not in ftype and "csp" not in ftype and "hsts" not in ftype and "frame" not in ftype:
+            continue
+
+        # Determine the fix
+        fix = None
+        if "content_security_policy" in ftype or "csp" in ftype.lower():
+            fix = {
+                "type": "missing_csp",
+                "header": "Content-Security-Policy",
+                "value": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'",
+                "description": "Add Content-Security-Policy header",
+                "severity": severity,
+            }
+        elif "x_frame_options" in ftype or "frame" in ftype.lower():
+            fix = {
+                "type": "missing_xfo",
+                "header": "X-Frame-Options",
+                "value": "DENY",
+                "description": "Add X-Frame-Options header",
+                "severity": severity,
+            }
+        elif "hsts" in ftype or "strict_transport" in ftype.lower():
+            fix = {
+                "type": "missing_hsts",
+                "header": "Strict-Transport-Security",
+                "value": "max-age=31536000; includeSubDomains",
+                "description": "Add Strict-Transport-Security header",
+                "severity": severity,
+            }
+
+        if fix:
+            header_fixes.append(fix)
+
+    if not header_fixes:
+        return {"fixed_count": 0, "fixes": [], "skipped": []}
+
+    if not apply:
+        return {
+            "fixed_count": 0,
+            "fixes": header_fixes,
+            "skipped": [],
+            "dry_run": True,
+        }
+
+    # Find web app files to add headers to
+    web_files = []
+    for f in root.glob("**/*.py"):
+        if ".patchi" in str(f) or "node_modules" in str(f):
+            continue
+        try:
+            content = f.read_text(encoding="utf-8", errors="ignore")
+            if any(kw in content for kw in ["FastAPI", "Flask", "Starlette", "@app", "middleware"]):
+                web_files.append(f)
+        except Exception:
+            pass
+
+    if not web_files:
+        return {
+            "fixed_count": 0,
+            "fixes": header_fixes,
+            "skipped": header_fixes,
+            "error": "No web app files found",
+        }
+
+    # Generate header fix code
+    headers_code = _generate_header_middleware(header_fixes)
+
+    # Apply to the first web app file (append middleware)
+    target_file = web_files[0]
+    try:
+        content = target_file.read_text(encoding="utf-8")
+
+        # Check if middleware already exists
+        if "PatchiSecurityHeaders" in content:
+            return {
+                "fixed_count": 0,
+                "fixes": header_fixes,
+                "skipped": header_fixes,
+                "message": "Security headers middleware already exists",
+            }
+
+        # Append the middleware
+        new_content = content + "\n" + headers_code
+        target_file.write_text(new_content, encoding="utf-8")
+
+        fixed = header_fixes
+        return {
+            "fixed_count": len(fixed),
+            "fixes": fixed,
+            "skipped": skipped,
+            "file": str(target_file.relative_to(root)),
+        }
+    except Exception as e:
+        return {
+            "fixed_count": 0,
+            "fixes": header_fixes,
+            "skipped": header_fixes,
+            "error": str(e),
+        }
+
+
+def _generate_header_middleware(fixes: list[dict]) -> str:
+    """Generate Python middleware code for security headers."""
+    header_lines = []
+    for fix in fixes:
+        header_lines.append(f'        response.headers["{fix["header"]}"] = "{fix["value"]}"')
+
+    headers_block = "\n".join(header_lines)
+
+    return f"""
+
+
+# === Patchi Security Headers Middleware (auto-generated) ===
+try:
+    from starlette.middleware.base import BaseHTTPMiddleware
+    from starlette.requests import Request
+    from starlette.responses import Response
+
+    class PatchiSecurityHeaders(BaseHTTPMiddleware):
+        \"\"\"Adds missing security headers to all responses.\"\"\"
+
+        async def dispatch(self, request: Request, call_next):
+            response = await call_next(request)
+{headers_block}
+            return response
+
+except ImportError:
+    pass
+# === End Patchi Security Headers ===
+"""

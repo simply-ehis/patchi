@@ -18,7 +18,10 @@
       <div style="display:flex;gap:8px;align-items:center">
         <input id="token-name" type="text" placeholder="Token name (e.g. ci-server)" 
                style="flex:1;padding:6px 10px;border:1px solid var(--border);border-radius:6px;background:var(--bg-secondary);color:var(--text-primary)">
-        <button class="btn btn-primary" onclick="generateToken()">Generate</button>
+        <button class="btn btn-primary" id="token-generate" onclick="generateToken()">
+          <span class="btn-text">Generate</span>
+          <span class="btn-spinner" style="display:none;margin-left:6px">⏳</span>
+        </button>
       </div>
       <div id="token-result" style="margin-top:8px;display:none">
         <div style="padding:8px;background:var(--bg-secondary);border-radius:6px;font-family:var(--font-mono);font-size:13px;word-break:break-all" id="token-plaintext"></div>
@@ -42,7 +45,7 @@
         <td style="color:var(--text-dim);font-size:12px" class="ts" data-ts="{{ tok.created_at or '' }}"></td>
         <td style="color:var(--text-dim);font-size:12px" class="ts" data-ts="{{ tok.last_used or '' }}" data-never="Never"></td>
         <td style="text-align:right">
-          <button class="btn btn-sm btn-danger" onclick="revokeToken('{{ tok.id }}')">Revoke</button>
+          <button class="btn btn-sm btn-danger" onclick="revokeToken('{{ tok.id }}', this)">Revoke</button>
         </td>
       </tr>
       {% else %}
@@ -66,32 +69,49 @@ document.querySelectorAll('.ts').forEach(el => { el.textContent = fmtTS(el.datas
 
 async function generateToken() {
   const name = document.getElementById('token-name').value.trim();
+  const btn = document.getElementById('token-generate');
   if (!name) { alert('Enter a token name'); return; }
+  btn.disabled = true;
+  btn.classList.add('loading');
 
-  const res = await fetch('/api/hosted/tokens', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({name}),
-  });
-  const data = await res.json();
-  if (data.ok) {
-    document.getElementById('token-plaintext').textContent = data.token;
-    document.getElementById('token-result').style.display = 'block';
-    document.getElementById('token-name').value = '';
-    setTimeout(() => window.location.reload(), 2000);
-  } else {
-    alert(data.error || 'Failed to generate token');
+  try {
+    const res = await fetch('/api/hosted/tokens', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({name}),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      document.getElementById('token-plaintext').textContent = data.token;
+      document.getElementById('token-result').style.display = 'block';
+      document.getElementById('token-name').value = '';
+      setTimeout(() => window.location.reload(), 2000);
+    } else {
+      alert(data.error || 'Failed to generate token');
+    }
+  } catch (e) {
+    alert('Failed to generate token: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.classList.remove('loading');
   }
 }
 
-async function revokeToken(id) {
+async function revokeToken(id, btn) {
   if (!confirm('Revoke token ' + id + '? This cannot be undone.')) return;
-  const res = await fetch('/api/hosted/tokens/' + id, { method: 'DELETE' });
-  const data = await res.json();
-  if (data.ok) {
-    window.location.reload();
-  } else {
-    alert(data.error || 'Failed to revoke token');
+  if (btn) { btn.disabled = true; btn.textContent = 'Revoking…'; }
+  try {
+    const res = await fetch('/api/hosted/tokens/' + id, { method: 'DELETE' });
+    const data = await res.json();
+    if (data.ok) {
+      window.location.reload();
+    } else {
+      alert(data.error || 'Failed to revoke token');
+      if (btn) { btn.disabled = false; btn.textContent = 'Revoke'; }
+    }
+  } catch (e) {
+    alert('Failed to revoke token: ' + e.message);
+    if (btn) { btn.disabled = false; btn.textContent = 'Revoke'; }
   }
 }
 </script>

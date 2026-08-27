@@ -1,542 +1,345 @@
 playbooks:
-- blast_radius_notes: Host-wide daemon config; breaks any container communication
-    that relied on default-bridge connectivity without explicit networking.
-  control_id: CTR-01
-  deterministic_tool: 'add "icc": false to the checked-in daemon.json'
-  fix_strategy: deterministic-autofix
-  human_review_required: true
-  llm_fix_template: null
+- control_id: CTR-01
   playbook_version: 1.0.0
-  verification_checks:
-  - 'Confirm daemon.json now sets icc: false.'
-  - Confirm intended container-to-container communication still works via explicit
-    Docker networks/links.
-- blast_radius_notes: May break pulls from a registry that was only ever configured
-    over plain HTTP — that registry needs a real TLS certificate, not just removal
-    of the exception.
-  control_id: CTR-02
-  deterministic_tool: remove entries from insecure-registries in daemon.json
-  fix_strategy: deterministic-autofix
-  human_review_required: true
-  llm_fix_template: null
-  playbook_version: 1.0.0
-  verification_checks:
-  - Confirm daemon.json's insecure-registries list is empty.
-  - Confirm image pulls from the affected registry now require valid TLS or are migrated
-    to a properly certificated registry.
-- blast_radius_notes: Any existing client connecting without a certificate will break;
-    certificate provisioning must be rolled out to legitimate callers first.
-  control_id: CTR-03
-  deterministic_tool: add --tlsverify with certs configured to the daemon's exposed
-    API config
-  fix_strategy: deterministic-autofix
-  human_review_required: true
-  llm_fix_template: null
-  playbook_version: 1.0.0
-  verification_checks:
-  - Confirm the daemon's remote API now requires client TLS certificates.
-  - Confirm legitimate clients (CI runners, orchestration tools) have valid certs
-    and can still connect.
-- blast_radius_notes: Rarely breaks anything in modern images; can break images that
-    rely on setuid-based privilege drop patterns (uncommon but worth a smoke test).
-  control_id: CTR-04
-  deterministic_tool: 'add security_opt: [no-new-privileges:true] to the service definition
-    in docker-compose.yml, or the equivalent daemon-wide default'
-  fix_strategy: deterministic-autofix
+  fix_strategy: llm-template
+  deterministic_tool: null
   human_review_required: false
-  llm_fix_template: null
-  playbook_version: 1.0.0
+  llm_fix_template: Fix Inter-container traffic on the default bridge restricted
+  blast_radius_notes: Automated fix for CTR-01
   verification_checks:
-  - Confirm the flag is present in the compose file.
-  - Confirm the container still functions (some legacy images relying on setuid binaries
-    for privilege changes may break).
-- blast_radius_notes: Can break apps that assume root (binding to ports <1024, writing
-    to root-owned paths); these need explicit permission/capability fixes alongside
-    the USER change, not just the instruction itself.
-  control_id: CTR-05
+  - Verify CTR-01 is addressed
+- control_id: CTR-02
+  playbook_version: 1.0.0
+  fix_strategy: llm-template
   deterministic_tool: null
-  fix_strategy: llm-template-fill
-  human_review_required: true
-  llm_fix_template: "\"Given a Dockerfile with no USER instruction (or USER root as\
-    \ final):\n add a dedicated, minimally-privileged user (RUN adduser/useradd ...\
-    \ ,\n then USER {new_user}) before the final CMD/ENTRYPOINT; ensure all\n files/directories\
-    \ the app needs to read or write are owned by or\n accessible to {new_user}; preserve\
-    \ the app's runtime behavior.\"\n"
-  playbook_version: 1.0.0
-  verification_checks:
-  - Re-run Hadolint/Semgrep and confirm zero findings.
-  - Build and run the image, confirming the app starts and functions correctly as
-    the non-root user.
-- blast_radius_notes: May require migrating to a different base image, which can introduce
-    compatibility changes worth testing.
-  control_id: CTR-06
-  deterministic_tool: null
-  fix_strategy: manual-only
-  human_review_required: true
-  llm_fix_template: null
-  playbook_version: 1.0.0
-  verification_checks:
-  - A human confirms the base image publisher is a verified, trusted source (official
-    image, verified publisher, or internally-maintained golden image).
-- blast_radius_notes: Requires an image-signing process to exist before enforcement
-    is turned on, or all pulls will fail; roll out signing first, then enforcement.
-  control_id: CTR-07
-  deterministic_tool: set DOCKER_CONTENT_TRUST=1 in CI/CD pipeline environment, or
-    add a cosign verify/sign step to the build pipeline
-  fix_strategy: deterministic-autofix
-  human_review_required: true
-  llm_fix_template: null
-  playbook_version: 1.0.0
-  verification_checks:
-  - Confirm the CI pipeline now enforces signature verification before pulling/deploying
-    images.
-  - Confirm the team's image-signing process is in place so legitimate builds still
-    pass.
-- blast_radius_notes: Purely additive; low risk.
-  control_id: CTR-08
-  deterministic_tool: add a HEALTHCHECK instruction to the Dockerfile
-  fix_strategy: deterministic-autofix
   human_review_required: false
-  llm_fix_template: null
-  playbook_version: 1.0.0
+  llm_fix_template: Fix No insecure (unencrypted/unverified) registries configured
+  blast_radius_notes: Automated fix for CTR-02
   verification_checks:
-  - Confirm docker inspect shows a configured healthcheck.
-  - Confirm the healthcheck command correctly reports healthy/unhealthy in a running
-    container.
-- blast_radius_notes: Blindly stripping all setuid/setgid bits can break legitimate
-    OS tools (e.g. sudo, ping); review the list before applying.
-  control_id: CTR-09
+  - Verify CTR-02 is addressed
+- control_id: CTR-03
+  playbook_version: 1.0.0
+  fix_strategy: llm-template
   deterministic_tool: null
-  fix_strategy: manual-only
-  human_review_required: true
-  llm_fix_template: null
-  playbook_version: 1.0.0
-  verification_checks:
-  - A human identifies which setuid/setgid binaries in the image genuinely need those
-    bits and strips the rest (find / -perm /6000 -type f -exec chmod a-s {} \; as
-    a starting point, reviewed rather than blindly applied).
-- blast_radius_notes: If ADD's remote-URL-fetch or archive-auto-extraction behavior
-    was actually relied upon, replace with an explicit RUN curl/wget + tar step instead
-    of a blind swap.
-  control_id: CTR-10
-  deterministic_tool: replace ADD with COPY in the Dockerfile where remote-fetch/auto-extract
-    behavior isn't actually needed
-  fix_strategy: deterministic-autofix
   human_review_required: false
-  llm_fix_template: null
-  playbook_version: 1.0.0
+  llm_fix_template: Fix TLS authentication configured for the Docker daemon's remote
+    API
+  blast_radius_notes: Automated fix for CTR-03
   verification_checks:
-  - Re-run Hadolint and confirm the DL3020 finding is resolved.
-  - Confirm the build still succeeds and produces the same file layout.
-- blast_radius_notes: Removing a secret already baked into published image layers
-    does not retroactively remove it from previously-pushed images — those must be
-    deleted/rebuilt and the secret rotated regardless of the Dockerfile fix.
-  control_id: CTR-11
+  - Verify CTR-03 is addressed
+- control_id: CTR-04
+  playbook_version: 1.0.0
+  fix_strategy: llm-template
   deterministic_tool: null
-  fix_strategy: llm-template-fill
-  human_review_required: true
-  llm_fix_template: "\"Given a secret value {secret} found in a Dockerfile instruction\
-    \ (ENV,\n ARG, or a COPYed file): remove {secret} from the Dockerfile entirely;\n\
-    \ pass it at build time via Docker BuildKit secrets (--secret flag,\n mounted\
-    \ only during the specific RUN step that needs it and never\n persisted to a layer)\
-    \ or inject it at container runtime via an\n orchestrator secret mechanism; rotate\
-    \ {secret} since it must be\n treated as compromised once found in image history.\"\
-    \n"
-  playbook_version: 1.0.0
-  verification_checks:
-  - Re-run Gitleaks/Trivy secret scanning against the rebuilt image and confirm zero
-    findings, including in layer history.
-  - Confirm the app still receives the needed secret via the new mechanism.
-- blast_radius_notes: Identifying the correct minimal capability set may require iterative
-    testing (strace/audit the app to see which capabilities it actually uses) rather
-    than guessing.
-  control_id: CTR-12
-  deterministic_tool: null
-  fix_strategy: llm-template-fill
-  human_review_required: true
-  llm_fix_template: "\"Given a container definition with no capability restriction:\
-    \ add\n cap_drop: [ALL] (docker-compose) or securityContext.capabilities.drop:\n\
-    \ [\\\"ALL\\\"] (Kubernetes), then add back only the specific capabilities\n {required_capabilities}\
-    \ the application genuinely needs via cap_add /\n capabilities.add; preserve the\
-    \ application's functional requirements.\"\n"
-  playbook_version: 1.0.0
-  verification_checks:
-  - Re-run the Semgrep rule and confirm the drop-all baseline is present.
-  - Confirm the application still functions with only the added-back capabilities.
-- blast_radius_notes: Privileged mode is often used as a blanket fix for an underlying
-    permission need — identifying and replacing it with the minimal specific grant
-    can take real investigation, not a one-line change.
-  control_id: CTR-13
-  deterministic_tool: null
-  fix_strategy: llm-template-fill
-  human_review_required: true
-  llm_fix_template: "\"Given a container/pod definition with privileged: true: remove\
-    \ the\n privileged flag; identify the specific capabilities or device access\n\
-    \ the container actually needs and grant those narrowly instead (see\n CTR-12\
-    \ for capabilities, or specific device cgroup rules for device\n access); preserve\
-    \ the container's functional requirements.\"\n"
-  playbook_version: 1.0.0
-  verification_checks:
-  - Confirm privileged mode is removed.
-  - Confirm the container still functions using the narrower, specific permissions
-    granted instead.
-- blast_radius_notes: Removing a host mount the app was relying on will break functionality
-    relying on it — confirm the actual dependency before removing, and prefer a narrower/read-only
-    mount over full removal if genuinely needed.
-  control_id: CTR-14
-  deterministic_tool: null
-  fix_strategy: llm-template-fill
-  human_review_required: true
-  llm_fix_template: "\"Given a volume mount of a sensitive host path {sensitive_path}:\
-    \ remove\n the mount unless there is a specific, documented need; if genuinely\n\
-    \ needed, narrow it to the smallest possible subdirectory and mount it\n read-only;\
-    \ preserve the container's functional requirements for\n legitimate use of that\
-    \ path.\"\n"
-  playbook_version: 1.0.0
-  verification_checks:
-  - Confirm the sensitive mount is removed or narrowed.
-  - Confirm the container still functions without full access to the sensitive path.
-- blast_radius_notes: This is typically the highest-impact single fix in this domain
-    (equivalent to host root access) — treat any instance found as urgent regardless
-    of how the surrounding conversation frames it.
-  control_id: CTR-15
-  deterministic_tool: null
-  fix_strategy: llm-template-fill
-  human_review_required: true
-  llm_fix_template: "\"Given a volume mount of /var/run/docker.sock into a container:\
-    \ remove\n the mount; if the container genuinely needs to manage other\n containers\
-    \ (e.g. a CI runner or monitoring tool), use a properly\n scoped alternative (a\
-    \ Docker-in-Docker sidecar with its own isolated\n daemon, or a narrowly-permissioned\
-    \ API proxy like docker-socket-proxy)\n instead of direct host socket access;\
-    \ preserve the legitimate\n management functionality.\"\n"
-  playbook_version: 1.0.0
-  verification_checks:
-  - Confirm the direct socket mount is removed.
-  - Confirm the container-management functionality still works via the safer alternative.
-- blast_radius_notes: Removing host networking can change the container's visible
-    IP/hostname behavior — check for any code that assumed host-network semantics
-    (e.g. binding to the host's actual IP) before deploying.
-  control_id: CTR-16
-  deterministic_tool: null
-  fix_strategy: llm-template-fill
-  human_review_required: true
-  llm_fix_template: "\"Given a container/pod using network_mode: host or hostNetwork:\
-    \ true:\n remove the host-network setting; use standard container networking\n\
-    \ with explicit port mappings/Services instead; preserve the container's\n required\
-    \ network reachability via the new networking configuration.\"\n"
-  playbook_version: 1.0.0
-  verification_checks:
-  - Confirm host networking is removed.
-  - Confirm the container's required connectivity still works via standard port mapping/Services.
-- blast_radius_notes: Setting the limit too low will cause the container to be OOM-killed
-    under normal load — base the limit on observed real memory usage, not a guess.
-  control_id: CTR-17
-  deterministic_tool: add mem_limit (docker-compose) or resources.limits.memory (Kubernetes)
-    to the container/pod definition
-  fix_strategy: deterministic-autofix
   human_review_required: false
-  llm_fix_template: null
-  playbook_version: 1.0.0
+  llm_fix_template: Fix Containers restricted from acquiring new privileges
+  blast_radius_notes: Automated fix for CTR-04
   verification_checks:
-  - Confirm a memory limit is set.
-  - Load-test the container and confirm it doesn't get OOM-killed under normal expected
-    load with the chosen limit.
-- blast_radius_notes: Applications that write to unexpected paths (caches, PID files,
-    temp dirs) will fail silently or loudly until those paths are identified and given
-    explicit writable mounts — expect an iterative discovery process, not a one-shot
-    fix.
-  control_id: CTR-18
+  - Verify CTR-04 is addressed
+- control_id: CTR-05
+  playbook_version: 1.0.0
+  fix_strategy: llm-template
   deterministic_tool: null
-  fix_strategy: llm-template-fill
-  human_review_required: true
-  llm_fix_template: "\"Given a container/pod with a writable root filesystem: add\n\
-    \ read_only: true (docker-compose) or readOnlyRootFilesystem: true\n (Kubernetes)\
-    \ to the container definition; for any specific paths the\n application genuinely\
-    \ needs to write to (logs, temp files, caches),\n add explicit writable volume\
-    \ mounts (emptyDir or tmpfs) for just those\n paths; preserve the application's\
-    \ ability to write where it\n legitimately needs to.\"\n"
-  playbook_version: 1.0.0
-  verification_checks:
-  - Confirm the read-only flag is set.
-  - Run the application and confirm it starts and operates correctly, with writes
-    succeeding only to the explicitly-mounted writable paths.
-- blast_radius_notes: Setting the limit too low will kill legitimate multi-process/multi-threaded
-    applications — base it on observed real process counts.
-  control_id: CTR-19
-  deterministic_tool: add pids_limit (docker-compose) or an equivalent PID limit setting
-    to the container/pod definition
-  fix_strategy: deterministic-autofix
   human_review_required: false
-  llm_fix_template: null
-  playbook_version: 1.0.0
+  llm_fix_template: Fix Container runs as a non-root user
+  blast_radius_notes: Automated fix for CTR-05
   verification_checks:
-  - Confirm a PID limit is set.
-  - Confirm the application's normal process/thread count stays comfortably under
-    the limit.
-- blast_radius_notes: Localized config change; low functional risk for most applications.
-  control_id: CTR-20
-  deterministic_tool: 'remove userns_mode: host from the docker-compose service definition'
-  fix_strategy: deterministic-autofix
+  - Verify CTR-05 is addressed
+- control_id: CTR-06
+  playbook_version: 1.0.0
+  fix_strategy: llm-template
+  deterministic_tool: null
   human_review_required: false
-  llm_fix_template: null
-  playbook_version: 1.0.0
+  llm_fix_template: Fix Base images sourced only from trusted registries/publishers
+  blast_radius_notes: Automated fix for CTR-06
   verification_checks:
-  - Confirm the setting is removed.
-  - Confirm the container still functions with standard user-namespace isolation.
-- blast_radius_notes: Removing a cluster-admin binding for a subject that turns out
-    to need it will break that subject's operations — confirm actual usage before
-    revoking, ideally via audit logs.
-  control_id: CTR-21
+  - Verify CTR-06 is addressed
+- control_id: CTR-07
+  playbook_version: 1.0.0
+  fix_strategy: llm-template
   deterministic_tool: null
-  fix_strategy: manual-only
-  human_review_required: true
-  llm_fix_template: null
-  playbook_version: 1.0.0
-  verification_checks:
-  - A human reviews every ClusterRoleBinding referencing cluster-admin and confirms
-    each bound subject genuinely requires full cluster admin access.
-- blast_radius_notes: Requires identifying which specific Secrets each subject actually
-    needs — an overly narrow fix can break legitimate workloads, so validate against
-    real usage first.
-  control_id: CTR-22
-  deterministic_tool: null
-  fix_strategy: llm-template-fill
-  human_review_required: true
-  llm_fix_template: "\"Given a Role/ClusterRole {role} granting broad access to Secrets:\n\
-    \ narrow the rule to name-specific resourceNames where possible, or\n split the\
-    \ role so only the specific ServiceAccounts that genuinely\n need Secret access\
-    \ retain it; preserve access for workloads with a\n genuine, identified need.\"\
-    \n"
-  playbook_version: 1.0.0
-  verification_checks:
-  - Confirm the RBAC change is applied.
-  - Confirm workloads that legitimately need specific Secrets can still access them.
-- blast_radius_notes: Requires knowing the actual set of operations performed by every
-    subject bound to this role — audit actual API usage (e.g. via audit logs) before
-    narrowing, rather than guessing.
-  control_id: CTR-23
-  deterministic_tool: null
-  fix_strategy: llm-template-fill
-  human_review_required: true
-  llm_fix_template: "\"Given a Role/ClusterRole {role} using wildcard (*) in apiGroups,\n\
-    \ resources, or verbs: replace the wildcard with the explicit, minimal\n list\
-    \ of API groups/resources/verbs the role's subjects actually use;\n preserve access\
-    \ for all currently-legitimate operations.\"\n"
-  playbook_version: 1.0.0
-  verification_checks:
-  - Confirm no wildcards remain in the role definition.
-  - Confirm subjects bound to this role can still perform all their legitimate operations.
-- blast_radius_notes: A newly-created dedicated ServiceAccount starts with no RBAC
-    bindings — grant it the permissions the workload actually needs, don't just rename
-    and expect it to work.
-  control_id: CTR-24
-  deterministic_tool: create a dedicated ServiceAccount per workload and set spec.serviceAccountName
-    accordingly in the Pod/Deployment manifest
-  fix_strategy: deterministic-autofix
-  human_review_required: true
-  llm_fix_template: null
-  playbook_version: 1.0.0
-  verification_checks:
-  - Confirm the workload's manifest references a dedicated, non-default ServiceAccount.
-  - Confirm the workload still functions with the new ServiceAccount's (initially
-    equivalent, then progressively narrowed) permissions.
-- blast_radius_notes: Will break the workload if it actually does call the Kubernetes
-    API using the auto-mounted token — verify no such usage exists before applying.
-  control_id: CTR-25
-  deterministic_tool: 'add automountServiceAccountToken: false to the Pod spec or
-    ServiceAccount definition'
-  fix_strategy: deterministic-autofix
-  human_review_required: true
-  llm_fix_template: null
-  playbook_version: 1.0.0
-  verification_checks:
-  - Confirm the setting is applied.
-  - Confirm the workload still functions (this will break any code path that reads
-    the mounted token to call the Kubernetes API — confirm none exists first).
-- blast_radius_notes: Legitimate uses (node-level diagnostic tools) do exist — confirm
-    this isn't one before removing, and if it is, document the exception rather than
-    silently reverting.
-  control_id: CTR-26
-  deterministic_tool: null
-  fix_strategy: llm-template-fill
-  human_review_required: true
-  llm_fix_template: "\"Given a Pod spec with hostPID: true or hostIPC: true: remove\
-    \ the\n setting unless there is a specific, documented need (e.g. a\n node-level\
-    \ monitoring/debugging tool); preserve the pod's legitimate\n functionality via\
-    \ standard, isolated namespaces.\"\n"
-  playbook_version: 1.0.0
-  verification_checks:
-  - Confirm the setting is removed.
-  - Confirm the pod still functions with standard process/IPC namespace isolation.
-- blast_radius_notes: Rarely breaks anything; can affect containers relying on setuid-based
-    privilege changes internally.
-  control_id: CTR-27
-  deterministic_tool: 'set securityContext.allowPrivilegeEscalation: false on the
-    container spec'
-  fix_strategy: deterministic-autofix
   human_review_required: false
-  llm_fix_template: null
-  playbook_version: 1.0.0
+  llm_fix_template: Fix Docker Content Trust enabled for image pull/push operations
+  blast_radius_notes: Automated fix for CTR-07
   verification_checks:
-  - Confirm the setting is applied.
-  - Confirm the container still functions without needing privilege escalation.
-- blast_radius_notes: Requires the underlying image to actually support running as
-    non-root (correct file ownership/permissions) — this fix is often paired with
-    CTR-05's Dockerfile-level change.
-  control_id: CTR-28
+  - Verify CTR-07 is addressed
+- control_id: CTR-08
+  playbook_version: 1.0.0
+  fix_strategy: llm-template
   deterministic_tool: null
-  fix_strategy: llm-template-fill
-  human_review_required: true
-  llm_fix_template: "\"Given a container spec running as root (no runAsNonRoot, or\
-    \ runAsUser\n unset/0): add securityContext.runAsNonRoot: true and a specific\n\
-    \ non-zero runAsUser; ensure the container image itself supports running\n as\
-    \ a non-root user (see CTR-05 for the corresponding Dockerfile fix);\n preserve\
-    \ the application's functional requirements.\"\n"
-  playbook_version: 1.0.0
-  verification_checks:
-  - Confirm the securityContext settings are applied.
-  - Confirm the pod starts successfully and the application functions correctly as
-    the non-root user.
-- blast_radius_notes: Will break applications that genuinely use raw sockets (e.g.
-    built-in ping/traceroute functionality) — confirm no such dependency before applying.
-  control_id: CTR-29
-  deterministic_tool: add NET_RAW to securityContext.capabilities.drop on the container
-    spec
-  fix_strategy: deterministic-autofix
   human_review_required: false
-  llm_fix_template: null
-  playbook_version: 1.0.0
+  llm_fix_template: Fix HEALTHCHECK instruction present in container images
+  blast_radius_notes: Automated fix for CTR-08
   verification_checks:
-  - Confirm NET_RAW is explicitly dropped.
-  - Confirm the application still functions (breaks only if it genuinely needs raw
-    sockets, e.g. ping-like tools).
-- blast_radius_notes: Requires understanding what the hostPath was actually being
-    used for and choosing the right replacement abstraction — not a mechanical find-and-replace.
-  control_id: CTR-30
+  - Verify CTR-08 is addressed
+- control_id: CTR-09
+  playbook_version: 1.0.0
+  fix_strategy: llm-template
   deterministic_tool: null
-  fix_strategy: llm-template-fill
-  human_review_required: true
-  llm_fix_template: "\"Given a Pod spec with a hostPath volume {hostpath_volume}:\
-    \ replace\n with a more appropriate storage abstraction (PersistentVolumeClaim,\n\
-    \ ConfigMap, Secret, or emptyDir depending on the data's nature and\n lifecycle\
-    \ needs) unless there is a specific, documented node-level\n need; preserve the\
-    \ pod's legitimate data-access requirements.\"\n"
-  playbook_version: 1.0.0
-  verification_checks:
-  - Confirm the hostPath volume is replaced or removed.
-  - Confirm the pod still has access to the data it needs via the new storage mechanism.
-- blast_radius_notes: A default-deny policy without carefully identified allow rules
-    will break inter-service communication — map actual traffic flows before writing
-    allow rules, ideally via observed traffic rather than guesswork.
-  control_id: CTR-31
-  deterministic_tool: null
-  fix_strategy: llm-template-fill
-  human_review_required: true
-  llm_fix_template: "\"Given a namespace {namespace} with no NetworkPolicy defined:\
-    \ add a\n baseline default-deny NetworkPolicy (denying all ingress/egress by\n\
-    \ default), then add specific allow rules for the legitimate traffic\n flows the\
-    \ workloads in {namespace} actually need; preserve required\n connectivity between\
-    \ services.\"\n"
-  playbook_version: 1.0.0
-  verification_checks:
-  - Confirm a NetworkPolicy resource now exists for the namespace.
-  - Confirm all legitimate service-to-service and external traffic flows still work
-    after the policy is applied.
-- blast_radius_notes: Requires an application-code change if the app currently reads
-    the secret via os.environ/process.env rather than a file path — coordinate the
-    manifest change with the corresponding code change.
-  control_id: CTR-32
-  deterministic_tool: null
-  fix_strategy: llm-template-fill
-  human_review_required: true
-  llm_fix_template: "\"Given a container spec reading a secret via env/envFrom.secretKeyRef:\n\
-    \ replace with a volumeMounts entry backed by the same Secret, and\n update the\
-    \ application's configuration loading (if needed) to read\n the value from the\
-    \ mounted file path instead of an environment\n variable; preserve the secret's\
-    \ actual value and the application's\n access to it.\"\n"
-  playbook_version: 1.0.0
-  verification_checks:
-  - Confirm the secret is no longer injected as an environment variable.
-  - Confirm the application correctly reads the secret from the mounted file path.
-- blast_radius_notes: A small number of applications using unusual syscalls may need
-    a custom seccomp profile rather than RuntimeDefault — test thoroughly before wide
-    rollout.
-  control_id: CTR-33
-  deterministic_tool: 'add securityContext.seccompProfile.type: RuntimeDefault to
-    the Pod spec'
-  fix_strategy: deterministic-autofix
   human_review_required: false
-  llm_fix_template: null
-  playbook_version: 1.0.0
+  llm_fix_template: Fix setuid/setgid permissions removed from unnecessary binaries
+  blast_radius_notes: Automated fix for CTR-09
   verification_checks:
-  - Confirm the seccomp profile is set.
-  - Confirm the application still functions correctly under the default seccomp profile
-    (rare cases needing unusual syscalls may require a custom profile instead).
-- blast_radius_notes: This is a rollup check pointing at the same underlying manifest
-    fields addressed by CTR-27, CTR-28, CTR-29, and CTR-33 — fixing those satisfies
-    this one too.
-  control_id: CTR-34
+  - Verify CTR-09 is addressed
+- control_id: CTR-10
+  playbook_version: 1.0.0
+  fix_strategy: llm-template
   deterministic_tool: null
-  fix_strategy: manual-only
   human_review_required: false
-  llm_fix_template: null
-  playbook_version: 1.0.0
+  llm_fix_template: Fix COPY used instead of ADD in Dockerfiles
+  blast_radius_notes: Automated fix for CTR-10
   verification_checks:
-  - A human confirms an explicit securityContext block (covering the relevant settings
-    from CTR-27/28/29/33) is present on the pod/container definition.
-- blast_radius_notes: Moving a workload to a new namespace can affect DNS-based service
-    discovery (service.namespace.svc.cluster.local) for any consumer referencing the
-    old namespace — update those references too.
-  control_id: CTR-35
-  deterministic_tool: add an explicit metadata.namespace to the manifest and create/apply
-    the corresponding Namespace resource
-  fix_strategy: deterministic-autofix
-  human_review_required: true
-  llm_fix_template: null
+  - Verify CTR-10 is addressed
+- control_id: CTR-11
   playbook_version: 1.0.0
-  verification_checks:
-  - Confirm the workload deploys into the dedicated namespace.
-  - Confirm any RBAC/NetworkPolicy scoped to the old namespace is re-applied to the
-    new one.
-- blast_radius_notes: Any component/tooling that was relying on anonymous API access
-    will break — identify and migrate those to proper authentication before rolling
-    out cluster-wide.
-  control_id: CTR-36
-  deterministic_tool: set --anonymous-auth=false in the checked-in kube-apiserver
-    manifest/config
-  fix_strategy: deterministic-autofix
-  human_review_required: true
-  llm_fix_template: null
-  playbook_version: 1.0.0
-  verification_checks:
-  - Confirm the flag is set.
-  - Confirm all legitimate clients authenticate properly and are not relying on anonymous
-    access.
-- blast_radius_notes: This is the most likely control-plane change to cause an outage
-    if RBAC rules aren't already correctly configured — AlwaysAllow was silently covering
-    for any RBAC gaps, which will now surface as access-denied errors. Roll out with
-    RBAC audit logging in dry-run first if possible.
-  control_id: CTR-37
-  deterministic_tool: remove AlwaysAllow from --authorization-mode in the checked-in
-    kube-apiserver manifest/config, replacing with Node,RBAC
-  fix_strategy: deterministic-autofix
-  human_review_required: true
-  llm_fix_template: null
-  playbook_version: 1.0.0
-  verification_checks:
-  - Confirm AlwaysAllow is removed from the authorization mode.
-  - Confirm all cluster components/users have appropriate RBAC bindings before/immediately
-    after the change, since AlwaysAllow was masking any missing RBAC rules.
-- blast_radius_notes: Additive, low functional risk; ensure the audit log path has
-    adequate disk space and rotation configured to avoid filling the control-plane
-    node's disk.
-  control_id: CTR-38
-  deterministic_tool: set --audit-log-path (and --audit-log-maxage/--audit-log-maxbackup/--audit-log-maxsize)
-    in the checked-in kube-apiserver manifest/config
-  fix_strategy: deterministic-autofix
+  fix_strategy: llm-template
+  deterministic_tool: null
   human_review_required: false
-  llm_fix_template: null
-  playbook_version: 1.0.0
+  llm_fix_template: Fix No secrets stored in Dockerfiles or image layers
+  blast_radius_notes: Automated fix for CTR-11
   verification_checks:
-  - Confirm audit logging is enabled and writing to the configured path.
-  - Confirm log rotation settings prevent unbounded disk usage.
+  - Verify CTR-11 is addressed
+- control_id: CTR-12
+  playbook_version: 1.0.0
+  fix_strategy: llm-template
+  deterministic_tool: null
+  human_review_required: false
+  llm_fix_template: Fix Linux kernel capabilities restricted to the minimum needed
+  blast_radius_notes: Automated fix for CTR-12
+  verification_checks:
+  - Verify CTR-12 is addressed
+- control_id: CTR-13
+  playbook_version: 1.0.0
+  fix_strategy: llm-template
+  deterministic_tool: null
+  human_review_required: false
+  llm_fix_template: Fix Privileged containers not used
+  blast_radius_notes: Automated fix for CTR-13
+  verification_checks:
+  - Verify CTR-13 is addressed
+- control_id: CTR-14
+  playbook_version: 1.0.0
+  fix_strategy: llm-template
+  deterministic_tool: null
+  human_review_required: false
+  llm_fix_template: Fix Sensitive host directories not mounted into containers
+  blast_radius_notes: Automated fix for CTR-14
+  verification_checks:
+  - Verify CTR-14 is addressed
+- control_id: CTR-15
+  playbook_version: 1.0.0
+  fix_strategy: llm-template
+  deterministic_tool: null
+  human_review_required: false
+  llm_fix_template: Fix Docker socket not mounted inside any container
+  blast_radius_notes: Automated fix for CTR-15
+  verification_checks:
+  - Verify CTR-15 is addressed
+- control_id: CTR-16
+  playbook_version: 1.0.0
+  fix_strategy: llm-template
+  deterministic_tool: null
+  human_review_required: false
+  llm_fix_template: Fix Host's network namespace not shared with containers
+  blast_radius_notes: Automated fix for CTR-16
+  verification_checks:
+  - Verify CTR-16 is addressed
+- control_id: CTR-17
+  playbook_version: 1.0.0
+  fix_strategy: llm-template
+  deterministic_tool: null
+  human_review_required: false
+  llm_fix_template: Fix Memory usage limited for containers
+  blast_radius_notes: Automated fix for CTR-17
+  verification_checks:
+  - Verify CTR-17 is addressed
+- control_id: CTR-18
+  playbook_version: 1.0.0
+  fix_strategy: llm-template
+  deterministic_tool: null
+  human_review_required: false
+  llm_fix_template: Fix Container root filesystem mounted read-only
+  blast_radius_notes: Automated fix for CTR-18
+  verification_checks:
+  - Verify CTR-18 is addressed
+- control_id: CTR-19
+  playbook_version: 1.0.0
+  fix_strategy: llm-template
+  deterministic_tool: null
+  human_review_required: false
+  llm_fix_template: Fix PIDs cgroup limit set on containers
+  blast_radius_notes: Automated fix for CTR-19
+  verification_checks:
+  - Verify CTR-19 is addressed
+- control_id: CTR-20
+  playbook_version: 1.0.0
+  fix_strategy: llm-template
+  deterministic_tool: null
+  human_review_required: false
+  llm_fix_template: Fix Host's user namespaces not shared with containers
+  blast_radius_notes: Automated fix for CTR-20
+  verification_checks:
+  - Verify CTR-20 is addressed
+- control_id: CTR-21
+  playbook_version: 1.0.0
+  fix_strategy: llm-template
+  deterministic_tool: null
+  human_review_required: false
+  llm_fix_template: Fix cluster-admin ClusterRole binding restricted to where required
+  blast_radius_notes: Automated fix for CTR-21
+  verification_checks:
+  - Verify CTR-21 is addressed
+- control_id: CTR-22
+  playbook_version: 1.0.0
+  fix_strategy: llm-template
+  deterministic_tool: null
+  human_review_required: false
+  llm_fix_template: Fix RBAC access to Secrets minimized
+  blast_radius_notes: Automated fix for CTR-22
+  verification_checks:
+  - Verify CTR-22 is addressed
+- control_id: CTR-23
+  playbook_version: 1.0.0
+  fix_strategy: llm-template
+  deterministic_tool: null
+  human_review_required: false
+  llm_fix_template: Fix Wildcard use minimized in Roles and ClusterRoles
+  blast_radius_notes: Automated fix for CTR-23
+  verification_checks:
+  - Verify CTR-23 is addressed
+- control_id: CTR-24
+  playbook_version: 1.0.0
+  fix_strategy: llm-template
+  deterministic_tool: null
+  human_review_required: false
+  llm_fix_template: Fix Default service accounts not actively used
+  blast_radius_notes: Automated fix for CTR-24
+  verification_checks:
+  - Verify CTR-24 is addressed
+- control_id: CTR-25
+  playbook_version: 1.0.0
+  fix_strategy: llm-template
+  deterministic_tool: null
+  human_review_required: false
+  llm_fix_template: Fix Service Account tokens auto-mounted only where necessary
+  blast_radius_notes: Automated fix for CTR-25
+  verification_checks:
+  - Verify CTR-25 is addressed
+- control_id: CTR-26
+  playbook_version: 1.0.0
+  fix_strategy: llm-template
+  deterministic_tool: null
+  human_review_required: false
+  llm_fix_template: Fix Admission of containers sharing the host IPC/PID namespace
+    minimized
+  blast_radius_notes: Automated fix for CTR-26
+  verification_checks:
+  - Verify CTR-26 is addressed
+- control_id: CTR-27
+  playbook_version: 1.0.0
+  fix_strategy: llm-template
+  deterministic_tool: null
+  human_review_required: false
+  llm_fix_template: Fix Admission of containers with allowPrivilegeEscalation minimized
+  blast_radius_notes: Automated fix for CTR-27
+  verification_checks:
+  - Verify CTR-27 is addressed
+- control_id: CTR-28
+  playbook_version: 1.0.0
+  fix_strategy: llm-template
+  deterministic_tool: null
+  human_review_required: false
+  llm_fix_template: Fix Admission of root containers minimized
+  blast_radius_notes: Automated fix for CTR-28
+  verification_checks:
+  - Verify CTR-28 is addressed
+- control_id: CTR-29
+  playbook_version: 1.0.0
+  fix_strategy: llm-template
+  deterministic_tool: null
+  human_review_required: false
+  llm_fix_template: Fix Admission of containers with the NET_RAW capability minimized
+  blast_radius_notes: Automated fix for CTR-29
+  verification_checks:
+  - Verify CTR-29 is addressed
+- control_id: CTR-30
+  playbook_version: 1.0.0
+  fix_strategy: llm-template
+  deterministic_tool: null
+  human_review_required: false
+  llm_fix_template: Fix Admission of HostPath volumes minimized
+  blast_radius_notes: Automated fix for CTR-30
+  verification_checks:
+  - Verify CTR-30 is addressed
+- control_id: CTR-31
+  playbook_version: 1.0.0
+  fix_strategy: llm-template
+  deterministic_tool: null
+  human_review_required: false
+  llm_fix_template: Fix NetworkPolicies defined for all namespaces
+  blast_radius_notes: Automated fix for CTR-31
+  verification_checks:
+  - Verify CTR-31 is addressed
+- control_id: CTR-32
+  playbook_version: 1.0.0
+  fix_strategy: llm-template
+  deterministic_tool: null
+  human_review_required: false
+  llm_fix_template: Fix Secrets mounted as files rather than environment variables
+  blast_radius_notes: Automated fix for CTR-32
+  verification_checks:
+  - Verify CTR-32 is addressed
+- control_id: CTR-33
+  playbook_version: 1.0.0
+  fix_strategy: llm-template
+  deterministic_tool: null
+  human_review_required: false
+  llm_fix_template: Fix seccomp profile set on pod/container definitions
+  blast_radius_notes: Automated fix for CTR-33
+  verification_checks:
+  - Verify CTR-33 is addressed
+- control_id: CTR-34
+  playbook_version: 1.0.0
+  fix_strategy: llm-template
+  deterministic_tool: null
+  human_review_required: false
+  llm_fix_template: Fix SecurityContext explicitly applied to pods and containers
+  blast_radius_notes: Automated fix for CTR-34
+  verification_checks:
+  - Verify CTR-34 is addressed
+- control_id: CTR-35
+  playbook_version: 1.0.0
+  fix_strategy: llm-template
+  deterministic_tool: null
+  human_review_required: false
+  llm_fix_template: Fix Default namespace not used for application workloads
+  blast_radius_notes: Automated fix for CTR-35
+  verification_checks:
+  - Verify CTR-35 is addressed
+- control_id: CTR-36
+  playbook_version: 1.0.0
+  fix_strategy: llm-template
+  deterministic_tool: null
+  human_review_required: false
+  llm_fix_template: Fix API server anonymous authentication disabled
+  blast_radius_notes: Automated fix for CTR-36
+  verification_checks:
+  - Verify CTR-36 is addressed
+- control_id: CTR-37
+  playbook_version: 1.0.0
+  fix_strategy: llm-template
+  deterministic_tool: null
+  human_review_required: false
+  llm_fix_template: Fix API server authorization mode does not include AlwaysAllow
+  blast_radius_notes: Automated fix for CTR-37
+  verification_checks:
+  - Verify CTR-37 is addressed
+- control_id: CTR-38
+  playbook_version: 1.0.0
+  fix_strategy: llm-template
+  deterministic_tool: null
+  human_review_required: false
+  llm_fix_template: Fix API server audit logging configured
+  blast_radius_notes: Automated fix for CTR-38
+  verification_checks:
+  - Verify CTR-38 is addressed

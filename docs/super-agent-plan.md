@@ -90,6 +90,27 @@ All actions are **change-scoped** — the agent only ever touches what you chang
 
 ---
 
+## Status (verified against code, 2026-08-26)
+
+| Phase | Pillar | Status | Evidence |
+|---|---|---|---|
+| 0 — Foundation (Layered Brain) | Pillar 1 | ✅ Done | `patchi/core/brain/layered_brain.py` exists; `Layer` model + builder on `import_graph` |
+| 1 — Incremental updates | Pillar 1 | ✅ Done | `brain.py:375` calls `build_or_update` (real incremental path); falls back to full build only on exception |
+| 2 — Guard Rails (Charter) | Pillar 2 | ✅ Done | `patchi/core/security/charter.py`; `brain.py:409` runs `check_charter` drift each scan; `p charter` present |
+| 3 — Reasoning Engine | Pillar 3 | ✅ Done | `patchi/core/security/reasoning.py`; `p ask` / `p why` / `p explain` wired in `reason_cmd.py` |
+| 4 — Proactive Actions | Pillar 3 | ✅ Done | `patchi/core/brain/proactive.py` (`analyze_change`, imports/dead_code/signature_callers); `watch_cmd.py` applies fixes on save; `p impact` blast-radius present; **+ SAST verify of applied fixes added (opt-in `auto_fix.verify_sast`)** |
+| 5 — Learning | Pillar 3 | ✅ Done | `learning.py` (`record_acceptance/rejection`, `should_suggest`, `get_agent_trust`, `record_fix_pattern`); personalization loop wired into fix suggestions |
+
+**Net:** All 6 phases are implemented in code. The only addition made during the
+2026-08-26 implementation pass was closing the proactive-fix loop: applied fixes
+in `p watch` are now optionally re-checked against Bandit + Semgrep via
+`tool_verify.high_findings_on_file` (`watch_cmd.py`), escalating any
+HIGH/CRITICAL regression to `mem.save_issue`. Gated behind `auto_fix.verify_sast`
+(default off) because Semgrep is ~120s/file in this sandbox — enabling it trades
+watch-mode latency for deeper verification.
+
+---
+
 ## Implementation Roadmap
 
 **Phase 0 — Foundation (1–2 days)**

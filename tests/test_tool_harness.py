@@ -1,4 +1,5 @@
 """Tests for tool adapters + upgraded Layer2 AI arbiter."""
+
 from __future__ import annotations
 
 import sys
@@ -19,18 +20,33 @@ from patchi.core.security.tool_adapters import (
 
 
 class TestNormalizeSeverity:
-    @pytest.mark.parametrize("raw,expected", [
-        # bandit uppercase
-        ("HIGH", "high"), ("MEDIUM", "medium"), ("LOW", "low"),
-        # lowercase passthrough
-        ("high", "high"), ("critical", "critical"), ("info", "info"),
-        # compiler-style
-        ("ERROR", "high"), ("WARNING", "medium"), ("NOTE", "info"),
-        # SARIF numeric security-severity
-        (9.5, "critical"), (7.2, "high"), (8.8, "high"), (4.0, "medium"), (1.1, "low"),
-        # garbage -> default medium
-        ("", "medium"), (None, "medium"), ("weird", "medium"),
-    ])
+    @pytest.mark.parametrize(
+        "raw,expected",
+        [
+            # bandit uppercase
+            ("HIGH", "high"),
+            ("MEDIUM", "medium"),
+            ("LOW", "low"),
+            # lowercase passthrough
+            ("high", "high"),
+            ("critical", "critical"),
+            ("info", "info"),
+            # compiler-style
+            ("ERROR", "high"),
+            ("WARNING", "medium"),
+            ("NOTE", "info"),
+            # SARIF numeric security-severity
+            (9.5, "critical"),
+            (7.2, "high"),
+            (8.8, "high"),
+            (4.0, "medium"),
+            (1.1, "low"),
+            # garbage -> default medium
+            ("", "medium"),
+            (None, "medium"),
+            ("weird", "medium"),
+        ],
+    )
     def test_matrix(self, raw, expected):
         assert normalize_severity(raw).value == expected
 
@@ -49,9 +65,14 @@ class TestToolConfidence:
 class TestMakeToolFinding:
     def test_valid_finding_with_all_fields(self):
         f = make_tool_finding(
-            agent="BanditAgent", ftype="B608", raw_severity="HIGH",
-            file="src/db.py", line=10, message="sqli",
-            cwe="CWE-89", snippet="cursor.execute(q + uid)",
+            agent="BanditAgent",
+            ftype="B608",
+            raw_severity="HIGH",
+            file="src/db.py",
+            line=10,
+            message="sqli",
+            cwe="CWE-89",
+            snippet="cursor.execute(q + uid)",
             confidence_raw="HIGH",
         )
         assert f.severity == Severity.HIGH
@@ -82,7 +103,7 @@ class TestExtractJson:
 
     def test_bare_json(self, tmp_path: Path):
         o = self._orchestrator(tmp_path)
-        assert o._extract_json('{"confirmed": true}')['confirmed'] is True
+        assert o._extract_json('{"confirmed": true}')["confirmed"] is True
 
     def test_markdown_fenced(self, tmp_path: Path):
         o = self._orchestrator(tmp_path)
@@ -109,16 +130,21 @@ class TestPerFindingBatch:
         from patchi.core.security.orchestrator import Finding
 
         f = Finding(
-            agent="BanditAgent", type="B608", severity=Severity.HIGH,
-            file=file, line=line, message="sqli",
+            agent="BanditAgent",
+            type="B608",
+            severity=Severity.HIGH,
+            file=file,
+            line=line,
+            message="sqli",
             code_snippet="cursor.execute(q + uid)",
             cwe="CWE-89",
         )
         f.extra = {"tool_confidence": 0.9}
         from patchi.core.security.gated_finding import GatedFinding
 
-        return GatedFinding(finding=f, confidence_score=0.5,
-                            confirmed_by=["BanditAgent", "TaintAnalyzer"])
+        return GatedFinding(
+            finding=f, confidence_score=0.5, confirmed_by=["BanditAgent", "TaintAnalyzer"]
+        )
 
     def test_per_finding_verdicts(self, tmp_path: Path, monkeypatch):
         import patchi.core.security.layer2_orchestrator as l2
@@ -129,12 +155,22 @@ class TestPerFindingBatch:
             self._make_gated(tmp_path, "src/b.py", 20),
         ]
 
-        fake_response = {"findings": [
-            {"confirmed": True, "confidence_adjustment": 0.7,
-             "summary": "real sqli", "evidence_quote": "cursor.execute(q + uid)"},
-            {"confirmed": False, "confidence_adjustment": -0.8,
-             "summary": "fixture data", "evidence_quote": ""},
-        ]}
+        fake_response = {
+            "findings": [
+                {
+                    "confirmed": True,
+                    "confidence_adjustment": 0.7,
+                    "summary": "real sqli",
+                    "evidence_quote": "cursor.execute(q + uid)",
+                },
+                {
+                    "confirmed": False,
+                    "confidence_adjustment": -0.8,
+                    "summary": "fixture data",
+                    "evidence_quote": "",
+                },
+            ]
+        }
 
         monkeypatch.setattr(
             "patchi.core.ai.client.call_ai_structured",
@@ -154,8 +190,7 @@ class TestPerFindingBatch:
         batch = [self._make_gated(tmp_path, "src/c.py", 30)]
         monkeypatch.setattr(
             "patchi.core.ai.client.call_ai_structured",
-            lambda **kw: {"confirmed": True, "summary": "ok",
-                          "confidence_adjustment": 0.4},
+            lambda **kw: {"confirmed": True, "summary": "ok", "confidence_adjustment": 0.4},
         )
         results = o._analyze_batch(batch)
         assert len(results) == 1 and results[0].confirmed
@@ -219,3 +254,208 @@ class TestConsensusE2E:
             f"expected cross-tool correlation; got "
             f"{[(c.finding.type, c.confirmed_by) for c in report.findings]}"
         )
+
+
+class TestToolVerify:
+    """The fix loop re-runs the same tools to prove the vuln is gone."""
+
+    def _vuln_file(self, tmp_path: Path, vulnerable: bool) -> Path:
+        f = tmp_path / "vuln.py"
+        if vulnerable:
+            f.write_text(
+                "import sqlite3\n"
+                "def f(uid):\n"
+                "    conn = sqlite3.connect('x.db')\n"
+                "    cur = conn.cursor()\n"
+                "    cur.execute('SELECT * FROM u WHERE id=' + uid)\n",
+                encoding="utf-8",
+            )
+        else:
+            f.write_text(
+                "import sqlite3\n"
+                "def f(uid):\n"
+                "    conn = sqlite3.connect('x.db')\n"
+                "    cur = conn.cursor()\n"
+                "    cur.execute('SELECT * FROM u WHERE id=?', (uid,))\n",
+                encoding="utf-8",
+            )
+        return f
+
+    def test_vuln_still_present(self, tmp_path: Path):
+        import patchi.core.security.tool_verify as tv
+
+        f = self._vuln_file(tmp_path, True)
+        original = type("F", (), {"cwe": "CWE-89", "type": "sql_injection"})()
+        assert tv.finding_resolved("bandit", f, original) is False
+        assert tv.finding_resolved("semgrep", f, original) is False
+
+    def test_fixed_is_resolved(self, tmp_path: Path):
+        import patchi.core.security.tool_verify as tv
+
+        f = self._vuln_file(tmp_path, False)
+        original = type("F", (), {"cwe": "CWE-89", "type": "sql_injection"})()
+        assert tv.finding_resolved("bandit", f, original) is True
+        assert tv.finding_resolved("semgrep", f, original) is True
+
+
+class TestHighFindingsOnFile:
+    """Watch-mode SAST verification of applied proactive fixes.
+
+    Mocks the slow tool layer (Bandit/Semgrep) — the real-tool path is
+    exercised by TestToolVerify. Here we test the HIGH/CRITICAL filter and
+    the real-path rewrite that high_findings_on_file adds.
+    """
+
+    def _fake(self, severity_name: str, cwe: str = "CWE-89") -> object:
+        from patchi.core.agents.base import Severity
+
+        return type(
+            "F",
+            (),
+            {
+                "agent": "x",
+                "type": "sql_injection",
+                "severity": getattr(Severity, severity_name.upper()),
+                "file": "temp_copy.py",
+                "line": 3,
+                "cwe": cwe,
+                "message": "",
+                "detail": "",
+                "suggestion": "",
+            },
+        )()
+
+    def test_keeps_only_high_and_critical(self, tmp_path: Path, monkeypatch):
+        import patchi.core.security.tool_verify as tv
+
+        f = tmp_path / "v.py"
+        f.write_text("x = 1\n", encoding="utf-8")
+
+        def fake_run(tool, fp):
+            return [
+                self._fake("low"),
+                self._fake("medium"),
+                self._fake("high"),
+                self._fake("critical"),
+            ]
+
+        monkeypatch.setattr(tv, "run_tool_on_file", fake_run)
+        highs = tv.high_findings_on_file(f)
+        # 2 (high+critical) per tool call, called for bandit then semgrep
+        assert len(highs) == 4
+        assert {h.severity.value for h in highs} == {"high", "critical"}
+        assert all(h.file == str(f) for h in highs)
+
+    def test_clean_file_has_no_high(self, tmp_path: Path, monkeypatch):
+        import patchi.core.security.tool_verify as tv
+
+        f = tmp_path / "v.py"
+        f.write_text("x = 1\n", encoding="utf-8")
+
+        monkeypatch.setattr(
+            tv, "run_tool_on_file", lambda tool, fp: [self._fake("low"), self._fake("medium")]
+        )
+        assert tv.high_findings_on_file(f) == []
+
+    def test_tool_failure_is_fail_open(self, tmp_path: Path, monkeypatch):
+        import patchi.core.security.tool_verify as tv
+
+        f = tmp_path / "v.py"
+        f.write_text("x = 1\n", encoding="utf-8")
+
+        def boom(tool, fp):
+            raise RuntimeError("semgrep exploded")
+
+        monkeypatch.setattr(tv, "run_tool_on_file", boom)
+        assert tv.high_findings_on_file(f) == []
+
+
+class TestVerifyProactiveFixes:
+    """Diff-based regression check for watch-mode applied fixes.
+
+    verify_proactive_fixes() returns only findings that are NEW compared to
+    a pre-fix snapshot — so pre-existing findings are never re-reported on
+    every save. All cases are fail‑open.
+    """
+
+    def _fake(self, type_: str, cwe: str = "", line: int = 1) -> object:
+        return type("F", (), {"type": type_, "cwe": cwe, "line": line})()
+
+    def test_flags_only_new_findings(self, tmp_path: Path, monkeypatch):
+        import patchi.core.security.tool_verify as tv
+
+        # post state has one pre-existing + one new high-severity finding
+        monkeypatch.setattr(
+            tv, "high_findings_on_file",
+            lambda fp: [self._fake("B606"), self._fake("B307", "CWE-78", 5)],
+        )
+        pre = {"x.py": {("B606", "")}}
+        issues = tv.verify_proactive_fixes(tmp_path, ["x.py"], pre)
+        assert len(issues) == 1
+        assert issues[0]["name"] == "CWE-78"
+        assert issues[0]["line"] == 5
+        assert issues[0]["file"] == "x.py"
+
+    def test_no_new_findings_means_no_issues(self, tmp_path: Path, monkeypatch):
+        import patchi.core.security.tool_verify as tv
+
+        monkeypatch.setattr(
+            tv, "high_findings_on_file", lambda fp: [self._fake("B606")],
+        )
+        pre = {"x.py": {("B606", "")}}
+        assert tv.verify_proactive_fixes(tmp_path, ["x.py"], pre) == []
+
+    def test_skips_non_py_and_missing(self, tmp_path: Path, monkeypatch):
+        import patchi.core.security.tool_verify as tv
+
+        monkeypatch.setattr(
+            tv, "high_findings_on_file", lambda fp: [self._fake("B607")],
+        )
+        # "x.txt" has no .py suffix → skip; "missing.py" doesn't exist → skip
+        assert tv.verify_proactive_fixes(tmp_path, ["x.txt", "missing.py"], {}) == []
+
+    def test_tool_failure_is_fail_open(self, tmp_path: Path, monkeypatch):
+        import patchi.core.security.tool_verify as tv
+
+        def boom(fp):
+            raise RuntimeError("semgrep exploded")
+
+        monkeypatch.setattr(tv, "high_findings_on_file", boom)
+        assert tv.verify_proactive_fixes(tmp_path, ["x.py"], {}) == []
+
+
+class TestSastGate:
+    """Pre-commit fast gate: exit 1 on high/critical, 0 when clean."""
+
+    def test_flags_high_finding(self, tmp_path: Path):
+        import patchi.core.security.sast_gate as gate
+
+        f = tmp_path / "vuln.py"
+        f.write_text(
+            "import sqlite3\n"
+            "def f(uid):\n"
+            "    conn = sqlite3.connect('x.db')\n"
+            "    cur = conn.cursor()\n"
+            "    cur.execute('SELECT * FROM u WHERE id=' + uid)\n",
+            encoding="utf-8",
+        )
+        assert gate.main(["sast_gate", str(f)]) == 1
+
+    def test_clean_file_passes(self, tmp_path: Path):
+        import patchi.core.security.sast_gate as gate
+
+        f = tmp_path / "clean.py"
+        f.write_text(
+            "import sqlite3\n"
+            "def f(uid):\n"
+            "    conn = sqlite3.connect('x.db')\n"
+            "    cur = conn.cursor()\n"
+            "    cur.execute('SELECT * FROM u WHERE id=?', (uid,))\n",
+            encoding="utf-8",
+        )
+        assert gate.main(["sast_gate", str(f)]) == 0
+
+    def test_no_python_files_is_zero(self, tmp_path: Path):
+        import patchi.core.security.sast_gate as gate
+
+        assert gate.main(["sast_gate"]) == 0

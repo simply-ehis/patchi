@@ -1,0 +1,47 @@
+playbooks:
+- blast_radius_notes: Automated fix for WS-01
+  control_id: WS-01
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Use WSS (WebSocket over TLS) for all connections: WebSocket
+    over TLS (WSS) must be used for all WebSocket connections, never unencrypted WS.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify WS-01 is properly addressed
+- blast_radius_notes: Automated fix for WS-02
+  control_id: WS-02
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Validate the Origin header against an allowlist during the
+    WebSocket handshake: During the initial HTTP WebSocket handshake, the Origin header
+    field must be checked against a list of origins allowed for the application, to
+    prevent cross-site WebSocket hijacking from an unauthorized origin.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify WS-02 is properly addressed
+- blast_radius_notes: Automated fix for WS-03
+  control_id: WS-03
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Use dedicated, spec-compliant tokens when standard session
+    management can''t apply: If the application''s standard session management mechanism
+    cannot be used for the WebSocket connection, dedicated tokens must be used instead,
+    and these must comply with the relevant Session Management security requirements.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify WS-03 is properly addressed
+- blast_radius_notes: Automated fix for WS-04
+  control_id: WS-04
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Obtain/validate WebSocket session tokens through the prior
+    authenticated HTTPS session: Dedicated WebSocket session management tokens must
+    be initially obtained or validated through the previously authenticated HTTPS
+    session when transitioning an existing HTTPS session to a WebSocket channel.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify WS-04 is properly addressed

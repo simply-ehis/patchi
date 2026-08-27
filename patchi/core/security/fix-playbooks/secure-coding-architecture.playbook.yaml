@@ -1,0 +1,261 @@
+playbooks:
+- blast_radius_notes: Automated fix for SECARCH-01
+  control_id: SECARCH-01
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Document risk-based remediation timeframes for vulnerable
+    dependencies: Documentation must define risk-based remediation timeframes for
+    third-party component versions with known vulnerabilities, and for updating libraries
+    in general, to minimize risk from these components.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify SECARCH-01 is properly addressed
+- blast_radius_notes: Automated fix for SECARCH-02
+  control_id: SECARCH-02
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Maintain a software bill of materials (SBOM) from trusted
+    repositories: An inventory catalog (such as an SBOM) must be maintained of all
+    third-party libraries in use, including verification that components come from
+    pre-defined, trusted, and continually maintained repositories.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify SECARCH-02 is properly addressed
+- blast_radius_notes: Automated fix for SECARCH-03
+  control_id: SECARCH-03
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Document resource-intensive functionality and its availability
+    safeguards: Documentation must identify functionality which is time-consuming
+    or resource-demanding, including how to prevent availability loss from overuse
+    and how to avoid response-building taking longer than the consumer''s timeout
+     -  potential defenses include asynchronous processing, queues, and per-user/per-application
+    parallel process limits.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify SECARCH-03 is properly addressed
+- blast_radius_notes: Automated fix for SECARCH-04
+  control_id: SECARCH-04
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Document third-party libraries considered risky components:
+    Application documentation must highlight third-party libraries which are considered
+    to be ''risky components'' (e.g. unmaintained, historically vulnerability-prone,
+    or handling especially sensitive operations).'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify SECARCH-04 is properly addressed
+- blast_radius_notes: Automated fix for SECARCH-05
+  control_id: SECARCH-05
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Document use of dangerous functionality: Application documentation
+    must highlight parts of the application where ''dangerous functionality'' is being
+    used (e.g. dynamic code execution, raw system calls, unsafe deserialization).'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify SECARCH-05 is properly addressed
+- blast_radius_notes: Automated fix for SECARCH-06
+  control_id: SECARCH-06
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Contain no components breaching documented remediation timeframes:
+    The application must only contain components which have not breached the documented
+    update and remediation timeframes (per SECARCH-01).'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify SECARCH-06 is properly addressed
+- blast_radius_notes: Automated fix for SECARCH-07
+  control_id: SECARCH-07
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Implement documented availability defenses for resource-intensive
+    functionality: The application must implement defenses against availability loss
+    due to time-consuming or resource-demanding functionality, based on the documented
+    security decisions and strategies (per SECARCH-03).'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify SECARCH-07 is properly addressed
+- blast_radius_notes: Automated fix for SECARCH-08
+  control_id: SECARCH-08
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Exclude test code, samples, and dev functionality from production:
+    The production environment must only include functionality required for the application
+    to function, and must not expose extraneous functionality such as test code, sample
+    snippets, or development functionality.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify SECARCH-08 is properly addressed
+- blast_radius_notes: Automated fix for SECARCH-09
+  control_id: SECARCH-09
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Source dependencies from expected repositories to prevent
+    dependency confusion: Third-party components and all transitive dependencies must
+    be sourced from the expected repository (internal or external), with no risk of
+    a dependency confusion attack  -  where an internal package name could be shadowed
+    by a malicious public package of the same name.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify SECARCH-09 is properly addressed
+- blast_radius_notes: Automated fix for SECARCH-10
+  control_id: SECARCH-10
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Isolate dangerous functionality and risky components: The
+    application must implement additional protections around parts documented as containing
+    ''dangerous functionality'' or using ''risky components''  -  sandboxing, encapsulation,
+    containerization, or network-level isolation  -  to delay and deter attackers who
+    compromise one part of an application from pivoting elsewhere.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify SECARCH-10 is properly addressed
+- blast_radius_notes: Automated fix for SECARCH-11
+  control_id: SECARCH-11
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Return only the required subset of fields from a data object:
+    The application must only return the required subset of fields from a data object
+    rather than the entire object, since some individual fields should not be accessible
+    to users.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify SECARCH-11 is properly addressed
+- blast_radius_notes: Automated fix for SECARCH-12
+  control_id: SECARCH-12
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Do not follow redirects on backend-initiated external calls
+    unless intended: Where the application backend makes calls to external URLs, it
+    must be configured to not follow redirects unless this is intended functionality,
+    to prevent SSRF-adjacent redirect-based bypasses of URL allowlisting.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify SECARCH-12 is properly addressed
+- blast_radius_notes: Automated fix for SECARCH-13
+  control_id: SECARCH-13
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Prevent mass assignment via per-action field allowlisting:
+    The application must have countermeasures against mass assignment attacks by limiting
+    allowed fields per controller and action, so it is not possible to insert or update
+    a field value that was not intended to be part of that specific action.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify SECARCH-13 is properly addressed
+- blast_radius_notes: Automated fix for SECARCH-14
+  control_id: SECARCH-14
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Use trusted, unmanipulable fields for client IP in logging/security
+    decisions: All proxying and middleware components must transfer the user''s original
+    IP address correctly using trusted data fields that cannot be manipulated by the
+    end user, and the application/web server must use this correct value for logging
+    and security decisions such as rate limiting  -  while accounting for the fact that
+    even the original IP address may not be fully reliable due to dynamic IPs, VPNs,
+    or corporate firewalls.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify SECARCH-14 is properly addressed
+- blast_radius_notes: Automated fix for SECARCH-15
+  control_id: SECARCH-15
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Enforce strict type checking to prevent type juggling/confusion:
+    The application must explicitly ensure variables are of the correct type and perform
+    strict equality/comparator operations, to avoid type juggling or type confusion
+    vulnerabilities caused by the code making assumptions about a variable''s type.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify SECARCH-15 is properly addressed
+- blast_radius_notes: Automated fix for SECARCH-16
+  control_id: SECARCH-16
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Prevent prototype pollution in JavaScript code: JavaScript
+    code must be written to prevent prototype pollution, for example by using Set()/Map()
+    instead of plain object literals for dynamic key-value storage derived from untrusted
+    input.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify SECARCH-16 is properly addressed
+- blast_radius_notes: Automated fix for SECARCH-17
+  control_id: SECARCH-17
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Defend against HTTP parameter pollution: The application
+    must have defenses against HTTP parameter pollution attacks, particularly if the
+    framework makes no distinction about the source of request parameters (query string,
+    body, cookies, or headers).'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify SECARCH-17 is properly addressed
+- blast_radius_notes: Automated fix for SECARCH-18
+  control_id: SECARCH-18
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Access shared objects in multi-threaded code safely: Shared
+    objects in multi-threaded code (caches, files, in-memory objects accessed by multiple
+    threads) must be accessed safely using thread-safe types and synchronization mechanisms
+    (locks, semaphores) to avoid race conditions and data corruption.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify SECARCH-18 is properly addressed
+- blast_radius_notes: Automated fix for SECARCH-19
+  control_id: SECARCH-19
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Perform resource state checks and dependent actions atomically
+    (TOCTOU prevention): Checks on a resource''s state (existence, permissions) and
+    the actions that depend on them must be performed as a single atomic operation,
+    to prevent time-of-check to time-of-use (TOCTOU) race conditions  -  e.g. checking
+    a file exists before opening it, or verifying access before granting it, without
+    an atomic guarantee between the two steps.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify SECARCH-19 is properly addressed
+- blast_radius_notes: Automated fix for SECARCH-20
+  control_id: SECARCH-20
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Use locks consistently and scope locking logic to the resource
+    owner: Locks must be used consistently to avoid threads getting stuck (waiting
+    on each other or retrying endlessly), and locking logic must stay within the code
+    responsible for managing the resource to ensure locks cannot be inadvertently
+    or maliciously modified by external code.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify SECARCH-20 is properly addressed
+- blast_radius_notes: Automated fix for SECARCH-21
+  control_id: SECARCH-21
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Prevent thread starvation via fair resource allocation: Resource
+    allocation policies must prevent thread starvation by ensuring fair access to
+    resources, such as by leveraging thread pools that allow lower-priority threads
+    to proceed within a reasonable timeframe.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify SECARCH-21 is properly addressed

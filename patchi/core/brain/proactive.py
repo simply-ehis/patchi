@@ -598,12 +598,127 @@ def run_proactive(
         else:
             skipped.append(f)
 
+    # Record to fix history when fixes are applied
+    if applied:
+        _record_fix_history(root, applied, skipped)
+
     return {
         "fixes": active,
         "applied": applied,
         "escalated": escalated,
         "skipped": skipped,
         "suppressed": suppressed,
+    }
+
+
+def _record_fix_history(root: Path, applied: list[ProposedFix], skipped: list[ProposedFix]) -> None:
+    """Record a fix operation to the history file for the charter page."""
+    if not applied and not skipped:
+        return
+
+    from datetime import UTC, datetime
+    import json
+
+    history_path = root / ".patchi" / "memory" / "fix_history.json"
+    history_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # Load existing history
+    history = []
+    if history_path.exists():
+        try:
+            history = json.loads(history_path.read_text(encoding="utf-8"))
+        except Exception:
+            history = []
+
+    # Record this operation
+    entry = {
+        "id": datetime.now(UTC).strftime("%Y%m%d-%H%M%S-%f"),
+        "timestamp": datetime.now(UTC).isoformat(),
+        "applied": [f.to_dict() for f in applied],
+        "skipped": [f.to_dict() for f in skipped],
+        "files_changed": list({f.file for f in applied}),
+        "count": len(applied),
+    }
+
+    history.append(entry)
+
+    # Keep last 50 entries
+    history = history[-50:]
+
+    history_path.write_text(json.dumps(history, indent=2, default=str), encoding="utf-8")
+
+
+def load_fix_history(root: Path, limit: int = 20) -> list[dict]:
+    """Load fix history for the charter page."""
+    import json
+
+    history_path = root / ".patchi" / "memory" / "fix_history.json"
+    if not history_path.exists():
+        return []
+
+    try:
+        history = json.loads(history_path.read_text(encoding="utf-8"))
+        return list(reversed(history[-limit:]))  # newest first
+    except Exception:
+        return []
+
+
+def revert_fix(root: Path, fix_id: str) -> dict:
+    """Revert a fix operation by restoring files from git."""
+    import json
+    import subprocess
+
+    history_path = root / ".patchi" / "memory" / "fix_history.json"
+    if not history_path.exists():
+        return {"success": False, "error": "No history found"}
+
+    try:
+        history = json.loads(history_path.read_text(encoding="utf-8"))
+    except Exception:
+        return {"success": False, "error": "Failed to read history"}
+
+    # Find the entry
+    entry = None
+    for h in history:
+        if h.get("id") == fix_id:
+            entry = h
+            break
+
+    if not entry:
+        return {"success": False, "error": f"Fix {fix_id} not found"}
+
+    # Restore files from git
+    reverted = []
+    failed = []
+    for file_info in entry.get("applied", []):
+        file_path = file_info.get("file", "")
+        if not file_path:
+            continue
+        try:
+            full_path = root / file_path
+            result = subprocess.run(
+                ["git", "checkout", "HEAD", "--", file_path],
+                cwd=str(root),
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+            if result.returncode == 0:
+                reverted.append(file_path)
+            else:
+                failed.append(file_path)
+        except Exception as e:
+            failed.append(file_path)
+
+    # Remove from history
+    history = [h for h in history if h.get("id") != fix_id]
+    history_path.write_text(json.dumps(history, indent=2, default=str), encoding="utf-8")
+
+    return {
+        "success": len(failed) == 0,
+        "reverted": reverted,
+        "failed": failed,
+        "count": len(reverted),
     }
 
 

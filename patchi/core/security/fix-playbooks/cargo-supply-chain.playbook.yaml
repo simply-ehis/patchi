@@ -1,0 +1,117 @@
+playbooks:
+- blast_radius_notes: Automated fix for CSC-001
+  control_id: CSC-001
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Known vulnerable crates (CVE / RustSEC advisory): Scan Cargo.lock
+    against the RustSEC advisory database and the OSV.dev API to detect crates with
+    known security advisories. The check should parse Cargo.lock, extract each crate
+    name + version, query OSV.dev batch API (POST /v1/querybatch), and surface any
+    matching advisories with severity (low/medium/high/critical), affected version
+    range, and patched version. Pay special attention to unmaintained crates flagged
+    by RustSEC (RUSTSEC-YYYY-NNNN with ''unmaintained'' tag) since they often lack
+    fixes for known issues. Run the scan on every CI build and on a weekly schedule.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify CSC-001 is properly addressed
+- blast_radius_notes: Automated fix for CSC-002
+  control_id: CSC-002
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Typo-squatting detection on crate names: Detect crate names
+    in Cargo.toml that are suspiciously close (Levenshtein distance <= 2) to popular
+    crates but are not the popular crate itself. Common typosquats include ''randd''
+    for ''rand'', ''serde-json'' for ''serde_json'' (hyphen vs underscore), ''reqwests''
+    for ''reqwest'', ''toklio'' for ''tokio''. The check should compare each dependency
+    name against the top 1000 most-downloaded crates (sourced from crates.io API),
+    compute Levenshtein distance, and flag any match with distance 1 or 2 that is
+    not the canonical name. Also flag crates with download counts below 1000 on crates.io
+    and crates less than 30 days old.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify CSC-002 is properly addressed
+- blast_radius_notes: Automated fix for CSC-003
+  control_id: CSC-003
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Suspicious dependency declarations (git, path, *): Detect
+    Cargo.toml dependencies declared with git URLs, branch tags instead of pinned
+    rev, local path dependencies in a published crate, and version requirements using
+    ''*'' (any version) which prevents deterministic builds and allows an attacker
+    who publishes a new version to inject code. Flag any dependency of the form {
+    git = "..." } without rev = "<sha>", any { path = "..." } in a library crate''s
+    [dependencies] section (path deps are fine for workspace members but suspicious
+    otherwise), any version = "*" or version = "0.*", and any [patch] section pointing
+    at git URLs.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify CSC-003 is properly addressed
+- blast_radius_notes: Automated fix for CSC-004
+  control_id: CSC-004
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Unmaintained crates (stale release + no security policy):
+    Detect dependencies whose latest release is older than 24 months, whose crates.io
+    repository URL returns 404, whose GitHub repo has no commit in 12 months, or whose
+    repo has no SECURITY.md. Unmaintained crates are a risk because vulnerabilities
+    will not be patched. The check should query crates.io API for each dependency
+    to get the latest publish date and repo URL, then optionally HEAD the repo and
+    SECURITY.md. Flag any crate with latest release older than 24 months as ''medium''
+    and older than 48 months as ''high''. Exempt crates that are explicitly marked
+    as ''complete'' or ''maintenance-only'' by the maintainer in the README.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify CSC-004 is properly addressed
+- blast_radius_notes: Automated fix for CSC-005
+  control_id: CSC-005
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Build script (build.rs) with network or filesystem side effects:
+    Detect build.rs files in workspace dependencies that perform network requests
+    (reqwest, ureq, curl), shell out to commands (std::process::Command), or write
+    to paths outside of OUT_DIR. Build scripts run during cargo build with the user''s
+    full permissions and can execute arbitrary code from any transitive dependency,
+    even ones that are not directly used. Flag any build.rs containing ::Command::new,
+    ::process::Command, reqwest::, ureq::, curl::easy::, std::net::TcpStream::connect,
+    and any std::fs::write to absolute paths outside of env::var("OUT_DIR").'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify CSC-005 is properly addressed
+- blast_radius_notes: Automated fix for CSC-006
+  control_id: CSC-006
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Workspace dependency audit on lockfile drift: Detect Cargo.lock
+    that is out of sync with Cargo.toml (cargo update has been run without committing
+    Cargo.lock to git, or .gitignore contains Cargo.lock for a binary crate). For
+    binary crates Cargo.lock MUST be committed; for library crates it is conventional
+    to NOT commit it but the project should run cargo-deny in CI to enforce advisories.
+    Flag any binary crate (has [[bin]] section or src/main.rs) without Cargo.lock
+    in git, any project running cargo update in CI without cargo audit afterward,
+    and any Cargo.lock with duplicate versions of the same crate (indicates diamond
+    dependency conflicts).'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify CSC-006 is properly addressed
+- blast_radius_notes: Automated fix for CSC-007
+  control_id: CSC-007
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Proc-macro crate executes arbitrary code at compile time:
+    Detect dependencies declared as proc-macro crates (proc-macro = true in Cargo.toml
+    of a dependency) that are not from the well-known proc-macro ecosystem (syn, quote,
+    proc-macro2, serde_derive, async-trait, thiserror, anyhow, derive_more, derivative,
+    strum, clap_derive). Proc-macros execute arbitrary Rust code at compile time with
+    the developer''s full permissions, similar to build.rs. Flag any proc-macro dependency
+    not on the allow-list above, any proc-macro dependency with fewer than 100k downloads,
+    and any proc-macro dependency with a build.rs (which combines both risks).'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify CSC-007 is properly addressed

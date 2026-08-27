@@ -44,7 +44,7 @@ _AGENT_MODULES: dict[str, str] = {
     "CVEMonitorAgent": ".cve_monitor",
     "DependencyCVEChecker": ".security_probe",
     "DependencyVulnerabilityAgent": ".dependency_vulnerability_agent",    "DASTAgent": ".dast_agent",
-    "DNS Security Agent": ".dns_security_agent",
+    "DNSSecurityAgent": ".dns_security_agent",
     "EmailAuthenticationAgent": ".email_authentication_agent",
     "EvidenceAgent": ".evidence",
     "FalcoRuntimeAgent": ".falco_runtime_agent",

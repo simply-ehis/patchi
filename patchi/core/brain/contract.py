@@ -440,6 +440,8 @@ class ContractBuilder:
         Clusters with at least one route produce a ContractFlow at medium confidence.
         Clusters with routes AND matching file purposes produce high confidence.
         Routes that don't match any known prefix produce a single "Other API" flow.
+        
+        If no routes are detected, falls back to file-structure-based inference.
         """
         from collections import defaultdict
 
@@ -498,7 +500,84 @@ class ContractBuilder:
                 )
             )
 
+        # Fallback: if no routes detected, infer from file structure
+        if not found and self.file_infos:
+            found = self._infer_from_file_structure()
+
         return found
+
+    def _infer_from_file_structure(self) -> list[ContractFlow]:
+        """
+        Infer contract flows from file structure when no routes are detected.
+        This helps with projects that don't have standard route definitions.
+        """
+        from collections import defaultdict
+        
+        # Group files by directory structure
+        dir_groups: dict[str, list[str]] = defaultdict(list)
+        for fi in self.file_infos:
+            parts = fi.path.replace("\\", "/").split("/")
+            if len(parts) >= 2:
+                # Use first two directory levels as group key
+                group_key = "/".join(parts[:2])
+            else:
+                group_key = "root"
+            dir_groups[group_key].append(fi.path)
+        
+        found: list[ContractFlow] = []
+        
+        # Map common directory patterns to contract flows
+        dir_to_flow = {
+            "api": ("API Endpoints", "API route handlers and controllers."),
+            "routes": ("Route Handlers", "Web route handlers and controllers."),
+            "pages": ("Page Components", "Web page components and views."),
+            "components": ("UI Components", "Reusable UI components."),
+            "services": ("Service Layer", "Business logic and service classes."),
+            "models": ("Data Models", "Data models and database schemas."),
+            "utils": ("Utilities", "Utility functions and helpers."),
+            "lib": ("Library Code", "Shared library code."),
+            "core": ("Core Logic", "Core application logic."),
+            "auth": ("Authentication", "Authentication and authorization logic."),
+            "views": ("Views", "View templates and components."),
+            "controllers": ("Controllers", "Request handlers and controllers."),
+            "middleware": ("Middleware", "Request/response middleware."),
+            "tests": ("Test Suite", "Test files and test utilities."),
+        }
+        
+        for dir_key, files in dir_groups.items():
+            dir_name = dir_key.split("/")[-1].lower()
+            
+            # Check if this directory matches a known pattern
+            flow_name = None
+            flow_desc = None
+            for pattern, (name, desc) in dir_to_flow.items():
+                if pattern in dir_name:
+                    flow_name = name
+                    flow_desc = desc
+                    break
+            
+            if not flow_name:
+                # Use directory name as flow name
+                flow_name = f"{dir_name.title()} Module"
+                flow_desc = f"Code in the {dir_name} directory."
+            
+            flow_id = dir_name.replace("/", "-")
+            found.append(
+                ContractFlow(
+                    id=flow_id,
+                    name=flow_name,
+                    description=flow_desc,
+                    routes=[],
+                    files=files[:10],
+                    signals=["file-structure"],
+                    confirmed=False,
+                    user_added=False,
+                    confidence="low",
+                    suggested=True,
+                )
+            )
+        
+        return found[:10]  # Limit to top 10 flows
 
     def ai_infer(self, config: dict | None = None) -> list[ContractFlow] | None:
         """

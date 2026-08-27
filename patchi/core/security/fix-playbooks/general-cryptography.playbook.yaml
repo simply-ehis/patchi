@@ -1,0 +1,287 @@
+playbooks:
+- blast_radius_notes: Automated fix for CRYPTO-01
+  control_id: CRYPTO-01
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Document key management policy and lifecycle: A documented
+    policy for cryptographic key management and lifecycle must exist, following a
+    recognized key management standard (e.g. NIST SP 800-57), including limits on
+    how widely keys/shared secrets are distributed.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify CRYPTO-01 is properly addressed
+- blast_radius_notes: Automated fix for CRYPTO-02
+  control_id: CRYPTO-02
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Maintain a cryptographic inventory: A regularly updated inventory
+    of all cryptographic keys, algorithms, and certificates used by the application
+    must be maintained, documenting where each key can/cannot be used and what data
+    types each key is permitted to protect.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify CRYPTO-02 is properly addressed
+- blast_radius_notes: Automated fix for CRYPTO-03
+  control_id: CRYPTO-03
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Employ cryptographic discovery mechanisms: Discovery tooling
+    should be used to identify all instances of cryptography in the system (encryption,
+    hashing, signing operations), rather than relying solely on manual documentation.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify CRYPTO-03 is properly addressed
+- blast_radius_notes: Automated fix for CRYPTO-04
+  control_id: CRYPTO-04
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Maintain a post-quantum migration plan: The cryptographic
+    inventory must include a documented migration path toward post-quantum cryptography
+    to prepare for future cryptographic breaks.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify CRYPTO-04 is properly addressed
+- blast_radius_notes: Automated fix for CRYPTO-05
+  control_id: CRYPTO-05
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Use industry-validated cryptographic implementations: Cryptographic
+    operations must use industry-validated libraries or hardware-accelerated implementations
+    rather than custom/hand-rolled cryptographic code.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify CRYPTO-05 is properly addressed
+- blast_radius_notes: Automated fix for CRYPTO-06
+  control_id: CRYPTO-06
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Design for crypto agility: The application must be designed
+    so that random-number, encryption, MAC, and hashing algorithms, key lengths, rounds,
+    ciphers, and modes can be reconfigured, upgraded, or swapped, along with the ability
+    to replace keys/passwords and re-encrypt data, to allow response to cryptographic
+    breaks and eventual post-quantum migration.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify CRYPTO-06 is properly addressed
+- blast_radius_notes: Automated fix for CRYPTO-07
+  control_id: CRYPTO-07
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Enforce minimum 128-bit security level for all cryptographic
+    primitives: All cryptographic primitives must provide at least 128 bits of security
+    based on algorithm, key size, and configuration (e.g. RSA keys must be at least
+    3072 bits to match 128-bit security level, matching a 256-bit ECC key).'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify CRYPTO-07 is properly addressed
+- blast_radius_notes: Automated fix for CRYPTO-08
+  control_id: CRYPTO-08
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Use constant-time cryptographic operations: Cryptographic
+    comparisons, calculations, and returns must be constant-time, with no short-circuit
+    logic, to avoid leaking information through timing side channels.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify CRYPTO-08 is properly addressed
+- blast_radius_notes: Automated fix for CRYPTO-09
+  control_id: CRYPTO-09
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Fail cryptographic operations securely: Cryptographic modules
+    must fail securely, with error handling that doesn''t enable vulnerabilities such
+    as padding oracle attacks (e.g. returning the same generic error regardless of
+    the specific decryption/padding failure reason).'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify CRYPTO-09 is properly addressed
+- blast_radius_notes: Automated fix for CRYPTO-10
+  control_id: CRYPTO-10
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Do not use insecure block modes or weak padding schemes:
+    Insecure block cipher modes (e.g. ECB) and weak padding schemes (e.g. PKCS#1 v1.5
+    for RSA encryption) must not be used.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify CRYPTO-10 is properly addressed
+- blast_radius_notes: Automated fix for CRYPTO-11
+  control_id: CRYPTO-11
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Use only approved ciphers and modes: Only approved ciphers
+    and modes (e.g. AES with GCM) must be used for encryption.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify CRYPTO-11 is properly addressed
+- blast_radius_notes: Automated fix for CRYPTO-12
+  control_id: CRYPTO-12
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Protect encrypted data against unauthorized modification:
+    Encrypted data must be protected against tampering, preferably via an authenticated
+    encryption method, or by combining an approved encryption method with an approved
+    MAC algorithm.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify CRYPTO-12 is properly addressed
+- blast_radius_notes: Automated fix for CRYPTO-13
+  control_id: CRYPTO-13
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Never reuse nonces/IVs for the same key and data-element
+    pair: Nonces, initialization vectors, and other single-use values must not be
+    reused for more than one encryption key and data-element pair; the generation
+    method must be appropriate for the specific algorithm in use.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify CRYPTO-13 is properly addressed
+- blast_radius_notes: Automated fix for CRYPTO-14
+  control_id: CRYPTO-14
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Use encrypt-then-MAC when combining encryption and MAC algorithms:
+    Any combination of an encryption algorithm and a separate MAC algorithm must operate
+    in encrypt-then-MAC order, not MAC-then-encrypt or encrypt-and-MAC.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify CRYPTO-14 is properly addressed
+- blast_radius_notes: Automated fix for CRYPTO-15
+  control_id: CRYPTO-15
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Use only approved hash functions for cryptographic purposes:
+    Only approved hash functions may be used for cryptographic purposes (digital signatures,
+    HMAC, KDF, random bit generation); disallowed hash functions such as MD5 must
+    never be used for any cryptographic purpose. This control is chapter-general;
+    the password-storage-specific hashing requirement is CRYPTO-16, which may overlap
+    with an equivalent control in auth-session  -  see the domain-level scope note above.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify CRYPTO-15 is properly addressed
+- blast_radius_notes: Automated fix for CRYPTO-16
+  control_id: CRYPTO-16
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Use an approved password-hashing key derivation function:
+    Passwords must be stored using an approved, computationally intensive key derivation
+    function (a password hashing function such as bcrypt, scrypt, or Argon2), with
+    parameters tuned to balance security and performance against brute-force attacks.
+    Possible overlap with auth-session  -  see domain-level scope note.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify CRYPTO-16 is properly addressed
+- blast_radius_notes: Automated fix for CRYPTO-17
+  control_id: CRYPTO-17
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Use collision-resistant hash functions with appropriate bit-length
+    for signatures/integrity: Hash functions used in digital signatures or data integrity/authentication
+    must be collision resistant with an output length of at least 256 bits (or at
+    least 128 bits if only second-pre-image resistance is required).'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify CRYPTO-17 is properly addressed
+- blast_radius_notes: Automated fix for CRYPTO-18
+  control_id: CRYPTO-18
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Use approved key derivation functions with key stretching
+    for password-derived keys: When deriving secret cryptographic keys from passwords,
+    an approved key derivation function with key-stretching parameters must be used,
+    tuned to balance security and performance against brute-force attacks on the derived
+    key.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify CRYPTO-18 is properly addressed
+- blast_radius_notes: Automated fix for CRYPTO-19
+  control_id: CRYPTO-19
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Use a CSPRNG with sufficient entropy for non-guessable values:
+    All random numbers/strings intended to be non-guessable must be generated using
+    a cryptographically secure pseudo-random number generator with at least 128 bits
+    of entropy; UUIDs alone do not satisfy this (most UUID versions are not generated
+    with a CSPRNG and/or don''t carry 128 bits of unpredictable entropy).'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify CRYPTO-19 is properly addressed
+- blast_radius_notes: Automated fix for CRYPTO-20
+  control_id: CRYPTO-20
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Ensure the RNG mechanism remains secure under heavy load:
+    The random number generation mechanism must be designed to continue operating
+    securely even under heavy demand (i.e. not degrade to a weaker/predictable fallback
+    source under load).'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify CRYPTO-20 is properly addressed
+- blast_radius_notes: Automated fix for CRYPTO-21
+  control_id: CRYPTO-21
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Use approved algorithms and secure key generation for public-key
+    cryptography: Only approved algorithms/modes may be used for key generation, seeding,
+    and digital signature generation/verification; key generation must not produce
+    keys vulnerable to known attacks (e.g. RSA keys vulnerable to Fermat factorization
+    due to close prime factors).'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify CRYPTO-21 is properly addressed
+- blast_radius_notes: Automated fix for CRYPTO-22
+  control_id: CRYPTO-22
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Use approved algorithms and secure parameters for key exchange:
+    Approved cryptographic algorithms (e.g. Diffie-Hellman) must be used for key exchange,
+    with secure parameters, to prevent adversary-in-the-middle attacks or cryptographic
+    breaks against the key establishment process.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify CRYPTO-22 is properly addressed
+- blast_radius_notes: Automated fix for CRYPTO-23
+  control_id: CRYPTO-23
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Use full memory encryption for sensitive data in use: Full
+    memory encryption should be used to protect sensitive data while it is being processed
+    in memory, preventing access by unauthorized users or processes.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify CRYPTO-23 is properly addressed
+- blast_radius_notes: Automated fix for CRYPTO-24
+  control_id: CRYPTO-24
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Minimize exposed sensitive data during processing and encrypt
+    promptly after use: Data minimization principles should ensure the minimal amount
+    of sensitive data is exposed during processing, with data encrypted immediately
+    after use or as soon as feasible.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify CRYPTO-24 is properly addressed

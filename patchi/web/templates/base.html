@@ -9,8 +9,86 @@
   <script src="/static/konva.min.js" onerror="var s=document.createElement('script');s.src='https://unpkg.com/konva@9/konva.min.js';document.head.appendChild(s)"></script>
   <script src="/static/charts.js"></script>
   <script src="/static/canvas.js"></script>
+  <style>
+    /* Global loading states */
+    .loading-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(13, 15, 18, 0.95);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.2s, visibility 0.2s;
+    }
+    .loading-overlay.visible {
+      opacity: 1;
+      visibility: visible;
+    }
+    .loading-spinner {
+      width: 48px; height: 48px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text { margin-top: 16px; color: var(--text-secondary); font-size: 14px; }
+
+    /* Page transition */
+    .content { opacity: 1; transition: opacity 0.15s ease; }
+    .content.loading { opacity: 0.5; pointer-events: none; }
+
+    /* Button loading states */
+    .btn.loading { position: relative; color: transparent; pointer-events: none; }
+    .btn.loading::after {
+      content: ''; position: absolute; top: 50%; left: 50%;
+      width: 20px; height: 20px; margin: -10px 0 0 -10px;
+      border: 2px solid currentColor; border-right-color: transparent;
+      border-radius: 50%; animation: spin 0.8s linear infinite;
+    }
+
+    /* Skeleton loading for cards */
+    .skeleton { background: linear-gradient(90deg, var(--bg-card) 25%, var(--border) 50%, var(--bg-card) 75%);
+                background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: var(--radius); }
+    @keyframes shimmer { to { background-position: -200% 0; } }
+
+    /* Toast improvements */
+    .toast { position: fixed; bottom: 24px; right: 24px; padding: 12px 20px;
+             background: var(--bg-card); border: 1px solid var(--border);
+             border-radius: var(--radius); z-index: 10000; transform: translateY(100px);
+             opacity: 0; transition: all 0.3s ease; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+    .toast.visible { transform: translateY(0); opacity: 1; }
+    .toast.critical { border-left: 4px solid #FF4D6D; }
+    .toast.high { border-left: 4px solid #FF8C42; }
+    .toast.warning { border-left: 4px solid #FACC15; }
+    .toast.info { border-left: 4px solid #60a5fa; }
+    .toast.success { border-left: 4px solid #4ADE80; }
+
+    /* Progress bar improvements */
+    .progress-ring { width: 40px; height: 40px; transform: rotate(-90deg); }
+    .progress-ring__bg { fill: none; stroke: var(--border); stroke-width: 4; }
+    .progress-ring__circle { fill: none; stroke: var(--accent); stroke-width: 4; stroke-linecap: round;
+                             stroke-dasharray: 283; stroke-dashoffset: 283; transition: stroke-dashoffset 0.5s ease; }
+
+    /* Button states */
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn:active:not(:disabled) { transform: scale(0.98); }
+
+    /* Page transition for HTMX */
+    .content { transition: opacity 0.15s ease; }
+    .content.htmx-swapping { opacity: 0; }
+  </style>
 </head>
 <body>
+
+<!-- Global loading overlay -->
+<div class="loading-overlay" id="global-loading">
+  <div class="loading-spinner"></div>
+  <div class="loading-text" id="loading-text">Loading…</div>
+</div>
 
 <!-- Top bar -->
 <header class="topbar">
@@ -77,9 +155,9 @@
   </nav>
 
   <!-- Main content -->
-  <main class="content">
+  <div class="content" id="main-content">
     {% block content %}{% endblock %}
-  </main>
+  </div>
 </div>
 
 <!-- Toast notifications -->
@@ -96,6 +174,12 @@
   </div>
 </div>
 
+<!-- Global loading indicator -->
+<div id="global-loading" class="loading-overlay" style="display:none;">
+  <div class="loading-spinner"></div>
+  <div class="loading-text" id="loading-text">Loading…</div>
+</div>
+
 <script>
 // Re-initialize Brain Map and charts after HTMX content swaps
 document.body.addEventListener('htmx:afterSettle', function(evt) {
@@ -106,6 +190,169 @@ document.body.addEventListener('htmx:afterSettle', function(evt) {
     // Charts are re-initialized by the inline script in dashboard.html
   }
 });
+
+// HTMX loading indicators
+document.body.addEventListener('htmx:beforeRequest', function(evt) {
+  document.body.classList.add('loading');
+  const target = evt.detail.target;
+  if (target && target.closest('.content')) {
+    target.closest('.content').classList.add('loading');
+  }
+  // Show loading on buttons
+  const btn = evt.detail.elt;
+  if (btn && btn.classList && btn.classList.contains('btn')) {
+    btn.classList.add('loading');
+  }
+});
+
+document.body.addEventListener('htmx:afterSettle', function(evt) {
+  document.body.classList.remove('loading');
+  const content = document.querySelector('.content');
+  if (content) content.classList.remove('loading');
+  // Remove loading from buttons
+  document.querySelectorAll('.btn.loading').forEach(btn => btn.classList.remove('loading'));
+});
+
+document.body.addEventListener('htmx:beforeRequest', function(evt) {
+  const btn = evt.detail.elt;
+  if (btn && btn.classList && btn.classList.contains('btn')) {
+    btn.classList.add('loading');
+  }
+});
+
+// HTMX error handling
+document.body.addEventListener('htmx:responseError', function(evt) {
+  const detail = evt.detail;
+  if (detail.xhr && detail.xhr.status) {
+    toast(`Error ${detail.xhr.status}: ${detail.xhr.statusText}`, 'error');
+  }
+});
+
+// Global loading indicator for non-HTMX requests
+window.showGlobalLoading = function(text) {
+  const overlay = document.getElementById('global-loading');
+  const textEl = document.getElementById('loading-text');
+  if (overlay && textEl) {
+    textEl.textContent = text || 'Loading…';
+    overlay.classList.add('visible');
+  }
+};
+
+window.hideGlobalLoading = function() {
+  const overlay = document.getElementById('global-loading');
+  if (overlay) {
+    overlay.classList.remove('visible');
+  }
+};
+
+// Toast notifications
+function toast(msg, type = 'info') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `toast visible ${type}`;
+  clearTimeout(el._t);
+  el._t = setTimeout(() => { el.className = 'toast'; }, 4000);
+}
+
+// Global loading indicator for non-HTMX requests
+window.showGlobalLoading = function(text) {
+  const overlay = document.getElementById('global-loading');
+  const textEl = document.getElementById('loading-text');
+  if (overlay && textEl) {
+    textEl.textContent = text || 'Loading…';
+    overlay.classList.add('visible');
+  }
+};
+
+window.hideGlobalLoading = function() {
+  const overlay = document.getElementById('global-loading');
+  if (overlay) {
+    overlay.classList.remove('visible');
+  }
+};
+
+// Toast notifications
+function toast(msg, type = 'info') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `toast visible ${type}`;
+  clearTimeout(el._t);
+  el._t = setTimeout(() => { el.className = 'toast'; }, 4000);
+}
+
+// Re-initialize Brain Map and charts after HTMX content swaps
+document.body.addEventListener('htmx:afterSettle', function(evt) {
+  if (evt.detail.target.querySelector('#brain-map')) {
+    if (window.BrainMap) BrainMap.init('brain-map');
+  }
+  if (evt.detail.target.querySelector('#health-ring')) {
+    // Charts are re-initialized by the inline script in dashboard.html
+  }
+});
+
+// HTMX loading indicators
+document.body.addEventListener('htmx:beforeRequest', function(evt) {
+  document.body.classList.add('loading');
+  const target = evt.detail.target;
+  if (target && target.closest('.content')) {
+    target.closest('.content').classList.add('loading');
+  }
+  // Show loading on buttons
+  const btn = evt.detail.elt;
+  if (btn && btn.classList && btn.classList.contains('btn')) {
+    btn.classList.add('loading');
+  }
+});
+
+document.body.addEventListener('htmx:afterSettle', function(evt) {
+  document.body.classList.remove('loading');
+  const content = document.querySelector('.content');
+  if (content) content.classList.remove('loading');
+  // Remove loading from buttons
+  document.querySelectorAll('.btn.loading').forEach(btn => btn.classList.remove('loading'));
+
+  // Re-initialize Brain Map and charts after HTMX content swaps
+  if (evt.detail.target.querySelector('#brain-map')) {
+    if (window.BrainMap) BrainMap.init('brain-map');
+  }
+  if (evt.detail.target.querySelector('#health-ring')) {
+    // Charts are re-initialized by the inline script in dashboard.html
+  }
+});
+
+// HTMX error handling
+document.body.addEventListener('htmx:responseError', function(evt) {
+  const detail = evt.detail;
+  if (detail.xhr && detail.xhr.status) {
+    toast(`Error ${detail.xhr.status}: ${detail.xhr.statusText}`, 'error');
+  }
+});
+
+// Global loading indicator for non-HTMX requests
+window.showGlobalLoading = function(text) {
+  const overlay = document.getElementById('global-loading');
+  const textEl = document.getElementById('loading-text');
+  if (overlay && textEl) {
+    textEl.textContent = text || 'Loading…';
+    overlay.classList.add('visible');
+  }
+};
+
+window.hideGlobalLoading = function() {
+  const overlay = document.getElementById('global-loading');
+  if (overlay) {
+    overlay.classList.remove('visible');
+  }
+};
+
+// Toast notifications
+function toast(msg, type = 'info') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `toast visible ${type}`;
+  clearTimeout(el._t);
+  el._t = setTimeout(() => { el.className = 'toast'; }, 4000);
+}
 
 // WebSocket connection with exponential backoff reconnect (ADD-02)
 let _wsDelay = 1000;
@@ -206,6 +453,5 @@ function toast(msg, type = 'info') {
   el._t = setTimeout(() => { el.className = 'toast'; }, 4000);
 }
 </script>
-
 </body>
 </html>

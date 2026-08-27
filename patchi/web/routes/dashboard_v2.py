@@ -284,12 +284,12 @@ async def _handle_ws_message(ws: WebSocket, root: Path, raw: str):
 
         elif action == "tool_call":
             # Execute AI tool call
-            from patchi.core.ai.tool_executor import ToolExecutor
+            from patchi.core.ai.tool_executor import ToolExecutor, WebConfirmationProvider
 
             tool_name = data.get("tool")
             parameters = data.get("parameters", {})
 
-            executor = ToolExecutor(root)
+            executor = ToolExecutor(root, confirmation_provider=WebConfirmationProvider())
             exec_result = await executor.execute(tool_name, parameters, invoked_by="dashboard")
 
             await ws.send_json(
@@ -448,7 +448,7 @@ async def get_live_test_status(request: Request):
 @router.post("/api/v2/tools/execute")
 async def execute_tool(request: Request):
     """Execute an AI tool call from dashboard."""
-    from patchi.core.ai.tool_executor import ToolExecutor
+    from patchi.core.ai.tool_executor import ToolExecutor, WebConfirmationProvider
 
     root = request.app.state.root
 
@@ -456,7 +456,7 @@ async def execute_tool(request: Request):
     tool_name = data.get("tool")
     parameters = data.get("parameters", {})
 
-    executor = ToolExecutor(root)
+    executor = ToolExecutor(root, confirmation_provider=WebConfirmationProvider())
     result = await executor.execute(tool_name, parameters, invoked_by="dashboard")
 
     return {

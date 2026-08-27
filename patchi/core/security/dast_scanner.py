@@ -94,7 +94,17 @@ class DastScanner:
             from patchi.core.testing.live_v2.screenshot_manager import ScreenshotManager
 
             pool = BrowserPool()
-            await pool.initialize()
+            try:
+                await pool.initialize()
+            except Exception as e:
+                error_msg = str(e)
+                if "Executable doesn't exist" in error_msg or "playwright" in error_msg.lower():
+                    report.errors.append(
+                        "Playwright browsers not installed. Run: pip install playwright && playwright install"
+                    )
+                    report.duration_ms = int((time.monotonic() - start) * 1000)
+                    return report
+                raise
 
             screenshot_mgr = ScreenshotManager(
                 baseline_dir=str(self._evidence_dir),

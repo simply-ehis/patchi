@@ -1,0 +1,199 @@
+playbooks:
+- blast_radius_notes: Automated fix for LOG-01
+  control_id: LOG-01
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Maintain a logging inventory: An inventory must document
+    the logging performed at each layer of the application''s technology stack: what
+    events are logged, log formats, where logs are stored, how they''re used, how
+    access is controlled, and retention duration.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify LOG-01 is properly addressed
+- blast_radius_notes: Automated fix for LOG-02
+  control_id: LOG-02
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Include sufficient metadata in every log entry: Each log
+    entry must include necessary metadata (when, where, who, what) to allow detailed
+    investigation of an event''s timeline.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify LOG-02 is properly addressed
+- blast_radius_notes: Automated fix for LOG-03
+  control_id: LOG-03
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Use synchronized, UTC (or explicit-offset) timestamps across
+    all logging components: Time sources for all logging components must be synchronized,
+    and timestamps in security event metadata must use UTC or an explicit time zone
+    offset, to prevent confusion during correlation and daylight saving transitions.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify LOG-03 is properly addressed
+- blast_radius_notes: Automated fix for LOG-04
+  control_id: LOG-04
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Only send logs to documented destinations: The application
+    must only store or broadcast logs to the files and services documented in the
+    log inventory (LOG-01), not to undocumented additional destinations.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify LOG-04 is properly addressed
+- blast_radius_notes: Automated fix for LOG-05
+  control_id: LOG-05
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Use a common, correlatable log format: Logs must be readable
+    and correlatable by the log processor in use, preferably using a common, structured
+    logging format (e.g. JSON with consistent field names) rather than inconsistent
+    free-text formats across components.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify LOG-05 is properly addressed
+- blast_radius_notes: Automated fix for LOG-06
+  control_id: LOG-06
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Enforce data-protection-level rules when logging sensitive
+    data: Logging of sensitive data must respect the data''s protection level  -  some
+    data (credentials, payment details) must never be logged; other data (session
+    tokens) may only be logged hashed, masked, or partially.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify LOG-06 is properly addressed
+- blast_radius_notes: Automated fix for LOG-07
+  control_id: LOG-07
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Log all authentication attempts, successful and unsuccessful:
+    All authentication operations must be logged, including successful and unsuccessful
+    attempts, with metadata such as the authentication type/factors used.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify LOG-07 is properly addressed
+- blast_radius_notes: Automated fix for LOG-08
+  control_id: LOG-08
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Log failed authorization attempts: Failed authorization attempts
+    must be logged; at the highest verification level, all authorization decisions
+    must be logged, including access to sensitive data (without logging the sensitive
+    data''s actual content).'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify LOG-08 is properly addressed
+- blast_radius_notes: Automated fix for LOG-09
+  control_id: LOG-09
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Log security-control bypass attempts: The application must
+    log the security events defined in its documentation and log attempts to bypass
+    security controls such as input validation, business logic constraints, and anti-automation
+    measures.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify LOG-09 is properly addressed
+- blast_radius_notes: Automated fix for LOG-10
+  control_id: LOG-10
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Log unexpected errors and security control failures: The
+    application must log unexpected errors and security control failures, such as
+    backend TLS failures.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify LOG-10 is properly addressed
+- blast_radius_notes: Automated fix for LOG-11
+  control_id: LOG-11
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Encode logged data to prevent log injection: All logging
+    components must appropriately encode data written to logs to prevent log injection
+    attacks (e.g. an attacker embedding fake log lines or control characters within
+    user-controlled input that gets logged verbatim).'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify LOG-11 is properly addressed
+- blast_radius_notes: Automated fix for LOG-12
+  control_id: LOG-12
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Protect logs from unauthorized access and modification: Logs
+    must be protected from unauthorized access and must not be modifiable by unauthorized
+    parties.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify LOG-12 is properly addressed
+- blast_radius_notes: Automated fix for LOG-13
+  control_id: LOG-13
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Securely transmit logs to a logically separate system: Logs
+    must be securely transmitted to a logically separate system for analysis, detection,
+    alerting, and escalation, so that a breach of the application does not also compromise
+    its own logs.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify LOG-13 is properly addressed
+- blast_radius_notes: Automated fix for LOG-14
+  control_id: LOG-14
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Return generic error messages, never expose internal system
+    data: A generic message must be returned to the consumer for unexpected or security-sensitive
+    errors, with no exposure of internal system data such as stack traces, database
+    queries, secret keys, or tokens.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify LOG-14 is properly addressed
+- blast_radius_notes: Automated fix for LOG-15
+  control_id: LOG-15
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Continue operating securely when external resource access
+    fails: The application must continue to operate securely when access to an external
+    resource fails, using patterns such as circuit breakers or graceful degradation
+    rather than failing in an insecure or undefined way.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify LOG-15 is properly addressed
+- blast_radius_notes: Automated fix for LOG-16
+  control_id: LOG-16
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Fail closed, not open, on exceptions: The application must
+    fail gracefully and securely, including when an exception occurs, preventing fail-open
+    conditions such as processing a transaction despite validation-logic errors.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify LOG-16 is properly addressed
+- blast_radius_notes: Automated fix for LOG-17
+  control_id: LOG-17
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Define a last-resort handler for all unhandled exceptions:
+    A last-resort error handler must be defined to catch all unhandled exceptions,
+    both to preserve error details for logging and to prevent an unhandled error from
+    crashing the entire application process (a loss of availability).'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify LOG-17 is properly addressed

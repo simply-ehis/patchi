@@ -24,17 +24,21 @@
             {{ (p.changes or [{}])[0].get('path', '') }} · Risk: {{ p.risk_score }}/100 · Confidence: {{ p.confidence }}%
           </div>
         </div>
-        <div style="display:flex;gap:4px">
+        <div style="display:flex;gap:4px;align-items:center">
           <button class="btn" style="font-size:12px;padding:4px 12px"
             hx-post="/api/fix/apply/{{ p.id }}" hx-swap="none"
-            onclick="document.getElementById('patch-{{ p.id }}').style.opacity=0.3">
+            hx-on::before-request="this.classList.add('loading')"
+            hx-on::after-request="this.classList.remove('loading');document.getElementById('patch-{{ p.id }}').style.opacity=0.3"
+            hx-indicator="#patch-{{ p.id }}-spin">
             ✓ Apply
           </button>
           <button class="btn btn-danger" style="font-size:12px;padding:4px 12px"
             hx-post="/api/fix/reject/{{ p.id }}" hx-swap="none"
-            onclick="document.getElementById('patch-{{ p.id }}').style.display='none'">
+            hx-on::before-request="this.classList.add('loading')"
+            hx-on::after-request="this.classList.remove('loading');document.getElementById('patch-{{ p.id }}').style.display='none'">
             ✗ Reject
           </button>
+          <span id="patch-{{ p.id }}-spin" class="htmx-indicator loading-spinner" style="width:16px;height:16px;border-width:2px"></span>
           <button class="btn" style="font-size:12px;padding:4px 8px"
             onclick="toggleDiff('diff-{{ p.id }}')">
             ⌥ Diff

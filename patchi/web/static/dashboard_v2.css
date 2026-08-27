@@ -1142,3 +1142,286 @@ body {
     letter-spacing: 0.04em;
     margin-top: 4px;
 }
+
+/* ── Overflow & Scroll Improvements ─────────────────────────────── */
+.content-area {
+    overflow-y: auto;
+    overflow-x: hidden;
+    max-height: calc(100vh - 120px);
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+}
+
+.sidebar {
+    overflow-y: auto;
+    max-height: calc(100vh - 120px);
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+}
+
+.sidebar-right {
+    overflow-y: auto;
+    max-height: calc(100vh - 120px);
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+}
+
+/* Panel overflow handling */
+.panel {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    margin-bottom: 16px;
+}
+
+.panel-body {
+    padding: 16px;
+    overflow: visible;
+}
+
+.panel-body-scroll {
+    max-height: 320px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+}
+
+/* Feed and findings scroll separation */
+.agent-feed {
+    max-height: 400px;
+    overflow-y: auto;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: 8px;
+    background: var(--bg-primary);
+}
+
+.findings-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 480px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: 8px;
+    background: var(--bg-primary);
+}
+
+/* Tools list scroll */
+.tools-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    max-height: 400px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+}
+
+/* Header overflow prevention */
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 20px;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+.header::-webkit-scrollbar {
+    display: none;
+}
+
+/* Main tabs scroll */
+.main-tabs {
+    display: flex;
+    gap: 4px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    flex-shrink: 1;
+    min-width: 0;
+}
+
+.main-tabs::-webkit-scrollbar {
+    display: none;
+}
+
+/* Status bar overflow */
+.status-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 20px;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-subtle);
+    font-size: 12px;
+    color: var(--text-secondary);
+    overflow-x: auto;
+    scrollbar-width: none;
+    flex-shrink: 0;
+}
+
+.status-bar::-webkit-scrollbar {
+    display: none;
+}
+
+/* Content area panels */
+.content-area .panel {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+}
+
+.content-area .panel-body {
+    padding: 16px;
+    overflow: visible;
+}
+
+/* Dashboard grid improvements */
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: 220px 1fr 320px;
+    gap: 16px;
+    padding: 16px 20px;
+    max-width: 1800px;
+    width: 100%;
+    margin: 0 auto;
+    min-height: 0;
+}
+
+/* Panel-full class for full-width panels */
+.panel-full {
+    grid-column: 1 / -1;
+}
+
+/* Permission banner styles */
+.permission-banner {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: rgba(210, 153, 34, 0.1);
+    border: 1px solid rgba(210, 153, 34, 0.3);
+    border-radius: var(--radius-md);
+    margin-bottom: 12px;
+    font-size: 13px;
+}
+
+.permission-banner-icon {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    color: var(--warning);
+}
+
+.permission-banner-text {
+    flex: 1;
+    color: var(--text-primary);
+}
+
+.permission-banner-actions {
+    display: flex;
+    gap: 8px;
+}
+
+/* Confirmation modal improvements */
+.modal-confirm {
+    max-width: 480px;
+}
+
+.confirm-tool-info {
+    margin-bottom: 16px;
+}
+
+.confirm-tool-name {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--accent);
+    margin-bottom: 8px;
+}
+
+.confirm-tool-desc {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+}
+
+.confirm-tool-params {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: 10px 12px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    white-space: pre-wrap;
+    max-height: 200px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+}
+
+.confirm-side-effects {
+    margin-top: 12px;
+    padding: 10px 12px;
+    background: rgba(248, 81, 73, 0.08);
+    border: 1px solid rgba(248, 81, 73, 0.25);
+    border-radius: var(--radius-md);
+    font-size: 12.5px;
+    color: var(--sev-high);
+}
+
+.confirm-side-effects:empty {
+    display: none;
+}
+
+/* Spinner animation */
+.spinner {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Loading state for buttons */
+.btn.loading {
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+.btn.loading::after {
+    content: '';
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    margin-left: 6px;
+    border: 2px solid currentColor;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    vertical-align: middle;
+}

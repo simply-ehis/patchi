@@ -1,7 +1,7 @@
 """
-Web API + page for the Smart Agent ("live view + control").
+Web API + page for the Smart Agent (now powered by the Orchestrator brain).
 
-POST /api/smart/run  — kicks off a SmartAgent run; every tool event is streamed
+POST /api/smart/run  — kicks off an Orchestrator run; every tool event is streamed
                        live to all connected WebSocket clients (the "see it work
                        as it happens" view).
 GET  /smart          — the control console page (type a goal, watch it run).
@@ -24,7 +24,7 @@ router = APIRouter()
 
 class SmartRunRequest(BaseModel):
     goal: str
-    max_steps: int = 6
+    max_steps: int = 10
 
 
 @router.post("/api/smart/run")
@@ -41,19 +41,39 @@ async def smart_run(req: SmartRunRequest, request: Request):
         except Exception as e:
             _log.debug("ws broadcast failed: %s", e)
 
-    async def _run() -> None:
-        from patchi.core.ai.smart import SmartAgent
-
-        agent = SmartAgent(root, on_event=on_event, on_progress=lambda s: None)
+    def on_progress(msg: str) -> None:
         try:
-            await agent.run(req.goal, max_steps=req.max_steps)
+            asyncio.run_coroutine_threadsafe(
+                manager.broadcast("agent.progress", {
+                    "agent": "orchestrator",
+                    "progress_pct": 0,
+                    "current_file": msg,
+                }), loop
+            )
+        except Exception:
+            pass
+
+    async def _run() -> None:
+        from patchi.core.ai.orchestrator import Orchestrator
+
+        orchestrator = Orchestrator(
+            root,
+            on_event=on_event,
+            on_progress=on_progress,
+        )
+        try:
+            await orchestrator.run(req.goal, max_steps=req.max_steps)
         except Exception as e:
-            _log.error("SmartAgent run failed: %s", e)
+            _log.error("Orchestrator run failed: %s", e)
+            on_event({
+                "event": "agent.error",
+                "data": {"agent": "orchestrator", "error": str(e)},
+            })
 
     asyncio.create_task(_run())
     return {
         "success": True,
-        "message": "SmartAgent started — events stream over /ws",
+        "message": "Orchestrator started — events stream over /ws",
         "goal": req.goal,
     }
 

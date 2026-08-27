@@ -1,119 +1,119 @@
-playbooks:
-- blast_radius_notes: Replacing getElementsByTagName with ID-anchored selection prevents
-    XML signature wrapping attacks; requires understanding the assertion structure.
-  control_id: SAML-01
-  deterministic_tool: null
-  fix_strategy: llm-template-fill
-  human_review_required: true
-  llm_fix_template: "\"Given SAML response parsing using getElementsByTagName or similar\n\
-    \ broad element selection: replace with ID-anchored selection that targets\n the\
-    \ specific signed assertion element by its ID attribute, preventing\n XML signature\
-    \ wrapping attacks; validate the signature on the\n assertion before extracting\
-    \ attributes.\"\n"
-  playbook_version: 1.0.0
-  verification_checks:
-  - Confirm the parser uses ID-anchored element selection instead of tag-name traversal.
-  - Confirm signature validation occurs on the assertion before attribute extraction.
-  - Confirm the fix prevents XML signature wrapping attacks.
-- blast_radius_notes: Disabling DTD processing prevents XXE attacks; may break SAML
-    implementations that rely on DTD-defined entities (rare and insecure).
-  control_id: SAML-02
-  deterministic_tool: 'disable DTD processing on all XML parsers (set DTDs to null/False,
-    disable external entity resolution)'
-  fix_strategy: deterministic-autofix
-  human_review_required: false
-  llm_fix_template: null
-  playbook_version: 1.0.0
-  verification_checks:
-  - Confirm DTD processing is disabled on all XML parsers used for SAML processing.
-  - Confirm no external entity resolution is possible.
-- blast_radius_notes: Rejecting SHA-1 signed assertions may break authentication for
-    IdPs that still use SHA-1; coordinate with IdP administrators before enforcement.
-  control_id: SAML-03
-  deterministic_tool: 'allow-list only RSA-SHA-256+ algorithms and reject SHA-1 in signature
-    validation configuration'
-  fix_strategy: deterministic-autofix
-  human_review_required: true
-  llm_fix_template: null
-  playbook_version: 1.0.0
-  verification_checks:
-  - Confirm signature validation only accepts SHA-256 or stronger algorithms.
-  - Confirm SHA-1 signed assertions are rejected.
-- blast_radius_notes: Implementing time-window validation and single-use tracking may
-    reject legitimate assertions that are replayed by proxies or load balancers; ensure
-    clock synchronization across all SAML components.
-  control_id: SAML-04
-  deterministic_tool: null
-  fix_strategy: llm-template-fill
-  human_review_required: true
-  llm_fix_template: "\"Given SAML assertion processing without time/recipient validation:\n\
-    \ add validation for NotBefore/NotOnOrAfter time windows, Recipient\n attribute\
-    \ matching the SP's entity ID, InResponseTo correlation, and\n implement single-use\
-    \ assertion tracking (cache assertion IDs for\n the assertion's validity window);\
-    \ preserve the SSO login flow's\n functionality.\"\n"
-  playbook_version: 1.0.0
-  verification_checks:
-  - Confirm time-window validation is enforced (NotBefore/NotOnOrAfter).
-  - Confirm Recipient and InResponseTo attributes are validated.
-  - Confirm single-use tracking prevents assertion replay.
-- blast_radius_notes: Consuming IdP certificates via metadata URL requires the IdP
-    to publish valid metadata; misconfigured metadata URLs can break SSO entirely.
-  control_id: SAML-05
-  deterministic_tool: null
-  fix_strategy: manual-only
-  human_review_required: true
-  llm_fix_template: null
-  playbook_version: 1.0.0
-  verification_checks:
-  - A human confirms the IdP metadata URL is configured and accessible.
-  - Confirm certificates are automatically refreshed from the metadata endpoint.
-- blast_radius_notes: Disabling unsolicited responses improves security but may break
-    SP-initiated login flows that rely on IdP-initiated responses; verify actual usage
-    before disabling.
-  control_id: SAML-06
-  deterministic_tool: null
-  fix_strategy: manual-only
-  human_review_required: true
-  llm_fix_template: null
-  playbook_version: 1.0.0
-  verification_checks:
-  - A human reviews whether unsolicited IdP-initiated responses are required for legitimate
-    use cases.
-  - Confirm unsolicited responses are disabled unless explicitly needed.
-- blast_radius_notes: Validating RelayState against an allowlist prevents open-redirect
-    attacks; incorrect allowlist may break legitimate login flows.
-  control_id: SAML-07
-  deterministic_tool: 'validate RelayState against an explicit allowlist of permitted
-    redirect URLs'
-  fix_strategy: deterministic-autofix
-  human_review_required: false
-  llm_fix_template: null
-  playbook_version: 1.0.0
-  verification_checks:
-  - Confirm RelayState is validated against an explicit allowlist.
-  - Confirm invalid RelayState values are rejected.
-- blast_radius_notes: Disabling remote XSD resolution prevents XXE and SSRD attacks;
-    requires vendoring all required XSD schemas locally.
-  control_id: SAML-08
-  deterministic_tool: 'vendor local copies of all required SAML XSD schemas and disable
-    remote schema resolution'
-  fix_strategy: deterministic-autofix
-  human_review_required: false
-  llm_fix_template: null
-  playbook_version: 1.0.0
-  verification_checks:
-  - Confirm all SAML XSD schemas are vendored locally.
-  - Confirm remote schema resolution is disabled.
-  - Confirm SAML processing still validates correctly against local schemas.
-- blast_radius_notes: Migrating signing keys to HSM requires coordination with HSM infrastructure;
-    incorrect migration can break all SAML signature validation.
-  control_id: SAML-09
-  deterministic_tool: null
-  fix_strategy: manual-only
-  human_review_required: true
-  llm_fix_template: null
-  playbook_version: 1.0.0
-  verification_checks:
-  - A human confirms the signing key is migrated to HSM and all SAML signing operations
-    use the HSM-backed key.
-  - Confirm the old key material is securely destroyed after migration.
+playbooks:
+- blast_radius_notes: Replacing getElementsByTagName with ID-anchored selection prevents
+    XML signature wrapping attacks; requires understanding the assertion structure.
+  control_id: SAML-01
+  deterministic_tool: null
+  fix_strategy: llm-template-fill
+  human_review_required: true
+  llm_fix_template: "\"Given SAML response parsing using getElementsByTagName or similar\n\
+    \ broad element selection: replace with ID-anchored selection that targets\n the\
+    \ specific signed assertion element by its ID attribute, preventing\n XML signature\
+    \ wrapping attacks; validate the signature on the\n assertion before extracting\
+    \ attributes.\"\n"
+  playbook_version: 1.0.0
+  verification_checks:
+  - Confirm the parser uses ID-anchored element selection instead of tag-name traversal.
+  - Confirm signature validation occurs on the assertion before attribute extraction.
+  - Confirm the fix prevents XML signature wrapping attacks.
+- blast_radius_notes: Disabling DTD processing prevents XXE attacks; may break SAML
+    implementations that rely on DTD-defined entities (rare and insecure).
+  control_id: SAML-02
+  deterministic_tool: 'disable DTD processing on all XML parsers (set DTDs to null/False,
+    disable external entity resolution)'
+  fix_strategy: deterministic-autofix
+  human_review_required: false
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - Confirm DTD processing is disabled on all XML parsers used for SAML processing.
+  - Confirm no external entity resolution is possible.
+- blast_radius_notes: Rejecting SHA-1 signed assertions may break authentication for
+    IdPs that still use SHA-1; coordinate with IdP administrators before enforcement.
+  control_id: SAML-03
+  deterministic_tool: 'allow-list only RSA-SHA-256+ algorithms and reject SHA-1 in signature
+    validation configuration'
+  fix_strategy: deterministic-autofix
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - Confirm signature validation only accepts SHA-256 or stronger algorithms.
+  - Confirm SHA-1 signed assertions are rejected.
+- blast_radius_notes: Implementing time-window validation and single-use tracking may
+    reject legitimate assertions that are replayed by proxies or load balancers; ensure
+    clock synchronization across all SAML components.
+  control_id: SAML-04
+  deterministic_tool: null
+  fix_strategy: llm-template-fill
+  human_review_required: true
+  llm_fix_template: "\"Given SAML assertion processing without time/recipient validation:\n\
+    \ add validation for NotBefore/NotOnOrAfter time windows, Recipient\n attribute\
+    \ matching the SP's entity ID, InResponseTo correlation, and\n implement single-use\
+    \ assertion tracking (cache assertion IDs for\n the assertion's validity window);\
+    \ preserve the SSO login flow's\n functionality.\"\n"
+  playbook_version: 1.0.0
+  verification_checks:
+  - Confirm time-window validation is enforced (NotBefore/NotOnOrAfter).
+  - Confirm Recipient and InResponseTo attributes are validated.
+  - Confirm single-use tracking prevents assertion replay.
+- blast_radius_notes: Consuming IdP certificates via metadata URL requires the IdP
+    to publish valid metadata; misconfigured metadata URLs can break SSO entirely.
+  control_id: SAML-05
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - A human confirms the IdP metadata URL is configured and accessible.
+  - Confirm certificates are automatically refreshed from the metadata endpoint.
+- blast_radius_notes: Disabling unsolicited responses improves security but may break
+    SP-initiated login flows that rely on IdP-initiated responses; verify actual usage
+    before disabling.
+  control_id: SAML-06
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - A human reviews whether unsolicited IdP-initiated responses are required for legitimate
+    use cases.
+  - Confirm unsolicited responses are disabled unless explicitly needed.
+- blast_radius_notes: Validating RelayState against an allowlist prevents open-redirect
+    attacks; incorrect allowlist may break legitimate login flows.
+  control_id: SAML-07
+  deterministic_tool: 'validate RelayState against an explicit allowlist of permitted
+    redirect URLs'
+  fix_strategy: deterministic-autofix
+  human_review_required: false
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - Confirm RelayState is validated against an explicit allowlist.
+  - Confirm invalid RelayState values are rejected.
+- blast_radius_notes: Disabling remote XSD resolution prevents XXE and SSRD attacks;
+    requires vendoring all required XSD schemas locally.
+  control_id: SAML-08
+  deterministic_tool: 'vendor local copies of all required SAML XSD schemas and disable
+    remote schema resolution'
+  fix_strategy: deterministic-autofix
+  human_review_required: false
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - Confirm all SAML XSD schemas are vendored locally.
+  - Confirm remote schema resolution is disabled.
+  - Confirm SAML processing still validates correctly against local schemas.
+- blast_radius_notes: Migrating signing keys to HSM requires coordination with HSM infrastructure;
+    incorrect migration can break all SAML signature validation.
+  control_id: SAML-09
+  deterministic_tool: null
+  fix_strategy: manual-only
+  human_review_required: true
+  llm_fix_template: null
+  playbook_version: 1.0.0
+  verification_checks:
+  - A human confirms the signing key is migrated to HSM and all SAML signing operations
+    use the HSM-backed key.
+  - Confirm the old key material is securely destroyed after migration.

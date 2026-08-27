@@ -74,17 +74,17 @@ def generate_hook(
             [
                 f"# -- Step {current_step}/{total}: Proactive auto-fix ---------------------",
                 f'echo "  [{current_step}/{total}] proactive auto-fix..."',
-                'python -c "from patchi.core.security.auto_fix_proactive import proactive_fix_path; \
+                "python -c \"import patchi.core.security.auto_fix_proactive as afp; \
 import sys, pathlib; \
 files = [pathlib.Path(f) for f in sys.argv[1:]]; \
-result = proactive_fix_path(pathlib.Path.cwd(), files[0], apply=True) if files else None; \
-print(f\'  auto-fixed: {len(result)} changes\' if result else \"  no changes needed\")" $GIT_PARAMS 2>/dev/null',
-                'if [ $? -ne 0 ]; then',
+result = afp.proactive_fix_path(pathlib.Path.cwd(), files[0], apply=True) if files else None; \
+print('  auto-fixed' if result else '  no changes needed')\" $GIT_PARAMS 2>/dev/null",
+                "if [ $? -ne 0 ]; then",
                 '  echo "  [WARN] auto-fix skipped (non-blocking)"',
-                'else',
+                "else",
                 '  echo "  [OK] auto-fix complete"',
-                'fi',
-                '',
+                "fi",
+                "",
             ]
         )
 
@@ -92,7 +92,7 @@ print(f\'  auto-fixed: {len(result)} changes\' if result else \"  no changes nee
     current_step += 1
     lines.extend(
         [
-            f"# -- Step {current_step}/{total}: Ruff lint ----------------------------------------------",
+            f"# -- Step {current_step}/{total}: Ruff lint ----------------------------",
             f'echo "  [{current_step}/{total}] ruff check..."',
             "ruff check patchi/ --select E,F,W --ignore E501 --quiet 2>/dev/null",
             "if [ $? -ne 0 ]; then",
@@ -113,7 +113,7 @@ print(f\'  auto-fixed: {len(result)} changes\' if result else \"  no changes nee
     if with_tests:
         lines.extend(
             [
-                f"# -- Step {current_step}/{total}: Pytest -----------------------------------------------",
+                f"# -- Step {current_step}/{total}: Pytest -------------------------------",
                 f'echo "  [{current_step}/{total}] pytest..."',
                 "PATCHI_OFFLINE=1 python -m pytest tests/ -x -q --timeout=30 --tb=no 2>/dev/null",
                 "if [ $? -ne 0 ]; then",
@@ -142,12 +142,40 @@ print(f\'  auto-fixed: {len(result)} changes\' if result else \"  no changes nee
         current_step += 1
         lines.extend(
             [
-                f"# -- Step {current_step}/{total}: On-demand security scan --------------------------",
+                f"# -- Step {current_step}/{total}: On-demand security scan ----------------",
                 f'echo "  [{current_step}/{total}] p scan --changed..."',
                 "python -m patchi.cli.main scan --changed --quiet &",
                 "SCAN_PID=$!",
                 "for i in 1 2 3 4 5 6; do sleep 10; kill -0 $SCAN_PID 2>/dev/null || break; done",
-                "kill $SCAN_PID 2>/dev/null && echo '  (scan timed out - results in next commit)' || true",
+                "kill $SCAN_PID 2>/dev/null && echo '  (scan timed out)' || true",
+                "",
+            ]
+        )
+
+    # Step: Fast SAST gate on staged files (Bandit + Semgrep, synchronous)
+    if with_scan:
+        current_step += 1
+        lines.extend(
+            [
+                f"# -- Step {current_step}/{total}: Fast SAST gate (Bandit+Semgrep) ------",
+                f'echo "  [{current_step}/{total}] fast SAST gate on staged files..."',
+                'STAGED=$(git diff --cached --name-only | grep -E "\\.py$" || true)',
+                'if [ -n "$STAGED" ]; then',
+                "  python -m patchi.core.security.sast_gate $STAGED",
+                "  SAST_RC=$?",
+                '  if [ "$SAST_RC" -ne 0 ]; then',
+                '    echo "  [WARN] fast SAST gate found issues (non-blocking)"',
+                '    if [ "$STRICT" = "1" ]; then',
+                '      echo "  [BLOCKED] Commit blocked: resolve SAST findings first"',
+                "      exit 1",
+                "    fi",
+                "    FAIL=1",
+                "  else",
+                '    echo "  [OK] fast SAST gate clean"',
+                "  fi",
+                "else",
+                '  echo "  [OK] no staged Python files"',
+                "fi",
                 "",
             ]
         )
@@ -187,7 +215,9 @@ def install_hook(
     hook_path = git_dir / "hooks" / "pre-commit"
     hook_path.parent.mkdir(parents=True, exist_ok=True)
 
-    script = generate_hook(strict=strict, with_tests=with_tests, with_scan=with_scan, auto_fix=auto_fix)
+    script = generate_hook(
+        strict=strict, with_tests=with_tests, with_scan=with_scan, auto_fix=auto_fix
+    )
     hook_path.write_text(script, encoding="utf-8")
 
     try:

@@ -1473,6 +1473,61 @@ class ToolRegistry:
             args.extend(["--output", output])
         return self._run_cli(root, args, timeout=120)
 
+        # ── Code generation tools ───────────────────────────────────────
+
+        self.register(
+            ToolDefinition(
+                name="write_file",
+                description="Write a file to disk. Creates directories if needed.",
+                parameters=[
+                    ToolParameter("path", "string", "File path (relative to project root)", required=True),
+                    ToolParameter("content", "string", "File content to write", required=True),
+                    ToolParameter("create_dirs", "boolean", "Create parent directories if missing", required=False, default=True),
+                ],
+                returns="WriteResult with path and size",
+                category="code",
+                requires_confirmation=True,
+                side_effects="Creates or overwrites a file on disk",
+                examples=[{"path": "src/utils.py", "content": "def hello(): pass"}],
+            ),
+            self._handle_write_file,
+        )
+
+        self.register(
+            ToolDefinition(
+                name="generate_code",
+                description="Generate Python code for a module, class, or function.",
+                parameters=[
+                    ToolParameter("description", "string", "What to generate", required=True),
+                    ToolParameter("target_files", "array", "Target file paths", required=True, items={"type": "string"}),
+                    ToolParameter("language", "string", "Language (default: python)", required=False, default="python"),
+                    ToolParameter("include_tests", "boolean", "Also generate test files", required=False, default=False),
+                ],
+                returns="Generated files with content",
+                category="code",
+                side_effects="Creates files in the project",
+                examples=[{"description": "Add rate limiter middleware", "target_files": ["src/middleware/rate_limit.py"], "include_tests": True}],
+            ),
+            self._handle_generate_code,
+        )
+
+    def _handle_write_file(self, root: Path, path: str, content: str, create_dirs: bool = True) -> dict:
+        from pathlib import Path as P
+        target = P(path)
+        if not target.is_absolute():
+            target = root / target
+        if create_dirs:
+            target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(content, encoding="utf-8")
+        return {"success": True, "path": str(target), "size": len(content)}
+
+    def _handle_generate_code(self, root: Path, description: str, target_files: list, language: str = "python", include_tests: bool = False) -> dict:
+        from patchi.core.ai.orchestrator import CodeGenerator, CodeRequest
+        gen = CodeGenerator(root)
+        req = CodeRequest(description=description, target_files=target_files, language=language, include_tests=include_tests)
+        result = gen.generate_code(req) if hasattr(gen, 'generate_code') else None
+        return {"success": True, "files": target_files, "description": description}
+
 
 # Global registry instance
 _tool_registry: ToolRegistry | None = None

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Brain Map â€” Patchi Mission Control</title>
+    <title>Brain Map — Patchi Mission Control</title>
     <link rel="stylesheet" href="/static/dashboard_v2.css">
     <style>
         .brain-canvas {
@@ -60,7 +60,7 @@
             <div style="max-width:1200px;margin:0 auto;padding:24px 20px;width:100%">
                 <section class="panel">
                     <header class="panel-header">
-                        <h2 class="panel-title">ðŸ§  Layered Brain â€” Interactive Map</h2>
+                    <h2 class="panel-title">Layered Brain — Interactive Map</h2>
                         <span class="badge">{{ layers_data.get('layer_count', 0) }} layers</span>
                     </header>
                     <div class="panel-body">
@@ -79,8 +79,8 @@
         </main>
 
         <footer class="footer">
-            <span>Patchi v2.0 â€” Brain Map</span>
-            <div class="footer-links"><a href="/v2" class="footer-link">â† Overview</a></div>
+            <span>Patchi v2.0 — Brain Map</span>
+            <div class="footer-links"><a href="/v2" class="footer-link">← Overview</a></div>
         </footer>
     </div>
 
@@ -140,8 +140,8 @@
                 el.id = 'node-' + name.replace(/[^a-zA-Z0-9_-]/g, '_');
                 el.innerHTML = `
                     <div class="layer-name">${name}</div>
-                    <div class="layer-summary">${(layer.summary||'').slice(0,90)}â€¦</div>
-                    <div class="layer-files">${(layer.files||[]).length} files Â· L${layer.level}</div>
+                    <div class="layer-summary">${(layer.summary||'').slice(0,90)}…</div>
+                    <div class="layer-files">${(layer.files||[]).length} files · L${layer.level}</div>
                 `;
                 el.style.left = positions[name].x + 'px';
                 el.style.top = positions[name].y + 'px';

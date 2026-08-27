@@ -1,253 +1,96 @@
 playbooks:
-- playbook_id: DATA-01
-  control_name: Query-level (row/record) authorization enforcement
-  summary: Check permissions where the data actually gets touched, not just at the
-    API layer.
-  remediation_steps:
-  - For every query that reads or writes a specific row/record, include the requesting
-    identity's scope (e.g. WHERE tenant_id = :current_tenant or WHERE owner_id = :current_user)
-    as part of the query itself, not as a post-hoc filter applied after fetching.
-  - For write operations, verify ownership/permission on the target row before applying
-    the update or delete — a fetch-then-check-then-write pattern is preferable to
-    a blind update by ID.
-  - Where using an ORM, prefer scoped query builders (e.g. a base queryset/manager
-    that always applies the tenant/owner filter) over ad hoc per-call filtering, so
-    a forgotten filter fails safe rather than silently returning everything.
-  - For multi-tenant systems, consider database-level enforcement (e.g. PostgreSQL
-    Row-Level Security policies) as a defense-in-depth backstop in addition to application-level
-    filtering.
-  implementation_notes:
-  - This control specifically targets IDOR-style bypass at the data layer — the same
-    identifier-manipulation class of bug OWASP tracks as insecure direct object reference,
-    but scoped here to whether the query itself is trustworthy, independent of any
-    earlier authorization check in application code.
-  verification:
-  - 'Test: attempt to read/modify another tenant''s or user''s record by ID/identifier
-    manipulation and confirm the query layer itself rejects or excludes it, not just
-    an outer permission check.'
-  references:
-  - OWASP ASVS 5.0.0, V8.2 General Authorization Design and V8.3 Operation Level Authorization
-  control_id: DATA-01
-- playbook_id: DATA-02
-  control_name: Parameterized queries; no dynamic SQL/NoSQL query construction from
-    unsanitized input
-  summary: Never build a query by gluing strings together — use parameters.
-  remediation_steps:
-  - Audit the codebase for any string concatenation, f-strings, or template literals
-    used to build a query, including inside ORM 'raw' or 'execute' escape hatches.
-  - Replace each instance with parameterized queries (using the driver's or ORM's
-    placeholder syntax) or the ORM's safe query-builder methods.
-  - For NoSQL query construction (e.g. MongoDB filter documents), never build a filter
-    object by directly embedding a user-supplied string as an operator key or nesting
-    user input as a $where/$expr clause.
-  - Add a CI gate (Semgrep, CodeQL, or Bandit) that fails the build on new instances
-    of raw query construction, so this doesn't regress.
-  implementation_notes:
-  - This overlaps the core backend-api domain's injection-prevention control — if
-    both domains are active for a codebase, implement once and reference from both
-    rather than treating as two separate fixes.
-  verification:
-  - Run the chosen static analyzer (Semgrep/CodeQL/Bandit) against the full codebase
-    and confirm zero findings in the relevant rule category.
-  - 'Test: submit a classic injection payload (e.g. '' OR ''1''=''1) through an input
-    that reaches the query layer and confirm it has no effect beyond being treated
-    as literal data.'
-  references:
-  - OWASP ASVS 5.0.0, V1.2 Injection Prevention
-  control_id: DATA-02
-- playbook_id: DATA-03
-  control_name: Encryption at rest for sensitive data stores
-  summary: Encrypt the disk, not just the connection.
-  remediation_steps:
-  - For managed database services (RDS, Cloud SQL, Azure Database, MongoDB Atlas,
-    etc.), enable the provider's encryption-at-rest option at provisioning time —
-    this is typically a single configuration flag.
-  - For self-hosted databases, enable full-disk or volume-level encryption (e.g. LUKS
-    on Linux, encrypted EBS volumes) on the underlying storage.
-  - Manage encryption keys through a dedicated key management service (KMS) separate
-    from the database itself, rather than a key stored alongside the encrypted data.
-  - Extend encryption-at-rest coverage to any derived storage (read replicas, snapshots,
-    exported datasets) — encrypting only the primary instance leaves copies exposed.
-  implementation_notes:
-  - Enabling encryption at rest after a database already exists with unencrypted storage
-    typically requires provisioning a new encrypted instance and migrating data, not
-    an in-place toggle — plan for a migration window.
-  verification:
-  - 'Review: confirm encryption-at-rest is enabled via the cloud provider''s console/API
-    or, for self-hosted instances, via the OS-level disk-encryption configuration.'
-  references:
-  - OWASP ASVS 5.0.0, V14.2 General Data Protection and V11.3 Encryption Algorithms
-  control_id: DATA-03
-- playbook_id: DATA-04
-  control_name: Database credentials in a secrets manager, not hardcoded or plaintext-committed
-  summary: Pull credentials from a vault at runtime — never bake them into code or
-    config files.
-  remediation_steps:
-  - Move all database connection strings, usernames, and passwords out of source code
-    and configuration files checked into version control.
-  - Store credentials in a secrets manager (AWS Secrets Manager, HashiCorp Vault,
-    GCP Secret Manager, Azure Key Vault) and retrieve them at application startup
-    or connection time.
-  - Enable secret scanning (gitleaks, trufflehog, or GitHub secret scanning) on the
-    repository to catch accidental commits going forward, and scan full history for
-    past exposures.
-  - Rotate any credential that secret-scanning finds was ever committed, since removing
-    it from the latest commit does not remove it from history.
-  implementation_notes:
-  - If your platform supports OIDC federation to the secrets manager (e.g. from CI/CD),
-    prefer that over storing even the secrets-manager access credential as a static
-    CI secret.
-  verification:
-  - Secret-scan the full repository history and confirm no credentials are present.
-  - 'Review: confirm the running application retrieves credentials from the secrets
-    manager rather than a local file or environment variable set from a plaintext
-    source.'
-  references:
-  - OWASP ASVS 5.0.0, V13.3 Secret Management
-  control_id: DATA-04
-- playbook_id: DATA-05
-  control_name: Backup encryption and access control
-  summary: Treat backups as sensitive as the live database, because they are.
-  remediation_steps:
-  - Enable encryption for backup jobs both in transit (during creation and transfer)
-    and at rest (in the backup storage location).
-  - Apply the same or stricter access controls to backup storage (e.g. object storage
-    buckets) as to the primary database — no public read access, no shared/broad credentials.
-  - Use a separate, narrowly-scoped credential for backup write/read operations rather
-    than reusing the primary application's database credential.
-  - Set a defined retention and secure-deletion policy for backups so old copies of
-    sensitive data don't accumulate indefinitely in storage that may be forgotten.
-  implementation_notes:
-  - Cloud object storage misconfiguration (accidentally public buckets) is one of
-    the most common real-world sources of backup-data exposure — prioritize the access-control
-    half of this control even if encryption is already handled by the provider.
-  verification:
-  - 'Review: confirm backup storage locations are not publicly accessible (test with
-    an unauthenticated request) and that encryption is enabled on the backup storage.'
-  references:
-  - Adapted from OWASP ASVS 5.0.0, V14.2 General Data Protection (no direct backup-specific
-    ASVS clause exists as of v5.0.0)
-  control_id: DATA-05
-- playbook_id: DATA-06
-  control_name: Mass-assignment protection on ORM write operations
-  summary: List the fields a caller may set — don't bind their whole payload to your
-    model.
-  remediation_steps:
-  - For every create/update endpoint, define an explicit allowlist of fields the caller
-    may set (e.g. a DTO, serializer with explicit fields, or strong-parameters-style
-    permit list), rather than passing a caller-supplied dict/object directly to the
-    ORM's create/update method.
-  - Audit existing code for patterns like Model.objects.create(**request.data) or
-    Model.update_attributes(params) with no field allowlist, and refactor to an explicit
-    field list.
-  - Pay particular attention to fields that grant privilege or ownership (role, is_admin,
-    owner_id, account_balance) — these should typically never be settable through
-    a generic user-facing write path at all.
-  - Add a test for each write endpoint that attempts to set a non-allowlisted field
-    and confirms it has no effect.
-  implementation_notes:
-  - Framework-provided protections (Rails strong_parameters, DRF serializer fields)
-    handle this well when actually used with an explicit field list — the common failure
-    mode is a serializer/params call that uses fields = '__all__' or permit! without
-    arguments.
-  verification:
-  - 'Test: submit a write request including an unexpected privileged field (e.g. is_admin:
-    true) and confirm it is ignored/rejected rather than applied.'
-  references:
-  - OWASP ASVS 5.0.0, V15.3 Defensive Coding
-  control_id: DATA-06
-- playbook_id: DATA-07
-  control_name: Least-privilege database roles for application service accounts
-  summary: Give the app's own database user only the grants it needs to do its job.
-  remediation_steps:
-  - Create a dedicated database role/user for the running application, distinct from
-    any administrative or migration-runner role.
-  - Grant that role only the specific privileges (SELECT/INSERT/UPDATE/DELETE on specific
-    schemas/tables) the application's actual code paths require — avoid GRANT ALL
-    or a superuser/owner role.
-  - Use a separate, more privileged role for schema migrations, run only during deployment,
-    never held by the always-running application process.
-  - Periodically audit actual grants against actual usage (e.g. via query logs) and
-    revoke anything unused.
-  implementation_notes:
-  - 'This is one of the highest-value, lowest-effort controls in this domain: it directly
-    bounds the blast radius of any other vulnerability (injection, IDOR, credential
-    leak) that reaches the database.'
-  verification:
-  - 'Review: query the database''s own privilege system (pg_roles/information_schema
-    for Postgres, SHOW GRANTS for MySQL, db.getRoles() for MongoDB) and confirm the
-    application''s role does not exceed its declared needs.'
-  references:
-  - OWASP ASVS 5.0.0, V8 Authorization; current CIS Benchmarks for PostgreSQL, MySQL,
-    and MongoDB
-  control_id: DATA-07
-- playbook_id: DATA-08
-  control_name: 'PostgreSQL: CIS Benchmark connection, logging, and extension hardening'
-  summary: Turn on SSL and connection logging, and don't install extensions you don't
-    use.
-  remediation_steps:
-  - Set ssl = on in postgresql.conf and require sslmode=require (or stricter, e.g.
-    verify-full) in application connection strings.
-  - Enable log_connections = on and log_disconnections = on for audit-trail visibility
-    into who connects and when.
-  - Review installed extensions (SELECT * FROM pg_extension;) and drop any not actively
-    used by the application.
-  - Run PGDSAT against the instance to get a full current CIS-mapped findings report
-    rather than relying solely on this subset.
-  implementation_notes:
-  - Exact CIS control numbers shift between benchmark editions — treat PGDSAT's own
-    findings report as the authoritative, current mapping rather than a hardcoded
-    control-number reference.
-  verification:
-  - Run PGDSAT (or an equivalent current CIS PostgreSQL Benchmark scan) and confirm
-    no findings remain open in the connection-security, logging, and extension-hardening
-    sections.
-  references:
-  - CIS PostgreSQL 13/14 Benchmark v1.3.0
-  control_id: DATA-08
-- playbook_id: DATA-09
-  control_name: 'MySQL: CIS Benchmark authentication and dangerous-feature hardening'
-  summary: Disable local_infile, require TLS, and remove default accounts.
-  remediation_steps:
-  - Set local_infile=0 unless a specific, reviewed feature requires it.
-  - Require TLS for client connections (require_secure_transport = ON where supported)
-    rather than allowing plaintext connections.
-  - Confirm the instance is not running with --skip-grant-tables in any environment
-    reachable beyond a fully isolated local development machine.
-  - Remove the default test database and any anonymous or default sample accounts
-    left over from installation (mysql_secure_installation covers most of these).
-  implementation_notes:
-  - Run mysql_secure_installation as a baseline first pass, then verify against the
-    current CIS MySQL Benchmark for anything it doesn't cover.
-  verification:
-  - 'Review: confirm local_infile is disabled, TLS is required, and no default/sample
-    accounts remain (SELECT user, host FROM mysql.user;).'
-  references:
-  - CIS MySQL Benchmark, current edition (MySQL 8.4/9.7 GA)
-  control_id: DATA-09
-- playbook_id: DATA-10
-  control_name: 'MongoDB: CIS Benchmark authentication and network-exposure hardening'
-  summary: Turn on authorization and don't bind to every network interface by default.
-  remediation_steps:
-  - 'Set security.authorization: enabled in mongod.conf and confirm the instance never
-    runs with --noauth outside a fully isolated local development context.'
-  - Confirm the deprecated HTTP status interface is disabled (it should be, by default,
-    in current MongoDB versions — verify explicitly rather than assuming).
-  - Set net.bindIp to specific interfaces/addresses rather than 0.0.0.0, unless the
-    instance sits behind a properly firewalled network boundary with no direct internet
-    exposure.
-  - Create role-scoped database users (per DATA-07) rather than relying on a single
-    admin user for application connections.
-  implementation_notes:
-  - This review could not independently confirm the current CIS MongoDB Benchmark's
-    exact version number — verify against CIS's current benchmark catalog before citing
-    a specific version in an audit deliverable.
-  verification:
-  - 'Test: attempt an unauthenticated connection to the instance and confirm it is
-    rejected.'
-  - 'Review: confirm net.bindIp is not set to 0.0.0.0 unless justified by a documented
-    network-isolation boundary.'
-  references:
-  - CIS MongoDB Benchmark (current version per CIS's active benchmark catalog, exact
-    version not independently confirmed as of 2026-07-04)
-  control_id: DATA-10
+- control_id: DATA-01
+  playbook_version: 1.0.0
+  fix_strategy: llm-template
+  deterministic_tool: null
+  human_review_required: false
+  llm_fix_template: Fix Query-level (row/record) authorization enforcement
+  blast_radius_notes: Automated fix for DATA-01
+  verification_checks:
+  - Verify DATA-01 is addressed
+- control_id: DATA-02
+  playbook_version: 1.0.0
+  fix_strategy: llm-template
+  deterministic_tool: null
+  human_review_required: false
+  llm_fix_template: Fix Parameterized queries; no dynamic SQL/NoSQL query construction
+    from unsanitized input
+  blast_radius_notes: Automated fix for DATA-02
+  verification_checks:
+  - Verify DATA-02 is addressed
+- control_id: DATA-03
+  playbook_version: 1.0.0
+  fix_strategy: llm-template
+  deterministic_tool: null
+  human_review_required: false
+  llm_fix_template: Fix Encryption at rest for sensitive data stores
+  blast_radius_notes: Automated fix for DATA-03
+  verification_checks:
+  - Verify DATA-03 is addressed
+- control_id: DATA-04
+  playbook_version: 1.0.0
+  fix_strategy: llm-template
+  deterministic_tool: null
+  human_review_required: false
+  llm_fix_template: Fix Database credentials in a secrets manager, not hardcoded or
+    plaintext-committed
+  blast_radius_notes: Automated fix for DATA-04
+  verification_checks:
+  - Verify DATA-04 is addressed
+- control_id: DATA-05
+  playbook_version: 1.0.0
+  fix_strategy: llm-template
+  deterministic_tool: null
+  human_review_required: false
+  llm_fix_template: Fix Backup encryption and access control
+  blast_radius_notes: Automated fix for DATA-05
+  verification_checks:
+  - Verify DATA-05 is addressed
+- control_id: DATA-06
+  playbook_version: 1.0.0
+  fix_strategy: llm-template
+  deterministic_tool: null
+  human_review_required: false
+  llm_fix_template: Fix Mass-assignment protection on ORM write operations
+  blast_radius_notes: Automated fix for DATA-06
+  verification_checks:
+  - Verify DATA-06 is addressed
+- control_id: DATA-07
+  playbook_version: 1.0.0
+  fix_strategy: llm-template
+  deterministic_tool: null
+  human_review_required: false
+  llm_fix_template: Fix Least-privilege database roles for application service accounts
+  blast_radius_notes: Automated fix for DATA-07
+  verification_checks:
+  - Verify DATA-07 is addressed
+- control_id: DATA-08
+  playbook_version: 1.0.0
+  fix_strategy: llm-template
+  deterministic_tool: null
+  human_review_required: false
+  llm_fix_template: 'Fix PostgreSQL: CIS Benchmark connection, logging, and extension
+    hardening'
+  blast_radius_notes: Automated fix for DATA-08
+  verification_checks:
+  - Verify DATA-08 is addressed
+- control_id: DATA-09
+  playbook_version: 1.0.0
+  fix_strategy: llm-template
+  deterministic_tool: null
+  human_review_required: false
+  llm_fix_template: 'Fix MySQL: CIS Benchmark authentication and dangerous-feature
+    hardening'
+  blast_radius_notes: Automated fix for DATA-09
+  verification_checks:
+  - Verify DATA-09 is addressed
+- control_id: DATA-10
+  playbook_version: 1.0.0
+  fix_strategy: llm-template
+  deterministic_tool: null
+  human_review_required: false
+  llm_fix_template: 'Fix MongoDB: CIS Benchmark authentication and network-exposure
+    hardening'
+  blast_radius_notes: Automated fix for DATA-10
+  verification_checks:
+  - Verify DATA-10 is addressed

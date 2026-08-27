@@ -94,6 +94,17 @@
     <div id="fix-results" style="margin-top:12px;display:none"></div>
   </div>
 
+  <!-- Fix History -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Fix History</span>
+      <button class="btn" onclick="loadFixHistory()" style="font-size:12px">Refresh</button>
+    </div>
+    <div id="fix-history-list">
+      <div style="text-align:center;padding:16px;color:var(--text-secondary);font-size:13px">Loading history...</div>
+    </div>
+  </div>
+
   <!-- Violations -->
   <div class="card">
     <div class="card-header">
@@ -124,7 +135,47 @@
   </div>
 </div>
 
+<!-- Fix Confirmation Modal -->
+<div id="fix-confirm-modal" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,0.6);align-items:center;justify-content:center">
+  <div style="max-width:420px;width:90%;background:var(--bg-primary);border-radius:12px;padding:24px;box-shadow:0 8px 32px rgba(0,0,0,0.4)" onclick="event.stopPropagation()">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+      <div style="width:40px;height:40px;border-radius:50%;background:rgba(234,179,8,0.15);display:flex;align-items:center;justify-content:center;font-size:20px">⚠️</div>
+      <div>
+        <div style="font-weight:600;font-size:15px">Apply Fixes?</div>
+        <div style="font-size:12px;color:var(--text-secondary)">This will modify project files</div>
+      </div>
+    </div>
+    <p style="font-size:13px;color:var(--text-primary);margin:0 0 16px;line-height:1.5">
+      This will automatically fix <strong>safe charter violations</strong> (missing headers, formatting) in all project files.
+    </p>
+    <p style="font-size:13px;color:var(--text-secondary);margin:0 0 16px;line-height:1.5">
+      Dangerous violations (security, boundaries) will NOT be fixed. This action can be undone with <code>git checkout</code>.
+    </p>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn" onclick="resolveFixConfirm(false)">Cancel</button>
+      <button class="btn" style="background:#eab308;color:#1a1a1a;border-color:#eab308" onclick="resolveFixConfirm(true)">Apply Fixes</button>
+    </div>
+  </div>
+</div>
+
 <script>
+let _fixConfirmResolve = null;
+
+function showFixConfirmation() {
+  return new Promise(resolve => {
+    _fixConfirmResolve = resolve;
+    document.getElementById('fix-confirm-modal').style.display = 'flex';
+  });
+}
+
+function resolveFixConfirm(confirmed) {
+  document.getElementById('fix-confirm-modal').style.display = 'none';
+  if (_fixConfirmResolve) {
+    _fixConfirmResolve(confirmed);
+    _fixConfirmResolve = null;
+  }
+}
+
 async function setCharter() {
   const input = document.getElementById('charter-input');
   const status = document.getElementById('charter-status');
@@ -196,6 +247,12 @@ async function runAutoFix() {
   const btn = document.getElementById('btn-fix');
   const results = document.getElementById('fix-results');
   const countEl = document.getElementById('fix-count');
+
+  // Show confirmation dialog when NOT in preview mode
+  if (!preview) {
+    const confirmed = await showFixConfirmation();
+    if (!confirmed) return;
+  }
   
   btn.disabled = true;
   btn.textContent = preview ? '⏳ Previewing...' : '⏳ Fixing...';
@@ -316,6 +373,19 @@ function escapeHtml(text) {
 document.getElementById('charter-input').addEventListener('keydown', (e) => {
   if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
     setCharter();
+  }
+});
+
+// ESC to close fix confirmation modaldocument.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    resolveFixConfirm(false);
+  }
+});
+
+// Click outside modal to close
+document.getElementById('fix-confirm-modal').addEventListener('click', e => {
+  if (e.target === e.currentTarget) {
+    resolveFixConfirm(false);
   }
 });
 </script>

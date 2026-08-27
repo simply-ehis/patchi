@@ -38,7 +38,7 @@ from rich.text import Text
 from patchi.cli.console import con
 from patchi.core import config as cfg
 from patchi.core import memory as mem
-from patchi.core.agents.base import list_agents
+from patchi.core.agents.base import AgentGroup, list_agents
 from patchi.core.brain.brain import Brain, BrainReport, ScanProgress
 from patchi.core.brain.freshness import check_freshness
 from patchi.core.config import require_project_root
@@ -410,7 +410,6 @@ def _run_scan_inner(
 
     # ── Chain & Intent Analysis ─────────────────────────────────────────────
     try:
-        from patchi.core.agents.base import AgentGroup
         from patchi.core.agents.base import list_agents as _la
 
         _sec_names = {a.name for a in _la(AgentGroup.SECURITY)}
@@ -1485,8 +1484,6 @@ def _run_contract_confirmation(root: Path, report: BrainReport, all_flows: bool 
 
 def _show_changed_dry_run(root: Path, commits: int) -> None:
     """Show what --changed would activate without actually scanning."""
-    from patchi.core.agents.base import AgentGroup
-    from patchi.core.agents.base import list_agents as _la
     from patchi.core.security.domain_activator_v2 import DomainActivatorV2
     from patchi.core.security.git_diff_activator import activate_from_diff
 

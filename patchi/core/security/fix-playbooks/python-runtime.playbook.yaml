@@ -1,0 +1,130 @@
+playbooks:
+- blast_radius_notes: Automated fix for PYR-001
+  control_id: PYR-001
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix OS command injection via subprocess with shell=True: Detect
+    subprocess.run, subprocess.Popen, subprocess.call, subprocess.check_call, subprocess.check_output
+    with shell=True where any argument is derived from user input (request.form, request.GET,
+    sys.argv, os.environ, external API response). With shell=True, the command is
+    interpreted by /bin/sh -c (or cmd.exe /c on Windows), so shell metacharacters
+    (;, |, &&, $(), `) in user input lead to arbitrary command execution. Also flag
+    os.system(user_input) (always uses a shell), os.popen(user_input), and commands.getoutput
+    (Python 2, removed in 3). The fix is to use shell=False (the default for subprocess.run)
+    and pass arguments as a list: subprocess.run([''ls'', ''-l'', user_input]) - this
+    avoids shell interpretation entirely.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify PYR-001 is properly addressed
+- blast_radius_notes: Automated fix for PYR-002
+  control_id: PYR-002
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Code injection via eval / exec / compile with user input:
+    Detect use of eval(), exec(), compile(), or types.CodeType() where the code argument
+    is derived from user input. eval and exec execute arbitrary Python code with access
+    to the caller''s globals (or a provided namespace); there is no safe sandbox within
+    CPython itself (the docs explicitly state this - the rexec module was removed
+    in Python 2.6 due to unfixable sandbox escapes). Flag any eval(user_input), exec(user_input),
+    compile(user_input, ''<string>'', ''exec''), and use of the __import__ builtin
+    with user input. The fix is to parse the input as data (ast.literal_eval for literals
+    only, json.loads for JSON, a custom parser for DSLs). NEVER use eval/except on
+    untrusted input - there is no safe way to do so in CPython.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify PYR-002 is properly addressed
+- blast_radius_notes: Automated fix for PYR-003
+  control_id: PYR-003
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Insecure deserialization via pickle / yaml.load / marshal:
+    Detect pickle.loads, pickle.load, cPickle.load (Python 2), yaml.load (without
+    Loader arg or with FullLoader on untrusted data - FullLoader still has known bypasses),
+    marshal.loads, shelve.open on untrusted data. Pickle and marshal can instantiate
+    arbitrary Python classes via the __reduce__ protocol, leading to RCE (CVE-2021-3288
+    in PyYAML, multiple Pickle RCEs in Django/Flask sessions). yaml.load was deprecated
+    in PyYAML 5.1+ in favor of yaml.safe_load - but legacy code still uses it. Flag
+    any pickle.loads(request.body), yaml.load(user_data), shelve.open(user_path).
+    The fix is to use json.loads (JSON has no code execution), yaml.safe_load with
+    an explicit allow-list, or for pickle use hmac-signed payloads with a server-side
+    secret.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify PYR-003 is properly addressed
+- blast_radius_notes: Automated fix for PYR-004
+  control_id: PYR-004
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Path traversal in open / os.path / pathlib operations: Detect
+    open(), os.open(), pathlib.Path(), os.path.join(), shutil.copy(), shutil.move(),
+    os.unlink() where the path argument includes user input without prior sanitization.
+    The classic exploit is request.args.get(''filename'') passed directly to open(),
+    allowing ../../etc/passwd. os.path.join does NOT prevent traversal if the user
+    input starts with .. or is an absolute path - os.path.join(''/app/uploads'', ''../../etc/passwd'')
+    returns ''../../etc/passwd'' (os.path.join discards the prefix when the second
+    arg is absolute or starts with ..). os.path.join(''/app/uploads'', ''/etc/passwd'')
+    returns ''/etc/passwd''. The fix is to use pathlib.Path(base).resolve() and check
+    it starts with the allowed base, or os.path.abspath + os.path.commonpath.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify PYR-004 is properly addressed
+- blast_radius_notes: Automated fix for PYR-005
+  control_id: PYR-005
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix ReDoS via catastrophic backtracking in re module: Detect
+    Python re module patterns that exhibit catastrophic backtracking when run on attacker-controlled
+    input. Flag patterns containing: (1) nested quantifiers like (a+)+, (a*)*, (a|a)*;
+    (2) overlapping alternation with quantifiers like (a|ab)*c; (3) quantifiers applied
+    to groups containing optional elements like (a?)+. Common vulnerable patterns:
+    email validation regexes, phone number regexes, URL parsing regexes. Unlike JavaScript,
+    Python''s re module does NOT have a linear-time alternative built in - but the
+    third-party google-re2 package provides RE2 with linear time guarantee. Also flag
+    re.match(user_pattern, text) where the pattern is user-controlled - this allows
+    an attacker to craft a malicious regex. The fix is to rewrite the regex, use re2,
+    or use the regex module (which has a RE2 backend via regex.V1 flag).'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify PYR-005 is properly addressed
+- blast_radius_notes: Automated fix for PYR-006
+  control_id: PYR-006
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix SSRF via requests / urllib with user-controlled URL: Detect
+    requests.get, requests.post, urllib.request.urlopen, httpx.get, aiohttp.ClientSession.get
+    where the URL argument is derived from user input (request.args, request.json,
+    form fields) without an allow-list of permitted hosts. SSRF allows attackers to
+    scan internal services (http://169.254.169.254 for AWS metadata, http://localhost:6379
+    for Redis, http://10.0.0.1/...), read internal-only endpoints, or pivot to cloud
+    metadata. The fix is to validate the URL against an allow-list of permitted hosts,
+    reject IPs in private ranges (10.x, 172.16-31.x, 192.168.x, 169.254.x, 127.x),
+    and follow redirects only to allow-listed hosts. Also flag requests.get(url, verify=False)
+    which disables TLS verification.'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify PYR-006 is properly addressed
+- blast_radius_notes: Automated fix for PYR-007
+  control_id: PYR-007
+  deterministic_tool: null
+  fix_strategy: llm-template
+  human_review_required: false
+  llm_fix_template: 'Fix Tempfile race condition (TOCTOU) and predictable names: Detect
+    use of tempfile.mktemp (deprecated since Python 2.3 due to race condition - the
+    file does not exist when the name is generated but may be created by an attacker
+    before the program opens it), os.tmpfile (removed in Python 3), and tempfile.NamedTemporaryFile
+    with a predictable name (delete=False combined with a hardcoded prefix/suffix
+    that an attacker can guess). Flag patterns: tempfile.mktemp(), open(tempfile.mktemp(),
+    ''w''), os.mkfifo(tempfile.mktemp()). Also flag code that creates files in /tmp
+    with hardcoded names (open(''/tmp/myapp-'' + user_input, ''w'')) - this is vulnerable
+    to symlink attacks and name collisions. The fix is to use tempfile.mkstemp() (returns
+    an OS-level file descriptor that is atomically created), or tempfile.NamedTemporaryFile(delete=True)
+    (auto-deleted on close).'
+  playbook_version: 1.0.0
+  verification_checks:
+  - Verify PYR-007 is properly addressed

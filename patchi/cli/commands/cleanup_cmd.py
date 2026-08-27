@@ -17,14 +17,19 @@ Preserves:
   - queue.json
 
 Usage:
-  p cleanup              # Preview what would be removed (dry-run)
-  p cleanup --apply      # Actually delete stale files
-  p cleanup --all        # Also remove evidence/screenshots
+  p cleanup                          # Preview what would be removed (dry-run)
+  p cleanup --apply                  # Actually delete stale files
+  p cleanup --all                    # Also remove evidence/screenshots
+  p cleanup --older-than 7d          # Only remove files older than 7 days
+  p cleanup --dry-run --json         # JSON output for CI integration
 """
 
 from __future__ import annotations
 
+import json
 import os
+import time
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from patchi.cli.console import con
@@ -77,12 +82,44 @@ CLEANUP_TARGETS = [
 ]
 
 
-def cleanup(apply: bool = False, include_evidence: bool = False, root: Path | None = None):
+def _parse_age(age_str: str) -> float:
+    """Parse age string like '7d', '24h', '30m' into seconds."""
+    age_str = age_str.strip().lower()
+    if age_str.endswith("d"):
+        return float(age_str[:-1]) * 86400
+    elif age_str.endswith("h"):
+        return float(age_str[:-1]) * 3600
+    elif age_str.endswith("m"):
+        return float(age_str[:-1]) * 60
+    else:
+        # Assume days
+        return float(age_str) * 86400
+
+
+def _is_file_older_than(file_path: Path, max_age_seconds: float) -> bool:
+    """Check if a file is older than the specified age."""
+    try:
+        mtime = file_path.stat().st_mtime
+        age = time.time() - mtime
+        return age > max_age_seconds
+    except Exception:
+        return False
+
+
+def cleanup(
+    apply: bool = False,
+    include_evidence: bool = False,
+    older_than: str | None = None,
+    json_output: bool = False,
+    root: Path | None = None,
+):
     """Remove stale .patchi/ artifacts.
 
     Args:
         apply: If True, actually delete files. If False, just show what would be removed.
         include_evidence: If True, also remove evidence/screenshots.
+        older_than: Only remove files older than this (e.g. '7d', '24h', '30m').
+        json_output: If True, output as JSON for CI integration.
         root: Override project root detection.
     """
     try:
@@ -92,26 +129,39 @@ def cleanup(apply: bool = False, include_evidence: bool = False, root: Path | No
             from patchi.core.config import require_project_root
             r = require_project_root()
         except Exception as e:
-            con.print(f"[red]{e}[/red]")
+            if json_output:
+                print(json.dumps({"error": str(e)}))
+            else:
+                con.print(f"[red]{e}[/red]")
             return
 
     patchi_dir = r / ".patchi"
     if not patchi_dir.is_dir():
-        con.print(f"[yellow]No .patchi directory found at {r}[/yellow]")
+        if json_output:
+            print(json.dumps({"error": "No .patchi directory found", "path": str(patchi_dir)}))
+        else:
+            con.print(f"[yellow]No .patchi directory found at {r}[/yellow]")
         return
 
-    con.print()
-    con.print("[bold #C8621A]Patchi Cleanup[/bold #C8621A]")
-    con.print(f"[dim]Directory: {patchi_dir}[/dim]")
-    mode_label = "DRY RUN (use --apply to delete)" if not apply else "[red]DELETING FILES[/red]"
-    con.print(f"[dim]{mode_label}[/dim]")
-    con.print()
+    # Parse age filter
+    max_age_seconds = _parse_age(older_than) if older_than else None
+
+    if not json_output:
+        con.print()
+        con.print("[bold #C8621A]Patchi Cleanup[/bold #C8621A]")
+        con.print(f"[dim]Directory: {patchi_dir}[/dim]")
+        mode_label = "DRY RUN (use --apply to delete)" if not apply else "[red]DELETING FILES[/red]"
+        age_label = f" | Age filter: > {older_than}" if older_than else ""
+        con.print(f"[dim]{mode_label}{age_label}[/dim]")
+        con.print()
 
     total_files = 0
     total_size = 0
     deleted_files = 0
     deleted_size = 0
     skipped_files = 0
+    filtered_out = 0
+    cleanup_data = []
 
     for pattern, description, evidence_only in CLEANUP_TARGETS:
         if evidence_only and not include_evidence:
@@ -128,6 +178,15 @@ def cleanup(apply: bool = False, include_evidence: bool = False, root: Path | No
         if not files:
             continue
 
+        # Apply age filter
+        if max_age_seconds is not None:
+            old_files = [f for f in files if _is_file_older_than(f, max_age_seconds)]
+            filtered_out += len(files) - len(old_files)
+            files = old_files
+
+        if not files:
+            continue
+
         # Calculate size
         file_size = sum(f.stat().st_size for f in files if f.exists())
         total_files += len(files)
@@ -140,17 +199,30 @@ def cleanup(apply: bool = False, include_evidence: bool = False, root: Path | No
             deleted_count = 0
             for f in files:
                 try:
+                    file_size_actual = f.stat().st_size if f.exists() else 0
                     f.unlink()
                     deleted_count += 1
-                    deleted_size += f.stat().st_size if f.exists() else 0
+                    deleted_files += 1
+                    deleted_size += file_size_actual
                 except Exception as e:
                     skipped_files += 1
-                    con.print(f"  [yellow]⚠ Could not delete {f.name}: {e}[/yellow]")
+                    if not json_output:
+                        con.print(f"  [yellow]⚠ Could not delete {f.name}: {e}[/yellow]")
 
-            if deleted_count > 0:
+            if deleted_count > 0 and not json_output:
                 con.print(f"  [red]✗[/red] {description}: {count_str} ({size_str})")
         else:
-            con.print(f"  [yellow]?[/yellow] {description}: {count_str} ({size_str})")
+            if not json_output:
+                con.print(f"  [yellow]?[/yellow] {description}: {count_str} ({size_str})")
+
+        # Collect data for JSON output
+        cleanup_data.append({
+            "description": description,
+            "pattern": pattern,
+            "count": len(files),
+            "size_bytes": file_size,
+            "files": [str(f.relative_to(patchi_dir)) for f in files[:20]],  # Limit to 20
+        })
 
     # Also clean empty directories
     empty_dirs = []
@@ -162,9 +234,27 @@ def cleanup(apply: bool = False, include_evidence: bool = False, root: Path | No
         for d in empty_dirs:
             try:
                 d.rmdir()
-                con.print(f"  [red]✗[/red] Empty dir: {d.relative_to(patchi_dir)}")
+                if not json_output:
+                    con.print(f"  [red]✗[/red] Empty dir: {d.relative_to(patchi_dir)}")
             except Exception:
                 pass
+
+    # JSON output for CI
+    if json_output:
+        result = {
+            "dry_run": not apply,
+            "older_than": older_than,
+            "total_files": total_files,
+            "total_size_bytes": total_size,
+            "deleted_files": deleted_files,
+            "deleted_size_bytes": deleted_size,
+            "skipped_files": skipped_files,
+            "filtered_out": filtered_out,
+            "categories": cleanup_data,
+            "preserved": _get_preserved(patchi_dir),
+        }
+        print(json.dumps(result, indent=2))
+        return
 
     # Summary
     con.print()
@@ -177,11 +267,23 @@ def cleanup(apply: bool = False, include_evidence: bool = False, root: Path | No
             con.print(f"[yellow]⚠ {skipped_files} files could not be deleted[/yellow]")
     else:
         con.print(f"[yellow]Would remove {total_files} files ({_format_size(total_size)})[/yellow]")
+        if filtered_out > 0:
+            con.print(f"[dim]Filtered out {filtered_out} files (newer than {older_than})[/dim]")
         con.print("[dim]Run with --apply to actually delete files.[/dim]")
 
     # Show what's preserved
     con.print()
     con.print("[dim]Preserved:[/dim]")
+    preserved = _get_preserved(patchi_dir)
+    if preserved:
+        con.print(f"[dim]  {', '.join(preserved)}[/dim]")
+    else:
+        con.print("[dim]  (nothing to preserve)[/dim]")
+    con.print()
+
+
+def _get_preserved(patchi_dir: Path) -> list[str]:
+    """Get list of preserved items."""
     preserved = []
     if (patchi_dir / "config.json").exists():
         preserved.append("config.json")
@@ -189,11 +291,31 @@ def cleanup(apply: bool = False, include_evidence: bool = False, root: Path | No
         preserved.append("memory/")
     if (patchi_dir / "api_key").exists():
         preserved.append("api_key")
-    if preserved:
-        con.print(f"[dim]  {', '.join(preserved)}[/dim]")
-    else:
-        con.print("[dim]  (nothing to preserve)[/dim]")
-    con.print()
+    return preserved
+
+
+def get_patchi_size(root: Path | None = None) -> dict:
+    """Get the total size of .patchi/ directory for doctor warnings."""
+    try:
+        r = root or find_project_root()
+    except Exception:
+        return {"total_bytes": 0, "total_files": 0}
+
+    patchi_dir = r / ".patchi"
+    if not patchi_dir.is_dir():
+        return {"total_bytes": 0, "total_files": 0}
+
+    total_bytes = 0
+    total_files = 0
+    for f in patchi_dir.rglob("*"):
+        if f.is_file():
+            try:
+                total_bytes += f.stat().st_size
+                total_files += 1
+            except Exception:
+                pass
+
+    return {"total_bytes": total_bytes, "total_files": total_files}
 
 
 def _format_size(size: int) -> str:

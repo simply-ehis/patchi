@@ -515,6 +515,81 @@
         }
     }
 
+    // Dev Check action
+    async function runDevCheck() {
+        const resultDiv = document.getElementById('devCheckResult');
+        const runBtn = document.getElementById('runDevCheckBtn');
+        const strictToggle = document.getElementById('strictModeToggle');
+        const isStrict = strictToggle ? strictToggle.checked : false;
+        
+        if (runBtn) {
+            runBtn.disabled = true;
+            runBtn.textContent = 'Running...';
+        }
+        
+        if (resultDiv) {
+            resultDiv.innerHTML = '<p class="feed-empty">Running p dev check...</p>';
+        }
+        
+        addFeedEntry('devcheck', `Running p dev check${isStrict ? ' (strict mode)' : ''}...`, '');
+        
+        try {
+            const resp = await fetch('/api/dev-check', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ strict: isStrict })
+            });
+            const data = await resp.json();
+            
+            // Build result HTML
+            const gates = data.gates || [];
+            let resultHtml = '<div class="dev-check-result">';
+            resultHtml += `<div class="dev-check-header">${data.overall === 'PASS' ? '✓ All Passed' : '✗ Failed'}${isStrict ? ' (strict)' : ''}</div>`;
+            
+            gates.forEach(gate => {
+                const statusClass = gate.status === 'PASS' ? 'pass' : 'fail';
+                resultHtml += `<div class="gate-result">`;
+                resultHtml += `<span class="gate-name">${gate.name}</span>`;
+                resultHtml += `<span class="gate-status status-${statusClass}">${gate.status}</span>`;
+                resultHtml += `<span class="gate-time">${gate.elapsed}s</span>`;
+                if (gate.status !== 'PASS' && gate.parsed) {
+                    if (gate.parsed.summary) {
+                        resultHtml += `<span class="gate-detail">${gate.parsed.summary}</span>`;
+                    } else if (gate.parsed.error_count !== undefined) {
+                        resultHtml += `<span class="gate-detail">${gate.parsed.error_count} errors</span>`;
+                    }
+                }
+                resultHtml += `</div>`;
+            });
+            resultHtml += '</div>';
+            
+            if (resultDiv) {
+                resultDiv.innerHTML = resultHtml;
+            }
+            
+            // Save to history
+            saveDevCheckHistory({
+                timestamp: new Date().toISOString(),
+                overall: data.overall,
+                strict: isStrict,
+                gates: gates.map(g => ({ name: g.name, status: g.status, elapsed: g.elapsed }))
+            });
+            updateDevCheckHistory();
+            
+            addFeedEntry('devcheck', resultHtml, data.overall === 'PASS' ? 'success' : 'error');
+        } catch (e) {
+            if (resultDiv) {
+                resultDiv.innerHTML = `<p class="feed-empty">Error: ${e.message}</p>`;
+            }
+            addFeedEntry('devcheck', `Dev check failed: ${e.message}`, 'error');
+        } finally {
+            if (runBtn) {
+                runBtn.disabled = false;
+                runBtn.textContent = 'Run';
+            }
+        }
+    }
+
     function bindQuickActions() {
         document.querySelectorAll('.action-item[data-action]').forEach(item => {
             item.addEventListener('click', async () => {
@@ -579,81 +654,6 @@
             clearBtn.addEventListener('click', () => {
                 agentFeed.innerHTML = '<div class="feed-empty">Feed cleared</div>';
             });
-        }
-
-        // Dev Check action
-        async function runDevCheck() {
-            const resultDiv = document.getElementById('devCheckResult');
-            const runBtn = document.getElementById('runDevCheckBtn');
-            const strictToggle = document.getElementById('strictModeToggle');
-            const isStrict = strictToggle ? strictToggle.checked : false;
-            
-            if (runBtn) {
-                runBtn.disabled = true;
-                runBtn.textContent = 'Running...';
-            }
-            
-            if (resultDiv) {
-                resultDiv.innerHTML = '<p class="feed-empty">Running p dev check...</p>';
-            }
-            
-            addFeedEntry('devcheck', `Running p dev check${isStrict ? ' (strict mode)' : ''}...`, '');
-            
-            try {
-                const resp = await fetch('/api/dev-check', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ strict: isStrict })
-                });
-                const data = await resp.json();
-                
-                // Build result HTML
-                const gates = data.gates || [];
-                let resultHtml = '<div class="dev-check-result">';
-                resultHtml += `<div class="dev-check-header">${data.overall === 'PASS' ? '✓ All Passed' : '✗ Failed'}${isStrict ? ' (strict)' : ''}</div>`;
-                
-                gates.forEach(gate => {
-                    const statusClass = gate.status === 'PASS' ? 'pass' : 'fail';
-                    resultHtml += `<div class="gate-result">`;
-                    resultHtml += `<span class="gate-name">${gate.name}</span>`;
-                    resultHtml += `<span class="gate-status status-${statusClass}">${gate.status}</span>`;
-                    resultHtml += `<span class="gate-time">${gate.elapsed}s</span>`;
-                    if (gate.status !== 'PASS' && gate.parsed) {
-                        if (gate.parsed.summary) {
-                            resultHtml += `<span class="gate-detail">${gate.parsed.summary}</span>`;
-                        } else if (gate.parsed.error_count !== undefined) {
-                            resultHtml += `<span class="gate-detail">${gate.parsed.error_count} errors</span>`;
-                        }
-                    }
-                    resultHtml += `</div>`;
-                });
-                resultHtml += '</div>';
-                
-                if (resultDiv) {
-                    resultDiv.innerHTML = resultHtml;
-                }
-                
-                // Save to history
-                saveDevCheckHistory({
-                    timestamp: new Date().toISOString(),
-                    overall: data.overall,
-                    strict: isStrict,
-                    gates: gates.map(g => ({ name: g.name, status: g.status, elapsed: g.elapsed }))
-                });
-                updateDevCheckHistory();
-                
-                addFeedEntry('devcheck', resultHtml, data.overall === 'PASS' ? 'success' : 'error');
-            } catch (e) {
-                if (resultDiv) {
-                    resultDiv.innerHTML = `<p class="feed-empty">Error: ${e.message}</p>`;
-                }
-                addFeedEntry('devcheck', `Dev check failed: ${e.message}`, 'error');
-            } finally {
-                if (runBtn) {
-                    runBtn.disabled = false;
-                    runBtn.textContent = 'Run';
-                }
-            }
         }
 
         const pauseBtn = $('#pauseFeed');

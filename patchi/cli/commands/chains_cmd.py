@@ -248,6 +248,11 @@ def _analyze_findings(
     if not chains:
         con.print("[#4ADE80]No multi-step attack chains detected.[/#4ADE80]")
         con.print("[dim]Individual findings still apply — see `p security`.[/dim]")
+        con.print()
+        con.print("[bold]Suggestions:[/bold]")
+        con.print("  • [dim]Run `p scan` to generate fresh findings[/dim]")
+        con.print("  • [dim]Run `p findings --json` to see raw findings[/dim]")
+        con.print("  • [dim]Run `p assure --run-attackers` for adversarial testing[/dim]")
         return
 
     table = Table(show_header=True, header_style="bold #C8621A", box=None, pad_edge=False)
