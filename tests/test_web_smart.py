@@ -32,7 +32,7 @@ def client(tmp_path, monkeypatch):
 def test_smart_page_renders(client):
     resp = client.get("/smart")
     assert resp.status_code == 200
-    assert "Smart Agent" in resp.text
+    assert "Brain" in resp.text
     # The page must carry the goal input + run button.
     assert "smart-goal" in resp.text
     assert "smart-run" in resp.text

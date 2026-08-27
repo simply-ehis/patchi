@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="history-panel">
+  <!-- Project Summary -->
   <div class="card">
     <div class="card-header">
       <span class="card-title">Project Summary</span>
@@ -10,46 +11,147 @@
       <div><span style="color:var(--text-secondary)">Routes:</span> <strong>{{ route_count }}</strong></div>
       <div><span style="color:var(--text-secondary)">Framework:</span> <strong>{{ framework }}</strong></div>
       <div><span style="color:var(--text-secondary)">Patches:</span> <strong>{{ patches|length }}</strong></div>
-      <div><span style="color:var(--text-secondary)">Scans:</span> <strong>{{ scan_history|length }}</strong></div>
+      <div><span style="color:var(--text-secondary)">Scans:</span> <strong id="scan-count">{{ scan_history|length }}</strong></div>
     </div>
+  </div>
+
+  <!-- Filter Controls -->
+  <div class="card" style="margin-top:12px">
+    <div class="card-header">
+      <span class="card-title">🔍 Filter & Sort</span>
+      <button onclick="resetFilters()" style="background:transparent;border:1px solid var(--border);color:var(--text-secondary);padding:4px 12px;border-radius:6px;cursor:pointer;font-size:12px">Reset</button>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:16px;padding:12px 16px;align-items:end">
+      <!-- Date Range -->
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <label style="font-size:11px;color:var(--text-secondary);text-transform:uppercase">From</label>
+        <input type="date" id="filter-date-from" onchange="applyFilters()" style="background:var(--bg-secondary);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;font-size:12px">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <label style="font-size:11px;color:var(--text-secondary);text-transform:uppercase">To</label>
+        <input type="date" id="filter-date-to" onchange="applyFilters()" style="background:var(--bg-secondary);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;font-size:12px">
+      </div>
+
+      <!-- Severity Filter -->
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <label style="font-size:11px;color:var(--text-secondary);text-transform:uppercase">Severity</label>
+        <div style="display:flex;gap:6px">
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer">
+            <input type="checkbox" class="sev-check" value="critical" onchange="applyFilters()" checked>
+            <span style="color:#FF4D6D">●</span> Critical
+          </label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer">
+            <input type="checkbox" class="sev-check" value="high" onchange="applyFilters()" checked>
+            <span style="color:#FF8C42">●</span> High
+          </label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer">
+            <input type="checkbox" class="sev-check" value="medium" onchange="applyFilters()" checked>
+            <span style="color:#FACC15">●</span> Medium
+          </label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer">
+            <input type="checkbox" class="sev-check" value="low" onchange="applyFilters()" checked>
+            <span style="color:#6B7280">●</span> Low
+          </label>
+        </div>
+      </div>
+
+      <!-- Tool Filter -->
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <label style="font-size:11px;color:var(--text-secondary);text-transform:uppercase">Tool</label>
+        <select id="filter-tool" onchange="applyFilters()" style="background:var(--bg-secondary);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;font-size:12px;min-width:120px">
+          <option value="all">All Tools</option>
+          {% for t in tools %}
+          <option value="{{ t }}">{{ t }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <!-- Sort -->
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <label style="font-size:11px;color:var(--text-secondary);text-transform:uppercase">Sort By</label>
+        <div style="display:flex;gap:4px">
+          <select id="filter-sort" onchange="applyFilters()" style="background:var(--bg-secondary);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;font-size:12px">
+            <option value="timestamp">Time</option>
+            <option value="findings">Findings</option>
+            <option value="health">Health</option>
+            <option value="severity">Severity</option>
+            <option value="duration">Duration</option>
+          </select>
+          <button id="sort-dir-btn" onclick="toggleSortDir()" style="background:var(--bg-secondary);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;font-size:12px;cursor:pointer" title="Toggle sort direction">↓</button>
+        </div>
+      </div>
+    </div>
+    <div id="filter-status" style="padding:0 16px 8px;font-size:11px;color:var(--text-secondary)"></div>
   </div>
 
   <!-- Scan History -->
   <div class="card" style="margin-top:12px">
     <div class="card-header">
       <span class="card-title">Scan History</span>
+      <span id="scan-filter-count" style="font-size:12px;color:var(--text-secondary)"></span>
     </div>
-    {% if scan_history %}
     <div style="overflow-x:auto;padding:12px">
-      <table style="width:100%;border-collapse:collapse;font-size:12px">
+      <table id="scan-table" style="width:100%;border-collapse:collapse;font-size:12px">
         <thead>
           <tr style="border-bottom:1px solid var(--border);color:var(--text-secondary)">
             <th style="text-align:left;padding:6px 8px">Time</th>
             <th style="text-align:left;padding:6px 8px">Tool</th>
             <th style="text-align:right;padding:6px 8px">Findings</th>
+            <th style="text-align:center;padding:6px 8px">Severity</th>
             <th style="text-align:right;padding:6px 8px">Health</th>
             <th style="text-align:right;padding:6px 8px">Duration</th>
           </tr>
         </thead>
-        <tbody>
+        <tbody id="scan-tbody">
           {% for s in scan_history %}
-          <tr style="border-bottom:1px solid var(--border)">
+          <tr class="scan-row"
+              data-timestamp="{{ s.timestamp }}"
+              data-tool="{{ s.tool }}"
+              data-findings="{{ s.findings_count }}"
+              data-health="{{ s.health_score }}"
+              data-duration="{{ s.duration_ms }}"
+              data-critical="{{ s.severity_breakdown.get('critical', 0) }}"
+              data-high="{{ s.severity_breakdown.get('high', 0) }}"
+              data-medium="{{ s.severity_breakdown.get('medium', 0) }}"
+              data-low="{{ s.severity_breakdown.get('low', 0) }}">
             <td style="padding:6px 8px;font-family:var(--font-mono);font-size:11px">{{ s.timestamp[:19] }}</td>
-            <td style="padding:6px 8px">{{ s.tool }}</td>
-            <td style="padding:6px 8px;text-align:right">{{ s.findings_count }}</td>
-            <td style="padding:6px 8px;text-align:right">{{ s.health_score }}/100</td>
+            <td style="padding:6px 8px">
+              <span style="background:var(--bg-secondary);padding:2px 8px;border-radius:4px;font-size:11px">{{ s.tool }}</span>
+            </td>
+            <td style="padding:6px 8px;text-align:right;font-weight:600">{{ s.findings_count }}</td>
+            <td style="padding:6px 8px;text-align:center">
+              {% if s.severity_breakdown.get('critical', 0) > 0 %}
+              <span style="color:#FF4D6D" title="Critical: {{ s.severity_breakdown.get('critical', 0) }}">●{{ s.severity_breakdown.get('critical', 0) }}</span>
+              {% endif %}
+              {% if s.severity_breakdown.get('high', 0) > 0 %}
+              <span style="color:#FF8C42" title="High: {{ s.severity_breakdown.get('high', 0) }}">●{{ s.severity_breakdown.get('high', 0) }}</span>
+              {% endif %}
+              {% if s.severity_breakdown.get('medium', 0) > 0 %}
+              <span style="color:#FACC15" title="Medium: {{ s.severity_breakdown.get('medium', 0) }}">●{{ s.severity_breakdown.get('medium', 0) }}</span>
+              {% endif %}
+              {% if s.severity_breakdown.get('low', 0) > 0 %}
+              <span style="color:#6B7280" title="Low: {{ s.severity_breakdown.get('low', 0) }}">●{{ s.severity_breakdown.get('low', 0) }}</span>
+              {% endif %}
+            </td>
+            <td style="padding:6px 8px;text-align:right">
+              {% if s.health_score >= 80 %}
+              <span style="color:#4ADE80">{{ s.health_score }}/100</span>
+              {% elif s.health_score >= 50 %}
+              <span style="color:#FACC15">{{ s.health_score }}/100</span>
+              {% else %}
+              <span style="color:#FF4D6D">{{ s.health_score }}/100</span>
+              {% endif %}
+            </td>
             <td style="padding:6px 8px;text-align:right;font-family:var(--font-mono)">{{ s.duration_ms }}ms</td>
           </tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
-    {% else %}
-    <div class="empty-state">
+    <div id="scan-empty" class="empty-state" style="display:none">
       <div class="empty-state-icon">⏱</div>
-      <div class="empty-state-text">No scan history yet. Run a scan.</div>
+      <div class="empty-state-text">No scans match the current filters.</div>
     </div>
-    {% endif %}
   </div>
 
   <!-- Patch History -->
@@ -74,8 +176,24 @@
           <tr style="border-bottom:1px solid var(--border)">
             <td style="padding:6px 8px;font-family:var(--font-mono);font-size:11px">{{ p.id[:10] }}…</td>
             <td style="padding:6px 8px">{{ (p.changes or [{}])[0].get('path','') }}</td>
-            <td style="padding:6px 8px">{{ p.state }}</td>
-            <td style="padding:6px 8px;text-align:right">{{ p.risk_score }}%</td>
+            <td style="padding:6px 8px">
+              {% if p.state == 'applied' %}
+              <span style="color:#4ADE80">✓ applied</span>
+              {% elif p.state == 'rolled_back' %}
+              <span style="color:#FF4D6D">✗ rolled back</span>
+              {% else %}
+              <span style="color:var(--text-secondary)">{{ p.state }}</span>
+              {% endif %}
+            </td>
+            <td style="padding:6px 8px;text-align:right">
+              {% if p.risk_score >= 70 %}
+              <span style="color:#FF4D6D">{{ p.risk_score }}%</span>
+              {% elif p.risk_score >= 40 %}
+              <span style="color:#FACC15">{{ p.risk_score }}%</span>
+              {% else %}
+              <span style="color:#4ADE80">{{ p.risk_score }}%</span>
+              {% endif %}
+            </td>
             <td style="padding:6px 8px;font-family:var(--font-mono);font-size:11px">{{ (p.applied_at or p.rolled_back_at or '—')[:19] }}</td>
           </tr>
           {% endfor %}
@@ -90,4 +208,141 @@
     {% endif %}
   </div>
 </div>
+
+<script>
+// ── Filter State ──────────────────────────────────────────────────────
+let currentSortDir = 'desc';
+let allRows = [];
+
+document.addEventListener('DOMContentLoaded', () => {
+  allRows = Array.from(document.querySelectorAll('.scan-row'));
+  updateFilterCount();
+});
+
+// ── Core Filter Logic ─────────────────────────────────────────────────
+function applyFilters() {
+  const dateFrom = document.getElementById('filter-date-from').value;
+  const dateTo = document.getElementById('filter-date-to').value;
+  const tool = document.getElementById('filter-tool').value;
+  const sortBy = document.getElementById('filter-sort').value;
+
+  // Get selected severities
+  const sevChecks = document.querySelectorAll('.sev-check:checked');
+  const activeSevs = Array.from(sevChecks).map(c => c.value);
+
+  let visible = 0;
+  allRows.forEach(row => {
+    const ts = row.dataset.timestamp || '';
+    const rowTool = row.dataset.tool || '';
+    const rowCritical = parseInt(row.dataset.critical || '0');
+    const rowHigh = parseInt(row.dataset.high || '0');
+    const rowMedium = parseInt(row.dataset.medium || '0');
+    const rowLow = parseInt(row.dataset.low || '0');
+
+    let show = true;
+
+    // Date range
+    if (dateFrom && ts < dateFrom) show = false;
+    if (dateTo && ts > dateTo + 'T23:59:59') show = false;
+
+    // Tool
+    if (tool !== 'all' && rowTool !== tool) show = false;
+
+    // Severity — show row if it has ANY of the selected severities with count > 0
+    if (activeSevs.length > 0) {
+      const hasMatch = (
+        (activeSevs.includes('critical') && rowCritical > 0) ||
+        (activeSevs.includes('high') && rowHigh > 0) ||
+        (activeSevs.includes('medium') && rowMedium > 0) ||
+        (activeSevs.includes('low') && rowLow > 0)
+      );
+      if (!hasMatch) show = false;
+    }
+
+    row.style.display = show ? '' : 'none';
+    if (show) visible++;
+  });
+
+  // Sort visible rows
+  sortRows(sortBy);
+
+  updateFilterCount(visible);
+}
+
+// ── Sorting ───────────────────────────────────────────────────────────
+function sortRows(field) {
+  const tbody = document.getElementById('scan-tbody');
+  const rows = Array.from(tbody.querySelectorAll('.scan-row'));
+
+  rows.sort((a, b) => {
+    let va, vb;
+    switch (field) {
+      case 'timestamp':
+        va = a.dataset.timestamp || '';
+        vb = b.dataset.timestamp || '';
+        break;
+      case 'findings':
+        va = parseInt(a.dataset.findings || '0');
+        vb = parseInt(b.dataset.findings || '0');
+        break;
+      case 'health':
+        va = parseInt(a.dataset.health || '0');
+        vb = parseInt(b.dataset.health || '0');
+        break;
+      case 'severity':
+        va = parseInt(a.dataset.critical || '0') * 100 + parseInt(a.dataset.high || '0') * 10;
+        vb = parseInt(b.dataset.critical || '0') * 100 + parseInt(b.dataset.high || '0') * 10;
+        break;
+      case 'duration':
+        va = parseInt(a.dataset.duration || '0');
+        vb = parseInt(b.dataset.duration || '0');
+        break;
+      default:
+        va = a.dataset.timestamp || '';
+        vb = b.dataset.timestamp || '';
+    }
+
+    if (typeof va === 'string') {
+      return currentSortDir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
+    }
+    return currentSortDir === 'asc' ? va - vb : vb - va;
+  });
+
+  rows.forEach(row => tbody.appendChild(row));
+}
+
+// ── Sort Direction Toggle ─────────────────────────────────────────────
+function toggleSortDir() {
+  currentSortDir = currentSortDir === 'desc' ? 'asc' : 'desc';
+  document.getElementById('sort-dir-btn').textContent = currentSortDir === 'desc' ? '↓' : '↑';
+  applyFilters();
+}
+
+// ── Reset Filters ─────────────────────────────────────────────────────
+function resetFilters() {
+  document.getElementById('filter-date-from').value = '';
+  document.getElementById('filter-date-to').value = '';
+  document.getElementById('filter-tool').value = 'all';
+  document.getElementById('filter-sort').value = 'timestamp';
+  currentSortDir = 'desc';
+  document.getElementById('sort-dir-btn').textContent = '↓';
+
+  document.querySelectorAll('.sev-check').forEach(c => c.checked = true);
+  applyFilters();
+}
+
+// ── Update Counts ─────────────────────────────────────────────────────
+function updateFilterCount(visible) {
+  const total = allRows.length;
+  const count = visible !== undefined ? visible : total;
+  const el = document.getElementById('scan-filter-count');
+  if (el) {
+    if (count < total) {
+      el.textContent = `Showing ${count} of ${total}`;
+    } else {
+      el.textContent = `${total} scans`;
+    }
+  }
+}
+</script>
 {% endblock %}

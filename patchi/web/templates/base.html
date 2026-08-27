@@ -452,6 +452,21 @@ function toast(msg, type = 'info') {
   clearTimeout(el._t);
   el._t = setTimeout(() => { el.className = 'toast'; }, 4000);
 }
+
+// ── Active nav state on HTMX navigation ──
+document.body.addEventListener('htmx:afterSwap', function(evt) {
+  if (evt.detail.requestConfig && evt.detail.requestConfig.path) {
+    const path = evt.detail.requestConfig.path.replace(/\/$/, '') || '/';
+    document.querySelectorAll('.rail .nav-btn').forEach(btn => {
+      const href = btn.getAttribute('href').replace(/\/$/, '') || '/';
+      if (href === path) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+    });
+  }
+});
 </script>
 </body>
 </html>
