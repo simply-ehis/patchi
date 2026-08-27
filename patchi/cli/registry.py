@@ -327,6 +327,12 @@ COMMANDS: list[Command] = [
                 action="store_true",
                 help="Preview fixes without applying",
             ),
+            Arg(
+                "--preview",
+                dest="preview",
+                action="store_true",
+                help="Show before/after code diffs for each proposed fix",
+            ),
         ),
     ),
     Command("review", "Review pending changes", "patchi.cli.commands.review_cmd:run"),

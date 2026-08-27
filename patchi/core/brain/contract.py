@@ -408,15 +408,17 @@ def parse_ai_contract_response(response: str) -> list[dict] | None:
 
 class ContractBuilder:
     """
-    Infers the App Contract from routes, AST file info, and optionally AI.
+    Infers the App Contract from routes, AST file info, project understanding, and optionally AI.
 
-    Two inference paths:
-    1. offline inference() — pattern-based, free, no API calls
-    2. ai_infer() — sends AST scanner summary to LLM for richer contract
+    Three inference paths:
+    1. project_infer() — reads README, package.json, etc. for deep understanding
+    2. offline inference() — pattern-based, free, no API calls
+    3. ai_infer() — sends AST scanner summary to LLM for richer contract
 
     Usage:
-        builder = ContractBuilder(routes, file_infos)
-        flows = builder.infer()           # offline, fast
+        builder = ContractBuilder(routes, file_infos, root=root)
+        flows = builder.project_infer()  # smart, reads project files
+        flows = builder.infer()          # offline, fast
         ai_flows = builder.ai_infer(config)  # AI-powered summary
     """
 
@@ -426,11 +428,116 @@ class ContractBuilder:
         file_infos: list[FileInfo],
         dead_files: list[str] | None = None,
         circular_deps: list[Any] | None = None,
+        root: Path | None = None,
     ):
         self.routes = routes
         self.file_infos = file_infos
         self.dead_files = dead_files or []
         self.circular_deps = circular_deps or []
+        self.root = root
+
+    def project_infer(self) -> list[ContractFlow]:
+        """
+        Smart inference: reads project files to understand what the project is,
+        then builds contract flows based on that understanding.
+
+        This is much more accurate than pattern matching because it actually
+        reads the README, package.json, pyproject.toml, etc.
+        """
+        if not self.root:
+            return self.infer()
+
+        from patchi.core.brain.project_reader import read_project_insight
+
+        insight = read_project_insight(self.root)
+
+        # Build flows based on project understanding
+        flows: list[ContractFlow] = []
+        seen_ids: set[str] = set()
+
+        # 1. Create flows from critical directories
+        for dir_name in insight.critical_dirs:
+            dir_files = [fi.path for fi in self.file_infos if dir_name.lower() in fi.path.lower()]
+            if dir_files:
+                flow_id = f"project-{dir_name}"
+                if flow_id not in seen_ids:
+                    seen_ids.add(flow_id)
+                    flows.append(ContractFlow(
+                        id=flow_id,
+                        name=f"{dir_name.title()} Module",
+                        description=f"The {dir_name} directory containing critical project code.",
+                        routes=[],
+                        files=dir_files[:10],
+                        signals=["project-reader", f"dir:{dir_name}"],
+                        confirmed=False,
+                        confidence="high",
+                    ))
+
+        # 2. Create flows from entry points
+        for ep in insight.entry_points:
+            ep_files = [fi.path for fi in self.file_infos if ep in fi.path]
+            if ep_files:
+                flow_id = f"entry-{ep.replace('/', '-').replace('.', '-')}"
+                if flow_id not in seen_ids:
+                    seen_ids.add(flow_id)
+                    flows.append(ContractFlow(
+                        id=flow_id,
+                        name=f"Entry Point: {ep}",
+                        description=f"Main entry point of the {insight.project_type or 'project'}.",
+                        routes=[],
+                        files=ep_files[:5],
+                        signals=["project-reader", "entry-point"],
+                        confirmed=False,
+                        confidence="high",
+                    ))
+
+        # 3. Create flows from routes (using project context)
+        from collections import defaultdict
+        clusters: dict[str, list[str]] = defaultdict(list)
+        for r in self.routes:
+            segments = [s for s in r.path.split("/") if s]
+            prefix = segments[0] if segments else "root"
+            clusters[prefix].append(r.path)
+
+        for prefix, matched_routes in clusters.items():
+            flow_id = f"route-{prefix}"
+            if flow_id in seen_ids:
+                continue
+            seen_ids.add(flow_id)
+
+            # Use project context to name the flow
+            meta = _ROUTE_TO_FLOW.get(prefix)
+            if meta:
+                name = meta["name"]
+                desc = meta["desc"]
+            else:
+                name = f"{prefix.title()} Endpoints"
+                desc = f"Routes under /{prefix}/"
+
+            file_hits = [fi.path for fi in self.file_infos if prefix in fi.path.lower()]
+            confidence = "high" if file_hits else "medium"
+
+            flows.append(ContractFlow(
+                id=flow_id,
+                name=name,
+                description=desc,
+                routes=matched_routes[:5],
+                files=file_hits[:10],
+                signals=["project-reader", "route"],
+                confirmed=False,
+                confidence=confidence,
+            ))
+
+        # 4. Merge with offline inference for anything we missed
+        if not flows:
+            flows = self.infer()
+        else:
+            offline = self.infer()
+            for f in offline:
+                if f.id not in seen_ids and not f.suggested:
+                    flows.append(f)
+
+        return flows
 
     def infer(self) -> list[ContractFlow]:
         """
@@ -440,7 +547,7 @@ class ContractBuilder:
         Clusters with at least one route produce a ContractFlow at medium confidence.
         Clusters with routes AND matching file purposes produce high confidence.
         Routes that don't match any known prefix produce a single "Other API" flow.
-        
+
         If no routes are detected, falls back to file-structure-based inference.
         """
         from collections import defaultdict
@@ -512,7 +619,7 @@ class ContractBuilder:
         This helps with projects that don't have standard route definitions.
         """
         from collections import defaultdict
-        
+
         # Group files by directory structure
         dir_groups: dict[str, list[str]] = defaultdict(list)
         for fi in self.file_infos:
@@ -523,9 +630,9 @@ class ContractBuilder:
             else:
                 group_key = "root"
             dir_groups[group_key].append(fi.path)
-        
+
         found: list[ContractFlow] = []
-        
+
         # Map common directory patterns to contract flows
         dir_to_flow = {
             "api": ("API Endpoints", "API route handlers and controllers."),
@@ -543,10 +650,10 @@ class ContractBuilder:
             "middleware": ("Middleware", "Request/response middleware."),
             "tests": ("Test Suite", "Test files and test utilities."),
         }
-        
+
         for dir_key, files in dir_groups.items():
             dir_name = dir_key.split("/")[-1].lower()
-            
+
             # Check if this directory matches a known pattern
             flow_name = None
             flow_desc = None
@@ -555,12 +662,12 @@ class ContractBuilder:
                     flow_name = name
                     flow_desc = desc
                     break
-            
+
             if not flow_name:
                 # Use directory name as flow name
                 flow_name = f"{dir_name.title()} Module"
                 flow_desc = f"Code in the {dir_name} directory."
-            
+
             flow_id = dir_name.replace("/", "-")
             found.append(
                 ContractFlow(
@@ -576,7 +683,7 @@ class ContractBuilder:
                     suggested=True,
                 )
             )
-        
+
         return found[:10]  # Limit to top 10 flows
 
     def ai_infer(self, config: dict | None = None) -> list[ContractFlow] | None:
@@ -673,7 +780,9 @@ class ContractBuilder:
 
         source_note = ""
         if ai_count > 0:
-            source_note = f"\n(Detected via AI analysis of {len(self.file_infos)} files and {len(self.routes)} routes)"
+            n_files = len(self.file_infos)
+            n_routes = len(self.routes)
+            source_note = f"\n(Detected via AI analysis of {n_files} files and {n_routes} routes)"
         if hidden_count:
             source_note += (
                 f"\n({hidden_count} low-confidence flow(s) hidden — run --all-flows to see)"

@@ -14,8 +14,15 @@ router = APIRouter(prefix="/api")
 
 
 @router.post("/scan")
-async def trigger_scan(request: Request, scan_type: str = "all") -> JSONResponse:
-    """Trigger a security scan. Runs in background, sends progress via WebSocket."""
+async def trigger_scan(
+    request: Request,
+    scan_type: str = "all",
+    auto_fix: bool = False,
+) -> JSONResponse:
+    """Trigger a security scan. Runs in background, sends progress via WebSocket.
+
+    If auto_fix=True, runs proactive fixes after the scan completes.
+    """
     root = request.app.state.root
     tenant_ctx = tenant_context(root)
     tenant_ctx.__enter__()
@@ -71,9 +78,31 @@ async def trigger_scan(request: Request, scan_type: str = "all") -> JSONResponse
 
         await evt_scan_complete(deduped_count, 0)
 
+        # Auto-fix: run proactive fixes after scan completes
+        if auto_fix and deduped_count > 0:
+            await evt_scan_progress("auto_fix", "running", len(to_run), len(to_run))
+            try:
+                await asyncio.to_thread(_run_proactive_fix, root, config)
+            except Exception as e:
+                import logging
+                logging.getLogger("patchi.web.scan").warning("Auto-fix failed: %s", e)
+            await evt_scan_progress("auto_fix", "done", len(to_run) + 1, len(to_run) + 1)
+
     asyncio.create_task(_run())
 
     return JSONResponse({"ok": True, "message": f"Scan started with {len(to_run)} agents"})
+
+
+def _run_proactive_fix(root, config):
+    """Run proactive fixes after a scan."""
+    from patchi.core.brain.proactive import ProactiveFixer
+
+    try:
+        fixer = ProactiveFixer(root)
+        fixer.run()
+    except Exception as e:
+        import logging
+        logging.getLogger("patchi.web.scan").warning("_run_proactive_fix failed: %s", e)
 
 
 @router.get("/scan")

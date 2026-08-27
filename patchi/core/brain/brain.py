@@ -458,18 +458,39 @@ class Brain:
             file_infos, stack, report
         )
 
-        self._emit(ScanProgress(phase="contract", message="Inferring app contract…"))
-        builder = ContractBuilder(routes, file_infos, dead_files, circular_deps)
+        self._emit(ScanProgress(phase="contract", message="Understanding project…"))
+        builder = ContractBuilder(routes, file_infos, dead_files, circular_deps, root=self.root)
 
-        # Try AI-powered contract first, fall back to pattern-based
+        # Smart inference: reads project files first, then falls back
+        # to AI-powered, then pattern-based
         config = {}
         try:
             config = cfg.load(self.root)
         except RuntimeError:
             config = {}
-        ai_flows = builder.ai_infer(config)
-        inferred = ai_flows if ai_flows is not None else builder.infer()
+
+        # Try project-aware inference first (reads README, package.json, etc.)
+        project_flows = builder.project_infer()
+        if project_flows:
+            inferred = project_flows
+        else:
+            # Fall back to AI-powered contract
+            ai_flows = builder.ai_infer(config)
+            inferred = ai_flows if ai_flows is not None else builder.infer()
         report.inferred_flows = inferred
+
+        # Auto-lock contract if flows were inferred (non-interactive)
+        # This allows p fix to work without requiring --contract first
+        if inferred and not brain_mem.get("contract_locked"):
+            # Auto-confirm all non-suggested flows with medium+ confidence
+            auto_confirmed = [f for f in inferred if not f.suggested and f.confidence in ("high", "medium")]
+            if auto_confirmed:
+                for f in auto_confirmed:
+                    f.confirmed = True
+                brain_mem["confirmed_flows"] = [f.to_dict() for f in auto_confirmed]
+                brain_mem["contract_locked"] = True
+                brain_mem["contract_auto_formed"] = True
+                _log.info("Auto-locked contract with %d flows", len(auto_confirmed))
 
         # Load any previously confirmed flows from memory
         if brain_mem.get("confirmed_flows"):

@@ -89,13 +89,19 @@
       <button class="btn btn-primary" hx-post="/api/scan" hx-swap="none"
         onclick="this.classList.add('loading'); toast('Starting security scan…', 'info')"
         hx-on::after-request="this.classList.remove('loading')">
-        <span class="btn-text">▶ Run Security Scan</span>
+        <span class="btn-text">▶ Run Scan</span>
+        <span class="btn-spinner" style="display:none;">⏳</span>
+      </button>
+      <button class="btn" style="background:var(--accent);color:#fff" hx-post="/api/scan?auto_fix=true" hx-swap="none"
+        onclick="this.classList.add('loading'); toast('Scan + auto-fix started…', 'info')"
+        hx-on::after-request="this.classList.remove('loading')">
+        <span class="btn-text">⚡ Scan + Fix</span>
         <span class="btn-spinner" style="display:none;">⏳</span>
       </button>
       <button class="btn" hx-get="/api/scan?type=report" hx-swap="none"
         onclick="this.classList.add('loading'); toast('Generating report…', 'info')"
         hx-on::after-request="this.classList.remove('loading')">
-        <span class="btn-text">📊 Security Report</span>
+        <span class="btn-text">📊 Report</span>
         <span class="btn-spinner" style="display:none;">⏳</span>
       </button>
       <button class="btn" hx-get="/review" hx-target=".content" hx-push-url="true">
