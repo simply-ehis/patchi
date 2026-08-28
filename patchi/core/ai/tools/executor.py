@@ -23,7 +23,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from patchi.core.ai.tools.registry import get_tool_registry
+from patchi.core.ai.tools.registry import ToolDefinition, ToolParameter, get_tool_registry
 
 _log = logging.getLogger("patchi.ai.tool_executor")
 

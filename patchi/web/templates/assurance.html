@@ -36,8 +36,8 @@
     </div>
 
     {% if dast_correlations %}
-    <div class="card" style="margin-bottom:12px;border-left:3px solid #f97316">
-      <div class="card-header"><span class="card-title" style="color:#f97312">Correlated Findings (DAST + Static)</span></div>
+    <div class="panel" style="margin-bottom:12px;border-left:3px solid #f97316">
+      <div class="panel-header"><span class="panel-title" style="color:#f97312">Correlated Findings (DAST + Static)</span></div>
       <div style="padding:12px;display:flex;flex-direction:column;gap:10px">
         {% for c in dast_correlations %}
         <div style="padding:10px 14px;border-radius:8px;background:rgba(249,115,22,0.06);border:1px solid rgba(249,115,22,0.2)">
@@ -63,8 +63,8 @@
     </div>
     {% endif %}
 
-    <div class="card">
-      <div class="card-header"><span class="card-title">All DAST Findings</span></div>
+    <div class="panel">
+      <div class="panel-header"><span class="panel-title">All DAST Findings</span></div>
       <div style="padding:12px;display:flex;flex-direction:column;gap:8px">
         {% for f in dast_findings %}
         <div style="padding:10px 14px;border-radius:8px;border:1px solid var(--border)">
@@ -274,7 +274,7 @@
   <!-- Chain Claims Tab -->
   <div id="tab-chainclaims" class="tab-content">
     {% if chain_claims %}
-    <div class="card" style="margin-bottom:16px;padding:16px">
+    <div class="panel" style="margin-bottom:16px;padding:16px">
       <h3 style="margin-bottom:8px">🔗 Exploit Chain Claims</h3>
       <p style="font-size:13px;color:var(--text-secondary)">{{ chain_claims|length }} claims from cross-file attack paths and intent gaps.</p>
     </div>
@@ -299,7 +299,7 @@
       </tbody>
     </table>
     {% if chain_raw %}
-    <div class="card" style="margin-top:16px;padding:16px">
+    <div class="panel" style="margin-top:16px;padding:16px">
       <h3 style="margin-bottom:8px">Attack Path Visualizations</h3>
       {% for chain in chain_raw %}
       <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">

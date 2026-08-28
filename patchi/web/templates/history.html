@@ -2,9 +2,9 @@
 {% block content %}
 <div class="history-panel">
   <!-- Project Summary -->
-  <div class="card">
-    <div class="card-header">
-      <span class="card-title">Project Summary</span>
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">Project Summary</span>
     </div>
     <div style="display:flex;gap:24px;padding:16px;font-size:13px">
       <div><span style="color:var(--text-secondary)">Files:</span> <strong>{{ file_count }}</strong></div>
@@ -16,9 +16,9 @@
   </div>
 
   <!-- Filter Controls -->
-  <div class="card" style="margin-top:12px">
-    <div class="card-header">
-      <span class="card-title">🔍 Filter & Sort</span>
+  <div class="panel" style="margin-top:12px">
+    <div class="panel-header">
+      <span class="panel-title">🔍 Filter & Sort</span>
       <button onclick="resetFilters()" style="background:transparent;border:1px solid var(--border);color:var(--text-secondary);padding:4px 12px;border-radius:6px;cursor:pointer;font-size:12px">Reset</button>
     </div>
     <div style="display:flex;flex-wrap:wrap;gap:16px;padding:12px 16px;align-items:end">
@@ -85,9 +85,9 @@
   </div>
 
   <!-- Scan History -->
-  <div class="card" style="margin-top:12px">
-    <div class="card-header">
-      <span class="card-title">Scan History</span>
+  <div class="panel" style="margin-top:12px">
+    <div class="panel-header">
+      <span class="panel-title">Scan History</span>
       <span id="scan-filter-count" style="font-size:12px;color:var(--text-secondary)"></span>
     </div>
     <div style="overflow-x:auto;padding:12px">
@@ -155,9 +155,9 @@
   </div>
 
   <!-- Patch History -->
-  <div class="card" style="margin-top:12px">
-    <div class="card-header">
-      <span class="card-title">Patch History</span>
+  <div class="panel" style="margin-top:12px">
+    <div class="panel-header">
+      <span class="panel-title">Patch History</span>
     </div>
     {% if patches %}
     <div style="overflow-x:auto;padding:12px">

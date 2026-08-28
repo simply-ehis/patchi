@@ -20,9 +20,7 @@ Requires: playwright, axe-core (injected from CDN)
 
 from __future__ import annotations
 
-from pathlib import Path
 
-from patchi.core.brain.languages import DEFAULT_IGNORE_DIRS
 
 from ..agents.base import (
     AgentGroup,
@@ -147,7 +145,7 @@ class UIAccessibilityAgent(BaseAgent):
                     kb_issues = self._test_keyboard_navigation(page, page_path)
                     for issue in kb_issues:
                         if rel:
-                            issue["extra"] = {**(issue.get("extra") or {}), "screenshot": rel}
+                            issue.extra = {**(issue.extra or {}), "screenshot": rel}
                         result.add_finding(issue)
 
                     pages_tested += 1

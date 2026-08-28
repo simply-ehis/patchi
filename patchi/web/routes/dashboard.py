@@ -13,7 +13,6 @@ import asyncio
 import json
 import logging
 from pathlib import Path
-from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
@@ -29,7 +28,6 @@ templates.env.filters["tojson"] = lambda v: json.dumps(v)
 from patchi.core import config as cfg
 from patchi.core.ai.tools.executor import ToolExecutor, WebConfirmationProvider
 
-
 # ──────────────────────────────────────────────────────────────────────
 # Helpers
 # ──────────────────────────────────────────────────────────────────────
@@ -41,7 +39,7 @@ def _safe_mode(root: Path) -> str:
         return "confirm"
 
 
-def _collect_recent_findings(root: Path, limit: int = 10) -> List[Dict]:
+def _collect_recent_findings(root: Path, limit: int = 10) -> list[dict]:
     """Collect recent findings from all scanners."""
     from patchi.core import memory as mem
     scan_results = mem.get_scan_results(root)
@@ -55,7 +53,7 @@ def _collect_recent_findings(root: Path, limit: int = 10) -> List[Dict]:
     return findings
 
 
-def _get_brain_data(root: Path) -> Dict:
+def _get_brain_data(root: Path) -> dict:
     """Get consolidated brain data for dashboard."""
     from patchi.core import memory as mem
     from patchi.core.health import compute as compute_health
@@ -392,6 +390,7 @@ async def _handle_ws_message(ws: WebSocket, root: Path, raw: str):
         return
 
     action = msg.get("action")
+    from patchi.core import memory as mem
     if action == "subscribe":
         await ws.send_json({"event": "subscribed", "data": {"channels": msg.get("data", {}).get("channels", [])}})
     elif action == "execute_tool":

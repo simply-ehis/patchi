@@ -15,9 +15,7 @@ Requires: playwright
 
 from __future__ import annotations
 
-from pathlib import Path
 
-from patchi.core.brain.languages import DEFAULT_IGNORE_DIRS
 
 from ..agents.base import (
     AgentGroup,
@@ -109,7 +107,7 @@ class UILayoutAgent(BaseAgent):
                         issues = self._check_layout(page, page_path, vp["label"], vp["width"])
                         for issue in issues:
                             if rel:
-                                issue["extra"] = {**(issue.get("extra") or {}), "screenshot": rel}
+                                issue.extra = {**(issue.extra or {}), "screenshot": rel}
                             result.add_finding(issue)
                             issues_found += 1
 

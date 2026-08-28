@@ -1,9 +1,9 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="settings-panel">
-  <div class="card">
-    <div class="card-header">
-      <span class="card-title">Settings</span>
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">Settings</span>
     </div>
 
     <div style="display:grid;gap:16px;padding:16px">
@@ -31,9 +31,9 @@
     </div>
   </div>
 
-  <div class="card" style="margin-top:12px">
-    <div class="card-header">
-      <span class="card-title">Actions</span>
+  <div class="panel" style="margin-top:12px">
+    <div class="panel-header">
+      <span class="panel-title">Actions</span>
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;padding:12px">
       <button class="btn" onclick="if(confirm('Clear all memory?')){fetch('/api/memory/clear',{method:'POST'}).then(r=>r.json()).then(d=>toast(d.ok?'Cleared':'Error',d.ok?'info':'error'))}">
@@ -48,9 +48,9 @@
     </div>
   </div>
 
-  <div class="card" style="margin-top:12px">
-    <div class="card-header">
-      <span class="card-title">File Watcher</span>
+  <div class="panel" style="margin-top:12px">
+    <div class="panel-header">
+      <span class="panel-title">File Watcher</span>
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;padding:12px">
       <button class="btn" onclick="fetch('/api/watch/start',{method:'POST'}).then(r=>r.json()).then(d=>toast(d.ok?'Watcher started':'Error',d.ok?'info':'error'))">
@@ -63,9 +63,9 @@
     </div>
   </div>
 
-  <div class="card" style="margin-top:12px">
-    <div class="card-header">
-      <span class="card-title">Ollama Model</span>
+  <div class="panel" style="margin-top:12px">
+    <div class="panel-header">
+      <span class="panel-title">Ollama Model</span>
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;padding:12px;align-items:center">
       <input id="model-name" type="text" placeholder="e.g. llama3.2:3b"
@@ -79,9 +79,9 @@
     </div>
   </div>
 
-  <div class="card" style="margin-top:12px">
-    <div class="card-header">
-      <span class="card-title">Notifications</span>
+  <div class="panel" style="margin-top:12px">
+    <div class="panel-header">
+      <span class="panel-title">Notifications</span>
     </div>
     <div style="padding:12px">
       <div id="notifications-list"

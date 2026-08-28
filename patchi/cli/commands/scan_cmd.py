@@ -1566,6 +1566,7 @@ def _show_changed_dry_run(root: Path, commits: int) -> None:
     con.print()
 
     # 3. Show total agent count
+    from patchi.core.agents.base import list_agents as _la
     all_scanner_agents = _la(AgentGroup.SCANNER)
     if diff_result.activated_domains:
         try:

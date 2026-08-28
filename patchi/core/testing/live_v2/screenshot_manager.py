@@ -100,7 +100,7 @@ class ScreenshotManager:
                 self._pixelmatch = pixelmatch
             except ImportError:
                 try:
-                    from PIL import Image, ImageChops
+                    from PIL import Image, ImageChops  # noqa: F401 — availability check
 
                     self._pixelmatch = "PIL"
                 except ImportError:
@@ -320,7 +320,7 @@ class ScreenshotManager:
         """Compare using PIL."""
         import io
 
-        from PIL import Image, ImageChops
+        from PIL import Image, ImageChops  # noqa: F401 — availability check
 
         baseline_img = Image.open(io.BytesIO(baseline_bytes)).convert("RGBA")
         current_img = Image.open(io.BytesIO(current_bytes)).convert("RGBA")

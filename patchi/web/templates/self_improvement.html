@@ -6,27 +6,27 @@
 
   <!-- Summary cards -->
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:24px">
-    <div class="card" style="padding:16px;text-align:center">
+    <div class="panel" style="padding:16px;text-align:center">
       <div style="font-size:28px;font-weight:700;color:var(--accent)">{{ profile_summary.agents }}</div>
       <div style="font-size:12px;color:var(--text-secondary)">Agents Profiled</div>
     </div>
-    <div class="card" style="padding:16px;text-align:center">
+    <div class="panel" style="padding:16px;text-align:center">
       <div style="font-size:28px;font-weight:700;color:var(--accent)">{{ profile_summary.total_runs }}</div>
       <div style="font-size:12px;color:var(--text-secondary)">Total Runs</div>
     </div>
-    <div class="card" style="padding:16px;text-align:center">
+    <div class="panel" style="padding:16px;text-align:center">
       <div style="font-size:28px;font-weight:700;color:#4ADE80">${{ "%.4f"|format(profile_summary.total_cost) }}</div>
       <div style="font-size:12px;color:var(--text-secondary)">Total AI Cost</div>
     </div>
-    <div class="card" style="padding:16px;text-align:center">
+    <div class="panel" style="padding:16px;text-align:center">
       <div style="font-size:28px;font-weight:700;color:var(--accent)">{{ profile_summary.total_findings }}</div>
       <div style="font-size:12px;color:var(--text-secondary)">Findings Produced</div>
     </div>
-    <div class="card" style="padding:16px;text-align:center">
+    <div class="panel" style="padding:16px;text-align:center">
       <div style="font-size:28px;font-weight:700;color:#4ADE80">{{ "%.1f"|format((profile_summary.avg_accuracy or 0) * 100) }}%</div>
       <div style="font-size:12px;color:var(--text-secondary)">Avg Accuracy</div>
     </div>
-    <div class="card" style="padding:16px;text-align:center">
+    <div class="panel" style="padding:16px;text-align:center">
       <div style="font-size:28px;font-weight:700;color:var(--accent)">{{ corpus_stats.total }}</div>
       <div style="font-size:12px;color:var(--text-secondary)">Fuzz Corpus Seeds</div>
     </div>
@@ -42,7 +42,7 @@
   <!-- Agent Profiles panel -->
   <div id="panel-profiles" class="tab-panel">
     {% if profiles %}
-    <div class="card" style="overflow-x:auto">
+    <div class="panel" style="overflow-x:auto">
       <table class="data-table">
         <thead>
           <tr>
@@ -84,7 +84,7 @@
     </div>
 
     {% if profile_summary.slowest %}
-    <div class="card" style="margin-top:16px;padding:16px">
+    <div class="panel" style="margin-top:16px;padding:16px">
       <h4 style="margin-bottom:8px;color:var(--accent)">Slowest Agents (P95)</h4>
       {% for s in profile_summary.slowest %}
       <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px">
@@ -106,7 +106,7 @@
   <div id="panel-learning" class="tab-panel" style="display:none">
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
       <!-- Acceptances -->
-      <div class="card" style="padding:16px">
+      <div class="panel" style="padding:16px">
         <h4 style="margin-bottom:12px;color:#4ADE80">âœ… Accepted Findings</h4>
         {% if learning.acceptances %}
         {% for ftype, count in learning.acceptances|dictsort(by='value', reverse=true) %}
@@ -121,7 +121,7 @@
       </div>
 
       <!-- Rejections -->
-      <div class="card" style="padding:16px">
+      <div class="panel" style="padding:16px">
         <h4 style="margin-bottom:12px;color:#ef4444">âŒ Rejected Findings</h4>
         {% if learning.rejections %}
         {% for ftype, count in learning.rejections|dictsort(by='value', reverse=true) %}
@@ -136,7 +136,7 @@
       </div>
 
       <!-- Agent Trust -->
-      <div class="card" style="padding:16px">
+      <div class="panel" style="padding:16px">
         <h4 style="margin-bottom:12px;color:var(--accent)">ðŸ¤ Agent Trust Scores</h4>
         {% if learning.agent_trust %}
         {% for agent, score in learning.agent_trust|dictsort(by='value', reverse=true) %}
@@ -156,7 +156,7 @@
       </div>
 
       <!-- Skip Types -->
-      <div class="card" style="padding:16px">
+      <div class="panel" style="padding:16px">
         <h4 style="margin-bottom:12px;color:#f97316">ðŸš« Auto-Skipped Types</h4>
         {% if learning.skip_types %}
         {% for ftype in learning.skip_types %}
@@ -169,7 +169,7 @@
     </div>
 
     <!-- Ignore Learner -->
-    <div class="card" style="margin-top:16px;padding:16px">
+    <div class="panel" style="margin-top:16px;padding:16px">
       <h4 style="margin-bottom:8px">ðŸ›¡ Ignore Learner</h4>
       <div style="font-size:13px;color:var(--text-secondary)">
         {{ ignore_count }} learned ignore patterns active.
@@ -182,16 +182,16 @@
   <div id="panel-threats" class="tab-panel" style="display:none">
     {% if threat_model and threat_model.applicable_scenarios %}
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:16px">
-      <div class="card" style="padding:12px;text-align:center">
+      <div class="panel" style="padding:12px;text-align:center">
         <div style="font-size:24px;font-weight:700;color:var(--accent)">{{ threat_model.applicable_scenarios }}</div>
         <div style="font-size:11px;color:var(--text-secondary)">Applicable</div>
       </div>
-      <div class="card" style="padding:12px;text-align:center">
+      <div class="panel" style="padding:12px;text-align:center">
         <div style="font-size:24px;font-weight:700">{{ threat_model.total_scenarios }}</div>
         <div style="font-size:11px;color:var(--text-secondary)">Total Scenarios</div>
       </div>
       {% for sev, count in threat_model.by_severity|dictsort %}
-      <div class="card" style="padding:12px;text-align:center">
+      <div class="panel" style="padding:12px;text-align:center">
         <div style="font-size:24px;font-weight:700;color:{% if sev == 'critical' %}#ef4444{% elif sev == 'high' %}#f97316{% elif sev == 'medium' %}#eab308{% else %}var(--text-secondary){% endif %}">{{ count }}</div>
         <div style="font-size:11px;color:var(--text-secondary)">{{ sev }}</div>
       </div>
@@ -199,7 +199,7 @@
     </div>
 
     <!-- Scenarios table -->
-    <div class="card" style="overflow-x:auto">
+    <div class="panel" style="overflow-x:auto">
       <table class="data-table">
         <thead>
           <tr>
@@ -237,7 +237,7 @@
     </div>
 
     {% if threat_model.recommendations %}
-    <div class="card" style="margin-top:16px;padding:16px">
+    <div class="panel" style="margin-top:16px;padding:16px">
       <h4 style="margin-bottom:8px">ðŸ’¡ Recommendations</h4>
       {% for rec in threat_model.recommendations %}
       <div style="padding:4px 0;font-size:13px;border-bottom:1px solid var(--border)">

@@ -2,9 +2,9 @@
 
 {% block content %}
 <div class="guard-panel">
-  <div class="card">
-    <div class="card-header">
-      <span class="card-title">Hosted Guard</span>
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">Hosted Guard</span>
       <span class="badge {% if enabled %}badge-low{% else %}badge-info{% endif %}">
         {% if enabled %}Connected{% else %}Not Configured{% endif %}
       </span>
@@ -37,7 +37,7 @@
 
     <!-- Live Events -->
     <div style="margin-top:16px">
-      <div class="card-title" style="margin-bottom:8px">Live Events</div>
+      <div class="panel-title" style="margin-bottom:8px">Live Events</div>
       <div id="guard-events" style="max-height:300px;overflow-y:auto;font-family:var(--font-mono);font-size:12px;color:var(--text-secondary)">
         Waiting for events…
       </div>

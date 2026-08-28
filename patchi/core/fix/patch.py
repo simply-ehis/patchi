@@ -36,8 +36,10 @@ Confidence score (0–100):
 from __future__ import annotations
 
 import difflib
+import json
 import re as _re
 import uuid
+from pathlib import Path
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from enum import StrEnum

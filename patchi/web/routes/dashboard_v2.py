@@ -17,7 +17,6 @@ import logging
 from pathlib import Path
 
 from fastapi import APIRouter, Request, WebSocket, WebSocketDisconnect
-from fastapi.responses import HTMLResponse
 from starlette.templating import Jinja2Templates
 
 router = APIRouter()
@@ -146,6 +145,7 @@ async def _handle_ws_message(ws: WebSocket, root: Path, raw: str):
             # because the CLI handler reports via rich console instead of
             # returning values. Offloaded to a thread so the socket stays live.
             import asyncio as _asyncio
+            from patchi.core import memory as mem
 
             def _cli_scan():
                 from patchi.cli.commands.scan_cmd import run as cli_scan

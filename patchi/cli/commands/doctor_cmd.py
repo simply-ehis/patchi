@@ -12,7 +12,10 @@ Checks:
 from __future__ import annotations
 
 import importlib
+import logging
 import shutil
+
+_log = logging.getLogger("patchi.cli.doctor")
 import sys
 
 from rich.panel import Panel

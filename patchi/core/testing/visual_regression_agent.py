@@ -16,12 +16,9 @@ Requires: playwright, Pillow
 
 from __future__ import annotations
 
-import hashlib
-import json
 import logging
 from pathlib import Path
 
-from patchi.core.brain.languages import DEFAULT_IGNORE_DIRS
 
 from ..agents.base import (
     AgentGroup,
@@ -33,7 +30,6 @@ from ..agents.base import (
     register,
 )
 from ._browser import (
-    DEFAULT_UI_ROUTES,
     discover_routes,
     find_server,
     open_page,

@@ -2,9 +2,9 @@
 
 {% block content %}
 <div class="review-panel">
-  <div class="card">
-    <div class="card-header">
-      <span class="card-title">Patch Review ({{ total }})</span>
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">Patch Review ({{ total }})</span>
       <div style="display:flex;gap:4px">
         {% if patches %}
         <button class="btn btn-primary" onclick="applyAllSafe()">Apply All Low Risk</button>
@@ -16,7 +16,7 @@
 
     {% if patches %}
     {% for p in patches %}
-    <div class="card" style="margin-bottom:8px" id="patch-{{ p.id }}">
+    <div class="panel" style="margin-bottom:8px" id="patch-{{ p.id }}">
       <div style="display:flex;justify-content:space-between;align-items:start">
         <div>
           <div style="font-weight:600;margin-bottom:4px">{{ (p.description or '')[:80] }}</div>

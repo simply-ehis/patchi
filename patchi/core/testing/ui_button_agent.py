@@ -15,9 +15,7 @@ Requires: playwright
 
 from __future__ import annotations
 
-from pathlib import Path
 
-from patchi.core.brain.languages import DEFAULT_IGNORE_DIRS
 
 from ..agents.base import (
     AgentGroup,
@@ -112,11 +110,11 @@ class UIButtonAgent(BaseAgent):
                     issues = self._analyze_buttons(buttons, page_path)
                     for issue in issues:
                         if rel:
-                            issue["extra"] = {**(issue.get("extra") or {}), "screenshot": rel}
+                            issue.extra = {**(issue.extra or {}), "screenshot": rel}
                         result.add_finding(issue)
                         total_issues += 1
 
-                    interaction_issues = self._capture_interactions(page, page_path, rel)
+                    interaction_issues = self._capture_interactions(page, page_path, rel, base_url)
                     for issue in interaction_issues:
                         result.add_finding(issue)
                         total_issues += 1
@@ -222,29 +220,47 @@ class UIButtonAgent(BaseAgent):
                 )
         return findings
 
-    def _capture_interactions(self, page, page_path: str, rel: str | None) -> list:
+    def _capture_interactions(self, page, page_path: str, rel: str | None, base_url: str) -> list:
         findings = []
         try:
-            clickable = page.query_selector_all(
-                'button:not([disabled]), a[href], [role=button]:not([disabled])'
-            )
+            locators = page.locator('button:not([disabled]), a[href], [role=button]:not([disabled])')
+            count = locators.count()
+            if count == 0:
+                return findings
+            captured = []
+
+            def _on_pageerror(exc):
+                captured.append(str(exc))
+
+            def _on_console(msg):
+                if msg.type == "error":
+                    captured.append(str(getattr(msg, "text", msg)))
+
+            page.on("pageerror", _on_pageerror)
+            page.on("console", _on_console)
             clicked = 0
-            for el in clickable[:8]:
-                tag = el.evaluate("e => e.tagName.toLowerCase()")
-                if tag == "button" and el.evaluate("e => e.type") == "submit":
-                    continue  # don't submit forms during tests
-                href = el.evaluate("e => e.getAttribute('href') or ''")
-                if href and (href.startswith("http") or href.startswith("mailto:")):
-                    continue  # leave site / external
-                before = page.evaluate("() => window.__errs ? window.__errs.length : 0")
-                page.on("console", lambda m: None)  # noop; console captured elsewhere
+            url = f"{base_url}{page_path}"
+            for i in range(min(count, 8)):
+                captured.clear()
                 try:
-                    el.click(timeout=2000, force=True)
+                    # reset to a clean page state so locators never go stale
+                    page.goto(url, wait_until="load", timeout=15000)
+                    loc = locators.nth(i)
+                    tag = loc.evaluate("e => e.tagName.toLowerCase()")
+                    if tag == "button" and loc.evaluate("e => e.type") == "submit":
+                        continue  # don't submit forms during tests
+                    href = loc.evaluate("e => e.getAttribute('href') || ''")
+                    if href and (href.startswith("http") or href.startswith("mailto:")):
+                        continue  # leave site / external
+                    try:
+                        label = loc.evaluate("e => (e.innerText || e.getAttribute('aria-label') || '').trim().substring(0, 30)")
+                    except Exception:
+                        label = "?"
+                except Exception:
+                    continue
+                try:
+                    loc.click(timeout=2000, force=True)
                     page.wait_for_timeout(400)
-                    after = page.evaluate("""() => {
-                        const errs = [];
-                        return errs;
-                    }""")
                 except Exception:
                     findings.append(
                         make_finding(
@@ -252,19 +268,27 @@ class UIButtonAgent(BaseAgent):
                             finding_type="button_no_action",
                             severity=Severity.LOW,
                             file=page_path,
-                            message=f"Button click failed/had no handler: <{tag}> '{el.inner_text()[:30] if el.inner_text() else '?'}'",
+                            message=f"Button click failed/had no handler: <{tag}> '{label}'",
                             extra={"screenshot": rel},
                         )
                     )
+                else:
+                    if captured:
+                        findings.append(
+                            make_finding(
+                                agent=self.name,
+                                finding_type="button_js_error",
+                                severity=Severity.HIGH,
+                                file=page_path,
+                                message=f"Button click raised JS error: <{tag}> '{label}': {captured[0][:160]}",
+                                extra={"screenshot": rel},
+                            )
+                        )
                 clicked += 1
-                # recover: go back if navigated
-                try:
-                    page.go_back(timeout=2000)
-                    page.wait_for_load_state("load", timeout=2000)
-                except Exception:
-                    pass
                 if clicked >= 6:
                     break
+            page.remove_listener("pageerror", _on_pageerror)
+            page.remove_listener("console", _on_console)
         except Exception as e:
             _log.warning("UIButtonAgent._capture_interactions failed: %s", e)
         return findings

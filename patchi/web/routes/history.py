@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 import logging
 from pathlib import Path
-from typing import Optional
 
 from fastapi import APIRouter, Query, Request
 from fastapi.responses import HTMLResponse, JSONResponse
@@ -55,10 +54,10 @@ async def history_page(request: Request):
 @router.get("/api/history/filter")
 async def filter_history(
     request: Request,
-    date_from: Optional[str] = Query(None, description="Start date (YYYY-MM-DD)"),
-    date_to: Optional[str] = Query(None, description="End date (YYYY-MM-DD)"),
-    severity: Optional[str] = Query(None, description="Comma-separated severities"),
-    tool: Optional[str] = Query(None, description="Filter by tool name"),
+    date_from: str | None = Query(None, description="Start date (YYYY-MM-DD)"),
+    date_to: str | None = Query(None, description="End date (YYYY-MM-DD)"),
+    severity: str | None = Query(None, description="Comma-separated severities"),
+    tool: str | None = Query(None, description="Filter by tool name"),
     sort_by: str = Query("timestamp", description="Sort field"),
     sort_dir: str = Query("desc", description="Sort direction (asc/desc)"),
     limit: int = Query(50, description="Max results"),

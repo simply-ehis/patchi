@@ -30,7 +30,7 @@
   <div id="panel-findings" class="tab-panel active">
     <!-- DAST Summary Banner (if DAST ran) -->
     {% if dast_tests_run > 0 %}
-    <div class="card" style="margin-bottom:12px;border-left:3px solid {% if dast_findings_count > 0 %}#ef4444{% else %}#22c55e{% endif %}">
+    <div class="panel" style="margin-bottom:12px;border-left:3px solid {% if dast_findings_count > 0 %}#ef4444{% else %}#22c55e{% endif %}">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px">
         <div style="display:flex;align-items:center;gap:12px">
           <span style="font-size:20px">🔒</span>
@@ -52,9 +52,9 @@
     </div>
     {% endif %}
 
-    <div class="card">
-      <div class="card-header">
-        <span class="card-title">Security Findings ({{ total }})</span>
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">Security Findings ({{ total }})</span>
         <div style="display:flex;gap:8px">
           <select id="filter-severity" onchange="filterFindings()" class="btn" style="padding:4px 8px">
             <option value="">All Severity</option>
@@ -144,9 +144,9 @@
   <div id="panel-dast" class="tab-panel" style="display:none">
     {% set dast_findings = findings|selectattr('is_dast')|list %}
     {% if dast_findings %}
-    <div class="card">
-      <div class="card-header">
-        <span class="card-title">🔒 DAST Findings with Evidence ({{ dast_findings|length }})</span>
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">🔒 DAST Findings with Evidence ({{ dast_findings|length }})</span>
         {% if dast_target %}
         <span style="font-size:12px;color:var(--text-secondary)">Target: {{ dast_target }}</span>
         {% endif %}
@@ -204,9 +204,9 @@
     {% if chains %}
     <div style="display:grid;grid-template-columns:280px 1fr;gap:16px;min-height:500px">
       <!-- Chain list (sidebar) -->
-      <div class="card" style="overflow-y:auto;max-height:600px">
-        <div class="card-header">
-          <span class="card-title">Chains ({{ chains|length }})</span>
+      <div class="panel" style="overflow-y:auto;max-height:600px">
+        <div class="panel-header">
+          <span class="panel-title">Chains ({{ chains|length }})</span>
         </div>
         <div style="padding:8px">
           {% for chain in chains %}
@@ -226,9 +226,9 @@
       </div>
 
       <!-- Explorer (main) -->
-      <div class="card" style="display:flex;flex-direction:column">
-        <div class="card-header" style="justify-content:space-between">
-          <span class="card-title" id="explorer-title">Select a chain</span>
+      <div class="panel" style="display:flex;flex-direction:column">
+        <div class="panel-header" style="justify-content:space-between">
+          <span class="panel-title" id="explorer-title">Select a chain</span>
           <div style="display:flex;gap:6px;align-items:center">
             <button class="btn" onclick="chainPrev()" id="btn-prev" disabled style="padding:4px 10px;font-size:12px">← Prev</button>
             <span id="step-counter" style="font-size:12px;color:var(--text-secondary);min-width:50px;text-align:center"></span>
@@ -376,9 +376,9 @@
   <!-- Intent Gaps tab -->
   <div id="panel-intent" class="tab-panel" style="display:none">
     {% if intent and intent.gap_count > 0 %}
-    <div class="card">
-      <div class="card-header">
-        <span class="card-title">Intent Gaps ({{ intent.gap_count }} across {{ intent.routes_total }} routes)</span>
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">Intent Gaps ({{ intent.gap_count }} across {{ intent.routes_total }} routes)</span>
       </div>
       <div style="padding:12px">
         {% if intent.unauthenticated_state_changing %}
@@ -444,9 +444,9 @@
   <!-- Charter violations tab -->
   <div id="panel-charter" class="tab-panel" style="display:none">
     {% if charter_violations %}
-    <div class="card">
-      <div class="card-header">
-        <span class="card-title">Charter Violations ({{ charter_violations|length }})</span>
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">Charter Violations ({{ charter_violations|length }})</span>
       </div>
       <div style="padding:12px">
         {% for v in charter_violations %}
@@ -547,7 +547,7 @@ async function loadHistory() {
       const healthColor = h.health_score >= 80 ? '#22c55e' : h.health_score >= 50 ? '#eab308' : '#ef4444';
       const dur = h.duration_ms ? (h.duration_ms / 1000).toFixed(1) + 's' : '—';
       const ts = h.timestamp ? new Date(h.timestamp).toLocaleString() : '—';
-      return `<div class="card" style="padding:12px 16px;display:flex;align-items:center;gap:16px;cursor:default">
+      return `<div class="panel" style="padding:12px 16px;display:flex;align-items:center;gap:16px;cursor:default">
         <div style="min-width:48px;text-align:center">
           <div style="font-size:22px;font-weight:700;color:${healthColor}">${h.health_score != null ? Math.round(h.health_score) : '—'}</div>
           <div style="font-size:10px;color:var(--text-secondary)">health</div>

@@ -11,6 +11,10 @@ import asyncio
 import logging
 import time
 from collections.abc import Callable
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from patchi.core.ai.tools.executor import ToolExecutor
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path

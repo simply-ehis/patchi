@@ -15,6 +15,9 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from tree_sitter import Tree
+
+if TYPE_CHECKING:
     from tree_sitter import Parser
 
 

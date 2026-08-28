@@ -3,9 +3,9 @@
 {% block content %}
 <div class="charter-page">
   <!-- Header -->
-  <div class="card">
-    <div class="card-header">
-      <span class="card-title">📋 Charter — Project Guard Rails</span>
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">📋 Charter — Project Guard Rails</span>
       <span class="tab-count">{{ rule_count }} rules · {{ violation_count }} violations</span>
     </div>
     <p style="color:var(--text-secondary);margin:0 0 16px">
@@ -14,9 +14,9 @@
   </div>
 
   <!-- Set Charter Form -->
-  <div class="card">
-    <div class="card-header">
-      <span class="card-title">Set Charter</span>
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">Set Charter</span>
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       <textarea id="charter-input" rows="3" 
@@ -31,9 +31,9 @@
   </div>
 
   <!-- Rules -->
-  <div class="card">
-    <div class="card-header">
-      <span class="card-title">Active Rules ({{ rule_count }})</span>
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">Active Rules ({{ rule_count }})</span>
     </div>
     {% if rules %}
     <table style="width:100%;border-collapse:collapse;font-size:13px">
@@ -74,9 +74,9 @@
   </div>
 
   <!-- Fix Charter -->
-  <div class="card">
-    <div class="card-header">
-      <span class="card-title">Fix Charter</span>
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">Fix Charter</span>
       <span id="fix-count" class="tab-count"></span>
     </div>
     <p style="color:var(--text-secondary);margin:0 0 12px;font-size:13px">
@@ -95,9 +95,9 @@
   </div>
 
   <!-- Fix History -->
-  <div class="card">
-    <div class="card-header">
-      <span class="card-title">Fix History</span>
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">Fix History</span>
       <button class="btn" onclick="loadFixHistory()" style="font-size:12px">Refresh</button>
     </div>
     <div id="fix-history-list">
@@ -106,9 +106,9 @@
   </div>
 
   <!-- Violations -->
-  <div class="card">
-    <div class="card-header">
-      <span class="card-title">Violations ({{ violation_count }})</span>
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">Violations ({{ violation_count }})</span>
     </div>
     {% if violations %}
     <div style="display:flex;flex-direction:column;gap:8px">

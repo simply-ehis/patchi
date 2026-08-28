@@ -2,9 +2,9 @@
 
 {% block content %}
 <div class="tokens-panel">
-  <div class="card">
-    <div class="card-header">
-      <span class="card-title">Admin Tokens</span>
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">Admin Tokens</span>
       <span class="badge badge-info">{{ tokens|length }} active</span>
     </div>
 
@@ -14,7 +14,7 @@
     </div>
 
     <!-- Create token form -->
-    <div class="card" style="padding:12px;margin-bottom:16px">
+    <div class="panel" style="padding:12px;margin-bottom:16px">
       <div style="display:flex;gap:8px;align-items:center">
         <input id="token-name" type="text" placeholder="Token name (e.g. ci-server)" 
                style="flex:1;padding:6px 10px;border:1px solid var(--border);border-radius:6px;background:var(--bg-secondary);color:var(--text-primary)">

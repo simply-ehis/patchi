@@ -240,20 +240,6 @@ def _process_message(
                 current = data.get("current_file", "")
                 if current and current not in ["planning", "done"]:
                     con.print(f"    [dim]→ {current} ({pct}%)[/dim]")
-
-        def on_progress(msg):
-            import time as _time
-            if "Executing" in msg:
-                _tool_count[0] += 1
-                _step_start[0] = _time.monotonic()
-                tool_name = msg.replace("Executing ", "").replace("...", "")
-                con.print(f"  [bold cyan]⟳ Step {_tool_count[0]}:[/bold cyan] [bold]{tool_name}[/bold]")
-            elif "Spawning" in msg:
-                con.print(f"  [bold magenta]🤖 {msg}[/bold magenta]")
-            elif "Planning" in msg or "Understanding" in msg:
-                con.print(f"  [bold yellow]🧠 {msg}[/bold yellow]")
-            else:
-                con.print(f"  [dim]{msg}[/dim]")
     else:
         def on_progress(msg):
             con.print(f"  [dim]{msg}[/dim]")
