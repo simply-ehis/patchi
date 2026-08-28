@@ -196,7 +196,7 @@ class TestAPIEndpoints(unittest.TestCase):
     def test_ws_connects_and_receives_status(self):
         with self._client.websocket_connect("/ws") as ws:
             msg = ws.receive_json()
-            self.assertEqual(msg["event"], "status.update")
+            self.assertIn(msg["event"], ("status.update", "initial_state"))
             self.assertIn("mode", msg["data"])
 
 

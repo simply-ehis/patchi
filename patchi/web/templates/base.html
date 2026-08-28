@@ -1,472 +1,171 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="theme-dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Patchi — Security Dashboard</title>
-  <link rel="stylesheet" href="/static/style.css">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <title>{% block title %}Patchi{% endblock %} — Mission Control</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/dashboard_v2.css?v=3">
   <script src="/static/htmx.min.js" onerror="var s=document.createElement('script');s.src='https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js';document.head.appendChild(s)"></script>
   <script src="/static/konva.min.js" onerror="var s=document.createElement('script');s.src='https://unpkg.com/konva@9/konva.min.js';document.head.appendChild(s)"></script>
-  <script src="/static/charts.js"></script>
-  <script src="/static/canvas.js"></script>
+  <script src="/static/canvas.js?v=3"></script>
   <style>
-    /* Global loading states */
-    .loading-overlay {
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(13, 15, 18, 0.95);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 9999;
-      opacity: 0;
-      visibility: hidden;
-      transition: opacity 0.2s, visibility 0.2s;
-    }
-    .loading-overlay.visible {
-      opacity: 1;
-      visibility: visible;
-    }
-    .loading-spinner {
-      width: 48px; height: 48px;
-      border: 3px solid var(--border);
-      border-top-color: var(--accent);
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .loading-text { margin-top: 16px; color: var(--text-secondary); font-size: 14px; }
-
-    /* Page transition */
-    .content { opacity: 1; transition: opacity 0.15s ease; }
-    .content.loading { opacity: 0.5; pointer-events: none; }
-
-    /* Button loading states */
-    .btn.loading { position: relative; color: transparent; pointer-events: none; }
-    .btn.loading::after {
-      content: ''; position: absolute; top: 50%; left: 50%;
-      width: 20px; height: 20px; margin: -10px 0 0 -10px;
-      border: 2px solid currentColor; border-right-color: transparent;
-      border-radius: 50%; animation: spin 0.8s linear infinite;
-    }
-
-    /* Skeleton loading for cards */
-    .skeleton { background: linear-gradient(90deg, var(--bg-card) 25%, var(--border) 50%, var(--bg-card) 75%);
-                background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: var(--radius); }
-    @keyframes shimmer { to { background-position: -200% 0; } }
-
-    /* Toast improvements */
-    .toast { position: fixed; bottom: 24px; right: 24px; padding: 12px 20px;
-             background: var(--bg-card); border: 1px solid var(--border);
-             border-radius: var(--radius); z-index: 10000; transform: translateY(100px);
-             opacity: 0; transition: all 0.3s ease; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
-    .toast.visible { transform: translateY(0); opacity: 1; }
-    .toast.critical { border-left: 4px solid #FF4D6D; }
-    .toast.high { border-left: 4px solid #FF8C42; }
-    .toast.warning { border-left: 4px solid #FACC15; }
-    .toast.info { border-left: 4px solid #60a5fa; }
-    .toast.success { border-left: 4px solid #4ADE80; }
-
-    /* Progress bar improvements */
-    .progress-ring { width: 40px; height: 40px; transform: rotate(-90deg); }
-    .progress-ring__bg { fill: none; stroke: var(--border); stroke-width: 4; }
-    .progress-ring__circle { fill: none; stroke: var(--accent); stroke-width: 4; stroke-linecap: round;
-                             stroke-dasharray: 283; stroke-dashoffset: 283; transition: stroke-dashoffset 0.5s ease; }
-
-    /* Button states */
-    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-    .btn:active:not(:disabled) { transform: scale(0.98); }
-
-    /* Page transition for HTMX */
-    .content { transition: opacity 0.15s ease; }
-    .content.htmx-swapping { opacity: 0; }
+    body{font-family:var(--font-sans);background:var(--bg-primary);color:var(--text-primary);margin:0;overflow-x:hidden}
+    .app-shell{display:flex;flex-direction:column;min-height:100vh}
+    .header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:10px 20px;background:var(--bg-secondary);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;overflow-x:auto;scrollbar-width:none}
+    .header::-webkit-scrollbar{display:none}
+    .header-left{display:flex;align-items:center;gap:20px;flex-shrink:0}
+    .logo{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--text-primary)}
+    .logo-icon{width:28px;height:28px;color:var(--accent)}
+    .logo-text{font-weight:700;font-size:16px;letter-spacing:-0.02em}
+    .logo-badge{font-size:10px;font-weight:600;color:var(--accent);background:rgba(88,166,255,0.12);padding:2px 8px;border-radius:999px;text-transform:uppercase;letter-spacing:0.04em}
+    .main-tabs{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;flex-shrink:1;min-width:0}
+    .main-tabs::-webkit-scrollbar{display:none}
+    .tab{display:flex;align-items:center;gap:6px;padding:7px 12px;border-radius:var(--radius-md);color:var(--text-secondary);text-decoration:none;font-weight:500;font-size:13px;transition:all 0.15s ease;white-space:nowrap}
+    .tab:hover{background:var(--bg-hover);color:var(--text-primary)}
+    .tab.active{background:var(--bg-tertiary);color:var(--text-primary)}
+    .header-center{display:flex;align-items:center;gap:12px;flex-shrink:0}
+    .health-indicator{display:flex;align-items:center;gap:8px;padding:5px 12px;background:var(--bg-tertiary);border:1px solid var(--border);border-radius:var(--radius-lg)}
+    .health-score{font-size:20px;font-weight:700;font-family:var(--font-mono);color:var(--success)}
+    .health-label{font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em}
+    .header-right{display:flex;align-items:center;gap:10px;flex-shrink:0}
+    .ws-status{font-size:11px}
+    .ws-status.connected{color:var(--success)}
+    .ws-status.disconnected{color:var(--danger)}
+    .status-bar{display:flex;align-items:center;gap:12px;padding:6px 20px;background:var(--bg-secondary);border-bottom:1px solid var(--border-subtle);font-size:12px;color:var(--text-secondary);overflow-x:auto;scrollbar-width:none}
+    .status-bar::-webkit-scrollbar{display:none}
+    .status-item{display:flex;align-items:center;gap:6px;white-space:nowrap}
+    .status-item svg{width:13px;height:13px;opacity:0.7}
+    .status-divider{width:1px;height:14px;background:var(--border)}
+    .status-dot{width:8px;height:8px;border-radius:50%}
+    .status-dot.online{background:var(--success);box-shadow:0 0 8px rgba(63,185,80,0.5)}
+    .main-content{flex:1;display:flex;flex-direction:column;overflow-y:auto;max-height:calc(100vh - 90px)}
+    .content{padding:16px 20px;transition:opacity 0.15s ease}
+    .content.loading{opacity:0.5;pointer-events:none}
+    .kbd-hint{font-family:var(--font-mono);font-size:11px;color:var(--text-muted);background:var(--bg-primary);padding:2px 6px;border-radius:var(--radius-sm);border:1px solid var(--border)}
+    .loading-overlay{position:fixed;inset:0;background:rgba(13,17,23,0.9);display:flex;align-items:center;justify-content:center;z-index:9999;opacity:0;visibility:hidden;transition:opacity 0.2s,visibility 0.2s}
+    .loading-overlay.visible{opacity:1;visibility:visible}
+    .loading-spinner{width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 1s linear infinite}
+    .loading-text{margin-top:12px;color:var(--text-secondary);font-size:14px}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    #toast{position:fixed;bottom:24px;right:24px;padding:12px 20px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-lg);z-index:10000;transform:translateY(100px);opacity:0;transition:all 0.3s ease;box-shadow:0 10px 30px rgba(0,0,0,0.3);max-width:400px;font-size:13px}
+    #toast.visible{transform:translateY(0);opacity:1}
+    #toast.critical{border-left:4px solid var(--sev-critical)}
+    #toast.high{border-left:4px solid var(--sev-high)}
+    #toast.warning{border-left:4px solid var(--sev-medium)}
+    #toast.info{border-left:4px solid var(--accent)}
+    #toast.success{border-left:4px solid var(--success)}
+    .severity-critical{background:rgba(218,54,51,0.18);color:var(--sev-critical)}
+    .severity-high{background:rgba(248,81,73,0.15);color:var(--sev-high)}
+    .severity-medium{background:rgba(210,153,34,0.15);color:var(--sev-medium)}
+    .severity-low{background:rgba(88,166,255,0.15);color:var(--sev-low)}
+    .severity-info{background:rgba(139,148,158,0.15);color:var(--sev-info)}
+    .feed-empty{color:var(--text-muted);text-align:center;padding:24px;font-style:italic;font-size:13px}
+    .feed-entry{display:flex;align-items:flex-start;gap:8px;padding:5px 8px;border-radius:var(--radius-sm);animation:fadeIn 0.2s ease;font-family:var(--font-mono);font-size:12px}
+    .feed-entry:hover{background:var(--bg-tertiary)}
+    .feed-entry.success .feed-message{color:var(--success)}
+    .feed-entry.error .feed-message{color:var(--danger)}
+    .feed-entry.warning .feed-message{color:var(--warning)}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+    textarea,input[type="text"],input[type="search"]{background:var(--bg-primary);color:var(--text-primary);border:1px solid var(--border);border-radius:var(--radius-md);padding:8px 12px;font-size:13px;font-family:inherit;width:100%}
+    textarea:focus,input:focus{outline:none;border-color:var(--accent)}
   </style>
+  {% block head %}{% endblock %}
 </head>
 <body>
-
-<!-- Global loading overlay -->
-<div class="loading-overlay" id="global-loading">
-  <div class="loading-spinner"></div>
-  <div class="loading-text" id="loading-text">Loading…</div>
-</div>
-
-<!-- Top bar -->
-<header class="topbar">
-  <div class="topbar-left">
-    <span class="wordmark">PATCHI</span>
-    <span class="project-name" id="project-name">Security Dashboard</span>
-  </div>
-  <div class="topbar-center">
-    <span class="health-badge" id="topbar-health">—</span>
-    <span class="mode-badge" id="topbar-mode">—</span>
-    <span class="scan-badge" id="topbar-scan">Ready</span>
-  </div>
-  <div class="topbar-right">
-    <span class="ws-status" id="ws-status">Connecting…</span>
-  </div>
-</header>
-
-<!-- Layout -->
-<div class="layout">
-  <!-- Nav rail -->
-  <nav class="rail">
-    <a class="nav-btn active" href="/" hx-get="/" hx-target=".content" hx-push-url="true">
-      <span class="nav-icon">◈</span><span class="nav-label">Dashboard</span>
-    </a>
-    <a class="nav-btn" href="/findings" hx-get="/findings" hx-target=".content" hx-push-url="true">
-      <span class="nav-icon">◎</span><span class="nav-label">Findings</span>
-    </a>
-    <a class="nav-btn" href="/charter" hx-get="/charter" hx-target=".content" hx-push-url="true">
-      <span class="nav-icon">📋</span><span class="nav-label">Charter</span>
-    </a>
-    <a class="nav-btn" href="/review" hx-get="/review" hx-target=".content" hx-push-url="true">
-      <span class="nav-icon">◪</span><span class="nav-label">Review</span>
-    </a>
-    <a class="nav-btn" href="/guard" hx-get="/guard" hx-target=".content" hx-push-url="true">
-      <span class="nav-icon">◬</span><span class="nav-label">Guard</span>
-    </a>
-    <a class="nav-btn" href="/tokens" hx-get="/tokens" hx-target=".content" hx-push-url="true">
-      <span class="nav-icon">⚷</span><span class="nav-label">Tokens</span>
-    </a>
-    <a class="nav-btn" href="/chat" hx-get="/chat" hx-target=".content" hx-push-url="true">
-      <span class="nav-icon">💬</span><span class="nav-label">Chat</span>
-    </a>
-    <a class="nav-btn" href="/brain" hx-get="/brain" hx-target=".content" hx-push-url="true">
-      <span class="nav-icon">⬡</span><span class="nav-label">Brain</span>
-    </a>
-    <a class="nav-btn" href="/assurance" hx-get="/assurance" hx-target=".content" hx-push-url="true">
-      <span class="nav-icon">🛡</span><span class="nav-label">Assurance</span>
-    </a>
-    <a class="nav-btn" href="/live-testing" hx-get="/live-testing" hx-target=".content" hx-push-url="true">
-      <span class="nav-icon">🧪</span><span class="nav-label">Live Test</span>
-    </a>
-    <a class="nav-btn" href="/self-improvement" hx-get="/self-improvement" hx-target=".content" hx-push-url="true">
-      <span class="nav-icon">📈</span><span class="nav-label">Improve</span>
-    </a>
-    <a class="nav-btn" href="/smart" hx-get="/smart" hx-target=".content" hx-push-url="true">
-      <span class="nav-icon">🧠</span><span class="nav-label">Smart</span>
-    </a>
-    <a class="nav-btn" href="/history" hx-get="/history" hx-target=".content" hx-push-url="true">
-      <span class="nav-icon">⏱</span><span class="nav-label">History</span>
-    </a>
-    <a class="nav-btn" href="/settings" hx-get="/settings" hx-target=".content" hx-push-url="true">
-      <span class="nav-icon">⚙</span><span class="nav-label">Settings</span>
-    </a>
-  </nav>
-
-  <!-- Main content -->
-  <div class="content" id="main-content">
-    {% block content %}{% endblock %}
-  </div>
-</div>
-
-<!-- Toast notifications -->
-<div id="toast" class="toast"></div>
-
-<!-- Node detail modal (used by Brain Map) -->
-<div id="node-detail-modal" class="modal-overlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);z-index:1000;align-items:center;justify-content:center" onclick="if(event.target===this)this.style.display='none'">
-  <div class="modal" style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);max-width:500px;width:90%;max-height:80vh;overflow-y:auto">
-    <div class="modal-header" style="display:flex;justify-content:space-between;align-items:center;padding:16px;border-bottom:1px solid var(--border)">
-      <span class="modal-title" style="font-weight:600;font-size:14px">Node Details</span>
-      <button class="modal-close" style="background:none;border:none;color:var(--text-secondary);font-size:20px;cursor:pointer">&times;</button>
+  <div class="app-shell">
+    <header class="header">
+      <div class="header-left">
+        <a href="/" class="logo">
+          <svg class="logo-icon" viewBox="0 0 32 32" fill="none"><rect width="32" height="32" rx="6" fill="currentColor"/><path d="M8 12h16M8 16h12M8 20h8" stroke="white" stroke-width="2.5" stroke-linecap="round"/></svg>
+          <span class="logo-text">Patchi</span>
+          <span class="logo-badge">Mission Control</span>
+        </a>
+        <nav class="main-tabs" role="tablist">
+          <a href="/" class="tab active" data-tab="overview"><span>◈ Overview</span></a>
+          <a href="/brain" class="tab" data-tab="brain"><span>⬡ Brain</span></a>
+          <a href="/chat" class="tab" data-tab="chat"><span>🧠 Chat</span></a>
+          <a href="/findings" class="tab" data-tab="findings"><span>◎ Findings</span></a>
+          <a href="/assurance" class="tab" data-tab="assurance"><span>🛡 Assurance</span></a>
+          <a href="/live-testing" class="tab" data-tab="live"><span>🧪 Live Tests</span></a>
+          <a href="/charter" class="tab" data-tab="charter"><span>📋 Charter</span></a>
+          <a href="/review" class="tab" data-tab="review"><span>◪ Review</span></a>
+          <a href="/guard" class="tab" data-tab="guard"><span>◬ Guard</span></a>
+          <a href="/history" class="tab" data-tab="history"><span>⏱ History</span></a>
+          <a href="/settings" class="tab" data-tab="settings"><span>⚙ Settings</span></a>
+        </nav>
+      </div>
+      <div class="header-center">
+        <div class="health-indicator">
+          <div class="health-score" id="topbar-health">—</div>
+          <div class="health-label">Health</div>
+        </div>
+      </div>
+      <div class="header-right">
+        <span class="ws-status" id="ws-status">Connecting…</span>
+        <button class="btn btn-ghost btn-sm" id="commandPalette" title="Command Palette (Ctrl+K)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+          <kbd class="kbd-hint">⌘K</kbd>
+        </button>
+      </div>
+    </header>
+    <div class="status-bar" id="statusBar">
+      <div class="status-item"><span class="status-dot online" id="connectionStatus"></span><span>Connected</span></div>
+      <div class="status-divider"></div>
+      <div class="status-item"><span class="scan-badge" id="topbar-scan">Ready</span></div>
     </div>
-    <div class="modal-body" style="padding:16px;font-size:13px"></div>
+    <main class="main-content" role="main">
+      <div class="content" id="main-content">
+        {% block content %}{% endblock %}
+      </div>
+    </main>
   </div>
-</div>
-
-<!-- Global loading indicator -->
-<div id="global-loading" class="loading-overlay" style="display:none;">
-  <div class="loading-spinner"></div>
-  <div class="loading-text" id="loading-text">Loading…</div>
-</div>
-
-<script>
-// Re-initialize Brain Map and charts after HTMX content swaps
-document.body.addEventListener('htmx:afterSettle', function(evt) {
-  if (evt.detail.target.querySelector('#brain-map')) {
-    if (window.BrainMap) BrainMap.init('brain-map');
-  }
-  if (evt.detail.target.querySelector('#health-ring')) {
-    // Charts are re-initialized by the inline script in dashboard.html
-  }
-});
-
-// HTMX loading indicators
-document.body.addEventListener('htmx:beforeRequest', function(evt) {
-  document.body.classList.add('loading');
-  const target = evt.detail.target;
-  if (target && target.closest('.content')) {
-    target.closest('.content').classList.add('loading');
-  }
-  // Show loading on buttons
-  const btn = evt.detail.elt;
-  if (btn && btn.classList && btn.classList.contains('btn')) {
-    btn.classList.add('loading');
-  }
-});
-
-document.body.addEventListener('htmx:afterSettle', function(evt) {
-  document.body.classList.remove('loading');
-  const content = document.querySelector('.content');
-  if (content) content.classList.remove('loading');
-  // Remove loading from buttons
-  document.querySelectorAll('.btn.loading').forEach(btn => btn.classList.remove('loading'));
-});
-
-document.body.addEventListener('htmx:beforeRequest', function(evt) {
-  const btn = evt.detail.elt;
-  if (btn && btn.classList && btn.classList.contains('btn')) {
-    btn.classList.add('loading');
-  }
-});
-
-// HTMX error handling
-document.body.addEventListener('htmx:responseError', function(evt) {
-  const detail = evt.detail;
-  if (detail.xhr && detail.xhr.status) {
-    toast(`Error ${detail.xhr.status}: ${detail.xhr.statusText}`, 'error');
-  }
-});
-
-// Global loading indicator for non-HTMX requests
-window.showGlobalLoading = function(text) {
-  const overlay = document.getElementById('global-loading');
-  const textEl = document.getElementById('loading-text');
-  if (overlay && textEl) {
-    textEl.textContent = text || 'Loading…';
-    overlay.classList.add('visible');
-  }
-};
-
-window.hideGlobalLoading = function() {
-  const overlay = document.getElementById('global-loading');
-  if (overlay) {
-    overlay.classList.remove('visible');
-  }
-};
-
-// Toast notifications
-function toast(msg, type = 'info') {
-  const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.className = `toast visible ${type}`;
-  clearTimeout(el._t);
-  el._t = setTimeout(() => { el.className = 'toast'; }, 4000);
-}
-
-// Global loading indicator for non-HTMX requests
-window.showGlobalLoading = function(text) {
-  const overlay = document.getElementById('global-loading');
-  const textEl = document.getElementById('loading-text');
-  if (overlay && textEl) {
-    textEl.textContent = text || 'Loading…';
-    overlay.classList.add('visible');
-  }
-};
-
-window.hideGlobalLoading = function() {
-  const overlay = document.getElementById('global-loading');
-  if (overlay) {
-    overlay.classList.remove('visible');
-  }
-};
-
-// Toast notifications
-function toast(msg, type = 'info') {
-  const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.className = `toast visible ${type}`;
-  clearTimeout(el._t);
-  el._t = setTimeout(() => { el.className = 'toast'; }, 4000);
-}
-
-// Re-initialize Brain Map and charts after HTMX content swaps
-document.body.addEventListener('htmx:afterSettle', function(evt) {
-  if (evt.detail.target.querySelector('#brain-map')) {
-    if (window.BrainMap) BrainMap.init('brain-map');
-  }
-  if (evt.detail.target.querySelector('#health-ring')) {
-    // Charts are re-initialized by the inline script in dashboard.html
-  }
-});
-
-// HTMX loading indicators
-document.body.addEventListener('htmx:beforeRequest', function(evt) {
-  document.body.classList.add('loading');
-  const target = evt.detail.target;
-  if (target && target.closest('.content')) {
-    target.closest('.content').classList.add('loading');
-  }
-  // Show loading on buttons
-  const btn = evt.detail.elt;
-  if (btn && btn.classList && btn.classList.contains('btn')) {
-    btn.classList.add('loading');
-  }
-});
-
-document.body.addEventListener('htmx:afterSettle', function(evt) {
-  document.body.classList.remove('loading');
-  const content = document.querySelector('.content');
-  if (content) content.classList.remove('loading');
-  // Remove loading from buttons
-  document.querySelectorAll('.btn.loading').forEach(btn => btn.classList.remove('loading'));
-
-  // Re-initialize Brain Map and charts after HTMX content swaps
-  if (evt.detail.target.querySelector('#brain-map')) {
-    if (window.BrainMap) BrainMap.init('brain-map');
-  }
-  if (evt.detail.target.querySelector('#health-ring')) {
-    // Charts are re-initialized by the inline script in dashboard.html
-  }
-});
-
-// HTMX error handling
-document.body.addEventListener('htmx:responseError', function(evt) {
-  const detail = evt.detail;
-  if (detail.xhr && detail.xhr.status) {
-    toast(`Error ${detail.xhr.status}: ${detail.xhr.statusText}`, 'error');
-  }
-});
-
-// Global loading indicator for non-HTMX requests
-window.showGlobalLoading = function(text) {
-  const overlay = document.getElementById('global-loading');
-  const textEl = document.getElementById('loading-text');
-  if (overlay && textEl) {
-    textEl.textContent = text || 'Loading…';
-    overlay.classList.add('visible');
-  }
-};
-
-window.hideGlobalLoading = function() {
-  const overlay = document.getElementById('global-loading');
-  if (overlay) {
-    overlay.classList.remove('visible');
-  }
-};
-
-// Toast notifications
-function toast(msg, type = 'info') {
-  const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.className = `toast visible ${type}`;
-  clearTimeout(el._t);
-  el._t = setTimeout(() => { el.className = 'toast'; }, 4000);
-}
-
-// WebSocket connection with exponential backoff reconnect (ADD-02)
-let _wsDelay = 1000;
-let _wsReconnectTimer = null;
-const wsStatus = document.getElementById('ws-status');
-
-function connectWS() {
-  const wsProto = location.protocol === 'https:' ? 'wss:' : 'ws:';
-  const ws = window._ws = new WebSocket(`${wsProto}//${location.host}/ws`);
-
-  ws.onopen = () => {
-    _wsDelay = 1000; // reset backoff on successful connect
-    wsStatus.textContent = 'Connected';
-    wsStatus.className = 'ws-status connected';
-    // Request current status in case we connected mid-scan
-    ws.send(JSON.stringify({action: 'status.request', data: {}}));
-    // Notify BrainMap to re-attach event listeners after reconnect
-    if (window.BrainMap && window.BrainMap._relistenWs) {
-      window.BrainMap._relistenWs();
-    }
-  };
-
-  ws.onclose = () => {
-    wsStatus.textContent = `Reconnecting in ${Math.round(_wsDelay / 1000)}s…`;
-    wsStatus.className = 'ws-status disconnected';
-    _wsReconnectTimer = setTimeout(() => {
-      _wsDelay = Math.min(_wsDelay * 2, 30000); // cap at 30s
-      connectWS();
-    }, _wsDelay);
-  };
-
-  ws.onerror = () => {
-    ws.close(); // triggers onclose → reconnect loop
-  };
-
-  ws.onmessage = (event) => {
-    try {
-      const msg = JSON.parse(event.data);
-      handleWSEvent(msg.event, msg.data);
-    } catch (_) {}
-  };
-}
-
-connectWS();
-
-function handleWSEvent(event, data) {
-  // Update health badge
-  if (event === 'status.update' && data.health_score !== undefined) {
-    const health = document.getElementById('topbar-health');
-    health.textContent = `${data.health_score}/100`;
-    health.className = `health-badge score-${getGrade(data.health_score)}`;
-  }
-
-  // Scan progress
-  if (event === 'scan.started') {
-    const scan = document.getElementById('topbar-scan');
-    scan.textContent = `Scanning (${data.agent_count} agents)`;
-    scan.className = 'scan-badge scanning';
-  }
-
-  if (event === 'scan.complete') {
-    const scan = document.getElementById('topbar-scan');
-    scan.textContent = `${data.total_findings} findings`;
-    scan.className = 'scan-badge complete';
-  }
-
-  // Toast for findings
-  if (event === 'scan.finding') {
-    if (data.severity === 'critical' || data.severity === 'high') {
-      toast(`${data.severity.toUpperCase()}: ${data.message}`, data.severity);
-    }
-  }
-
-  // Guard alerts
-  if (event === 'guard.alert') {
-    toast(`Guard: ${data.title}`, data.severity);
-  }
-
-  // Dispatch to Brain Map if present
-  if (window.BrainMap && window.BrainMap.handleEvent) {
-    window.BrainMap.handleEvent(event, data);
-  }
-}
-
-function getGrade(score) {
-  if (score >= 90) return 'excellent';
-  if (score >= 70) return 'good';
-  if (score >= 50) return 'fair';
-  if (score >= 30) return 'poor';
-  return 'critical';
-}
-
-function toast(msg, type = 'info') {
-  const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.className = `toast visible ${type}`;
-  clearTimeout(el._t);
-  el._t = setTimeout(() => { el.className = 'toast'; }, 4000);
-}
-
-// ── Active nav state on HTMX navigation ──
-document.body.addEventListener('htmx:afterSwap', function(evt) {
-  if (evt.detail.requestConfig && evt.detail.requestConfig.path) {
-    const path = evt.detail.requestConfig.path.replace(/\/$/, '') || '/';
-    document.querySelectorAll('.rail .nav-btn').forEach(btn => {
-      const href = btn.getAttribute('href').replace(/\/$/, '') || '/';
-      if (href === path) {
-        btn.classList.add('active');
-      } else {
-        btn.classList.remove('active');
-      }
-    });
-  }
-});
-</script>
+  <div id="toast"></div>
+  <div class="modal-overlay" id="commandPaletteModal" hidden>
+    <div class="modal">
+      <header class="modal-header"><h2 style="font-size:15px;font-weight:600;margin:0">Command Palette</h2><kbd class="kbd-hint">⌘K</kbd></header>
+      <div class="modal-body">
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg-primary);border:1px solid var(--border);border-radius:var(--radius-md);margin-bottom:12px">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" style="color:var(--text-muted)"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+          <input type="text" id="paletteInput" placeholder="Type a command or ask the Brain..." autocomplete="off" spellcheck="false" style="flex:1;background:none;border:none;outline:none;color:var(--text-primary);font-size:14px;font-family:inherit">
+        </div>
+        <div id="paletteResults" style="max-height:360px;overflow-y:auto"></div>
+      </div>
+    </div>
+  </div>
+  <div class="loading-overlay" id="global-loading">
+    <div class="loading-spinner"></div>
+    <div class="loading-text" id="loading-text">Loading…</div>
+  </div>
+  <script>
+  (function(){
+    'use strict';
+    window.toast=function(msg,type){type=type||'info';var el=document.getElementById('toast');if(!el)return;el.textContent=msg;el.className='visible '+type;clearTimeout(el._t);el._t=setTimeout(function(){el.className='';},4000);};
+    window.showGlobalLoading=function(text){var o=document.getElementById('global-loading');var t=document.getElementById('loading-text');if(o&&t){t.textContent=text||'Loading…';o.classList.add('visible');}};
+    window.hideGlobalLoading=function(){var o=document.getElementById('global-loading');if(o)o.classList.remove('visible');};
+    var _wsDelay=1000,_wsReconnectTimer=null;var wsStatus=document.getElementById('ws-status');
+    function connectWS(){var proto=location.protocol==='https:'?'wss:':'ws:';var ws=new WebSocket(proto+'//'+location.host+'/ws');window._ws=ws;ws.onopen=function(){_wsDelay=1000;if(wsStatus){wsStatus.textContent='Connected';wsStatus.className='ws-status connected';}ws.send(JSON.stringify({action:'status.request',data:{}}));if(window.BrainMap&&window.BrainMap._relistenWs)window.BrainMap._relistenWs();};ws.onclose=function(){if(wsStatus){wsStatus.textContent='Reconnecting…';wsStatus.className='ws-status disconnected';}_wsReconnectTimer=setTimeout(function(){_wsDelay=Math.min(_wsDelay*2,30000);connectWS();},_wsDelay);};ws.onerror=function(){ws.close();};ws.onmessage=function(e){try{var m=JSON.parse(e.data);handleWSEvent(m.event,m.data);}catch(_){}};}
+    function handleWSEvent(event,data){if(event==='status.update'&&data.health_score!==undefined){var h=document.getElementById('topbar-health');if(h){h.textContent=data.health_score;h.style.color=data.health_score>=80?'var(--success)':data.health_score>=50?'var(--warning)':'var(--danger)';}}if(event==='scan.started'){var s=document.getElementById('topbar-scan');if(s){s.textContent='Scanning…';s.className='scan-badge scanning';}}if(event==='scan.complete'){var s2=document.getElementById('topbar-scan');if(s2){s2.textContent=(data.total_findings||0)+' findings';s2.className='scan-badge complete';}}if((event==='scan.finding')&&(data.severity==='critical'||data.severity==='high')){window.toast(data.severity.toUpperCase()+': '+data.message,data.severity);}if(window.BrainMap&&window.BrainMap.handleEvent)window.BrainMap.handleEvent(event,data);}
+    connectWS();
+    document.body.addEventListener('htmx:beforeRequest',function(evt){var target=evt.detail.target;if(target&&target.closest('.content'))target.closest('.content').classList.add('loading');var btn=evt.detail.elt;if(btn&&btn.classList&&btn.classList.contains('btn'))btn.classList.add('loading');});
+    document.body.addEventListener('htmx:afterSettle',function(evt){var content=document.querySelector('.content');if(content)content.classList.remove('loading');document.querySelectorAll('.btn.loading').forEach(function(b){b.classList.remove('loading');});if(evt.detail.target&&evt.detail.target.querySelector&&evt.detail.target.querySelector('#brain-map')){if(window.BrainMap)window.BrainMap.init('brain-map');}});
+    document.body.addEventListener('htmx:responseError',function(evt){var d=evt.detail;if(d.xhr&&d.xhr.status)window.toast('Error '+d.xhr.status+': '+d.xhr.statusText,'high');});
+    document.body.addEventListener('htmx:afterSwap',function(evt){if(evt.detail.requestConfig&&evt.detail.requestConfig.path){var path=evt.detail.requestConfig.path.replace(/\/$/,'')||'/';document.querySelectorAll('.main-tabs .tab').forEach(function(tab){var href=tab.getAttribute('href').replace(/\/$/,'')||'/';tab.classList.toggle('active',href===path);});}});
+    var paletteModal=document.getElementById('commandPaletteModal');var paletteInput=document.getElementById('paletteInput');var paletteResults=document.getElementById('paletteResults');
+    function openPalette(){if(paletteModal){paletteModal.hidden=false;if(paletteInput){paletteInput.value='';paletteInput.focus();}renderPalette('');}}
+    function closePalette(){if(paletteModal)paletteModal.hidden=true;}
+    function renderPalette(q){if(!paletteResults)return;q=(q||'').toLowerCase().trim();var cmds=[{n:'Scan Project',a:'scan',c:'Security'},{n:'Fix Safe Issues',a:'fix',c:'Fix'},{n:'Dev Check',a:'devcheck',c:'Quality'},{n:'Assurance Check',a:'assurance',c:'Security'},{n:'DAST Scan',a:'dast',c:'Security'},{n:'Open Brain Map',h:'/brain',c:'Nav'},{n:'Open Chat',h:'/chat',c:'Nav'},{n:'Open Findings',h:'/findings',c:'Nav'},{n:'Open Charter',h:'/charter',c:'Nav'},{n:'View History',h:'/history',c:'Nav'},{n:'Settings',h:'/settings',c:'Nav'}];var f=cmds.filter(function(c){return!q||c.n.toLowerCase().indexOf(q)>=0;});paletteResults.innerHTML=f.map(function(c){return '<div style="display:flex;justify-content:space-between;padding:10px 12px;border-radius:6px;cursor:pointer" onmouseenter="this.style.background=\'var(--bg-tertiary)\'" onmouseleave="this.style.background=\'none\'" data-action="'+(c.a||'')+'" data-href="'+(c.h||'')+'"><span style="font-family:var(--font-mono);font-size:13px">'+c.n+'</span><span style="font-size:11px;color:var(--text-muted)">'+c.c+'</span></div>';}).join('')||'<div class="feed-empty">No matching commands</div>';}
+    if(paletteInput)paletteInput.addEventListener('input',function(e){renderPalette(e.target.value);});
+    if(paletteResults)paletteResults.addEventListener('click',function(e){var item=e.target.closest('[data-action],[data-href]');if(!item)return;closePalette();if(item.dataset.href)window.location.href=item.dataset.href;else if(item.dataset.action)document.body.dispatchEvent(new CustomEvent('palette:action',{detail:{action:item.dataset.action}}));});
+    var cmdBtn=document.getElementById('commandPalette');if(cmdBtn)cmdBtn.addEventListener('click',openPalette);
+    if(paletteModal)paletteModal.addEventListener('click',function(e){if(e.target===paletteModal)closePalette();});
+    document.addEventListener('keydown',function(e){if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){e.preventDefault();if(paletteModal&&!paletteModal.hidden)closePalette();else openPalette();return;}if(e.key==='Escape'){closePalette();return;}});
+    setInterval(function(){if(window._ws&&window._ws.readyState===WebSocket.OPEN)window._ws.send(JSON.stringify({action:'ping',data:{}}));},30000);
+  })();
+  </script>
+  {% block scripts %}{% endblock %}
 </body>
 </html>

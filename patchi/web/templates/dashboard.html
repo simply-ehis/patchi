@@ -1,248 +1,209 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="dashboard">
-  <!-- Brain Map -->
-  <div class="card">
-    <div class="card-header">
-      <span class="card-title">Brain Map — File Dependencies</span>
-      <span class="card-subtitle" id="brain-map-subtitle">Loading map…</span>
+<!-- Severity Cards -->
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px">
+  <div class="panel" style="text-align:center;padding:16px">
+    <div id="count-critical" style="font-size:28px;font-weight:700;font-family:var(--font-mono);color:var(--sev-critical)">--</div>
+    <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-top:4px">Critical</div>
+  </div>
+  <div class="panel" style="text-align:center;padding:16px">
+    <div id="count-high" style="font-size:28px;font-weight:700;font-family:var(--font-mono);color:var(--sev-high)">--</div>
+    <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-top:4px">High</div>
+  </div>
+  <div class="panel" style="text-align:center;padding:16px">
+    <div id="count-medium" style="font-size:28px;font-weight:700;font-family:var(--font-mono);color:var(--sev-medium)">--</div>
+    <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-top:4px">Medium</div>
+  </div>
+  <div class="panel" style="text-align:center;padding:16px">
+    <div id="count-low" style="font-size:28px;font-weight:700;font-family:var(--font-mono);color:var(--sev-low)">--</div>
+    <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-top:4px">Low</div>
+  </div>
+</div>
+
+<!-- Brain Map -->
+<div class="panel">
+  <header class="panel-header">
+    <h2 class="panel-title">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+      Brain Map
+    </h2>
+    <div class="panel-actions">
+      <button class="btn btn-sm" onclick="BrainMap.switchView('graph')" id="view-graph" style="background:var(--bg-tertiary)">Graph</button>
+      <button class="btn btn-sm" onclick="BrainMap.switchView('tree')" id="view-tree">Tree</button>
+      <button class="btn btn-sm" onclick="BrainMap.switchView('spiral')" id="view-spiral">Spiral</button>
+      <button class="btn btn-sm" onclick="BrainMap.switchView('grid')" id="view-grid">Nodes</button>
     </div>
-    <div class="brain-map-container">
-      <div id="brain-map" class="brain-map-canvas"></div>
-      <div class="loading-overlay" id="brain-map-loading" style="display:none;">
-        <div class="loading-spinner"></div>
-        <div class="loading-text">Building brain map…</div>
+  </header>
+  <div style="display:flex;height:400px;background:var(--bg-primary);border-radius:0 0 var(--radius-lg) var(--radius-lg);overflow:hidden">
+    <!-- Legend -->
+    <div id="brain-map-legend" style="width:180px;padding:12px;border-right:1px solid var(--border-subtle);overflow-y:auto;font-size:11px;flex-shrink:0;background:var(--bg-secondary)">
+      <div style="font-weight:600;color:var(--text-primary);margin-bottom:8px;font-size:12px">Node Shapes</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <svg width="16" height="16"><polygon points="8,1 15,5 15,11 8,15 1,11 1,5" fill="#8B3A0F" stroke="#4b5563" stroke-width="1"/></svg>
+        <span style="color:var(--text-secondary)">Entry Point</span>
       </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <svg width="16" height="16"><rect x="1" y="3" width="14" height="10" rx="2" fill="#7A2E08" stroke="#4b5563" stroke-width="1"/></svg>
+        <span style="color:var(--text-secondary)">Route Handler</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <svg width="16" height="16"><circle cx="8" cy="8" r="7" fill="#6B8B5A" stroke="#4b5563" stroke-width="1"/></svg>
+        <span style="color:var(--text-secondary)">Component</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <svg width="16" height="16"><polygon points="8,1 15,8 8,15 1,8" fill="#4A5030" stroke="#4b5563" stroke-width="1"/></svg>
+        <span style="color:var(--text-secondary)">Config</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <svg width="16" height="16"><circle cx="8" cy="8" r="7" fill="#4ADE80" stroke="#4b5563" stroke-width="1"/><circle cx="8" cy="8" r="4" fill="none" stroke="#d1fa22" stroke-width="1.5"/></svg>
+        <span style="color:var(--text-secondary)">Test File</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <svg width="16" height="16"><circle cx="8" cy="8" r="7" fill="#3D2A1A" stroke="#4b5563" stroke-width="1"/><line x1="4" y1="4" x2="12" y2="12" stroke="#ef4444" stroke-width="1.5"/><line x1="12" y1="4" x2="4" y2="12" stroke="#ef4444" stroke-width="1.5"/></svg>
+        <span style="color:var(--text-secondary)">Dead File</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <svg width="16" height="16"><circle cx="8" cy="8" r="7" fill="#2C2010" stroke="#4b5563" stroke-width="1"/><text x="5" y="12" font-size="10">🔒</text></svg>
+        <span style="color:var(--text-secondary)">Restricted</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+        <svg width="16" height="16"><circle cx="8" cy="8" r="7" fill="#FF8C42" stroke="#4b5563" stroke-width="1"/><text x="3" y="12" font-size="9">👁️</text></svg>
+        <span style="color:var(--text-secondary)">Sensitive</span>
+      </div>
+
+      <div style="font-weight:600;color:var(--text-primary);margin-bottom:8px;font-size:12px">Edge Types</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <svg width="20" height="4"><line x1="0" y1="2" x2="20" y2="2" stroke="#1E3014" stroke-width="1.5"/></svg>
+        <span style="color:var(--text-secondary)">Import</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <svg width="20" height="4"><line x1="0" y1="2" x2="20" y2="2" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="4,3"/></svg>
+        <span style="color:var(--text-secondary)">Route</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <svg width="20" height="4"><line x1="0" y1="2" x2="20" y2="2" stroke="#22c55e" stroke-width="1.5" stroke-dasharray="2,2"/></svg>
+        <span style="color:var(--text-secondary)">Test Coverage</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <svg width="20" height="4"><line x1="0" y1="2" x2="20" y2="2" stroke="#f97316" stroke-width="2"/></svg>
+        <span style="color:var(--text-secondary)">Blast Radius</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+        <svg width="20" height="4"><line x1="0" y1="2" x2="20" y2="2" stroke="#6b7280" stroke-width="1" stroke-dasharray="3,3" opacity="0.5"/></svg>
+        <span style="color:var(--text-secondary)">Dead Path</span>
+      </div>
+
+      <div style="font-weight:600;color:var(--text-primary);margin-bottom:8px;font-size:12px">Health Override</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <svg width="16" height="16"><circle cx="8" cy="8" r="7" fill="#FF4D6D" stroke="#ff6b8a" stroke-width="1.5"/></svg>
+        <span style="color:var(--text-secondary)">Critical (≥5)</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <svg width="16" height="16"><circle cx="8" cy="8" r="7" fill="#FACC15" stroke="#FACC15" stroke-width="1.5"/></svg>
+        <span style="color:var(--text-secondary)">High (≥3)</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <svg width="16" height="16"><circle cx="8" cy="8" r="7" fill="#E8920A" stroke="#E8920A" stroke-width="1.5"/></svg>
+        <span style="color:var(--text-secondary)">Has Findings</span>
+      </div>
+      <div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--border-subtle);color:var(--text-muted);font-size:10px;line-height:1.4">
+        Right-click any node for file details. Drag to reposition. Scroll to zoom. Shift+drag to pan.
+      </div>
+    </div>
+
+    <!-- Canvas -->
+    <div id="brain-map" style="flex:1;width:100%;height:100%"></div>
+  </div>
+</div>
+
+<!-- Two-column layout: Actions + Findings -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+  <!-- Quick Actions -->
+  <div class="panel">
+    <header class="panel-header">
+      <h2 class="panel-title">Quick Actions</h2>
+    </header>
+    <div class="panel-body" style="display:flex;flex-wrap:wrap;gap:8px">
+      <button class="btn btn-primary" onclick="runQuickAction('scan')">Scan Project</button>
+      <button class="btn" style="background:var(--accent);color:#fff" onclick="runQuickAction('scan_fix')">Scan + Fix</button>
+      <button class="btn" onclick="runQuickAction('devcheck')">Dev Check</button>
+      <button class="btn" onclick="runQuickAction('assurance')">Assurance</button>
+      <button class="btn" onclick="runQuickAction('dast')">DAST Scan</button>
+      <a class="btn" href="/chat">Chat</a>
+      <a class="btn" href="/review">Review Fixes</a>
     </div>
   </div>
 
-  <!-- Health + Charts row -->
-  <div class="grid-3">
-    <!-- Health Score Ring -->
-    <div class="card">
-      <div class="card-header">
-        <span class="card-title">Health Score</span>
-        <span class="card-subtitle" id="health-score-subtitle">Computing…</span>
-      </div>
-      <div id="health-ring" class="chart-container">
-        <div class="loading-overlay" id="health-ring-loading">
-          <div class="loading-spinner"></div>
-          <div class="loading-text">Calculating health…</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Language Breakdown -->
-    <div class="card">
-      <div class="card-header">
-        <span class="card-title">Languages</span>
-      </div>
-      <div id="language-donut" class="chart-container">
-        <div class="loading-overlay" id="language-donut-loading">
-          <div class="loading-spinner"></div>
-          <div class="loading-text">Analyzing languages…</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Findings Timeline -->
-    <div class="card">
-      <div class="card-header">
-        <span class="card-title">Findings Trend</span>
-      </div>
-      <div id="findings-timeline" class="chart-container">
-        <div class="loading-overlay" id="findings-timeline-loading">
-          <div class="loading-spinner"></div>
-          <div class="loading-text">Building timeline…</div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Severity cards with loading states -->
-  <div class="grid-4" id="severity-cards">
-    <div class="severity-card critical" id="severity-critical-card">
-      <div class="severity-count skeleton" id="count-critical">—</div>
-      <div class="severity-label">Critical</div>
-    </div>
-    <div class="severity-card high" id="severity-high-card">
-      <div class="severity-count skeleton" id="count-high">—</div>
-      <div class="severity-label">High</div>
-    </div>
-    <div class="severity-card medium" id="severity-medium-card">
-      <div class="severity-count skeleton" id="count-medium">—</div>
-      <div class="severity-label">Medium</div>
-    </div>
-    <div class="severity-card low" id="severity-low-card">
-      <div class="severity-count skeleton" id="count-low">—</div>
-      <div class="severity-label">Low</div>
-    </div>
-  </div>
-
-  <!-- Quick actions with loading states -->
-  <div class="card">
-    <div class="card-header">
-      <span class="card-title">Quick Actions</span>
-    </div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <button class="btn btn-primary" hx-post="/api/scan" hx-swap="none"
-        onclick="this.classList.add('loading'); toast('Starting security scan…', 'info')"
-        hx-on::after-request="this.classList.remove('loading')">
-        <span class="btn-text">▶ Run Scan</span>
-        <span class="btn-spinner" style="display:none;">⏳</span>
-      </button>
-      <button class="btn" style="background:var(--accent);color:#fff" hx-post="/api/scan?auto_fix=true" hx-swap="none"
-        onclick="this.classList.add('loading'); toast('Scan + auto-fix started…', 'info')"
-        hx-on::after-request="this.classList.remove('loading')">
-        <span class="btn-text">⚡ Scan + Fix</span>
-        <span class="btn-spinner" style="display:none;">⏳</span>
-      </button>
-      <button class="btn" hx-get="/api/scan?type=report" hx-swap="none"
-        onclick="this.classList.add('loading'); toast('Generating report…', 'info')"
-        hx-on::after-request="this.classList.remove('loading')">
-        <span class="btn-text">📊 Report</span>
-        <span class="btn-spinner" style="display:none;">⏳</span>
-      </button>
-      <button class="btn" hx-get="/review" hx-target=".content" hx-push-url="true">
-        ◪ Review Fixes
-      </button>
-      <button class="btn" hx-get="/chat" hx-target=".content" hx-push-url="true">
-        💬 Ask AI
-      </button>
-    </div>
-  </div>
-
-  <!-- Recent findings with loading states -->
-  <div class="card">
-    <div class="card-header">
-      <span class="card-title">Recent Findings</span>
-      <a href="/findings" hx-get="/findings" hx-target=".content" hx-push-url="true"
-        style="color:var(--accent);font-size:12px;text-decoration:none">
-        View all →
-      </a>
-    </div>
-    <div id="recent-findings"
-      hx-get="/api/findings-table?limit=5"
-      hx-trigger="load, every 30s"
-      hx-swap="innerHTML"
-      hx-indicator="#recent-findings-spinner">
-      <div id="recent-findings-spinner" class="htmx-indicator" style="display:flex;align-items:center;justify-content:center;padding:16px;color:var(--text-secondary);gap:8px">
-        <span class="loading-spinner" style="width:16px;height:16px;border-width:2px;"></span>
-        <span>Loading findings…</span>
-      </div>
-      <div class="empty-state">
-        <div class="empty-state-icon">🔍</div>
-        <div class="empty-state-text">Run a scan to see findings</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Agent Status Grid with loading states -->
-  <div class="card">
-    <div class="card-header">
-      <span class="card-title">Agent Status</span>
-      <span class="card-subtitle" id="agents-subtitle">Loading…</span>
-    </div>
-    <div id="agent-grid"
-      hx-get="/api/agents/status"
-      hx-trigger="load, every 30s"
-      hx-swap="innerHTML"
-      hx-indicator="#agent-grid-spinner">
-      <div id="agent-grid-spinner" class="htmx-indicator" style="display:flex;align-items:center;justify-content:center;padding:16px;color:var(--text-secondary);gap:8px">
-        <span class="loading-spinner" style="width:16px;height:16px;border-width:2px;"></span>
-        <span>Loading agents…</span>
-      </div>
-      <div class="empty-state">
-        <div class="empty-state-text">No agents have run yet.</div>
+  <!-- Recent Findings -->
+  <div class="panel">
+    <header class="panel-header">
+      <h2 class="panel-title">Recent Findings</h2>
+      <a href="/findings" style="color:var(--accent);font-size:12px;text-decoration:none">View all</a>
+    </header>
+    <div class="panel-body" style="max-height:200px;overflow-y:auto">
+      <div id="recent-findings"
+        hx-get="/api/findings-table?limit=5"
+        hx-trigger="load, every 30s"
+        hx-swap="innerHTML">
+        <div class="feed-empty">Run a scan to see findings</div>
       </div>
     </div>
   </div>
 </div>
 
+<!-- Agent Status -->
+<div class="panel">
+  <header class="panel-header">
+    <h2 class="panel-title">Agent Status</h2>
+  </header>
+  <div class="panel-body">
+    <div id="agent-grid"
+      hx-get="/api/agents/status"
+      hx-trigger="load, every 30s"
+      hx-swap="innerHTML">
+      <div class="feed-empty">No agents have run yet</div>
+    </div>
+  </div>
+</div>
+
 <script>
-  (function() {
-    let chartsInitialized = false;
+(function(){
+  // Load severity counts
+  fetch('/api/findings').then(function(r){return r.json();}).then(function(data){
+    var findings=data.findings||[];
+    var counts={critical:0,high:0,medium:0,low:0};
+    findings.forEach(function(f){var s=(f.severity||'info').toLowerCase();if(counts[s]!==undefined)counts[s]++;});
+    Object.keys(counts).forEach(function(s){var el=document.getElementById('count-'+s);if(el)el.textContent=counts[s];});
+  }).catch(function(){});
 
-    function showChartLoading(id, show) {
-      const el = document.getElementById(id + '-loading');
-      const canvas = document.getElementById(id);
-      if (el) el.style.display = show ? 'flex' : 'none';
-      if (canvas) canvas.style.opacity = show ? '0.3' : '1';
+  // Quick actions
+  window.runQuickAction=function(action){
+    if(action==='scan'||action==='scan_fix'){
+      var url=action==='scan_fix'?'/api/scan?auto_fix=true':'/api/scan';
+      fetch(url,{method:'POST'}).then(function(r){return r.json();}).then(function(d){
+        toast(d.ok?'Scan started':'Scan failed: '+(d.error||'?'),d.ok?'success':'high');
+      }).catch(function(e){toast('Scan error: '+e.message,'high');});
+    } else if(action==='devcheck'){
+      fetch('/api/dev-check',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({})})
+        .then(function(r){return r.json();}).then(function(d){
+          toast(d.overall==='PASS'?'Dev check passed':'Dev check failed',d.overall==='PASS'?'success':'high');
+        }).catch(function(e){toast('Dev check error: '+e.message,'high');});
+    } else if(action==='assurance'){
+      fetch('/api/assurance').then(function(r){return r.json();}).then(function(d){
+        toast('Assurance: '+(d.coverage||0)+'% coverage','info');
+      }).catch(function(e){toast('Assurance error: '+e.message,'high');});
+    } else if(action==='dast'){
+      fetch('/api/scan/dast',{method:'POST'}).then(function(r){return r.json();}).then(function(d){
+        toast(d.ok?'DAST scan started':'DAST failed: '+(d.error||'?'),d.ok?'success':'high');
+      }).catch(function(e){toast('DAST error: '+e.message,'high');});
     }
+  };
 
-    function init() {
-      if (typeof Charts !== 'undefined') {
-        // Health ring
-        showChartLoading('health-ring', true);
-        Charts.healthRing('health-ring', {{ health_score }}, {{ health_components | tojson }});
-        showChartLoading('health-ring', false);
-
-        // Language donut
-        {% if languages %}
-        showChartLoading('language-donut', true);
-        Charts.languageDonut('language-donut', {{ languages | tojson }});
-        showChartLoading('language-donut', false);
-        {% endif %}
-
-        // Findings timeline
-        showChartLoading('findings-timeline', true);
-        fetch('/api/charts/timeline')
-          .then(r => r.json())
-          .then(data => {
-            Charts.findingsTimeline('findings-timeline', data.history || []);
-            showChartLoading('findings-timeline', false);
-          })
-          .catch(function(err) {
-            console.warn('Timeline chart error:', err);
-            showChartLoading('findings-timeline', false);
-          });
-      }
-
-      // Populate severity counts with skeleton loading
-      const severityEls = ['critical', 'high', 'medium', 'low'];
-      severityEls.forEach(sev => {
-        const el = document.getElementById('count-' + sev);
-        const card = document.getElementById('severity-' + sev + '-card');
-        if (el) {
-          el.classList.add('skeleton');
-          el.textContent = '—';
-        }
-      });
-
-      fetch('/api/findings')
-        .then(r => r.json())
-        .then(data => {
-          const findings = data.findings || [];
-          const counts = { critical: 0, high: 0, medium: 0, low: 0 };
-          findings.forEach(function(f) {
-            var sev = (f.severity || 'info').toLowerCase();
-            if (counts[sev] !== undefined) counts[sev]++;
-          });
-          Object.keys(counts).forEach(function(sev) {
-            var el = document.getElementById('count-' + sev);
-            if (el) {
-              el.classList.remove('skeleton');
-              el.textContent = counts[sev];
-            }
-            var card = document.getElementById('severity-' + sev + '-card');
-            if (card) card.style.opacity = '1';
-          });
-        })
-        .catch(function(err) {
-          console.warn('Findings count error:', err);
-          severityEls.forEach(sev => {
-            var el = document.getElementById('count-' + sev);
-            if (el) el.classList.remove('skeleton');
-          });
-        });
-    }
-
-    if (document.readyState === 'complete' || document.readyState === 'interactive') {
-      init();
-    } else {
-      document.addEventListener('DOMContentLoaded', init);
-    }
-  })();
+  // Init brain map after DOM ready
+  requestAnimationFrame(function(){
+    if(window.BrainMap) BrainMap.init('brain-map');
+  });
+})();
 </script>
 {% endblock %}
