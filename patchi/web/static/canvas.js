@@ -977,5 +977,225 @@ const BrainMap = (() => {
     });
   }
 
-  return { init, setNodeState, loadNodes, zoomIn, zoomOut, zoomReset, handleEvent, _relistenWs };
+  // ── View switching ──────────────────────────────────────────
+  let _currentView = 'graph';
+  let _lastNodes = [];
+  let _lastEdges = [];
+  let _showLabels = true;
+  let _rotation = 0; // degrees
+
+  function switchView(viewName) {
+    _currentView = viewName;
+    document.querySelectorAll('[id^="view-"]').forEach(function(btn) {
+      btn.style.background = btn.id === 'view-' + viewName ? 'var(--bg-tertiary)' : '';
+      btn.style.fontWeight = btn.id === 'view-' + viewName ? '600' : '';
+    });
+    if (_lastNodes.length > 0) _renderGraph(_lastNodes, _lastEdges);
+  }
+
+  function toggleLabels() {
+    _showLabels = !_showLabels;
+    var btn = document.getElementById('btn-toggle-labels');
+    if (btn) btn.textContent = _showLabels ? 'Hide Labels' : 'Show Labels';
+    if (_lastNodes.length > 0) _renderGraph(_lastNodes, _lastEdges);
+  }
+
+  function rotateGraph(deg) {
+    _rotation = (_rotation + deg) % 360;
+    if (stage) { stage.rotation(_rotation); stage.batchDraw(); }
+  }
+
+  function resetRotation() {
+    _rotation = 0;
+    if (stage) { stage.rotation(0); stage.batchDraw(); }
+  }
+
+  function exportPNG() {
+    if (!stage) return;
+    var dataURL = stage.toDataURL({ pixelRatio: 2 });
+    var link = document.createElement('a');
+    link.download = 'patchi-brain-map-' + Date.now() + '.png';
+    link.href = dataURL;
+    link.click();
+  }
+
+  function exportJSON() {
+    if (_lastNodes.length === 0) return;
+    var data = { nodes: _lastNodes, edges: _lastEdges, view: _currentView, timestamp: new Date().toISOString() };
+    var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    var url = URL.createObjectURL(blob);
+    var link = document.createElement('a');
+    link.download = 'patchi-brain-map-' + Date.now() + '.json';
+    link.href = url;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  // ── Layout algorithms ──────────────────────────────────────
+
+  function _treeLayout(nodesList, edgesList, W, H) {
+    var pos = {}, n = nodesList.length;
+    if (n === 0) return pos;
+    var incoming = {}, adj = {};
+    nodesList.forEach(function(node) { adj[node.id || node.path] = []; });
+    edgesList.forEach(function(e) {
+      var f = e.from || e.source, t = e.to || e.target;
+      if (adj[f]) adj[f].push(t);
+      if (!incoming[t]) incoming[t] = [];
+      incoming[t].push(f);
+    });
+    var roots = nodesList.filter(function(node) {
+      var id = node.id || node.path;
+      return !incoming[id] || incoming[id].length === 0;
+    });
+    if (roots.length === 0) roots = [nodesList[0]];
+    var levels = {}, visited = {}, queue = [];
+    roots.forEach(function(node) { var id = node.id || node.path; levels[id] = 0; visited[id] = true; queue.push(id); });
+    while (queue.length > 0) {
+      var curr = queue.shift();
+      (adj[curr] || []).forEach(function(child) {
+        if (!visited[child]) { visited[child] = true; levels[child] = (levels[curr] || 0) + 1; queue.push(child); }
+      });
+    }
+    nodesList.forEach(function(node) { var id = node.id || node.path; if (levels[id] === undefined) levels[id] = 0; });
+    var levelGroups = {}, maxLevel = 0;
+    nodesList.forEach(function(node) {
+      var id = node.id || node.path, lv = levels[id];
+      if (!levelGroups[lv]) levelGroups[lv] = [];
+      levelGroups[lv].push(id);
+      if (lv > maxLevel) maxLevel = lv;
+    });
+    var padding = 60, levelH = (H - padding * 2) / Math.max(maxLevel, 1);
+    for (var lv = 0; lv <= maxLevel; lv++) {
+      var group = levelGroups[lv] || [], levelW = (W - padding * 2) / Math.max(group.length - 1, 1);
+      group.forEach(function(id, i) { pos[id] = { x: group.length === 1 ? W / 2 : padding + levelW * i, y: padding + levelH * lv }; });
+    }
+    return pos;
+  }
+
+  function _spiralLayout(nodesList, edgesList, W, H) {
+    var pos = {}, n = nodesList.length;
+    if (n === 0) return pos;
+    var goldenAngle = Math.PI * (3 - Math.sqrt(5)), cx = W / 2, cy = H / 2, maxR = Math.min(W, H) * 0.42;
+    nodesList.forEach(function(node, i) {
+      var id = node.id || node.path, angle = i * goldenAngle, r = maxR * Math.sqrt(i / n);
+      pos[id] = { x: cx + r * Math.cos(angle), y: cy + r * Math.sin(angle) };
+    });
+    return pos;
+  }
+
+  function _gridLayout(nodesList, edgesList, W, H) {
+    var pos = {}, n = nodesList.length;
+    if (n === 0) return pos;
+    var cols = Math.ceil(Math.sqrt(n)), rows = Math.ceil(n / cols);
+    var cellW = (W - 80) / cols, cellH = (H - 80) / rows;
+    nodesList.forEach(function(node, i) {
+      var id = node.id || node.path;
+      pos[id] = { x: 40 + cellW * ((i % cols) + 0.5), y: 40 + cellH * (Math.floor(i / cols) + 0.5) };
+    });
+    return pos;
+  }
+
+  function _radialLayout(nodesList, edgesList, W, H) {
+    // Concentric rings: roots at center, dependents radiate outward by depth
+    var pos = {}, n = nodesList.length;
+    if (n === 0) return pos;
+    var cx = W / 2, cy = H / 2;
+    var incoming = {}, adj = {};
+    nodesList.forEach(function(node) { adj[node.id || node.path] = []; });
+    edgesList.forEach(function(e) {
+      var f = e.from || e.source, t = e.to || e.target;
+      if (adj[f]) adj[f].push(t);
+      if (!incoming[t]) incoming[t] = [];
+      incoming[t].push(f);
+    });
+    var roots = nodesList.filter(function(node) { return !(incoming[node.id || node.path] || []).length; });
+    if (roots.length === 0) roots = [nodesList[0]];
+    var depth = {}, visited = {}, queue = [];
+    roots.forEach(function(node) { var id = node.id || node.path; depth[id] = 0; visited[id] = true; queue.push(id); });
+    while (queue.length > 0) {
+      var curr = queue.shift();
+      (adj[curr] || []).forEach(function(child) {
+        if (!visited[child]) { visited[child] = true; depth[child] = (depth[curr] || 0) + 1; queue.push(child); }
+      });
+    }
+    nodesList.forEach(function(node) { var id = node.id || node.path; if (depth[id] === undefined) depth[id] = 0; });
+    var maxDepth = 1; nodesList.forEach(function(node) { var d = depth[node.id || node.path]; if (d > maxDepth) maxDepth = d; });
+    var maxR = Math.min(W, H) * 0.42;
+    var rings = {};
+    nodesList.forEach(function(node) {
+      var id = node.id || node.path, d = depth[id];
+      if (!rings[d]) rings[d] = [];
+      rings[d].push(id);
+    });
+    for (var d = 0; d <= maxDepth; d++) {
+      var ring = rings[d] || [], r = (d / maxDepth) * maxR;
+      ring.forEach(function(id, i) {
+        var angle = (2 * Math.PI * i) / ring.length - Math.PI / 2;
+        pos[id] = { x: cx + r * Math.cos(angle), y: cy + r * Math.sin(angle) };
+      });
+    }
+    return pos;
+  }
+
+  function _clusterLayout(nodesList, edgesList, W, H) {
+    // Group nodes by type, place each cluster in a region
+    var pos = {}, n = nodesList.length;
+    if (n === 0) return pos;
+    var groups = {};
+    nodesList.forEach(function(node) {
+      var t = node.type || 'default';
+      if (!groups[t]) groups[t] = [];
+      groups[t].push(node.id || node.path);
+    });
+    var types = Object.keys(groups), numGroups = types.length;
+    var cols = Math.ceil(Math.sqrt(numGroups)), rows = Math.ceil(numGroups / cols);
+    var cellW = W / cols, cellH = H / rows;
+    types.forEach(function(type, gi) {
+      var col = gi % cols, row = Math.floor(gi / cols);
+      var clusterCx = cellW * (col + 0.5), clusterCy = cellH * (row + 0.5);
+      var ids = groups[type], cn = ids.length;
+      var clusterR = Math.min(cellW, cellH) * 0.35;
+      ids.forEach(function(id, i) {
+        if (cn === 1) { pos[id] = { x: clusterCx, y: clusterCy }; return; }
+        var angle = (2 * Math.PI * i) / cn - Math.PI / 2;
+        var r = clusterR * Math.sqrt(i / cn);
+        pos[id] = { x: clusterCx + r * Math.cos(angle), y: clusterCy + r * Math.sin(angle) };
+      });
+    });
+    return pos;
+  }
+
+  // Override _renderGraph to store data and use current layout
+  var _origRenderGraph = _renderGraph;
+  _renderGraph = function(ns, edgesData) {
+    _lastNodes = ns;
+    _lastEdges = edgesData || [];
+    nodeLayer.destroyChildren();
+    nodes = {};
+    edges = _lastEdges;
+    var W = stage.width(), H = stage.height();
+    var positions;
+    switch (_currentView) {
+      case 'tree': positions = _treeLayout(ns, _lastEdges, W, H); break;
+      case 'spiral': positions = _spiralLayout(ns, _lastEdges, W, H); break;
+      case 'grid': positions = _gridLayout(ns, _lastEdges, W, H); break;
+      case 'radial': positions = _radialLayout(ns, _lastEdges, W, H); break;
+      case 'cluster': positions = _clusterLayout(ns, _lastEdges, W, H); break;
+      default: positions = _forceLayout(ns, _lastEdges, W, H);
+    }
+    ns.forEach(function(n) {
+      var pos = positions[n.id || n.path] || { x: W/2, y: H/2 };
+      var fc = n.finding_count || 0;
+      var sev = n.severity || 'info';
+      _addNode(n.id || n.path, n.label || n.path, n.type || 'default', pos.x, pos.y, fc, sev);
+    });
+    // Labels respect toggle
+    if (!_showLabels) { nodeLayer.getChildren().forEach(function(g) { var txt = g.findOne('Text'); if (txt) txt.visible(false); }); }
+    (_lastEdges || []).forEach(function(e) { _addEdge(e.source || e.from, e.target || e.to, e.type || 'dependency'); });
+    nodeLayer.draw();
+    _updateMiniMap();
+  };
+
+  return { init, setNodeState, loadNodes, zoomIn, zoomOut, zoomReset, handleEvent, _relistenWs, switchView, toggleLabels, rotateGraph, resetRotation, exportPNG, exportJSON };
 })();

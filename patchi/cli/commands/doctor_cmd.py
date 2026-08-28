@@ -22,7 +22,139 @@ from rich.text import Text
 from patchi.cli.console import con
 
 
-def run(verbose: bool = False, json_output: bool = False) -> None:
+# ── Stale reference auto-fixer ───────────────────────────────────────
+
+# Patterns to search: "p <old>" as a shell command in any text file
+# We match whole-word to avoid false positives (e.g. "p status" shouldn't match "p status --deep")
+import re
+import pathlib
+
+
+def _build_replacement_patterns(
+    found_stale: list[tuple[str, dict]],
+) -> list[tuple[re.Pattern, str]]:
+    """Build regex patterns for each stale command."""
+    patterns = []
+    for name, info in found_stale:
+        replacement = info["replacement"]
+        # Match: p <old> as a standalone command (word boundary after)
+        # Handles: "p brain", "p brain ", "p brain\n", "p brain'"
+        # Also handles: "patchi brain", "python -m patchi brain"
+        pat = re.compile(
+            r"(\b)(?:p|patchi|python\s+-m\s+patchi)\s+"
+            + re.escape(name)
+            + r"(\s|\'|\"|$)",
+            re.MULTILINE,
+        )
+        patterns.append((pat, replacement))
+    return patterns
+
+
+def _fix_stale_references(
+    root: pathlib.Path | None,
+    found_stale: list[tuple[str, dict]],
+) -> None:
+    """Scan scripts/ and common locations for stale command references and fix them."""
+    if not root or not root.exists():
+        con.print("[yellow]No project root — skipping auto-fix.[/yellow]")
+        return
+
+    patterns = _build_replacement_patterns(found_stale)
+
+    # Directories to scan
+    scan_dirs = []
+    for d in ["scripts", ".github", ".gitlab", ".circleci", "ci", "bin"]:
+        p = root / d
+        if p.is_dir():
+            scan_dirs.append(p)
+
+    # Also scan root-level shell scripts and config files
+    scan_files = list(root.glob("*.sh")) + list(root.glob("*.bash")) + list(root.glob("*.zsh"))
+    scan_files += list(root.glob("Makefile")) + list(root.glob("*.mk"))
+    scan_files += list(root.glob("*.yml")) + list(root.glob("*.yaml"))
+    scan_files += list(root.glob("*.toml")) + list(root.glob("*.cfg"))
+    scan_files += list(root.glob("*.ini"))
+    scan_files += list(root.glob("docker*"))
+    scan_files += list(root.glob("*.bat")) + list(root.glob("*.cmd")) + list(root.glob("*.ps1"))
+
+    total_fixed = 0
+    fixed_files = []
+
+    # Scan directories recursively
+    for scan_dir in scan_dirs:
+        for fpath in scan_dir.rglob("*"):
+            if fpath.is_file() and _is_text_file(fpath):
+                fixed = _fix_file(fpath, patterns)
+                if fixed > 0:
+                    total_fixed += fixed
+                    fixed_files.append((fpath, fixed))
+
+    # Scan root-level files
+    for fpath in scan_files:
+        if fpath.is_file() and _is_text_file(fpath):
+            fixed = _fix_file(fpath, patterns)
+            if fixed > 0:
+                total_fixed += fixed
+                fixed_files.append((fpath, fixed))
+
+    # Report results
+    if total_fixed == 0:
+        con.print("[green]✓ No stale references found in scripts/.[/green]")
+    else:
+        con.print(f"\n[bold green]✓ Fixed {total_fixed} stale reference(s) in {len(fixed_files)} file(s):[/bold green]")
+        con.print()
+        for fpath, count in fixed_files:
+            rel = fpath.relative_to(root) if fpath.is_relative_to(root) else fpath
+            con.print(f"  [cyan]{rel}[/cyan] — {count} replacement(s)")
+        con.print()
+        con.print("[dim]Review the changes with `git diff` before committing.[/dim]")
+
+
+def _is_text_file(fpath: pathlib.Path) -> bool:
+    """Check if a file is likely a text file (not binary)."""
+    text_exts = {
+        ".sh", ".bash", ".zsh", ".bat", ".cmd", ".ps1",
+        ".py", ".js", ".ts", ".jsx", ".tsx",
+        ".yml", ".yaml", ".toml", ".cfg", ".ini", ".conf",
+        ".md", ".rst", ".txt",
+        "Makefile", "Dockerfile", ".dockerfile",
+        ".mk", ".cmake",
+    }
+    if fpath.name in text_exts or fpath.suffix in text_exts:
+        return True
+    # Check if it has no extension but is small (likely a script)
+    if not fpath.suffix and fpath.stat().st_size < 100_000:
+        try:
+            fpath.read_text(encoding="utf-8")[:100]
+            return True
+        except (UnicodeDecodeError, OSError):
+            return False
+    return False
+
+
+def _fix_file(fpath: pathlib.Path, patterns: list[tuple[re.Pattern, str]]) -> int:
+    """Replace stale references in a file. Returns number of replacements."""
+    try:
+        text = fpath.read_text(encoding="utf-8")
+    except (UnicodeDecodeError, OSError):
+        return 0
+
+    new_text = text
+    total = 0
+    for pat, replacement in patterns:
+        new_text, n = pat.subn(replacement, new_text)
+        total += n
+
+    if total > 0 and new_text != text:
+        fpath.write_text(new_text, encoding="utf-8")
+    return total
+
+
+def run(
+    verbose: bool = False,
+    json_output: bool = False,
+    fix: bool = False,
+) -> None:
     """Entry point for `p doctor`."""
     if not json_output:
         con.print()
@@ -78,51 +210,51 @@ def run(verbose: bool = False, json_output: bool = False) -> None:
         root = None
 
     # ── 4. Stale commands check ────────────────────────────────────────────────
+    stale_commands = {
+        "brain": {
+            "replacement": "p agents list --brain",
+            "reason": "Merged into agents command",
+        },
+        "smart": {
+            "replacement": "p chat --stream",
+            "reason": "Merged into chat command",
+        },
+        "health": {
+            "replacement": "p status --deep",
+            "reason": "Merged into status command",
+        },
+        "doctor": {
+            "replacement": "p status --validate",
+            "reason": "Merged into status command",
+        },
+        "security": {
+            "replacement": "p scan",
+            "reason": "Merged into scan command",
+        },
+        "ignore": {
+            "replacement": "p memory ignore",
+            "reason": "Merged into memory command",
+        },
+        "explain": {
+            "replacement": "p chat 'explain <type>'",
+            "reason": "Merged into chat command",
+        },
+        "profile": {
+            "replacement": "p agent-stats",
+            "reason": "Merged into agent-stats command",
+        },
+        "learning": {
+            "replacement": "p agent-stats --learning",
+            "reason": "Merged into agent-stats command",
+        },
+        "ask": {
+            "replacement": "p chat",
+            "reason": "Alias — chat is the unified interface",
+        },
+    }
+
     try:
         from patchi.cli.registry import COMMANDS
-
-        stale_commands = {
-            "brain": {
-                "replacement": "p agents list --brain",
-                "reason": "Merged into agents command",
-            },
-            "smart": {
-                "replacement": "p chat --stream",
-                "reason": "Merged into chat command",
-            },
-            "health": {
-                "replacement": "p status --deep",
-                "reason": "Merged into status command",
-            },
-            "doctor": {
-                "replacement": "p status --validate",
-                "reason": "Merged into status command (this command is the standalone check)",
-            },
-            "security": {
-                "replacement": "p scan",
-                "reason": "Merged into scan command",
-            },
-            "ignore": {
-                "replacement": "p memory ignore",
-                "reason": "Merged into memory command",
-            },
-            "explain": {
-                "replacement": "p chat 'explain <type>'",
-                "reason": "Merged into chat command",
-            },
-            "profile": {
-                "replacement": "p agent-stats",
-                "reason": "Merged into agent-stats command",
-            },
-            "learning": {
-                "replacement": "p agent-stats --learning",
-                "reason": "Merged into agent-stats command",
-            },
-            "ask": {
-                "replacement": "p chat",
-                "reason": "Alias — chat is the unified interface",
-            },
-        }
 
         cmd_names = [cmd.name for cmd in COMMANDS]
         found_stale = []
@@ -150,6 +282,10 @@ def run(verbose: bool = False, json_output: bool = False) -> None:
 
             con.print(table)
             con.print()
+
+            # ── --fix: auto-update stale references in scripts/ ──
+            if fix:
+                _fix_stale_references(root, found_stale)
         else:
             checks.append(("Stale commands", "✓", "No stale commands found", "#4ADE80"))
     except Exception as e:

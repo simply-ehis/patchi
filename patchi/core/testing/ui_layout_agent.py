@@ -2,14 +2,13 @@
 UILayoutAgent — Layout, responsive design, and visual structure testing.
 
 Uses Playwright to:
-- Test at multiple viewports (320px, 768px, 1024px, 1440px)
+- Test at multiple viewports (mobile, tablet, laptop, desktop)
 - Verify no horizontal scroll overflow
 - Check element overlap and z-index issues
 - Validate image dimensions and aspect ratios
 - Test text truncation and overflow
 - Verify grid/flex layouts don't collapse
-- Check for missing responsive breakpoints
-- Screenshot comparison at different sizes
+- Screenshot every page/viewport and link the evidence to findings
 
 Requires: playwright
 """
@@ -29,6 +28,12 @@ from ..agents.base import (
     make_finding,
     register,
 )
+from ._browser import (
+    discover_routes,
+    find_server,
+    open_page,
+    save_screenshot,
+)
 
 VIEWPORTS = [
     {"width": 320, "height": 568, "label": "mobile"},
@@ -36,7 +41,6 @@ VIEWPORTS = [
     {"width": 1024, "height": 768, "label": "laptop"},
     {"width": 1440, "height": 900, "label": "desktop"},
 ]
-
 
 import logging
 
@@ -54,50 +58,74 @@ class UILayoutAgent(BaseAgent):
 
     def _run(self, inp: AgentInput, result: AgentResult) -> None:
         try:
-            from playwright.sync_api import sync_playwright
+            from playwright.sync_api import sync_playwright  # noqa: F401
         except ImportError:
-            self.skip(result, "playwright not installed — pip install playwright")
+            self.skip(result, "playwright not installed — pip install playwright && playwright install chromium")
             return
 
-        base_url = self._find_base_url(inp)
+        base_url = find_server(inp.root, inp.config, inp.extra)
         if not base_url:
-            self.skip(result, "no running server found")
+            self.skip(result, "no running server found — start `p web` (default :1612)")
             return
 
-        pages = self._discover_pages(inp.root)
-        if not pages:
-            self.skip(result, "no HTML pages found")
+        routes = discover_routes(inp.config, inp.extra)
+        if not routes:
+            self.skip(result, "no routes discovered")
             return
 
+        screenshot_dir = inp.root / ".patchi" / "evidence" / "screenshots" / "ui_layout"
         issues_found = 0
         pages_tested = 0
 
         with sync_playwright() as pw:
             browser = pw.chromium.launch(headless=True)
 
-            for page_path in pages[:15]:
+            for page_path in routes[:15]:
                 for vp in VIEWPORTS:
-                    page = browser.new_page(viewport={"width": vp["width"], "height": vp["height"]})
+                    ps = open_page(
+                        browser,
+                        f"{base_url}{page_path}",
+                        viewport={"width": vp["width"], "height": vp["height"]},
+                    )
+                    page = ps.page
                     try:
-                        url = (
-                            f"{base_url}/{page_path}"
-                            if not page_path.startswith("http")
-                            else page_path
-                        )
-                        page.goto(url, wait_until="domcontentloaded", timeout=15000)
-                    except Exception as e:
-                        _log.warning("UILayoutAgent._run failed: %s", e)
+                        slug = page_path.strip("/").replace("/", "_") or "root"
+                        shot = save_screenshot(page, screenshot_dir, f"{slug}_{vp['label']}")
+                        rel = str(shot.relative_to(inp.root)) if shot else None
+
+                        if ps.status and ps.status >= 400:
+                            result.add_finding(
+                                make_finding(
+                                    agent=self.name,
+                                    finding_type="page_error",
+                                    severity=Severity.HIGH,
+                                    file=page_path,
+                                    message=f"HTTP {ps.status} on {page_path} ({vp['label']})",
+                                    extra={"viewport": vp["label"], "screenshot": rel},
+                                )
+                            )
+                            continue
+
+                        issues = self._check_layout(page, page_path, vp["label"], vp["width"])
+                        for issue in issues:
+                            if rel:
+                                issue["extra"] = {**(issue.get("extra") or {}), "screenshot": rel}
+                            result.add_finding(issue)
+                            issues_found += 1
+
+                        for ce in ps.console_errors[:5]:
+                            result.add_finding(
+                                make_finding(
+                                    agent=self.name,
+                                    finding_type="console_error",
+                                    severity=Severity.LOW,
+                                    file=page_path,
+                                    message=f"Console error on {page_path} ({vp['label']}): {ce[:160]}",
+                                    extra={"viewport": vp["label"], "screenshot": rel},
+                                )
+                            )
+                    finally:
                         page.close()
-                        continue
-
-                    vp_label = vp["label"]
-                    issues = self._check_layout(page, page_path, vp_label, vp["width"])
-
-                    for issue in issues:
-                        result.add_finding(issue)
-                        issues_found += 1
-
-                    page.close()
                 pages_tested += 1
 
             browser.close()
@@ -302,28 +330,3 @@ class UILayoutAgent(BaseAgent):
             )
 
         return findings
-
-    def _find_base_url(self, inp: AgentInput) -> str | None:
-        extra_base = (inp.extra or {}).get("base_url")
-        if extra_base:
-            return extra_base
-        test_config = inp.config.get("test_config", {})
-        if test_config.get("base_url"):
-            return test_config["base_url"]
-        import socket
-
-        for port in [3000, 5173, 8080, 4200, 8000, 4321, 5189]:
-            try:
-                with socket.create_connection(("127.0.0.1", port), timeout=1):
-                    return f"http://127.0.0.1:{port}"
-            except (ConnectionRefusedError, OSError):
-                continue
-        return None
-
-    def _discover_pages(self, root: Path) -> list[str]:
-        pages = []
-        for p in root.rglob("*.html"):
-            if any(part in DEFAULT_IGNORE_DIRS for part in p.parts):
-                continue
-            pages.append(p.relative_to(root).as_posix())
-        return sorted(set(pages))[:20]

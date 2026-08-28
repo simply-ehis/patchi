@@ -61,6 +61,7 @@ COMMANDS: list[Command] = [
         args=(
             Arg("--verbose", dest="verbose", action="store_true", help="Show detailed output"),
             Arg("--json", dest="json_output", action="store_true", help="Output as JSON"),
+            Arg("--fix", dest="fix", action="store_true", help="Auto-update stale command references in scripts/"),
         ),
     ),
     Command(

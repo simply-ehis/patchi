@@ -29,14 +29,45 @@
       Brain Map
     </h2>
     <div class="panel-actions">
-      <button class="btn btn-sm" onclick="BrainMap.switchView('graph')" id="view-graph" style="background:var(--bg-tertiary)">Graph</button>
-      <button class="btn btn-sm" onclick="BrainMap.switchView('tree')" id="view-tree">Tree</button>
-      <button class="btn btn-sm" onclick="BrainMap.switchView('spiral')" id="view-spiral">Spiral</button>
-      <button class="btn btn-sm" onclick="BrainMap.switchView('grid')" id="view-grid">Nodes</button>
+      <button class="btn btn-sm" onclick="toggle3D()" id="btn-3d" title="Toggle 3D mode" style="background:var(--bg-tertiary);font-weight:600">🔮 3D</button>
+      <span style="width:1px;height:16px;background:var(--border);margin:0 4px"></span>
+      <!-- 2D views -->
+      <span id="views-2d">
+        <button class="btn btn-sm" onclick="BrainMap.switchView('graph')" id="view-graph" style="background:var(--bg-tertiary);font-weight:600">Graph</button>
+        <button class="btn btn-sm" onclick="BrainMap.switchView('tree')" id="view-tree">Tree</button>
+        <button class="btn btn-sm" onclick="BrainMap.switchView('spiral')" id="view-spiral">Spiral</button>
+        <button class="btn btn-sm" onclick="BrainMap.switchView('grid')" id="view-grid">Grid</button>
+        <button class="btn btn-sm" onclick="BrainMap.switchView('radial')" id="view-radial">Radial</button>
+        <button class="btn btn-sm" onclick="BrainMap.switchView('cluster')" id="view-cluster">Cluster</button>
+        <span style="width:1px;height:16px;background:var(--border);margin:0 4px"></span>
+        <button class="btn btn-sm" onclick="BrainMap.rotateGraph(15)" title="Rotate">↻</button>
+        <button class="btn btn-sm" onclick="BrainMap.rotateGraph(-15)" title="Rotate">↺</button>
+        <button class="btn btn-sm" onclick="BrainMap.resetRotation()" title="Reset">0°</button>
+        <button class="btn btn-sm" onclick="BrainMap.toggleLabels()" id="btn-toggle-labels">Hide Labels</button>
+      </span>
+      <!-- 3D views (hidden by default) -->
+      <span id="views-3d" style="display:none">
+        <button class="btn btn-sm" onclick="BrainMap3D.switchView('force3d')" id="view3d-force3d" style="background:var(--bg-tertiary);font-weight:600">Force</button>
+        <button class="btn btn-sm" onclick="BrainMap3D.switchView('tree3d')" id="view3d-tree3d">Tree</button>
+        <button class="btn btn-sm" onclick="BrainMap3D.switchView('spiral3d')" id="view3d-spiral3d">Spiral</button>
+        <button class="btn btn-sm" onclick="BrainMap3D.switchView('helix3d')" id="view3d-helix3d">Helix</button>
+        <button class="btn btn-sm" onclick="BrainMap3D.switchView('sphere3d')" id="view3d-sphere3d">Sphere</button>
+        <button class="btn btn-sm" onclick="BrainMap3D.switchView('grid3d')" id="view3d-grid3d">Grid</button>
+        <button class="btn btn-sm" onclick="BrainMap3D.switchView('cluster3d')" id="view3d-cluster3d">Cluster</button>
+        <button class="btn btn-sm" onclick="BrainMap3D.switchView('radial3d')" id="view3d-radial3d">Radial</button>
+        <span style="width:1px;height:16px;background:var(--border);margin:0 4px"></span>
+        <button class="btn btn-sm" onclick="BrainMap3D.toggleEdges()" id="btn-toggle-edges-3d">Hide Edges</button>
+        <button class="btn btn-sm" onclick="BrainMap3D.toggleLabels()" id="btn-toggle-labels-3d">Hide Labels</button>
+        <button class="btn btn-sm" onclick="BrainMap3D.resetCamera()" title="Reset camera">🎥 Reset</button>
+        <button class="btn btn-sm" onclick="BrainMap3D.exportPNG()" title="Export 3D render">📷 PNG</button>
+      </span>
+      <span style="width:1px;height:16px;background:var(--border);margin:0 4px"></span>
+      <button class="btn btn-sm" onclick="BrainMap.exportJSON()" title="Export data as JSON">💾 JSON</button>
     </div>
   </header>
-  <div style="display:flex;height:400px;background:var(--bg-primary);border-radius:0 0 var(--radius-lg) var(--radius-lg);overflow:hidden">
-    <!-- Legend -->
+  <div style="position:relative;height:400px;background:var(--bg-primary);border-radius:0 0 var(--radius-lg) var(--radius-lg);overflow:hidden">
+    <!-- 2D Legend -->
+    <div id="legend-2d" style="position:absolute;left:0;top:0;bottom:0;width:180px;padding:12px;border-right:1px solid var(--border-subtle);overflow-y:auto;font-size:11px;z-index:5;background:var(--bg-secondary)">
     <div id="brain-map-legend" style="width:180px;padding:12px;border-right:1px solid var(--border-subtle);overflow-y:auto;font-size:11px;flex-shrink:0;background:var(--bg-secondary)">
       <div style="font-weight:600;color:var(--text-primary);margin-bottom:8px;font-size:12px">Node Shapes</div>
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
@@ -70,6 +101,27 @@
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
         <svg width="16" height="16"><circle cx="8" cy="8" r="7" fill="#FF8C42" stroke="#4b5563" stroke-width="1"/><text x="3" y="12" font-size="9">👁️</text></svg>
         <span style="color:var(--text-secondary)">Sensitive</span>
+      </div>
+
+      <div style="font-weight:600;color:var(--text-primary);margin-bottom:8px;font-size:12px">2D Views</div>
+      <div style="color:var(--text-secondary);margin-bottom:8px;font-size:10px;line-height:1.4">
+        <b>Graph</b> — Force-directed<br>
+        <b>Tree</b> — Hierarchical BFS<br>
+        <b>Spiral</b> — Golden angle<br>
+        <b>Grid</b> — Even grid<br>
+        <b>Radial</b> — Concentric rings<br>
+        <b>Cluster</b> — Grouped by type
+      </div>
+      <div style="font-weight:600;color:var(--text-primary);margin-bottom:8px;font-size:12px">3D Views</div>
+      <div style="color:var(--text-secondary);margin-bottom:8px;font-size:10px;line-height:1.4">
+        <b>Force</b> — 3D force-directed<br>
+        <b>Tree</b> — Hierarchical cone<br>
+        <b>Spiral</b> — Double helix<br>
+        <b>Helix</b> — Triple intertwined spirals<br>
+        <b>Sphere</b> — Fibonacci sphere<br>
+        <b>Grid</b> — Volumetric cube<br>
+        <b>Cluster</b> — Spherical clusters<br>
+        <b>Radial</b> — 3D concentric shells
       </div>
 
       <div style="font-weight:600;color:var(--text-primary);margin-bottom:8px;font-size:12px">Edge Types</div>
@@ -112,8 +164,10 @@
       </div>
     </div>
 
-    <!-- Canvas -->
-    <div id="brain-map" style="flex:1;width:100%;height:100%"></div>
+    <!-- 2D Canvas -->
+    <div id="brain-map" style="position:absolute;left:180px;top:0;right:0;bottom:0;width:calc(100% - 180px);height:100%"></div>
+    <!-- 3D Canvas (hidden by default) -->
+    <div id="brain-map-3d" style="position:absolute;left:0;top:0;right:0;bottom:0;width:100%;height:100%;display:none"></div>
   </div>
 </div>
 
@@ -200,9 +254,47 @@
     }
   };
 
+  // 3D toggle
+  window._is3D = false;
+  window.toggle3D = function() {
+    window._is3D = !window._is3D;
+    var map2d = document.getElementById('brain-map');
+    var map3d = document.getElementById('brain-map-3d');
+    var legend2d = document.getElementById('legend-2d');
+    var views2d = document.getElementById('views-2d');
+    var views3d = document.getElementById('views-3d');
+    var btn3d = document.getElementById('btn-3d');
+    if (window._is3D) {
+      if (map2d) map2d.style.display = 'none';
+      if (map3d) map3d.style.display = 'block';
+      if (legend2d) legend2d.style.display = 'none';
+      if (views2d) views2d.style.display = 'none';
+      if (views3d) views3d.style.display = 'inline';
+      if (btn3d) { btn3d.style.background = 'var(--accent)'; btn3d.style.color = '#fff'; }
+      // Init 3D and load data
+      BrainMap3D.init('brain-map-3d');
+      BrainMap3D.loadNodes(window._brainNodes || [], window._brainEdges || []);
+    } else {
+      if (map2d) map2d.style.display = 'block';
+      if (map3d) map3d.style.display = 'none';
+      if (legend2d) legend2d.style.display = 'block';
+      if (views2d) views2d.style.display = 'inline';
+      if (views3d) views3d.style.display = 'none';
+      if (btn3d) { btn3d.style.background = ''; btn3d.style.color = ''; }
+    }
+  };
+
   // Init brain map after DOM ready
   requestAnimationFrame(function(){
     if(window.BrainMap) BrainMap.init('brain-map');
+    // Load data and store for 3D
+    Promise.all([
+      fetch('/api/brain-map/nodes').then(function(r){return r.json();}),
+      fetch('/api/brain-map/edges').then(function(r){return r.json();})
+    ]).then(function(res){
+      window._brainNodes = res[0].nodes || [];
+      window._brainEdges = res[1].edges || [];
+    }).catch(function(){});
   });
 })();
 </script>

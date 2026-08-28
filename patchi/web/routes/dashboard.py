@@ -100,7 +100,7 @@ async def dashboard(request: Request):
 
     return templates.TemplateResponse(
         request,
-        "dashboard_v2.html",
+        "dashboard.html",
         {
             "request": request,
             **brain_data,
@@ -121,7 +121,7 @@ async def brain_map_page(request: Request):
     from patchi.core import memory as mem
     layers_data = mem.get_layers(root)
     return templates.TemplateResponse(
-        request, "brain_map_v2.html", {"request": request, "layers_data": layers_data}
+        request, "brain.html", {"request": request, "layers_data": layers_data}
     )
 
 
