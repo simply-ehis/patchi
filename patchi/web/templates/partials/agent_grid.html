@@ -13,7 +13,7 @@
     <tr>
       <td style="font-weight:500">{{ a.name }}</td>
       <td>
-        {% if a.status == 'done' or a.status == 'clean' %}
+        {% if a.status == 'done' %}
           <span class="badge badge-low">clean</span>
         {% elif a.status == 'failed' %}
           <span class="badge badge-critical">failed</span>
@@ -29,6 +29,6 @@
 </table>
 {% else %}
 <div style="padding:12px;color:var(--text-dim);font-size:12px">
-  No agent data yet. Run a scan with <code>p scan</code> or click "Run Scan" above.
+  No agent data yet. Run a scan first.
 </div>
 {% endif %}

@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import json
 import logging
 from pathlib import Path
 
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.templating import Jinja2Templates
 from starlette.templating import Jinja2Templates as _Jinja2Templates
 
 from patchi.core.tenant import tenant_context
@@ -21,8 +23,8 @@ async def charter_page(request: Request) -> HTMLResponse:
     """Render the charter page with rules and violations."""
     root = request.app.state.root
     with tenant_context(root):
+        from patchi.core.security.charter import Charter, load_charter
         from patchi.core.memory import get_brain
-        from patchi.core.security.charter import load_charter
 
         charter = load_charter(root)
         brain = get_brain(root)
@@ -31,10 +33,8 @@ async def charter_page(request: Request) -> HTMLResponse:
         violations = []
         if charter.rules and brain:
             try:
+                from patchi.core.security.charter import check_boundary_violations, check_convention_violations
                 from patchi.core.memory import get_layers
-                from patchi.core.security.charter import (
-                    check_boundary_violations,
-                )
 
                 layers = get_layers(root)
                 import_edges = []
@@ -103,11 +103,13 @@ async def check_violations(request: Request) -> JSONResponse:
     """Check charter violations against current codebase."""
     root = request.app.state.root
     with tenant_context(root):
-        from patchi.core.memory import get_brain, get_layers
         from patchi.core.security.charter import (
-            check_boundary_violations,
+            Charter,
             load_charter,
+            check_boundary_violations,
+            check_convention_violations,
         )
+        from patchi.core.memory import get_brain, get_layers
 
         charter = load_charter(root)
         brain = get_brain(root)
@@ -155,12 +157,11 @@ async def charter_autofix(request: Request) -> JSONResponse:
     paths = body.get("paths", [])
 
     with tenant_context(root):
-        from pathlib import Path
-
         from patchi.core.security.auto_fix_proactive import (
             proactive_fix_files,
         )
         from patchi.core.security.charter import load_charter
+        from pathlib import Path
 
         charter = load_charter(root)
         if not charter.rules:

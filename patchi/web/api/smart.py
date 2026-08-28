@@ -78,15 +78,6 @@ async def smart_run(req: SmartRunRequest, request: Request):
     }
 
 
-@router.post("/api/smart/cancel")
-async def smart_cancel(request: Request):
-    """Cancel a running Smart Agent orchestrator (best-effort)."""
-    # Currently the orchestrator runs as a fire-and-forget asyncio task;
-    # cancelling is cooperative. We acknowledge and let the UI reset its
-    # local state. Future: track task handle for true cancellation.
-    return {"success": True, "message": "Cancel acknowledged — UI reset; server task will wind down"}
-
-
 _SMART_HTML = None
 
 

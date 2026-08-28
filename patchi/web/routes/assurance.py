@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from fastapi import APIRouter, Request
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
 from patchi.core.tenant import tenant_context
@@ -218,11 +218,11 @@ async def run_dast_scan(request: Request):
     """Trigger a DAST scan and return results."""
     root = request.app.state.root
     try:
+        from patchi.core.security.dast_agent import DASTAgent
+        from patchi.core import memory as mem
+
         # Discover running app URL
         import httpx
-
-        from patchi.core import memory as mem
-        from patchi.core.security.dast_agent import DASTAgent
         target_url = None
         for port in (8000, 3000, 5000, 8080, 1612):
             url = f"http://127.0.0.1:{port}"

@@ -6,11 +6,6 @@
 (function () {
     'use strict';
 
-    // Guard: only run on the main dashboard page (has agentFeed element)
-    if (!document.getElementById('agentFeed')) {
-        return;
-    }
-
     // ── State ──────────────────────────────────────────────────────
     const state = {
         ws: null,

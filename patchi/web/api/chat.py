@@ -1,24 +1,16 @@
-"""Chat API — The Brain. Uses the same Orchestrator as CLI `p chat`.
-
-This is NOT a thin LLM wrapper — it has full access to:
-  - Read/write any file in the project
-  - Run any CLI command
-  - Spawn any agent (security, testing, fixing, etc.)
-  - Access the full brain/memory state
-  - Execute tools from the tool registry
-"""
+"""Chat API — AI chat with smart brain context injection."""
 
 from __future__ import annotations
-
-import json
-import logging
-from pathlib import Path
 
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 
 router = APIRouter(prefix="/api/chat")
-_log = logging.getLogger("patchi.web.chat")
+
+BASE_PROMPT = """You are Patchi, a security assistant. You help developers understand and fix security issues.
+
+Answer concisely. If asked about specific findings, explain what the issue is and how to fix it.
+Use markdown for formatting."""
 
 
 def _build_context(brain: dict, message: str) -> str:
@@ -99,7 +91,6 @@ def _build_context(brain: dict, message: str) -> str:
 
 @router.post("")
 async def chat_message(request: Request) -> JSONResponse:
-    """Process a chat message through the Orchestrator (same as CLI `p chat`)."""
     body = await request.json()
     message = body.get("message", "")
 
@@ -107,120 +98,34 @@ async def chat_message(request: Request) -> JSONResponse:
         return JSONResponse({"ok": False, "error": "No message"}, status_code=400)
 
     root = request.app.state.root
+    from patchi.core import config as cfg
+    from patchi.core import memory as mem
 
     try:
-        from patchi.core.ai.orchestrator import Orchestrator
-        from patchi.web.ws import manager
+        config = cfg.load(root)
+    except Exception:
+        config = {}
 
-        import asyncio
+    brain = mem.get_brain(root)
 
-        loop = asyncio.get_event_loop()
-        events = []
+    context = _build_context(brain, message)
+    system = f"{BASE_PROMPT}\n\n{context}" if context else BASE_PROMPT
 
-        def on_event(payload: dict) -> None:
-            events.append(payload)
-            try:
-                asyncio.run_coroutine_threadsafe(
-                    manager.broadcast(payload["event"], payload["data"]), loop
-                )
-            except Exception:
-                pass
-
-        def on_progress(msg: str) -> None:
-            try:
-                asyncio.run_coroutine_threadsafe(
-                    manager.broadcast("agent.progress", {
-                        "agent": "chat",
-                        "progress_pct": 0,
-                        "current_file": msg,
-                    }), loop
-                )
-            except Exception:
-                pass
-
-        orchestrator = Orchestrator(root, on_event=on_event, on_progress=on_progress)
-
-        # Check for direct file operations (same as CLI)
-        read_patterns = ["read ", "show ", "cat ", "what's in ", "what is in ", "open ", "display "]
-        if any(message.lower().startswith(p) for p in read_patterns):
-            file_path = message
-            for p in read_patterns:
-                if file_path.lower().startswith(p):
-                    file_path = file_path[len(p):].strip()
-                    break
-            content = orchestrator.read_file(file_path)
-            if not content.startswith("ERROR:"):
-                return JSONResponse({"ok": True, "response": f"📄 **{file_path}**\n\n```\n{content}\n```"})
-            else:
-                return JSONResponse({"ok": True, "response": content})
-
-        # Check for command execution
-        if message.lower().startswith(("run ", "exec ")):
-            command = message
-            for p in ["run ", "exec "]:
-                if command.lower().startswith(p):
-                    command = command[len(p):].strip()
-                    break
-            result = orchestrator.run_command(command)
-            if result.get("success"):
-                stdout = result.get("stdout", "Command succeeded")
-                return JSONResponse({"ok": True, "response": f"✅ Command succeeded\n\n```\n{stdout}\n```"})
-            else:
-                error = result.get("error", result.get("stderr", "unknown"))
-                return JSONResponse({"ok": True, "response": f"❌ Command failed: {error}"})
-
-        # Check for agent spawning
-        spawn_patterns = ["spawn ", "run agent ", "use agent ", "activate "]
-        if any(message.lower().startswith(p) for p in spawn_patterns):
-            agent_type = message
-            for p in spawn_patterns:
-                if agent_type.lower().startswith(p):
-                    agent_type = agent_type[len(p):].strip()
-                    break
-            for atype in ["security", "scanner", "proactive", "council", "smart"]:
-                if atype in agent_type.lower():
-                    result = orchestrator.spawn_agent(atype, goal=message)
-                    if result.get("success"):
-                        return JSONResponse({
-                            "ok": True,
-                            "response": f"🤖 Agent `{atype}` completed\n\n```json\n{json.dumps(result.get('result', {}), indent=2, default=str)[:2000]}\n```"
-                        })
-                    else:
-                        return JSONResponse({"ok": True, "response": f"❌ Agent failed: {result.get('error', 'unknown')}"})
-
-        # Default: LLM-powered orchestration (same as CLI)
-        brain = __import__("patchi.core.memory", fromlist=["get_brain"]).get_brain(root)
-        context = _build_context(brain, message)
-
-        system_prompt = """You are Patchi, the intelligent brain that controls the entire Patchi system.
-
-You are NOT just a chat interface — you ARE the orchestrator with direct control over:
-- Reading and writing files in the project
-- Running any CLI command (scan, test, fix, etc.)
-- Spawning specialized agents (security, testing, fixing, etc.)
-- Accessing the full brain/memory state
-- Making decisions based on context
-
-When the user asks you to DO something, determine what tools/agents are needed.
-When the user asks about files, you can read and explain them.
-You have full control. Use it wisely."""
-        if context:
-            system_prompt += f"\n\nRelevant context:\n{context}"
-
-        from patchi.core.config import load as load_config
+    try:
         from patchi.core.ai.client import call_ai
 
-        config = load_config(root)
-        response = call_ai(config, system_prompt, message, max_tokens=1500)
-
-        if not response:
-            response = "I don't have an AI model configured. Set up with `p key add` or `p model set <model>`."
-
-        return JSONResponse({"ok": True, "response": response})
-
+        response = call_ai(config, system, message, max_tokens=1000)
+        return JSONResponse(
+            {
+                "ok": True,
+                "response": response
+                or "I couldn't generate a response. Make sure an AI key is configured with 'p key add'.",
+            }
+        )
     except Exception as e:
-        _log.error("Chat error: %s", e)
-        return JSONResponse({
-            "ok": True,
-            "response": f"Error: {e}. Make sure an AI key is configured with `p key add`.",
-        })
+        return JSONResponse(
+            {
+                "ok": True,
+                "response": f"AI not available: {e}. Run 'p key add' to configure an AI provider.",
+            }
+        )

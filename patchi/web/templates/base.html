@@ -3,15 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-  <meta http-equiv="Pragma" content="no-cache">
-  <meta http-equiv="Expires" content="0">
   <title>Patchi — Security Dashboard</title>
-  <link rel="stylesheet" href="/static/style.css?v=2">
-  <script src="/static/htmx.min.js?v=2" onerror="var s=document.createElement('script');s.src='https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js';document.head.appendChild(s)"></script>
-  <script src="/static/konva.min.js?v=2" onerror="var s=document.createElement('script');s.src='https://unpkg.com/konva@9/konva.min.js';document.head.appendChild(s)"></script>
-  <script src="/static/charts.js?v=2"></script>
-  <script src="/static/canvas.js?v=2"></script>
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="/static/htmx.min.js" onerror="var s=document.createElement('script');s.src='https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js';document.head.appendChild(s)"></script>
+  <script src="/static/konva.min.js" onerror="var s=document.createElement('script');s.src='https://unpkg.com/konva@9/konva.min.js';document.head.appendChild(s)"></script>
+  <script src="/static/charts.js"></script>
+  <script src="/static/canvas.js"></script>
   <style>
     /* Global loading states */
     .loading-overlay {
@@ -137,12 +134,6 @@
     <a class="nav-btn" href="/brain" hx-get="/brain" hx-target=".content" hx-push-url="true">
       <span class="nav-icon">⬡</span><span class="nav-label">Brain</span>
     </a>
-    <a class="nav-btn" href="/council" hx-get="/council" hx-target=".content" hx-push-url="true">
-      <span class="nav-icon">🏛</span><span class="nav-label">Council</span>
-    </a>
-    <a class="nav-btn" href="/attacks" hx-get="/attacks" hx-target=".content" hx-push-url="true">
-      <span class="nav-icon">⚡</span><span class="nav-label">Attacks</span>
-    </a>
     <a class="nav-btn" href="/assurance" hx-get="/assurance" hx-target=".content" hx-push-url="true">
       <span class="nav-icon">🛡</span><span class="nav-label">Assurance</span>
     </a>
@@ -157,12 +148,6 @@
     </a>
     <a class="nav-btn" href="/history" hx-get="/history" hx-target=".content" hx-push-url="true">
       <span class="nav-icon">⏱</span><span class="nav-label">History</span>
-    </a>
-    <a class="nav-btn" href="/doctor" hx-get="/doctor" hx-target=".content" hx-push-url="true">
-      <span class="nav-icon">🩺</span><span class="nav-label">Doctor</span>
-    </a>
-    <a class="nav-btn" href="/hosted" hx-get="/hosted" hx-target=".content" hx-push-url="true">
-      <span class="nav-icon">☁</span><span class="nav-label">Hosted</span>
     </a>
     <a class="nav-btn" href="/settings" hx-get="/settings" hx-target=".content" hx-push-url="true">
       <span class="nav-icon">⚙</span><span class="nav-label">Settings</span>
@@ -196,37 +181,24 @@
 </div>
 
 <script>
-// ── Toast ──
-function toast(msg, type = 'info') {
-  const el = document.getElementById('toast');
-  if (!el) return;
-  el.textContent = msg;
-  el.className = `toast visible ${type}`;
-  clearTimeout(el._t);
-  el._t = setTimeout(() => { el.className = 'toast'; }, 4000);
-}
-
-// ── Global loading overlay ──
-window.showGlobalLoading = function(text) {
-  const overlay = document.getElementById('global-loading');
-  const textEl = document.getElementById('loading-text');
-  if (overlay && textEl) {
-    textEl.textContent = text || 'Loading…';
-    overlay.classList.add('visible');
+// Re-initialize Brain Map and charts after HTMX content swaps
+document.body.addEventListener('htmx:afterSettle', function(evt) {
+  if (evt.detail.target.querySelector('#brain-map')) {
+    if (window.BrainMap) BrainMap.init('brain-map');
   }
-};
-window.hideGlobalLoading = function() {
-  const overlay = document.getElementById('global-loading');
-  if (overlay) overlay.classList.remove('visible');
-};
+  if (evt.detail.target.querySelector('#health-ring')) {
+    // Charts are re-initialized by the inline script in dashboard.html
+  }
+});
 
-// ── HTMX: loading states ──
+// HTMX loading indicators
 document.body.addEventListener('htmx:beforeRequest', function(evt) {
   document.body.classList.add('loading');
   const target = evt.detail.target;
   if (target && target.closest('.content')) {
     target.closest('.content').classList.add('loading');
   }
+  // Show loading on buttons
   const btn = evt.detail.elt;
   if (btn && btn.classList && btn.classList.contains('btn')) {
     btn.classList.add('loading');
@@ -237,16 +209,18 @@ document.body.addEventListener('htmx:afterSettle', function(evt) {
   document.body.classList.remove('loading');
   const content = document.querySelector('.content');
   if (content) content.classList.remove('loading');
+  // Remove loading from buttons
   document.querySelectorAll('.btn.loading').forEach(btn => btn.classList.remove('loading'));
-  // Re-initialize Brain Map after HTMX swap
-  if (evt.detail.target.querySelector('#brain-map')) {
-    if (window.BrainMap) {
-      requestAnimationFrame(function() { BrainMap.init('brain-map'); });
-    }
+});
+
+document.body.addEventListener('htmx:beforeRequest', function(evt) {
+  const btn = evt.detail.elt;
+  if (btn && btn.classList && btn.classList.contains('btn')) {
+    btn.classList.add('loading');
   }
 });
 
-// ── HTMX: error handling ──
+// HTMX error handling
 document.body.addEventListener('htmx:responseError', function(evt) {
   const detail = evt.detail;
   if (detail.xhr && detail.xhr.status) {
@@ -254,18 +228,133 @@ document.body.addEventListener('htmx:responseError', function(evt) {
   }
 });
 
-// ── HTMX: active nav state ──
-document.body.addEventListener('htmx:afterSwap', function(evt) {
-  if (evt.detail.requestConfig && evt.detail.requestConfig.path) {
-    const path = evt.detail.requestConfig.path.replace(/\/$/, '') || '/';
-    document.querySelectorAll('.rail .nav-btn').forEach(btn => {
-      const href = btn.getAttribute('href').replace(/\/$/, '') || '/';
-      btn.classList.toggle('active', href === path);
-    });
+// Global loading indicator for non-HTMX requests
+window.showGlobalLoading = function(text) {
+  const overlay = document.getElementById('global-loading');
+  const textEl = document.getElementById('loading-text');
+  if (overlay && textEl) {
+    textEl.textContent = text || 'Loading…';
+    overlay.classList.add('visible');
+  }
+};
+
+window.hideGlobalLoading = function() {
+  const overlay = document.getElementById('global-loading');
+  if (overlay) {
+    overlay.classList.remove('visible');
+  }
+};
+
+// Toast notifications
+function toast(msg, type = 'info') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `toast visible ${type}`;
+  clearTimeout(el._t);
+  el._t = setTimeout(() => { el.className = 'toast'; }, 4000);
+}
+
+// Global loading indicator for non-HTMX requests
+window.showGlobalLoading = function(text) {
+  const overlay = document.getElementById('global-loading');
+  const textEl = document.getElementById('loading-text');
+  if (overlay && textEl) {
+    textEl.textContent = text || 'Loading…';
+    overlay.classList.add('visible');
+  }
+};
+
+window.hideGlobalLoading = function() {
+  const overlay = document.getElementById('global-loading');
+  if (overlay) {
+    overlay.classList.remove('visible');
+  }
+};
+
+// Toast notifications
+function toast(msg, type = 'info') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `toast visible ${type}`;
+  clearTimeout(el._t);
+  el._t = setTimeout(() => { el.className = 'toast'; }, 4000);
+}
+
+// Re-initialize Brain Map and charts after HTMX content swaps
+document.body.addEventListener('htmx:afterSettle', function(evt) {
+  if (evt.detail.target.querySelector('#brain-map')) {
+    if (window.BrainMap) BrainMap.init('brain-map');
+  }
+  if (evt.detail.target.querySelector('#health-ring')) {
+    // Charts are re-initialized by the inline script in dashboard.html
   }
 });
 
-// ── WebSocket ──
+// HTMX loading indicators
+document.body.addEventListener('htmx:beforeRequest', function(evt) {
+  document.body.classList.add('loading');
+  const target = evt.detail.target;
+  if (target && target.closest('.content')) {
+    target.closest('.content').classList.add('loading');
+  }
+  // Show loading on buttons
+  const btn = evt.detail.elt;
+  if (btn && btn.classList && btn.classList.contains('btn')) {
+    btn.classList.add('loading');
+  }
+});
+
+document.body.addEventListener('htmx:afterSettle', function(evt) {
+  document.body.classList.remove('loading');
+  const content = document.querySelector('.content');
+  if (content) content.classList.remove('loading');
+  // Remove loading from buttons
+  document.querySelectorAll('.btn.loading').forEach(btn => btn.classList.remove('loading'));
+
+  // Re-initialize Brain Map and charts after HTMX content swaps
+  if (evt.detail.target.querySelector('#brain-map')) {
+    if (window.BrainMap) BrainMap.init('brain-map');
+  }
+  if (evt.detail.target.querySelector('#health-ring')) {
+    // Charts are re-initialized by the inline script in dashboard.html
+  }
+});
+
+// HTMX error handling
+document.body.addEventListener('htmx:responseError', function(evt) {
+  const detail = evt.detail;
+  if (detail.xhr && detail.xhr.status) {
+    toast(`Error ${detail.xhr.status}: ${detail.xhr.statusText}`, 'error');
+  }
+});
+
+// Global loading indicator for non-HTMX requests
+window.showGlobalLoading = function(text) {
+  const overlay = document.getElementById('global-loading');
+  const textEl = document.getElementById('loading-text');
+  if (overlay && textEl) {
+    textEl.textContent = text || 'Loading…';
+    overlay.classList.add('visible');
+  }
+};
+
+window.hideGlobalLoading = function() {
+  const overlay = document.getElementById('global-loading');
+  if (overlay) {
+    overlay.classList.remove('visible');
+  }
+};
+
+// Toast notifications
+function toast(msg, type = 'info') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `toast visible ${type}`;
+  clearTimeout(el._t);
+  el._t = setTimeout(() => { el.className = 'toast'; }, 4000);
+}
+
+// WebSocket connection with exponential backoff reconnect (ADD-02)
 let _wsDelay = 1000;
 let _wsReconnectTimer = null;
 const wsStatus = document.getElementById('ws-status');
@@ -275,23 +364,30 @@ function connectWS() {
   const ws = window._ws = new WebSocket(`${wsProto}//${location.host}/ws`);
 
   ws.onopen = () => {
-    _wsDelay = 1000;
+    _wsDelay = 1000; // reset backoff on successful connect
     wsStatus.textContent = 'Connected';
     wsStatus.className = 'ws-status connected';
+    // Request current status in case we connected mid-scan
     ws.send(JSON.stringify({action: 'status.request', data: {}}));
+    // Notify BrainMap to re-attach event listeners after reconnect
     if (window.BrainMap && window.BrainMap._relistenWs) {
       window.BrainMap._relistenWs();
     }
   };
+
   ws.onclose = () => {
     wsStatus.textContent = `Reconnecting in ${Math.round(_wsDelay / 1000)}s…`;
     wsStatus.className = 'ws-status disconnected';
     _wsReconnectTimer = setTimeout(() => {
-      _wsDelay = Math.min(_wsDelay * 2, 30000);
+      _wsDelay = Math.min(_wsDelay * 2, 30000); // cap at 30s
       connectWS();
     }, _wsDelay);
   };
-  ws.onerror = () => ws.close();
+
+  ws.onerror = () => {
+    ws.close(); // triggers onclose → reconnect loop
+  };
+
   ws.onmessage = (event) => {
     try {
       const msg = JSON.parse(event.data);
@@ -299,32 +395,43 @@ function connectWS() {
     } catch (_) {}
   };
 }
+
 connectWS();
 
 function handleWSEvent(event, data) {
+  // Update health badge
   if (event === 'status.update' && data.health_score !== undefined) {
     const health = document.getElementById('topbar-health');
     health.textContent = `${data.health_score}/100`;
     health.className = `health-badge score-${getGrade(data.health_score)}`;
   }
+
+  // Scan progress
   if (event === 'scan.started') {
     const scan = document.getElementById('topbar-scan');
     scan.textContent = `Scanning (${data.agent_count} agents)`;
     scan.className = 'scan-badge scanning';
   }
+
   if (event === 'scan.complete') {
     const scan = document.getElementById('topbar-scan');
     scan.textContent = `${data.total_findings} findings`;
     scan.className = 'scan-badge complete';
   }
+
+  // Toast for findings
   if (event === 'scan.finding') {
     if (data.severity === 'critical' || data.severity === 'high') {
       toast(`${data.severity.toUpperCase()}: ${data.message}`, data.severity);
     }
   }
+
+  // Guard alerts
   if (event === 'guard.alert') {
     toast(`Guard: ${data.title}`, data.severity);
   }
+
+  // Dispatch to Brain Map if present
   if (window.BrainMap && window.BrainMap.handleEvent) {
     window.BrainMap.handleEvent(event, data);
   }
@@ -337,6 +444,29 @@ function getGrade(score) {
   if (score >= 30) return 'poor';
   return 'critical';
 }
+
+function toast(msg, type = 'info') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `toast visible ${type}`;
+  clearTimeout(el._t);
+  el._t = setTimeout(() => { el.className = 'toast'; }, 4000);
+}
+
+// ── Active nav state on HTMX navigation ──
+document.body.addEventListener('htmx:afterSwap', function(evt) {
+  if (evt.detail.requestConfig && evt.detail.requestConfig.path) {
+    const path = evt.detail.requestConfig.path.replace(/\/$/, '') || '/';
+    document.querySelectorAll('.rail .nav-btn').forEach(btn => {
+      const href = btn.getAttribute('href').replace(/\/$/, '') || '/';
+      if (href === path) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+    });
+  }
+});
 </script>
 </body>
 </html>
