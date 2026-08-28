@@ -161,6 +161,7 @@ def create_app(root: Path) -> FastAPI:
     from patchi.web.api_legacy import router as legacy_router
     from patchi.web.routes.brain import router as brain_router
     from patchi.web.routes.chat import router as chat_router
+    from patchi.web.routes.council import router as council_router
     from patchi.web.routes.dashboard import router as dashboard_router
 
     try:
@@ -170,6 +171,13 @@ def create_app(root: Path) -> FastAPI:
 
         _logging.getLogger("patchi.web").warning("Dashboard v2 not available: %s", e)
         dashboard_v2_router = None
+    try:
+        from patchi.web.routes.landing import router as landing_router
+    except Exception as e:
+        import logging as _logging2
+
+        _logging2.getLogger("patchi.web").warning("Landing not available: %s", e)
+        landing_router = None
     from patchi.web.api.cicd import router as cicd_router
     from patchi.web.api.live_testing import router as live_testing_api_router
     from patchi.web.api.smart import router as smart_api_router
@@ -188,6 +196,7 @@ def create_app(root: Path) -> FastAPI:
 
     app.include_router(legacy_router)
     app.include_router(dashboard_router)
+    app.include_router(council_router)
     app.include_router(findings_router)
     app.include_router(charter_router)
     app.include_router(review_router)
@@ -217,6 +226,8 @@ def create_app(root: Path) -> FastAPI:
     app.include_router(dast_evidence_router)
     if dashboard_v2_router is not None:
         app.include_router(dashboard_v2_router)
+    if landing_router is not None:
+        app.include_router(landing_router)
 
     # WebSocket endpoint
     @app.websocket("/ws")

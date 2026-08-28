@@ -6,7 +6,12 @@
   <div class="card">
     <div class="card-header">
       <span class="card-title">Brain Map — File Dependencies</span>
-      <span class="card-subtitle" id="brain-map-subtitle">Loading map…</span>
+      <div style="display:flex;gap:6px;align-items:center">
+        <button class="btn brain-view-btn active" data-view="graph" onclick="BrainMap.switchView('graph')">Graph</button>
+        <button class="btn brain-view-btn" data-view="tree" onclick="BrainMap.switchView('tree')">Tree</button>
+        <button class="btn brain-view-btn" data-view="spiral" onclick="BrainMap.switchView('spiral')">Spiral</button>
+        <button class="btn brain-view-btn" data-view="nodes" onclick="BrainMap.switchView('nodes')">Nodes</button>
+      </div>
     </div>
     <div class="brain-map-container">
       <div id="brain-map" class="brain-map-canvas"></div>
@@ -17,51 +22,66 @@
     </div>
   </div>
 
-  <!-- Health + Charts row -->
-  <div class="grid-3">
-    <!-- Health Score Ring -->
-    <div class="card">
-      <div class="card-header">
-        <span class="card-title">Health Score</span>
-        <span class="card-subtitle" id="health-score-subtitle">Computing…</span>
-      </div>
-      <div id="health-ring" class="chart-container">
-        <div class="loading-overlay" id="health-ring-loading">
-          <div class="loading-spinner"></div>
-          <div class="loading-text">Calculating health…</div>
-        </div>
-      </div>
+  <!-- Health Breakdown -->
+  {% if health_components %}
+  <div class="card" style="margin-top:12px">
+    <div class="card-header">
+      <span class="card-title">Health Breakdown</span>
+      <span class="card-subtitle">{{ health_score }}/100 — {{ health_grade }}</span>
     </div>
-
-    <!-- Language Breakdown -->
-    <div class="card">
-      <div class="card-header">
-        <span class="card-title">Languages</span>
-      </div>
-      <div id="language-donut" class="chart-container">
-        <div class="loading-overlay" id="language-donut-loading">
-          <div class="loading-spinner"></div>
-          <div class="loading-text">Analyzing languages…</div>
+    <div style="padding:16px">
+      {% for component, score in health_components.items() %}
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
+        <span style="width:140px;font-size:13px;color:var(--text-secondary)">{{ component.replace('_', ' ').title() }}</span>
+        <div style="flex:1;height:6px;background:var(--bg-hover);border-radius:3px;overflow:hidden">
+          <div style="width:{{ score }}%;height:100%;background:{% if score >= 80 %}var(--success){% elif score >= 50 %}var(--warning){% else %}var(--critical){% endif %};border-radius:3px"></div>
         </div>
+        <span style="width:36px;text-align:right;font-size:13px;font-weight:600">{{ score }}</span>
       </div>
+      {% endfor %}
     </div>
+  </div>
+  {% endif %}
 
-    <!-- Findings Timeline -->
-    <div class="card">
-      <div class="card-header">
-        <span class="card-title">Findings Trend</span>
+  <!-- Project Context -->
+  {% if project_purpose or project_domain %}
+  <div class="card" style="margin-top:12px">
+    <div class="card-header">
+      <span class="card-title">Project Context</span>
+    </div>
+    <div style="padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      {% if project_purpose %}
+      <div>
+        <div style="font-size:12px;color:var(--text-secondary);margin-bottom:4px">Purpose</div>
+        <div style="font-size:14px">{{ project_purpose }}</div>
       </div>
-      <div id="findings-timeline" class="chart-container">
-        <div class="loading-overlay" id="findings-timeline-loading">
-          <div class="loading-spinner"></div>
-          <div class="loading-text">Building timeline…</div>
+      {% endif %}
+      {% if project_domain %}
+      <div>
+        <div style="font-size:12px;color:var(--text-secondary);margin-bottom:4px">Domain</div>
+        <div style="font-size:14px">{{ project_domain }}</div>
+      </div>
+      {% endif %}
+      {% if languages %}
+      <div>
+        <div style="font-size:12px;color:var(--text-secondary);margin-bottom:4px">Languages</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          {% for lang, count in languages.items() %}
+          <span style="padding:2px 8px;background:var(--bg-hover);border-radius:4px;font-size:12px">{{ lang }} ({{ count }})</span>
+          {% endfor %}
         </div>
+      </div>
+      {% endif %}
+      <div>
+        <div style="font-size:12px;color:var(--text-secondary);margin-bottom:4px">Stats</div>
+        <div style="font-size:14px">{{ file_count }} files · {{ route_count }} routes · {{ framework }}</div>
       </div>
     </div>
   </div>
+  {% endif %}
 
-  <!-- Severity cards with loading states -->
-  <div class="grid-4" id="severity-cards">
+  <!-- Severity cards -->
+  <div class="grid-4" id="severity-cards" style="margin-top:12px">
     <div class="severity-card critical" id="severity-critical-card">
       <div class="severity-count skeleton" id="count-critical">—</div>
       <div class="severity-label">Critical</div>
@@ -80,29 +100,21 @@
     </div>
   </div>
 
-  <!-- Quick actions with loading states -->
-  <div class="card">
+  <!-- Quick actions -->
+  <div class="card" style="margin-top:12px">
     <div class="card-header">
       <span class="card-title">Quick Actions</span>
     </div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;padding:0 16px 16px">
       <button class="btn btn-primary" hx-post="/api/scan" hx-swap="none"
         onclick="this.classList.add('loading'); toast('Starting security scan…', 'info')"
         hx-on::after-request="this.classList.remove('loading')">
-        <span class="btn-text">▶ Run Scan</span>
-        <span class="btn-spinner" style="display:none;">⏳</span>
+        ▶ Run Scan
       </button>
       <button class="btn" style="background:var(--accent);color:#fff" hx-post="/api/scan?auto_fix=true" hx-swap="none"
         onclick="this.classList.add('loading'); toast('Scan + auto-fix started…', 'info')"
         hx-on::after-request="this.classList.remove('loading')">
-        <span class="btn-text">⚡ Scan + Fix</span>
-        <span class="btn-spinner" style="display:none;">⏳</span>
-      </button>
-      <button class="btn" hx-get="/api/scan?type=report" hx-swap="none"
-        onclick="this.classList.add('loading'); toast('Generating report…', 'info')"
-        hx-on::after-request="this.classList.remove('loading')">
-        <span class="btn-text">📊 Report</span>
-        <span class="btn-spinner" style="display:none;">⏳</span>
+        ⚡ Scan + Fix
       </button>
       <button class="btn" hx-get="/review" hx-target=".content" hx-push-url="true">
         ◪ Review Fixes
@@ -110,11 +122,14 @@
       <button class="btn" hx-get="/chat" hx-target=".content" hx-push-url="true">
         💬 Ask AI
       </button>
+      <button class="btn" hx-get="/assurance" hx-target=".content" hx-push-url="true">
+        🛡 Assurance
+      </button>
     </div>
   </div>
 
-  <!-- Recent findings with loading states -->
-  <div class="card">
+  <!-- Recent findings -->
+  <div class="card" style="margin-top:12px">
     <div class="card-header">
       <span class="card-title">Recent Findings</span>
       <a href="/findings" hx-get="/findings" hx-target=".content" hx-push-url="true"
@@ -138,11 +153,10 @@
     </div>
   </div>
 
-  <!-- Agent Status Grid with loading states -->
-  <div class="card">
+  <!-- Agent Status -->
+  <div class="card" style="margin-top:12px">
     <div class="card-header">
       <span class="card-title">Agent Status</span>
-      <span class="card-subtitle" id="agents-subtitle">Loading…</span>
     </div>
     <div id="agent-grid"
       hx-get="/api/agents/status"
@@ -160,61 +174,44 @@
   </div>
 </div>
 
+<style>
+  .brain-view-btn {
+    padding: 4px 12px;
+    font-size: 12px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.15s;
+  }
+  .brain-view-btn:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+  }
+  .brain-view-btn.active {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+  }
+</style>
+
 <script>
   (function() {
-    let chartsInitialized = false;
-
-    function showChartLoading(id, show) {
-      const el = document.getElementById(id + '-loading');
-      const canvas = document.getElementById(id);
-      if (el) el.style.display = show ? 'flex' : 'none';
-      if (canvas) canvas.style.opacity = show ? '0.3' : '1';
-    }
-
     function init() {
-      if (typeof Charts !== 'undefined') {
-        // Health ring
-        showChartLoading('health-ring', true);
-        Charts.healthRing('health-ring', {{ health_score }}, {{ health_components | tojson }});
-        showChartLoading('health-ring', false);
-
-        // Language donut
-        {% if languages %}
-        showChartLoading('language-donut', true);
-        Charts.languageDonut('language-donut', {{ languages | tojson }});
-        showChartLoading('language-donut', false);
-        {% endif %}
-
-        // Findings timeline
-        showChartLoading('findings-timeline', true);
-        fetch('/api/charts/timeline')
-          .then(r => r.json())
-          .then(data => {
-            Charts.findingsTimeline('findings-timeline', data.history || []);
-            showChartLoading('findings-timeline', false);
-          })
-          .catch(function(err) {
-            console.warn('Timeline chart error:', err);
-            showChartLoading('findings-timeline', false);
-          });
+      // Init brain map after canvas is laid out
+      if (typeof BrainMap !== 'undefined') {
+        requestAnimationFrame(function() {
+          BrainMap.init('brain-map');
+        });
       }
 
-      // Populate severity counts with skeleton loading
-      const severityEls = ['critical', 'high', 'medium', 'low'];
-      severityEls.forEach(sev => {
-        const el = document.getElementById('count-' + sev);
-        const card = document.getElementById('severity-' + sev + '-card');
-        if (el) {
-          el.classList.add('skeleton');
-          el.textContent = '—';
-        }
-      });
-
+      // Populate severity counts
       fetch('/api/findings')
-        .then(r => r.json())
-        .then(data => {
-          const findings = data.findings || [];
-          const counts = { critical: 0, high: 0, medium: 0, low: 0 };
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          var findings = data.findings || [];
+          var counts = { critical: 0, high: 0, medium: 0, low: 0 };
           findings.forEach(function(f) {
             var sev = (f.severity || 'info').toLowerCase();
             if (counts[sev] !== undefined) counts[sev]++;
@@ -225,13 +222,10 @@
               el.classList.remove('skeleton');
               el.textContent = counts[sev];
             }
-            var card = document.getElementById('severity-' + sev + '-card');
-            if (card) card.style.opacity = '1';
           });
         })
-        .catch(function(err) {
-          console.warn('Findings count error:', err);
-          severityEls.forEach(sev => {
+        .catch(function() {
+          ['critical', 'high', 'medium', 'low'].forEach(function(sev) {
             var el = document.getElementById('count-' + sev);
             if (el) el.classList.remove('skeleton');
           });

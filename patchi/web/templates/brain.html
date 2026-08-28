@@ -4,13 +4,68 @@
 <div class="brain-panel">
   <div class="card">
     <div class="card-header">
+      <span class="card-title">Brain Map — Interactive Visualization</span>
+      <div style="display:flex;gap:6px;align-items:center">
+        <button class="btn brain-view-btn active" data-view="graph" onclick="BrainMap.switchView('graph')">Graph</button>
+        <button class="btn brain-view-btn" data-view="tree" onclick="BrainMap.switchView('tree')">Tree</button>
+        <button class="btn brain-view-btn" data-view="spiral" onclick="BrainMap.switchView('spiral')">Spiral</button>
+        <button class="btn brain-view-btn" data-view="nodes" onclick="BrainMap.switchView('nodes')">Nodes</button>
+      </div>
+    </div>
+    <div class="brain-map-container">
+      <div id="brain-map" class="brain-map-canvas"></div>
+      <div class="loading-overlay" id="brain-map-loading" style="display:none;">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Building brain map…</div>
+      </div>
+    </div>
+    <div style="padding:8px 16px;display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--text-secondary)">
+      <span id="brain-map-info">Loading…</span>
+      <span>Drag to pan · Scroll to zoom · Right-click for details</span>
+    </div>
+  </div>
+
+  <!-- Brain Knowledge -->
+  <div class="card" style="margin-top:12px">
+    <div class="card-header">
       <span class="card-title">Brain Knowledge</span>
       <button class="btn" onclick="location.reload()">Refresh</button>
     </div>
-
     <div style="padding:16px;line-height:1.7;font-size:14px;max-width:800px">
       {{ brain_content }}
     </div>
   </div>
 </div>
+
+<style>
+  .brain-view-btn {
+    padding: 4px 12px;
+    font-size: 12px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.15s;
+  }
+  .brain-view-btn:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+  }
+  .brain-view-btn.active {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+  }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  if (typeof BrainMap !== 'undefined') {
+    requestAnimationFrame(function() {
+      BrainMap.init('brain-map');
+    });
+  }
+});
+</script>
 {% endblock %}

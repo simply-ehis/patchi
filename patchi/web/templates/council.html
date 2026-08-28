@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="dashboard">
+  <!-- Convene Form -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">🏛 Convene the Council</span>
+    </div>
+    <div style="padding:16px">
+      <p style="color:var(--text-secondary);font-size:13px;margin-bottom:12px">
+        Ask a question or describe an issue. Relevant personas will analyze it in parallel
+        and synthesize a unified recommendation with an action plan.
+      </p>
+      <div style="display:flex;gap:10px">
+        <input type="text" id="councilIssue"
+          placeholder="e.g. How do we secure the auth layer?"
+          style="flex:1;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;padding:10px 14px;color:var(--text-primary);font-size:14px;font-family:inherit;outline:none">
+        <button class="btn btn-primary" id="conveneBtn">Deliberate</button>
+      </div>
+      <div id="liveResult" style="margin-top:16px"></div>
+    </div>
+  </div>
+
+  <!-- Session History -->
+  <div class="card" style="margin-top:12px">
+    <div class="card-header">
+      <span class="card-title">📜 Session History</span>
+      <span class="card-subtitle">{{ council_sessions|length }} sessions</span>
+    </div>
+    <div style="padding:16px">
+      {% if council_sessions %}
+        {% for session in council_sessions %}
+        <div style="border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:12px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+            <strong style="font-size:14px">{{ session.issue }}</strong>
+            <span style="font-size:11px;color:var(--text-secondary)">{{ session.timestamp[:19] }}</span>
+          </div>
+          {% for decision in session.decisions %}
+          <div style="display:flex;gap:10px;padding:8px;background:var(--bg-hover);border-radius:6px;margin-bottom:6px">
+            <div style="width:28px;height:28px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0">{{ loop.index }}</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-weight:600;font-size:13px">{{ decision.persona_name.replace('_', ' ').title() }}</div>
+              <div style="font-size:12px;color:var(--text-secondary);margin-top:2px">{{ decision.analysis }}</div>
+              <div style="font-size:11px;color:var(--text-secondary);margin-top:4px">
+                confidence {{ (decision.confidence * 100)|round(0)|int }}%
+                → {{ decision.recommendation }}
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+          <div style="margin-top:10px;padding:10px;background:var(--bg-hover);border-radius:6px;font-size:13px">
+            <strong>Synthesis:</strong> {{ session.synthesis }}
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div style="text-align:center;padding:32px;color:var(--text-secondary)">
+          No council sessions yet. Convene one above.
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  var issueInput = document.getElementById('councilIssue');
+  var conveneBtn = document.getElementById('conveneBtn');
+  var liveResult = document.getElementById('liveResult');
+
+  function escapeHtml(str) {
+    var div = document.createElement('div');
+    div.textContent = String(str == null ? '' : str);
+    return div.innerHTML;
+  }
+
+  async function deliberate() {
+    var issue = issueInput.value.trim();
+    if (!issue) return;
+    conveneBtn.disabled = true;
+    conveneBtn.textContent = 'Deliberating…';
+    try {
+      var res = await fetch('/api/v2/council/deliberate', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({issue: issue}),
+      });
+      var data = await res.json();
+      if (!res.ok || data.error) {
+        liveResult.innerHTML = '<div style="padding:12px;background:var(--critical);color:#fff;border-radius:6px">Deliberation failed: ' + escapeHtml(data.error || 'HTTP ' + res.status) + '</div>';
+        return;
+      }
+      renderSession(data);
+    } catch (e) {
+      liveResult.innerHTML = '<div style="padding:12px;background:var(--critical);color:#fff;border-radius:6px">Error: ' + escapeHtml(e.message) + '</div>';
+    } finally {
+      conveneBtn.disabled = false;
+      conveneBtn.textContent = 'Deliberate';
+    }
+  }
+
+  function renderSession(d) {
+    var badges = (d.decisions || []).map(function(dec) {
+      return '<div style="display:flex;gap:10px;padding:8px;background:var(--bg-hover);border-radius:6px;margin-bottom:6px">' +
+        '<div style="flex:1;min-width:0">' +
+          '<div style="font-weight:600;font-size:13px">' + escapeHtml(dec.persona_name.replace(/_/g, ' ')) + '</div>' +
+          '<div style="font-size:12px;color:var(--text-secondary);margin-top:2px">' + escapeHtml(dec.analysis) + '</div>' +
+          '<div style="font-size:11px;color:var(--text-secondary);margin-top:4px">confidence ' +
+            Math.round((dec.confidence||0)*100) + '% → ' + escapeHtml(dec.recommendation) + '</div>' +
+        '</div></div>';
+    }).join('');
+
+    var actionPlan = '';
+    if (d.action_plan && d.action_plan.length) {
+      actionPlan = '<h4 style="margin-top:14px;margin-bottom:8px;font-size:12px;color:var(--text-secondary);text-transform:uppercase">Action Plan (' + d.action_plan.length + ')</h4>' +
+        '<ol style="padding-left:20px;font-size:13px;color:var(--text-secondary)">' +
+        d.action_plan.map(function(s) { return '<li><code style="color:var(--accent)">' + escapeHtml(s.tool||'') + '</code> — ' + escapeHtml((s.rationale||'').slice(0,120)) + '</li>'; }).join('') +
+        '</ol>';
+    }
+
+    liveResult.innerHTML =
+      '<div style="border:1px solid var(--border);border-radius:8px;padding:16px">' +
+        '<div style="margin-bottom:12px"><span style="padding:4px 10px;border-radius:4px;font-size:12px;font-weight:600;' +
+          (d.consensus ? 'background:var(--success);color:#000' : 'background:var(--warning);color:#000') + '">' +
+          (d.consensus ? 'Consensus Reached' : 'No Consensus') + ' · ' + (d.duration_ms || 0) + 'ms</span></div>' +
+        badges +
+        '<div style="margin-top:10px;padding:10px;background:var(--bg-hover);border-radius:6px;font-size:13px"><strong>Synthesis:</strong> ' + escapeHtml(d.synthesis) + '</div>' +
+        actionPlan +
+      '</div>';
+  }
+
+  conveneBtn.addEventListener('click', deliberate);
+  issueInput.addEventListener('keydown', function(e) { if (e.key === 'Enter') deliberate(); });
+});
+</script>
+{% endblock %}

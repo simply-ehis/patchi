@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="dashboard">
+  <!-- Status Cards -->
+  <div class="grid-4" style="margin-bottom:12px">
+    <div class="severity-card"><div class="severity-count" id="cMode">—</div><div class="severity-label">Hosted Mode</div></div>
+    <div class="severity-card"><div class="severity-count" id="cHealth">—</div><div class="severity-label">Health Score</div></div>
+    <div class="severity-card"><div class="severity-count" id="cTokens">—</div><div class="severity-label">Guard Tokens</div></div>
+    <div class="severity-card"><div class="severity-count" id="cFindings">—</div><div class="severity-label">Open Findings</div></div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+    <!-- Guard -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">🛡 Continuous Guard</span>
+        <span class="card-subtitle" id="interceptorBadge">—</span>
+      </div>
+      <div style="padding:16px">
+        <p style="font-size:12px;color:var(--text-secondary);margin-bottom:10px">
+          Real-time request interception blocks malicious traffic.
+        </p>
+        <div style="font-size:11px;color:var(--text-secondary);text-transform:uppercase;margin-bottom:6px">Top Threats</div>
+        <div id="threatList"><div style="text-align:center;padding:16px;color:var(--text-secondary)">Loading…</div></div>
+        <div style="margin-top:10px"><a href="/guard" style="color:var(--accent);font-size:12px;text-decoration:none">Guard monitor →</a></div>
+      </div>
+    </div>
+
+    <!-- Webhooks -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">🔗 Alert Webhooks</span>
+        <button class="btn" id="testHooksBtn" style="font-size:12px">Send test</button>
+      </div>
+      <div style="padding:16px">
+        <div id="webhookList"><div style="text-align:center;padding:16px;color:var(--text-secondary)">Loading…</div></div>
+        <div style="display:flex;gap:8px;margin-top:12px">
+          <input type="text" id="hookUrl" placeholder="https://hooks.example.com/patchi"
+            style="flex:1;background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;padding:7px 10px;color:var(--text-primary);font-size:13px;outline:none">
+          <button class="btn btn-primary" id="addHookBtn" style="font-size:12px">Add</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Compliance -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">📋 Compliance Evidence</span>
+        <select id="standardSelect" style="background:var(--bg-primary);border:1px solid var(--border);border-radius:6px;padding:4px 8px;color:var(--text-primary);font-size:12px">
+          <option value="owasp-asvs">OWASP ASVS</option>
+          <option value="pci-dss">PCI DSS</option>
+        </select>
+      </div>
+      <div style="padding:16px">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">
+          <div style="text-align:center"><div style="font-size:20px;font-weight:700" id="posturePct">—</div><div style="font-size:11px;color:var(--text-secondary)">Posture %</div></div>
+          <div style="text-align:center"><div style="font-size:20px;font-weight:700;color:var(--success)" id="ctrlPass">—</div><div style="font-size:11px;color:var(--text-secondary)">Pass</div></div>
+          <div style="text-align:center"><div style="font-size:20px;font-weight:700;color:var(--critical)" id="ctrlFail">—</div><div style="font-size:11px;color:var(--text-secondary)">Fail</div></div>
+        </div>
+        <div id="complianceSections"></div>
+      </div>
+    </div>
+
+    <!-- Usage -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">📊 Usage & Budget</span>
+      </div>
+      <div style="padding:16px">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+          <div style="text-align:center"><div style="font-size:20px;font-weight:700" id="uAgents">—</div><div style="font-size:11px;color:var(--text-secondary)">Agents run</div></div>
+          <div style="text-align:center"><div style="font-size:20px;font-weight:700" id="uTokensAi">—</div><div style="font-size:11px;color:var(--text-secondary)">AI tokens</div></div>
+          <div style="text-align:center"><div style="font-size:20px;font-weight:700" id="uCost">—</div><div style="font-size:11px;color:var(--text-secondary)">Est. cost</div></div>
+        </div>
+        <div style="font-size:11px;color:var(--text-secondary);margin-top:10px;text-align:center" id="budgetState"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Domains -->
+  <div class="card" style="margin-top:12px">
+    <div class="card-header">
+      <span class="card-title">🔒 Active Security Domains</span>
+    </div>
+    <div style="padding:16px">
+      {% if active_domains %}
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          {% for d in active_domains %}
+          <span style="padding:4px 10px;background:var(--bg-hover);border-radius:4px;font-size:12px">{{ d.replace('-', ' ').title() }}</span>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div style="color:var(--text-secondary);font-size:13px">Run a scan to activate domains.</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<script>
+var $id = function(i) { return document.getElementById(i); };
+
+async function loadOverview() {
+  try {
+    var ov = await (await fetch('/api/hosted/v2/overview')).json();
+    $id('cMode').textContent = ov.enabled ? 'ON' : 'off';
+    $id('cHealth').textContent = ov.health_score ?? '—';
+    $id('cTokens').textContent = ov.guard?.tokens ?? 0;
+    var sev = ov.findings_by_severity || {};
+    $id('cFindings').textContent = Object.values(sev).reduce(function(a,b){return a+b;},0);
+    $id('interceptorBadge').textContent = ov.guard?.interceptor_enabled ? 'active' : 'disabled';
+    var threats = ov.guard?.top_threats || [];
+    $id('threatList').innerHTML = threats.length
+      ? threats.map(function(t) { return '<div style="display:flex;gap:8px;padding:6px;background:var(--bg-hover);border-radius:4px;margin-bottom:4px;font-size:12px"><span style="color:var(--accent)">' + (t.threat_level||'?') + '</span><span style="flex:1;color:var(--text-secondary)">' + (t.ip||'') + '</span><span>' + (t.hits||0) + '</span></div>'; }).join('')
+      : '<div style="text-align:center;padding:16px;color:var(--text-secondary)">No threats recorded.</div>';
+  } catch(e) { console.error(e); }
+}
+
+async function loadWebhooks() {
+  try {
+    var data = await (await fetch('/api/hosted/v2/webhooks')).json();
+    var hooks = data.webhooks || [];
+    $id('webhookList').innerHTML = hooks.length
+      ? hooks.map(function(h) { return '<div style="display:flex;align-items:center;gap:8px;padding:6px;background:var(--bg-hover);border-radius:4px;margin-bottom:4px;font-size:12px"><span style="width:8px;height:8px;border-radius:50%;background:' + (h.enabled ? 'var(--success)' : 'var(--critical)') + ';flex-shrink:0"></span><span style="flex:1;color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:monospace">' + h.url + '</span></div>'; }).join('')
+      : '<div style="text-align:center;padding:16px;color:var(--text-secondary)">No webhooks configured.</div>';
+  } catch(e) { console.error(e); }
+}
+
+async function loadCompliance() {
+  var std = $id('standardSelect').value;
+  try {
+    var rep = await (await fetch('/api/hosted/v2/compliance/report?standard=' + std)).json();
+    if (rep.error) { $id('complianceSections').innerHTML = '<div style="color:var(--text-secondary)">' + rep.error + '</div>'; return; }
+    $id('posturePct').textContent = rep.summary.posture_pct + '%';
+    $id('ctrlPass').textContent = rep.summary.controls_passed;
+    $id('ctrlFail').textContent = rep.summary.controls_failed;
+    $id('complianceSections').innerHTML = rep.sections.map(function(s) {
+      return '<div style="margin-bottom:12px"><div style="font-size:11px;color:var(--text-secondary);text-transform:uppercase;margin-bottom:4px">' + s.section + ' (' + (s.total - s.failed) + '/' + s.total + ')</div>' +
+        s.controls.map(function(c) { return '<div style="display:flex;align-items:center;gap:8px;padding:3px 6px;font-size:12px"><span style="padding:2px 8px;border-radius:999px;font-size:10px;font-weight:700;text-transform:uppercase;' +
+          (c.status === 'pass' ? 'background:rgba(63,185,80,.15);color:var(--success)' : c.status === 'fail' ? 'background:rgba(248,81,73,.15);color:var(--critical)' : 'background:rgba(210,153,34,.15);color:var(--warning)') + '">' + c.status.replace('_',' ') + '</span><span style="color:var(--text-secondary)">' + c.control_agent + '</span></div>'; }).join('') +
+        '</div>';
+    }).join('');
+  } catch(e) { console.error(e); }
+}
+
+async function loadUsage() {
+  try {
+    var us = await (await fetch('/api/hosted/v2/usage')).json();
+    $id('uAgents').textContent = us.scans?.agents_run ?? 0;
+    var ai = us.ai_usage || {};
+    $id('uTokensAi').textContent = (ai.total_tokens ?? ai.tokens ?? 0).toLocaleString();
+    $id('uCost').textContent = ai.total_cost != null ? '$' + Number(ai.total_cost).toFixed(3) : '$0';
+    $id('budgetState').textContent = 'Budget: ' + (us.budget?.state || 'ok');
+  } catch(e) { console.error(e); }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  loadOverview(); loadWebhooks(); loadCompliance(); loadUsage();
+  $id('standardSelect').addEventListener('change', loadCompliance);
+  $id('addHookBtn').addEventListener('click', async function() {
+    var url = $id('hookUrl').value.trim();
+    if (!url.startsWith('http')) return toast('Enter a valid URL', 'error');
+    await fetch('/api/hosted/v2/webhooks', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({url:url})});
+    $id('hookUrl').value = '';
+    loadWebhooks();
+  });
+  $id('testHooksBtn').addEventListener('click', async function() {
+    var r = await (await fetch('/api/hosted/v2/webhooks/test', {method:'POST'})).json();
+    toast('Delivered to ' + r.delivered + ' webhook(s)', 'success');
+  });
+});
+</script>
+{% endblock %}

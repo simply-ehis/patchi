@@ -42,6 +42,9 @@ const BrainMap = (() => {
   let stage, nodeLayer, antLayer, nodes = {}, ants = {}, edges = [];
   let _onWsMessage = null;
   let _initialized = false;
+  let _currentView = 'graph';
+  let _currentNodes = [];
+  let _currentEdges = [];
   
   // Zoom and pan state
   let scale = 1;
@@ -377,25 +380,185 @@ const BrainMap = (() => {
   }
 
   function _renderGraph(ns, edgesData) {
+    _currentNodes = ns || [];
+    _currentEdges = edgesData || [];
     nodeLayer.destroyChildren();
     nodes = {};
-    edges = edgesData || [];
+    edges = _currentEdges;
 
     const W = stage.width(), H = stage.height();
+    let positions;
 
-    // Force-directed layout
-    const positions = _forceLayout(ns, edgesData || [], W, H);
+    switch(_currentView) {
+      case 'tree':
+        positions = _treeLayout(_currentNodes, _currentEdges, W, H);
+        break;
+      case 'spiral':
+        positions = _spiralLayout(_currentNodes, W, H);
+        break;
+      case 'nodes':
+        positions = _gridLayout(_currentNodes, W, H);
+        break;
+      case 'graph':
+      default:
+        positions = _forceLayout(_currentNodes, _currentEdges, W, H);
+        break;
+    }
 
-    ns.forEach((n, i) => {
+    _currentNodes.forEach((n, i) => {
       const pos = positions[n.id || n.path] || { x: W/2, y: H/2 };
       const fc = n.finding_count || 0;
       const sev = n.severity || 'info';
       _addNode(n.id || n.path, n.label || n.path, n.type || 'default', pos.x, pos.y, fc, sev);
     });
 
-    (edgesData || []).forEach(e => _addEdge(e.source || e.from, e.target || e.to, e.type || 'dependency'));
+    _currentEdges.forEach(e => _addEdge(e.source || e.from, e.target || e.to, e.type || 'dependency'));
     nodeLayer.draw();
     _updateMiniMap();
+
+    // Update info text
+    const info = document.getElementById('brain-map-info');
+    if (info) info.textContent = _currentNodes.length + ' nodes · ' + _currentEdges.length + ' edges · ' + _currentView + ' view';
+  }
+
+  function switchView(view) {
+    _currentView = view;
+    // Update active button
+    document.querySelectorAll('.brain-view-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.view === view);
+    });
+    // Re-render with current data
+    if (_currentNodes.length > 0) {
+      _renderGraph(_currentNodes, _currentEdges);
+    }
+  }
+
+  // ── Tree Layout (hierarchical, root at top) ──────────────────────────────
+  function _treeLayout(nodesList, edgesList, W, H) {
+    const pos = {};
+    const n = nodesList.length;
+    if (n === 0) return pos;
+
+    // Build adjacency and find root nodes (no incoming edges)
+    const incoming = {};
+    const outgoing = {};
+    nodesList.forEach(node => {
+      const id = node.id || node.path;
+      incoming[id] = [];
+      outgoing[id] = [];
+    });
+    edgesList.forEach(e => {
+      const f = e.from || e.source;
+      const t = e.to || e.target;
+      if (outgoing[f]) outgoing[f].push(t);
+      if (incoming[t]) incoming[t].push(f);
+    });
+
+    // Find roots (no incoming edges) or entry points
+    let roots = nodesList.filter(node => {
+      const id = node.id || node.path;
+      return incoming[id].length === 0 || node.type === 'entry_point';
+    });
+    if (roots.length === 0) roots = [nodesList[0]];
+
+    // BFS to assign levels
+    const levels = {};
+    const visited = new Set();
+    const queue = [];
+    roots.forEach((root, i) => {
+      const id = root.id || root.path;
+      levels[id] = 0;
+      visited.add(id);
+      queue.push(id);
+    });
+
+    while (queue.length > 0) {
+      const current = queue.shift();
+      const currentLevel = levels[current];
+      (outgoing[current] || []).forEach(child => {
+        if (!visited.has(child)) {
+          visited.add(child);
+          levels[child] = currentLevel + 1;
+          queue.push(child);
+        }
+      });
+    }
+
+    // Assign unvisited nodes to level 1
+    nodesList.forEach(node => {
+      const id = node.id || node.path;
+      if (!visited.has(id)) levels[id] = 1;
+    });
+
+    // Group by level
+    const byLevel = {};
+    Object.entries(levels).forEach(([id, level]) => {
+      if (!byLevel[level]) byLevel[level] = [];
+      byLevel[level].push(id);
+    });
+
+    // Position nodes: each level gets a horizontal band
+    const maxLevel = Math.max(...Object.keys(byLevel).map(Number), 0);
+    const levelHeight = H / (maxLevel + 2);
+    const margin = 60;
+
+    Object.entries(byLevel).forEach(([level, ids]) => {
+      const y = margin + Number(level) * levelHeight;
+      const spacing = (W - 2 * margin) / (ids.length + 1);
+      ids.forEach((id, i) => {
+        pos[id] = { x: margin + (i + 1) * spacing, y: y };
+      });
+    });
+
+    return pos;
+  }
+
+  // ── Spiral Layout ─────────────────────────────────────────────────────────
+  function _spiralLayout(nodesList, W, H) {
+    const pos = {};
+    const n = nodesList.length;
+    if (n === 0) return pos;
+
+    const cx = W / 2;
+    const cy = H / 2;
+    const maxRadius = Math.min(W, H) * 0.42;
+
+    nodesList.forEach((node, i) => {
+      const angle = i * 2.399; // golden angle in radians
+      const t = i / (n - 1 || 1);
+      const radius = maxRadius * Math.sqrt(t);
+      pos[node.id || node.path] = {
+        x: cx + radius * Math.cos(angle),
+        y: cy + radius * Math.sin(angle),
+      };
+    });
+
+    return pos;
+  }
+
+  // ── Grid Layout (clean node grid) ─────────────────────────────────────────
+  function _gridLayout(nodesList, W, H) {
+    const pos = {};
+    const n = nodesList.length;
+    if (n === 0) return pos;
+
+    const cols = Math.ceil(Math.sqrt(n));
+    const rows = Math.ceil(n / cols);
+    const cellW = (W - 80) / cols;
+    const cellH = (H - 80) / rows;
+    const startX = 40 + cellW / 2;
+    const startY = 40 + cellH / 2;
+
+    nodesList.forEach((node, i) => {
+      const col = i % cols;
+      const row = Math.floor(i / cols);
+      pos[node.id || node.path] = {
+        x: startX + col * cellW,
+        y: startY + row * cellH,
+      };
+    });
+
+    return pos;
   }
 
   function _forceLayout(nodesList, edgesList, W, H) {
@@ -977,5 +1140,5 @@ const BrainMap = (() => {
     });
   }
 
-  return { init, setNodeState, loadNodes, zoomIn, zoomOut, zoomReset, handleEvent, _relistenWs };
+  return { init, setNodeState, loadNodes, zoomIn, zoomOut, zoomReset, handleEvent, _relistenWs, switchView };
 })();

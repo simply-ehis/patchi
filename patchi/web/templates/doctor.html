@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% block content %}
+<div style="max-width:800px;margin:0 auto;padding:24px">
+  <!-- Header -->
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px">
+    <div>
+      <h1 style="font-size:20px;font-weight:700;margin:0">🩺 Patchi Doctor</h1>
+      <p style="font-size:13px;color:var(--text-secondary);margin:4px 0 0">System health check and command migration guide</p>
+    </div>
+    <button class="btn" onclick="location.reload()">↻ Refresh</button>
+  </div>
+
+  <!-- Summary -->
+  <div style="display:flex;gap:16px;margin-bottom:20px">
+    <div style="flex:1;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;text-align:center">
+      <div style="font-size:28px;font-weight:700;color:#4ADE80">{{ passed }}</div>
+      <div style="font-size:12px;color:var(--text-secondary)">Passed</div>
+    </div>
+    <div style="flex:1;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;text-align:center">
+      <div style="font-size:28px;font-weight:700;color:#FACC15">{{ warnings }}</div>
+      <div style="font-size:12px;color:var(--text-secondary)">Warnings</div>
+    </div>
+    <div style="flex:1;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;text-align:center">
+      <div style="font-size:28px;font-weight:700;color:#FF4D6D">{{ errors }}</div>
+      <div style="font-size:12px;color:var(--text-secondary)">Errors</div>
+    </div>
+  </div>
+
+  <!-- Verdict -->
+  {% if errors > 0 %}
+  <div style="background:rgba(255,77,109,0.1);border:1px solid #FF4D6D;border-radius:var(--radius);padding:12px 16px;margin-bottom:20px;color:#FF4D6D;font-size:13px">
+    <strong>✗ {{ errors }} error(s) found.</strong> Fix the issues below before running commands.
+  </div>
+  {% elif warnings > 0 %}
+  <div style="background:rgba(250,204,21,0.1);border:1px solid #FACC15;border-radius:var(--radius);padding:12px 16px;margin-bottom:20px;color:#FACC15;font-size:13px">
+    <strong>⚠ {{ warnings }} warning(s).</strong> Core functionality OK, but review the suggestions below.
+  </div>
+  {% else %}
+  <div style="background:rgba(74,222,128,0.1);border:1px solid #4ADE80;border-radius:var(--radius);padding:12px 16px;margin-bottom:20px;color:#4ADE80;font-size:13px">
+    <strong>✓ All checks passed.</strong> Patchi is ready.
+  </div>
+  {% endif %}
+
+  <!-- Checks Table -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">System Checks</span>
+    </div>
+    <div style="padding:12px">
+      <table style="width:100%;border-collapse:collapse;font-size:13px">
+        <thead>
+          <tr style="border-bottom:1px solid var(--border);color:var(--text-secondary)">
+            <th style="text-align:left;padding:8px;width:24px"></th>
+            <th style="text-align:left;padding:8px">Check</th>
+            <th style="text-align:left;padding:8px">Note</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in checks %}
+          <tr style="border-bottom:1px solid var(--border)">
+            <td style="padding:8px;text-align:center">
+              {% if c.status == 'ok' %}
+              <span style="color:#4ADE80">✓</span>
+              {% elif c.status == 'warning' %}
+              <span style="color:#FACC15">⚠</span>
+              {% elif c.status == 'error' %}
+              <span style="color:#FF4D6D">✗</span>
+              {% else %}
+              <span style="color:var(--text-secondary)">—</span>
+              {% endif %}
+            </td>
+            <td style="padding:8px;font-weight:500">
+              {{ c.label }}
+              {% if c.replacement %}
+              <span style="display:inline-block;background:rgba(250,204,21,0.15);color:#FACC15;padding:1px 6px;border-radius:4px;font-size:10px;margin-left:6px;font-weight:400">MIGRATED</span>
+              {% endif %}
+            </td>
+            <td style="padding:8px;color:var(--text-secondary)">
+              {{ c.note }}
+              {% if c.replacement %}
+              <br><code style="font-size:11px;color:#4ADE80">{{ c.replacement }}</code>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Command Migration Guide -->
+  <div class="card" style="margin-top:16px">
+    <div class="card-header">
+      <span class="card-title">📋 Command Migration Guide</span>
+    </div>
+    <div style="padding:12px">
+      <table style="width:100%;border-collapse:collapse;font-size:13px">
+        <thead>
+          <tr style="border-bottom:1px solid var(--border);color:var(--text-secondary)">
+            <th style="text-align:left;padding:8px">Old Command</th>
+            <th style="text-align:left;padding:8px">New Command</th>
+            <th style="text-align:left;padding:8px">Reason</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom:1px solid var(--border)">
+            <td style="padding:8px"><code style="color:#FF4D6D;text-decoration:line-through">p brain</code></td>
+            <td style="padding:8px"><code style="color:#4ADE80">p agents list --brain</code></td>
+            <td style="padding:8px;color:var(--text-secondary)">Merged into agents command</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border)">
+            <td style="padding:8px"><code style="color:#FF4D6D;text-decoration:line-through">p smart</code></td>
+            <td style="padding:8px"><code style="color:#4ADE80">p chat --stream</code></td>
+            <td style="padding:8px;color:var(--text-secondary)">Merged into chat command</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border)">
+            <td style="padding:8px"><code style="color:#FF4D6D;text-decoration:line-through">p health</code></td>
+            <td style="padding:8px"><code style="color:#4ADE80">p status --deep</code></td>
+            <td style="padding:8px;color:var(--text-secondary)">Merged into status command</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border)">
+            <td style="padding:8px"><code style="color:#FF4D6D;text-decoration:line-through">p security</code></td>
+            <td style="padding:8px"><code style="color:#4ADE80">p scan</code></td>
+            <td style="padding:8px;color:var(--text-secondary)">Merged into scan command</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border)">
+            <td style="padding:8px"><code style="color:#FF4D6D;text-decoration:line-through">p ignore</code></td>
+            <td style="padding:8px"><code style="color:#4ADE80">p memory ignore</code></td>
+            <td style="padding:8px;color:var(--text-secondary)">Merged into memory command</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border)">
+            <td style="padding:8px"><code style="color:#FF4D6D;text-decoration:line-through">p explain</code></td>
+            <td style="padding:8px"><code style="color:#4ADE80">p chat 'explain &lt;type&gt;'</code></td>
+            <td style="padding:8px;color:var(--text-secondary)">Merged into chat command</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border)">
+            <td style="padding:8px"><code style="color:#FF4D6D;text-decoration:line-through">p profile</code></td>
+            <td style="padding:8px"><code style="color:#4ADE80">p agent-stats</code></td>
+            <td style="padding:8px;color:var(--text-secondary)">Merged into agent-stats command</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border)">
+            <td style="padding:8px"><code style="color:#FF4D6D;text-decoration:line-through">p learning</code></td>
+            <td style="padding:8px"><code style="color:#4ADE80">p agent-stats --learning</code></td>
+            <td style="padding:8px;color:var(--text-secondary)">Merged into agent-stats command</td>
+          </tr>
+          <tr style="border-bottom:1px solid var(--border)">
+            <td style="padding:8px"><code style="color:#FF4D6D;text-decoration:line-through">p ask</code></td>
+            <td style="padding:8px"><code style="color:#4ADE80">p chat</code></td>
+            <td style="padding:8px;color:var(--text-secondary)">Alias — chat is the unified interface</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
