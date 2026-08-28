@@ -24,9 +24,9 @@ import subprocess
 import time
 from collections.abc import Callable
 from datetime import UTC, datetime
-from enum import Enum
+from enum import StrEnum
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -71,7 +71,7 @@ class PlanResult(BaseModel):
     summary: str = ""
 
 
-class IntentType(str, Enum):
+class IntentType(StrEnum):
     """Types of intent — but this is just for categorization, not routing."""
     CHAT = "chat"  # General conversation
     ACTION = "action"  # User wants to DO something
@@ -252,7 +252,7 @@ class Brain:
         self.on_progress(f"Executing {tool_name}...")
 
         try:
-            from patchi.core.ai.tools.executor import ToolExecutor, CLIConfirmationProvider
+            from patchi.core.ai.tools.executor import CLIConfirmationProvider, ToolExecutor
 
             async def _run():
                 executor = ToolExecutor(
@@ -315,7 +315,7 @@ def parse_intent_llm(message: str, brain: Brain, config: dict) -> Intent:
     from patchi.core.ai.client import call_ai
 
     # Get brain context for the LLM
-    brain_state = brain.get_brain_state()
+    brain.get_brain_state()
     findings = brain.get_findings()[:10]  # Top 10 findings
     files = brain.list_files(max_files=20)
 

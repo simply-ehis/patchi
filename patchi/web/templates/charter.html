@@ -363,6 +363,30 @@ async function runAutoFix() {
   }
 }
 
+async function loadFixHistory() {
+  const list = document.getElementById('fix-history-list');
+  if (!list) return;
+  try {
+    const resp = await fetch('/api/charter/fix-history');
+    const data = await resp.json();
+    const history = data.history || [];
+    if (!history.length) {
+      list.innerHTML = '<div style="text-align:center;padding:16px;color:var(--text-secondary)">No fix history yet.</div>';
+      return;
+    }
+    list.innerHTML = history.map(h => {
+      const time = h.timestamp ? new Date(h.timestamp).toLocaleString() : '?';
+      const files = (h.files_fixed || []).join(', ') || 'N/A';
+      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px;border-bottom:1px solid var(--border);font-size:12px">
+        <div><strong>${h.fix_count || 0}</strong> fixes · <span style="color:var(--text-secondary)">${escapeHtml(files.slice(0, 60))}</span></div>
+        <div style="color:var(--text-secondary)">${time}</div>
+      </div>`;
+    }).join('');
+  } catch (e) {
+    list.innerHTML = `<div style="padding:8px;color:var(--text-secondary)">Failed to load history: ${e.message}</div>`;
+  }
+}
+
 function escapeHtml(text) {
   const div = document.createElement('div');
   div.appendChild(document.createTextNode(text));

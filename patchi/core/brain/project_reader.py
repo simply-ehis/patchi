@@ -228,8 +228,8 @@ def _read_pyproject_toml(root: Path, insight: ProjectInsight) -> None:
         # Infer tech stack
         _infer_tech_stack_from_deps(
             insight,
-            {d: "" for d in insight.dependencies},
-            {d: "" for d in insight.dev_dependencies},
+            dict.fromkeys(insight.dependencies, ""),
+            dict.fromkeys(insight.dev_dependencies, ""),
         )
 
     except Exception as e:
@@ -493,7 +493,7 @@ def _find_critical_dirs(root: Path, insight: ProjectInsight) -> None:
 
         dir_lower = dirpath.name.lower()
         matched = False
-        for category, patterns in critical_patterns.items():
+        for _category, patterns in critical_patterns.items():
             if any(p in dir_lower for p in patterns):
                 if dirpath.name not in insight.critical_dirs:
                     insight.critical_dirs.append(dirpath.name)

@@ -55,7 +55,7 @@ def _load_layers(root: Path) -> dict[str, Layer]:
         return {}
     try:
         data = {}
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, encoding="utf-8") as f:
             import json
             data = json.load(f)
         return layers_from_dict(data)

@@ -1,0 +1,14 @@
+ () {
+    'use strict';
+
+    // ── State ──────────────────────────────────────────────────────
+    const state = {
+        ws: null,
+        connected: false,
+        feedPaused: false,
+        tools: [],
+        selectedTool: null,
+        paletteIndex: 0,
+    };
+
+    const init = window.PATCHI_IN

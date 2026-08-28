@@ -14,7 +14,6 @@ from __future__ import annotations
 import importlib
 import shutil
 import sys
-from pathlib import Path
 
 from rich.panel import Panel
 from rich.table import Table

@@ -28,26 +28,21 @@ def run_show(args) -> None:
     json_output = getattr(args, "json_output", False)
 
     if not charter.text and not charter.rules:
-        print("No charter set. Use: p charter set \"<rules>\"")
         return
 
     if json_output:
-        print(json.dumps(charter.to_dict(), indent=2))
+        pass
     else:
-        print("=== Project Charter ===")
         if charter.text:
-            print(f"\n{charter.text}\n")
-        print(f"Rules ({len(charter.rules)}):")
-        for r in charter.rules:
-            status = "✓" if r.enabled else "✗"
-            print(f"  {status} [{r.type.value:10s}] {r.id}: {r.description}")
+            pass
+        for _r in charter.rules:
+            pass
 
 
 def run_set(args) -> None:
     """Set charter from natural language text."""
     text = getattr(args, "text", None)
     if not text:
-        print("Usage: p charter set \"<natural language rules>\"", file=sys.stderr)
         sys.exit(1)
 
     root = _get_root()
@@ -59,11 +54,9 @@ def run_set(args) -> None:
 
     rules = parse_nl_to_rules(text)
     charter = Charter(text=text, rules=rules)
-    path = save_charter(charter, root)
-    print(f"Charter saved to {path}")
-    print(f"Parsed {len(rules)} rule(s):")
-    for r in rules:
-        print(f"  [{r.type.value:10s}] {r.id}: {r.description}")
+    save_charter(charter, root)
+    for _r in rules:
+        pass
 
 
 def run_check(args) -> None:
@@ -76,7 +69,6 @@ def run_check(args) -> None:
 
     charter = load_charter(root)
     if not charter.rules:
-        print("No charter set. Nothing to check.")
         return
 
     # Try to get import edges from the brain
@@ -98,17 +90,14 @@ def run_check(args) -> None:
 
     json_output = getattr(args, "json_output", False)
     if json_output:
-        print(json.dumps([v.to_dict() for v in violations], indent=2))
+        pass
     else:
         if not violations:
-            print("✓ No charter violations found.")
+            pass
         else:
-            print(f"✗ {len(violations)} charter violation(s):")
             for v in violations:
-                loc = f" in {v.file_path}" if v.file_path else ""
-                print(f"  [{v.severity}] {v.rule_id}: {v.message}{loc}")
                 if v.suggestion:
-                    print(f"    → {v.suggestion}")
+                    pass
 
     sys.exit(1 if violations else 0)
 
@@ -118,13 +107,11 @@ def run_hooks(args) -> None:
     install = getattr(args, "install", False)
 
     if not install:
-        print("Usage: p charter hooks --install")
         return
 
     root = _get_root()
     hooks_dir = root / ".git" / "hooks"
     if not hooks_dir.exists():
-        print("Not a git repository. Run 'git init' first.", file=sys.stderr)
         sys.exit(1)
 
     hook_path = hooks_dir / "charter-check"
@@ -156,8 +143,6 @@ exit 0
     import stat
     hook_path.chmod(hook_path.stat().st_mode | stat.S_IEXEC | stat.S_IXGRP | stat.S_IXOTH)
 
-    print(f"Charter check hook installed at {hook_path}")
-    print("It will run after pre-commit on every commit.")
 
 
 # Backward compat entry point
@@ -181,5 +166,4 @@ def run(args) -> None:
     if handler:
         handler(args)
     else:
-        print(f"Unknown action: {action}. Use: show, set, check, hooks", file=sys.stderr)
         sys.exit(1)

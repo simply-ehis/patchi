@@ -26,9 +26,8 @@ from __future__ import annotations
 
 import json
 import logging
-import re
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import StrEnum
 from pathlib import Path
 from typing import Any
 
@@ -39,14 +38,14 @@ _log = logging.getLogger("patchi.charter")
 CHARTER_FILE = "charter.json"
 
 
-class RuleType(str, Enum):
+class RuleType(StrEnum):
     STACK = "stack"
     BOUNDARY = "boundary"
     CONVENTION = "convention"
     SECURITY = "security"
 
 
-class Severity(str, Enum):
+class Severity(StrEnum):
     CRITICAL = "critical"
     HIGH = "high"
     MEDIUM = "medium"

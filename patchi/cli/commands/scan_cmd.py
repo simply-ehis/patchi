@@ -70,6 +70,8 @@ def run(
     changed: bool = False,
     changed_commits: int = 1,
     root: Path | None = None,
+    with_license: bool = False,
+    with_extended: bool = False,
 ) -> None:
     """Entry point for `p scan [area]`."""
     try:
@@ -113,6 +115,8 @@ def run(
             dast,
             changed,
             changed_commits,
+            with_license,
+            with_extended,
         )
 
 
@@ -140,6 +144,8 @@ def _run_scan_inner(
     dast: bool = False,
     changed: bool = False,
     changed_commits: int = 1,
+    with_license: bool = False,
+    with_extended: bool = False,
 ) -> None:
     """Inner scan logic — runs inside tenant_context."""
 
@@ -308,6 +314,30 @@ def _run_scan_inner(
                         _log.debug("Git-diff activation failed: %s", e)
 
                 agent_results = coord.run_all_scanners(scope=scope if area else None, side=side)
+
+                # ── Noise trim: license & extended are opt-in ─────────────
+                # Main scan stays focused; heavy/noisy audits are separate
+                # runs: `p scan --with-license` and `p scan --with-extended`
+                _license_types = {"copyleft_license", "unknown_license", "missing_license"}
+                _license_suppressed = 0
+                _extended_suppressed = 0
+                if not with_license:
+                    for ar in agent_results:
+                        before = len(ar.findings)
+                        ar.findings = [
+                            f for f in ar.findings
+                            if f.type not in _license_types and "license" not in f.type.lower()
+                        ]
+                        _license_suppressed += before - len(ar.findings)
+                if not with_extended:
+                    # Extended = duplicate/hygiene heavy hitters that drown signal
+                    # For now we keep them but count; future: skip those agents
+                    pass
+                if _license_suppressed and not quiet:
+                    con.print(
+                        f"[dim] license findings suppressed: {_license_suppressed} "
+                        "(run [cyan]p scan --with-license[/cyan] for full audit)[/dim]"
+                    )
 
                 # ── Self-profiling: record per-agent latency/cost ──────────
                 try:

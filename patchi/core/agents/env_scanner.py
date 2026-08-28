@@ -217,6 +217,11 @@ class EnvScanner(BaseAgent):
                     "REGEX",
                     "RE_",
                 )
+                # Self-detection guard: regex pattern strings that LOOK like
+                # secrets (e.g. "-----BEGIN RSA PRIVATE KEY-----" inside
+                # this file) must not be flagged.
+                if "PRIVATE KEY" in line and ('r"' in line or "r'" in line):
+                    continue
                 if any(m in line for m in _fp_markers):
                     continue
                 for pattern, description in self.SECRET_PATTERNS:

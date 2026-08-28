@@ -17,7 +17,6 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import time
 from dataclasses import dataclass
 from typing import Any
 
@@ -251,12 +250,10 @@ class DASTAgent(BaseAgent):
 
             if vuln_found:
                 # Capture screenshot as evidence
-                screenshot_path = None
                 try:
-                    result = await screenshot_mgr.capture(
+                    await screenshot_mgr.capture(
                         page, target_url, name=f"dast_{test.name}"
                     )
-                    screenshot_path = result.image_path
                 except Exception as e:
                     _log.debug("Screenshot capture failed: %s", e)
 
@@ -313,7 +310,6 @@ class DASTAgent(BaseAgent):
         self, page: Any, base_url: str, screenshot_mgr: Any
     ) -> tuple[bool, str]:
         """Test for stored XSS via SVG injection."""
-        svg_payload = '<svg onload="alert(document.domain)">'
 
         try:
             # Try common upload/comment endpoints
@@ -481,7 +477,7 @@ class DASTAgent(BaseAgent):
             ]
 
             for url in error_urls:
-                response = await page.goto(url, wait_until="domcontentloaded")
+                await page.goto(url, wait_until="domcontentloaded")
                 content = await page.content()
 
                 for indicator in error_indicators:
@@ -545,7 +541,7 @@ class DASTAgent(BaseAgent):
             # Find all forms
             forms = await page.query_selector_all("form")
 
-            for i, form in enumerate(forms):
+            for _i, form in enumerate(forms):
                 # Check for CSRF token fields
                 csrf_inputs = await form.query_selector_all(
                     'input[name*="csrf"], input[name*="token"], input[name="_token"]'

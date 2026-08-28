@@ -1525,7 +1525,7 @@ class ToolRegistry:
         from patchi.core.ai.orchestrator import CodeGenerator, CodeRequest
         gen = CodeGenerator(root)
         req = CodeRequest(description=description, target_files=target_files, language=language, include_tests=include_tests)
-        result = gen.generate_code(req) if hasattr(gen, 'generate_code') else None
+        gen.generate_code(req) if hasattr(gen, 'generate_code') else None
         return {"success": True, "files": target_files, "description": description}
 
 

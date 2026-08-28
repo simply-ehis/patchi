@@ -37,8 +37,20 @@ from patchi.core.config import require_project_root
 _log = logging.getLogger("patchi.cli.hosted_cmd")
 
 
+_EXPERIMENTAL_BANNER = (
+    "[black on #FACC15] EXPERIMENTAL [/black on #FACC15]  Hosted mode is in preview — "
+    "feedback appreciated!  [dim]Report issues at patchi.dev/feedback[/dim]"
+)
+
+def _print_experimental_notice() -> None:
+    con.print()
+    con.print(_EXPERIMENTAL_BANNER)
+    con.print()
+
+
 def run(args) -> None:
     """Main entry from CLI router — dispatches to sub-handlers."""
+    _print_experimental_notice()
     hosted_cmd = getattr(args, "hosted_cmd", None)
     token_cmd = getattr(args, "token_cmd", None)
 

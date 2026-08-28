@@ -1,14 +1,33 @@
-# Patchi 0.6.0
+# Patchi 0.6.0 — Smart Code Security & Quality Orchestrator
 
-A CLI agent colony that scans, secures, and fixes your codebase using static analysis
-and optional AI. Cross-platform (Windows, Linux, macOS).
+> **⚠️ Pre-1.0.0 Development Preview** — Functional and usable, but still in active development.  
+> **Peak stable release is planned for `v1.0.0`** — ~0.4.0 of feature work remains. APIs, agent lists and hosted behavior may still evolve.  
+> **Feedback appreciated!** Open an issue, start a discussion, or email **idemudiaehis6@gmail.com**. Your reports directly shape the road to 1.0.
+
+A CLI agent colony + unified web UI that scans, secures, tests and fixes your codebase using static analysis and optional AI.  
+**1:1 CLI ↔ Web** — the web is a fancy wrapper; every screen maps to a command. Cross-platform (Windows, Linux, macOS).
 
 ```bash
-pip install .
-# or: pip install -e ".[dev]"
+pip install .                # local dev
+# or
+pip install patchi            # from PyPI once published
+# with web UI:
+pip install ".[web]"
 ```
 
 **Requires Python 3.11+**
+
+---
+
+## ✨ What’s New in 0.6.0
+
+- **Unified Web UI** — one `p web` command serves everything: Mission Control, Brain Map, Council deliberation, Red Team timeline, Live Tests, Hosted control plane. See [Web ↔ CLI Parity](docs/web-cli-parity.md).
+- **1:1 Project Selection** — `p web` serves the project your terminal is standing in (same walk-up as every `p <command>`). Switch projects live from the header dropdown (`GET /api/tenant/*`).
+- **License Noise Trimmed** — `p scan` is now focused by default. Heavy/compliance findings (license for every dep) are hidden unless you opt in: `p scan --with-license` or `p scan --with-extended`.
+- **Hosted → Experimental** — live log monitoring works but is flagged as preview (banner in CLI + UI).
+- **Smart fixes** — risk-gated `POST /api/fix/apply-all-safe` (only `ALLOW_AUTO` patches), cached `GET /api/security/report` (174s → 0.1s), self-improving checks fixed.
+
+Full list → [PATCHI_V2_UPGRADE_PLAN.md](PATCHI_V2_UPGRADE_PLAN.md) and `AGENT_FEEDBACK.md`.
 
 ---
 
@@ -17,14 +36,16 @@ pip install .
 ```bash
 cd your-project
 p init              # one-time setup
-p scan              # full scan (static analysis, no AI tokens)
+p scan              # full scan (static analysis, no AI tokens)  — license findings hidden by default
+p scan --with-license   # include supply-chain license audit when you need it
 p scan --deep       # with LLM analysis on changed files
 p scan --json       # JSON output for CI/CD
 p scan --offline    # static analysis only, no AI calls
 p status            # brain health, mode, queue, AI status
 p fix               # apply AI-generated fixes (requires scan first)
 p fix --dry-run     # preview fixes without applying
-p explain           # what/why/how for each finding
+p web               # launch unified UI at http://127.0.0.1:1612  (--project <path> to pick a project, --open to launch browser)
+p web --project ../other-repo --port 8000
 ```
 
 ---
@@ -35,18 +56,19 @@ p explain           # what/why/how for each finding
 
 | Command | Purpose |
 |---------|---------|
-| `p scan` | Scan for issues (supports `--json`, `--deep`, `--force`, `--offline`) |
+| `p scan` | Scan for issues (supports `--json`, `--deep`, `--force`, `--offline`, `--with-license`, `--with-extended`) |
 | `p fix` | Apply AI-generated fixes |
 | `p security` | Run security agents (`--json`, or filter by type) |
 | `p test` | Run tests (unit, browser, stress, regression, api, e2e, etc.) |
+| `p deps` | Supply chain scan (`--licenses` for full license audit separately) |
 | `p audit` | Full project audit (scan + security + test + report) |
 | `p plan` | Prioritized fix list ranked by importance |
 | `p explain` | Plain-English explanation of findings |
 | `p chat` | Chat with Patchi about your project |
 | `p watch` | Auto-scan on file saves |
 | `p notify` | Manage notification channels |
-| `p hosted` | Live monitoring daemon |
-| `p web` | Archived — shows notice with CLI alternatives |
+| `p hosted` | **(Experimental)** Live monitoring daemon |
+| `p web` | Unified web UI — dashboard, council, red team, tests, hosted |
 | `p brain` | View project purpose, domain, contract flows |
 | `p memory` | View or clear scan memory |
 | `p patch` | Manage individual patches |
@@ -57,6 +79,8 @@ p explain           # what/why/how for each finding
 | `p agents` | List registered agents |
 | `p blast` | Blast radius analysis |
 | `p trend` | Quality trend over time |
+
+Run `p <command> --help` for flags.
 
 ---
 
@@ -70,9 +94,7 @@ Without AI, Patchi runs structural analysis using static analyzers — free, fas
 3. **Free keys** — Groq, Google AI, OpenRouter, Mistral, Together AI
 4. **AI Horde fallback** — anonymous community key, zero setup
 
-**14 built-in providers:** OpenAI, Anthropic, Google, Groq, Mistral, Cohere, Together AI,
-Fireworks, Perplexity, OpenRouter, DeepSeek, xAI, NVIDIA, Hugging Face, plus any
-custom OpenAI-compatible endpoint.
+**14 built-in providers:** OpenAI, Anthropic, Google, Groq, Mistral, Cohere, Together AI, Fireworks, Perplexity, OpenRouter, DeepSeek, xAI, NVIDIA, Hugging Face, plus any custom OpenAI-compatible endpoint.
 
 Keys stored in `.patchi/keys.json`, never sent elsewhere.
 
@@ -89,7 +111,7 @@ Categories:
 | Auth | Missing auth, broken access control, JWT, SAML SSO |
 | Crypto | Weak hashing, hardcoded keys, SSL/TLS misconfig |
 | Secrets | Leaked credentials, API keys, connection strings |
-| Supply Chain | CVEs, typosquatting, unpinned deps |
+| Supply Chain | CVEs, typosquatting, unpinned deps (**license = opt-in via `--with-license`**) |
 | Config/IaC | Debug mode, missing headers, CORS, Docker, K8s, Terraform |
 | Compliance | SOC2, HIPAA, PCI-DSS, CIS policy enforcement |
 | Privacy | PII handling |
@@ -97,7 +119,7 @@ Categories:
 | Adversarial | Attack surface analysis, exploit patterns |
 | Governance | History, blast radius, drift detection |
 
-Uses Semgrep CE, Gitleaks, OSV-Scanner, and httpx under the hood.
+Uses Semgrep CE, Gitleaks, OSV-Scanner, and httpx under the hood. Heavy compliance packs (license-for-every-dep) intentionally stay out of the default `p scan` — opt in when you need a full audit.
 
 ---
 
@@ -134,10 +156,10 @@ patchi/
 │   ├── queue.py      ← File-locked task queue
 │   ├── snapshot.py   ← Atomic rollback
 │   └── health.py     ← Health score (0–100, A–F)
-├── web/              ← Archived (see .patchi/web_archive/)
+├── web/              ← Unified UI (Mission Control + API) — launch with p web
 ├── install.sh        ← Linux/macOS installer
 ├── install.ps1       ← Windows installer
-└── tests/            ← 1,200+ tests across 66 files
+└── tests/            ← 1,300+ tests across ~70 files
 ```
 
 ---
@@ -149,9 +171,9 @@ patchi/
 - **Atomic writes + file locking** — crash-safe memory, queue, snapshots
 - **Learning brain** — tracks accept/reject patterns, stops suggesting rejected fix types
 - **Notifications** — Slack, Discord, email, webhook, Telegram
-- **Hosted mode** — live log monitoring, anomaly detection, IP reputation, auto-blocking
+- **Hosted mode (Experimental)** — live log monitoring, anomaly detection, IP reputation, auto-blocking — *preview, feedback welcome*
 - **Governor pipeline** — phase-gated state machine with crash recovery (via `p scan --governor`)
-- **Security orchestrator** — deduplication, cross-agent correlation, OWASP Top 10 mapping
+- **Security orchestrator** — deduplication, cross-agent correlation, OWASP Top 10 mapping (CWE-aware, cached report: 174s → 0.1s)
 - **Policy engine** — YAML/JSON policy enforcement with compliance packs
 - **Verify loop** — security fixes re-checked to confirm resolution
 
@@ -162,10 +184,26 @@ patchi/
 ```bash
 python -m pytest tests/ -q -x
 python -m pytest tests/test_contract.py -q
+python tools/deep_audit_web.py   # href/fetch/template/WS/DOM/render/multi-project checks
+python tools/e2e_web_v2.py       # live server boot + all pages + APIs + WS
 ```
 
 ---
 
-## License
+## License & Pricing
 
-Apache 2.0 — see [LICENSE](LICENSE).
+**Patchi Freemium Preview — see [LICENSE](LICENSE).**
+
+- **Free:** Personal use, education, research, open-source, and teams of **fewer than 3 users** (any purpose) — no contact required.
+- **Enterprise / teams ≥3:** Please contact **idemudiaehis6@gmail.com** for a license. Trial up to 30 days before contacting is fine.
+- **Donations & contributions appreciated** — they directly accelerate the road to **v1.0.0** (peak release). ~0.4.0 of feature work remains.
+- Hosted mode is experimental in this preview.
+
+---
+
+## Feedback
+
+Patchi is in active development. If something is noisy, missing, or broken — please open an issue or email **idemudiaehis6@gmail.com**. Your reports directly shape the next 0.4.0 → 1.0.0.
+
+> **Road to 1.0.0:** Peak stable release will lock APIs, ship the full domain taxonomy, and promote hosted out of experimental. Until then, pin `.patchi/` memory formats as best-effort forward-compatible.
+

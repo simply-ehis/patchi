@@ -10,8 +10,8 @@ progress. Fully offline — no API key required.
 from __future__ import annotations
 
 import sys
-import time
 import threading
+import time
 from pathlib import Path
 
 from patchi.core.ai.smart import run_smart_agent
@@ -75,11 +75,8 @@ def _print_tool_status(tool_name, status, details=""):
         'done': '\033[32m',         # green
         'error': '\033[31m',        # red
     }
-    reset = '\033[0m'
-    icon = icons.get(status, '•')
-    color = colors.get(status, '')
-    details_str = f" {status}" if not details else f" {status} ({details})"
-    print(f"  {color}{status.upper():<8}{reset} {icon}  {tool_name}{details_str}")
+    icons.get(status, '•')
+    colors.get(status, '')
 
 
 def run(args) -> None:
@@ -87,8 +84,6 @@ def run(args) -> None:
     goal_parts = getattr(args, "goal", None) or []
     goal = " ".join(goal_parts).strip()
     if not goal:
-        print("Usage: p smart \"<goal>\"  e.g.  p smart \"audit this project for security vulnerabilities\"")
-        print("       p smart \"run the test suite\" --json")
         return
 
     root = _resolve_root()
@@ -96,27 +91,24 @@ def run(args) -> None:
     json_output = getattr(args, "json_output", False)
 
     # Track tool statuses
-    tool_statuses = {}
-    tool_order = []
 
     def on_event(payload: dict) -> None:
         ev = payload.get("event", "")
         data = payload.get("data", {})
         if ev == "agent.progress":
             tool = data.get("current_file")
-            pct = data.get("progress_pct", 0)
+            data.get("progress_pct", 0)
             if tool and tool not in ["planning", "done"]:
                 # Update progress for current tool
                 pass
         elif ev == "security.finding":
-            sev = data.get("severity", "?").upper()
-            print(f"\n  [{sev}] {data.get('description', data.get('type', ''))}  ({data.get('file', '')})")
+            data.get("severity", "?").upper()
         elif ev == "test.suite.completed":
-            print(f"  [TESTS] passed={data.get('passed')} failed={data.get('failed')}")
+            pass
         elif ev == "test.stress.update":
-            print(f"  [STRESS] {data.get('rps')} rps  p95={data.get('p95')}ms  err={data.get('error_rate')}")
+            pass
         elif ev == "brain.scan.completed":
-            print(f"  [BRAIN] {data.get('file_count')} files, {data.get('route_count')} routes")
+            pass
         elif ev == "agent.completed":
             pass
 
@@ -125,14 +117,12 @@ def run(args) -> None:
             # Extract tool name from message like "SmartAgent: step 1/3 → run_tests"
             parts = msg.split("→")
             if len(parts) > 1:
-                tool = parts[1].strip()
-                print(f"\n  [STEP] {tool}")
+                parts[1].strip()
         elif msg.startswith("SmartAgent: plan"):
-            print(f"  Plan: {msg.split('=', 1)[1].strip()}")
+            pass
         elif not msg.startswith("SmartAgent: goal"):
-            print(f"  {msg}")
+            pass
 
-    print(f"\n🧠 Patchi SmartAgent — goal: {goal}\n")
 
     # Show initial spinner while planning
     plan_spinner = Spinner("Planning agent steps…")
@@ -143,33 +133,17 @@ def run(args) -> None:
             root, goal, max_steps=max_steps,
             on_event=on_event, on_progress=on_progress,
         )
-    except Exception as e:  # surface any failure honestly
-        print(f"\n❌ SmartAgent failed: {e}")
+    except Exception:  # surface any failure honestly
         sys.exit(1)
     finally:
         plan_spinner.stop("")
 
     if json_output:
-        import json
-        print(json.dumps(report, indent=2, default=str))
         return
 
-    print("\n" + "=" * 64)
-    print("SMART AGENT REPORT")
-    print("=" * 64)
-    print(f"Goal           : {goal}")
-    print(f"Plan           : {' -> '.join(report.get('steps_planned', []))}")
-    print(f"Live events    : {report.get('events', 0)}")
-    print(f"Total findings : {report.get('total_findings', 0)}")
-    print("-" * 64)
     for s in report.get("steps_executed", []):
-        status = "OK" if s.get("success") else "FAIL"
-        color = "\033[32m" if s.get("success") else "\033[31m"
-        reset = "\033[0m"
-        print(f"  [{color}{status}{reset}] {s['tool']:<22} {s.get('summary', '')}")
-    print("=" * 64)
-    print("Web live view  : run the agent from the web UI at /smart,")
-    print("                 or watch it stream events over the WebSocket.")
+        "OK" if s.get("success") else "FAIL"
+        "\033[32m" if s.get("success") else "\033[31m"
 
 
 if __name__ == "__main__":

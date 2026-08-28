@@ -474,12 +474,12 @@ def _show_preview_diffs(patches: list[Patch], root: Path) -> None:
                     con.print(f"  [{color}]{marker} {line_num:4d} │ {lines[ln][:80]}[/{color}]")
 
                 if new_content:
-                    con.print(f"  [green]+ After:[/green]")
+                    con.print("  [green]+ After:[/green]")
                     for new_line in new_content.splitlines()[:10]:
                         con.print(f"  [green]+       │ {new_line[:80]}[/green]")
             elif new_content:
                 # New file or block
-                con.print(f"  [green]+ New content:[/green]")
+                con.print("  [green]+ New content:[/green]")
                 for new_line in new_content.splitlines()[:15]:
                     con.print(f"  [green]+       │ {new_line[:80]}[/green]")
 

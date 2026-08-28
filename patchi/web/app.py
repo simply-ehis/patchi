@@ -162,6 +162,7 @@ def create_app(root: Path) -> FastAPI:
     from patchi.web.routes.brain import router as brain_router
     from patchi.web.routes.chat import router as chat_router
     from patchi.web.routes.council import router as council_router
+    from patchi.web.routes.doctor import router as doctor_router
     from patchi.web.routes.dashboard import router as dashboard_router
 
     try:
@@ -197,6 +198,7 @@ def create_app(root: Path) -> FastAPI:
     app.include_router(legacy_router)
     app.include_router(dashboard_router)
     app.include_router(council_router)
+    app.include_router(doctor_router)
     app.include_router(findings_router)
     app.include_router(charter_router)
     app.include_router(review_router)

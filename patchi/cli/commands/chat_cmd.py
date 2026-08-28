@@ -20,13 +20,9 @@ Usage:
 
 from __future__ import annotations
 
-import asyncio
 import json
-import sys
-import time
 from pathlib import Path
 
-from rich.console import Console
 from rich.markdown import Markdown
 from rich.panel import Panel
 from rich.table import Table
@@ -136,6 +132,7 @@ def _check_force_routing(message: str) -> tuple[str, str | None]:
 def _show_explain_all() -> None:
     """Show the full security knowledge base in a formatted table."""
     from rich.table import Table
+
     from patchi.cli.commands.explain_cmd import _EXPLANATIONS
 
     con.print()
@@ -190,7 +187,7 @@ def _process_message(
 ) -> str:
     """Process a message using the Brain as the central intelligence."""
     from patchi.core.ai.client import call_ai
-    from patchi.core.ai.orchestrator import Orchestrator, Brain
+    from patchi.core.ai.orchestrator import Orchestrator
 
     clean_msg, force_mode = _check_force_routing(message)
 
@@ -215,7 +212,6 @@ def _process_message(
                 con.print(f"  [dim]{msg}[/dim]")
 
         def on_event(payload: dict):
-            import time as _time
             ev = payload.get("event", "")
             data = payload.get("data", {})
             if ev == "orchestrator.planned":
@@ -317,7 +313,7 @@ def _process_message(
 
         result = orchestrator.run_command(command)
         if result.get("success"):
-            con.print(f"\n[green]✓ Command succeeded[/green]")
+            con.print("\n[green]✓ Command succeeded[/green]")
             if result.get("stdout"):
                 con.print(f"```\n{result['stdout']}\n```")
             return result.get("stdout", "Command succeeded")
@@ -340,7 +336,7 @@ def _process_message(
                 con.print(f"\n[bold cyan]🤖 Spawning {atype} agent...[/bold cyan]\n")
                 result = orchestrator.spawn_agent(atype, goal=clean_msg)
                 if result.get("success"):
-                    con.print(f"[green]✓ Agent completed[/green]")
+                    con.print("[green]✓ Agent completed[/green]")
                     return json.dumps(result.get("result", {}), indent=2, default=str)[:2000]
                 else:
                     con.print(f"[red]Agent failed: {result.get('error', 'unknown')}[/red]")

@@ -490,7 +490,7 @@ class Brain:
                 brain_mem["confirmed_flows"] = [f.to_dict() for f in auto_confirmed]
                 brain_mem["contract_locked"] = True
                 brain_mem["contract_auto_formed"] = True
-                _log.info("Auto-locked contract with %d flows", len(auto_confirmed))
+                logger.info("Auto-locked contract with %d flows", len(auto_confirmed))
 
         # Load any previously confirmed flows from memory
         if brain_mem.get("confirmed_flows"):

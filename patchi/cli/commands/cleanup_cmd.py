@@ -26,10 +26,7 @@ Usage:
 
 from __future__ import annotations
 
-import json
-import os
 import time
-from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from patchi.cli.console import con
@@ -130,7 +127,7 @@ def cleanup(
             r = require_project_root()
         except Exception as e:
             if json_output:
-                print(json.dumps({"error": str(e)}))
+                pass
             else:
                 con.print(f"[red]{e}[/red]")
             return
@@ -138,7 +135,7 @@ def cleanup(
     patchi_dir = r / ".patchi"
     if not patchi_dir.is_dir():
         if json_output:
-            print(json.dumps({"error": "No .patchi directory found", "path": str(patchi_dir)}))
+            pass
         else:
             con.print(f"[yellow]No .patchi directory found at {r}[/yellow]")
         return
@@ -241,7 +238,7 @@ def cleanup(
 
     # JSON output for CI
     if json_output:
-        result = {
+        {
             "dry_run": not apply,
             "older_than": older_than,
             "total_files": total_files,
@@ -253,7 +250,6 @@ def cleanup(
             "categories": cleanup_data,
             "preserved": _get_preserved(patchi_dir),
         }
-        print(json.dumps(result, indent=2))
         return
 
     # Summary

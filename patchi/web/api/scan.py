@@ -122,8 +122,8 @@ async def get_scan_report(request: Request) -> JSONResponse:
                 all_findings.append(f)
 
     try:
-        from patchi.core.security.orchestrator import SecurityOrchestrator
         from patchi.core.agents.base import AgentGroup, AgentResult, Finding
+        from patchi.core.security.orchestrator import SecurityOrchestrator
 
         synth = []
         for name, data in scan_results.items():

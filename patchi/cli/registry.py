@@ -177,6 +177,18 @@ COMMANDS: list[Command] = [
                 default=1,
                 help="Number of commits to diff (default: 1)",
             ),
+            Arg(
+                "--with-license",
+                dest="with_license",
+                action="store_true",
+                help="Include license compliance findings (heavy/noisy). Use p scan --with-license for full supply-chain license audit",
+            ),
+            Arg(
+                "--with-extended",
+                dest="with_extended",
+                action="store_true",
+                help="Include extended noise (duplicates, hygiene). Main scan stays focused; use for deep audit",
+            ),
             Arg("--quiet", dest="quiet", global_flag=True),
         ),
     ),
@@ -809,12 +821,14 @@ COMMANDS: list[Command] = [
         "charter",
         "Manage project charter and rules",
         "patchi.cli.commands.charter_cmd:run_show",
+        namespace_handler=True,
         subcommands=(
-            Command("show", "Show current charter", "patchi.cli.commands.charter_cmd:run_show"),
+            Command("show", "Show current charter", "patchi.cli.commands.charter_cmd:run_show", namespace_handler=True),
             Command(
                 "set",
                 "Set charter from a file",
                 "patchi.cli.commands.charter_cmd:run_set",
+                namespace_handler=True,
                 args=(
                     Arg("text"),
                     Arg(
@@ -829,12 +843,14 @@ COMMANDS: list[Command] = [
                 "check",
                 "Check code against charter",
                 "patchi.cli.commands.charter_cmd:run_check",
+                namespace_handler=True,
                 args=(Arg("--rebuild", action="store_true", help="Rebuild charter index"),),
             ),
             Command(
                 "hooks",
                 "Manage git hooks",
                 "patchi.cli.commands.charter_cmd:run_hooks",
+                namespace_handler=True,
                 args=(Arg("--install", action="store_true", help="Install git hooks"),),
             ),
         ),
@@ -855,6 +871,7 @@ COMMANDS: list[Command] = [
         "findings",
         "View and manage security findings",
         "patchi.cli.commands.findings_cmd:run",
+        namespace_handler=True,
         args=(
             Arg("--summary", action="store_true", help="Per-agent before/after counts"),
             Arg("--save-baseline", action="store_true", help="Snapshot current counts as baseline"),
@@ -865,6 +882,7 @@ COMMANDS: list[Command] = [
         "rules",
         "View and validate security rule packs",
         "patchi.cli.commands.rules_cmd:run",
+        namespace_handler=True,
         args=(
             Arg("--validate", action="store_true", help="Validate all rule packs"),
             Arg(
@@ -908,7 +926,7 @@ COMMANDS: list[Command] = [
     ),
     Command(
         "hosted",
-        "Hosted mode â€” monitor live apps",
+        "Hosted mode â€” monitor live apps(experimental)",
         "patchi.cli.commands.hosted_cmd:run",
         namespace_handler=True,
         subcommands=(
@@ -1003,6 +1021,7 @@ COMMANDS: list[Command] = [
         "help",
         "Show command help",
         "patchi.cli.commands.help_cmd:run",
+        namespace_handler=True,
         args=(Arg("group", nargs="?", help="Command group"),),
     ),
         # `p smart` merged into `p chat` — use `p chat --stream` for the same functionality

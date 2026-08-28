@@ -28,7 +28,6 @@ _log = logging.getLogger("patchi.cli.watch_cmd")
 
 def _show_preview(root: Path, fixes: list, applied: list) -> None:
     """Show detailed before/after preview of proposed fixes."""
-    from rich.table import Table
 
     con.print()
     con.print("[bold]Proposed Fixes — Preview[/bold]")
@@ -62,7 +61,7 @@ def _show_preview(root: Path, fixes: list, applied: list) -> None:
                         prefix = ">>>" if j == line_num - 1 else "   "
                         con.print(f"       {prefix} {j+1:4d} │ {lines[j]}")
 
-                    con.print(f"     [green]After:[/green]")
+                    con.print("     [green]After:[/green]")
                     con.print(f"       >>> {line_num:4d} │ {fix.suggested_line}")
             except Exception:
                 pass
@@ -71,7 +70,7 @@ def _show_preview(root: Path, fixes: list, applied: list) -> None:
 
     # Summary
     con.print(f"  [dim]Total: {len(fixes)} fixes ({len(applied)} applied, {len(fixes) - len(applied)} proposed)[/dim]")
-    con.print(f"  [dim]Run with --dry-run to preview without applying, or --auto-fix to enable auto-apply.[/dim]")
+    con.print("  [dim]Run with --dry-run to preview without applying, or --auto-fix to enable auto-apply.[/dim]")
     con.print()
 
 

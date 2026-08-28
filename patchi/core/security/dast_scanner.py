@@ -100,7 +100,8 @@ class DastScanner:
                 error_msg = str(e)
                 if "Executable doesn't exist" in error_msg or "playwright" in error_msg.lower():
                     report.errors.append(
-                        "Playwright browsers not installed. Run: pip install playwright && playwright install"
+                        "Playwright browsers not installed. "
+                        "Run: pip install playwright && playwright install"
                     )
                     report.duration_ms = int((time.monotonic() - start) * 1000)
                     return report

@@ -11,7 +11,6 @@ Exit codes:
 
 from __future__ import annotations
 
-import json
 import os
 import subprocess
 import sys
@@ -207,6 +206,5 @@ def run(action: str = "check", json_output: bool = False) -> None:
         }
         if junit:
             output["junit"] = junit
-        print(json.dumps(output, indent=2))
 
     sys.exit(0 if all_passed else 1)

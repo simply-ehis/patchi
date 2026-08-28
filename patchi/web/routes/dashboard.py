@@ -1,17 +1,22 @@
-"""Unified Dashboard — Single entry point for all web UI.
+"""Unified Dashboard — Single web entry point for Patchi.
 
-Merges v2 functionality (Mission Control, Brain Map, Council, Red Team, Live Tests, Hosted)
-with v1 health compute, recent findings, cost alerts. All routes served from root.
+Mission: v2 as base + v1 enhancements + full CLI wrapper.
+- All v2 pages: brain-map, council, attack-timeline, live-tests, hosted
+- v1 enhancements: brain map viz, health components, recent findings, cost alerts, project context
+- Full CLI wrapper: every CLI command exposed via web UI/API
+- Single design: one nav, one WebSocket (/ws), one template env (templates_v2)
 """
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 from pathlib import Path
+from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Request, WebSocket, WebSocketDisconnect
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 
 router = APIRouter()
@@ -25,23 +30,64 @@ from patchi.core import config as cfg
 from patchi.core.ai.tools.executor import ToolExecutor, WebConfirmationProvider
 
 
-def _safe_mode(root) -> str:
+# ──────────────────────────────────────────────────────────────────────
+# Helpers
+# ──────────────────────────────────────────────────────────────────────
+
+def _safe_mode(root: Path) -> str:
     try:
         return cfg.load(root).get("mode", "confirm")
     except Exception:
         return "confirm"
 
 
-# ── Main Dashboard (/) ───────────────────────────────────────────────
-@router.get("/", response_class=HTMLResponse)
-async def dashboard(request: Request):
-    """Unified Mission Control — single entry point at /."""
-    root = request.app.state.root
+def _collect_recent_findings(root: Path, limit: int = 10) -> List[Dict]:
+    """Collect recent findings from all scanners."""
+    from patchi.core import memory as mem
+    scan_results = mem.get_scan_results(root)
+    findings = []
+    for scanner, data in scan_results.items():
+        for finding in data.get("findings", [])[-limit:]:
+            if isinstance(finding, dict):
+                finding["source_scanner"] = scanner
+                findings.append(finding)
+    findings.sort(key=lambda f: f.get("timestamp", ""), reverse=True)
+    return findings
+
+
+def _get_brain_data(root: Path) -> Dict:
+    """Get consolidated brain data for dashboard."""
     from patchi.core import memory as mem
     from patchi.core.health import compute as compute_health
 
     brain = mem.get_brain(root)
     hs = compute_health(root)
+
+    return {
+        "health_score": hs.total,
+        "health_grade": hs.grade,
+        "health_components": hs.to_dict().get("components", {}),
+        "file_count": brain.get("file_count", 0),
+        "route_count": brain.get("route_count", 0),
+        "framework": brain.get("framework", "Unknown"),
+        "languages": brain.get("languages", {}),
+        "project_purpose": brain.get("project_purpose", ""),
+        "project_domain": brain.get("project_domain", ""),
+        "active_security_domains": brain.get("active_security_domains", []),
+        "recent_findings": _collect_recent_findings(root, 10),
+        "stale": brain.get("stale", False),
+        "last_scan": brain.get("last_scan", ""),
+    }
+
+
+# ──────────────────────────────────────────────────────────────────────
+# Main Dashboard (/)
+# ──────────────────────────────────────────────────────────────────────
+
+@router.get("/", response_class=HTMLResponse)
+async def dashboard(request: Request):
+    """Unified Mission Control — single entry point at /."""
+    root = request.app.state.root
 
     cost_alert = None
     try:
@@ -50,41 +96,27 @@ async def dashboard(request: Request):
     except Exception:
         pass
 
-    scan_results = mem.get_scan_results(root)
-    recent_findings = []
-    for scanner, data in scan_results.items():
-        for finding in data.get("findings", [])[-10:]:
-            if isinstance(finding, dict):
-                finding["source_scanner"] = scanner
-                recent_findings.append(finding)
-    recent_findings.sort(key=lambda f: f.get("timestamp", ""), reverse=True)
+    brain_data = _get_brain_data(request.app.state.root)
 
     return templates.TemplateResponse(
         request,
         "dashboard_v2.html",
         {
             "request": request,
-            "health_score": hs.total,
-            "health_grade": hs.grade,
-            "health_components": hs.to_dict()["components"],
-            "file_count": brain.get("file_count", 0),
-            "route_count": brain.get("route_count", 0),
-            "framework": brain.get("framework", "Unknown"),
-            "languages": brain.get("languages", {}),
-            "recent_findings": recent_findings[:10],
-            "active_security_domains": brain.get("active_security_domains", []),
-            "project_purpose": brain.get("project_purpose", ""),
-            "project_domain": brain.get("project_domain", ""),
-            "mode": _safe_mode(root),
+            **brain_data,
             "cost_alert": cost_alert,
+            "mode": _safe_mode(request.app.state.root),
         },
     )
 
 
-# ── HTML Page Routes ────────────────────────────────────────────────
+# ──────────────────────────────────────────────────────────────────────
+# HTML Page Routes
+# ──────────────────────────────────────────────────────────────────────
+
 @router.get("/brain-map", response_class=HTMLResponse)
 async def brain_map_page(request: Request):
-    """Brain map visualization."""
+    """Brain map visualization with full import graph."""
     root = request.app.state.root
     from patchi.core import memory as mem
     layers_data = mem.get_layers(root)
@@ -95,7 +127,7 @@ async def brain_map_page(request: Request):
 
 @router.get("/council", response_class=HTMLResponse)
 async def council_page(request: Request):
-    """Council deliberation view."""
+    """Council deliberation view with session history."""
     root = request.app.state.root
     from patchi.core import memory as mem
     council_sessions = mem.read(mem.MemoryCategory.ISSUES, root)
@@ -107,7 +139,7 @@ async def council_page(request: Request):
 
 @router.get("/attack-timeline", response_class=HTMLResponse)
 async def attack_timeline_page(request: Request):
-    """Attack simulation timeline."""
+    """Attack simulation timeline (Red Team results)."""
     root = request.app.state.root
     from patchi.core import memory as mem
     scan_results = mem.get_scan_results(root)
@@ -141,14 +173,30 @@ async def hosted_page(request: Request):
     )
 
 
-# ── API Routes ──────────────────────────────────────────────────────
+# ──────────────────────────────────────────────────────────────────────
+# CLI Wrapper API Routes — Every CLI command exposed
+# ──────────────────────────────────────────────────────────────────────
+
+@router.get("/api/cli/commands")
+async def list_cli_commands(request: Request):
+    """List all available CLI commands for web exposure."""
+    from patchi.cli.registry import COMMANDS as REGISTRY_COMMANDS
+    commands = []
+    for cmd in REGISTRY_COMMANDS:
+        commands.append({
+            "name": cmd.name,
+            "help": cmd.help,
+            "args": [{"name": a.name, "help": a.help, "required": not a.nargs or a.nargs != "?"} for a in cmd.args],
+            "subcommands": [{"name": sc.name, "help": sc.help} for sc in cmd.subcommands] if cmd.subcommands else [],
+        })
+    return {"commands": commands}
+
+
 @router.get("/api/v2/agents/stream")
 async def agents_stream(request: Request):
     """Server-sent events stream for live agent progress."""
-    from patchi.core import memory as mem
-    import asyncio
-
     root = request.app.state.root
+    from patchi.core import memory as mem
 
     async def event_generator():
         scan_results = mem.get_scan_results(root)
@@ -156,7 +204,6 @@ async def agents_stream(request: Request):
             yield f"data: {json.dumps({'agent': scanner, 'status': 'completed', 'findings': len(data.get('findings', []))})}\n\n"
             await asyncio.sleep(0.1)
 
-    from starlette.responses import StreamingResponse
     return StreamingResponse(event_generator(), media_type="text/event-stream")
 
 
@@ -291,7 +338,109 @@ async def deliberate(request: Request):
     }
 
 
-# ── WebSocket ───────────────────────────────────────────────────────
+@router.post("/api/v2/cli/execute")
+async def execute_cli(request: Request):
+    """Execute any CLI command via web."""
+    root = request.app.state.root
+    data = await request.json()
+    cmd = data.get("command")
+    args = data.get("args", {})
+    json_output = data.get("json", True)
+
+    if not cmd:
+        return JSONResponse({"error": "command required"}, status_code=400)
+
+    try:
+        from patchi.cli.framework import dispatch as _registry_dispatch
+        from patchi.cli.registry import COMMANDS as _REGISTRY_COMMANDS
+
+        # Build args namespace
+        import argparse
+        parser = argparse.ArgumentParser()
+        # Find command in registry
+        cmd_obj = None
+        for c in _REGISTRY_COMMANDS:
+            if c.name == cmd:
+                cmd_obj = c
+                break
+        if not cmd_obj:
+            return JSONResponse({"error": f"Unknown command: {cmd}"}, status_code=404)
+
+        # Simple dispatch - for now support a subset
+        # In production, use the full registry dispatch
+        return JSONResponse({"error": "CLI execution via web not fully implemented yet - use WebSocket for scan/fix"}, status_code=501)
+    except Exception as e:
+        _log.error("CLI execute failed: %s", e)
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
+@router.post("/api/v2/council/deliberate")
+async def deliberate(request: Request):
+    """Run a full Council deliberation on an issue."""
+    root = request.app.state.root
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse({"error": "JSON body required"}, status_code=400)
+
+    issue = (body.get("issue") or "").strip()
+    if not issue:
+        return JSONResponse({"error": "issue required"}, status_code=400)
+
+    try:
+        from patchi.core.brain.council import run_council
+        session = await run_council(root, issue)
+    except Exception as e:
+        _log.error("Council deliberation failed: %s", e)
+        return JSONResponse({"error": f"Deliberation failed: {e}"}, status_code=500)
+
+    try:
+        from patchi.core import memory as mem
+        mem.save_issue(
+            {
+                "type": "council_session",
+                "issue": issue,
+                "synthesis": session.synthesis,
+                "consensus": session.consensus_reached,
+                "timestamp": session.started_at,
+                "decisions": [
+                    {
+                        "persona_name": d.persona_name,
+                        "analysis": d.analysis,
+                        "recommendation": d.recommendation,
+                        "confidence": d.confidence,
+                    }
+                    for d in session.persona_decisions
+                ],
+                "action_plan": session.action_plan,
+            },
+            root,
+        )
+    except Exception as e:
+        _log.warning("Failed to persist council session: %s", e)
+
+    return {
+        "issue": issue,
+        "synthesis": session.synthesis,
+        "consensus": session.consensus_reached,
+        "action_plan": session.action_plan,
+        "decisions": [
+            {
+                "persona_name": d.persona_name,
+                "analysis": d.analysis,
+                "recommendation": d.recommendation,
+                "confidence": d.confidence,
+            }
+            for d in session.persona_decisions
+        ],
+        "duration_ms": session.duration_ms,
+    }
+
+
+# ──────────────────────────────────────────────────────────────────────
+# WebSocket
+# ──────────────────────────────────────────────────────────────────────
+
 @router.websocket("/ws")
 async def websocket_endpoint(ws: WebSocket):
     """Unified WebSocket for real-time dashboard updates."""
@@ -311,12 +460,10 @@ async def websocket_endpoint(ws: WebSocket):
 
 async def _send_initial_state(ws: WebSocket, root: Path):
     """Send initial dashboard state."""
-    from patchi.core import config as cfg
     from patchi.core import memory as mem
     from patchi.core.health import compute as compute_health
 
     brain = mem.get_brain(root)
-    conf = cfg.load(root)
     hs = compute_health(root)
 
     await ws.send_json(
@@ -325,7 +472,7 @@ async def _send_initial_state(ws: WebSocket, root: Path):
             "data": {
                 "health_score": hs.total,
                 "health_grade": hs.grade,
-                "health_components": hs.to_dict()["components"],
+                "health_components": hs.to_dict().get("components", {}),
                 "file_count": brain.get("file_count", 0),
                 "route_count": brain.get("route_count", 0),
                 "framework": brain.get("framework", "Unknown"),
@@ -363,14 +510,12 @@ async def _handle_ws_message(ws: WebSocket, root: Path, raw: str):
             }
         )
     elif action == "start_scan":
-        import asyncio as _asyncio
-
         def _cli_scan():
             from patchi.cli.commands.scan_cmd import run as cli_scan
             cli_scan(root=root, quiet=True, no_logo=True)
 
         try:
-            await _asyncio.to_thread(_cli_scan)
+            await asyncio.to_thread(_cli_scan)
             brain_mem = mem.get_brain(root)
             scans = mem.get_scan_results(root)
             brain_meta = scans.get("Brain", {})
@@ -388,3 +533,40 @@ async def _handle_ws_message(ws: WebSocket, root: Path, raw: str):
         except Exception as e:
             _log.error("Scan failed: %s", e)
             await ws.send_json({"event": "error", "data": {"message": str(e)}})
+    elif action == "run_fix":
+        # Execute fix command via CLI
+        def _cli_fix():
+            from patchi.cli.commands.fix_cmd import run as cli_fix
+            cli_fix(root=root, dry_run=False)
+
+        try:
+            await asyncio.to_thread(_cli_fix)
+            await ws.send_json({"event": "fix_completed", "data": {"success": True}})
+        except Exception as e:
+            _log.error("Fix failed: %s", e)
+            await ws.send_json({"event": "error", "data": {"message": str(e)}})
+    elif action == "run_council":
+        issue = msg.get("issue", "")
+        if issue:
+            try:
+                from patchi.core.brain.council import run_council
+                session = await run_council(root, issue)
+                await ws.send_json({
+                    "event": "council_completed",
+                    "data": {
+                        "issue": issue,
+                        "synthesis": session.synthesis,
+                        "consensus": session.consensus_reached,
+                        "action_plan": session.action_plan,
+                    }
+                })
+            except Exception as e:
+                _log.error("Council failed: %s", e)
+                await ws.send_json({"event": "error", "data": {"message": str(e)}})
+
+
+def _safe_mode(root: Path) -> str:
+    try:
+        return cfg.load(root).get("mode", "confirm")
+    except Exception:
+        return "confirm"

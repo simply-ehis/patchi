@@ -9,12 +9,11 @@ from __future__ import annotations
 
 import asyncio
 import json
-import subprocess
 import time
 from pathlib import Path
 
 from fastapi import APIRouter, Request
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import JSONResponse
 from starlette.templating import Jinja2Templates
 
 router = APIRouter(prefix="/api")
@@ -115,7 +114,7 @@ async def _run_gate(
             "parsed": parsed,
         }
 
-    except asyncio.TimeoutError:
+    except TimeoutError:
         return {
             "name": name,
             "status": "TIMEOUT",

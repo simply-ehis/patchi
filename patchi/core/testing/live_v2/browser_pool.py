@@ -102,7 +102,8 @@ class BrowserPool:
             _log.info(f"Browser pool initialized ({self.config.browser_type})")
         except ImportError:
             _log.error(
-                "Playwright not installed. Install with: pip install playwright && playwright install"
+                "Playwright not installed. "
+                "Install with: pip install playwright && playwright install"
             )
             raise
         except Exception as e:

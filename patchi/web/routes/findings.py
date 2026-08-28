@@ -115,7 +115,7 @@ async def findings(request: Request):
             if cat in dast_evidence:
                 # Get first screenshot for this category
                 screenshots = []
-                for test_name, paths in dast_evidence[cat].items():
+                for _test_name, paths in dast_evidence[cat].items():
                     screenshots.extend(paths[:1])  # one per test type
                 f["screenshots"] = screenshots[:3]  # max 3 per finding
             else:

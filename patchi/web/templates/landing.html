@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Patchi — AI-powered code security & quality agent colony</title>
+  <meta name="description" content="Patchi is an AI-powered code security & quality agent colony. CLI + Mission Control web, 54 agents, 334 domains, 11 languages. Scans, secures, tests and fixes.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/landing.css">
+</head>
+<body class="landing">
+  <nav class="landing-nav" aria-label="Primary">
+    <div class="landing-nav-inner">
+      <a href="/landing" class="landing-wordmark">PATCHI</a>
+      <div class="landing-nav-links" role="navigation">
+        <a href="#overview">Overview</a>
+        <a href="#security">Security</a>
+        <a href="#testing">Testing</a>
+        <a href="#cli">CLI</a>
+        <a href="#architecture">Arch</a>
+        <a href="/">Mission Control</a>
+      </div>
+      <div class="landing-nav-cta">
+        <span class="kbd-hint" aria-hidden="true">⌘K</span>
+        <a href="/" class="btn btn-primary">Open Mission Control</a>
+      </div>
+    </div>
+  </nav>
+
+  <header class="hero-band">
+    <div class="eyebrow">AI-POWERED • AGENT COLONY • 54 AGENTS • 334 DOMAINS • 11 LANGUAGES</div>
+    <h1 class="hero-h1">Patchi finds what scanners miss <span class="accent">and fixes what's safe.</span></h1>
+    <p class="hero-sub">A CLI agent colony + Mission Control web that <strong style="color:var(--ink)">scans, secures, tests and fixes</strong> your codebase with static analysis + optional AI. <strong style="color:var(--ink)">1:1 CLI ↔ Web</strong> — the web is a fancy wrapper. Cross-platform, Python 3.11+, works offline.</p>
+    <div class="hero-ctas">
+      <a href="/" class="btn btn-primary">Get Started — <span style="font-family:var(--font-mono);font-weight:600">p web</span></a>
+      <span class="code-pill">pip install ".[web]" <span class="copy" onclick="navigator.clipboard.writeText('pip install &quot;.[web]&quot;'); this.textContent='Copied'; setTimeout(()=>this.textContent='Copy',1200)">Copy</span></span>
+      <a href="#overview" class="btn btn-ghost">Explore →</a>
+    </div>
+    <div class="hero-mockup" role="img" aria-label="Patchi Mission Control preview">
+      <div class="hero-mockup-grid">
+        <div class="hero-panel">
+          <div class="hero-panel-title">Mission Control — Health & Brain</div>
+          <div class="hero-health-row">
+            <div class="hero-score" style="color:{% if health_score >= 80 %}var(--low){% elif health_score >= 50 %}var(--medium){% else %}var(--critical){% endif %}">{{ health_score }}</div>
+            <div class="hero-grade">{{ health_grade }}</div>
+            <span style="font-size:11px;color:var(--muted)">Health Score</span>
+          </div>
+          <div style="display:grid;gap:8px">
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--body)"><span>Security posture</span><span style="font-family:var(--font-mono);font-weight:700">{{ health_score }}/100</span></div>
+            <div class="mini-bar"><div class="mini-fill" style="width:{{ health_score }}%"></div></div>
+            <div class="hero-stats">
+              <span class="hero-stat">{{ file_count }} files</span>
+              <span class="hero-stat">{{ route_count }} routes</span>
+              <span class="hero-stat">{{ framework }}</span>
+              <span class="hero-stat">{{ recent_findings }} findings</span>
+            </div>
+          </div>
+        </div>
+        <div class="hero-panel">
+          <div class="hero-panel-title">Live Agent Feed</div>
+          <div class="hero-agent-feed" aria-live="polite">
+            <div class="feed-line"><span class="feed-time">09:12:03</span><span style="color:var(--accent)">[TaintAnalyzer]</span><span>✓ done in 420ms (2 findings)</span></div>
+            <div class="feed-line"><span class="feed-time">09:12:04</span><span style="color:var(--accent)">[SecretScanner]</span><span>▶ started — scanning 12 files</span></div>
+            <div class="feed-line"><span class="feed-time">09:12:05</span><span style="color:var(--low)">[Council]</span><span>Consensus — 3 tool calls</span></div>
+            <div class="feed-line"><span class="feed-time">09:12:06</span><span style="color:var(--muted)">Press ⌘K to run any tool · 37 tools</span></div>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:12px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+        <span class="hero-stat" style="background:var(--accent);color:#fff;border-color:var(--accent)">● Mission Control</span>
+        <span class="hero-stat">Brain Map</span>
+        <span class="hero-stat">Council</span>
+        <span class="hero-stat">Red Team</span>
+        <span class="hero-stat">Live Tests</span>
+      </div>
+    </div>
+  </header>
+
+  <section class="proof-band" aria-label="Proof">
+    <div class="proof-inner">
+      <span class="proof-label">Pre-1.0.0 dev preview — peak stable at v1.0.0 · ~0.4.0 remains</span>
+      <div class="proof-metrics">
+        <div class="metric"><span class="metric-v">54</span><span class="metric-l">agents</span></div>
+        <div class="metric"><span class="metric-v">334</span><span class="metric-l">domains</span></div>
+        <div class="metric"><span class="metric-v">17</span><span class="metric-l">sigma rules</span></div>
+        <div class="metric"><span class="metric-v">11</span><span class="metric-l">languages</span></div>
+        <div class="metric"><span class="metric-v">1300+</span><span class="metric-l">tests</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" id="overview">
+    <div class="band-head">
+      <div class="eyebrow" style="text-align:center">WHAT IS PATCHI</div>
+      <h2>One colony, not one scanner</h2>
+      <p>Patchi isn’t a linter. It’s a <strong style="color:var(--ink)">colony of 54+ specialist agents</strong> orchestrated by a Brain that understands your code as a graph. Static + dynamic + AI, with a risk gate that never auto-fixes what it shouldn’t.</p>
+    </div>
+    <div class="grid-3">
+      <article class="feature-card">
+        <div class="card-fragment">┌─ import graph ──────────┐<br>│ app.py → routes/auth.py → db.py │<br>│ nodes: {{ file_count }} · routes: {{ route_count }} │<br>└──────────────────────────┘</div>
+        <h3 class="card-title">Static, but structural</h3>
+        <p class="card-body">Tree-sitter AST across Python, JS/TS, Rust, Go, Java, C/C++, Swift, Ruby, Svelte, etc. Import graph, symbol graph, route mapper (18 frameworks), circular deps, orphan files. Incremental via git diff + hash cache.</p>
+      </article>
+      <article class="feature-card">
+        <div class="card-fragment">4 tiers: Ollama (offline) → API keys → Free keys → AI Horde<br>14 providers: OpenAI, Anthropic, Google, Groq, Mistral, Cohere, Together, Fireworks, Perplexity, OpenRouter, DeepSeek, xAI, NVIDIA, HF + custom OpenAI-compat</div>
+        <h3 class="card-title">AI when you want it</h3>
+        <p class="card-body">Without AI: pure static analysis, zero cost. With AI: fix generation, council deliberation, NL queries. Keys in <code>.patchi/keys.json</code>, never sent elsewhere. Local Ollama is first-class.</p>
+      </article>
+      <article class="feature-card">
+        <div class="card-fragment">attack timeline<br>● SQLi — <span style="color:var(--critical)">Exploited</span> &nbsp; ● XSS — <span style="color:var(--low)">Blocked</span> &nbsp; ● SSRF — Failed<br><br>fix: risk-gated ALLOW_AUTO / REQUIRE_REVIEW / BLOCK</div>
+        <h3 class="card-title">Fixes that verify</h3>
+        <p class="card-body">Every patch is risk-gated, snapshotted (atomic rollback), tested, then re-checked by the same agents. 174s → 0.1s cached security report via deduplication + OWASP correlation.</p>
+      </article>
+    </div>
+    <div style="margin-top:20px;display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div class="hero-panel"><div class="hero-panel-title">How it’s different</div><ul class="product-list"><li>Graph-first, not list-first (like Wiz Security Graph, but for code)</li><li>Toxic combos, not single alerts — composite risk findings</li><li>Learning brain — tracks accept/reject, stops nagging</li><li>Governor pipeline — phase-gated, crash-recoverable (p scan --governor)</li></ul></div>
+      <div class="hero-panel"><div class="hero-panel-title">Safety by design</div><ul class="product-list"><li><code>confirm</code> (default) · <code>auto</code> (low-risk auto) · <code>autopilot</code> (full trust)</li><li>Snapshot + undo/redo, atomic writes, file-locked queue</li><li>Pre-1.0.0 — APIs may evolve, .patchi is best-effort forward-compat</li><li>Hosted live guard is experimental (bannered)</li></ul></div>
+    </div>
+  </section>
+
+  <section class="product-band">
+    <div>
+      <div class="product-label">BRAIN</div>
+      <h2>The Brain is the database</h2>
+      <p>Wiz modeled cloud as a graph; Patchi models your code as one. Every file, route, dependency, and layer (L1 modules → L4 project) mapped. Click any node → full context, blast radius, history. Powers everything else.</p>
+      <ul class="product-list">
+        <li>9-language AST walkers + 18-framework route detectors</li>
+        <li>Import graph (Tarjan cycle detection), symbol graph, layers, DOT export</li>
+        <li>Tap-to-spawn — max 5 ants, 10s cooldown, 60s expiry, 3 per node</li>
+        <li>Blast radius, git blame, drift, health 0–100 (A–F)</li>
+      </ul>
+      <div style="margin-top:16px;display:flex;gap:10px">
+        <a href="/brain" class="btn btn-ghost">Explore Brain →</a>
+        <a href="/brain-map" class="btn btn-accent">Open Map</a>
+      </div>
+    </div>
+    <div class="product-mockup-card">
+      <div class="brain-canvas-mini">Brain Map — layered graph · {{ file_count }} nodes<br><span style="font-size:10px;color:var(--muted)">Drag nodes · Blue L2 · Green L4 · Lines = imports</span></div>
+      <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+        <span class="hero-stat">L1 module</span><span class="hero-stat" style="border-color:var(--low);color:var(--low)">L2 subsystem</span><span class="hero-stat" style="border-color:var(--accent);color:var(--accent)">L4 project</span>
+      </div>
+      <div style="margin-top:10px;font-family:var(--font-mono);font-size:11px;color:var(--body)">Layers: {{ active_domains|join(', ') if active_domains else 'auto-detected per project'}}</div>
+    </div>
+  </section>
+
+  <section class="band" id="security">
+    <div class="band-head">
+      <div class="eyebrow" style="text-align:center">SECURITY — 54 AGENTS</div>
+      <h2>From injection to supply chain, one orchestrator</h2>
+      <p>54 lazy-loaded agents, deduplicated, correlated, OWASP-mapped. Uses Semgrep CE, Gitleaks, OSV-Scanner under the hood. Heavy compliance (license per dep) is opt-in.</p>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div class="hero-panel">
+        <div class="hero-panel-title">Categories</div>
+        <table style="width:100%;font-size:12px;border-collapse:collapse">
+          <tr style="border-bottom:1px solid var(--border)"><td style="padding:6px 0;color:var(--body)">Injection</td><td style="padding:6px 0">SQLi, XSS, command, SSRF, CSRF, path traversal</td></tr>
+          <tr style="border-bottom:1px solid var(--border)"><td style="padding:6px 0;color:var(--body)">Auth</td><td style="padding:6px 0">Missing auth, BAC, JWT, SAML SSO</td></tr>
+          <tr style="border-bottom:1px solid var(--border)"><td style="padding:6px 0;color:var(--body)">Crypto</td><td style="padding:6px 0">Weak hash, hardcoded keys, SSL/TLS</td></tr>
+          <tr style="border-bottom:1px solid var(--border)"><td style="padding:6px 0;color:var(--body)">Secrets</td><td style="padding:6px 0">Leaked creds, API keys, connection strings</td></tr>
+          <tr style="border-bottom:1px solid var(--border)"><td style="padding:6px 0;color:var(--body)">Supply Chain</td><td style="padding:6px 0">CVEs, typosquat, unpinned deps (<code>--with-license</code>)</td></tr>
+          <tr style="border-bottom:1px solid var(--border)"><td style="padding:6px 0;color:var(--body)">Config/IaC</td><td style="padding:6px 0">Debug mode, headers, CORS, Docker/K8s/Terraform</td></tr>
+          <tr style="border-bottom:1px solid var(--border)"><td style="padding:6px 0;color:var(--body)">Compliance</td><td style="padding:6px 0">SOC2, HIPAA, PCI-DSS, CIS</td></tr>
+          <tr><td style="padding:6px 0;color:var(--body)">+ Runtime/Adversarial/Governance</td><td style="padding:6px 0">Live DAST, anomaly, blast radius, drift</td></tr>
+        </table>
+      </div>
+      <div class="hero-panel">
+        <div class="hero-panel-title">How it runs</div>
+        <ul class="product-list">
+          <li>Signal-based domain activation — only relevant domains run (Flask app 182/334, Patchi self 39, minimal CLI 1)</li>
+          <li>334 domains (ASVS 5.0, OWASP 2025, API Top 10, CWE Top 25, NIST 800-53, CIS v8, PCI DSS 4.0) + 335 playbooks + 17 Sigma rules</li>
+          <li>Orchestrator: dedup + correlation + OWASP mapping (CWE-aware), cached report</li>
+          <li>Policy engine (YAML/JSON) + SBOM (CycloneDX) + SARIF export for PR comments</li>
+        </ul>
+        <div style="margin-top:12px;display:flex;gap:8px"><a href="/guard" class="btn btn-ghost">View Guard</a><a href="/findings" class="btn btn-ghost">Findings</a></div>
+      </div>
+    </div>
+    <div class="hero-panel" style="margin-top:16px">
+      <div class="hero-panel-title">Domain Taxonomy Spotlight (from BUILD_MAP)</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;font-family:var(--font-mono);font-size:11px">
+        <span class="hero-stat">injection</span><span class="hero-stat">auth</span><span class="hero-stat">xss</span><span class="hero-stat">ssrf</span><span class="hero-stat">secrets</span><span class="hero-stat">crypto</span><span class="hero-stat">supply-chain</span><span class="hero-stat">iac</span><span class="hero-stat">compliance</span><span class="hero-stat">privacy</span><span class="hero-stat">runtime</span>
+      </div>
+      <p style="margin-top:8px;font-size:12px;color:var(--muted)">Specificity tightened (has_backend_api_surface requires routes + web/framework import, DB surface requires DB deps) — zero false positives for verticals (IoT, blockchain, healthcare) when no signals.</p>
+    </div>
+  </section>
+
+  <section class="product-band rev">
+    <div>
+      <div class="product-label">RED TEAM & COUNCIL</div>
+      <h2>Attack, deliberate, fix — then verify</h2>
+      <p>Red Team replays 100+ YAML scenarios (SQLi/XSS/Auth families, safe mode). Council: 8 personas (Architect, Security Officer, Test Engineer, Performance Analyst, DevOps, Code Reviewer, Product Owner, Incident Responder) deliberate in parallel, synthesize, emit action plan with 37 tool calls.</p>
+      <ul class="product-list">
+        <li>Tool calls are schema-validated, confirmation-gated, audit-logged</li>
+        <li>Command palette ⌘K → ask Council or invoke any tool</li>
+        <li>Verification loop — re-run attack post-fix to confirm</li>
+      </ul>
+      <div style="margin-top:14px;display:flex;gap:10px">
+        <a href="/council" class="btn btn-ghost">Ask Council</a>
+        <a href="/attack-timeline" class="btn btn-ghost">View Timeline</a>
+      </div>
+    </div>
+    <div class="product-mockup-card">
+      <div style="display:grid;grid-template-columns:1fr 1.1fr;gap:12px">
+        <div class="attack-timeline-mini">
+          <div class="at-event success"><strong>SQLi</strong> · injection · exploited</div>
+          <div class="at-event blocked"><strong>SSRF</strong> · cloud metadata · blocked</div>
+          <div class="at-event"><strong>Auth</strong> · bypass · failed</div>
+        </div>
+        <div>
+          <div class="persona-mini"><span style="width:28px;height:28px;border-radius:50%;background:var(--accent);display:grid;place-items:center;color:#fff;font-weight:700">1</span><div><div style="font-weight:600">Security Officer</div><div style="color:var(--body)">Validate auth boundary · 92% → gate</div></div></div>
+          <div class="persona-mini" style="border-left-color:var(--low)"><span style="width:28px;height:28px;border-radius:50%;background:var(--low);display:grid;place-items:center;color:#000;font-weight:700">2</span><div><div style="font-weight:600">Test Engineer</div><div style="color:var(--body)">Add regression · 88% → run_tests</div></div></div>
+          <div style="margin-top:8px;padding:10px;background:rgba(200,98,26,0.08);border:1px solid rgba(200,98,26,0.18);border-radius:8px;font-size:12px"><strong>Synthesis:</strong> Isolate auth, add regression, verify via DAST.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="product-band" id="testing">
+    <div>
+      <div class="product-label">TESTING & LIVE</div>
+      <h2>Your app, actually running</h2>
+      <p>Not synthetic. Real browser pool, stress (load/spike/soak/breakpoint), visual regression, a11y (axe-core), API contract checks. Video + HAR + performance metrics, streamed over WS.</p>
+      <ul class="product-list">
+        <li>Browser automation: Playwright (Chromium), 50 concurrent, screenshots, video</li>
+        <li>Coverage-guided prioritization, mutation testing (universalmutator + per-lang), flaky detection</li>
+        <li>Contract diff: frontend fetch/axios/trpc/GraphQL ↔ backend routes (18 frameworks)</li>
+        <li>Memory leak, detached DOM, event listener tracking via CDP</li>
+      </ul>
+      <div style="margin-top:14px;display:flex;gap:10px">
+        <a href="/live-tests" class="btn btn-ghost">Open Live Tests</a>
+        <span class="hero-stat">E2E + HAR + p50</span>
+      </div>
+    </div>
+    <div class="product-mockup-card">
+      <div class="browser-mini">
+        <div class="browser-toolbar"><span style="width:12px;height:12px;border-radius:50%;background:var(--critical)"></span><span style="width:12px;height:12px;border-radius:50%;background:var(--medium)"></span><span style="width:12px;height:12px;border-radius:50%;background:var(--low)"></span><span class="browser-url">http://127.0.0.1:1612/live-tests</span></div>
+        <div class="browser-viewport">Screenshot · 16:10 · video + HAR</div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px">
+        <div style="text-align:center;background:#0A0A0A;border:1px solid var(--border);border-radius:8px;padding:10px"><div style="font-family:var(--font-mono);font-weight:700">124ms</div><div style="font-size:11px;color:var(--muted)">p50 latency</div></div>
+        <div style="text-align:center;background:#0A0A0A;border:1px solid var(--border);border-radius:8px;padding:10px"><div style="font-family:var(--font-mono);font-weight:700">842</div><div style="font-size:11px;color:var(--muted)">req/s</div></div>
+        <div style="text-align:center;background:#0A0A0A;border:1px solid var(--border);border-radius:8px;padding:10px"><div style="font-family:var(--font-mono);font-weight:700">0.4%</div><div style="font-size:11px;color:var(--muted)">error</div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" style="padding-top:32px;padding-bottom:32px">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div class="hero-panel">
+        <div class="hero-panel-title">Route & API Contracts</div>
+        <p style="font-size:13px;color:var(--body);margin-bottom:10px">Frontend routes (fetch, axios, ky, trpc, GraphQL) ↔ backend (FastAPI, Flask, Express, etc.) diffed. Finds guaranteed 404s, orphan APIs, method mismatches, param drift (<code>/user/:id</code> vs <code>/users/:userId</code>), Zod/validator drift, OpenAPI sync, env var validation, dead links.</p>
+        <div class="code-pill" style="font-size:11px">p scan → RouteMapper → Contract diff → 404 before prod</div>
+      </div>
+      <div class="hero-panel">
+        <div class="hero-panel-title">Dead Code & Hygiene</div>
+        <p style="font-size:13px;color:var(--body);margin-bottom:10px">Unused exports (knip/vulture/deadcode), orphan files, unreachable paths, duplicate deps, outdated deps, supply-chain risk (Socket.dev/Guac), feature-flag archaeology via git log, codemods (<code>var→const</code>, <code>.then→await</code>).</p>
+        <div class="code-pill" style="font-size:11px">p fix → DeadCodeRemover + DependencyFixer</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" style="padding-top:0">
+    <div class="band-head">
+      <div class="eyebrow" style="text-align:center">11 LANGUAGES • 18 FRAMEWORKS</div>
+      <h2>One graph, many stacks</h2>
+      <p>Python, JS/TS, Rust, Go, Java, C/C++, Swift, Ruby, Svelte, Vue, Angular + more via tree-sitter. Works anywhere Python runs.</p>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;font-size:12px">
+      <div class="hero-panel"><div class="hero-panel-title">Frontend</div>React (hooks, JSX keys), Vue (v-for keys), Svelte (store leaks), Angular (DI), Solid/Preact/Qwik<br><span style="color:var(--muted)">via eslint plugins + tree-sitter</span></div>
+      <div class="hero-panel"><div class="hero-panel-title">Backend</div>FastAPI/Flask/Django, Express/Fastify/Nest/Hono/Koa, Go (<code>go vet</code> goroutine leaks), Rust (<code>clippy</code> unwrap audit), GraphQL schema→resolver<br><span style="color:var(--muted)">RouteMapper covers all</span></div>
+      <div class="hero-panel"><div class="hero-panel-title">Build & Deploy</div>Vite/Webpack/Rollup/esbuild/Turbopack, Turborepo/Nx, Docker layer bloat (<code>dive</code>), SARIF, SBOM (CycloneDX via <code>cdxgen/syft</code>), license compliance<br><span style="color:var(--muted)">Multi-arch, multi-ecosystem</span></div>
+    </div>
+  </section>
+
+  <section class="band" id="architecture" style="padding-top:0">
+    <div class="band-head">
+      <h2>Architecture — colony, not monolith</h2>
+      <p>CLI (43 commands) + Core (Brain, Agents, AI, Fix, Security, Testing, Hosted) + Web (Mission Control + API). File-locked queue, atomic snapshots, health 0–100.</p>
+    </div>
+    <div class="hero-panel" style="font-family:var(--font-mono);font-size:11px;line-height:1.7;overflow:auto">
+      patchi/<br>
+      ├── cli/ (43 commands: scan, fix, security, test, deps, audit, plan, explain, chat, watch, notify, hosted, web, brain, memory, patch, undo/redo, doctor, report, mode, agents, blast, trend, cockpit)<br>
+      ├── core/brain/ (AST, import/symbol graph, layers, council 8 personas, health, proactive fix list)<br>
+      ├── core/agents/ (scanners + governor) · core/security/ (54 agents + orchestrator + Sigma)<br>
+      ├── core/fix/ (risk gate ALLOW_AUTO/REVIEW/BLOCK + applier + snapshot) · core/ai/ (14 providers + tool executor)<br>
+      ├── core/testing/ (browser pool, stress, visual, a11y) · core/hosted/ (guard, IP rep, anomaly)<br>
+      └── web/ (Mission Control + API: /api/*, /api/v2/*, /ws, /ws/v2) — <strong>1:1 CLI ↔ Web</strong>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:12px">
+      <div class="hero-panel"><div class="hero-panel-title">Safety Rails</div><ul class="product-list"><li>Atomic writes + file locking (crash-safe)</li><li>Risk gate — BLOCK never touches disk</li><li>Snapshot rollback + verify loop (re-scan post-fix)</li><li>Learning brain — remembers rejections</li></ul></div>
+      <div class="hero-panel"><div class="hero-panel-title">Observability</div><ul class="product-list"><li>Health score (0–100, A–F) + trend history</li><li>Notifications: Slack/Discord/email/webhook/Telegram</li><li>Exports: SARIF (GitHub Code Scanning), JSON, markdown</li><li>Blast radius + blame + drift</li></ul></div>
+    </div>
+  </section>
+
+  <section class="band" id="cli" style="padding-top:0">
+    <div class="band-head">
+      <h2>CLI — 43 commands, one walk-up</h2>
+      <p><code>p &lt;command&gt; --help</code> for flags. Every command works offline; add <code>--deep</code> for LLM or <code>--project</code> for any repo.</p>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div class="hero-panel">
+        <table style="width:100%;font-size:12px;border-collapse:collapse">
+          <tr style="border-bottom:1px solid var(--border)"><td style="padding:6px 0"><code>p scan</code></td><td style="padding:6px 0;color:var(--body)">Full scan (—json / —deep / —offline / —with-license)</td></tr>
+          <tr style="border-bottom:1px solid var(--border)"><td style="padding:6px 0"><code>p fix</code></td><td style="padding:6px 0;color:var(--body)">Apply AI fixes (—dry-run)</td></tr>
+          <tr style="border-bottom:1px solid var(--border)"><td style="padding:6px 0"><code>p web</code></td><td style="padding:6px 0;color:var(--body)">Mission Control @ 127.0.0.1:1612 (—project, —open)</td></tr>
+          <tr style="border-bottom:1px solid var(--border)"><td style="padding:6px 0"><code>p security</code></td><td style="padding:6px 0;color:var(--body)">Run 54 agents (—json, filter)</td></tr>
+          <tr style="border-bottom:1px solid var(--border)"><td style="padding:6px 0"><code>p test</code></td><td style="padding:6px 0;color:var(--body)">unit/browser/stress/regression/api/e2e</td></tr>
+          <tr style="border-bottom:1px solid var(--border)"><td style="padding:6px 0"><code>p audit</code></td><td style="padding:6px 0;color:var(--body)">Scan + security + test + report</td></tr>
+          <tr><td style="padding:6px 0"><code>p chat / p explain</code></td><td style="padding:6px 0;color:var(--body)">Ask Patchi about your project</td></tr>
+        </table>
+      </div>
+      <div class="hero-panel">
+        <table style="width:100%;font-size:12px;border-collapse:collapse">
+          <tr style="border-bottom:1px solid var(--border)"><td style="padding:6px 0"><code>p plan</code></td><td style="padding:6px 0;color:var(--body)">Prioritized fixes (risk × blast)</td></tr>
+          <tr style="border-bottom:1px solid var(--border)"><td style="padding:6px 0"><code>p cockpit</code></td><td style="padding:6px 0;color:var(--body)">Live TUI (—area, —once, —scan-secrets)</td></tr>
+          <tr style="border-bottom:1px solid var(--border)"><td style="padding:6px 0"><code>p doctor</code></td><td style="padding:6px 0;color:var(--body)">Validate setup + config</td></tr>
+          <tr style="border-bottom:1px solid var(--border)"><td style="padding:6px 0"><code>p watch</code></td><td style="padding:6px 0;color:var(--body)">Auto-scan on save</td></tr>
+          <tr style="border-bottom:1px solid var(--border)"><td style="padding:6px 0"><code>p undo / redo</code></td><td style="padding:6px 0;color:var(--body)">Atomic rollback</td></tr>
+          <tr><td style="padding:6px 0"><code>p deps / report / trend / blast</code></td><td style="padding:6px 0;color:var(--body)">Supply chain, export, history, radius</td></tr>
+        </table>
+        <div style="margin-top:12px" class="code-pill">p init && p scan && p web — three commands, full colony</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="band" style="padding-top:0">
+    <div class="band-head">
+      <h2>AI — four tiers, 14 providers, your keys</h2>
+      <p>Without AI: structural analysis, free, zero tokens. With AI: fix gen, council, NL queries. Priority: Ollama (offline, 0$) → API keys → Free keys (Groq, Google, OpenRouter, Mistral, Together) → AI Horde (anonymous).</p>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div class="hero-panel"><div class="hero-panel-title">Providers</div><div style="display:flex;gap:6px;flex-wrap:wrap;font-family:var(--font-mono);font-size:11px"><span class="hero-stat">OpenAI</span><span class="hero-stat">Anthropic</span><span class="hero-stat">Google</span><span class="hero-stat">Groq</span><span class="hero-stat">Mistral</span><span class="hero-stat">Cohere</span><span class="hero-stat">Together</span><span class="hero-stat">Fireworks</span><span class="hero-stat">Perplexity</span><span class="hero-stat">OpenRouter</span><span class="hero-stat">DeepSeek</span><span class="hero-stat">xAI</span><span class="hero-stat">NVIDIA</span><span class="hero-stat">HF</span></div><p style="margin-top:8px;font-size:12px;color:var(--muted)">+ any OpenAI-compatible endpoint. Keys in <code>.patchi/keys.json</code>, never sent elsewhere. Cost tracker + budget alerts.</p></div>
+      <div class="hero-panel"><div class="hero-panel-title">Modes & Governance</div><table style="width:100%;font-size:12px"><tr style="border-bottom:1px solid var(--border)"><td style="padding:6px 0"><code>confirm</code> (default)</td><td style="color:var(--body)">Every fix asks</td></tr><tr style="border-bottom:1px solid var(--border)"><td style="padding:6px 0"><code>auto</code></td><td style="color:var(--body)">Low-risk auto, risky asks</td></tr><tr><td style="padding:6px 0"><code>autopilot</code></td><td style="color:var(--body)">Full trust (use with CI gate)</td></tr></table><p style="margin-top:8px;font-size:12px;color:var(--muted)">Governor: phase-gated scan → fix → verify, crash-recoverable.</p></div>
+    </div>
+  </section>
+
+  <section class="band" style="padding-top:0" id="how">
+    <div class="band-head">
+      <h2>1:1 CLI ↔ Web — the web is a fancy wrapper</h2>
+      <p>Every screen maps to a command. Run locally, switch projects from the header, same memory on disk.</p>
+    </div>
+    <div class="steps">
+      <div class="step"><div class="step-n">01 — Setup</div><h3>p init</h3><code>p init --project .</code><p style="margin-top:8px;font-size:13px;color:var(--body)">One-time: creates .patchi/, detects frameworks, sets mode=confirm. <br><code>p doctor</code> validates.</p></div>
+      <div class="step"><div class="step-n">02 — Scan</div><h3>p scan</h3><code>p scan<br>--deep --with-license</code><p style="margin-top:8px;font-size:13px;color:var(--body)">Brain + 54 agents + DAST. <br>Cached report: 174s → 0.1s.</p></div>
+      <div class="step"><div class="step-n">03 — Ship</div><h3>p web</h3><code>p web --open --port 1612</code><p style="margin-top:8px;font-size:13px;color:var(--body)">Mission Control at localhost.<br>Project switcher in header.</p></div>
+    </div>
+    <div style="margin-top:16px" class="hero-panel">
+      <div class="hero-panel-title">Parity Table (excerpt)</div>
+      <table style="width:100%;font-size:12px;border-collapse:collapse">
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:6px 0"><code>p scan</code></td><td style="padding:6px 0">→</td><td style="padding:6px 0"><code>POST /api/scan</code> + WS agent feed</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:6px 0"><code>p fix</code></td><td style="padding:6px 0">→</td><td style="padding:6px 0"><code>POST /api/fix/apply-all-safe</code> (risk-gated)</td></tr>
+        <tr style="border-bottom:1px solid var(--border)"><td style="padding:6px 0"><code>p chat</code></td><td style="padding:6px 0">→</td><td style="padding:6px 0"><code>/chat</code> + <code>POST /api/chat</code></td></tr>
+        <tr><td style="padding:6px 0"><code>p brain</code></td><td style="padding:6px 0">→</td><td style="padding:6px 0"><code>/brain</code> & <code>/brain-map</code> (import + layers)</td></tr>
+      </table>
+      <p style="margin-top:8px;font-size:11px;color:var(--muted)">Full table: <code>docs/web-cli-parity.md</code>. CLI is source of truth; web adds streaming, charts, council UX.</p>
+    </div>
+  </section>
+
+  <section class="band" style="padding-top:0">
+    <div class="band-head">
+      <div class="eyebrow" style="text-align:center">ROADMAP — 112 FEATURES</div>
+      <h2>23 done, 16 partial, 73 next</h2>
+      <p>From PATCHI_FEATURE_PLAN: Static Analysis (13), Dead Code (9), Routes (10), Security (10), Runtime (11), Testing (10), Refactoring (9), Frameworks (11), Reporting (11), CI/CD (10), Advanced (8). Quick wins first, then tool integration, then deep framework, then runtime.</p>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="hero-panel"><div class="hero-panel-title">Done — you get today</div><ul class="product-list"><li>Health score 0–100, SARIF/JSON export, PR comments</li><li>54 agents, 334 domains, Sigma, policy engine</li><li>Brain graph, council, red team, live browser pool</li><li>41 CLI commands, undo/redo, watch, notifications</li></ul></div>
+      <div class="hero-panel"><div class="hero-panel-title">Next — 1.0.0 road</div><ul class="product-list"><li>Trend graphs, risk heatmap, baseline locking, blame</li><li>Circular deps, SBOM (cdxgen/syft), license compliance</li><li>Mutation testing (universalmutator), fuzzing (EvoMaster)</li><li>GitHub Action, pre-commit, auto-tickets, cross-repo</li></ul></div>
+    </div>
+    <div class="hero-panel" style="margin-top:12px;text-align:center">
+      <p style="font-size:13px;color:var(--body)">Phase order: Quick Wins (1–2w) → Tool Integration (3–4w) → Deep Framework (3–4w) → Runtime & Advanced (4–6w). <a href="https://github.com" style="color:var(--accent)">Feedback</a> shapes 0.4.0 → 1.0.0.</p>
+    </div>
+  </section>
+
+  <section class="band" style="padding-top:0">
+    <div class="freemium">
+      <div class="eyebrow" style="margin-bottom:8px">FREEMIUM • PRE-1.0.0</div>
+      <h3>Free for personal & teams &lt;3, enterprise ≥3</h3>
+      <p>Peak stable at <strong>v1.0.0</strong> — ~0.4.0 remains. Pin <code>.patchi/</code> formats as best-effort forward-compatible. Hosted guard is experimental.</p>
+      <div style="margin-top:16px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+        <a href="mailto:idemudiaehis6@gmail.com" class="btn btn-primary">Contact enterprise</a>
+        <a href="/static/landing.css" class="btn btn-ghost">View tokens</a>
+        <span class="hero-stat">pip install ".[web]" · Python 3.11+</span>
+      </div>
+      <p style="margin-top:10px;font-size:11px;color:var(--muted)">License: Patchi Freemium — Free for personal, education, research, open-source, teams &lt;3. Enterprise contact idemudiaehis6@gmail.com. 30-day trial OK.</p>
+    </div>
+  </section>
+
+  <footer class="landing-footer">
+    <div class="footer-grid">
+      <div>
+        <div style="font-weight:700;letter-spacing:2px;color:var(--accent);margin-bottom:8px">PATCHI</div>
+        <p style="font-size:13px;color:var(--body)">Agent colony that scans, secures, tests and fixes. Verified, not assumed. 43 commands, atomic rollback, learning brain.</p>
+        <p style="margin-top:10px;font-family:var(--font-mono);font-size:11px;color:var(--muted)">patchi/ cli/ → 43 · core/ → brain, agents, security, fix, ai, testing, hosted · web/ → Mission Control</p>
+      </div>
+      <div class="footer-col"><h4>Platform</h4><a href="/brain-map">Brain Map</a><a href="/council">Council</a><a href="/live-tests">Live Tests</a><a href="/attack-timeline">Attack Timeline</a><a href="/findings">Findings</a><a href="/review">Review</a></div>
+      <div class="footer-col"><h4>Product</h4><a href="#overview">Overview</a><a href="#security">Security</a><a href="#testing">Testing</a><a href="#architecture">Arch</a><a href="#cli">CLI</a><a href="/doctor">Doctor</a></div>
+      <div class="footer-col"><h4>Developers</h4><a href="/chat">Chat</a><a href="/guard">Guard</a><a href="/assurance">Assurance</a><a href="/charter">Charter</a><a href="/history">History</a></div>
+      <div class="footer-col"><h4>Company</h4><a href="/landing">Landing</a><a href="/">Mission Control</a><a href="mailto:idemudiaehis6@gmail.com">Contact</a><a href="https://github.com">GitHub</a></div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Patchi — Freemium preview. Peak at v1.0.0. · Install: <code>pip install ".[web]"</code></span>
+      <form class="newsletter" onsubmit="event.preventDefault(); this.querySelector('button').textContent='Subscribed';">
+        <input type="email" placeholder="Patched & Dispatched — your email" aria-label="Email">
+        <button type="submit" class="btn btn-primary" style="padding:8px 14px">Subscribe</button>
+      </form>
+    </div>
+  </footer>
+
+  <script>
+    document.addEventListener('keydown', (e)=>{
+      if ((e.metaKey||e.ctrlKey) && e.key.toLowerCase()==='k') {
+        e.preventDefault(); alert('In Mission Control, ⌘K opens the command palette (scan, red_team, run_tests, council).');
+      }
+    });
+  </script>
+</body>
+</html>

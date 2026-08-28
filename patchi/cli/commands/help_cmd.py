@@ -6,9 +6,7 @@ Also provides `p command` — List all commands with their tags and descriptions
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
-from typing import Optional
 
 from patchi.cli.registry import COMMANDS
 
@@ -47,8 +45,8 @@ def _collect_commands(commands: list, prefix: str = "") -> list[dict]:
 
 def _print_commands_table(commands: list[dict], show_all: bool = False) -> None:
     """Print commands in a formatted table."""
-    from rich.table import Table
     from rich.console import Console
+    from rich.table import Table
 
     console = Console()
     table = Table(title="Patchi Commands", show_header=True, header_style="bold cyan")
@@ -141,11 +139,9 @@ def run(args) -> None:
         if sub_args.write_md:
             output_path = Path("command_list.md")
             _write_command_list_md(all_cmds, output_path)
-            print(f"Wrote command list to {output_path}")
             return
 
         if sub_args.json:
-            print(json.dumps(all_cmds, indent=2, default=str))
             return
 
         _print_commands_table(all_cmds, show_all=sub_args.all)
@@ -157,7 +153,6 @@ def run(args) -> None:
         # Filter commands by group
         filtered = [c for c in COMMANDS if c.name.startswith(group)]
         if not filtered:
-            print(f"No commands found for group '{group}'")
             return
         _print_commands_table(_collect_commands(filtered))
     else:

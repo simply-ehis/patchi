@@ -616,8 +616,8 @@ def _record_fix_history(root: Path, applied: list[ProposedFix], skipped: list[Pr
     if not applied and not skipped:
         return
 
-    from datetime import UTC, datetime
     import json
+    from datetime import UTC, datetime
 
     history_path = root / ".patchi" / "memory" / "fix_history.json"
     history_path.parent.mkdir(parents=True, exist_ok=True)
@@ -695,7 +695,7 @@ def revert_fix(root: Path, fix_id: str) -> dict:
         if not file_path:
             continue
         try:
-            full_path = root / file_path
+            root / file_path
             result = subprocess.run(
                 ["git", "checkout", "HEAD", "--", file_path],
                 cwd=str(root),
@@ -707,7 +707,7 @@ def revert_fix(root: Path, fix_id: str) -> dict:
                 reverted.append(file_path)
             else:
                 failed.append(file_path)
-        except Exception as e:
+        except Exception:
             failed.append(file_path)
 
     # Remove from history

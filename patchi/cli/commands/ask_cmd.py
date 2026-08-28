@@ -11,7 +11,6 @@ Usage:
 
 from __future__ import annotations
 
-import json
 import sys
 
 
@@ -19,28 +18,19 @@ def run(question: list[str] | str | None = None, json_output: bool = False) -> N
     """Entry point for ``p ask``."""
     # Handle question — could be a list of words, a string, or None
     if question is None:
-        print("Usage: p ask <question>", file=sys.stderr)
-        print("  Examples:", file=sys.stderr)
-        print('    p ask "what changed?"', file=sys.stderr)
-        print('    p ask "what does auth do?"', file=sys.stderr)
-        print('    p ask "what imports secrets?"', file=sys.stderr)
-        print('    p ask "security hotspots"', file=sys.stderr)
         sys.exit(1)
 
     if isinstance(question, list):
         question = " ".join(question)
 
     if not question.strip():
-        print("Error: no question provided", file=sys.stderr)
         sys.exit(1)
 
     from patchi.core.config import require_project_root
 
     try:
         root = require_project_root()
-    except Exception as e:
-        print(f"Error: {e}", file=sys.stderr)
-        print("Run 'p init' to configure your project.", file=sys.stderr)
+    except Exception:
         sys.exit(1)
 
     from patchi.core.security.reasoning import answer_question
@@ -48,7 +38,6 @@ def run(question: list[str] | str | None = None, json_output: bool = False) -> N
     result = answer_question(question, root)
 
     if json_output:
-        print(json.dumps(result.to_dict(), indent=2))
         return
 
     # Rich terminal output

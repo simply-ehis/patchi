@@ -66,3 +66,17 @@ package-lock.json
 *~
 .*.swp
 .*.swo
+
+# Scratch / debug files
+_out.txt
+_rt.txt
+fix_dns_agent.py
+fix_dns_key.py
+check_reg*.py
+find_lines.py
+verify_circ.py
+patch_scan_license.py
+scan_err.txt
+scan_out.txt
+scan_output.txt
+*.log
