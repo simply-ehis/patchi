@@ -30,8 +30,13 @@
     </h2>
     <div class="panel-actions">
       <button class="btn btn-sm" onclick="toggle3D()" id="btn-3d" title="Toggle 3D mode" style="background:var(--bg-tertiary);font-weight:600">🔮 3D</button>
-      <button class="btn btn-sm" onclick="toggleBrainMapFullScreen()" id="btn-fullscreen" title="Toggle full-screen (F)">⛶</button>
+      <button class="btn btn-sm" onclick="toggleBrainMapFullScreen()" id="btn-fullscreen" title="Toggle full-screen">⛶</button>
       <span style="width:1px;height:16px;background:var(--border);margin:0 4px"></span>
+      <div style="position:relative;display:inline-flex;align-items:center">
+        <input type="text" id="brain-search" placeholder="Search nodes…" style="width:140px;padding:4px 24px 4px 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg-tertiary);color:var(--text-primary);font-size:12px;outline:none" oninput="BrainMap.searchNodes(this.value);if(window._is3D&&BrainMap3D)BrainMap3D.searchNodes(this.value)" onkeydown="if(event.key==='Escape'){this.value='';BrainMap.searchNodes('');if(window._is3D&&BrainMap3D)BrainMap3D.searchNodes('');this.blur()}">
+        <button onclick="document.getElementById('brain-search').value='';BrainMap.searchNodes('');if(window._is3D&&BrainMap3D)BrainMap3D.searchNodes('')" style="position:absolute;right:4px;background:none;border:none;color:var(--text-secondary);cursor:pointer;font-size:12px;padding:0;line-height:1" title="Clear search">✕</button>
+        <span id="brain-search-count" style="font-size:10px;color:var(--text-secondary);margin-left:4px;white-space:nowrap"></span>
+      </div>
       <!-- 2D views -->
       <span id="views-2d">
         <button class="btn btn-sm" onclick="BrainMap.switchView('graph')" id="view-graph" style="background:var(--bg-tertiary);font-weight:600">Graph</button>
@@ -366,6 +371,13 @@
   document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape' && window._isFullScreen) {
       window.toggleBrainMapFullScreen();
+    }
+    // / focuses brain map search (like GitHub)
+    if (e.key === '/' && !e.ctrlKey && !e.metaKey) {
+      var active = document.activeElement;
+      if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.isContentEditable)) return;
+      var searchInput = document.getElementById('brain-search');
+      if (searchInput) { e.preventDefault(); searchInput.focus(); searchInput.select(); }
     }
   });
 

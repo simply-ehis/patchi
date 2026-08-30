@@ -1482,5 +1482,105 @@ const BrainMap = (() => {
     _updateMiniMap();
   };
 
-  return { init, setNodeState, loadNodes, zoomIn, zoomOut, zoomReset, handleEvent, _relistenWs, switchView, toggleLabels, rotateGraph, resetRotation, exportPNG, exportJSON };
+  // ── Node Search ───────────────────────────────────────────
+  var _searchQuery = '';
+  var _searchMatches = [];
+  var _searchOrigColors = {};
+
+  function searchNodes(query) {
+    _searchQuery = (query || '').trim().toLowerCase();
+    var countEl = document.getElementById('brain-search-count');
+    
+    // Restore all nodes to original state if query is empty
+    if (!_searchQuery) {
+      for (var id in nodes) {
+        var n = nodes[id];
+        if (_searchOrigColors[id] !== undefined) {
+          n.shape.opacity(1);
+          n.group.opacity(1);
+          // Restore original fill if we changed it
+          if (_searchOrigColors[id]) n.shape.fill(_searchOrigColors[id]);
+          delete _searchOrigColors[id];
+        }
+      }
+      _searchMatches = [];
+      if (countEl) countEl.textContent = '';
+      nodeLayer.batchDraw();
+      return;
+    }
+    
+    // Find matching nodes
+    _searchMatches = [];
+    for (var id2 in nodes) {
+      var n2 = nodes[id2];
+      var label = (n2.group.getAttr('label') || id2).toLowerCase();
+      var shortName = label.split('/').pop();
+      if (id2.toLowerCase().indexOf(_searchQuery) >= 0 ||
+          label.indexOf(_searchQuery) >= 0 ||
+          shortName.indexOf(_searchQuery) >= 0) {
+        _searchMatches.push(id2);
+      }
+    }
+    
+    // Dim non-matches, highlight matches
+    for (var id3 in nodes) {
+      var n3 = nodes[id3];
+      var isMatch = _searchMatches.indexOf(id3) >= 0;
+      // Save original opacity if not already saved
+      if (_searchOrigColors[id3] === undefined) {
+        _searchOrigColors[id3] = n3.shape.fill();
+      }
+      if (isMatch) {
+        n3.shape.opacity(1);
+        n3.group.opacity(1);
+        // Make matched nodes glow — bright fill + larger
+        n3.shape.fill('#E8920A');
+        n3.shape.shadowColor('#E8920A');
+        n3.shape.shadowBlur(12);
+        n3.shape.shadowOpacity(0.8);
+      } else {
+        n3.shape.opacity(0.15);
+        n3.group.opacity(0.15);
+        n3.shape.shadowBlur(0);
+      }
+    }
+    
+    // Update edges: dim edges that don't connect to matches
+    nodeLayer.children.forEach(function(child) {
+      if (child.getClassName() === 'Line') {
+        // Edge lines — check if connected to any match
+        var pts = child.points();
+        if (pts.length >= 4) {
+          var connected = false;
+          for (var mi = 0; mi < _searchMatches.length; mi++) {
+            var mn = nodes[_searchMatches[mi]];
+            if (mn && Math.abs(mn.x - pts[0]) < 2 && Math.abs(mn.y - pts[1]) < 2) connected = true;
+            if (mn && Math.abs(mn.x - pts[2]) < 2 && Math.abs(mn.y - pts[3]) < 2) connected = true;
+          }
+          child.opacity(connected ? 0.6 : 0.05);
+        }
+      }
+    });
+    
+    if (countEl) {
+      countEl.textContent = _searchMatches.length + ' found';
+      countEl.style.color = _searchMatches.length > 0 ? 'var(--accent)' : 'var(--danger)';
+    }
+    nodeLayer.batchDraw();
+    
+    // If exactly one match, zoom to it
+    if (_searchMatches.length === 1) {
+      var mn = nodes[_searchMatches[0]];
+      if (mn) {
+        stage.position({
+          x: stage.width() / 2 - mn.x * stage.scaleX(),
+          y: stage.height() / 2 - mn.y * stage.scaleY(),
+        });
+        stage.batchDraw();
+        _updateMiniMap();
+      }
+    }
+  }
+
+  return { init, setNodeState, loadNodes, zoomIn, zoomOut, zoomReset, handleEvent, _relistenWs, switchView, toggleLabels, rotateGraph, resetRotation, exportPNG, exportJSON, searchNodes };
 })();

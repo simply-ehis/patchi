@@ -723,6 +723,70 @@ const BrainMap3D = (() => {
     _initialized = false;
   }
 
+  // ── Node Search ───────────────────────────────────────────
+  var _searchOrigColors = {};
+
+  function searchNodes(query) {
+    var q = (query || '').trim().toLowerCase();
+    var countEl = document.getElementById('brain-search-count');
+    var matchCount = 0;
+
+    // Restore all nodes if query is empty
+    if (!q) {
+      nodeGroup.children.forEach(function(child) {
+        if (child.isMesh && child.userData && child.userData.id) {
+          var id = child.userData.id;
+          if (_searchOrigColors[id] !== undefined) {
+            child.material.color.set(_searchOrigColors[id]);
+            child.material.emissive.set(new THREE.Color(_searchOrigColors[id]).multiplyScalar(0.2));
+            child.material.opacity = 0.85;
+            delete _searchOrigColors[id];
+          }
+        }
+        if (child.isSprite) {
+          child.material.opacity = 0.8;
+        }
+      });
+      _rebuildEdges();
+      if (countEl) countEl.textContent = '';
+      return;
+    }
+
+    // Find and highlight matches
+    nodeGroup.children.forEach(function(child) {
+      if (child.isMesh && child.userData && child.userData.id) {
+        var id = child.userData.id;
+        var label = (child.userData.label || id).toLowerCase();
+        var shortName = label.split('/').pop();
+        var isMatch = id.toLowerCase().indexOf(q) >= 0 ||
+                      label.indexOf(q) >= 0 ||
+                      shortName.indexOf(q) >= 0;
+        if (_searchOrigColors[id] === undefined) {
+          _searchOrigColors[id] = child.material.color.getHex();
+        }
+        if (isMatch) {
+          matchCount++;
+          child.material.color.set(0xE8920A);
+          child.material.emissive.set(new THREE.Color(0xE8920A).multiplyScalar(0.6));
+          child.material.opacity = 1.0;
+        } else {
+          child.material.color.set(_searchOrigColors[id]);
+          child.material.emissive.set(new THREE.Color(_searchOrigColors[id]).multiplyScalar(0.05));
+          child.material.opacity = 0.12;
+        }
+      }
+      if (child.isSprite) {
+        child.material.opacity = 0.15;
+      }
+    });
+
+    _rebuildEdges();
+    if (countEl) {
+      countEl.textContent = matchCount + ' found';
+      countEl.style.color = matchCount > 0 ? 'var(--accent)' : 'var(--danger)';
+    }
+  }
+
   return {
     init: init,
     loadNodes: loadNodes,
@@ -734,5 +798,6 @@ const BrainMap3D = (() => {
     focusNode: focusNode,
     getStats: getStats,
     destroy: destroy,
+    searchNodes: searchNodes,
   };
 })();
