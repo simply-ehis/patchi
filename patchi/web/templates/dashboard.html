@@ -30,6 +30,7 @@
     </h2>
     <div class="panel-actions">
       <button class="btn btn-sm" onclick="toggle3D()" id="btn-3d" title="Toggle 3D mode" style="background:var(--bg-tertiary);font-weight:600">🔮 3D</button>
+      <button class="btn btn-sm" onclick="toggleBrainMapFullScreen()" id="btn-fullscreen" title="Toggle full-screen (F)">⛶</button>
       <span style="width:1px;height:16px;background:var(--border);margin:0 4px"></span>
       <!-- 2D views -->
       <span id="views-2d">
@@ -304,6 +305,69 @@
       if (btn3d) { btn3d.style.background = ''; btn3d.style.color = ''; }
     }
   };
+
+  // Full-screen brain map toggle
+  window._isFullScreen = false;
+  window.toggleBrainMapFullScreen = function() {
+    window._isFullScreen = !window._isFullScreen;
+    var panel = document.querySelector('.panel'); // brain map panel is first .panel
+    var sidebar = document.querySelector('.nav-rail') || document.querySelector('nav');
+    var btn = document.getElementById('btn-fullscreen');
+    var mapContainer = panel ? panel.querySelector('[style*="position:relative"]') || panel : null;
+    
+    if (window._isFullScreen) {
+      // Enter full-screen: expand panel to fill viewport
+      panel.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:100;margin:0;border-radius:0;display:flex;flex-direction:column;background:var(--bg-primary)';
+      if (sidebar) sidebar.style.display = 'none';
+      // Hide other panels on the page
+      document.querySelectorAll('.panel').forEach(function(p) { if (p !== panel) p.style.display = 'none'; });
+      // Also hide the header and other page content
+      var mainContent = panel.parentElement;
+      if (mainContent) {
+        Array.from(mainContent.children).forEach(function(child) {
+          if (child !== panel) child.style.display = 'none';
+        });
+      }
+      // Make the brain map container fill the panel
+      var mapWrap = document.getElementById('brain-map');
+      var mapWrap3d = document.getElementById('brain-map-3d');
+      if (mapWrap) { mapWrap.style.left = '0'; mapWrap.style.top = '0'; mapWrap.style.bottom = '0'; mapWrap.style.right = '0'; mapWrap.style.position = 'absolute'; }
+      if (mapWrap3d) { mapWrap3d.style.left = '0'; mapWrap3d.style.top = '0'; mapWrap3d.style.bottom = '0'; mapWrap3d.style.right = '0'; }
+      // Expand the inner container
+      var inner = panel.querySelector('[style*="min-height:500px"]');
+      if (inner) { inner.style.height = 'calc(100vh - 60px)'; inner.style.maxHeight = 'none'; inner.style.minHeight = '0'; inner.style.borderRadius = '0'; }
+      if (btn) { btn.textContent = '⛶'; btn.title = 'Exit full-screen (ESC)'; btn.style.background = 'var(--accent)'; btn.style.color = '#fff'; }
+      // Resize canvas
+      if (window._is3D && window.BrainMap3D) { BrainMap3D.init('brain-map-3d'); BrainMap3D.loadNodes(window._brainNodes || [], window._brainEdges || []); }
+      else if (window.BrainMap) { setTimeout(function() { BrainMap.init('brain-map'); BrainMap.loadNodes(window._brainNodes || [], window._brainEdges || []); }, 100); }
+    } else {
+      // Exit full-screen: restore original layout
+      panel.style.cssText = '';
+      if (sidebar) sidebar.style.display = '';
+      document.querySelectorAll('.panel').forEach(function(p) { p.style.display = ''; });
+      var mainContent2 = panel.parentElement;
+      if (mainContent2) {
+        Array.from(mainContent2.children).forEach(function(child) { child.style.display = ''; });
+      }
+      var mapR = document.getElementById('brain-map');
+      var mapR3d = document.getElementById('brain-map-3d');
+      if (mapR) { mapR.style.left = '180px'; mapR.style.top = '0'; mapR.style.bottom = '0'; mapR.style.right = '0'; }
+      if (mapR3d) { mapR3d.style.left = '0'; mapR3d.style.top = '0'; mapR3d.style.bottom = '0'; mapR3d.style.right = '0'; }
+      var innerR = panel.querySelector('[style*="min-height"]');
+      if (innerR) { innerR.style.height = 'calc(100vh - 300px)'; innerR.style.maxHeight = '800px'; innerR.style.minHeight = '500px'; innerR.style.borderRadius = ''; }
+      if (btn) { btn.textContent = '⛶'; btn.title = 'Toggle full-screen (F)'; btn.style.background = ''; btn.style.color = ''; }
+      // Resize canvas back
+      if (window._is3D && window.BrainMap3D) { BrainMap3D.init('brain-map-3d'); BrainMap3D.loadNodes(window._brainNodes || [], window._brainEdges || []); }
+      else if (window.BrainMap) { setTimeout(function() { BrainMap.init('brain-map'); BrainMap.loadNodes(window._brainNodes || [], window._brainEdges || []); }, 100); }
+    }
+  };
+  
+  // ESC to exit full-screen
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && window._isFullScreen) {
+      window.toggleBrainMapFullScreen();
+    }
+  });
 
   // Init brain map after DOM ready
   requestAnimationFrame(function(){
