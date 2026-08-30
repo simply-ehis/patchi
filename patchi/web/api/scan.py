@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import asyncio
 import time
+from datetime import UTC, datetime
 from pathlib import Path
 
 from fastapi import APIRouter, Request
@@ -153,6 +154,24 @@ async def trigger_scan(
 
                 await evt_scan_complete(deduped_count, 0)
 
+                # Record scan in history
+                try:
+                    from patchi.core.memory import record_scan
+                    import time as _time
+                    elapsed = round(_time.time() - _scan_state.get('started_at', _time.time()), 1)
+                    agent_names = [getattr(r, 'agent_name', '?') for r in results]
+                    record_scan({
+                        'timestamp': datetime.now(UTC).isoformat(),
+                        'total_findings': deduped_count,
+                        'agents_run': len(results),
+                        'agents_list': agent_names[:20],
+                        'duration_s': elapsed,
+                        'auto_fix': auto_fix,
+                        'cancelled': cancel_event.is_set(),
+                    }, root)
+                except Exception:
+                    pass  # non-fatal
+
                 # Auto-fix
                 if auto_fix and deduped_count > 0 and not cancel_event.is_set():
                     await evt_scan_progress("auto_fix", "running", total, total)
@@ -210,6 +229,15 @@ async def scan_status() -> JSONResponse:
         "agent_index": _scan_state["agent_index"],
         "agent_total": _scan_state["agent_total"],
     })
+
+
+@router.get("/scan/history")
+async def scan_history(request: Request, limit: int = 10) -> JSONResponse:
+    """Return the last N scan summaries from history."""
+    root = request.app.state.root
+    from patchi.core.memory import get_scan_history
+    history = get_scan_history(root)
+    return JSONResponse({"ok": True, "scans": history[:limit], "total": len(history)})
 
 
 def _run_proactive_fix(root, config):

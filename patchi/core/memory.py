@@ -257,6 +257,47 @@ def save_scan_result(scanner_name: str, result: dict, root: Path | None = None) 
     _update(MemoryCategory.SCANS, _mutate, root)
 
 
+# ── Scan history ──────────────────────────────────────────────────────────────
+SCAN_HISTORY_FILE = ".patchi/scan_history.json"
+SCAN_HISTORY_MAX = 50  # keep last 50 scans
+
+
+def get_scan_history(root: Path | None = None) -> list[dict]:
+    """Return the list of past scan summaries, newest first."""
+    r = _root(root)
+    path = r / SCAN_HISTORY_FILE
+    if not path.exists():
+        return []
+    try:
+        with path.open("r", encoding="utf-8") as f:
+            data = json.load(f)
+        return data if isinstance(data, list) else []
+    except Exception:
+        return []
+
+
+def record_scan(summary: dict, root: Path | None = None) -> None:
+    """Append a scan summary to history. Keeps only the last SCAN_HISTORY_MAX entries."""
+    r = _root(root)
+    path = r / SCAN_HISTORY_FILE
+    r.mkdir(parents=True, exist_ok=True)
+    history = []
+    if path.exists():
+        try:
+            with path.open("r", encoding="utf-8") as f:
+                history = json.load(f)
+        except Exception:
+            history = []
+    if not isinstance(history, list):
+        history = []
+    history.insert(0, summary)
+    history = history[:SCAN_HISTORY_MAX]
+    tmp = path.with_suffix(".tmp")
+    with tmp.open("w", encoding="utf-8") as f:
+        json.dump(history, f, indent=2, default=str)
+    tmp.replace(path)
+
+
 # ── Known issues ───────────────────────────────────────────────────────────────
 
 
