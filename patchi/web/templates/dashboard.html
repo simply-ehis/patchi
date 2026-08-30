@@ -202,7 +202,10 @@
     <div id="scan-progress" style="display:none;margin-top:12px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
         <span id="scan-progress-label" style="font-size:13px;color:var(--text-secondary)">Initializing scan…</span>
-        <span id="scan-progress-count" style="font-size:13px;color:var(--accent);font-weight:600">0/0</span>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span id="scan-progress-count" style="font-size:13px;color:var(--accent);font-weight:600">0/0</span>
+          <button id="btn-cancel-scan" onclick="cancelScan()" style="display:none;padding:3px 10px;border:1px solid var(--danger);border-radius:6px;background:transparent;color:var(--danger);font-size:11px;font-weight:600;cursor:pointer;transition:all 0.15s" onmouseenter="this.style.background='var(--danger)';this.style.color='#fff'" onmouseleave="this.style.background='transparent';this.style.color='var(--danger)'">Cancel</button>
+        </div>
       </div>
       <div style="height:6px;background:var(--bg-tertiary);border-radius:3px;overflow:hidden">
         <div id="scan-progress-bar" style="height:100%;width:0%;background:var(--accent);border-radius:3px;transition:width 0.3s ease"></div>
@@ -374,7 +377,15 @@
     ws.addEventListener('message', function(e) {
       try {
         var msg = JSON.parse(e.data);
-        if (msg.event === 'scan.complete') {
+        if (msg.event === 'scan.started') {
+          // Show cancel button
+          var btnCancel = document.getElementById('btn-cancel-scan');
+          if (btnCancel) { btnCancel.style.display = 'inline-block'; btnCancel.textContent = 'Cancel'; btnCancel.disabled = false; btnCancel.style.opacity = '1'; }
+        }
+        if (msg.event === 'scan.complete' || msg.event === 'scan.cancelled') {
+          // Hide cancel button
+          var btnCancel2 = document.getElementById('btn-cancel-scan');
+          if (btnCancel2) { btnCancel2.style.display = 'none'; }
           setTimeout(function() {
             window.refreshFindings();
             var total = (msg.data && msg.data.total_findings) || 0;
@@ -386,6 +397,23 @@
   }
   _setupWSListener();
 
+  // ── Cancel Scan ────────────────────────────────────────────
+  window.cancelScan = function() {
+    var btn = document.getElementById('btn-cancel-scan');
+    if (btn) { btn.textContent = 'Cancelling…'; btn.disabled = true; btn.style.opacity = '0.5'; }
+    fetch('/api/scan/cancel', { method: 'POST' })
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        toast(d.message || 'Scan cancelled', 'info');
+        // Hide progress bar
+        var sp = document.getElementById('scan-progress'); if (sp) sp.style.display = 'none';
+        var sb = document.getElementById('scan-progress-bar'); if (sb) { sb.style.width = '0%'; sb.style.background = 'var(--accent)'; }
+        var sbadge = document.getElementById('topbar-scan'); if (sbadge) { sbadge.textContent = 'Cancelled'; sbadge.className = 'scan-badge'; }
+        if (btn) { btn.style.display = 'none'; btn.disabled = false; btn.style.opacity = '1'; btn.textContent = 'Cancel'; }
+      })
+      .catch(function(e) { toast('Cancel failed: ' + e.message, 'high'); if (btn) { btn.textContent = 'Cancel'; btn.disabled = false; btn.style.opacity = '1'; } });
+  };
+
   // Quick actions
   window.runQuickAction=function(action){
     if(action==='scan'||action==='scan_fix'){
@@ -396,8 +424,8 @@
       var sb=document.getElementById('scan-progress-bar');if(sb){sb.style.width='5%';sb.style.background='var(--accent)';}
       fetch(url,{method:'POST'}).then(function(r){return r.json();}).then(function(d){
         toast(d.ok?(action==='scan_fix'?'Scan + Fix started':'Scan started'):'Scan failed: '+(d.error||'?'),d.ok?'success':'high');
-        if(!d.ok){if(sp)sp.style.display='none';}
-      }).catch(function(e){toast('Scan error: '+e.message,'high');if(sp)sp.style.display='none';});
+        if(!d.ok){if(sp)sp.style.display='none';var c=document.getElementById('btn-cancel-scan');if(c)c.style.display='none';}
+      }).catch(function(e){toast('Scan error: '+e.message,'high');if(sp)sp.style.display='none';var c2=document.getElementById('btn-cancel-scan');if(c2)c2.style.display='none';});
     } else if(action==='devcheck'){
       fetch('/api/dev-check',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({})})
         .then(function(r){return r.json();}).then(function(d){
