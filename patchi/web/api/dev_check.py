@@ -8,6 +8,7 @@ structured results for display in the Command Center card.
 from __future__ import annotations
 
 import asyncio
+import os
 import json
 import time
 from pathlib import Path
@@ -123,19 +124,33 @@ async def _run_gate(
     start = time.time()
 
     try:
-        proc = await asyncio.create_subprocess_exec(
-            *cmd,
-            cwd=str(cwd),
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-        )
-        stdout, stderr = await asyncio.wait_for(
-            proc.communicate(),
-            timeout=timeout,
-        )
-
+        # Use temp files to avoid pipe deadlock on Windows when
+        # pytest subprocess tests keep pipe handles open.
+        import tempfile
+        tmp_out = tempfile.NamedTemporaryFile(mode='wb', suffix='.out', delete=False)
+        tmp_err = tempfile.NamedTemporaryFile(mode='wb', suffix='.err', delete=False)
+        try:
+            proc = await asyncio.create_subprocess_exec(
+                *cmd,
+                cwd=str(cwd),
+                stdout=tmp_out,
+                stderr=tmp_err,
+            )
+            await asyncio.wait_for(proc.wait(), timeout=timeout)
+        finally:
+            tmp_out.close()
+            tmp_err.close()
         elapsed = time.time() - start
-        output = stdout.decode("utf-8", errors="replace") + stderr.decode("utf-8", errors="replace")
+        try:
+            output = open(tmp_out.name, 'rb').read().decode('utf-8', errors='replace') + open(tmp_err.name, 'rb').read().decode('utf-8', errors='replace')
+        except Exception:
+            output = ''
+        # Cleanup
+        try:
+            os.unlink(tmp_out.name)
+            os.unlink(tmp_err.name)
+        except Exception:
+            pass
 
         # Parse output for specific gate info
         parsed = _parse_gate_output(name, output)

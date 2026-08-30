@@ -655,11 +655,23 @@ def _find_result_shadowing(cls: type) -> list[tuple[int, str]]:
     correct, so only loads on strictly later lines trigger a violation.
     """
     import inspect
+    import threading
 
+    _src = [None]
+    def _get_src():
+        try:
+            _src[0] = inspect.getsource(cls)
+        except Exception:
+            pass
+    t = threading.Thread(target=_get_src, daemon=True)
+    t.start()
+    t.join(timeout=3)
+    if t.is_alive() or _src[0] is None:
+        return []
     try:
-        src = inspect.getsource(cls)
+        src = _src[0]
         tree = ast.parse(src)
-    except (OSError, TypeError, SyntaxError, IndentationError):
+    except (SyntaxError, IndentationError):
         return []
     run_fn = None
     for node in ast.walk(tree):

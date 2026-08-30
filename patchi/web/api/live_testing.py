@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -26,6 +27,201 @@ class SmokeTestRequest(BaseModel):
 # ── State ────────────────────────────────────────────────────────────────────
 
 _stress_state = {"running": False, "last_result": None}
+_audit_state = {
+    "running": False,
+    "progress": {"current": 0, "total": 0, "route": ""},
+    "last_result": None,
+}
+
+
+def _run_audit_sync(base_url: str, root: Path, routes: list[str] | None = None) -> dict:
+    """Run full-page browser audit synchronously (called via to_thread)."""
+    from playwright.sync_api import sync_playwright
+    from patchi.core.testing._browser import (
+        open_page,
+        save_screenshot,
+        discover_routes,
+    )
+
+    if routes is None:
+        routes = discover_routes({}, {})
+
+    evidence_dir = root / ".patchi" / "evidence" / "browser_audit"
+    evidence_dir.mkdir(parents=True, exist_ok=True)
+
+    results = []
+    total = len(routes)
+    _audit_state["progress"] = {"current": 0, "total": total, "route": ""}
+
+    with sync_playwright() as pw:
+        browser = pw.chromium.launch(headless=True)
+        try:
+            for i, route in enumerate(routes):
+                url = f"{base_url}{route}"
+                _audit_state["progress"] = {
+                    "current": i + 1,
+                    "total": total,
+                    "route": route,
+                }
+
+                page_session = open_page(browser, url)
+                page = page_session.page
+                load_time_ms = 0
+
+                try:
+                    slug = route.strip("/").replace("/", "_") or "root"
+
+                    # Re-measure load time with a fresh goto
+                    perf_start = page.evaluate("() => performance.now()")
+                    try:
+                        page.reload(wait_until="load", timeout=15000)
+                        page.wait_for_timeout(500)
+                    except Exception:
+                        pass
+                    perf_end = page.evaluate("() => performance.now()")
+                    load_time_ms = round(perf_end - perf_start, 1)
+
+                    # Screenshot
+                    shot_name = f"audit_{slug}"
+                    shot_path = save_screenshot(page, evidence_dir, shot_name)
+                    screenshot_file = shot_path.name if shot_path else None
+
+                    # Collect page metrics
+                    metrics = page.evaluate(
+                        "() => ({dom_nodes: document.querySelector('*').length, "
+                        "images: document.querySelector('img').length, "
+                        "links: document.querySelector('a').length, "
+                        "scripts: document.querySelector('script').length, "
+                        "stylesheets: document.querySelector('link[rel=stylesheet]').length, "
+                        "title: document.title || '', "
+                        "has_viewport_meta: !!document.querySelector('meta[name=viewport]'), "
+                        "has_h1: !!document.querySelector('h1')})"
+                    )
+
+                    # Check for broken images
+                    broken_images = page.evaluate(
+                        "() => Array.from(document.querySelectorAll('img'))"
+                        ".filter(img => !img.complete || img.naturalWidth === 0)"
+                        ".map(img => img.src)"
+                    )
+
+                    # Check for empty links
+                    empty_links = page.evaluate(
+                        "() => Array.from(document.querySelectorAll('a[href]'))"
+                        ".filter(a => !a.textContent.trim() && !a.querySelector('img'))"
+                        ".length"
+                    )
+
+                    results.append({
+                        "route": route,
+                        "status": page_session.status,
+                        "status_label": _status_label(page_session.status),
+                        "load_time_ms": load_time_ms,
+                        "console_errors": page_session.console_errors,
+                        "console_error_count": len(page_session.console_errors),
+                        "page_errors": page_session.page_errors,
+                        "page_error_count": len(page_session.page_errors),
+                        "screenshot": screenshot_file,
+                        "metrics": metrics,
+                        "broken_images": broken_images,
+                        "broken_image_count": len(broken_images),
+                        "empty_links": empty_links,
+                        "severity": _severity_for_page(page_session, broken_images, empty_links),
+                    })
+                except Exception as e:
+                    results.append({
+                        "route": route,
+                        "status": -1,
+                        "status_label": "ERROR",
+                        "load_time_ms": 0,
+                        "console_errors": [str(e)],
+                        "console_error_count": 1,
+                        "page_errors": [],
+                        "page_error_count": 0,
+                        "screenshot": None,
+                        "metrics": {},
+                        "broken_images": [],
+                        "broken_image_count": 0,
+                        "empty_links": 0,
+                        "severity": "critical",
+                    })
+                finally:
+                    try:
+                        page.close()
+                    except Exception:
+                        pass
+        finally:
+            browser.close()
+
+    # Summary
+    statuses = [r["status"] for r in results]
+    errors_4xx = sum(1 for s in statuses if 400 <= s < 500)
+    errors_5xx = sum(1 for s in statuses if s >= 500)
+    ok_count = sum(1 for s in statuses if 200 <= s < 400)
+    total_console = sum(r["console_error_count"] for r in results)
+    total_page_err = sum(r["page_error_count"] for r in results)
+    total_broken = sum(r["broken_image_count"] for r in results)
+    avg_load = round(sum(r["load_time_ms"] for r in results) / max(len(results), 1), 1)
+    critical = sum(1 for r in results if r["severity"] == "critical")
+    warnings = sum(1 for r in results if r["severity"] == "warning")
+    passed = sum(1 for r in results if r["severity"] == "pass")
+
+    # Save results JSON
+    result_data = {
+        "ok": True,
+        "base_url": base_url,
+        "total_routes": len(results),
+        "summary": {
+            "passed": passed,
+            "warnings": warnings,
+            "critical": critical,
+            "ok_2xx": ok_count,
+            "errors_4xx": errors_4xx,
+            "errors_5xx": errors_5xx,
+            "total_console_errors": total_console,
+            "total_page_errors": total_page_err,
+            "total_broken_images": total_broken,
+            "avg_load_time_ms": avg_load,
+        },
+        "pages": results,
+    }
+
+    # Persist to disk
+    audit_file = evidence_dir / "audit_results.json"
+    audit_file.write_text(json.dumps(result_data, indent=2, default=str), encoding="utf-8")
+
+    _audit_state["last_result"] = result_data
+    return result_data
+
+
+def _status_label(status: int) -> str:
+    if status == 200:
+        return "OK"
+    if status == 301:
+        return "Redirect"
+    if status == 304:
+        return "Cached"
+    if status == 404:
+        return "Not Found"
+    if status == 500:
+        return "Server Error"
+    if status < 0:
+        return "Failed"
+    return str(status)
+
+
+def _severity_for_page(session, broken_images: list, empty_links: int) -> str:
+    if session.status >= 500 or session.status < 0:
+        return "critical"
+    if session.status >= 400:
+        return "warning"
+    if session.page_errors:
+        return "critical"
+    if len(session.console_errors) > 3 or broken_images or empty_links > 2:
+        return "warning"
+    if session.console_errors:
+        return "info"
+    return "pass"
 
 
 # ── Endpoints ────────────────────────────────────────────────────────────────
@@ -260,6 +456,87 @@ async def serve_screenshot(filename: str, request: Request):
     """Serve a screenshot file."""
     root: Path = request.app.state.root
     evidence_dir = root / ".patchi" / "evidence" / "screenshots"
+    file_path = evidence_dir / filename
+
+    if not file_path.suffix == ".png":
+        return JSONResponse({"error": "Only .png files allowed"}, status_code=403)
+    try:
+        file_path.resolve().relative_to(evidence_dir.resolve())
+    except ValueError:
+        return JSONResponse({"error": "Access denied"}, status_code=403)
+
+    if not file_path.exists():
+        return JSONResponse({"error": "Screenshot not found"}, status_code=404)
+
+    from starlette.responses import FileResponse
+    return FileResponse(file_path, media_type="image/png")
+
+
+# ── Full-Page Browser Audit ───────────────────────────────────────────────
+
+
+class FullAuditRequest(BaseModel):
+    url: str = "http://127.0.0.1:1612"
+    routes: list[str] | None = None
+
+
+@router.post("/full-audit")
+async def run_full_audit(req: FullAuditRequest, request: Request):
+    """Run full-page browser audit — navigates every page, captures
+    HTTP status, console errors, page errors, load time, screenshots,
+    broken images, empty links, and page metrics."""
+    root: Path = request.app.state.root
+
+    if _audit_state["running"]:
+        return JSONResponse(status_code=409, content={"error": "Audit already running"})
+
+    _audit_state["running"] = True
+    try:
+        import asyncio
+        result = await asyncio.to_thread(
+            _run_audit_sync, req.url, root, req.routes,
+        )
+        return result
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"ok": False, "error": str(e)})
+    finally:
+        _audit_state["running"] = False
+
+
+@router.get("/full-audit")
+async def get_full_audit(request: Request):
+    """Get the last full-page audit results, or current progress if running."""
+    if _audit_state["running"]:
+        return {"running": True, "progress": _audit_state["progress"]}
+
+    # Try to load persisted results
+    if _audit_state["last_result"]:
+        return _audit_state["last_result"]
+
+    root: Path = request.app.state.root
+    audit_file = root / ".patchi" / "evidence" / "browser_audit" / "audit_results.json"
+    if audit_file.exists():
+        try:
+            return json.loads(audit_file.read_text(encoding="utf-8"))
+        except Exception:
+            pass
+
+    return {"ok": False, "message": "No audit results yet. Run a full-page audit first."}
+
+
+@router.get("/full-audit/progress")
+async def full_audit_progress():
+    """Poll audit progress while running."""
+    if not _audit_state["running"]:
+        return {"running": False}
+    return {"running": True, "progress": _audit_state["progress"]}
+
+
+@router.get("/full-audit/screenshot/{filename}")
+async def serve_audit_screenshot(filename: str, request: Request):
+    """Serve a full-page audit screenshot."""
+    root: Path = request.app.state.root
+    evidence_dir = root / ".patchi" / "evidence" / "browser_audit"
     file_path = evidence_dir / filename
 
     if not file_path.suffix == ".png":

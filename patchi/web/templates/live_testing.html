@@ -22,6 +22,10 @@
   .form-group { display: flex; flex-direction: column; gap: 4px; }
   .form-group label { font-size: 12px; color: var(--text-secondary); }
   .form-group input { padding: 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-tertiary); color: var(--text-primary); width: 120px; }
+  #audit-table th { font-size: 12px; color: var(--text-secondary); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+  #audit-table th:hover { color: var(--text-primary); }
+  #audit-table tbody tr:hover { background: var(--bg-tertiary); }
+  #audit-table tbody tr.audit-detail:hover { background: var(--bg-tertiary); }
 </style>
 {% endblock %}
 {% block content %}
@@ -94,6 +98,56 @@
   </div>
 </div>
 
+<!-- Full-Page Browser Audit -->
+<div class="test-card" style="margin-top:16px">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+    <h3 style="margin:0">🔎 Full-Page Browser Audit</h3>
+    <button class="btn-test" style="background:var(--accent);color:#fff;padding:8px 16px;font-size:13px" onclick="runFullAudit()" id="btn-audit">Run Full Audit</button>
+  </div>
+  <p style="color:var(--text-secondary);font-size:13px;margin:0 0 12px">Tests every web page with Playwright: navigation status, console errors, load time, broken images, empty links, screenshots, and DOM metrics.</p>
+
+  <!-- Progress bar -->
+  <div id="audit-progress" style="display:none;margin-bottom:16px">
+    <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text-secondary);margin-bottom:4px">
+      <span id="audit-progress-label">Starting...</span>
+      <span id="audit-progress-count"></span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="audit-progress-bar" style="width:0%;background:var(--accent)"></div></div>
+  </div>
+
+  <!-- Summary stats -->
+  <div id="audit-summary" style="display:none;margin-bottom:16px">
+    <div class="stat-grid" style="margin-bottom:0">
+      <div class="stat"><div class="stat-value" id="audit-pass" style="color:var(--success)">0</div><div class="stat-label">Passed</div></div>
+      <div class="stat"><div class="stat-value" id="audit-warn" style="color:var(--warning)">0</div><div class="stat-label">Warnings</div></div>
+      <div class="stat"><div class="stat-value" id="audit-crit" style="color:var(--danger)">0</div><div class="stat-label">Critical</div></div>
+      <div class="stat"><div class="stat-value" id="audit-avg-load">0</div><div class="stat-label">Avg Load (ms)</div></div>
+      <div class="stat"><div class="stat-value" id="audit-console-err">0</div><div class="stat-label">Console Errors</div></div>
+      <div class="stat"><div class="stat-value" id="audit-broken-img">0</div><div class="stat-label">Broken Images</div></div>
+    </div>
+  </div>
+
+  <!-- Results table -->
+  <div id="audit-table-wrap" style="display:none;max-height:600px;overflow-y:auto;border:1px solid var(--border);border-radius:8px">
+    <table id="audit-table" style="width:100%;border-collapse:collapse;font-size:13px">
+      <thead style="position:sticky;top:0;background:var(--bg-secondary);z-index:1">
+        <tr style="text-align:left;border-bottom:2px solid var(--border)">
+          <th style="padding:8px 12px;cursor:pointer" onclick="sortAudit('severity')">Severity ↕</th>
+          <th style="padding:8px 12px;cursor:pointer" onclick="sortAudit('route')">Route ↕</th>
+          <th style="padding:8px 12px;cursor:pointer" onclick="sortAudit('status')">Status ↕</th>
+          <th style="padding:8px 12px;cursor:pointer" onclick="sortAudit('load_time_ms')">Load (ms) ↕</th>
+          <th style="padding:8px 12px;cursor:pointer" onclick="sortAudit('console_error_count')">Console ↕</th>
+          <th style="padding:8px 12px;cursor:pointer" onclick="sortAudit('broken_image_count')">Broken ↕</th>
+          <th style="padding:8px 12px">DOM</th>
+          <th style="padding:8px 12px">Screenshot</th>
+        </tr>
+      </thead>
+      <tbody id="audit-tbody"></tbody>
+    </table>
+  </div>
+  <div id="audit-empty" style="color:var(--text-tertiary);font-size:13px;text-align:center;padding:24px;display:none"></div>
+</div>
+
 <!-- Video Recordings -->
 <div class="test-card" style="margin-top:16px">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
@@ -132,6 +186,208 @@
 </div>
 
 <script>
+// ── Full-Page Browser Audit ───────────────────────────────────────────────
+var _auditData = null;
+var _auditSortCol = 'severity';
+var _auditSortAsc = true;
+
+async function runFullAudit() {
+  var btn = document.getElementById('btn-audit');
+  var prog = document.getElementById('audit-progress');
+  var bar = document.getElementById('audit-progress-bar');
+  var label = document.getElementById('audit-progress-label');
+  var count = document.getElementById('audit-progress-count');
+  btn.disabled = true;
+  btn.textContent = 'Running...';
+  prog.style.display = 'block';
+  bar.style.width = '5%';
+  label.textContent = 'Starting audit...';
+  count.textContent = '';
+
+  // Poll progress
+  var pollInterval = setInterval(async function() {
+    try {
+      var r = await fetch('/api/live-testing/full-audit/progress');
+      var p = await r.json();
+      if (p.running && p.progress) {
+        var pct = p.progress.total > 0 ? (p.progress.current / p.progress.total * 100) : 5;
+        bar.style.width = pct + '%';
+        label.textContent = 'Scanning ' + p.progress.route + '...';
+        count.textContent = p.progress.current + '/' + p.progress.total;
+      }
+    } catch(e) {}
+  }, 1000);
+
+  try {
+    var resp = await fetch('/api/live-testing/full-audit', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({url: 'http://127.0.0.1:1612'})
+    });
+    var data = await resp.json();
+    clearInterval(pollInterval);
+    if (data.ok) {
+      bar.style.width = '100%';
+      bar.style.background = 'var(--success)';
+      label.textContent = 'Audit complete!';
+      count.textContent = data.total_routes + ' routes scanned';
+      _auditData = data;
+      renderAuditResults(data);
+    } else {
+      bar.style.background = 'var(--danger)';
+      label.textContent = 'Error: ' + (data.error || 'Unknown error');
+    }
+  } catch(e) {
+    clearInterval(pollInterval);
+    bar.style.background = 'var(--danger)';
+    label.textContent = 'Error: ' + e.message;
+  }
+  btn.disabled = false;
+  btn.textContent = 'Run Full Audit';
+}
+
+function renderAuditResults(data) {
+  var summary = data.summary || {};
+  document.getElementById('audit-summary').style.display = 'block';
+  document.getElementById('audit-pass').textContent = summary.passed || 0;
+  document.getElementById('audit-warn').textContent = summary.warnings || 0;
+  document.getElementById('audit-crit').textContent = summary.critical || 0;
+  document.getElementById('audit-avg-load').textContent = summary.avg_load_time_ms || 0;
+  document.getElementById('audit-console-err').textContent = summary.total_console_errors || 0;
+  document.getElementById('audit-broken-img').textContent = summary.total_broken_images || 0;
+
+  var pages = data.pages || [];
+  if (pages.length === 0) {
+    document.getElementById('audit-empty').style.display = 'block';
+    document.getElementById('audit-empty').textContent = 'No pages found.';
+    document.getElementById('audit-table-wrap').style.display = 'none';
+    return;
+  }
+  document.getElementById('audit-table-wrap').style.display = 'block';
+  document.getElementById('audit-empty').style.display = 'none';
+  _auditData = data;
+  _auditSortCol = 'severity';
+  _auditSortAsc = true;
+  _renderAuditTable();
+}
+
+function _renderAuditTable() {
+  if (!_auditData) return;
+  var pages = (_auditData.pages || []).slice();
+  // Sort
+  pages.sort(function(a, b) {
+    var va = a[_auditSortCol];
+    var vb = b[_auditSortCol];
+    if (typeof va === 'string') va = va.toLowerCase();
+    if (typeof vb === 'string') vb = vb.toLowerCase();
+    if (_auditSortCol === 'severity') {
+      var order = {critical: 0, warning: 1, info: 2, pass: 3};
+      va = order[va] != null ? order[va] : 4;
+      vb = order[vb] != null ? order[vb] : 4;
+    }
+    if (va < vb) return _auditSortAsc ? -1 : 1;
+    if (va > vb) return _auditSortAsc ? 1 : -1;
+    return 0;
+  });
+
+  var sevColors = {critical: 'var(--danger)', warning: 'var(--warning)', info: 'var(--info)', pass: 'var(--success)'};
+  var sevIcons = {critical: '🔴', warning: '🟡', info: '🔵', pass: '🟢'};
+  var tbody = document.getElementById('audit-tbody');
+  var html = '';
+  for (var i = 0; i < pages.length; i++) {
+    var p = pages[i];
+    var color = sevColors[p.severity] || 'var(--text-secondary)';
+    var icon = sevIcons[p.severity] || '⚪';
+    var m = p.metrics || {};
+    html += '<tr style="border-bottom:1px solid var(--border);cursor:pointer" onclick="toggleAuditDetail(this)">';
+    html += '<td style="padding:8px 12px;color:' + color + ';font-weight:600">' + icon + ' ' + p.severity.toUpperCase() + '</td>';
+    html += '<td style="padding:8px 12px;font-family:monospace;font-size:12px">' + p.route + '</td>';
+    html += '<td style="padding:8px 12px"><span style="background:' + (p.status >= 400 ? 'var(--danger)' : p.status >= 300 ? 'var(--warning)' : 'var(--success)') + ';color:#fff;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600">' + p.status + ' ' + p.status_label + '</span></td>';
+    html += '<td style="padding:8px 12px;color:' + (p.load_time_ms > 3000 ? 'var(--danger)' : p.load_time_ms > 1500 ? 'var(--warning)' : 'var(--text-secondary)') + '">' + p.load_time_ms + '</td>';
+    html += '<td style="padding:8px 12px;color:' + (p.console_error_count > 0 ? 'var(--danger)' : 'var(--text-secondary)') + '">' + p.console_error_count + '</td>';
+    html += '<td style="padding:8px 12px;color:' + (p.broken_image_count > 0 ? 'var(--danger)' : 'var(--text-secondary)') + '">' + p.broken_image_count + '</td>';
+    html += '<td style="padding:8px 12px;font-size:11px;color:var(--text-secondary)">' + (m.dom_nodes || '-') + ' nodes</td>';
+    html += '<td style="padding:8px 12px">' + (p.screenshot ? '<a href="/api/live-testing/full-audit/screenshot/' + p.screenshot + '" target="_blank" style="color:var(--accent);text-decoration:none" onclick="event.stopPropagation()">📷 View</a>' : '-') + '</td>';
+    html += '</tr>';
+    // Detail row (hidden)
+    html += '<tr class="audit-detail" style="display:none;background:var(--bg-tertiary)"><td colspan="8" style="padding:12px">';
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:12px">';
+    // Left: metrics
+    html += '<div>';
+    html += '<div style="font-weight:600;margin-bottom:6px">Page Metrics</div>';
+    html += '<div>Title: ' + (m.title || '<em>none</em>') + '</div>';
+    html += '<div>DOM Nodes: ' + (m.dom_nodes || 0) + '</div>';
+    html += '<div>Images: ' + (m.images || 0) + '</div>';
+    html += '<div>Links: ' + (m.links || 0) + ' (' + p.empty_links + ' empty)</div>';
+    html += '<div>Scripts: ' + (m.scripts || 0) + '</div>';
+    html += '<div>Stylesheets: ' + (m.stylesheets || 0) + '</div>';
+    html += '<div>Viewport Meta: ' + (m.has_viewport_meta ? '✅' : '❌') + '</div>';
+    html += '<div>H1 Tag: ' + (m.has_h1 ? '✅' : '❌') + '</div>';
+    html += '</div>';
+    // Right: errors
+    html += '<div>';
+    if (p.console_errors && p.console_errors.length > 0) {
+      html += '<div style="font-weight:600;color:var(--danger);margin-bottom:6px">Console Errors (' + p.console_errors.length + ')</div>';
+      html += '<div style="max-height:150px;overflow-y:auto;font-family:monospace;font-size:11px">';
+      for (var j = 0; j < Math.min(p.console_errors.length, 10); j++) {
+        html += '<div style="margin-bottom:4px;padding:4px;background:var(--bg-secondary);border-radius:4px;word-break:break-all">' + _escapeHtml(p.console_errors[j].substring(0, 200)) + '</div>';
+      }
+      html += '</div>';
+    }
+    if (p.page_errors && p.page_errors.length > 0) {
+      html += '<div style="font-weight:600;color:var(--danger);margin:8px 0 6px">Page Errors (' + p.page_errors.length + ')</div>';
+      html += '<div style="max-height:100px;overflow-y:auto;font-family:monospace;font-size:11px">';
+      for (var k = 0; k < Math.min(p.page_errors.length, 5); k++) {
+        html += '<div style="margin-bottom:4px;padding:4px;background:var(--bg-secondary);border-radius:4px;word-break:break-all">' + _escapeHtml(p.page_errors[k].substring(0, 200)) + '</div>';
+      }
+      html += '</div>';
+    }
+    if (p.broken_images && p.broken_images.length > 0) {
+      html += '<div style="font-weight:600;color:var(--warning);margin:8px 0 6px">Broken Images</div>';
+      for (var bi = 0; bi < p.broken_images.length; bi++) {
+        html += '<div style="font-family:monospace;font-size:11px;word-break:break-all;color:var(--text-secondary)">' + _escapeHtml(p.broken_images[bi]) + '</div>';
+      }
+    }
+    if ((!p.console_errors || p.console_errors.length === 0) && (!p.page_errors || p.page_errors.length === 0) && (!p.broken_images || p.broken_images.length === 0)) {
+      html += '<div style="color:var(--success)">✅ No errors</div>';
+    }
+    html += '</div>';
+    html += '</div></td></tr>';
+  }
+  tbody.innerHTML = html;
+}
+
+function toggleAuditDetail(row) {
+  var detail = row.nextElementSibling;
+  if (detail && detail.classList.contains('audit-detail')) {
+    detail.style.display = detail.style.display === 'none' ? '' : 'none';
+  }
+}
+
+function sortAudit(col) {
+  if (_auditSortCol === col) {
+    _auditSortAsc = !_auditSortAsc;
+  } else {
+    _auditSortCol = col;
+    _auditSortAsc = true;
+  }
+  _renderAuditTable();
+}
+
+function _escapeHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// Load previous audit results on page load
+(function() {
+  fetch('/api/live-testing/full-audit').then(function(r) { return r.json(); }).then(function(d) {
+    if (d.ok && d.pages) {
+      _auditData = d;
+      renderAuditResults(d);
+    }
+  }).catch(function() {});
+})();
+
 async function runSmokeTest() {
   const btn = document.getElementById('btn-smoke');
   const box = document.getElementById('smoke-result');

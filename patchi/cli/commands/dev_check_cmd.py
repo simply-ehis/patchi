@@ -43,15 +43,21 @@ def _run_gate(cmd: list[str], cwd: str, timeout: int = 300, env: dict | None = N
     if env:
         run_env.update(env)
     try:
+        # DEVNULL avoids pipe-buffer deadlocks on Windows when pytest's
+        # subprocess tests inherit and hold pipe handles open.
         proc = subprocess.Popen(
-            cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-            cwd=cwd, encoding='utf-8', errors='replace', env=run_env,
+            cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            cwd=cwd, env=run_env,
         )
-        stdout_bytes, stderr_bytes = proc.communicate(timeout=timeout)
+        try:
+            proc.wait(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            proc.wait(timeout=5)
         duration = time.time() - start
-        output = (stdout_bytes or '') + '\n' + (stderr_bytes or '')
+        output = f'exit code {proc.returncode}'
         result = subprocess.CompletedProcess(
-            cmd, proc.returncode or 0, stdout=stdout_bytes, stderr=stderr_bytes,
+            cmd, proc.returncode or 0, stdout='', stderr='',
         )
 
         if result.returncode == 0:
@@ -68,12 +74,6 @@ def _run_gate(cmd: list[str], cwd: str, timeout: int = 300, env: dict | None = N
                 name=name, passed=False, duration_s=duration,
                 output=output, detail=f"exit code {result.returncode}",
             )
-    except subprocess.TimeoutExpired:
-        duration = time.time() - start
-        return GateResult(
-            name=name, passed=False, duration_s=duration,
-            detail="timeout", kind="timeout",
-        )
     except Exception as e:
         duration = time.time() - start
         return GateResult(
@@ -191,8 +191,7 @@ def run(action: str = "check", json_output: bool = False) -> None:
         "tests/test_debug_capture.py",
         "tests/test_debug_codelldb.py",
         "tests/test_debug_node.py",
-        "tests/test_debug_powershell.py",
-        # Quality / verification
+        "tests/test_debug_powershell.py",        # Quality / verification
         "tests/test_freshness.py",
         "tests/test_patch.py",
         "tests/test_proactive.py",
