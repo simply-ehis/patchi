@@ -265,7 +265,7 @@
   <div class="panel-body">
     <div id="agent-grid"
       hx-get="/api/agents/status"
-      hx-trigger="load, every 30s"
+      hx-trigger="load, every 30s, refresh"
       hx-swap="innerHTML">
       <div class="feed-empty">No agents have run yet</div>
     </div>
@@ -440,6 +440,18 @@
     }).catch(function(){});
   };
 
+  // Refresh agent status panel
+  window.refreshAgents = function() {
+    var el = document.getElementById('agent-grid');
+    if (el && typeof htmx !== 'undefined') {
+      htmx.trigger(el, 'refresh');
+    } else if (el) {
+      fetch('/api/agents/status').then(function(r){return r.text();}).then(function(html){
+        el.innerHTML = html;
+      }).catch(function(){});
+    }
+  };
+
   // Listen for scan.complete via WS to auto-refresh findings
   function _setupWSListener() {
     var ws = window._ws;
@@ -458,6 +470,7 @@
           if (btnCancel2) { btnCancel2.style.display = 'none'; }
           setTimeout(function() {
             window.refreshFindings();
+            window.refreshAgents();
             var total = (msg.data && msg.data.total_findings) || 0;
             toast('Scan complete — ' + total + ' finding' + (total !== 1 ? 's' : '') + ' discovered', total > 0 ? 'warning' : 'success');
           }, 1500);
