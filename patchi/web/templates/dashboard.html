@@ -220,7 +220,7 @@
     <div class="panel-body" style="max-height:200px;overflow-y:auto">
       <div id="recent-findings"
         hx-get="/api/findings-table?limit=5"
-        hx-trigger="load, every 30s"
+        hx-trigger="load, every 30s, refresh"
         hx-swap="innerHTML">
         <div class="feed-empty">Run a scan to see findings</div>
       </div>
@@ -253,6 +253,45 @@
     Object.keys(counts).forEach(function(s){var el=document.getElementById('count-'+s);if(el)el.textContent=counts[s];});
   }).catch(function(){});
 
+  // Refresh findings table via HTMX
+  window.refreshFindings = function() {
+    var el = document.getElementById('recent-findings');
+    if (el && typeof htmx !== 'undefined') {
+      htmx.trigger(el, 'refresh');
+    } else if (el) {
+      // Fallback: manual fetch
+      fetch('/api/findings-table?limit=5').then(function(r){return r.text();}).then(function(html){
+        el.innerHTML = html;
+      }).catch(function(){});
+    }
+    // Also refresh severity counts
+    fetch('/api/findings').then(function(r){return r.json();}).then(function(data){
+      var findings=data.findings||[];
+      var counts={critical:0,high:0,medium:0,low:0};
+      findings.forEach(function(f){var s=(f.severity||'info').toLowerCase();if(counts[s]!==undefined)counts[s]++;});
+      Object.keys(counts).forEach(function(s){var el=document.getElementById('count-'+s);if(el)el.textContent=counts[s];});
+    }).catch(function(){});
+  };
+
+  // Listen for scan.complete via WS to auto-refresh findings
+  function _setupWSListener() {
+    var ws = window._ws;
+    if (!ws) { setTimeout(_setupWSListener, 500); return; }
+    ws.addEventListener('message', function(e) {
+      try {
+        var msg = JSON.parse(e.data);
+        if (msg.event === 'scan.complete') {
+          setTimeout(function() {
+            window.refreshFindings();
+            var total = (msg.data && msg.data.total_findings) || 0;
+            toast('Scan complete — ' + total + ' finding' + (total !== 1 ? 's' : '') + ' discovered', total > 0 ? 'warning' : 'success');
+          }, 1500);
+        }
+      } catch(_) {}
+    });
+  }
+  _setupWSListener();
+
   // Quick actions
   window.runQuickAction=function(action){
     if(action==='scan'||action==='scan_fix'){
@@ -262,7 +301,7 @@
       var sl=document.getElementById('scan-progress-label');if(sl)sl.textContent='Starting scan…';
       var sb=document.getElementById('scan-progress-bar');if(sb){sb.style.width='5%';sb.style.background='var(--accent)';}
       fetch(url,{method:'POST'}).then(function(r){return r.json();}).then(function(d){
-        toast(d.ok?'Scan started':'Scan failed: '+(d.error||'?'),d.ok?'success':'high');
+        toast(d.ok?(action==='scan_fix'?'Scan + Fix started':'Scan started'):'Scan failed: '+(d.error||'?'),d.ok?'success':'high');
         if(!d.ok){if(sp)sp.style.display='none';}
       }).catch(function(e){toast('Scan error: '+e.message,'high');if(sp)sp.style.display='none';});
     } else if(action==='devcheck'){
@@ -271,12 +310,22 @@
           toast(d.overall==='PASS'?'Dev check passed':'Dev check failed',d.overall==='PASS'?'success':'high');
         }).catch(function(e){toast('Dev check error: '+e.message,'high');});
     } else if(action==='assurance'){
+      toast('Running assurance analysis…','info');
       fetch('/api/assurance').then(function(r){return r.json();}).then(function(d){
-        toast('Assurance: '+(d.coverage||0)+'% coverage','info');
+        var msg = 'Coverage: '+(d.coverage||0)+'%';
+        if(d.attacker) msg += ' | Attacks: '+(d.attacker.confirmed||0)+'/'+(d.attacker.total||0);
+        if(d.campaigns) msg += ' | Campaigns: '+d.campaigns.length;
+        if(d.fuzz_endpoints) msg += ' | Fuzz targets: '+d.fuzz_endpoints;
+        toast(msg, d.coverage > 50 ? 'success' : 'info');
       }).catch(function(e){toast('Assurance error: '+e.message,'high');});
     } else if(action==='dast'){
+      toast('Starting DAST scan…','info');
       fetch('/api/scan/dast',{method:'POST'}).then(function(r){return r.json();}).then(function(d){
-        toast(d.ok?'DAST scan started':'DAST failed: '+(d.error||'?'),d.ok?'success':'high');
+        if(d.ok){
+          toast('DAST scan running — results will appear in findings','success');
+        } else {
+          toast('DAST failed: '+(d.error||'?'),'high');
+        }
       }).catch(function(e){toast('DAST error: '+e.message,'high');});
     }
   };
