@@ -212,9 +212,22 @@ class BrowserPool:
             except Exception as e:
                 _log.debug(f"Error closing page: {e}")
 
-    async def get_browser_for_recording(self) -> tuple[Any, BrowserInstance]:
-        """Get a dedicated browser for video recording."""
+    async def get_browser_for_recording(self, video_dir: str | None = None) -> tuple[Any, BrowserInstance]:
+        """Get a dedicated browser for video recording.
+
+        Args:
+            video_dir: Directory to save video recordings.
+                       Defaults to .patchi/evidence/video/ if not specified.
+        """
+        import os
+        from pathlib import Path
+
         async with self._lock:
+            # Resolve video directory
+            if video_dir is None:
+                video_dir = str(Path.cwd() / ".patchi" / "evidence" / "video")
+            os.makedirs(video_dir, exist_ok=True)
+
             # Create a fresh browser for recording
             browser_type = getattr(self._playwright, self.config.browser_type)
             browser = await browser_type.launch(
@@ -223,7 +236,7 @@ class BrowserPool:
             )
             context = await browser.new_context(
                 viewport=self.config.viewport,
-                record_video_dir="/tmp/patchi-recordings",
+                record_video_dir=video_dir,
                 record_video_size=self.config.viewport,
             )
 
@@ -322,7 +335,7 @@ _browser_pool: BrowserPool | None = None
 async def get_browser_pool(config: BrowserConfig = None) -> BrowserPool:
     """Get or create the global browser pool."""
     global _browser_pool
-    if _browser_pool is None:
+    if _browser_pool is None or not _browser_pool._initialized:
         _browser_pool = BrowserPool(config)
         await _browser_pool.initialize()
     return _browser_pool

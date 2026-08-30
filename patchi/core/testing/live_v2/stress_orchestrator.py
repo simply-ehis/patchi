@@ -99,6 +99,10 @@ class StressTestReport:
     breakpoint_users: int = 0
     soak_stability: bool = True
 
+    def to_dict(self) -> dict:
+        import dataclasses
+        return dataclasses.asdict(self)
+
 
 class StressOrchestrator:
     """

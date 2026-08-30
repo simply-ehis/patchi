@@ -78,11 +78,56 @@
     <div class="result-box" id="screenshot-result" style="display:none"></div>
   </div>
 
+  <!-- Visual Regression -->
+  <div class="test-card">
+    <h3>🔍 Visual Regression</h3>
+    <p style="color:var(--text-secondary);font-size:13px">Auto-capture screenshots of all pages, compare against baselines, and generate pixel-diff overlays for changed regions.</p>
+    <button class="btn-test" style="background:var(--success);color:#fff" onclick="runVisualRegression()" id="btn-vr">Run Visual Regression</button>
+    <div class="result-box" id="vr-result" style="display:none"></div>
+  </div>
+
   <!-- Browser Pool -->
   <div class="test-card">
     <h3>🌐 Browser Pool</h3>
     <p style="color:var(--text-secondary);font-size:13px">Status of the shared browser instance pool.</p>
     <div id="pool-info" style="font-family:monospace;font-size:13px;color:var(--text-secondary)">Loading...</div>
+  </div>
+</div>
+
+<!-- Video Recordings -->
+<div class="test-card" style="margin-top:16px">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+    <h3 style="margin:0">📹 Video Recordings</h3>
+    <button class="btn-test btn-smoke" onclick="loadVideos()" style="padding:6px 14px;font-size:12px">Refresh</button>
+  </div>
+  <p style="color:var(--text-secondary);font-size:13px;margin:0 0 12px">Full test session recordings captured by Playwright. Each smoke test or browser test automatically records video evidence.</p>
+  <div id="video-count" style="font-size:12px;color:var(--text-secondary);margin-bottom:12px"></div>
+  <div id="video-list" style="display:grid;grid-template-columns:repeat(auto-fill, minmax(320px, 1fr));gap:12px;max-height:600px;overflow-y:auto">
+    <div style="color:var(--text-tertiary);font-size:13px;padding:20px;text-align:center">Loading videos...</div>
+  </div>
+</div>
+
+<!-- Video Player Modal -->
+<div id="video-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.8);z-index:1000;justify-content:center;align-items:center" onclick="if(event.target===this)closeVideoModal()">
+  <div style="max-width:900px;width:95%;background:var(--bg-secondary);border-radius:12px;overflow:hidden">
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid var(--border)">
+      <span id="video-modal-title" style="font-weight:600;color:var(--text-primary)">Video</span>
+      <button onclick="closeVideoModal()" style="background:none;border:none;color:var(--text-secondary);cursor:pointer;font-size:20px">×</button>
+    </div>
+    <video id="video-player" controls style="width:100%;max-height:70vh;background:#000"></video>
+  </div>
+</div>
+
+<!-- Screenshot Gallery -->
+<div class="test-card" style="margin-top:16px">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+    <h3 style="margin:0">🖼️ Visual Regression Gallery</h3>
+    <button class="btn-test btn-smoke" onclick="loadScreenshots()" style="padding:6px 14px;font-size:12px">Refresh</button>
+  </div>
+  <p style="color:var(--text-secondary);font-size:13px;margin:0 0 12px">Auto-captured screenshots of all pages with pixel-diff overlays for visual regressions. Red-bordered images show changed regions.</p>
+  <div id="screenshot-count" style="font-size:12px;color:var(--text-secondary);margin-bottom:12px"></div>
+  <div id="screenshot-grid" style="display:grid;grid-template-columns:repeat(auto-fill, minmax(280px, 1fr));gap:12px;max-height:800px;overflow-y:auto">
+    <div style="color:var(--text-tertiary);font-size:13px;padding:20px;text-align:center">Loading screenshots...</div>
   </div>
 </div>
 
@@ -170,5 +215,163 @@ async function loadPoolStats() {
 // Load on page load
 loadPoolStats();
 setInterval(loadPoolStats, 30000);
+loadVideos();
+loadScreenshots();
+
+async function loadVideos() {
+  const list = document.getElementById('video-list');
+  const count = document.getElementById('video-count');
+  try {
+    const resp = await fetch('/api/live-testing/videos');
+    const data = await resp.json();
+    const videos = data.videos || [];
+    count.textContent = videos.length + ' recordings (' + (data.total_size_kb || 0) + ' KB total)';
+    if (videos.length === 0) {
+      list.innerHTML = '<div style="color:var(--text-tertiary);font-size:13px;padding:20px;text-align:center;grid-column:1/-1">No recordings yet. Run a smoke test or browser test to capture video evidence.</div>';
+      return;
+    }
+    list.innerHTML = videos.map(function(v) {
+      return '<div style="background:var(--bg-tertiary);border-radius:8px;overflow:hidden;border:1px solid var(--border-subtle)">' +
+        '<div style="aspect-ratio:16/9;background:#111;display:flex;align-items:center;justify-content:center;cursor:pointer" onclick="playVideo(\'' + v.filename + '\', \'' + v.name + '\')">' +
+          '<div style="text-align:center;color:var(--text-tertiary)">' +
+            '<div style="font-size:32px;margin-bottom:4px">▶</div>' +
+            '<div style="font-size:11px">Click to play</div>' +
+          '</div>' +
+        '</div>' +
+        '<div style="padding:8px 12px;display:flex;justify-content:space-between;align-items:center">' +
+          '<div>' +
+            '<div style="font-size:12px;font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px" title="' + v.name + '">' + v.name + '</div>' +
+            '<div style="font-size:10px;color:var(--text-tertiary)">' + v.size_kb + ' KB • ' + new Date(v.timestamp).toLocaleString() + '</div>' +
+          '</div>' +
+          '<a href="/api/live-testing/video/' + v.filename + '" download style="color:var(--accent);font-size:11px;text-decoration:none" title="Download">💾</a>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+  } catch(e) {
+    list.innerHTML = '<div style="color:var(--danger);font-size:13px;padding:20px">Error loading videos: ' + e.message + '</div>';
+  }
+}
+
+function playVideo(filename, title) {
+  const modal = document.getElementById('video-modal');
+  const player = document.getElementById('video-player');
+  const titleEl = document.getElementById('video-modal-title');
+  titleEl.textContent = title || filename;
+  player.src = '/api/live-testing/video/' + filename;
+  modal.style.display = 'flex';
+  player.play();
+}
+
+function closeVideoModal() {
+  const modal = document.getElementById('video-modal');
+  const player = document.getElementById('video-player');
+  player.pause();
+  player.src = '';
+  modal.style.display = 'none';
+}
+
+async function runVisualRegression() {
+  const btn = document.getElementById('btn-vr');
+  const box = document.getElementById('vr-result');
+  btn.disabled = true;
+  btn.textContent = 'Running...';
+  box.style.display = 'block';
+  box.textContent = 'Capturing screenshots of all pages...';
+
+  try {
+    const resp = await fetch('/api/live-testing/visual-regression', {method: 'POST', headers: {'Content-Type': 'application/json'}});
+    const data = await resp.json();
+    if (data.ok) {
+      box.textContent = '✅ Done!\n' +
+        'Screenshots: ' + data.screenshots + '\n' +
+        'Regressions: ' + data.regressions + '\n' +
+        'New baselines: ' + data.new_baselines + '\n' +
+        'Error pages: ' + data.error_pages;
+      if (data.findings && data.findings.length > 0) {
+        box.textContent += '\n\nFindings:\n' + data.findings.map(function(f) {
+          return '  ' + f.severity.toUpperCase() + ': ' + f.message;
+        }).join('\n');
+      }
+      loadScreenshots();
+    } else {
+      box.textContent = '❌ ' + (data.error || 'Unknown error');
+    }
+  } catch(e) {
+    box.textContent = 'Error: ' + e.message;
+  }
+  btn.disabled = false;
+  btn.textContent = 'Run Visual Regression';
+}
+
+async function loadScreenshots() {
+  const grid = document.getElementById('screenshot-grid');
+  const count = document.getElementById('screenshot-count');
+  try {
+    const resp = await fetch('/api/live-testing/screenshots');
+    const data = await resp.json();
+    const shots = data.screenshots || [];
+    count.textContent = shots.length + ' screenshots, ' + data.baselines + ' baselines (' + (data.total_size_kb || 0) + ' KB)';
+    if (shots.length === 0) {
+      grid.innerHTML = '<div style="color:var(--text-tertiary);font-size:13px;padding:20px;text-align:center;grid-column:1/-1">No screenshots yet. Run Visual Regression to capture all pages.</div>';
+      return;
+    }
+    // Separate diffs from regular screenshots
+    var diffs = shots.filter(function(s) { return s.is_diff; });
+    var regular = shots.filter(function(s) { return !s.is_diff; });
+
+    var html = '';
+    // Show diffs first (they indicate regressions)
+    if (diffs.length > 0) {
+      html += '<div style="grid-column:1/-1;font-size:12px;font-weight:600;color:var(--danger);margin:4px 0">⚠️ Regressions (' + diffs.length + ' diff images)</div>';
+      html += diffs.map(function(s) { return screenshotCard(s, true); }).join('');
+    }
+    // Then regular screenshots
+    html += regular.map(function(s) { return screenshotCard(s, false); }).join('');
+    grid.innerHTML = html;
+  } catch(e) {
+    grid.innerHTML = '<div style="color:var(--danger);font-size:13px;padding:20px">Error: ' + e.message + '</div>';
+  }
+}
+
+function screenshotCard(s, isDiff) {
+  var borderColor = isDiff ? 'var(--danger)' : 'var(--border-subtle)';
+  return '<div style="background:var(--bg-tertiary);border-radius:8px;overflow:hidden;border:1px solid ' + borderColor + ';cursor:pointer" onclick="viewScreenshot(\'' + s.filename + '\', \'' + s.name + '\')">' +
+    '<div style="aspect-ratio:16/10;background:#111;display:flex;align-items:center;justify-content:center">' +
+      '<img src="/api/live-testing/screenshot/' + s.filename + '" style="width:100%;height:100%;object-fit:contain" loading="lazy" onerror="this.style.display=\'none\'">' +
+    '</div>' +
+    '<div style="padding:6px 10px;font-size:11px;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="' + s.name + '">' +
+      (isDiff ? '🔴 ' : '') + s.name +
+    '</div>' +
+  '</div>';
+}
+
+function viewScreenshot(filename, title) {
+  const modal = document.getElementById('video-modal');
+  const player = document.getElementById('video-player');
+  const titleEl = document.getElementById('video-modal-title');
+  // Hide video player, show image instead
+  player.style.display = 'none';
+  let img = document.getElementById('screenshot-viewer');
+  if (!img) {
+    img = document.createElement('img');
+    img.id = 'screenshot-viewer';
+    img.style.cssText = 'width:100%;max-height:70vh;object-fit:contain;background:#000';
+    player.parentElement.appendChild(img);
+  }
+  img.src = '/api/live-testing/screenshot/' + filename;
+  img.style.display = 'block';
+  titleEl.textContent = title || filename;
+  modal.style.display = 'flex';
+}
+
+// Override closeVideoModal to also handle screenshot viewer
+var _origClose = closeVideoModal;
+closeVideoModal = function() {
+  _origClose();
+  var img = document.getElementById('screenshot-viewer');
+  if (img) img.style.display = 'none';
+  var player = document.getElementById('video-player');
+  if (player) player.style.display = 'block';
+};
 </script>
 {% endblock %}

@@ -1,8 +1,15 @@
-"""Scan API — trigger security scans."""
+"""Scan API — trigger security scans.
+
+Scans run agents in parallel batches (default: 8 concurrent) so the
+scan finishes faster while the event loop stays free for dashboard
+requests.  Each agent gets its own timeout so a hung agent can't block
+the whole scan.
+"""
 
 from __future__ import annotations
 
 import asyncio
+import time
 from pathlib import Path
 
 from fastapi import APIRouter, Request
@@ -12,6 +19,23 @@ from patchi.core.tenant import tenant_context
 
 router = APIRouter(prefix="/api")
 
+# ── Scan state ──────────────────────────────────────────────────────────────
+# Global scan state so the dashboard and cancel endpoint can inspect it.
+_scan_state: dict = {
+    "running": False,
+    "task": None,         # asyncio.Task | None
+    "cancel": None,       # asyncio.Event — set to abort
+    "started_at": 0.0,
+    "agent_index": 0,
+    "agent_total": 0,
+    "current_agent": "",
+}
+
+# Max agents that run concurrently inside each batch.
+BATCH_SIZE = 8
+# Per-agent hard timeout (seconds).  Agents that exceed this are killed.
+AGENT_TIMEOUT = 120
+
 
 @router.post("/scan")
 async def trigger_scan(
@@ -19,18 +43,23 @@ async def trigger_scan(
     scan_type: str = "all",
     auto_fix: bool = False,
 ) -> JSONResponse:
-    """Trigger a security scan. Runs in background, sends progress via WebSocket.
+    """Trigger a security scan.  Runs in background, sends progress via WS."""
+    if _scan_state["running"]:
+        return JSONResponse(
+            status_code=409,
+            content={"ok": False, "error": "Scan already running"},
+        )
 
-    If auto_fix=True, runs proactive fixes after the scan completes.
-    """
     root = request.app.state.root
-    tenant_ctx = tenant_context(root)
-    tenant_ctx.__enter__()
     import patchi.core.security.security_agents  # noqa: F401
     from patchi.core import config as cfg
     from patchi.core import memory as mem
     from patchi.core.agents.base import AgentGroup, AgentInput, list_agents
-    from patchi.web.ws import evt_scan_complete, evt_scan_progress, evt_scan_started
+    from patchi.web.ws import (
+        evt_scan_complete,
+        evt_scan_progress,
+        evt_scan_started,
+    )
 
     try:
         config = cfg.load(root)
@@ -39,58 +68,148 @@ async def trigger_scan(
 
     brain = mem.get_brain(root)
 
-    # Determine agents to run — use dynamic registry, not hardcoded list
+    # Determine agents to run
     all_agents = {a.name: a for a in list_agents(AgentGroup.SECURITY)}
-
     if scan_type == "all":
-        # Run all registered security agents (excludes offensive/dev-only agents)
-        _SKIP = {"SecurityProber", "RedTeamAgent"}  # offensive — dev mode only
+        _SKIP = {"SecurityProber", "RedTeamAgent"}
         to_run = [a for a in list_agents(AgentGroup.SECURITY) if a.name not in _SKIP]
     elif scan_type in all_agents:
         to_run = [all_agents[scan_type]]
     else:
         return JSONResponse({"ok": False, "error": f"Unknown scan type: {scan_type}"})
 
-    # Run scan in background
+    cancel_event = asyncio.Event()
+    _scan_state.update({
+        "running": True,
+        "cancel": cancel_event,
+        "started_at": time.time(),
+        "agent_total": len(to_run),
+    })
+
     async def _run():
-        await evt_scan_started(len(to_run))
-
-        results = []
-        for i, agent_cls in enumerate(to_run):
-            await evt_scan_progress(agent_cls.name, "scanning", i, len(to_run))
-
-            inp = AgentInput(root=root, scope=[], brain=brain, config=config)
-            result = await asyncio.to_thread(agent_cls().run, inp)
-            results.append(result)
-
-            await evt_scan_progress(agent_cls.name, "done", i + 1, len(to_run))
-
-        total_findings = sum(r.finding_count for r in results)
-
-        # Deduplicate + correlate via SecurityOrchestrator (WIRE-01)
         try:
-            from patchi.core.security.orchestrator import SecurityOrchestrator
+            # Wrap everything in tenant_context for proper scoping
+            with tenant_context(root):
+                await evt_scan_started(len(to_run))
 
-            security_report = SecurityOrchestrator().correlate(results)
-            deduped_count = security_report.total_findings
-        except Exception:
-            deduped_count = total_findings
+                results = []
+                total = len(to_run)
 
-        await evt_scan_complete(deduped_count, 0)
+                # Run agents in batches so the event loop stays free.
+                for batch_start in range(0, total, BATCH_SIZE):
+                    if cancel_event.is_set():
+                        break
 
-        # Auto-fix: run proactive fixes after scan completes
-        if auto_fix and deduped_count > 0:
-            await evt_scan_progress("auto_fix", "running", len(to_run), len(to_run))
-            try:
-                await asyncio.to_thread(_run_proactive_fix, root, config)
-            except Exception as e:
-                import logging
-                logging.getLogger("patchi.web.scan").warning("Auto-fix failed: %s", e)
-            await evt_scan_progress("auto_fix", "done", len(to_run) + 1, len(to_run) + 1)
+                    batch = to_run[batch_start : batch_start + BATCH_SIZE]
+                    batch_tasks = []
 
-    asyncio.create_task(_run())
+                    for agent_cls in batch:
+                        if cancel_event.is_set():
+                            break
+                        idx = batch_start + batch.index(agent_cls) + 1
+                        _scan_state["agent_index"] = idx
+                        _scan_state["current_agent"] = agent_cls.name
+                        await evt_scan_progress(agent_cls.name, "scanning", idx, total)
+
+                        inp = AgentInput(root=root, scope=[], brain=brain, config=config)
+                        task = asyncio.create_task(
+                            _run_agent_with_timeout(agent_cls, inp, AGENT_TIMEOUT)
+                        )
+                        batch_tasks.append(task)
+
+                    # Wait for all agents in this batch concurrently.
+                    # yield control between batches so the event loop can
+                    # handle HTTP requests, WS pings, etc.
+                    if batch_tasks:
+                        batch_results = await asyncio.gather(
+                            *batch_tasks, return_exceptions=True
+                        )
+                        for r in batch_results:
+                            if isinstance(r, Exception):
+                                # Agent timed out or crashed — record as empty result
+                                from patchi.core.agents.base import (
+                                    AgentResult, AgentStatus,
+                                )
+                                r = AgentResult(
+                                    agent_name="unknown",
+                                    status=AgentStatus.FAILED,
+                                    errors=[str(r)],
+                                )
+                            results.append(r)
+                            await evt_scan_progress(
+                                getattr(r, "agent_name", "?"), "done",
+                                min(len(results), total), total,
+                            )
+
+                total_findings = sum(r.finding_count for r in results)
+
+                # Deduplicate + correlate
+                try:
+                    from patchi.core.security.orchestrator import SecurityOrchestrator
+                    report = SecurityOrchestrator().correlate(results)
+                    deduped_count = report.total_findings
+                except Exception:
+                    deduped_count = total_findings
+
+                await evt_scan_complete(deduped_count, 0)
+
+                # Auto-fix
+                if auto_fix and deduped_count > 0 and not cancel_event.is_set():
+                    await evt_scan_progress("auto_fix", "running", total, total)
+                    try:
+                        await asyncio.to_thread(_run_proactive_fix, root, config)
+                    except Exception as e:
+                        import logging
+                        logging.getLogger("patchi.web.scan").warning(
+                            "Auto-fix failed: %s", e
+                        )
+                    await evt_scan_progress("auto_fix", "done", total + 1, total + 1)
+        finally:
+            _scan_state["running"] = False
+            _scan_state["cancel"] = None
+            _scan_state["task"] = None
+
+    task = asyncio.create_task(_run())
+    _scan_state["task"] = task
 
     return JSONResponse({"ok": True, "message": f"Scan started with {len(to_run)} agents"})
+
+
+async def _run_agent_with_timeout(agent_cls, inp, timeout: int):
+    """Run a single agent with a hard timeout."""
+    return await asyncio.wait_for(
+        asyncio.to_thread(agent_cls().run, inp),
+        timeout=timeout,
+    )
+
+
+@router.post("/scan/cancel")
+async def cancel_scan() -> JSONResponse:
+    """Cancel a running scan."""
+    if not _scan_state["running"]:
+        return JSONResponse({"ok": True, "message": "No scan running"})
+    cancel = _scan_state.get("cancel")
+    if cancel:
+        cancel.set()
+    task = _scan_state.get("task")
+    if task and not task.done():
+        task.cancel()
+    return JSONResponse({"ok": True, "message": "Scan cancellation requested"})
+
+
+@router.get("/scan/status")
+async def scan_status() -> JSONResponse:
+    """Get current scan status for polling."""
+    if not _scan_state["running"]:
+        return JSONResponse({"running": False})
+    elapsed = time.time() - _scan_state["started_at"]
+    return JSONResponse({
+        "running": True,
+        "elapsed": round(elapsed, 1),
+        "current_agent": _scan_state["current_agent"],
+        "agent_index": _scan_state["agent_index"],
+        "agent_total": _scan_state["agent_total"],
+    })
 
 
 def _run_proactive_fix(root, config):
@@ -225,8 +344,6 @@ async def quick_scan(request: Request) -> JSONResponse:
 async def trigger_dast(request: Request) -> JSONResponse:
     """Trigger DAST (Dynamic Application Security Testing) scan with Playwright."""
     root = request.app.state.root
-    tenant_ctx = tenant_context(root)
-    tenant_ctx.__enter__()
 
     from patchi.core import config as cfg
     from patchi.core import memory as mem
@@ -247,16 +364,17 @@ async def trigger_dast(request: Request) -> JSONResponse:
         return JSONResponse({"ok": False, "error": "Playwright not installed. Run: pip install playwright && playwright install"}, status_code=500)
 
     async def _run():
-        await evt_scan_started(1)
-        await evt_scan_progress("DASTAgent", "scanning", 0, 1)
+        with tenant_context(root):
+            await evt_scan_started(1)
+            await evt_scan_progress("DASTAgent", "scanning", 0, 1)
 
-        inp = AgentInput(root=root, scope=[], brain=brain, config=config)
-        agent = DASTAgent()
-        result = agent.run(inp)
+            inp = AgentInput(root=root, scope=[], brain=brain, config=config)
+            agent = DASTAgent()
+            result = await asyncio.to_thread(agent.run, inp)
 
-        total_findings = result.finding_count
-        await evt_scan_progress("DASTAgent", "done", 1, 1)
-        await evt_scan_complete(total_findings, 0)
+            total_findings = result.finding_count
+            await evt_scan_progress("DASTAgent", "done", 1, 1)
+            await evt_scan_complete(total_findings, 0)
 
     asyncio.create_task(_run())
 

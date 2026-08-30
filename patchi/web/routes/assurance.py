@@ -9,8 +9,6 @@ from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 
-from patchi.core.tenant import tenant_context
-
 router = APIRouter()
 templates = Jinja2Templates(directory=str(Path(__file__).parent.parent / "templates"))
 
@@ -18,8 +16,6 @@ templates = Jinja2Templates(directory=str(Path(__file__).parent.parent / "templa
 @router.get("/assurance", response_class=HTMLResponse)
 async def assurance(request: Request):
     root = request.app.state.root
-    tenant_ctx = tenant_context(root)
-    tenant_ctx.__enter__()
 
     from patchi.core.assurance.graph import AssuranceGraph
 
@@ -168,11 +164,9 @@ async def assurance(request: Request):
     )
 
 
-@router.get("/api/assurance", response_class=HTMLResponse)
-async def assurance_api(request: Request):
+@router.get("/api/assurance")
+async def assurance_api(request: Request) -> JSONResponse:
     """JSON API for assurance data (for AJAX updates)."""
-    from fastapi.responses import JSONResponse
-
     root = request.app.state.root
     from patchi.core.assurance.graph import AssuranceGraph
 

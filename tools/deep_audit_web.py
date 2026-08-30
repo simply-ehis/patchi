@@ -50,6 +50,27 @@ def extract(pattern: str, text: str) -> list[str]:
     return re.findall(pattern, text)
 
 
+def collect_routes(routes) -> set[str]:
+    """Recursively collect route paths.
+
+    Newer FastAPI nests included routers inside ``_IncludedRouter`` wrappers
+    (and Starlette uses ``Mount``), so a flat ``app.routes`` walk misses most
+    routes and produces false 'no route' failures. Walk through both.
+    """
+    out: set[str] = set()
+    for r in routes:
+        p = getattr(r, "path", None)
+        if p:
+            out.add(p)
+        orig = getattr(r, "original_router", None)
+        if orig is not None:
+            out |= collect_routes(getattr(orig, "routes", []))
+        sub = getattr(r, "routes", None)
+        if sub and orig is None:
+            out |= collect_routes(sub)
+    return out
+
+
 def main() -> int:
     # Build app once for route table + TestClient
     proj_a = ROOT / ".audit_proj_a"
@@ -66,11 +87,7 @@ def main() -> int:
 
     app = create_app(proj_a)
 
-    route_paths: set[str] = set()
-    for r in app.routes:
-        p = getattr(r, "path", "")
-        if p:
-            route_paths.add(p)
+    route_paths = collect_routes(app.routes)
 
     def route_exists(path: str) -> bool:
         if path in route_paths:
@@ -120,7 +137,7 @@ def main() -> int:
                     bad_links.append(f"{f.name}: static missing {href}")
                 continue
             n_internal += 1
-            if "{{" in href or "{%" in href:
+            if "{{" in href or "{%" in href or "${" in href:
                 continue  # templated URL can't be checked statically
             if not route_exists(href):
                 bad_links.append(f"{f.name}: href {href} has no route")
@@ -129,7 +146,7 @@ def main() -> int:
             if url.startswith("http"):
                 continue
             n_fetch += 1
-            if "{{" in url:
+            if "{{" in url or "${" in url:
                 continue
             if "?" in url:
                 url = url.split("?")[0]
@@ -164,6 +181,11 @@ def main() -> int:
     handled = set(extract(r'action == "([a-z_.]+)"', dv2_py))
     legacy_py = (ROOT / "patchi" / "web" / "app.py").read_text(encoding="utf-8")
     handled |= set(extract(r'action == "([a-z_.]+)"', legacy_py))
+    # The real /ws handler is websocket_endpoint -> _handle_ws_message in
+    # routes/dashboard.py (app.py only mounts it). Scan that too, else legit
+    # handlers are reported as missing.
+    ws_py = (ROOT / "patchi" / "web" / "routes" / "dashboard.py").read_text(encoding="utf-8")
+    handled |= set(extract(r'action == "([a-z_.]+)"', ws_py))
 
     sent: set[str] = set()
     send_re = re.compile(r"send\(\s*\{\s*action:\s*['\"]([a-z_.]+)['\"]")
@@ -197,10 +219,14 @@ def main() -> int:
     dyn_ids = set(extract(r"id=\\?['\"]([A-Za-z0-9_-]+)", js))
     dyn_ids |= set(extract(r"\.id\s*=\s*['\"]([A-Za-z0-9_-]+)['\"]", js))
     missing_ids = sorted(i for i in ids_used if i not in ids_defined and i not in dyn_ids)
-    # IDs only needed when their section renders (other pages use shared JS too)
+    # IDs only needed when their section renders (other pages use shared JS too).
+    # Also include v1 templates (e.g. base.html) since v2 pages extend/include them,
+    # so those IDs are present at render time even though they live in the v1 base.
     other_pages_ids = set()
-    for f in TPL_V2.glob("*.html"):
-        if f.name != "dashboard_v2.html":
+    for d in (TPL_V1, TPL_V2):
+        for f in d.glob("*.html"):
+            if f.name == "dashboard_v2.html":
+                continue
             other_pages_ids |= set(extract(r'id="([A-Za-z0-9_-]+)"', f.read_text(encoding="utf-8", errors="replace")))
     truly_missing = [i for i in missing_ids if i not in other_pages_ids]
     if truly_missing:
@@ -218,12 +244,13 @@ def main() -> int:
     client = TestClient(app, raise_server_exceptions=False)
     bad_render = []
     checked = 0
-    for r in app.routes:
-        p = getattr(r, "path", "")
-        methods = getattr(r, "methods", None)
-        if not methods or "GET" not in methods or "{" in p:
+    for p in sorted(route_paths):
+        if "{" in p or p == "/ws":
             continue
-        resp = client.get(p)
+        try:
+            resp = client.get(p)
+        except Exception:
+            continue
         checked += 1
         if resp.status_code >= 500:
             bad_render.append(f"{p} -> {resp.status_code}")

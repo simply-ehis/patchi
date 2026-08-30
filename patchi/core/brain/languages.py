@@ -157,7 +157,10 @@ def get_parser(lang: Lang) -> Parser | None:
         return None
 
     if lang not in _parsers:
-        _parsers[lang] = _build_parser(lang)
+        try:
+            _parsers[lang] = _build_parser(lang)
+        except (ImportError, ModuleNotFoundError):
+            return None
 
     return _parsers[lang]
 

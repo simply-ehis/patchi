@@ -47,6 +47,8 @@ class TestResult:
     steps_total: int = 0
     duration_ms: int = 0
     screenshots: list[str] = field(default_factory=list)
+    video_path: str | None = None
+    video_duration_ms: int = 0
     errors: list[str] = field(default_factory=list)
     findings: list[Finding] = field(default_factory=list)
 
@@ -72,6 +74,10 @@ class TestSuiteResult:
             "skipped": self.skipped,
             "duration_ms": self.duration_ms,
             "screenshots_dir": self.screenshots_dir,
+            "videos": [
+                {"test": r.name, "path": r.video_path, "duration_ms": r.video_duration_ms}
+                for r in self.results if r.video_path
+            ],
             "findings": [f.to_dict() for f in self.findings],
         }
 
@@ -97,7 +103,7 @@ class BrowserTestRunner:
         steps: list[TestStep],
         browser_pool: BrowserPool | None = None,
     ) -> TestResult:
-        """Run a single browser test with multiple steps."""
+        """Run a single browser test with video recording."""
         start = time.monotonic()
         result = TestResult(
             name=name,
@@ -106,11 +112,22 @@ class BrowserTestRunner:
         )
         screenshot_mgr = ScreenshotManager(self._evidence_dir)
 
+        # Prepare video directory
+        video_dir = self._evidence_dir / "video"
+        video_dir.mkdir(parents=True, exist_ok=True)
+
+        # Get a dedicated recording browser context for this test
         pool = browser_pool or await get_browser_pool()
+        context = None
         page = None
+        recording_instance = None
 
         try:
-            page = await pool.get_page()
+            context, recording_instance = await pool.get_browser_for_recording(
+                video_dir=str(video_dir)
+            )
+            page = await context.new_page()
+            page.set_default_timeout(30000)
             self.on_progress(f"🧪 Running test: {name}")
 
             for i, step in enumerate(steps):
@@ -123,9 +140,9 @@ class BrowserTestRunner:
                     _log.warning("Test step failed: %s", e)
                     # Capture error screenshot
                     try:
-                        ss_path = await screenshot_mgr.capture(page, f"{name}_error_step{i + 1}")
-                        if ss_path:
-                            result.screenshots.append(str(ss_path))
+                        ss_result = await screenshot_mgr.capture(page, page.url, name=f"{name}_error_step{i + 1}")
+                        if ss_result and ss_result.image_path:
+                            result.screenshots.append(ss_result.image_path)
                     except Exception:
                         pass
                     break
@@ -134,14 +151,45 @@ class BrowserTestRunner:
             result.passed = False
             result.errors.append(f"Test setup failed: {e}")
         finally:
-            if page and browser_pool is None:
-                await pool.release_page(page)
+            # Close context to finalize the video recording
+            if context:
+                try:
+                    await context.close()
+                except Exception:
+                    pass
+            # Clean up recording browser instance from pool
+            if recording_instance and recording_instance.id in pool._browsers:
+                try:
+                    browser_inst = pool._browsers.pop(recording_instance.id)
+                    await browser_inst._browser.close()
+                except Exception:
+                    pass
+
+            # Find the recorded video file (Playwright saves it on context.close)
+            try:
+                video_files = sorted(
+                    video_dir.glob("*.webm"),
+                    key=lambda f: f.stat().st_mtime,
+                    reverse=True,
+                )
+                if video_files:
+                    newest = video_files[0]
+                    # Rename to include test name for easy identification
+                    safe_name = name.replace(" ", "_").replace("/", "_")[:50]
+                    target = video_dir / f"{safe_name}_{int(start)}.webm"
+                    if newest != target:
+                        newest.rename(target)
+                    result.video_path = str(target)
+                    result.video_duration_ms = int((time.monotonic() - start) * 1000)
+            except Exception as e:
+                _log.debug("Could not locate video file: %s", e)
 
         result.duration_ms = int((time.monotonic() - start) * 1000)
         self.on_progress(
             f"{'✅' if result.passed else '❌'} {name}: "
             f"{result.steps_completed}/{result.steps_total} steps "
             f"({result.duration_ms}ms)"
+            + (f" 📹 {result.video_path}" if result.video_path else "")
         )
         return result
 
@@ -168,9 +216,9 @@ class BrowserTestRunner:
 
         elif step.action == "screenshot" or step.screenshot:
             label = step.description or f"step_{result.steps_completed + 1}"
-            ss_path = await screenshot_mgr.capture(page, label)
-            if ss_path:
-                result.screenshots.append(str(ss_path))
+            ss_result = await screenshot_mgr.capture(page, page.url, name=label)
+            if ss_result and ss_result.image_path:
+                result.screenshots.append(ss_result.image_path)
                 self.on_progress(f"  📸 Screenshot: {label}")
 
         elif step.action == "assert_text":
@@ -229,7 +277,10 @@ class BrowserTestRunner:
                     suite.findings.extend(r.findings)
 
         finally:
-            await pool.shutdown()
+            # Don't shutdown the global pool — just release pages.
+            for r in suite.results:
+                for ss in r.screenshots:
+                    self.on_progress(f"  📸 {ss}")
 
         suite.duration_ms = int((time.monotonic() - start) * 1000)
         self.on_progress(

@@ -65,7 +65,7 @@
       <button class="btn btn-sm" onclick="BrainMap.exportJSON()" title="Export data as JSON">💾 JSON</button>
     </div>
   </header>
-  <div style="position:relative;height:400px;background:var(--bg-primary);border-radius:0 0 var(--radius-lg) var(--radius-lg);overflow:hidden">
+  <div style="position:relative;min-height:500px;height:calc(100vh - 300px);max-height:800px;background:var(--bg-primary);border-radius:0 0 var(--radius-lg) var(--radius-lg);overflow:hidden">
     <!-- 2D Legend -->
     <div id="legend-2d" style="position:absolute;left:0;top:0;bottom:0;width:180px;padding:12px;border-right:1px solid var(--border-subtle);overflow-y:auto;font-size:11px;z-index:5;background:var(--bg-secondary)">
     <div id="brain-map-legend" style="width:180px;padding:12px;border-right:1px solid var(--border-subtle);overflow-y:auto;font-size:11px;flex-shrink:0;background:var(--bg-secondary)">
@@ -146,26 +146,31 @@
         <span style="color:var(--text-secondary)">Dead Path</span>
       </div>
 
-      <div style="font-weight:600;color:var(--text-primary);margin-bottom:8px;font-size:12px">Health Override</div>
+      <div style="font-weight:600;color:var(--text-primary);margin-bottom:8px;font-size:12px">Health & Size (3D)</div>
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
         <svg width="16" height="16"><circle cx="8" cy="8" r="7" fill="#FF4D6D" stroke="#ff6b8a" stroke-width="1.5"/></svg>
-        <span style="color:var(--text-secondary)">Critical (≥5)</span>
+        <span style="color:var(--text-secondary)">Critical (≥5) — largest + glow</span>
       </div>
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-        <svg width="16" height="16"><circle cx="8" cy="8" r="7" fill="#FACC15" stroke="#FACC15" stroke-width="1.5"/></svg>
-        <span style="color:var(--text-secondary)">High (≥3)</span>
+        <svg width="14" height="14"><circle cx="7" cy="7" r="6" fill="#FACC15" stroke="#FACC15" stroke-width="1.5"/></svg>
+        <span style="color:var(--text-secondary)">High (≥3) — large</span>
       </div>
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-        <svg width="16" height="16"><circle cx="8" cy="8" r="7" fill="#E8920A" stroke="#E8920A" stroke-width="1.5"/></svg>
-        <span style="color:var(--text-secondary)">Has Findings</span>
+        <svg width="12" height="12"><circle cx="6" cy="6" r="5" fill="#E8920A" stroke="#E8920A" stroke-width="1.5"/></svg>
+        <span style="color:var(--text-secondary)">Has Findings — medium</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <svg width="8" height="8"><circle cx="4" cy="4" r="3" fill="#C8621A" stroke="#4b5563" stroke-width="1"/></svg>
+        <span style="color:var(--text-secondary)">Clean — small</span>
       </div>
       <div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--border-subtle);color:var(--text-muted);font-size:10px;line-height:1.4">
-        Right-click any node for file details. Drag to reposition. Scroll to zoom. Shift+drag to pan.
+        Drag to pan • Scroll to zoom • WASD/arrows: navigate<br>Right-click node for details • 0: fit view<br>Node size scales with findings — bigger = more issues
       </div>
     </div>
+    </div> <!-- close legend-2d -->
 
     <!-- 2D Canvas -->
-    <div id="brain-map" style="position:absolute;left:180px;top:0;right:0;bottom:0;width:calc(100% - 180px);height:100%"></div>
+    <div id="brain-map" style="position:absolute;top:0;right:0;bottom:0;left:180px;min-width:0;min-height:0"></div>
     <!-- 3D Canvas (hidden by default) -->
     <div id="brain-map-3d" style="position:absolute;left:0;top:0;right:0;bottom:0;width:100%;height:100%;display:none"></div>
   </div>
@@ -179,13 +184,24 @@
       <h2 class="panel-title">Quick Actions</h2>
     </header>
     <div class="panel-body" style="display:flex;flex-wrap:wrap;gap:8px">
-      <button class="btn btn-primary" onclick="runQuickAction('scan')">Scan Project</button>
-      <button class="btn" style="background:var(--accent);color:#fff" onclick="runQuickAction('scan_fix')">Scan + Fix</button>
+      <button class="btn btn-primary" id="btn-scan" onclick="runQuickAction('scan')">Scan Project</button>
+      <button class="btn" id="btn-scan-fix" style="background:var(--accent);color:#fff" onclick="runQuickAction('scan_fix')">Scan + Fix</button>
       <button class="btn" onclick="runQuickAction('devcheck')">Dev Check</button>
       <button class="btn" onclick="runQuickAction('assurance')">Assurance</button>
       <button class="btn" onclick="runQuickAction('dast')">DAST Scan</button>
       <a class="btn" href="/chat">Chat</a>
       <a class="btn" href="/review">Review Fixes</a>
+    </div>
+    <!-- Live scan progress -->
+    <div id="scan-progress" style="display:none;margin-top:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <span id="scan-progress-label" style="font-size:13px;color:var(--text-secondary)">Initializing scan…</span>
+        <span id="scan-progress-count" style="font-size:13px;color:var(--accent);font-weight:600">0/0</span>
+      </div>
+      <div style="height:6px;background:var(--bg-tertiary);border-radius:3px;overflow:hidden">
+        <div id="scan-progress-bar" style="height:100%;width:0%;background:var(--accent);border-radius:3px;transition:width 0.3s ease"></div>
+      </div>
+      <div id="scan-progress-agent" style="font-size:11px;color:var(--text-tertiary);margin-top:4px"></div>
     </div>
   </div>
 
@@ -235,9 +251,14 @@
   window.runQuickAction=function(action){
     if(action==='scan'||action==='scan_fix'){
       var url=action==='scan_fix'?'/api/scan?auto_fix=true':'/api/scan';
+      // Show progress bar immediately
+      var sp=document.getElementById('scan-progress');if(sp)sp.style.display='block';
+      var sl=document.getElementById('scan-progress-label');if(sl)sl.textContent='Starting scan…';
+      var sb=document.getElementById('scan-progress-bar');if(sb){sb.style.width='5%';sb.style.background='var(--accent)';}
       fetch(url,{method:'POST'}).then(function(r){return r.json();}).then(function(d){
         toast(d.ok?'Scan started':'Scan failed: '+(d.error||'?'),d.ok?'success':'high');
-      }).catch(function(e){toast('Scan error: '+e.message,'high');});
+        if(!d.ok){if(sp)sp.style.display='none';}
+      }).catch(function(e){toast('Scan error: '+e.message,'high');if(sp)sp.style.display='none';});
     } else if(action==='devcheck'){
       fetch('/api/dev-check',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({})})
         .then(function(r){return r.json();}).then(function(d){
@@ -286,15 +307,23 @@
 
   // Init brain map after DOM ready
   requestAnimationFrame(function(){
-    if(window.BrainMap) BrainMap.init('brain-map');
-    // Load data and store for 3D
+    // Fetch data first, then init the map with data ready
     Promise.all([
-      fetch('/api/brain-map/nodes').then(function(r){return r.json();}),
-      fetch('/api/brain-map/edges').then(function(r){return r.json();})
+      fetch('/api/brain-map/nodes').then(function(r){return r.json();}).catch(function(){return {nodes:[]};}),
+      fetch('/api/brain-map/edges').then(function(r){return r.json();}).catch(function(){return {edges:[]};})
     ]).then(function(res){
       window._brainNodes = res[0].nodes || [];
       window._brainEdges = res[1].edges || [];
-    }).catch(function(){});
+      // Init the brain map
+      if(window.BrainMap) BrainMap.init('brain-map');
+      // Pass data directly to the canvas brain map
+      if(window.BrainMap && window.BrainMap.loadNodes) {
+        BrainMap.loadNodes(window._brainNodes, window._brainEdges);
+      }
+    }).catch(function(){
+      // Fallback: init without data
+      if(window.BrainMap) BrainMap.init('brain-map');
+    });
   });
 })();
 </script>

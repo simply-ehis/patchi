@@ -59,10 +59,20 @@ const BrainMap = (() => {
     }
     _initialized = true;
 
+    // Use clientWidth but fall back to parent width or a sane default
+    var w = el.clientWidth || (el.parentElement && el.parentElement.clientWidth) || 800;
+    var h = el.clientHeight || (el.parentElement && el.parentElement.clientHeight) || 400;
+    // If dimensions are still 0, wait for layout and retry
+    if (w < 10 || h < 10) {
+      var pw = el.parentElement ? el.parentElement.clientWidth : 800;
+      var ph = el.parentElement ? el.parentElement.clientHeight : 400;
+      w = Math.max(pw - 180, 400);
+      h = Math.max(ph, 300);
+    }
     stage = new Konva.Stage({
       container: containerId,
-      width: el.clientWidth,
-      height: el.clientHeight,
+      width: w,
+      height: h,
     });
 
     nodeLayer = new Konva.Layer();
@@ -70,13 +80,21 @@ const BrainMap = (() => {
     stage.add(nodeLayer, antLayer);
 
     _bindWsEvents();
-    _loadNodes();
+    // Delay node load slightly so container dimensions settle after layout
+    setTimeout(function() {
+      _onResize();
+      _loadNodes();
+    }, 100);
     
     // Add zoom controls and mini-map
     _addZoomControls();
 
     // Viewport resize handler
     window.addEventListener('resize', _onResize);
+    // Also watch for container dimension changes (CSS transitions, etc.)
+    if (typeof ResizeObserver !== 'undefined') {
+      new ResizeObserver(_onResize).observe(el);
+    }
     _addMiniMap();
     
     // Tap-to-spawn on node click
@@ -88,66 +106,129 @@ const BrainMap = (() => {
       }
     });
     
-    // Pan with middle mouse button or space + drag
-    let isDragging = false;
-    let lastPointerPosition;
+    // ── Pan: left-click drag on background, middle-click anywhere, shift+drag ──
+    var isDragging = false;
+    var lastPointerPosition = null;
+    var _dragTarget = null;
+    var _dragStartPos = null;
+    var _didDrag = false;
     
-    stage.on('mousedown touchstart', (e) => {
-      if (e.evt.button === 1 || e.evt.shiftKey) { // Middle mouse or shift
+    stage.on('mousedown touchstart', function(e) {
+      var btn = e.evt.button;
+      var target = e.target;
+      // Left-click on background OR middle-click OR shift+left = pan
+      var isBackground = !target.getAttr('nodeId');
+      if (btn === 0 && (isBackground || e.evt.shiftKey) || btn === 1 || btn === 2) {
         isDragging = true;
+        _didDrag = false;
+        _dragTarget = target;
+        _dragStartPos = stage.getPointerPosition();
         lastPointerPosition = stage.getPointerPosition();
+        // Set cursor to grabbing
+        stage.container().style.cursor = 'grabbing';
       }
     });
     
-    stage.on('mouseup touchend', () => {
+    stage.on('mouseup touchend', function() {
       isDragging = false;
+      _dragTarget = null;
+      _dragStartPos = null;
+      stage.container().style.cursor = 'grab';
     });
     
-    stage.on('mousemove touchmove', (e) => {
+    stage.on('mousemove touchmove', function(e) {
       if (!isDragging) return;
       e.evt.preventDefault();
-      
-      const newPointerPosition = stage.getPointerPosition();
-      const dx = newPointerPosition.x - lastPointerPosition.x;
-      const dy = newPointerPosition.y - lastPointerPosition.y;
-      
+      var newPointerPosition = stage.getPointerPosition();
+      if (!newPointerPosition || !lastPointerPosition) return;
+      var dx = newPointerPosition.x - lastPointerPosition.x;
+      var dy = newPointerPosition.y - lastPointerPosition.y;
+      // Only start drag if moved >3px (avoids accidental pan on click)
+      if (_dragStartPos) {
+        var sdx = newPointerPosition.x - _dragStartPos.x;
+        var sdy = newPointerPosition.y - _dragStartPos.y;
+        if (!_didDrag && Math.abs(sdx) + Math.abs(sdy) < 3) return;
+        _didDrag = true;
+      }
       offsetX += dx;
       offsetY += dy;
-      
-      stage.position({
-        x: stage.x() + dx,
-        y: stage.y() + dy
-      });
+      stage.position({ x: stage.x() + dx, y: stage.y() + dy });
       stage.batchDraw();
       _updateMiniMap();
-      
       lastPointerPosition = newPointerPosition;
     });
     
-    // Zoom with mouse wheel
-    stage.on('wheel', (e) => {
+    // Set default cursor
+    stage.container().style.cursor = 'grab';
+    stage.container().style.userSelect = 'none';
+    
+    // ── Zoom with mouse wheel ──
+    stage.on('wheel', function(e) {
       e.evt.preventDefault();
-      
-      const oldScale = stage.scaleX();
-      const pointer = stage.getPointerPosition();
-      
-      const mousePointTo = {
+      var oldScale = stage.scaleX();
+      var pointer = stage.getPointerPosition();
+      if (!pointer) return;
+      var mousePointTo = {
         x: (pointer.x - stage.x()) / oldScale,
         y: (pointer.y - stage.y()) / oldScale,
       };
-      
-      const newScale = e.evt.deltaY > 0 ? oldScale * 0.9 : oldScale * 1.1;
-      
+      var newScale = e.evt.deltaY > 0 ? oldScale * 0.9 : oldScale * 1.1;
+      newScale = Math.max(0.05, Math.min(10, newScale));
       stage.scale({ x: newScale, y: newScale });
-      
-      const newPos = {
+      var newPos = {
         x: pointer.x - mousePointTo.x * newScale,
         y: pointer.y - mousePointTo.y * newScale,
       };
-      
       stage.position(newPos);
+      _updateZoomDisplay();
       stage.batchDraw();
       _updateMiniMap();
+    });
+    
+    // ── Keyboard navigation: WASD, arrows, +/-, 0 ──
+    var _keyState = {};
+    var _panSpeed = 40;
+    var _panInterval = null;
+    
+    function _startPan(dx, dy) {
+      if (_panInterval) clearInterval(_panInterval);
+      stage.position({ x: stage.x() + dx, y: stage.y() + dy });
+      stage.batchDraw();
+      _updateMiniMap();
+      _panInterval = setInterval(function() {
+        stage.position({ x: stage.x() + dx, y: stage.y() + dy });
+        stage.batchDraw();
+        _updateMiniMap();
+      }, 30);
+    }
+    function _stopPan() {
+      if (_panInterval) { clearInterval(_panInterval); _panInterval = null; }
+    }
+    
+    document.addEventListener('keydown', function(e) {
+      // Don't capture if typing in an input
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) return;
+      if (_keyState[e.key]) return; // already held
+      _keyState[e.key] = true;
+      var dx = 0, dy = 0;
+      switch(e.key) {
+        case 'w': case 'W': case 'ArrowUp':    dy = _panSpeed; break;
+        case 's': case 'S': case 'ArrowDown':  dy = -_panSpeed; break;
+        case 'a': case 'A': case 'ArrowLeft':  dx = _panSpeed; break;
+        case 'd': case 'D': case 'ArrowRight': dx = -_panSpeed; break;
+        case '+': case '=': _zoomCenter(1.2); return;
+        case '-': case '_': _zoomCenter(0.8); return;
+        case '0': _zoomFit(); return;
+        default: return;
+      }
+      e.preventDefault();
+      _startPan(dx, dy);
+    });
+    document.addEventListener('keyup', function(e) {
+      delete _keyState[e.key];
+      if (!Object.keys(_keyState).some(function(k) { return 'wasdWASD'.indexOf(k) >= 0 || k.indexOf('Arrow') === 0; })) {
+        _stopPan();
+      }
     });
   }
 
@@ -160,35 +241,96 @@ const BrainMap = (() => {
   }
 
   function _addZoomControls() {
-    const el = document.getElementById('brain-map');
+    var el = document.getElementById('brain-map');
     if (!el) return;
-    const container = el.parentElement;
+    var container = el.parentElement;
     
-    // Create zoom controls div if it doesn't exist
-    let zoomControls = document.getElementById('zoom-controls');
+    // Create zoom + D-pad controls if they don't exist
+    var zoomControls = document.getElementById('zoom-controls');
     if (!zoomControls) {
       zoomControls = document.createElement('div');
       zoomControls.id = 'zoom-controls';
-      zoomControls.innerHTML = `
-        <button id="zoom-in" class="btn">+</button>
-        <span id="zoom-level">100%</span>
-        <button id="zoom-out" class="btn">-</button>
-        <button id="zoom-fit" class="btn">Fit</button>
-      `;
-      zoomControls.style.cssText = `
-        position: absolute;
-        bottom: 20px;
-        left: 20px;
-        z-index: 10;
-        display: flex;
-        gap: 5px;
-        align-items: center;
-      `;
+      zoomControls.innerHTML = [
+        '<div style="display:flex;gap:5px;align-items:center;margin-bottom:6px">',
+        '  <button id="zoom-in" class="btn" title="Zoom in (+)">+</button>',
+        '  <span id="zoom-level" style="min-width:40px;text-align:center;font-size:11px;color:var(--text-secondary)">100%</span>',
+        '  <button id="zoom-out" class="btn" title="Zoom out (-)">−</button>',
+        '  <button id="zoom-fit" class="btn" title="Fit all (0)">Fit</button>',
+        '</div>',
+        '<div style="display:grid;grid-template-columns:28px 28px 28px;grid-template-rows:28px 28px 28px;gap:2px;margin-bottom:4px">',
+        '  <div></div>',
+        '  <button id="dpad-up" class="btn" style="padding:0;font-size:14px" title="Pan up (W / ↑)">▲</button>',
+        '  <div></div>',
+        '  <button id="dpad-left" class="btn" style="padding:0;font-size:14px" title="Pan left (A / ←)">◀</button>',
+        '  <button id="dpad-center" class="btn" style="padding:0;font-size:10px" title="Reset view (0)">⌂</button>',
+        '  <button id="dpad-right" class="btn" style="padding:0;font-size:14px" title="Pan right (D / →)">▶</button>',
+        '  <div></div>',
+        '  <button id="dpad-down" class="btn" style="padding:0;font-size:14px" title="Pan down (S / ↓)">▼</button>',
+        '  <div></div>',
+        '</div>',
+        '<div style="font-size:9px;color:var(--text-tertiary);line-height:1.3">',
+        '  WASD / Arrows: pan<br>0: fit • +/−: zoom<br>Scroll: zoom • Drag: pan',
+        '</div>',
+      ].join('\n');
+      zoomControls.style.cssText = [
+        'position: absolute;',
+        'bottom: 12px;',
+        'left: 12px;',
+        'z-index: 10;',
+        'display: flex;',
+        'flex-direction: column;',
+        'align-items: center;',
+        'background: var(--bg-secondary);',
+        'border: 1px solid var(--border-subtle);',
+        'border-radius: var(--radius-lg);',
+        'padding: 8px;',
+        'box-shadow: 0 2px 8px rgba(0,0,0,0.3);',
+      ].join(' ');
       container.appendChild(zoomControls);
       
-      document.getElementById('zoom-in').onclick = () => _zoom(1.2);
-      document.getElementById('zoom-out').onclick = () => _zoom(0.8);
-      document.getElementById('zoom-fit').onclick = () => _zoomToFit();
+      document.getElementById('zoom-in').onclick = function() { _zoomCenter(1.3); };
+      document.getElementById('zoom-out').onclick = function() { _zoomCenter(0.7); };
+      document.getElementById('zoom-fit').onclick = function() { _zoomToFit(); };
+      document.getElementById('dpad-center').onclick = function() { _zoomToFit(); };
+      
+      // D-pad: continuous pan while held down
+      var _dpadInterval = null;
+      function _startDpadPan(dx, dy) {
+        if (_dpadInterval) clearInterval(_dpadInterval);
+        stage.position({ x: stage.x() + dx, y: stage.y() + dy });
+        stage.batchDraw();
+        _updateMiniMap();
+        _dpadInterval = setInterval(function() {
+          stage.position({ x: stage.x() + dx, y: stage.y() + dy });
+          stage.batchDraw();
+          _updateMiniMap();
+        }, 30);
+      }
+      function _stopDpadPan() {
+        if (_dpadInterval) { clearInterval(_dpadInterval); _dpadInterval = null; }
+      }
+      var _dpadStep = 30;
+      document.getElementById('dpad-up').onmousedown = function() { _startDpadPan(0, _dpadStep); };
+      document.getElementById('dpad-down').onmousedown = function() { _startDpadPan(0, -_dpadStep); };
+      document.getElementById('dpad-left').onmousedown = function() { _startDpadPan(_dpadStep, 0); };
+      document.getElementById('dpad-right').onmousedown = function() { _startDpadPan(-_dpadStep, 0); };
+      document.getElementById('dpad-up').onmouseup = _stopDpadPan;
+      document.getElementById('dpad-down').onmouseup = _stopDpadPan;
+      document.getElementById('dpad-left').onmouseup = _stopDpadPan;
+      document.getElementById('dpad-right').onmouseup = _stopDpadPan;
+      document.getElementById('dpad-up').onmouseleave = _stopDpadPan;
+      document.getElementById('dpad-down').onmouseleave = _stopDpadPan;
+      document.getElementById('dpad-left').onmouseleave = _stopDpadPan;
+      document.getElementById('dpad-right').onmouseleave = _stopDpadPan;
+      // Touch support for d-pad
+      document.getElementById('dpad-up').ontouchstart = function(e) { e.preventDefault(); _startDpadPan(0, _dpadStep); };
+      document.getElementById('dpad-down').ontouchstart = function(e) { e.preventDefault(); _startDpadPan(0, -_dpadStep); };
+      document.getElementById('dpad-left').ontouchstart = function(e) { e.preventDefault(); _startDpadPan(_dpadStep, 0); };
+      document.getElementById('dpad-right').ontouchstart = function(e) { e.preventDefault(); _startDpadPan(-_dpadStep, 0); };
+      document.getElementById('dpad-up').ontouchend = _stopDpadPan;
+      document.getElementById('dpad-down').ontouchend = _stopDpadPan;
+      document.getElementById('dpad-left').ontouchend = _stopDpadPan;
+      document.getElementById('dpad-right').ontouchend = _stopDpadPan;
     }
   }
   
@@ -313,14 +455,35 @@ const BrainMap = (() => {
     ctx.strokeRect(vpX, vpY, vpW, vpH);
   }
   
-  function _zoom(factor) {
-    const oldScale = stage.scaleX();
-    const newScale = Math.max(0.1, Math.min(4, oldScale * factor));
-    
+  function _updateZoomDisplay() {
+    var el = document.getElementById('zoom-level');
+    if (el && stage) el.textContent = Math.round(stage.scaleX() * 100) + '%';
+  }
+  
+  function _zoomCenter(factor) {
+    if (!stage) return;
+    var oldScale = stage.scaleX();
+    var newScale = Math.max(0.05, Math.min(10, oldScale * factor));
+    var cx = stage.width() / 2;
+    var cy = stage.height() / 2;
+    var mousePointTo = {
+      x: (cx - stage.x()) / oldScale,
+      y: (cy - stage.y()) / oldScale,
+    };
     stage.scale({ x: newScale, y: newScale });
-    document.getElementById('zoom-level').textContent = `${Math.round(newScale * 100)}%`;
+    stage.position({
+      x: cx - mousePointTo.x * newScale,
+      y: cy - mousePointTo.y * newScale,
+    });
+    _updateZoomDisplay();
     stage.batchDraw();
     _updateMiniMap();
+  }
+  
+  function _zoomFit() { _zoomToFit(); }
+  
+  function _zoom(factor) {
+    _zoomCenter(factor);
   }
   
   function _zoomToFit() {
@@ -357,13 +520,16 @@ const BrainMap = (() => {
       y: stageHeight / 2 - centerY * scale
     });
     
-    document.getElementById('zoom-level').textContent = `${Math.round(scale * 100)}%`;
+    _updateZoomDisplay();
     stage.batchDraw();
     _updateMiniMap();
   }
 
   function loadNodes(ns, edges) {
-    _renderGraph(ns || [], edges || []);
+    // If called without args, use stored data from last fetch
+    var useNodes = ns || _lastNodes || [];
+    var useEdges = edges || _lastEdges || [];
+    _renderGraph(useNodes, useEdges);
   }
 
   function _loadNodes() {
@@ -926,20 +1092,15 @@ const BrainMap = (() => {
   }
 
   function zoomReset() {
-    scale = 1;
+    if (!stage) return;
+    stage.scale({ x: 1, y: 1 });
+    stage.position({ x: 0, y: 0 });
     offsetX = 0;
     offsetY = 0;
-    const el = document.getElementById('brain-map');
-    if (stage && el) {
-      stage.width(el.clientWidth);
-      stage.height(el.clientHeight);
-      const layer = stage.findOne('Layer');
-      if (layer) {
-        layer.position({ x: 0, y: 0 });
-        layer.scale({ x: 1, y: 1 });
-        layer.batchDraw();
-      }
-    }
+    _onResize();
+    _updateZoomDisplay();
+    stage.batchDraw();
+    _updateMiniMap();
   }
 
   function handleEvent(event, data) {
@@ -990,7 +1151,62 @@ const BrainMap = (() => {
       btn.style.background = btn.id === 'view-' + viewName ? 'var(--bg-tertiary)' : '';
       btn.style.fontWeight = btn.id === 'view-' + viewName ? '600' : '';
     });
-    if (_lastNodes.length > 0) _renderGraph(_lastNodes, _lastEdges);
+    if (_lastNodes.length === 0) return;
+
+    // Calculate target positions for the new layout
+    var positions;
+    switch (viewName) {
+      case 'tree': positions = _treeLayout(_lastNodes, _lastEdges); break;
+      case 'spiral': positions = _spiralLayout(_lastNodes); break;
+      case 'grid': positions = _gridLayout(_lastNodes); break;
+      case 'radial': positions = _radialLayout(_lastNodes, _lastEdges); break;
+      case 'cluster': positions = _clusterLayout(_lastNodes, _lastEdges); break;
+      case 'graph': default: positions = _graphLayout(_lastNodes, _lastEdges); break;
+    }
+
+    // Animate each node to its target position using Konva.to()
+    var nodeIds = Object.keys(positions);
+    nodeIds.forEach(function(id) {
+      var nodeData = nodes[id];
+      if (!nodeData || !nodeData.group) return;
+      var target = positions[id];
+      if (!target) return;
+      nodeData.group.to({
+        x: target.x,
+        y: target.y,
+        duration: 0.6,
+        easing: Konva.Easings.EaseInOut,
+      });
+    });
+
+    // Rebuild edges after a short delay (let positions settle)
+    setTimeout(function() {
+      _rebuildEdges();
+    }, 650);
+  }
+
+  function _rebuildEdges() {
+    // Clear and redraw all edges
+    while (antLayer.children.length > 0) antLayer.remove(antLayer.children[0]);
+    // Edges are stored in the edgeLayer which we don't have access to here,
+    // so we redraw by calling the render pipeline
+    _lastEdges.forEach(function(e) {
+      var fromId = e.source || e.from;
+      var toId = e.target || e.to;
+      if (!nodes[fromId] || !nodes[toId]) return;
+      var fromGroup = nodes[fromId].group;
+      var toGroup = nodes[toId].group;
+      var color = COLORS.edge;
+      var line = new Konva.Line({
+        points: [fromGroup.x(), fromGroup.y(), toGroup.x(), toGroup.y()],
+        stroke: color,
+        strokeWidth: 1,
+        opacity: 0.3,
+        listening: false,
+      });
+      antLayer.add(line);
+    });
+    antLayer.batchDraw();
   }
 
   function toggleLabels() {

@@ -16,6 +16,12 @@ const BrainMap3D = (() => {
   let _nodeLabels = [];
   let _animFrame = null;
   let _initialized = false;
+  // Smooth transition state
+  let _animTarget = null;    // {id: {x,y,z}} target positions
+  let _animProgress = 0;     // 0..1
+  let _animDuration = 0;     // ms
+  let _animStart = 0;        // timestamp
+  let _animActive = false;
 
   // Colors matching 2D palette
   const COLORS = {
@@ -132,6 +138,7 @@ const BrainMap3D = (() => {
 
   function _animate() {
     _animFrame = requestAnimationFrame(_animate);
+    _tickTransition();
     if (controls) controls.update();
     renderer.render(scene, camera);
   }
@@ -148,21 +155,32 @@ const BrainMap3D = (() => {
     var hc = _healthColor(findingCount, severity);
     if (hc) color = hc;
 
-    var geometry = new THREE.SphereGeometry(8, 16, 16);
+    // Scale node size by finding count: more findings = bigger node
+    // Base radius 5, max ~18 for nodes with many findings
+    var fc = findingCount || 0;
+    var radius = 5 + Math.min(fc, 20) * 0.65;
+    // Severity boosts size further
+    if (severity === 'critical') radius *= 1.4;
+    else if (severity === 'high') radius *= 1.2;
+    // Resolution scales with size for smooth look
+    var segments = radius > 12 ? 24 : 16;
+    var geometry = new THREE.SphereGeometry(radius, segments, segments);
+    // Emissive intensity scales with findings for glow effect
+    var emissiveStrength = 0.2 + Math.min(fc, 15) * 0.04;
     var material = new THREE.MeshPhongMaterial({
       color: color,
-      emissive: new THREE.Color(color).multiplyScalar(0.3),
-      shininess: 40,
+      emissive: new THREE.Color(color).multiplyScalar(emissiveStrength),
+      shininess: 40 + Math.min(fc, 15) * 3,
       transparent: true,
-      opacity: 0.9,
+      opacity: 0.85 + Math.min(fc, 10) * 0.01,
     });
     var mesh = new THREE.Mesh(geometry, material);
     mesh.position.set(x, y, z);
-    mesh.userData = { id: id, label: label, type: type, findings: findingCount, severity: severity };
+    mesh.userData = { id: id, label: label, type: type, findings: findingCount, severity: severity, radius: radius };
     nodeGroup.add(mesh);
     _nodes3d[id] = mesh;
 
-    // Label
+    // Label — positioned above the scaled node
     if (_showLabels) {
       var canvas = document.createElement('canvas');
       canvas.width = 256;
@@ -176,7 +194,7 @@ const BrainMap3D = (() => {
       var texture = new THREE.CanvasTexture(canvas);
       var spriteMat = new THREE.SpriteMaterial({ map: texture, transparent: true, opacity: 0.8 });
       var sprite = new THREE.Sprite(spriteMat);
-      sprite.position.set(x, y + 18, z);
+      sprite.position.set(x, y + radius + 10, z);
       sprite.scale.set(80, 20, 1);
       nodeGroup.add(sprite);
       _nodeLabels.push(sprite);
@@ -506,6 +524,91 @@ const BrainMap3D = (() => {
     return pos;
   }
 
+  // ── Smooth Transition ─────────────────────────────────────
+
+  function _easeInOutCubic(t) {
+    return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  }
+
+  function _startTransition(targetPositions, durationMs) {
+    _animTarget = targetPositions;
+    _animProgress = 0;
+    _animDuration = durationMs || 800;
+    _animStart = performance.now();
+    _animActive = true;
+  }
+
+  function _tickTransition() {
+    if (!_animActive || !_animTarget) return false;
+    var now = performance.now();
+    var elapsed = now - _animStart;
+    _animProgress = Math.min(elapsed / _animDuration, 1);
+    var t = _easeInOutCubic(_animProgress);
+
+    // Lerp each node mesh to its target
+    Object.keys(_animTarget).forEach(function(id) {
+      var mesh = _nodes3d[id];
+      var tgt = _animTarget[id];
+      if (!mesh) return;
+      mesh.position.x += (tgt.x - mesh.position.x) * t;
+      mesh.position.y += (tgt.y - mesh.position.y) * t;
+      mesh.position.z += (tgt.z - mesh.position.z) * t;
+    });
+
+    // Update labels to follow their nodes
+    _repositionLabels();
+
+    // Update edges to follow nodes
+    _rebuildEdges();
+
+    if (_animProgress >= 1) {
+      // Snap to exact final positions
+      Object.keys(_animTarget).forEach(function(id) {
+        var mesh = _nodes3d[id];
+        var tgt = _animTarget[id];
+        if (mesh) mesh.position.set(tgt.x, tgt.y, tgt.z);
+      });
+      _repositionLabels();
+      _rebuildEdges();
+      _animActive = false;
+      _animTarget = null;
+    }
+    return _animActive;
+  }
+
+  function _repositionLabels() {
+    nodeGroup.children.forEach(function(child) {
+      if (child.isSprite) {
+        // Find corresponding mesh by matching x/z and checking y offset
+        var nodeId = null;
+        nodeGroup.children.forEach(function(m) {
+          if (m.isMesh && m.userData && m.userData.id) {
+            var r = m.userData.radius || 8;
+            if (Math.abs(m.position.x - child.position.x) < 1 &&
+                Math.abs(m.position.z - child.position.z) < 1 &&
+                Math.abs((m.position.y + r + 10) - child.position.y) < 5) {
+              nodeId = m.userData.id;
+            }
+          }
+        });
+        if (nodeId && _nodes3d[nodeId]) {
+          var m = _nodes3d[nodeId];
+          var r = m.userData.radius || 8;
+          child.position.set(m.position.x, m.position.y + r + 10, m.position.z);
+        }
+      }
+    });
+  }
+
+  function _rebuildEdges() {
+    while (edgeGroup.children.length > 0) edgeGroup.remove(edgeGroup.children[0]);
+    if (_showEdges) {
+      _lastEdges.forEach(function(e) {
+        _addEdge3D(e.source || e.from, e.target || e.to, e.type || 'dependency');
+      });
+    }
+  }
+
   // ── Public API ────────────────────────────────────────────
 
   function loadNodes(nodesList, edgesList) {
@@ -548,11 +651,27 @@ const BrainMap3D = (() => {
 
   function switchView(viewName) {
     _currentView = viewName;
-    document.querySelectorAll('[id^=\"view3d-\"]').forEach(function(btn) {
+    document.querySelectorAll('[id^="view3d-"]').forEach(function(btn) {
       btn.style.background = btn.id === 'view3d-' + viewName ? 'var(--bg-tertiary)' : '';
       btn.style.fontWeight = btn.id === 'view3d-' + viewName ? '600' : '';
     });
-    if (_lastNodes.length > 0) _render3D(_lastNodes, _lastEdges);
+    if (_lastNodes.length === 0) return;
+
+    // Calculate target positions for the new layout
+    var positions;
+    switch (viewName) {
+      case 'tree3d': positions = _treeLayout3D(_lastNodes, _lastEdges); break;
+      case 'spiral3d': positions = _spiralLayout3D(_lastNodes); break;
+      case 'helix3d': positions = _helixLayout3D(_lastNodes); break;
+      case 'sphere3d': positions = _sphereLayout3D(_lastNodes); break;
+      case 'grid3d': positions = _gridLayout3D(_lastNodes); break;
+      case 'cluster3d': positions = _clusterLayout3D(_lastNodes, _lastEdges); break;
+      case 'radial3d': positions = _radialLayout3D(_lastNodes, _lastEdges); break;
+      case 'force3d': default: positions = _forceLayout3D(_lastNodes, _lastEdges); break;
+    }
+
+    // Start smooth transition
+    _startTransition(positions, 800);
   }
 
   function toggleEdges() {

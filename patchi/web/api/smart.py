@@ -21,6 +21,8 @@ _log = logging.getLogger("patchi.web.smart")
 
 router = APIRouter()
 
+_current_task: "asyncio.Task | None" = None
+
 
 class SmartRunRequest(BaseModel):
     goal: str
@@ -70,11 +72,32 @@ async def smart_run(req: SmartRunRequest, request: Request):
                 "data": {"agent": "orchestrator", "error": str(e)},
             })
 
-    asyncio.create_task(_run())
+    global _current_task
+    _current_task = asyncio.create_task(_run())
     return {
         "success": True,
         "message": "Orchestrator started — events stream over /ws",
         "goal": req.goal,
+    }
+
+
+@router.post("/api/smart/cancel")
+async def smart_cancel() -> dict:
+    """Cancel a running Orchestrator run, if any."""
+    global _current_task
+    task = _current_task
+    if task is None or task.done():
+        return {
+            "success": True,
+            "message": "No active Orchestrator run to cancel",
+            "cancelled": False,
+        }
+    task.cancel()
+    _current_task = None
+    return {
+        "success": True,
+        "message": "Orchestrator run cancelled",
+        "cancelled": True,
     }
 
 

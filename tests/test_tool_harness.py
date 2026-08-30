@@ -384,6 +384,8 @@ class TestVerifyProactiveFixes:
     def test_flags_only_new_findings(self, tmp_path: Path, monkeypatch):
         import patchi.core.security.tool_verify as tv
 
+        # create the file so vpath.exists() passes
+        (tmp_path / "x.py").write_text("x = 1\n", encoding="utf-8")
         # post state has one pre-existing + one new high-severity finding
         monkeypatch.setattr(
             tv, "high_findings_on_file",

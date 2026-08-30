@@ -108,6 +108,63 @@ async def dashboard(request: Request):
     )
 
 
+@router.get("/landing", response_class=HTMLResponse)
+async def landing_page(request: Request):
+    """Public landing / marketing page (templates/landing.html)."""
+    root = request.app.state.root
+    brain = _get_brain_data(root)
+    brain["active_domains"] = brain.get("active_security_domains", [])
+    return templates.TemplateResponse(
+        request,
+        "landing.html",
+        {"request": request, **brain},
+    )
+
+
+@router.get("/doctor", response_class=HTMLResponse)
+async def doctor_page(request: Request):
+    """Web front-end for `p doctor` — shows environment diagnostics."""
+    from patchi.web.api_legacy import web_doctor
+
+    resp = await web_doctor(request)
+    data = json.loads(resp.body)
+    checks = data.get("checks", [])
+    errors = data.get("errors", 0)
+
+    rows = []
+    for c in checks:
+        badge = "ok" if c.get("ok") else "fail"
+        rows.append(
+            f"<tr><td>{c.get('label','')}</td>"
+            f"<td class='badge {badge}'>{'OK' if c.get('ok') else 'FAIL'}</td>"
+            f"<td>{c.get('note','')}</td></tr>"
+        )
+    rows_html = "\n".join(rows)
+
+    html = f"""<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Patchi · Doctor</title>
+<style>
+  body {{ font-family: ui-sans-serif, system-ui, sans-serif; margin: 0; background: #0d1117; color: #e6edf3; padding: 2rem; }}
+  h1 {{ font-size: 1.6rem; }} .wrap {{ max-width: 720px; margin: 0 auto; }}
+  table {{ width: 100%; border-collapse: collapse; margin-top: 1rem; }}
+  td {{ padding: .6rem .8rem; border-bottom: 1px solid #21262d; }}
+  .badge {{ font-weight: 600; }}
+  .badge.ok {{ color: #3fb950; }} .badge.fail {{ color: #f85149; }}
+  .summary {{ margin-top: 1rem; font-weight: 600; }}
+  a {{ color: #58a6ff; }}
+</style></head>
+<body><div class="wrap">
+  <h1>Patchi Doctor</h1>
+  <p>Environment diagnostics for this Patchi installation.</p>
+  <table>{rows_html}</table>
+  <div class="summary">{'All checks passed.' if errors == 0 else str(errors) + ' check(s) failed.'}</div>
+  <p><a href="/">← Back to Mission Control</a></p>
+</div></body></html>"""
+    return HTMLResponse(html)
+
+
 # ──────────────────────────────────────────────────────────────────────
 # HTML Page Routes
 # ──────────────────────────────────────────────────────────────────────
@@ -463,6 +520,29 @@ async def _handle_ws_message(ws: WebSocket, root: Path, raw: str):
             except Exception as e:
                 _log.error("Council failed: %s", e)
                 await ws.send_json({"event": "error", "data": {"message": str(e)}})
+    elif action == "status.request":
+        # Legacy base.html polls for current status on connect.
+        import time
+
+        try:
+            conf = cfg.load(root)
+        except Exception:
+            conf = {}
+        try:
+            brain = mem.get_brain(root)
+        except Exception:
+            brain = {}
+        await ws.send_json(
+            {
+                "event": "status",
+                "data": {
+                    "connected": True,
+                    "mode": conf.get("mode", "confirm"),
+                    "project_purpose": brain.get("project_purpose", ""),
+                    "timestamp": time.time(),
+                },
+            }
+        )
 
 
 def _safe_mode(root: Path) -> str:
