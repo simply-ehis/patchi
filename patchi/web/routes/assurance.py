@@ -208,6 +208,52 @@ async def assurance_api(request: Request) -> JSONResponse:
     )
 
 
+@router.get("/api/assurance/heatmap")
+async def assurance_heatmap(request: Request) -> JSONResponse:
+    """Return per-domain coverage data for the dashboard heatmap."""
+    root = request.app.state.root
+    from patchi.core.assurance.graph import AssuranceGraph
+
+    graph = AssuranceGraph.load(root)
+    coverage = graph.coverage()
+    by_domain = coverage.get("by_domain", {})
+    by_verdict = coverage.get("by_verdict", {})
+    total = coverage.get("claims_total", 0)
+
+    # Build heatmap tiles: one per domain with coverage %
+    tiles = []
+    for domain, counts in by_domain.items():
+        proved = counts.get("proved", 0)
+        domain_total = counts.get("total", 0)
+        pct = round(proved / domain_total * 100) if domain_total > 0 else 0
+        tiles.append({
+            "domain": domain,
+            "proved": proved,
+            "total": domain_total,
+            "coverage_pct": pct,
+        })
+    # Sort by coverage ascending (worst first)
+    tiles.sort(key=lambda t: t["coverage_pct"])
+
+    # Overall stats
+    proved_total = by_verdict.get("proved", 0)
+    disproved_total = by_verdict.get("disproved", 0)
+    unproven_total = by_verdict.get("unproven", 0)
+    not_proved_total = by_verdict.get("not_proved", 0)
+    overall_pct = round(proved_total / total * 100) if total > 0 else 0
+
+    return JSONResponse({
+        "ok": True,
+        "overall_pct": overall_pct,
+        "total_claims": total,
+        "proved": proved_total,
+        "disproved": disproved_total,
+        "unproven": unproven_total,
+        "not_proved": not_proved_total,
+        "tiles": tiles,
+    })
+
+
 @router.post("/api/assurance/run-dast")
 async def run_dast_scan(request: Request):
     """Trigger a DAST scan and return results."""

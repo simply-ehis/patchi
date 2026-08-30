@@ -211,6 +211,19 @@
     </div>
   </div>
 
+  <!-- Assurance Heatmap -->
+  <div class="panel" id="assurance-heatmap-panel">
+    <header class="panel-header">
+      <h2 class="panel-title">🛡️ Assurance Coverage</h2>
+      <div class="panel-actions">
+        <button class="btn btn-sm" onclick="loadAssuranceHeatmap()" style="font-size:11px">Refresh</button>
+      </div>
+    </header>
+    <div class="panel-body" id="heatmap-container" style="padding:12px">
+      <div style="text-align:center;color:var(--text-tertiary);font-size:13px;padding:20px">Run a scan to see coverage</div>
+    </div>
+  </div>
+
   <!-- Recent Findings -->
   <div class="panel">
     <header class="panel-header">
@@ -245,6 +258,87 @@
 
 <script>
 (function(){
+  // ── Assurance Heatmap ──────────────────────────────────────
+  window.loadAssuranceHeatmap = function() {
+    var container = document.getElementById('heatmap-container');
+    if (!container) return;
+    container.innerHTML = '<div style="text-align:center;color:var(--text-tertiary);font-size:12px;padding:12px">Loading…</div>';
+
+    fetch('/api/assurance/heatmap').then(function(r){return r.json();}).then(function(d) {
+      if (!d.ok || !d.tiles || d.tiles.length === 0) {
+        container.innerHTML = '<div style="text-align:center;color:var(--text-tertiary);font-size:13px;padding:16px">No claims yet — run a scan to generate assurance data</div>';
+        return;
+      }
+
+      // Overall summary bar
+      var overallColor = d.overall_pct >= 80 ? 'var(--success)' : d.overall_pct >= 50 ? 'var(--warning)' : 'var(--danger)';
+      var html = '<div style="margin-bottom:12px">';
+      html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">';
+      html += '<span style="font-size:13px;font-weight:600;color:var(--text-primary)">Overall: ' + d.overall_pct + '%</span>';
+      html += '<span style="font-size:11px;color:var(--text-secondary)">' + d.proved + '/' + d.total_claims + ' proved</span>';
+      html += '</div>';
+      html += '<div style="height:8px;background:var(--bg-tertiary);border-radius:4px;overflow:hidden">';
+      html += '<div style="height:100%;width:' + d.overall_pct + '%;background:' + overallColor + ';border-radius:4px;transition:width 0.5s"></div>';
+      html += '</div>';
+      // Verdict breakdown
+      html += '<div style="display:flex;gap:12px;margin-top:6px;font-size:11px">';
+      html += '<span style="color:var(--success)">✓ ' + d.proved + ' proved</span>';
+      html += '<span style="color:var(--danger)">✗ ' + d.disproved + ' violated</span>';
+      html += '<span style="color:var(--text-secondary)">○ ' + d.unproven + ' unproven</span>';
+      html += '<span style="color:var(--warning)">? ' + d.not_proved + ' pending</span>';
+      html += '</div>';
+      html += '</div>';
+
+      // Domain heatmap grid
+      html += '<div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(100px, 1fr));gap:6px">';
+      d.tiles.forEach(function(tile) {
+        // Color: green (high coverage) → yellow (mid) → red (low) → gray (none)
+        var pct = tile.coverage_pct;
+        var bgColor, textColor;
+        if (pct >= 80) { bgColor = '#166534'; textColor = '#bbf7d0'; }
+        else if (pct >= 60) { bgColor = '#14532d'; textColor = '#86efac'; }
+        else if (pct >= 40) { bgColor = '#713f12'; textColor = '#fde68a'; }
+        else if (pct >= 20) { bgColor = '#7c2d12'; textColor = '#fed7aa'; }
+        else if (pct > 0) { bgColor = '#7f1d1d'; textColor = '#fecaca'; }
+        else { bgColor = 'var(--bg-tertiary)'; textColor = 'var(--text-tertiary)'; }
+
+        var domainLabel = tile.domain.length > 14 ? tile.domain.substring(0, 12) + '…' : tile.domain;
+        html += '<div style="background:' + bgColor + ';border-radius:6px;padding:8px;text-align:center;cursor:default;transition:transform 0.15s" ';
+        html += 'onmouseenter="this.style.transform=\'scale(1.05)\'" onmouseleave="this.style.transform=\'scale(1)\'" ';
+        html += 'title="' + tile.domain + ': ' + tile.proved + '/' + tile.total + ' proved (' + pct + '%)"';
+        html += '>';
+        html += '<div style="font-size:18px;font-weight:700;color:' + textColor + '">' + pct + '%</div>';
+        html += '<div style="font-size:10px;color:' + textColor + ';opacity:0.8;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + domainLabel + '</div>';
+        html += '<div style="font-size:9px;color:' + textColor + ';opacity:0.5;margin-top:1px">' + tile.proved + '/' + tile.total + '</div>';
+        html += '</div>';
+      });
+      html += '</div>';
+
+      container.innerHTML = html;
+    }).catch(function(e) {
+      container.innerHTML = '<div style="text-align:center;color:var(--danger);font-size:12px;padding:12px">Error loading heatmap: ' + e.message + '</div>';
+    });
+  };
+  // Load heatmap on page load
+  loadAssuranceHeatmap();
+
+  // Refresh heatmap after scan completes
+  (function() {
+    function _setupHeatmapRefresh() {
+      var ws = window._ws;
+      if (!ws) { setTimeout(_setupHeatmapRefresh, 500); return; }
+      ws.addEventListener('message', function(e) {
+        try {
+          var msg = JSON.parse(e.data);
+          if (msg.event === 'scan.complete') {
+            setTimeout(loadAssuranceHeatmap, 2000);
+          }
+        } catch(_) {}
+      });
+    }
+    _setupHeatmapRefresh();
+  })();
+
   // Load severity counts
   fetch('/api/findings').then(function(r){return r.json();}).then(function(data){
     var findings=data.findings||[];
