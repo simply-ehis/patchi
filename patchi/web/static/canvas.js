@@ -158,9 +158,78 @@ const BrainMap = (() => {
       lastPointerPosition = newPointerPosition;
     });
     
-    // Set default cursor
+    // Touch + cursor setup: disable browser gestures, set grab cursor
+    stage.container().style.touchAction = 'none';
     stage.container().style.cursor = 'grab';
     stage.container().style.userSelect = 'none';
+    
+    // ── Pinch-to-zoom (two-finger touch) ──
+    var _pinchState = { active: false, startDist: 0, startScale: 1, centerX: 0, centerY: 0 };
+    
+    function _touchDist(t1, t2) {
+      var dx = t2.clientX - t1.clientX;
+      var dy = t2.clientY - t1.clientY;
+      return Math.sqrt(dx * dx + dy * dy);
+    }
+    
+    stage.on('touchstart', function(e) {
+      var touches = e.evt.touches;
+      if (touches && touches.length === 2) {
+        e.evt.preventDefault();
+        _pinchState.active = true;
+        _pinchState.startDist = _touchDist(touches[0], touches[1]);
+        _pinchState.startScale = stage.scaleX();
+        var rect = stage.container().getBoundingClientRect();
+        _pinchState.centerX = (touches[0].clientX + touches[1].clientX) / 2 - rect.left;
+        _pinchState.centerY = (touches[0].clientY + touches[1].clientY) / 2 - rect.top;
+        isDragging = false; // disable pan during pinch
+      }
+    });
+    
+    stage.on('touchmove', function(e) {
+      var touches = e.evt.touches;
+      if (_pinchState.active && touches && touches.length === 2) {
+        e.evt.preventDefault();
+        var dist = _touchDist(touches[0], touches[1]);
+        var ratio = dist / _pinchState.startDist;
+        var newScale = Math.max(0.05, Math.min(10, _pinchState.startScale * ratio));
+        // Zoom centered on pinch midpoint
+        var cx = _pinchState.centerX;
+        var cy = _pinchState.centerY;
+        var oldScale = stage.scaleX();
+        var mousePointTo = {
+          x: (cx - stage.x()) / oldScale,
+          y: (cy - stage.y()) / oldScale,
+        };
+        stage.scale({ x: newScale, y: newScale });
+        stage.position({
+          x: cx - mousePointTo.x * newScale,
+          y: cy - mousePointTo.y * newScale,
+        });
+        _updateZoomDisplay();
+        stage.batchDraw();
+        _updateMiniMap();
+        // Also pan with the pinch midpoint movement
+        var rect = stage.container().getBoundingClientRect();
+        var newCenterX = (touches[0].clientX + touches[1].clientX) / 2 - rect.left;
+        var newCenterY = (touches[0].clientY + touches[1].clientY) / 2 - rect.top;
+        var pdx = newCenterX - cx;
+        var pdy = newCenterY - cy;
+        stage.position({ x: stage.x() + pdx, y: stage.y() + pdy });
+        _pinchState.centerX = newCenterX;
+        _pinchState.centerY = newCenterY;
+        stage.batchDraw();
+      }
+    });
+    
+    stage.on('touchend', function(e) {
+      if (_pinchState.active) {
+        var touches = e.evt.touches;
+        if (!touches || touches.length < 2) {
+          _pinchState.active = false;
+        }
+      }
+    });
     
     // ── Zoom with mouse wheel ──
     stage.on('wheel', function(e) {

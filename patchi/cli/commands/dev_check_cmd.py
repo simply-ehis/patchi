@@ -45,20 +45,12 @@ def _run_gate(cmd: list[str], cwd: str, timeout: int = 300, env: dict | None = N
     try:
         # DEVNULL avoids pipe-buffer deadlocks on Windows when pytest's
         # subprocess tests inherit and hold pipe handles open.
-        proc = subprocess.Popen(
+        result = subprocess.run(
             cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-            cwd=cwd, env=run_env,
+            cwd=cwd, env=run_env, timeout=timeout,
         )
-        try:
-            proc.wait(timeout=timeout)
-        except subprocess.TimeoutExpired:
-            proc.kill()
-            proc.wait(timeout=5)
         duration = time.time() - start
-        output = f'exit code {proc.returncode}'
-        result = subprocess.CompletedProcess(
-            cmd, proc.returncode or 0, stdout='', stderr='',
-        )
+        output = f'exit code {result.returncode}'
 
         if result.returncode == 0:
             return GateResult(name=name, passed=True, duration_s=duration, output=output)
@@ -74,6 +66,12 @@ def _run_gate(cmd: list[str], cwd: str, timeout: int = 300, env: dict | None = N
                 name=name, passed=False, duration_s=duration,
                 output=output, detail=f"exit code {result.returncode}",
             )
+    except subprocess.TimeoutExpired:
+        duration = time.time() - start
+        return GateResult(
+            name=name, passed=False, duration_s=duration,
+            detail="timeout", kind="timeout",
+        )
     except Exception as e:
         duration = time.time() - start
         return GateResult(
@@ -210,7 +208,7 @@ def run(action: str = "check", json_output: bool = False) -> None:
     gate2 = _run_gate(
         [sys.executable, "-m", "pytest"] + _STABLE_TESTS + [
          "-q",
-         f"--junitxml={junit_path}", "--timeout=10",
+         f"--junitxml={junit_path}",
          "--tb=line"],
         cwd=root, timeout=360,
         env={"PATCHI_OFFLINE": "1"},

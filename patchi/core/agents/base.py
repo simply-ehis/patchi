@@ -654,31 +654,40 @@ def _find_result_shadowing(cls: type) -> list[tuple[int, str]]:
     inside the comprehension that rebinds it) refers to the new binding and is
     correct, so only loads on strictly later lines trigger a violation.
     """
-    import inspect
-    import threading
-
-    _src = [None]
-    def _get_src():
-        try:
-            _src[0] = inspect.getsource(cls)
-        except Exception:
-            pass
-    t = threading.Thread(target=_get_src, daemon=True)
-    t.start()
-    t.join(timeout=3)
-    if t.is_alive() or _src[0] is None:
+    # Read source directly from the file to avoid inspect.getsource()
+    # deadlocks on Windows when pytest-timeout threads conflict.
+    try:
+        import sys as _sys
+        mod_name = cls.__module__
+        mod = _sys.modules.get(mod_name)
+        if mod and hasattr(mod, '__file__') and mod.__file__:
+            src_path = Path(mod.__file__)
+            if src_path.suffix == '.pyc' and src_path.with_suffix('.py').exists():
+                src_path = src_path.with_suffix('.py')
+            if src_path.exists():
+                src = src_path.read_text(encoding='utf-8', errors='replace')
+            else:
+                return []
+        else:
+            return []
+    except Exception:
         return []
     try:
-        src = _src[0]
         tree = ast.parse(src)
     except (SyntaxError, IndentationError):
         return []
+    # Find the class node matching cls.__name__, then its _run method
     run_fn = None
     for node in ast.walk(tree):
-        if isinstance(node, ast.FunctionDef) and node.name == "_run":
-            if "result" in [a.arg for a in node.args.args]:
-                run_fn = node
-                break
+        if isinstance(node, (ast.ClassDef, ast.FunctionDef)):
+            if isinstance(node, ast.ClassDef) and node.name == cls.__name__:
+                for item in node.body:
+                    if isinstance(item, ast.FunctionDef) and item.name == "_run":
+                        if "result" in [a.arg for a in item.args.args]:
+                            run_fn = item
+                            break
+                if run_fn:
+                    break
     if run_fn is None:
         return []
 
