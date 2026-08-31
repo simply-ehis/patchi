@@ -83,9 +83,21 @@ async def run_dev_check(request: Request, strict: bool = False) -> JSONResponse:
         "tests/test_app_profile.py", "tests/test_audit.py",
         "tests/test_cpg_extractor.py", "tests/test_framework.py",
         "tests/test_new_features.py", "tests/test_route_mapper.py",
+        "tests/test_applier.py", "tests/test_dispatcher.py",
+        "tests/test_notifications.py", "tests/test_queue.py",
+        "tests/test_scheduler.py", "tests/test_domain_loader.py",
     ]
+    # Use xdist only on 4+ CPU machines
+    _ptargs = ["python", "-m", "pytest"]
+    import os as _os
+    if _os.cpu_count() and _os.cpu_count() >= 4:
+        try:
+            import xdist  # noqa: F401
+            _ptargs += ["-n", "auto", "--dist", "loadscope"]
+        except ImportError:
+            pass
     gate2 = await _run_gate(
-        "Pytest",         ["python", "-m", "pytest", "-n", "auto", "--dist", "loadscope"] + _STABLE + [
+        "Pytest", _ptargs + _STABLE + [
          "-q", "--tb=no"],
          root,
          timeout=360,

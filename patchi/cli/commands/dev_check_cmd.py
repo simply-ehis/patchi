@@ -204,6 +204,21 @@ def run(action: str = "check", json_output: bool = False) -> None:
         "tests/test_framework.py",
         "tests/test_new_features.py",
         "tests/test_route_mapper.py",
+        # Re-added: stable, fast, self-contained tests
+        "tests/test_applier.py",
+        "tests/test_dispatcher.py",
+        "tests/test_notifications.py",
+        "tests/test_queue.py",
+        "tests/test_scheduler.py",
+        "tests/test_domain_loader.py",
+        # Excluded: torch-dependent (test_chaos_engineering,
+        #   test_gnn_properties, test_gnn_models, test_gnn_detector),
+        #   empty file (test_runtime_crash_scanner), collection errors
+        #   (test_differential), intermittent batch hangs
+        #   (test_tool_harness, test_new_security_agents,
+        #    test_test_agents, test_web_smart, test_coordinator,
+        #    test_governor_engine, test_agent_security,
+        #    test_realize_tools, test_ast_utils_new)
     ]    # Use pytest-xdist when 4+ CPUs available (cuts gate time ~40%)
     _pytest_args = [sys.executable, "-m", "pytest"]
     if os.cpu_count() and os.cpu_count() >= 4:
