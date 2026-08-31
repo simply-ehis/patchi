@@ -5,7 +5,7 @@
  * Supports orbit, zoom, pan, node click, edge rendering, and multiple layouts.
  */
 
-const BrainMap3D = (() => {
+var BrainMap3D = (() => {
   let scene, camera, renderer, controls, nodeGroup, edgeGroup;
   let raycaster, mouse;
   let _nodes3d = {}, _edges3d = [];

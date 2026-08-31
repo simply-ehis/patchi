@@ -6,7 +6,7 @@
  * Konva loaded from CDN in app.html.
  */
 
-const BrainMap = (() => {
+var BrainMap = (() => {
   const NODE_R = 18;
   const ANT_R = 5;
   // Colony palette — matches app.css brand identity
