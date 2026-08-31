@@ -94,7 +94,8 @@ async def dashboard(request: Request):
     except Exception:
         pass
 
-    brain_data = _get_brain_data(request.app.state.root)
+    import asyncio as _asyncio
+    brain_data = await _asyncio.to_thread(_get_brain_data, request.app.state.root)
 
     return templates.TemplateResponse(
         request,
