@@ -101,7 +101,7 @@ def _parse_pytest_junit(xml_path: str) -> dict | None:
         return None
 
 
-def run(action: str = "check", json_output: bool = False) -> None:
+def run(action: str = "check", json_output: bool = False, fast: bool = False) -> None:
     """Entry point for ``p dev check``."""
     try:
         from patchi.core.config import require_project_root
@@ -189,7 +189,7 @@ def run(action: str = "check", json_output: bool = False) -> None:
         "tests/test_debug_capture.py",
         "tests/test_debug_codelldb.py",
         "tests/test_debug_node.py",
-        "tests/test_debug_powershell.py",        # Quality / verification
+        "tests/test_debug_powershell.py",        # Quality / verification
         "tests/test_freshness.py",
         "tests/test_patch.py",
         "tests/test_proactive.py",
@@ -219,7 +219,30 @@ def run(action: str = "check", json_output: bool = False) -> None:
         #    test_test_agents, test_web_smart, test_coordinator,
         #    test_governor_engine, test_agent_security,
         #    test_realize_tools, test_ast_utils_new)
-    ]    # Use pytest-xdist when 4+ CPUs available (cuts gate time ~40%)
+    ]
+    # Core tests: ~18s, just the essentials for fast iteration
+    _CORE_TESTS = [
+        "tests/test_config.py",
+        "tests/test_charter.py",
+        "tests/test_contract.py",
+        "tests/test_base.py",
+        "tests/test_memory.py",
+        "tests/test_web.py",
+        "tests/test_risk_gate.py",
+        "tests/test_scanner.py",
+        "tests/test_detector.py",
+        "tests/test_secrets.py",
+        "tests/test_language_support.py",
+        "tests/test_ast_utils.py",
+        "tests/test_import_graph.py",
+        "tests/test_ai_client.py",
+        "tests/test_freshness.py",
+        "tests/test_framework.py",
+    ]
+    test_list = _CORE_TESTS if fast else _STABLE_TESTS
+    if fast:
+        console.print("  [dim]Fast mode: core tests only (~18s)[/dim]")
+    # Use pytest-xdist when 4+ CPUs available (cuts gate time ~40%)
     _pytest_args = [sys.executable, "-m", "pytest"]
     if os.cpu_count() and os.cpu_count() >= 4:
         try:
@@ -228,7 +251,7 @@ def run(action: str = "check", json_output: bool = False) -> None:
         except ImportError:
             pass
     gate2 = _run_gate(
-         _pytest_args + _STABLE_TESTS + [
+         _pytest_args + test_list + [
          "-q",
          f"--junitxml={junit_path}",
          "--tb=line"],

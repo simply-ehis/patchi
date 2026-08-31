@@ -23,7 +23,7 @@ templates = Jinja2Templates(directory=str(Path(__file__).parent.parent / "templa
 
 
 @router.post("/dev-check")
-async def run_dev_check(request: Request, strict: bool = False) -> JSONResponse:
+async def run_dev_check(request: Request, strict: bool = False, fast: bool = False) -> JSONResponse:
     """Run p dev check gates and return results.
 
     Gates:
@@ -87,6 +87,15 @@ async def run_dev_check(request: Request, strict: bool = False) -> JSONResponse:
         "tests/test_notifications.py", "tests/test_queue.py",
         "tests/test_scheduler.py", "tests/test_domain_loader.py",
     ]
+    _CORE = [
+        "tests/test_config.py", "tests/test_charter.py", "tests/test_contract.py",
+        "tests/test_base.py", "tests/test_memory.py", "tests/test_web.py",
+        "tests/test_risk_gate.py", "tests/test_scanner.py", "tests/test_detector.py",
+        "tests/test_secrets.py", "tests/test_language_support.py", "tests/test_ast_utils.py",
+        "tests/test_import_graph.py", "tests/test_ai_client.py",
+        "tests/test_freshness.py", "tests/test_framework.py",
+    ]
+    _ptests = _CORE if fast else _STABLE
     # Use xdist only on 4+ CPU machines
     _ptargs = ["python", "-m", "pytest"]
     import os as _os
@@ -97,7 +106,7 @@ async def run_dev_check(request: Request, strict: bool = False) -> JSONResponse:
         except ImportError:
             pass
     gate2 = await _run_gate(
-        "Pytest", _ptargs + _STABLE + [
+        "Pytest", _ptargs + _ptests + [
          "-q", "--tb=no"],
          root,
          timeout=360,

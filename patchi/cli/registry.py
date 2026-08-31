@@ -454,6 +454,7 @@ COMMANDS: list[Command] = [
             Arg("--json", dest="json_output", action="store_true", help="Output as JSON (for check)"),
             Arg("--strict", dest="strict", action="store_true", help="Fail commits on violations (hook)"),
             Arg("--auto-fix", dest="auto_fix", action="store_true", help="Auto-fix charter violations on commit (hook)"),
+            Arg("--fast", dest="fast", action="store_true", help="Fast mode: run only core tests (~18s) for quick iteration"),
         ),
     ),
     Command(
