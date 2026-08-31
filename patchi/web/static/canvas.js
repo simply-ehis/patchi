@@ -9,6 +9,7 @@
 var BrainMap = (() => {
   const NODE_R = 18;
   const ANT_R = 5;
+  var _longPressActive = false;  // shared across init + _renderGraph
   // Colony palette — matches app.css brand identity
   // Dark = Universal Colony (amber), Light = Australian Colony (green)
   const COLORS = {
@@ -97,8 +98,9 @@ var BrainMap = (() => {
     }
     _addMiniMap();
     
-    // Tap-to-spawn on node click
+    // Tap-to-spawn on node click (skipped after long-press)
     nodeLayer.on("click tap", ({ target }) => {
+      if (_longPressActive) { _longPressActive = false; return; }
       const nodeId = target.getAttr("nodeId");
       if (nodeId) {
         const _ws = window._ws;
@@ -883,6 +885,40 @@ var BrainMap = (() => {
     group.on("contextmenu", () => {
       _showNodeDetails(id, label, findingCount, severity);
     });
+
+    // Long-press on touch devices to show node details (replaces right-click)
+    (function() {
+      var _lpTimer = null;
+      var _lpStartPos = null;
+      var _lpFired = false;
+      group.on("touchstart", function(ev) {
+        var touch = ev.evt.touches[0];
+        if (!touch) return;
+        _lpStartPos = { x: touch.clientX, y: touch.clientY };
+        _lpFired = false;
+        _lpTimer = setTimeout(function() {
+          _lpFired = true;
+          _longPressActive = true;
+          _showNodeDetails(id, label, findingCount, severity);
+          // Haptic feedback if available
+          if (navigator.vibrate) navigator.vibrate(30);
+        }, 500);
+      });
+      group.on("touchmove", function(ev) {
+        if (!_lpTimer || _lpFired) return;
+        var touch = ev.evt.touches[0];
+        if (!touch || !_lpStartPos) return;
+        var dx = touch.clientX - _lpStartPos.x;
+        var dy = touch.clientY - _lpStartPos.y;
+        if (Math.abs(dx) + Math.abs(dy) > 10) {
+          clearTimeout(_lpTimer);
+          _lpTimer = null;
+        }
+      });
+      group.on("touchend", function() {
+        if (_lpTimer) { clearTimeout(_lpTimer); _lpTimer = null; }
+      });
+    })();
 
     const text = new Konva.Text({
       text: label.split("/").pop(),
