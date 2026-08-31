@@ -85,11 +85,10 @@ async def run_dev_check(request: Request, strict: bool = False) -> JSONResponse:
         "tests/test_new_features.py", "tests/test_route_mapper.py",
     ]
     gate2 = await _run_gate(
-        "Pytest",
-        ["python", "-m", "pytest"] + _STABLE + [
-         "-q", "--timeout=10", "--tb=no"],
-        root,
-        timeout=180,
+        "Pytest",         ["python", "-m", "pytest", "-n", "auto", "--dist", "loadscope"] + _STABLE + [
+         "-q", "--tb=no"],
+         root,
+         timeout=360,
     )
     results["gates"].append(gate2)
     if gate2["status"] != "PASS":

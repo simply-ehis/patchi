@@ -204,13 +204,20 @@ def run(action: str = "check", json_output: bool = False) -> None:
         "tests/test_framework.py",
         "tests/test_new_features.py",
         "tests/test_route_mapper.py",
-    ]
+    ]    # Use pytest-xdist when 4+ CPUs available (cuts gate time ~40%)
+    _pytest_args = [sys.executable, "-m", "pytest"]
+    if os.cpu_count() and os.cpu_count() >= 4:
+        try:
+            import xdist  # noqa: F401
+            _pytest_args += ["-n", "auto", "--dist", "loadscope"]
+        except ImportError:
+            pass
     gate2 = _run_gate(
-        [sys.executable, "-m", "pytest"] + _STABLE_TESTS + [
+         _pytest_args + _STABLE_TESTS + [
          "-q",
          f"--junitxml={junit_path}",
          "--tb=line"],
-        cwd=root, timeout=360,
+         cwd=root, timeout=360,
         env={"PATCHI_OFFLINE": "1"},
     )
     results.append(gate2)
