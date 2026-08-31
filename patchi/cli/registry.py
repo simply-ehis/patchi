@@ -1081,4 +1081,19 @@ COMMANDS: list[Command] = [
             Arg("--json", dest="json_output", action="store_true", help="Output as JSON"),
         ),
     ),
+    Command(
+        "vr",
+        "Visual regression baseline management",
+        "patchi.cli.commands.vr_cmd:run",
+        args=(
+            Arg(
+                "action",
+                nargs="?",
+                default="list",
+                choices=("capture", "baseline", "compare", "diff", "reset", "list", "ls"),
+                help="baseline=capture, compare=diff, reset=delete, list=show",
+            ),
+            Arg("--json", dest="json_output", action="store_true", help="Output as JSON"),
+        ),
+    ),
 ]
