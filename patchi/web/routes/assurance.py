@@ -433,3 +433,75 @@ async def fix_security_headers(request: Request):
         "file": result.get("file"),
         "error": result.get("error"),
     })
+
+
+@router.get("/api/assurance/videos")
+async def list_dast_videos(request: Request):
+    """List DAST video recordings from all recording directories."""
+    root = request.app.state.root
+    videos = []
+
+    # Scan all possible video directories
+    video_dirs = [
+        root / ".patchi" / "evidence" / "video",
+        root / ".patchi" / "recordings",
+        root / ".patchi" / "recordings" / "raw",
+    ]
+
+    seen = set()
+    for video_dir in video_dirs:
+        if not video_dir.is_dir():
+            continue
+        for ext in ("*.webm", "*.mp4"):
+            for f in sorted(video_dir.rglob(ext), key=lambda x: x.stat().st_mtime, reverse=True):
+                try:
+                    resolved = f.resolve()
+                    if resolved in seen:
+                        continue
+                    seen.add(resolved)
+
+                    stat = f.stat()
+                    videos.append({
+                        "name": f.stem,
+                        "filename": f.name,
+                        "path": str(f.relative_to(root)),
+                        "size_bytes": stat.st_size,
+                        "size_kb": round(stat.st_size / 1024, 1),
+                        "timestamp": datetime.fromtimestamp(stat.st_mtime, UTC).isoformat(),
+                        "source_dir": str(video_dir.relative_to(root)),
+                    })
+                except Exception:
+                    pass
+
+    return JSONResponse({
+        "ok": True,
+        "videos": videos[:50],
+        "total": len(videos),
+        "total_size_kb": round(sum(v["size_kb"] for v in videos), 1),
+    })
+
+
+@router.get("/api/assurance/video/{filename}")
+async def serve_dast_video(filename: str, request: Request):
+    """Serve a video recording file for playback."""
+    root = request.app.state.root
+
+    video_dirs = [
+        root / ".patchi" / "evidence" / "video",
+        root / ".patchi" / "recordings",
+        root / ".patchi" / "recordings" / "raw",
+    ]
+
+    for video_dir in video_dirs:
+        file_path = video_dir / filename
+        if file_path.exists() and file_path.is_file():
+            try:
+                file_path.resolve().relative_to(root.resolve())
+            except ValueError:
+                return JSONResponse({"error": "Access denied"}, status_code=403)
+
+            media_type = "video/webm" if file_path.suffix == ".webm" else "video/mp4"
+            from starlette.responses import FileResponse
+            return FileResponse(file_path, media_type=media_type)
+
+    return JSONResponse({"error": "Video not found"}, status_code=404)
