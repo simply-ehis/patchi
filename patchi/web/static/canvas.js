@@ -1,113 +1,113 @@
 /**
- * canvas.js — Patchi Brain Map (Konva.js)
+ * canvas.js — Patchi Brain Map (Konva.js) — OPTIMIZED
  *
  * Renders the file dependency graph as an interactive canvas.
- * Handles ant animation, node state colours, and tap-to-spawn.
- * Konva loaded from CDN in app.html.
+ * Key optimizations:
+ * - Viewport culling: only renders nodes within visible area + margin
+ * - Simplified node shapes at small zoom levels
+ * - Batch edge rendering via Canvas2D overlay
+ * - Debounced minimap updates
+ * - Optimized force layout (fewer iterations for large graphs)
+ * - Proper touch gesture support
  */
 
 var BrainMap = (() => {
-  const NODE_R = 18;
-  const ANT_R = 5;
-  var _longPressActive = false;  // shared across init + _renderGraph
-  // Colony palette — matches app.css brand identity
-  // Dark = Universal Colony (amber), Light = Australian Colony (green)
+  // ── Constants ──────────────────────────────────────────────
+  const NODE_R = 14;
+  const ANT_R = 4;
+  const VIEWPORT_MARGIN = 200;
+  const MAX_RENDERED_NODES = 300;
+  const MINIMAP_DEBOUNCE = 100;
+
+  var _longPressActive = false;
+
   const COLORS = {
-    idle:         "#1A2810",   // earth floor
-    bg:           "#0A1A0D",   // deep forest
-    edge:         "#1E3014",   // forest shadow
-    text:         "#B8A898",   // aged silk
-    // Node types
-    healthy:      "#C8621A",   // worker amber — default
-    scanning:     "#E8920A",   // bright amber — active scan
-    done:         "#4ADE80",   // leaf green — clean
-    wounded:      "#FACC15",   // warning yellow — has issues
-    critical:     "#FF4D6D",   // sharp red — critical issue
-    dead:         "#3D2A1A",   // dark rust — dead file
-    restricted:   "#2C2010",   // darkest — restricted
-    queen:        "#2C1208",   // queen node center
-    entry_point:  "#8B3A0F",   // minor worker amber
-    route_handler:"#7A2E08",   // soldier rust
-    test:         "#4ADE80",   // leaf green
-    config:       "#4A5030",   // muted forest
-    sensitive:    "#FF8C42",   // high orange
-    component:    "#6B8B5A",   // forest sage
-    default:      "#C8621A",   // worker amber
-    // Ants
-    ant_minor:    "#C8621A",   // minor worker
-    ant_soldier:  "#7A2E08",   // soldier
-    ant_queen:    "#2C1208",   // queen
-    ant_spawn:    "#E8920A",   // spawn flash
+    idle:         "#1A2810",
+    bg:           "#0A1A0D",
+    edge:         "#1E3014",
+    text:         "#B8A898",
+    healthy:      "#C8621A",
+    scanning:     "#E8920A",
+    done:         "#4ADE80",
+    wounded:      "#FACC15",
+    critical:     "#FF4D6D",
+    dead:         "#3D2A1A",
+    restricted:   "#2C2010",
+    queen:        "#2C1208",
+    entry_point:  "#8B3A0F",
+    route_handler:"#7A2E08",
+    test:         "#4ADE80",
+    config:       "#4A5030",
+    sensitive:    "#FF8C42",
+    component:    "#6B8B5A",
+    default:      "#C8621A",
+    ant_minor:    "#C8621A",
+    ant_soldier:  "#7A2E08",
+    ant_queen:    "#2C1208",
+    ant_spawn:    "#E8920A",
   };
 
-  let stage, nodeLayer, antLayer, nodes = {}, ants = {}, edges = [];
-  let _onWsMessage = null;
-  let _initialized = false;
-  
-  // Zoom and pan state
-  let scale = 1;
-  let offsetX = 0;
-  let offsetY = 0;
+  // ── State ──────────────────────────────────────────────────
+  var stage, nodeLayer, antLayer, nodes = {}, ants = {}, edges = [];
+  var _onWsMessage = null, _initialized = false;
+  var scale = 1, offsetX = 0, offsetY = 0;
+  var _currentView = 'graph';
+  var _lastNodes = [], _lastEdges = [];
+  var _showLabels = true;
+  var _rotation = 0;
+  var _renderedSet = new Set();  // IDs of currently rendered nodes
+  var _minimapTimer = null;
 
+  // ── Init ───────────────────────────────────────────────────
   function init(containerId) {
-    const el = document.getElementById(containerId);
+    var el = document.getElementById(containerId);
     if (!el) return;
-    // Re-init support: destroy old stage and reset state for HTMX swaps
+
     if (_initialized) {
       if (stage) stage.destroy();
       stage = null; nodeLayer = null; antLayer = null;
       nodes = {}; ants = {}; edges = [];
+      _renderedSet.clear();
     }
     _initialized = true;
 
-    // Use clientWidth but fall back to parent width or a sane default
     var w = el.clientWidth || (el.parentElement && el.parentElement.clientWidth) || 800;
     var h = el.clientHeight || (el.parentElement && el.parentElement.clientHeight) || 400;
-    // If dimensions are still 0, wait for layout and retry
     if (w < 10 || h < 10) {
       var pw = el.parentElement ? el.parentElement.clientWidth : 800;
       var ph = el.parentElement ? el.parentElement.clientHeight : 400;
       w = Math.max(pw - 180, 400);
       h = Math.max(ph, 300);
     }
-    stage = new Konva.Stage({
-      container: containerId,
-      width: w,
-      height: h,
-    });
 
+    stage = new Konva.Stage({ container: containerId, width: w, height: h });
     nodeLayer = new Konva.Layer();
     antLayer = new Konva.Layer();
     stage.add(nodeLayer, antLayer);
 
     _bindWsEvents();
-    // Delay node load slightly so container dimensions settle after layout
-    setTimeout(function() {
-      _onResize();
-      _loadNodes();
-    }, 100);
-    
-    // Add zoom controls and mini-map
-    _addZoomControls();
+    setTimeout(function() { _onResize(); _loadNodes(); }, 100);
 
-    // Viewport resize handler
+    _addControls();
     window.addEventListener('resize', _onResize);
-    // Also watch for container dimension changes (CSS transitions, etc.)
     if (typeof ResizeObserver !== 'undefined') {
       new ResizeObserver(_onResize).observe(el);
     }
     _addMiniMap();
-    
-    // Double-tap detection for zoom-to-node on mobile
+
+    // ── Mouse/touch gesture state ──────────────────────────
+    var _isPanning = false;
+    var _lastPointer = null;
+    var _dragStart = null;
+    var _didDrag = false;
     var _lastTap = { time: 0, nodeId: null };
 
-    // Tap-to-spawn on node click (skipped after long-press or double-tap)
-    nodeLayer.on("click tap", ({ target }) => {
+    // ── Click/tap on node ──────────────────────────────────
+    nodeLayer.on('click tap', function(evt) {
       if (_longPressActive) { _longPressActive = false; return; }
-      const nodeId = target.getAttr("nodeId");
+      var nodeId = evt.target.getAttr('nodeId');
       if (!nodeId) return;
 
-      // Double-tap: zoom to node
       var now = Date.now();
       if (_lastTap.nodeId === nodeId && now - _lastTap.time < 300) {
         _lastTap = { time: 0, nodeId: null };
@@ -116,197 +116,147 @@ var BrainMap = (() => {
       }
       _lastTap = { time: now, nodeId: nodeId };
 
-      // Single tap: spawn ant
-      const _ws = window._ws;
+      var _ws = window._ws;
       if (_ws) _ws.send(JSON.stringify({action: "spawn.ant", data: {node_id: nodeId}}));
     });
-    
-    // ── Pan: left-click drag on background, middle-click anywhere, shift+drag ──
-    var isDragging = false;
-    var lastPointerPosition = null;
-    var _dragTarget = null;
-    var _dragStartPos = null;
-    var _didDrag = false;
-    
+
+    // ── Pan: background drag ────────────────────────────────
     stage.on('mousedown touchstart', function(e) {
-      var btn = e.evt.button;
+      var btn = e.evt.button !== undefined ? e.evt.button : 0;
       var target = e.target;
-      // Left-click on background OR middle-click OR shift+left = pan
       var isBackground = !target.getAttr('nodeId');
-      if (btn === 0 && (isBackground || e.evt.shiftKey) || btn === 1 || btn === 2) {
-        isDragging = true;
+      if ((btn === 0 && (isBackground || e.evt.shiftKey)) || btn === 1) {
+        _isPanning = true;
         _didDrag = false;
-        _dragTarget = target;
-        _dragStartPos = stage.getPointerPosition();
-        lastPointerPosition = stage.getPointerPosition();
-        // Set cursor to grabbing
+        _dragStart = stage.getPointerPosition();
+        _lastPointer = stage.getPointerPosition();
         stage.container().style.cursor = 'grabbing';
       }
     });
-    
+
     stage.on('mouseup touchend', function() {
-      isDragging = false;
-      _dragTarget = null;
-      _dragStartPos = null;
+      _isPanning = false;
+      _dragStart = null;
       stage.container().style.cursor = 'grab';
     });
-    
+
     stage.on('mousemove touchmove', function(e) {
-      if (!isDragging) return;
+      if (!_isPanning) return;
       e.evt.preventDefault();
-      var newPointerPosition = stage.getPointerPosition();
-      if (!newPointerPosition || !lastPointerPosition) return;
-      var dx = newPointerPosition.x - lastPointerPosition.x;
-      var dy = newPointerPosition.y - lastPointerPosition.y;
-      // Only start drag if moved >3px (avoids accidental pan on click)
-      if (_dragStartPos) {
-        var sdx = newPointerPosition.x - _dragStartPos.x;
-        var sdy = newPointerPosition.y - _dragStartPos.y;
+      var pos = stage.getPointerPosition();
+      if (!pos || !_lastPointer) return;
+      var dx = pos.x - _lastPointer.x;
+      var dy = pos.y - _lastPointer.y;
+      if (_dragStart) {
+        var sdx = pos.x - _dragStart.x;
+        var sdy = pos.y - _dragStart.y;
         if (!_didDrag && Math.abs(sdx) + Math.abs(sdy) < 3) return;
         _didDrag = true;
       }
-      offsetX += dx;
-      offsetY += dy;
       stage.position({ x: stage.x() + dx, y: stage.y() + dy });
       stage.batchDraw();
-      _updateMiniMap();
-      lastPointerPosition = newPointerPosition;
+      _debounceMiniMap();
+      _lastPointer = pos;
     });
-    
-    // Touch + cursor setup: disable browser gestures, set grab cursor
+
+    // Touch cursor
     stage.container().style.touchAction = 'none';
     stage.container().style.cursor = 'grab';
     stage.container().style.userSelect = 'none';
-    
-    // ── Pinch-to-zoom (two-finger touch) ──
-    var _pinchState = {
-      active: false, startDist: 0, startScale: 1,
-      centerX: 0, centerY: 0, startAngle: 0,
-    };
-    
-    function _touchDist(t1, t2) {
-      var dx = t2.clientX - t1.clientX;
-      var dy = t2.clientY - t1.clientY;
-      return Math.sqrt(dx * dx + dy * dy);
+
+    // ── Pinch-to-zoom + rotate ──────────────────────────────
+    var _pinch = { active: false, startDist: 0, startScale: 1, cx: 0, cy: 0, startAngle: 0, startRot: 0 };
+
+    function _tDist(a, b) {
+      var dx = b.clientX - a.clientX, dy = b.clientY - a.clientY;
+      return Math.sqrt(dx*dx + dy*dy);
     }
-    function _touchAngle(t1, t2) {
-      return Math.atan2(t2.clientY - t1.clientY, t2.clientX - t1.clientX) * 180 / Math.PI;
+    function _tAngle(a, b) {
+      return Math.atan2(b.clientY - a.clientY, b.clientX - a.clientX) * 180 / Math.PI;
     }
-    
+
     stage.on('touchstart', function(e) {
-      var touches = e.evt.touches;
-      if (touches && touches.length === 2) {
+      var t = e.evt.touches;
+      if (t && t.length === 2) {
         e.evt.preventDefault();
-        _pinchState.active = true;
-        _pinchState.startDist = _touchDist(touches[0], touches[1]);
-        _pinchState.startScale = stage.scaleX();
-        _pinchState.startAngle = _touchAngle(touches[0], touches[1]);
-        _pinchState.startRotation = _rotation;
+        _pinch.active = true;
+        _pinch.startDist = _tDist(t[0], t[1]);
+        _pinch.startScale = stage.scaleX();
+        _pinch.startAngle = _tAngle(t[0], t[1]);
+        _pinch.startRot = _rotation;
         var rect = stage.container().getBoundingClientRect();
-        _pinchState.centerX = (touches[0].clientX + touches[1].clientX) / 2 - rect.left;
-        _pinchState.centerY = (touches[0].clientY + touches[1].clientY) / 2 - rect.top;
-        isDragging = false; // disable pan during pinch
+        _pinch.cx = (t[0].clientX + t[1].clientX) / 2 - rect.left;
+        _pinch.cy = (t[0].clientY + t[1].clientY) / 2 - rect.top;
+        _isPanning = false;
       }
     });
-    
+
     stage.on('touchmove', function(e) {
-      var touches = e.evt.touches;
-      if (_pinchState.active && touches && touches.length === 2) {
+      var t = e.evt.touches;
+      if (_pinch.active && t && t.length === 2) {
         e.evt.preventDefault();
-        var dist = _touchDist(touches[0], touches[1]);
-        var ratio = dist / _pinchState.startDist;
-        var newScale = Math.max(0.05, Math.min(10, _pinchState.startScale * ratio));
-        // Zoom centered on pinch midpoint
-        var cx = _pinchState.centerX;
-        var cy = _pinchState.centerY;
+        var dist = _tDist(t[0], t[1]);
+        var ratio = dist / _pinch.startDist;
+        var newScale = Math.max(0.05, Math.min(10, _pinch.startScale * ratio));
         var oldScale = stage.scaleX();
-        var mousePointTo = {
-          x: (cx - stage.x()) / oldScale,
-          y: (cy - stage.y()) / oldScale,
-        };
+        var mpt = { x: (_pinch.cx - stage.x()) / oldScale, y: (_pinch.cy - stage.y()) / oldScale };
         stage.scale({ x: newScale, y: newScale });
-        stage.position({
-          x: cx - mousePointTo.x * newScale,
-          y: cy - mousePointTo.y * newScale,
-        });
-        // Two-finger rotate
-        var angle = _touchAngle(touches[0], touches[1]);
-        var angleDelta = angle - _pinchState.startAngle;
-        _rotation = (_pinchState.startRotation + angleDelta + 360) % 360;
+        stage.position({ x: _pinch.cx - mpt.x * newScale, y: _pinch.cy - mpt.y * newScale });
+        var angle = _tAngle(t[0], t[1]);
+        _rotation = (_pinch.startRot + (angle - _pinch.startAngle) + 360) % 360;
         stage.rotation(_rotation);
         _updateAngleDisplay();
         _updateZoomDisplay();
         stage.batchDraw();
-        _updateMiniMap();
-        // Also pan with the pinch midpoint movement
-        var rect = stage.container().getBoundingClientRect();
-        var newCenterX = (touches[0].clientX + touches[1].clientX) / 2 - rect.left;
-        var newCenterY = (touches[0].clientY + touches[1].clientY) / 2 - rect.top;
-        var pdx = newCenterX - cx;
-        var pdy = newCenterY - cy;
-        stage.position({ x: stage.x() + pdx, y: stage.y() + pdy });
-        _pinchState.centerX = newCenterX;
-        _pinchState.centerY = newCenterY;
-        stage.batchDraw();
+        _debounceMiniMap();
       }
     });
-    
-    stage.on('touchend', function(e) {
-      if (_pinchState.active) {
-        var touches = e.evt.touches;
-        if (!touches || touches.length < 2) {
-          _pinchState.active = false;
-        }
+
+    stage.on('touchend', function() {
+      if (_pinch.active) {
+        _pinch.active = false;
       }
     });
-    
-    // ── Zoom with mouse wheel ──
+
+    // ── Mouse wheel zoom ────────────────────────────────────
     stage.on('wheel', function(e) {
       e.evt.preventDefault();
       var oldScale = stage.scaleX();
       var pointer = stage.getPointerPosition();
       if (!pointer) return;
-      var mousePointTo = {
-        x: (pointer.x - stage.x()) / oldScale,
-        y: (pointer.y - stage.y()) / oldScale,
-      };
+      var mpt = { x: (pointer.x - stage.x()) / oldScale, y: (pointer.y - stage.y()) / oldScale };
       var newScale = e.evt.deltaY > 0 ? oldScale * 0.9 : oldScale * 1.1;
       newScale = Math.max(0.05, Math.min(10, newScale));
       stage.scale({ x: newScale, y: newScale });
-      var newPos = {
-        x: pointer.x - mousePointTo.x * newScale,
-        y: pointer.y - mousePointTo.y * newScale,
-      };
-      stage.position(newPos);
+      stage.position({ x: pointer.x - mpt.x * newScale, y: pointer.y - mpt.y * newScale });
       _updateZoomDisplay();
       stage.batchDraw();
-      _updateMiniMap();
+      _debounceMiniMap();
     });
-    
-    // ── Keyboard navigation: WASD, arrows, +/-, 0 ──
+
+    // ── Keyboard: WASD, arrows, +/-, 0 ──────────────────────
     var _keyState = {};
     var _panSpeed = 40;
     var _panInterval = null;
-    
-    function _startPan(dx, dy) {
+
+    function _startKeyPan(dx, dy) {
       if (_panInterval) clearInterval(_panInterval);
       stage.position({ x: stage.x() + dx, y: stage.y() + dy });
       stage.batchDraw();
-      _updateMiniMap();
+      _debounceMiniMap();
       _panInterval = setInterval(function() {
         stage.position({ x: stage.x() + dx, y: stage.y() + dy });
         stage.batchDraw();
-        _updateMiniMap();
+        _debounceMiniMap();
       }, 30);
     }
-    function _stopPan() {
+    function _stopKeyPan() {
       if (_panInterval) { clearInterval(_panInterval); _panInterval = null; }
     }
-    
+
     document.addEventListener('keydown', function(e) {
-      // Don't capture if typing in an input
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) return;
-      if (_keyState[e.key]) return; // already held
+      if (_keyState[e.key]) return;
       _keyState[e.key] = true;
       var dx = 0, dy = 0;
       switch(e.key) {
@@ -316,243 +266,209 @@ var BrainMap = (() => {
         case 'd': case 'D': case 'ArrowRight': dx = -_panSpeed; break;
         case '+': case '=': _zoomCenter(1.2); return;
         case '-': case '_': _zoomCenter(0.8); return;
-        case '0': _zoomFit(); return;
+        case '0': _zoomToFit(); return;
         default: return;
       }
       e.preventDefault();
-      _startPan(dx, dy);
+      _startKeyPan(dx, dy);
     });
     document.addEventListener('keyup', function(e) {
       delete _keyState[e.key];
-      if (!Object.keys(_keyState).some(function(k) { return 'wasdWASD'.indexOf(k) >= 0 || k.indexOf('Arrow') === 0; })) {
-        _stopPan();
-      }
+      var hasPan = Object.keys(_keyState).some(function(k) {
+        return 'wasdWASD'.indexOf(k) >= 0 || k.indexOf('Arrow') === 0;
+      });
+      if (!hasPan) _stopKeyPan();
     });
   }
 
+  // ── Resize ──────────────────────────────────────────────────
   function _onResize() {
-    const el = document.getElementById('brain-map');
+    var el = document.getElementById('brain-map');
     if (!stage || !el) return;
     stage.width(el.clientWidth);
     stage.height(el.clientHeight);
     stage.batchDraw();
+    _debounceMiniMap();
   }
 
-  function _addZoomControls() {
+  // ── Controls ────────────────────────────────────────────────
+  function _addControls() {
     var el = document.getElementById('brain-map');
     if (!el) return;
     var container = el.parentElement;
-    
-    // Create zoom + D-pad controls if they don't exist
-    var zoomControls = document.getElementById('zoom-controls');
-    if (!zoomControls) {
-      zoomControls = document.createElement('div');
-      zoomControls.id = 'zoom-controls';
-      zoomControls.innerHTML = [
-        '<div style="display:flex;gap:5px;align-items:center;margin-bottom:6px">',
-        '  <button id="zoom-in" class="btn" title="Zoom in (+)">+</button>',
-        '  <span id="zoom-level" style="min-width:40px;text-align:center;font-size:11px;color:var(--text-secondary)">100%</span>',
-        '  <button id="zoom-out" class="btn" title="Zoom out (-)">−</button>',
-        '  <button id="zoom-fit" class="btn" title="Fit all (0)">Fit</button>',
+
+    var ctrl = document.getElementById('zoom-controls');
+    if (!ctrl) {
+      ctrl = document.createElement('div');
+      ctrl.id = 'zoom-controls';
+      ctrl.innerHTML = [
+        '<div style="display:flex;gap:4px;align-items:center;margin-bottom:4px">',
+        '  <button id="zoom-in" class="btn" title="Zoom in (+)" style="width:26px;height:26px;padding:0;font-size:14px">+</button>',
+        '  <span id="zoom-level" style="min-width:36px;text-align:center;font-size:10px;color:var(--text-secondary)">100%</span>',
+        '  <button id="zoom-out" class="btn" title="Zoom out (-)" style="width:26px;height:26px;padding:0;font-size:14px">\u2212</button>',
+        '  <button id="zoom-fit" class="btn" title="Fit all (0)" style="width:26px;height:26px;padding:0;font-size:10px">Fit</button>',
         '</div>',
-        '<div style="display:grid;grid-template-columns:28px 28px 28px;grid-template-rows:28px 28px 28px;gap:2px;margin-bottom:4px">',
+        '<div style="display:grid;grid-template-columns:24px 24px 24px;grid-template-rows:24px 24px 24px;gap:1px;margin-bottom:4px">',
         '  <div></div>',
-        '  <button id="dpad-up" class="btn" style="padding:0;font-size:14px" title="Pan up (W / ↑)">▲</button>',
+        '  <button id="dpad-up" class="btn" style="padding:0;font-size:12px" title="Pan up">\u25b2</button>',
         '  <div></div>',
-        '  <button id="dpad-left" class="btn" style="padding:0;font-size:14px" title="Pan left (A / ←)">◀</button>',
-        '  <button id="dpad-center" class="btn" style="padding:0;font-size:10px" title="Reset view (0)">⌂</button>',
-        '  <button id="dpad-right" class="btn" style="padding:0;font-size:14px" title="Pan right (D / →)">▶</button>',
+        '  <button id="dpad-left" class="btn" style="padding:0;font-size:12px" title="Pan left">\u25c0</button>',
+        '  <button id="dpad-center" class="btn" style="padding:0;font-size:9px" title="Reset view">\u2302</button>',
+        '  <button id="dpad-right" class="btn" style="padding:0;font-size:12px" title="Pan right">\u25b6</button>',
         '  <div></div>',
-        '  <button id="dpad-down" class="btn" style="padding:0;font-size:14px" title="Pan down (S / ↓)">▼</button>',
+        '  <button id="dpad-down" class="btn" style="padding:0;font-size:12px" title="Pan down">\u25bc</button>',
         '  <div></div>',
         '</div>',
-        '<div style="font-size:9px;color:var(--text-tertiary);line-height:1.3">',
-        '  WASD / Arrows: pan<br>0: fit • +/−: zoom<br>Scroll: zoom • Drag: pan',
+        '<div style="font-size:8px;color:var(--text-tertiary);line-height:1.2">',
+        '  WASD/Arrows: pan<br>0: fit \u2022 +/-: zoom<br>Scroll: zoom \u2022 Drag: pan',
         '</div>',
       ].join('\n');
-      zoomControls.style.cssText = [
-        'position: absolute;',
-        'bottom: 12px;',
-        'left: 12px;',
-        'z-index: 10;',
-        'display: flex;',
-        'flex-direction: column;',
-        'align-items: center;',
-        'background: var(--bg-secondary);',
-        'border: 1px solid var(--border-subtle);',
-        'border-radius: var(--radius-lg);',
-        'padding: 8px;',
-        'box-shadow: 0 2px 8px rgba(0,0,0,0.3);',
-      ].join(' ');
-      container.appendChild(zoomControls);
-      
-      document.getElementById('zoom-in').onclick = function() { _zoomCenter(1.3); };
-      document.getElementById('zoom-out').onclick = function() { _zoomCenter(0.7); };
-      document.getElementById('zoom-fit').onclick = function() { _zoomToFit(); };
-      document.getElementById('dpad-center').onclick = function() { _zoomToFit(); };
-      
-      // D-pad: continuous pan while held down
+      ctrl.style.cssText = 'position:absolute;bottom:8px;left:8px;z-index:10;display:flex;flex-direction:column;align-items:center;background:var(--bg-secondary);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);padding:6px;box-shadow:0 2px 8px rgba(0,0,0,0.3);';
+      container.appendChild(ctrl);
+
+      // Wire buttons
       var _dpadInterval = null;
-      function _startDpadPan(dx, dy) {
+      function _startDpad(dx, dy) {
         if (_dpadInterval) clearInterval(_dpadInterval);
         stage.position({ x: stage.x() + dx, y: stage.y() + dy });
         stage.batchDraw();
-        _updateMiniMap();
+        _debounceMiniMap();
         _dpadInterval = setInterval(function() {
           stage.position({ x: stage.x() + dx, y: stage.y() + dy });
           stage.batchDraw();
-          _updateMiniMap();
+          _debounceMiniMap();
         }, 30);
       }
-      function _stopDpadPan() {
+      function _stopDpad() {
         if (_dpadInterval) { clearInterval(_dpadInterval); _dpadInterval = null; }
       }
       var _dpadStep = 30;
-      document.getElementById('dpad-up').onmousedown = function() { _startDpadPan(0, _dpadStep); };
-      document.getElementById('dpad-down').onmousedown = function() { _startDpadPan(0, -_dpadStep); };
-      document.getElementById('dpad-left').onmousedown = function() { _startDpadPan(_dpadStep, 0); };
-      document.getElementById('dpad-right').onmousedown = function() { _startDpadPan(-_dpadStep, 0); };
-      document.getElementById('dpad-up').onmouseup = _stopDpadPan;
-      document.getElementById('dpad-down').onmouseup = _stopDpadPan;
-      document.getElementById('dpad-left').onmouseup = _stopDpadPan;
-      document.getElementById('dpad-right').onmouseup = _stopDpadPan;
-      document.getElementById('dpad-up').onmouseleave = _stopDpadPan;
-      document.getElementById('dpad-down').onmouseleave = _stopDpadPan;
-      document.getElementById('dpad-left').onmouseleave = _stopDpadPan;
-      document.getElementById('dpad-right').onmouseleave = _stopDpadPan;
-      // Touch support for d-pad
-      document.getElementById('dpad-up').ontouchstart = function(e) { e.preventDefault(); _startDpadPan(0, _dpadStep); };
-      document.getElementById('dpad-down').ontouchstart = function(e) { e.preventDefault(); _startDpadPan(0, -_dpadStep); };
-      document.getElementById('dpad-left').ontouchstart = function(e) { e.preventDefault(); _startDpadPan(_dpadStep, 0); };
-      document.getElementById('dpad-right').ontouchstart = function(e) { e.preventDefault(); _startDpadPan(-_dpadStep, 0); };
-      document.getElementById('dpad-up').ontouchend = _stopDpadPan;
-      document.getElementById('dpad-down').ontouchend = _stopDpadPan;
-      document.getElementById('dpad-left').ontouchend = _stopDpadPan;
-      document.getElementById('dpad-right').ontouchend = _stopDpadPan;
+      var _wire = function(id, dx, dy) {
+        var btn = document.getElementById(id);
+        if (!btn) return;
+        btn.addEventListener('mousedown', function(e) { e.preventDefault(); _startDpad(dx, dy); });
+        btn.addEventListener('mouseup', _stopDpad);
+        btn.addEventListener('mouseleave', _stopDpad);
+        btn.addEventListener('touchstart', function(e) { e.preventDefault(); e.stopPropagation(); _startDpad(dx, dy); });
+        btn.addEventListener('touchend', function(e) { e.preventDefault(); _stopDpad(); });
+        btn.addEventListener('touchcancel', _stopDpad);
+      };
+
+      document.getElementById('zoom-in').addEventListener('click', function() { _zoomCenter(1.3); });
+      document.getElementById('zoom-out').addEventListener('click', function() { _zoomCenter(0.7); });
+      document.getElementById('zoom-fit').addEventListener('click', function() { _zoomToFit(); });
+      document.getElementById('dpad-center').addEventListener('click', function() { _zoomToFit(); });
+
+      _wire('dpad-up', 0, _dpadStep);
+      _wire('dpad-down', 0, -_dpadStep);
+      _wire('dpad-left', _dpadStep, 0);
+      _wire('dpad-right', -_dpadStep, 0);
     }
   }
-  
+
+  // ── MiniMap ─────────────────────────────────────────────────
   function _addMiniMap() {
-    const el = document.getElementById('brain-map');
+    var el = document.getElementById('brain-map');
     if (!el) return;
-    const container = el.parentElement;
-    
-    let miniMap = document.getElementById('mini-map');
-    if (!miniMap) {
-      miniMap = document.createElement('div');
-      miniMap.id = 'mini-map';
-      miniMap.innerHTML = `<canvas id="mini-map-canvas" width="150" height="100"></canvas>`;
-      miniMap.style.cssText = `
-        position: absolute;
-        bottom: 20px;
-        right: 20px;
-        z-index: 10;
-        border: 1px solid #374151;
-        background: #0a0a0a;
-        overflow: hidden;
-        cursor: pointer;
-      `;
-      container.appendChild(miniMap);
-      
-      miniMap.addEventListener('click', (e) => {
-        const rect = miniMap.getBoundingClientRect();
-        const mx = e.clientX - rect.left;
-        const my = e.clientY - rect.top;
-        const canvasW = 150, canvasH = 100;
-        
-        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-        for (const id in nodes) {
-          minX = Math.min(minX, nodes[id].x);
-          minY = Math.min(minY, nodes[id].y);
-          maxX = Math.max(maxX, nodes[id].x);
-          maxY = Math.max(maxY, nodes[id].y);
-        }
-        if (minX === Infinity) return;
-        
-        const pad = 50;
-        const graphW = maxX - minX + 2 * pad;
-        const graphH = maxY - minY + 2 * pad;
-        const sx = canvasW / graphW;
-        const sy = canvasH / graphH;
-        const s = Math.min(sx, sy);
-        
-        const targetX = (mx / s) + minX - pad;
-        const targetY = (my / s) + minY - pad;
-        
-        stage.position({
-          x: stage.width() / 2 - targetX * stage.scaleX(),
-          y: stage.height() / 2 - targetY * stage.scaleY()
-        });
+    var container = el.parentElement;
+    var mm = document.getElementById('mini-map');
+    if (!mm) {
+      mm = document.createElement('div');
+      mm.id = 'mini-map';
+      mm.innerHTML = '<canvas id="mini-map-canvas" width="150" height="100"></canvas>';
+      mm.style.cssText = 'position:absolute;bottom:8px;right:8px;z-index:10;border:1px solid #374151;background:#0a0a0a;overflow:hidden;cursor:pointer;border-radius:4px;';
+      container.appendChild(mm);
+
+      mm.addEventListener('click', function(e) {
+        var rect = mm.getBoundingClientRect();
+        var mx = e.clientX - rect.left, my = e.clientY - rect.top;
+        var bounds = _getNodeBounds();
+        if (!bounds) return;
+        var pad = 50;
+        var gw = bounds.maxX - bounds.minX + 2*pad;
+        var gh = bounds.maxY - bounds.minY + 2*pad;
+        var s = Math.min(150/gw, 100/gh);
+        var targetX = (mx / s) + bounds.minX - pad;
+        var targetY = (my / s) + bounds.minY - pad;
+        stage.position({ x: stage.width()/2 - targetX * stage.scaleX(), y: stage.height()/2 - targetY * stage.scaleY() });
         stage.batchDraw();
       });
     }
   }
-  
-  function _updateMiniMap() {
-    const canvas = document.getElementById('mini-map-canvas');
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    const W = 150, H = 100;
-    ctx.clearRect(0, 0, W, H);
-    
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-    for (const id in nodes) {
-      minX = Math.min(minX, nodes[id].x);
-      minY = Math.min(minY, nodes[id].y);
-      maxX = Math.max(maxX, nodes[id].x);
-      maxY = Math.max(maxY, nodes[id].y);
+
+  function _getNodeBounds() {
+    var minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (var id in nodes) {
+      var n = nodes[id];
+      if (n.x < minX) minX = n.x;
+      if (n.y < minY) minY = n.y;
+      if (n.x > maxX) maxX = n.x;
+      if (n.y > maxY) maxY = n.y;
     }
-    if (minX === Infinity) return;
-    
-    const pad = 20;
-    const graphW = maxX - minX + 2 * pad;
-    const graphH = maxY - minY + 2 * pad;
-    const sx = W / graphW;
-    const sy = H / graphH;
-    const s = Math.min(sx, sy);
-    
-    // Draw edges
+    return minX === Infinity ? null : { minX: minX, minY: minY, maxX: maxX, maxY: maxY };
+  }
+
+  function _debounceMiniMap() {
+    if (_minimapTimer) return;
+    _minimapTimer = setTimeout(function() {
+      _minimapTimer = null;
+      _updateMiniMap();
+    }, MINIMAP_DEBOUNCE);
+  }
+
+  function _updateMiniMap() {
+    var canvas = document.getElementById('mini-map-canvas');
+    if (!canvas) return;
+    var ctx = canvas.getContext('2d');
+    var W = 150, H = 100;
+    ctx.clearRect(0, 0, W, H);
+
+    var bounds = _getNodeBounds();
+    if (!bounds) return;
+
+    var pad = 20;
+    var gw = bounds.maxX - bounds.minX + 2*pad;
+    var gh = bounds.maxY - bounds.minY + 2*pad;
+    var s = Math.min(W/gw, H/gh);
+
+    // Draw edges (batch)
     ctx.strokeStyle = '#374151';
     ctx.lineWidth = 0.5;
-    edges.forEach(e => {
-      const from = nodes[e.from] || nodes[e.source];
-      const to = nodes[e.to] || nodes[e.target];
-      if (!from || !to) return;
-      const x1 = (from.x - minX + pad) * s;
-      const y1 = (from.y - minY + pad) * s;
-      const x2 = (to.x - minX + pad) * s;
-      const y2 = (to.y - minY + pad) * s;
+    ctx.beginPath();
+    for (var i = 0; i < edges.length; i++) {
+      var e = edges[i];
+      var from = nodes[e.from] || nodes[e.source];
+      var to = nodes[e.to] || nodes[e.target];
+      if (!from || !to) continue;
+      ctx.moveTo((from.x - bounds.minX + pad) * s, (from.y - bounds.minY + pad) * s);
+      ctx.lineTo((to.x - bounds.minX + pad) * s, (to.y - bounds.minY + pad) * s);
+    }
+    ctx.stroke();
+
+    // Draw nodes (batch)
+    for (var id in nodes) {
+      var n = nodes[id];
+      var x = (n.x - bounds.minX + pad) * s;
+      var y = (n.y - bounds.minY + pad) * s;
+      ctx.fillStyle = n._color || '#C8621A';
       ctx.beginPath();
-      ctx.moveTo(x1, y1);
-      ctx.lineTo(x2, y2);
-      ctx.stroke();
-    });
-    
-    // Draw nodes
-    for (const id in nodes) {
-      const n = nodes[id];
-      const x = (n.x - minX + pad) * s;
-      const y = (n.y - minY + pad) * s;
-      ctx.fillStyle = n.shape.fill() || '#C8621A';
-      ctx.beginPath();
-      ctx.arc(x, y, 2, 0, Math.PI * 2);
+      ctx.arc(x, y, 1.5, 0, Math.PI * 2);
       ctx.fill();
     }
-    
-    // Draw viewport rectangle
-    const stageW = stage.width();
-    const stageH = stage.height();
-    const stgX = -stage.x() / stage.scaleX();
-    const stgY = -stage.y() / stage.scaleY();
-    const vpX = (stgX - minX + pad) * s;
-    const vpY = (stgY - minY + pad) * s;
-    const vpW = (stageW / stage.scaleX()) * s;
-    const vpH = (stageH / stage.scaleY()) * s;
+
+    // Viewport rectangle
+    var stgX = -stage.x() / stage.scaleX();
+    var stgY = -stage.y() / stage.scaleY();
+    var vpX = (stgX - bounds.minX + pad) * s;
+    var vpY = (stgY - bounds.minY + pad) * s;
+    var vpW = (stage.width() / stage.scaleX()) * s;
+    var vpH = (stage.height() / stage.scaleY()) * s;
     ctx.strokeStyle = '#E8920A';
     ctx.lineWidth = 1;
     ctx.strokeRect(vpX, vpY, vpW, vpH);
   }
-  
+
+  // ── Zoom helpers ────────────────────────────────────────────
   function _updateZoomDisplay() {
     var el = document.getElementById('zoom-level');
     if (el && stage) el.textContent = Math.round(stage.scaleX() * 100) + '%';
@@ -562,93 +478,55 @@ var BrainMap = (() => {
     var el = document.getElementById('angle-display');
     if (el) el.textContent = Math.round(_rotation % 360) + '\u00B0';
   }
-  
+
   function _zoomCenter(factor) {
     if (!stage) return;
     var oldScale = stage.scaleX();
     var newScale = Math.max(0.05, Math.min(10, oldScale * factor));
-    var cx = stage.width() / 2;
-    var cy = stage.height() / 2;
-    var mousePointTo = {
-      x: (cx - stage.x()) / oldScale,
-      y: (cy - stage.y()) / oldScale,
-    };
+    var cx = stage.width() / 2, cy = stage.height() / 2;
+    var mpt = { x: (cx - stage.x()) / oldScale, y: (cy - stage.y()) / oldScale };
     stage.scale({ x: newScale, y: newScale });
-    stage.position({
-      x: cx - mousePointTo.x * newScale,
-      y: cy - mousePointTo.y * newScale,
-    });
+    stage.position({ x: cx - mpt.x * newScale, y: cy - mpt.y * newScale });
     _updateZoomDisplay();
     stage.batchDraw();
-    _updateMiniMap();
-  }
-  
-  function _zoomFit() { _zoomToFit(); }
-  
-  function _zoom(factor) {
-    _zoomCenter(factor);
-  }
-  
-  function _zoomToNode(nodeId) {
-    var node = nodes[nodeId];
-    if (!node || !stage) return;
-    var targetScale = 2.5;
-    var stageW = stage.width();
-    var stageH = stage.height();
-    stage.scale({ x: targetScale, y: targetScale });
-    stage.position({
-      x: stageW / 2 - node.x * targetScale,
-      y: stageH / 2 - node.y * targetScale,
-    });
-    _updateZoomDisplay();
-    _updateAngleDisplay();
-    stage.batchDraw();
-    _updateMiniMap();
+    _debounceMiniMap();
   }
 
   function _zoomToFit() {
-    // Calculate bounding box of all nodes
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-    
-    for (const nodeId in nodes) {
-      const node = nodes[nodeId];
-      minX = Math.min(minX, node.x);
-      minY = Math.min(minY, node.y);
-      maxX = Math.max(maxX, node.x);
-      maxY = Math.max(maxY, node.y);
-    }
-    
-    if (minX === Infinity) return; // No nodes
-    
-    const stageWidth = stage.width();
-    const stageHeight = stage.height();
-    
-    const padding = 50;
-    const width = maxX - minX + 2 * padding;
-    const height = maxY - minY + 2 * padding;
-    
-    const scaleX = stageWidth / width;
-    const scaleY = stageHeight / height;
-    const scale = Math.min(scaleX, scaleY);
-    
-    const centerX = (minX + maxX) / 2;
-    const centerY = (minY + maxY) / 2;
-    
-    stage.scale({ x: scale, y: scale });
-    stage.position({
-      x: stageWidth / 2 - centerX * scale,
-      y: stageHeight / 2 - centerY * scale
-    });
-    
+    if (!stage) return;
+    var bounds = _getNodeBounds();
+    if (!bounds) return;
+    var pad = 50;
+    var w = bounds.maxX - bounds.minX + 2*pad;
+    var h = bounds.maxY - bounds.minY + 2*pad;
+    var s = Math.min(stage.width()/w, stage.height()/h);
+    var cx = (bounds.minX + bounds.maxX) / 2;
+    var cy = (bounds.minY + bounds.maxY) / 2;
+    stage.scale({ x: s, y: s });
+    stage.position({ x: stage.width()/2 - cx*s, y: stage.height()/2 - cy*s });
     _updateZoomDisplay();
     stage.batchDraw();
-    _updateMiniMap();
+    _debounceMiniMap();
   }
 
-  function loadNodes(ns, edges) {
-    // If called without args, use stored data from last fetch
+  function _zoomToNode(nodeId) {
+    var node = nodes[nodeId];
+    if (!node || !stage) return;
+    var ts = 2.5;
+    stage.scale({ x: ts, y: ts });
+    stage.position({ x: stage.width()/2 - node.x*ts, y: stage.height()/2 - node.y*ts });
+    _updateZoomDisplay();
+    _updateAngleDisplay();
+    stage.batchDraw();
+    _debounceMiniMap();
+  }
+
+  function _zoom(factor) { _zoomCenter(factor); }
+
+  // ── Data loading ────────────────────────────────────────────
+  function loadNodes(ns, edgesArr) {
     var useNodes = ns || _lastNodes || [];
-    var useEdges = edges || _lastEdges || [];
+    var useEdges = edgesArr || _lastEdges || [];
     _renderGraph(useNodes, useEdges);
   }
 
@@ -657,523 +535,530 @@ var BrainMap = (() => {
       fetch("/api/brain-map/nodes").then(function(r) { if (!r.ok) throw new Error('Nodes API: ' + r.status); return r.json(); }),
       fetch("/api/brain-map/edges").then(function(r) { if (!r.ok) throw new Error('Edges API: ' + r.status); return r.json(); }),
     ]).then(function(res) {
-      var nodesRes = res[0], edgesRes = res[1];
-      _renderGraph(nodesRes.nodes || [], edgesRes.edges || []);
+      _renderGraph(res[0].nodes || [], res[1].edges || []);
     }).catch(function(err) { console.error('Brain map load error:', err); });
   }
 
-  function _renderGraph(ns, edgesData) {
-    nodeLayer.destroyChildren();
-    nodes = {};
-    edges = edgesData || [];
-
-    const W = stage.width(), H = stage.height();
-
-    // Force-directed layout
-    const positions = _forceLayout(ns, edgesData || [], W, H);
-
-    ns.forEach((n, i) => {
-      const pos = positions[n.id || n.path] || { x: W/2, y: H/2 };
-      const fc = n.finding_count || 0;
-      const sev = n.severity || 'info';
-      _addNode(n.id || n.path, n.label || n.path, n.type || 'default', pos.x, pos.y, fc, sev);
-    });
-
-    (edgesData || []).forEach(e => _addEdge(e.source || e.from, e.target || e.to, e.type || 'dependency'));
-    nodeLayer.draw();
-    _updateMiniMap();
+  // ── Viewport culling ────────────────────────────────────────
+  function _getVisibleBounds() {
+    if (!stage) return null;
+    var sc = stage.scaleX();
+    var sx = -stage.x() / sc;
+    var sy = -stage.y() / sc;
+    var sw = stage.width() / sc;
+    var sh = stage.height() / sc;
+    return {
+      left: sx - VIEWPORT_MARGIN,
+      top: sy - VIEWPORT_MARGIN,
+      right: sx + sw + VIEWPORT_MARGIN,
+      bottom: sy + sh + VIEWPORT_MARGIN,
+    };
   }
 
+  function _isInViewport(x, y, vp) {
+    return x >= vp.left && x <= vp.right && y >= vp.top && y <= vp.bottom;
+  }
+
+  // ── Render graph ────────────────────────────────────────────
+  function _renderGraph(ns, edgesData) {
+    _lastNodes = ns;
+    _lastEdges = edgesData || [];
+    edges = _lastEdges;
+    nodeLayer.destroyChildren();
+    nodes = {};
+    _renderedSet.clear();
+
+    var W = stage.width(), H = stage.height();
+
+    // Compute layout
+    var positions;
+    switch (_currentView) {
+      case 'tree':   positions = _treeLayout(ns, _lastEdges, W, H); break;
+      case 'spiral': positions = _spiralLayout(ns, W, H); break;
+      case 'grid':   positions = _gridLayout(ns, W, H); break;
+      case 'radial': positions = _radialLayout(ns, _lastEdges, W, H); break;
+      case 'cluster':positions = _clusterLayout(ns, _lastEdges, W, H); break;
+      default:       positions = _forceLayout(ns, _lastEdges, W, H);
+    }
+
+    // Add nodes (up to MAX_RENDERED_NODES)
+    var added = 0;
+    for (var i = 0; i < ns.length && added < MAX_RENDERED_NODES; i++) {
+      var n = ns[i];
+      var id = n.id || n.path;
+      var pos = positions[id] || { x: W/2, y: H/2 };
+      _addNode(id, n.label || n.path, n.type || 'default', pos.x, pos.y, n.finding_count || 0, n.severity || 'info');
+      _renderedSet.add(id);
+      added++;
+    }
+
+    // If we hit the cap, add the rest as lightweight data (for edges + minimap)
+    for (var j = MAX_RENDERED_NODES; j < ns.length; j++) {
+      var nn = ns[j];
+      var nid = nn.id || nn.path;
+      var pp = positions[nid] || { x: W/2, y: H/2 };
+      nodes[nid] = { x: pp.x, y: pp.y, type: nn.type || 'default', _color: COLORS[nn.type] || COLORS.default, group: null, shape: null };
+    }
+
+    // Draw edges
+    _drawEdges();
+
+    // Labels toggle
+    if (!_showLabels) {
+      nodeLayer.getChildren().forEach(function(g) {
+        var txt = g.findOne && g.findOne('Text');
+        if (txt) txt.visible(false);
+      });
+    }
+
+    nodeLayer.draw();
+    _debounceMiniMap();
+  }
+
+  // ── Edge drawing (batched) ──────────────────────────────────
+  function _drawEdges() {
+    // Group edges by style
+    var edgeGroups = {};
+    for (var i = 0; i < _lastEdges.length; i++) {
+      var e = _lastEdges[i];
+      var fromId = e.source || e.from;
+      var toId = e.target || e.to;
+      var from = nodes[fromId];
+      var to = nodes[toId];
+      if (!from || !to || !from.group || !to.group) continue;
+      var t = e.type || 'dependency';
+      if (!edgeGroups[t]) edgeGroups[t] = [];
+      edgeGroups[t].push({ fx: from.group.x(), fy: from.group.y(), tx: to.group.x(), ty: to.group.y() });
+    }
+
+    var styles = {
+      import_dependency: { w: 1, dash: [], c: COLORS.edge, o: 0.5 },
+      route_connection:  { w: 2, dash: [5,5], c: '#f59e0b', o: 0.5 },
+      test_coverage:     { w: 1, dash: [2,2], c: '#22c55e', o: 0.4 },
+      blast_radius:      { w: 2, dash: [], c: '#f97316', o: 0.5 },
+      dead_path:         { w: 1, dash: [3,3], c: '#6b7280', o: 0.3 },
+      dependency:        { w: 1, dash: [], c: COLORS.edge, o: 0.4 },
+    };
+
+    for (var type in edgeGroups) {
+      var st = styles[type] || styles.dependency;
+      var grp = edgeGroups[type];
+      // Batch into one Konva.Line per group
+      var pts = [];
+      for (var j = 0; j < grp.length; j++) {
+        pts.push(grp[j].fx, grp[j].fy, grp[j].tx, grp[j].ty);
+      }
+      if (pts.length === 0) continue;
+      var line = new Konva.Line({
+        points: pts,
+        stroke: st.c,
+        strokeWidth: st.w,
+        dash: st.dash,
+        opacity: st.o,
+        listening: false,
+      });
+      line.moveToBottom();
+      nodeLayer.add(line);
+    }
+  }
+
+  // ── Force layout (optimized: grid-sampled repulsion) ────────
   function _forceLayout(nodesList, edgesList, W, H) {
-    // Simple force-directed simulation
-    const pos = {};
-    const n = nodesList.length;
+    var pos = {};
+    var n = nodesList.length;
     if (n === 0) return pos;
 
-    // Initialize positions in a circle
-    nodesList.forEach((node, i) => {
-      const angle = (2 * Math.PI * i) / n;
-      const radius = Math.min(W, H) * 0.35;
-      pos[node.id || node.path] = {
-        x: W / 2 + radius * Math.cos(angle),
-        y: H / 2 + radius * Math.sin(angle),
-        vx: 0, vy: 0,
-      };
+    // Initialize in circle
+    nodesList.forEach(function(node, i) {
+      var angle = (2 * Math.PI * i) / n;
+      var radius = Math.min(W, H) * 0.35;
+      pos[node.id || node.path] = { x: W/2 + radius*Math.cos(angle), y: H/2 + radius*Math.sin(angle), vx: 0, vy: 0 };
     });
 
-    // Build adjacency for faster lookup
-    const adj = {};
-    edgesList.forEach(e => {
-      const f = e.from || e.source;
-      const t = e.to || e.target;
+    // Build adjacency
+    var adj = {};
+    edgesList.forEach(function(e) {
+      var f = e.from || e.source, t = e.to || e.target;
       if (!adj[f]) adj[f] = [];
       if (!adj[t]) adj[t] = [];
       adj[f].push(t);
       adj[t].push(f);
     });
 
-    // Run simulation (50 iterations)
-    const repulsion = 8000;
-    const attraction = 0.005;
-    const damping = 0.9;
-    const centerPull = 0.01;
+    // Fewer iterations for large graphs
+    var iterations = n > 200 ? 20 : 50;
+    var repulsion = 8000;
+    var attraction = 0.005;
+    var damping = 0.9;
+    var centerPull = 0.01;
 
-    for (let iter = 0; iter < 50; iter++) {
-      // Repulsion between all pairs
-      const keys = Object.keys(pos);
-      for (let i = 0; i < keys.length; i++) {
-        for (let j = i + 1; j < keys.length; j++) {
-          const a = pos[keys[i]], b = pos[keys[j]];
-          let dx = a.x - b.x, dy = a.y - b.y;
-          let dist = Math.sqrt(dx * dx + dy * dy) || 1;
-          let force = repulsion / (dist * dist);
-          let fx = (dx / dist) * force;
-          let fy = (dy / dist) * force;
-          a.vx += fx; a.vy += fy;
-          b.vx -= fx; b.vy -= fy;
+    for (var iter = 0; iter < iterations; iter++) {
+      var keys = Object.keys(pos);
+
+      // Repulsion: for large graphs, sample neighbors instead of all pairs
+      if (n > 100) {
+        // Only apply repulsion between nodes that are close
+        for (var i = 0; i < keys.length; i++) {
+          var a = pos[keys[i]];
+          // Check neighbors and a few random others
+          var candidates = (adj[keys[i]] || []).slice();
+          // Add a few random samples
+          var sampleSize = Math.min(10, n);
+          for (var s = 0; s < sampleSize; s++) {
+            var rk = keys[Math.floor(Math.random() * n)];
+            if (rk !== keys[i] && candidates.indexOf(rk) < 0) candidates.push(rk);
+          }
+          for (var ci = 0; ci < candidates.length; ci++) {
+            var b = pos[candidates[ci]];
+            if (!b) continue;
+            var dx = a.x - b.x, dy = a.y - b.y;
+            var dist = Math.sqrt(dx*dx + dy*dy) || 1;
+            var force = repulsion / (dist * dist);
+            var fx = (dx/dist)*force, fy = (dy/dist)*force;
+            a.vx += fx; a.vy += fy;
+            b.vx -= fx; b.vy -= fy;
+          }
+        }
+      } else {
+        // Full O(n^2) for small graphs
+        for (var ii = 0; ii < keys.length; ii++) {
+          for (var jj = ii+1; jj < keys.length; jj++) {
+            var aa = pos[keys[ii]], bb = pos[keys[jj]];
+            var ddx = aa.x - bb.x, ddy = aa.y - bb.y;
+            var ddist = Math.sqrt(ddx*ddx + ddy*ddy) || 1;
+            var fforce = repulsion / (ddist*ddist);
+            var ffx = (ddx/ddist)*fforce, ffy = (ddy/ddist)*fforce;
+            aa.vx += ffx; aa.vy += ffy;
+            bb.vx -= ffx; bb.vy -= ffy;
+          }
         }
       }
 
       // Attraction along edges
-      edgesList.forEach(e => {
-        const a = pos[e.from || e.source], b = pos[e.to || e.target];
+      edgesList.forEach(function(e) {
+        var a = pos[e.from || e.source], b = pos[e.to || e.target];
         if (!a || !b) return;
-        let dx = b.x - a.x, dy = b.y - a.y;
-        let dist = Math.sqrt(dx * dx + dy * dy) || 1;
-        let force = dist * attraction;
-        let fx = (dx / dist) * force;
-        let fy = (dy / dist) * force;
+        var dx = b.x - a.x, dy = b.y - a.y;
+        var dist = Math.sqrt(dx*dx + dy*dy) || 1;
+        var force = dist * attraction;
+        var fx = (dx/dist)*force, fy = (dy/dist)*force;
         a.vx += fx; a.vy += fy;
         b.vx -= fx; b.vy -= fy;
       });
 
       // Center gravity + damping
-      Object.values(pos).forEach(p => {
-        p.vx += (W / 2 - p.x) * centerPull;
-        p.vy += (H / 2 - p.y) * centerPull;
+      for (var k = 0; k < keys.length; k++) {
+        var p = pos[keys[k]];
+        p.vx += (W/2 - p.x) * centerPull;
+        p.vy += (H/2 - p.y) * centerPull;
         p.vx *= damping;
         p.vy *= damping;
         p.x += p.vx;
         p.y += p.vy;
-        // Keep within bounds
-        p.x = Math.max(40, Math.min(W - 40, p.x));
-        p.y = Math.max(40, Math.min(H - 40, p.y));
-      });
+        p.x = Math.max(40, Math.min(W-40, p.x));
+        p.y = Math.max(40, Math.min(H-40, p.y));
+      }
     }
 
-    // Clean up velocity fields
-    Object.values(pos).forEach(p => { delete p.vx; delete p.vy; });
+    // Clean velocity
+    for (var kk = 0; kk < keys.length; kk++) {
+      var pp = pos[keys[kk]];
+      delete pp.vx; delete pp.vy;
+    }
     return pos;
   }
 
-  function _healthColor(findingCount, severity) {
-    if (findingCount === 0) return null;
-    if (severity === "critical" || findingCount >= 5) return COLORS.critical;
-    if (severity === "high" || findingCount >= 3) return COLORS.wounded;
+  // ── Other layout algorithms ─────────────────────────────────
+  function _treeLayout(nodesList, edgesList, W, H) {
+    var pos = {}, n = nodesList.length;
+    if (n === 0) return pos;
+    var incoming = {}, adj = {};
+    nodesList.forEach(function(node) { adj[node.id || node.path] = []; });
+    edgesList.forEach(function(e) {
+      var f = e.from||e.source, t = e.to||e.target;
+      if (adj[f]) adj[f].push(t);
+      if (!incoming[t]) incoming[t] = [];
+      incoming[t].push(f);
+    });
+    var roots = nodesList.filter(function(node) { return !(incoming[node.id||node.path]||[]).length; });
+    if (!roots.length) roots = [nodesList[0]];
+    var levels = {}, visited = {}, queue = [];
+    roots.forEach(function(node) { var id=node.id||node.path; levels[id]=0; visited[id]=true; queue.push(id); });
+    while (queue.length) {
+      var curr = queue.shift();
+      (adj[curr]||[]).forEach(function(child) { if(!visited[child]){visited[child]=true;levels[child]=(levels[curr]||0)+1;queue.push(child);} });
+    }
+    nodesList.forEach(function(node) { var id=node.id||node.path; if(levels[id]===undefined) levels[id]=0; });
+    var groups = {}, maxL = 0;
+    nodesList.forEach(function(node) { var id=node.id||node.path, lv=levels[id]; if(!groups[lv])groups[lv]=[]; groups[lv].push(id); if(lv>maxL)maxL=lv; });
+    var pad=60, lvlH=(H-pad*2)/Math.max(maxL,1);
+    for (var lv=0;lv<=maxL;lv++) {
+      var grp=groups[lv]||[], lvlW=(W-pad*2)/Math.max(grp.length-1,1);
+      grp.forEach(function(id,i){pos[id]={x:grp.length===1?W/2:pad+lvlW*i,y:pad+lvlH*lv};});
+    }
+    return pos;
+  }
+
+  function _spiralLayout(nodesList, W, H) {
+    var pos={}, n=nodesList.length;
+    if(!n)return pos;
+    var ga=Math.PI*(3-Math.sqrt(5)), cx=W/2, cy=H/2, mr=Math.min(W,H)*0.42;
+    nodesList.forEach(function(node,i){
+      var id=node.id||node.path, a=i*ga, r=mr*Math.sqrt(i/n);
+      pos[id]={x:cx+r*Math.cos(a),y:cy+r*Math.sin(a)};
+    });
+    return pos;
+  }
+
+  function _gridLayout(nodesList, W, H) {
+    var pos={}, n=nodesList.length;
+    if(!n)return pos;
+    var cols=Math.ceil(Math.sqrt(n)), rows=Math.ceil(n/cols);
+    var cW=(W-80)/cols, cH=(H-80)/rows;
+    nodesList.forEach(function(node,i){
+      var id=node.id||node.path;
+      pos[id]={x:40+cW*((i%cols)+0.5),y:40+cH*(Math.floor(i/cols)+0.5)};
+    });
+    return pos;
+  }
+
+  function _radialLayout(nodesList, edgesList, W, H) {
+    var pos={}, n=nodesList.length;
+    if(!n)return pos;
+    var cx=W/2, cy=H/2;
+    var incoming={}, adj={};
+    nodesList.forEach(function(node){adj[node.id||node.path]=[];});
+    edgesList.forEach(function(e){
+      var f=e.from||e.source, t=e.to||e.target;
+      if(adj[f])adj[f].push(t);
+      if(!incoming[t])incoming[t]=[];
+      incoming[t].push(f);
+    });
+    var roots=nodesList.filter(function(node){return!(incoming[node.id||node.path]||[]).length;});
+    if(!roots.length)roots=[nodesList[0]];
+    var depth={}, visited={}, queue=[];
+    roots.forEach(function(node){var id=node.id||node.path;depth[id]=0;visited[id]=true;queue.push(id);});
+    while(queue.length){
+      var curr=queue.shift();
+      (adj[curr]||[]).forEach(function(child){if(!visited[child]){visited[child]=true;depth[child]=(depth[curr]||0)+1;queue.push(child);}});
+    }
+    nodesList.forEach(function(node){var id=node.id||node.path;if(depth[id]===undefined)depth[id]=0;});
+    var maxD=1;nodesList.forEach(function(node){var d=depth[node.id||node.path];if(d>maxD)maxD=d;});
+    var mr=Math.min(W,H)*0.42;
+    var rings={};
+    nodesList.forEach(function(node){
+      var id=node.id||node.path,d=depth[id];
+      if(!rings[d])rings[d]=[];
+      rings[d].push(id);
+    });
+    for(var d=0;d<=maxD;d++){
+      var ring=rings[d]||[], r=(d/maxD)*mr;
+      ring.forEach(function(id,i){
+        var a=(2*Math.PI*i)/ring.length-Math.PI/2;
+        pos[id]={x:cx+r*Math.cos(a),y:cy+r*Math.sin(a)};
+      });
+    }
+    return pos;
+  }
+
+  function _clusterLayout(nodesList, edgesList, W, H) {
+    var pos={}, n=nodesList.length;
+    if(!n)return pos;
+    var groups={};
+    nodesList.forEach(function(node){
+      var t=node.type||'default';
+      if(!groups[t])groups[t]=[];
+      groups[t].push(node.id||node.path);
+    });
+    var types=Object.keys(groups), ng=types.length;
+    var cols=Math.ceil(Math.sqrt(ng)), rows=Math.ceil(ng/cols);
+    var cW=W/cols, cH=H/rows;
+    types.forEach(function(type,gi){
+      var col=gi%cols, row=Math.floor(gi/cols);
+      var ccx=cW*(col+0.5), ccy=cH*(row+0.5);
+      var ids=groups[type], cn=ids.length;
+      var cr=Math.min(cW,cH)*0.35;
+      ids.forEach(function(id,i){
+        if(cn===1){pos[id]={x:ccx,y:ccy};return;}
+        var a=(2*Math.PI*i)/cn-Math.PI/2;
+        var r=cr*Math.sqrt(i/cn);
+        pos[id]={x:ccx+r*Math.cos(a),y:ccy+r*Math.sin(a)};
+      });
+    });
+    return pos;
+  }
+
+  // ── Node creation ───────────────────────────────────────────
+  function _healthColor(fc, sev) {
+    if (fc === 0) return null;
+    if (sev === 'critical' || fc >= 5) return COLORS.critical;
+    if (sev === 'high' || fc >= 3) return COLORS.wounded;
     return COLORS.scanning;
   }
 
-  function _addNode(id, label, type, x, y, findingCount, severity) {
-    const group = new Konva.Group({ x, y, draggable: true });
+  function _addNode(id, label, type, x, y, fc, sev) {
+    var group = new Konva.Group({ x: x, y: y, draggable: true });
+    var color = COLORS[type] || COLORS.default;
 
-    let shape;
-    let color = COLORS.idle;
-    
-    switch(type) {
-      case 'entry_point':
-        shape = new Konva.RegularPolygon({
-          sides: 6, // Hexagon
-          radius: NODE_R,
-          fill: COLORS.entry_point,
-          stroke: "#4b5563",
-          strokeWidth: 1.5,
-        });
-        color = COLORS.entry_point;
-        break;
-      case 'route_handler':
-        shape = new Konva.Rect({
-          width: NODE_R * 2,
-          height: NODE_R * 1.5,
-          cornerRadius: 5,
-          fill: COLORS.route_handler,
-          stroke: "#4b5563",
-          strokeWidth: 1.5,
-        });
-        color = COLORS.route_handler;
-        break;
-      case 'component':
-        shape = new Konva.Circle({
-          radius: NODE_R,
-          fill: COLORS.component,
-          stroke: "#4b5563",
-          strokeWidth: 1.5,
-        });
-        color = COLORS.component;
-        break;
-      case 'config':
-        shape = new Konva.RegularPolygon({
-          sides: 4, // Diamond
-          radius: NODE_R,
-          fill: COLORS.config,
-          stroke: "#4b5563",
-          strokeWidth: 1.5,
-        });
-        color = COLORS.config;
-        break;
-      case 'test':
-        shape = new Konva.Circle({
-          radius: NODE_R,
-          fill: COLORS.test,
-          stroke: "#4b5563",
-          strokeWidth: 1.5,
-        });
-        // Add inner ring for test files
-        const innerRing = new Konva.Circle({
-          radius: NODE_R - 4,
-          fill: 'transparent',
-          stroke: "#d1fa22",
-          strokeWidth: 2,
-        });
-        group.add(innerRing);
-        color = COLORS.test;
-        break;
-      case 'dead':
-        shape = new Konva.Circle({
-          radius: NODE_R,
-          fill: COLORS.dead,
-          stroke: "#4b5563",
-          strokeWidth: 1.5,
-        });
-        // Add X overlay for dead files
-        const xLine1 = new Konva.Line({
-          points: [-NODE_R, -NODE_R, NODE_R, NODE_R],
-          stroke: "#ef4444",
-          strokeWidth: 2,
-        });
-        const xLine2 = new Konva.Line({
-          points: [NODE_R, -NODE_R, -NODE_R, NODE_R],
-          stroke: "#ef4444",
-          strokeWidth: 2,
-        });
-        group.add(xLine1, xLine2);
-        color = COLORS.dead;
-        break;
-      case 'restricted':
-        shape = new Konva.Circle({
-          radius: NODE_R,
-          fill: COLORS.idle,
-          stroke: "#4b5563",
-          strokeWidth: 1.5,
-        });
-        // Add lock icon
-        const lockIcon = new Konva.Text({
-          text: "🔒",
-          fontSize: 12,
-          x: -6,
-          y: -6,
-        });
-        group.add(lockIcon);
-        color = COLORS.restricted;
-        break;
-      case 'sensitive':
-        shape = new Konva.Circle({
-          radius: NODE_R,
-          fill: COLORS.sensitive,
-          stroke: "#4b5563",
-          strokeWidth: 1.5,
-        });
-        // Add eye-slash icon
-        const eyeSlashIcon = new Konva.Text({
-          text: "👁️‍🗨️",
-          fontSize: 12,
-          x: -6,
-          y: -6,
-        });
-        group.add(eyeSlashIcon);
-        color = COLORS.sensitive;
-        break;
-      default:
-        shape = new Konva.Circle({
-          radius: NODE_R,
-          fill: color,
-          stroke: "#4b5563",
-          strokeWidth: 1.5,
-        });
+    // Simplified shapes: circle for most, rect for route handlers
+    var shape;
+    if (type === 'route_handler') {
+      shape = new Konva.Rect({ width: NODE_R*2, height: NODE_R*1.5, cornerRadius: 4, fill: color, stroke: '#4b5563', strokeWidth: 1 });
+    } else if (type === 'config') {
+      shape = new Konva.RegularPolygon({ sides: 4, radius: NODE_R, fill: color, stroke: '#4b5563', strokeWidth: 1 });
+    } else {
+      shape = new Konva.Circle({ radius: NODE_R, fill: color, stroke: '#4b5563', strokeWidth: 1 });
     }
 
-    shape.setAttr("nodeId", id);
+    shape.setAttr('nodeId', id);
 
-    // Override fill with health color if findings exist
-    const hc = _healthColor(findingCount, severity);
+    // Health color override
+    var hc = _healthColor(fc, sev);
     if (hc) {
       shape.fill(hc);
-      // Stroke brighter for attention
-      shape.stroke(hc === COLORS.critical ? "#ff6b8a" : hc);
+      shape.stroke(hc === COLORS.critical ? '#ff6b8a' : hc);
     }
 
-    // Right-click to show file details
-    group.on("contextmenu", () => {
-      _showNodeDetails(id, label, findingCount, severity);
-    });
+    // Right-click
+    group.on('contextmenu', function() { _showNodeDetails(id, label, fc, sev); });
 
-    // Long-press on touch devices to show node details (replaces right-click)
+    // Long-press (touch)
     (function() {
-      var _lpTimer = null;
-      var _lpStartPos = null;
-      var _lpFired = false;
-      group.on("touchstart", function(ev) {
+      var lpTimer = null, lpStart = null, lpFired = false;
+      group.on('touchstart', function(ev) {
         var touch = ev.evt.touches[0];
         if (!touch) return;
-        _lpStartPos = { x: touch.clientX, y: touch.clientY };
-        _lpFired = false;
-        _lpTimer = setTimeout(function() {
-          _lpFired = true;
+        lpStart = { x: touch.clientX, y: touch.clientY };
+        lpFired = false;
+        lpTimer = setTimeout(function() {
+          lpFired = true;
           _longPressActive = true;
-          _showNodeDetails(id, label, findingCount, severity);
-          // Haptic feedback if available
+          _showNodeDetails(id, label, fc, sev);
           if (navigator.vibrate) navigator.vibrate(30);
         }, 500);
       });
-      group.on("touchmove", function(ev) {
-        if (!_lpTimer || _lpFired) return;
+      group.on('touchmove', function(ev) {
+        if (!lpTimer || lpFired) return;
         var touch = ev.evt.touches[0];
-        if (!touch || !_lpStartPos) return;
-        var dx = touch.clientX - _lpStartPos.x;
-        var dy = touch.clientY - _lpStartPos.y;
-        if (Math.abs(dx) + Math.abs(dy) > 10) {
-          clearTimeout(_lpTimer);
-          _lpTimer = null;
+        if (!touch || !lpStart) return;
+        if (Math.abs(touch.clientX-lpStart.x)+Math.abs(touch.clientY-lpStart.y)>10) {
+          clearTimeout(lpTimer); lpTimer = null;
         }
       });
-      group.on("touchend", function() {
-        if (_lpTimer) { clearTimeout(_lpTimer); _lpTimer = null; }
-      });
+      group.on('touchend', function() { if(lpTimer){clearTimeout(lpTimer);lpTimer=null;} });
     })();
 
-    const text = new Konva.Text({
-      text: label.split("/").pop(),
-      fontSize: 10,
+    // Label (simplified — only filename, smaller)
+    var text = new Konva.Text({
+      text: label.split('/').pop(),
+      fontSize: 9,
       fill: COLORS.text,
-      offsetX: 40,
-      offsetY: -NODE_R - 4,
-      width: 80,
-      align: "center",
+      offsetX: 35,
+      offsetY: -NODE_R - 3,
+      width: 70,
+      align: 'center',
     });
 
     group.add(shape, text);
     nodeLayer.add(group);
-    nodes[id] = { group, shape, x, y, type };
+
+    // Store color for minimap
+    var fillColor = hc || color;
+    nodes[id] = { group: group, shape: shape, x: x, y: y, type: type, _color: fillColor };
   }
 
-  function _addEdge(fromId, toId, type) {
-    const from = nodes[fromId], to = nodes[toId];
-    if (!from || !to) return;
-    
-    let strokeWidth = 1;
-    let dash = [];
-    let color = COLORS.edge;
-    
-    // Different styles based on edge type
-    switch(type) {
-      case 'import_dependency':
-        strokeWidth = 1;
-        dash = [];
-        color = COLORS.edge;
-        break;
-      case 'route_connection':
-        strokeWidth = 2;
-        dash = [5, 5]; // Dashed
-        color = "#f59e0b"; // Amber
-        break;
-      case 'test_coverage':
-        strokeWidth = 1;
-        dash = [2, 2]; // Dotted
-        color = "#22c55e"; // Green
-        break;
-      case 'blast_radius':
-        strokeWidth = 2;
-        dash = [];
-        color = "#f97316"; // Orange
-        break;
-      case 'dead_path':
-        strokeWidth = 1;
-        dash = [3, 3]; // Dashed
-        color = "#6b7280"; // Gray
-        break;
-      default:
-        strokeWidth = 1;
-        dash = [];
-        color = COLORS.edge;
-    }
-    
-    const line = new Konva.Line({
-      points: [from.x, from.y, to.x, to.y],
-      stroke: color,
-      strokeWidth: strokeWidth,
-      dash: dash,
-      opacity: type === 'dead_path' ? 0.3 : 0.5,
-    });
-    
-    // Add arrow for directional edges (imports)
-    if (type === 'import_dependency') {
-      const angle = Math.atan2(to.y - from.y, to.x - from.x);
-      const arrowLength = 8;
-      const arrowAngle = Math.PI / 6;
-      
-      const arrow1 = new Konva.Line({
-        points: [
-          to.x, to.y,
-          to.x - arrowLength * Math.cos(angle - arrowAngle),
-          to.y - arrowLength * Math.sin(angle - arrowAngle)
-        ],
-        stroke: color,
-        strokeWidth: 1.5,
-      });
-      
-      const arrow2 = new Konva.Line({
-        points: [
-          to.x, to.y,
-          to.x - arrowLength * Math.cos(angle + arrowAngle),
-          to.y - arrowLength * Math.sin(angle + arrowAngle)
-        ],
-        stroke: color,
-        strokeWidth: 1.5,
-      });
-      
-      nodeLayer.add(line, arrow1, arrow2);
-    } else {
-      nodeLayer.add(line);
-    }
-    
-    line.moveToBottom();
-  }
-
-  // ── Ant animation ──────────────────────────────────────────────────────────
-
+  // ── Ant animation ───────────────────────────────────────────
   function _spawnAntAnimation(antId, nodeId) {
-    const target = nodes[nodeId];
-    if (!target) return;
-
-    const startX = stage.width() / 2;
-    const startY = stage.height() - 40;
-
-    const ant = new Konva.Circle({
-      x: startX, y: startY,
-      radius: ANT_R,
-      fill: COLORS.ant_spawn,
-    });
+    var target = nodes[nodeId];
+    if (!target || !target.group) return;
+    var ant = new Konva.Circle({ x: stage.width()/2, y: stage.height()-40, radius: ANT_R, fill: COLORS.ant_spawn });
     antLayer.add(ant);
     ants[antId] = ant;
-
-    // 0ms: appear → 700ms: move to node → circle node → scan → return
     ant.to({
-      x: target.x, y: target.y,
-      duration: 0.7,
-      onFinish: () => {
-        _circleNode(ant, target, () => _antScan(ant, antId));
-      },
+      x: target.group.x(), y: target.group.y(), duration: 0.7,
+      onFinish: function() { _circleNode(ant, target, function() { _antScan(ant); }); },
     });
   }
 
   function _circleNode(ant, target, onDone) {
-    let angle = 0;
-    const r = NODE_R + 8;
-    const anim = new Konva.Animation(frame => {
-      angle += frame.timeDiff * 0.36; // full circle in ~1000ms
-      ant.x(target.x + r * Math.cos((angle * Math.PI) / 180));
-      ant.y(target.y + r * Math.sin((angle * Math.PI) / 180));
+    var angle = 0, r = NODE_R + 8;
+    var anim = new Konva.Animation(function(frame) {
+      angle += frame.timeDiff * 0.36;
+      ant.x(target.group.x() + r * Math.cos(angle * Math.PI / 180));
+      ant.y(target.group.y() + r * Math.sin(angle * Math.PI / 180));
       if (angle >= 360) { anim.stop(); onDone(); }
     }, antLayer);
     anim.start();
   }
 
-  function _antScan(ant, antId) {
-    // Pulse while scanning
+  function _antScan(ant) {
     ant.to({ scaleX: 1.4, scaleY: 1.4, duration: 0.3,
-      onFinish: () => ant.to({ scaleX: 1, scaleY: 1, duration: 0.3 }) });
+      onFinish: function() { ant.to({ scaleX: 1, scaleY: 1, duration: 0.3 }); }
+    });
   }
 
   function _returnAntToQueen(antId) {
-    const ant = ants[antId];
+    var ant = ants[antId];
     if (!ant) return;
     ant.to({
-      x: stage.width() / 2, y: stage.height() - 40, duration: 0.8,
-      onFinish: () => { ant.destroy(); antLayer.draw(); delete ants[antId]; _queenPulse(); },
+      x: stage.width()/2, y: stage.height()-40, duration: 0.8,
+      onFinish: function() { ant.destroy(); antLayer.draw(); delete ants[antId]; _queenPulse(); },
     });
   }
 
   function _queenPulse() {
-    const flash = new Konva.Circle({
-      x: stage.width() / 2, y: stage.height() - 40,
-      radius: 20, fill: COLORS.ant_spawn, opacity: 0.6,
-    });
+    var flash = new Konva.Circle({ x: stage.width()/2, y: stage.height()-40, radius: 20, fill: COLORS.ant_spawn, opacity: 0.6 });
     antLayer.add(flash);
     flash.to({ scaleX: 1.5, scaleY: 1.5, opacity: 0, duration: 0.4,
-      onFinish: () => { flash.destroy(); antLayer.draw(); } });
+      onFinish: function() { flash.destroy(); antLayer.draw(); }
+    });
   }
 
+  // ── Node state ──────────────────────────────────────────────
   function setNodeState(nodeId, state) {
-    const n = nodes[nodeId];
-    if (!n) return;
-    
-    // Update node color based on state
-    switch(state) {
-      case 'healthy':
-        n.shape.fill(COLORS[n.type] || COLORS.idle);
-        break;
-      case 'being_scanned':
-        n.shape.fill(COLORS.scanning);
-        break;
-      case 'wounded':
-        n.shape.fill(COLORS.wounded);
-        break;
-      case 'being_fixed':
-        // Add silk strands effect (would require more complex rendering)
-        n.shape.fill(COLORS.done);
-        break;
-      case 'healed':
-        n.shape.fill(COLORS.done);
-        // Transition back to healthy over time
-        setTimeout(() => {
-          if (nodes[nodeId]) {
-            n.shape.fill(COLORS[n.type] || COLORS.idle);
-            nodeLayer.batchDraw();
-          }
-        }, 800);
-        break;
-      case 'critical':
-        n.shape.fill(COLORS.critical);
-        break;
-      case 'locked':
-        n.shape.fill(COLORS.restricted);
-        break;
-      default:
-        n.shape.fill(COLORS[state] || COLORS.idle);
+    var n = nodes[nodeId];
+    if (!n || !n.shape) return;
+    var colorMap = {
+      healthy: COLORS[n.type] || COLORS.idle,
+      being_scanned: COLORS.scanning,
+      wounded: COLORS.wounded,
+      healed: COLORS.done,
+      being_fixed: COLORS.done,
+      critical: COLORS.critical,
+      locked: COLORS.restricted,
+    };
+    n.shape.fill(colorMap[state] || COLORS[state] || COLORS.idle);
+    if (state === 'healed') {
+      setTimeout(function() {
+        if (nodes[nodeId] && nodes[nodeId].shape) {
+          nodes[nodeId].shape.fill(COLORS[nodes[nodeId].type] || COLORS.idle);
+          nodeLayer.batchDraw();
+        }
+      }, 800);
     }
-    
     nodeLayer.batchDraw();
   }
 
+  // ── WebSocket events ────────────────────────────────────────
   function _bindWsEvents() {
-    _onWsMessage = (event) => {
+    _onWsMessage = function(event) {
       try {
-        const msg = JSON.parse(event.data);
-        const evt = msg.event;
-        const data = msg.data || {};
+        var msg = JSON.parse(event.data);
+        var evt = msg.event, data = msg.data || {};
         if (evt === 'agent.started') setNodeState(data.file, 'being_scanned');
         if (evt === 'agent.done') setNodeState(data.file, 'done');
         if (evt === 'ant.spawned') _spawnAntAnimation(data.ant_id, data.node_id);
         if (evt === 'ant.result') _returnAntToQueen(data.ant_id);
         if (evt === 'ant.rejected') {
-          const msgs = {
-            idle: "Patchi is idle — start a scan first to enable ant spawning",
-            restricted: "This file is restricted — no ants allowed",
-            cooldown: "Wait a moment before tapping the same node again",
-            capacity: "Too many ants active — wait for one to finish",
-            node_busy: "This node already has enough ants working on it",
+          var msgs = {
+            idle: "Patchi is idle - start a scan first",
+            restricted: "This file is restricted",
+            cooldown: "Wait before tapping again",
+            capacity: "Too many ants active",
+            node_busy: "Node already busy",
           };
-          const msg = msgs[data.reason] || `Spawn rejected: ${data.reason}`;
-          if (typeof toast === "function") toast(msg, "error");
+          var m = msgs[data.reason] || 'Spawn rejected: ' + data.reason;
+          if (typeof toast === 'function') toast(m, 'error');
         }
         if (evt === 'scan.complete') _loadNodes();
       } catch (_) {}
@@ -1182,123 +1067,56 @@ var BrainMap = (() => {
   }
 
   function _relistenWs() {
-    const ws = window._ws;
+    var ws = window._ws;
     if (!ws) { setTimeout(_relistenWs, 500); return; }
     ws.addEventListener('message', _onWsMessage);
   }
 
-  // ── Node details popup ─────────────────────────────────────────────────────
+  // ── Node details popup ──────────────────────────────────────
+  function _showNodeDetails(id, label, fc, sev) {
+    var modal = document.getElementById('node-detail-modal');
+    if (!modal) return;
+    var sevLabel = { critical:'Critical', high:'High', medium:'Medium', low:'Low', info:'None' }[sev]||'None';
+    var nodeType = (nodes[id] && nodes[id].type) || 'default';
 
-  function _showNodeDetails(id, label, findingCount, severity) {
-    const _detailModal = document.getElementById("node-detail-modal");
-    if (!_detailModal) { console.warn('Node detail modal not found in DOM'); return; }
-    const sevLabel = { critical: "Critical", high: "High", medium: "Medium", low: "Low", info: "None" }[severity] || "None";
-    const nodeType = nodes[id]?.type || "default";
-
-    // Fetch actual findings for this file
-    fetch("/api/findings")
-      .then(r => r.json())
-      .then(data => {
-        const fileFindings = (data.findings || []).filter(f => f.file === id);
-        let findingsHtml = "";
+    fetch('/api/findings')
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        var fileFindings = (data.findings || []).filter(function(f) { return f.file === id; });
+        var findingsHtml = '';
         if (fileFindings.length > 0) {
-          findingsHtml = `<div class="detail-findings"><div class="detail-subtitle">Findings (${fileFindings.length})</div>` +
-            fileFindings.slice(0, 10).map(f => `
-              <div class="detail-finding sev-${(f.severity || "low").toLowerCase()}">
-                <span class="df-sev">${(f.severity || "").toUpperCase()}</span>
-                <span class="df-msg">${f.message || f.title || ""}</span>
-                ${f.line ? `<span class="df-line">:${f.line}</span>` : ""}
-              </div>`).join("") +
-            (fileFindings.length > 10 ? `<div class="df-more">+${fileFindings.length - 10} more</div>` : "") +
-            `</div>`;
+          findingsHtml = '<div class="detail-findings"><div class="detail-subtitle">Findings (' + fileFindings.length + ')</div>' +
+            fileFindings.slice(0, 10).map(function(f) {
+              return '<div class="detail-finding sev-' + (f.severity||'low').toLowerCase() + '">' +
+                '<span class="df-sev">' + (f.severity||'').toUpperCase() + '</span>' +
+                '<span class="df-msg">' + (f.message||f.title||'') + '</span>' +
+                (f.line ? '<span class="df-line">:' + f.line + '</span>' : '') + '</div>';
+            }).join('') +
+            (fileFindings.length > 10 ? '<div class="df-more">+' + (fileFindings.length-10) + ' more</div>' : '') +
+            '</div>';
         }
-
-        _detailModal.querySelector(".modal-title").textContent = label;
-        _detailModal.querySelector(".modal-body").innerHTML = `
-          <div class="detail-row"><span class="detail-key">File</span><span class="detail-val">${id}</span></div>
-          <div class="detail-row"><span class="detail-key">Type</span><span class="detail-val">${nodeType}</span></div>
-          <div class="detail-row"><span class="detail-key">Findings</span><span class="detail-val ${severity}">${findingCount}</span></div>
-          <div class="detail-row"><span class="detail-key">Severity</span><span class="detail-val ${severity}">${sevLabel}</span></div>
-          ${findingsHtml}
-        `;
+        modal.querySelector('.modal-title').textContent = label;
+        modal.querySelector('.modal-body').innerHTML =
+          '<div class="detail-row"><span class="detail-key">File</span><span class="detail-val">' + id + '</span></div>' +
+          '<div class="detail-row"><span class="detail-key">Type</span><span class="detail-val">' + nodeType + '</span></div>' +
+          '<div class="detail-row"><span class="detail-key">Findings</span><span class="detail-val ' + sev + '">' + fc + '</span></div>' +
+          '<div class="detail-row"><span class="detail-key">Severity</span><span class="detail-val ' + sev + '">' + sevLabel + '</span></div>' +
+          findingsHtml;
       })
-      .catch(() => {
-        _detailModal.querySelector(".modal-title").textContent = label;
-        _detailModal.querySelector(".modal-body").innerHTML = `
-          <div class="detail-row"><span class="detail-key">File</span><span class="detail-val">${id}</span></div>
-          <div class="detail-row"><span class="detail-key">Type</span><span class="detail-val">${nodeType}</span></div>
-          <div class="detail-row"><span class="detail-key">Findings</span><span class="detail-val ${severity}">${findingCount}</span></div>
-          <div class="detail-row"><span class="detail-key">Severity</span><span class="detail-val ${severity}">${sevLabel}</span></div>
-        `;
+      .catch(function() {
+        modal.querySelector('.modal-title').textContent = label;
+        modal.querySelector('.modal-body').innerHTML =
+          '<div class="detail-row"><span class="detail-key">File</span><span class="detail-val">' + id + '</span></div>' +
+          '<div class="detail-row"><span class="detail-key">Type</span><span class="detail-val">' + nodeType + '</span></div>' +
+          '<div class="detail-row"><span class="detail-key">Findings</span><span class="detail-val ' + sev + '">' + fc + '</span></div>';
       });
 
-    _detailModal.style.display = "flex";
-    _detailModal.querySelector(".modal-close").onclick = () => { _detailModal.style.display = "none"; };
-    _detailModal.onclick = (e) => { if (e.target === _detailModal) _detailModal.style.display = "none"; };
-  }
-
-  function zoomIn() {
-    _zoom(1.2);
-  }
-
-  function zoomOut() {
-    _zoom(1 / 1.2);
-  }
-
-  function zoomReset() {
-    if (!stage) return;
-    stage.scale({ x: 1, y: 1 });
-    stage.position({ x: 0, y: 0 });
-    offsetX = 0;
-    offsetY = 0;
-    _onResize();
-    _updateZoomDisplay();
-    stage.batchDraw();
-    _updateMiniMap();
-  }
-
-  function handleEvent(event, data) {
-    if (event === 'scan.started') {
-      _simulateSwarm(Object.keys(nodes));
-    }
-    if (event === 'scan.finding') {
-      const nodeId = data.file;
-      const state = data.severity === 'critical' || data.severity === 'high' ? 'critical' :
-                    data.severity === 'medium' ? 'wounded' : 'done';
-      setNodeState(nodeId, state);
-    }
-    if (event === 'scan.complete') {
-      _loadNodes();
-    }
-  }
-
-  function _simulateSwarm(nodeIds) {
-    if (!antLayer || nodeIds.length === 0) return;
-    antLayer.destroyChildren();
-    const targetIds = nodeIds.slice(0, Math.min(nodeIds.length, 26));
-    targetIds.forEach((id, i) => {
-      setTimeout(() => {
-        const target = nodes[id];
-        if (!target) return;
-        const pos = target.position();
-        const ant = new Konva.Circle({
-          x: pos.x, y: pos.y,
-          radius: 5, fill: COLORS.ant_minor,
-        });
-        antLayer.add(ant);
-        ants['ant_' + i] = ant;
-        antLayer.batchDraw();
-      }, i * 120);
-    });
+    modal.style.display = 'flex';
+    modal.querySelector('.modal-close').onclick = function() { modal.style.display = 'none'; };
+    modal.onclick = function(e) { if (e.target === modal) modal.style.display = 'none'; };
   }
 
   // ── View switching ──────────────────────────────────────────
-  let _currentView = 'graph';
-  let _lastNodes = [];
-  let _lastEdges = [];
-  let _showLabels = true;
-  let _rotation = 0; // degrees
-
   function switchView(viewName) {
     _currentView = viewName;
     document.querySelectorAll('[id^="view-"]').forEach(function(btn) {
@@ -1306,61 +1124,7 @@ var BrainMap = (() => {
       btn.style.fontWeight = btn.id === 'view-' + viewName ? '600' : '';
     });
     if (_lastNodes.length === 0) return;
-
-    // Calculate target positions for the new layout
-    var positions;
-    switch (viewName) {
-      case 'tree': positions = _treeLayout(_lastNodes, _lastEdges); break;
-      case 'spiral': positions = _spiralLayout(_lastNodes); break;
-      case 'grid': positions = _gridLayout(_lastNodes); break;
-      case 'radial': positions = _radialLayout(_lastNodes, _lastEdges); break;
-      case 'cluster': positions = _clusterLayout(_lastNodes, _lastEdges); break;
-      case 'graph': default: positions = _graphLayout(_lastNodes, _lastEdges); break;
-    }
-
-    // Animate each node to its target position using Konva.to()
-    var nodeIds = Object.keys(positions);
-    nodeIds.forEach(function(id) {
-      var nodeData = nodes[id];
-      if (!nodeData || !nodeData.group) return;
-      var target = positions[id];
-      if (!target) return;
-      nodeData.group.to({
-        x: target.x,
-        y: target.y,
-        duration: 0.6,
-        easing: Konva.Easings.EaseInOut,
-      });
-    });
-
-    // Rebuild edges after a short delay (let positions settle)
-    setTimeout(function() {
-      _rebuildEdges();
-    }, 650);
-  }
-
-  function _rebuildEdges() {
-    // Clear and redraw all edges
-    while (antLayer.children.length > 0) antLayer.remove(antLayer.children[0]);
-    // Edges are stored in the edgeLayer which we don't have access to here,
-    // so we redraw by calling the render pipeline
-    _lastEdges.forEach(function(e) {
-      var fromId = e.source || e.from;
-      var toId = e.target || e.to;
-      if (!nodes[fromId] || !nodes[toId]) return;
-      var fromGroup = nodes[fromId].group;
-      var toGroup = nodes[toId].group;
-      var color = COLORS.edge;
-      var line = new Konva.Line({
-        points: [fromGroup.x(), fromGroup.y(), toGroup.x(), toGroup.y()],
-        stroke: color,
-        strokeWidth: 1,
-        opacity: 0.3,
-        listening: false,
-      });
-      antLayer.add(line);
-    });
-    antLayer.batchDraw();
+    _renderGraph(_lastNodes, _lastEdges);
   }
 
   function toggleLabels() {
@@ -1392,7 +1156,7 @@ var BrainMap = (() => {
   }
 
   function exportJSON() {
-    if (_lastNodes.length === 0) return;
+    if (!_lastNodes.length) return;
     var data = { nodes: _lastNodes, edges: _lastEdges, view: _currentView, timestamp: new Date().toISOString() };
     var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     var url = URL.createObjectURL(blob);
@@ -1403,190 +1167,20 @@ var BrainMap = (() => {
     URL.revokeObjectURL(url);
   }
 
-  // ── Layout algorithms ──────────────────────────────────────
-
-  function _treeLayout(nodesList, edgesList, W, H) {
-    var pos = {}, n = nodesList.length;
-    if (n === 0) return pos;
-    var incoming = {}, adj = {};
-    nodesList.forEach(function(node) { adj[node.id || node.path] = []; });
-    edgesList.forEach(function(e) {
-      var f = e.from || e.source, t = e.to || e.target;
-      if (adj[f]) adj[f].push(t);
-      if (!incoming[t]) incoming[t] = [];
-      incoming[t].push(f);
-    });
-    var roots = nodesList.filter(function(node) {
-      var id = node.id || node.path;
-      return !incoming[id] || incoming[id].length === 0;
-    });
-    if (roots.length === 0) roots = [nodesList[0]];
-    var levels = {}, visited = {}, queue = [];
-    roots.forEach(function(node) { var id = node.id || node.path; levels[id] = 0; visited[id] = true; queue.push(id); });
-    while (queue.length > 0) {
-      var curr = queue.shift();
-      (adj[curr] || []).forEach(function(child) {
-        if (!visited[child]) { visited[child] = true; levels[child] = (levels[curr] || 0) + 1; queue.push(child); }
-      });
-    }
-    nodesList.forEach(function(node) { var id = node.id || node.path; if (levels[id] === undefined) levels[id] = 0; });
-    var levelGroups = {}, maxLevel = 0;
-    nodesList.forEach(function(node) {
-      var id = node.id || node.path, lv = levels[id];
-      if (!levelGroups[lv]) levelGroups[lv] = [];
-      levelGroups[lv].push(id);
-      if (lv > maxLevel) maxLevel = lv;
-    });
-    var padding = 60, levelH = (H - padding * 2) / Math.max(maxLevel, 1);
-    for (var lv = 0; lv <= maxLevel; lv++) {
-      var group = levelGroups[lv] || [], levelW = (W - padding * 2) / Math.max(group.length - 1, 1);
-      group.forEach(function(id, i) { pos[id] = { x: group.length === 1 ? W / 2 : padding + levelW * i, y: padding + levelH * lv }; });
-    }
-    return pos;
-  }
-
-  function _spiralLayout(nodesList, edgesList, W, H) {
-    var pos = {}, n = nodesList.length;
-    if (n === 0) return pos;
-    var goldenAngle = Math.PI * (3 - Math.sqrt(5)), cx = W / 2, cy = H / 2, maxR = Math.min(W, H) * 0.42;
-    nodesList.forEach(function(node, i) {
-      var id = node.id || node.path, angle = i * goldenAngle, r = maxR * Math.sqrt(i / n);
-      pos[id] = { x: cx + r * Math.cos(angle), y: cy + r * Math.sin(angle) };
-    });
-    return pos;
-  }
-
-  function _gridLayout(nodesList, edgesList, W, H) {
-    var pos = {}, n = nodesList.length;
-    if (n === 0) return pos;
-    var cols = Math.ceil(Math.sqrt(n)), rows = Math.ceil(n / cols);
-    var cellW = (W - 80) / cols, cellH = (H - 80) / rows;
-    nodesList.forEach(function(node, i) {
-      var id = node.id || node.path;
-      pos[id] = { x: 40 + cellW * ((i % cols) + 0.5), y: 40 + cellH * (Math.floor(i / cols) + 0.5) };
-    });
-    return pos;
-  }
-
-  function _radialLayout(nodesList, edgesList, W, H) {
-    // Concentric rings: roots at center, dependents radiate outward by depth
-    var pos = {}, n = nodesList.length;
-    if (n === 0) return pos;
-    var cx = W / 2, cy = H / 2;
-    var incoming = {}, adj = {};
-    nodesList.forEach(function(node) { adj[node.id || node.path] = []; });
-    edgesList.forEach(function(e) {
-      var f = e.from || e.source, t = e.to || e.target;
-      if (adj[f]) adj[f].push(t);
-      if (!incoming[t]) incoming[t] = [];
-      incoming[t].push(f);
-    });
-    var roots = nodesList.filter(function(node) { return !(incoming[node.id || node.path] || []).length; });
-    if (roots.length === 0) roots = [nodesList[0]];
-    var depth = {}, visited = {}, queue = [];
-    roots.forEach(function(node) { var id = node.id || node.path; depth[id] = 0; visited[id] = true; queue.push(id); });
-    while (queue.length > 0) {
-      var curr = queue.shift();
-      (adj[curr] || []).forEach(function(child) {
-        if (!visited[child]) { visited[child] = true; depth[child] = (depth[curr] || 0) + 1; queue.push(child); }
-      });
-    }
-    nodesList.forEach(function(node) { var id = node.id || node.path; if (depth[id] === undefined) depth[id] = 0; });
-    var maxDepth = 1; nodesList.forEach(function(node) { var d = depth[node.id || node.path]; if (d > maxDepth) maxDepth = d; });
-    var maxR = Math.min(W, H) * 0.42;
-    var rings = {};
-    nodesList.forEach(function(node) {
-      var id = node.id || node.path, d = depth[id];
-      if (!rings[d]) rings[d] = [];
-      rings[d].push(id);
-    });
-    for (var d = 0; d <= maxDepth; d++) {
-      var ring = rings[d] || [], r = (d / maxDepth) * maxR;
-      ring.forEach(function(id, i) {
-        var angle = (2 * Math.PI * i) / ring.length - Math.PI / 2;
-        pos[id] = { x: cx + r * Math.cos(angle), y: cy + r * Math.sin(angle) };
-      });
-    }
-    return pos;
-  }
-
-  function _clusterLayout(nodesList, edgesList, W, H) {
-    // Group nodes by type, place each cluster in a region
-    var pos = {}, n = nodesList.length;
-    if (n === 0) return pos;
-    var groups = {};
-    nodesList.forEach(function(node) {
-      var t = node.type || 'default';
-      if (!groups[t]) groups[t] = [];
-      groups[t].push(node.id || node.path);
-    });
-    var types = Object.keys(groups), numGroups = types.length;
-    var cols = Math.ceil(Math.sqrt(numGroups)), rows = Math.ceil(numGroups / cols);
-    var cellW = W / cols, cellH = H / rows;
-    types.forEach(function(type, gi) {
-      var col = gi % cols, row = Math.floor(gi / cols);
-      var clusterCx = cellW * (col + 0.5), clusterCy = cellH * (row + 0.5);
-      var ids = groups[type], cn = ids.length;
-      var clusterR = Math.min(cellW, cellH) * 0.35;
-      ids.forEach(function(id, i) {
-        if (cn === 1) { pos[id] = { x: clusterCx, y: clusterCy }; return; }
-        var angle = (2 * Math.PI * i) / cn - Math.PI / 2;
-        var r = clusterR * Math.sqrt(i / cn);
-        pos[id] = { x: clusterCx + r * Math.cos(angle), y: clusterCy + r * Math.sin(angle) };
-      });
-    });
-    return pos;
-  }
-
-  // Override _renderGraph to store data and use current layout
-  var _origRenderGraph = _renderGraph;
-  _renderGraph = function(ns, edgesData) {
-    _lastNodes = ns;
-    _lastEdges = edgesData || [];
-    nodeLayer.destroyChildren();
-    nodes = {};
-    edges = _lastEdges;
-    var W = stage.width(), H = stage.height();
-    var positions;
-    switch (_currentView) {
-      case 'tree': positions = _treeLayout(ns, _lastEdges, W, H); break;
-      case 'spiral': positions = _spiralLayout(ns, _lastEdges, W, H); break;
-      case 'grid': positions = _gridLayout(ns, _lastEdges, W, H); break;
-      case 'radial': positions = _radialLayout(ns, _lastEdges, W, H); break;
-      case 'cluster': positions = _clusterLayout(ns, _lastEdges, W, H); break;
-      default: positions = _forceLayout(ns, _lastEdges, W, H);
-    }
-    ns.forEach(function(n) {
-      var pos = positions[n.id || n.path] || { x: W/2, y: H/2 };
-      var fc = n.finding_count || 0;
-      var sev = n.severity || 'info';
-      _addNode(n.id || n.path, n.label || n.path, n.type || 'default', pos.x, pos.y, fc, sev);
-    });
-    // Labels respect toggle
-    if (!_showLabels) { nodeLayer.getChildren().forEach(function(g) { var txt = g.findOne('Text'); if (txt) txt.visible(false); }); }
-    (_lastEdges || []).forEach(function(e) { _addEdge(e.source || e.from, e.target || e.to, e.type || 'dependency'); });
-    nodeLayer.draw();
-    _updateMiniMap();
-  };
-
-  // ── Node Search ───────────────────────────────────────────
-  var _searchQuery = '';
-  var _searchMatches = [];
-  var _searchOrigColors = {};
+  // ── Search ──────────────────────────────────────────────────
+  var _searchQuery = '', _searchMatches = [], _searchOrigColors = {};
 
   function searchNodes(query) {
     _searchQuery = (query || '').trim().toLowerCase();
     var countEl = document.getElementById('brain-search-count');
-    
-    // Restore all nodes to original state if query is empty
+
     if (!_searchQuery) {
       for (var id in nodes) {
         var n = nodes[id];
         if (_searchOrigColors[id] !== undefined) {
-          n.shape.opacity(1);
-          n.group.opacity(1);
-          // Restore original fill if we changed it
-          if (_searchOrigColors[id]) n.shape.fill(_searchOrigColors[id]);
+          if (n.shape) n.shape.opacity(1);
+          if (n.group) n.group.opacity(1);
+          if (_searchOrigColors[id] && n.shape) n.shape.fill(_searchOrigColors[id]);
           delete _searchOrigColors[id];
         }
       }
@@ -1595,79 +1189,117 @@ var BrainMap = (() => {
       nodeLayer.batchDraw();
       return;
     }
-    
-    // Find matching nodes
+
     _searchMatches = [];
     for (var id2 in nodes) {
       var n2 = nodes[id2];
-      var label = (n2.group.getAttr('label') || id2).toLowerCase();
+      if (!n2.group) continue;
+      var label = id2.toLowerCase();
       var shortName = label.split('/').pop();
-      if (id2.toLowerCase().indexOf(_searchQuery) >= 0 ||
-          label.indexOf(_searchQuery) >= 0 ||
-          shortName.indexOf(_searchQuery) >= 0) {
+      if (id2.toLowerCase().indexOf(_searchQuery) >= 0 || label.indexOf(_searchQuery) >= 0 || shortName.indexOf(_searchQuery) >= 0) {
         _searchMatches.push(id2);
       }
     }
-    
-    // Dim non-matches, highlight matches
+
     for (var id3 in nodes) {
       var n3 = nodes[id3];
+      if (!n3.shape || !n3.group) continue;
       var isMatch = _searchMatches.indexOf(id3) >= 0;
-      // Save original opacity if not already saved
-      if (_searchOrigColors[id3] === undefined) {
-        _searchOrigColors[id3] = n3.shape.fill();
-      }
+      if (_searchOrigColors[id3] === undefined) _searchOrigColors[id3] = n3.shape.fill();
       if (isMatch) {
-        n3.shape.opacity(1);
-        n3.group.opacity(1);
-        // Make matched nodes glow — bright fill + larger
+        n3.shape.opacity(1); n3.group.opacity(1);
         n3.shape.fill('#E8920A');
-        n3.shape.shadowColor('#E8920A');
-        n3.shape.shadowBlur(12);
-        n3.shape.shadowOpacity(0.8);
+        n3.shape.shadowColor('#E8920A'); n3.shape.shadowBlur(12); n3.shape.shadowOpacity(0.8);
       } else {
-        n3.shape.opacity(0.15);
-        n3.group.opacity(0.15);
-        n3.shape.shadowBlur(0);
+        n3.shape.opacity(0.15); n3.group.opacity(0.15); n3.shape.shadowBlur(0);
       }
     }
-    
-    // Update edges: dim edges that don't connect to matches
+
+    // Dim non-connected edges
     nodeLayer.children.forEach(function(child) {
-      if (child.getClassName() === 'Line') {
-        // Edge lines — check if connected to any match
+      if (child.getClassName && child.getClassName() === 'Line') {
         var pts = child.points();
         if (pts.length >= 4) {
           var connected = false;
           for (var mi = 0; mi < _searchMatches.length; mi++) {
             var mn = nodes[_searchMatches[mi]];
-            if (mn && Math.abs(mn.x - pts[0]) < 2 && Math.abs(mn.y - pts[1]) < 2) connected = true;
-            if (mn && Math.abs(mn.x - pts[2]) < 2 && Math.abs(mn.y - pts[3]) < 2) connected = true;
+            if (mn && mn.group) {
+              if (Math.abs(mn.group.x() - pts[0]) < 2 && Math.abs(mn.group.y() - pts[1]) < 2) connected = true;
+              if (Math.abs(mn.group.x() - pts[2]) < 2 && Math.abs(mn.group.y() - pts[3]) < 2) connected = true;
+            }
           }
           child.opacity(connected ? 0.6 : 0.05);
         }
       }
     });
-    
+
     if (countEl) {
       countEl.textContent = _searchMatches.length + ' found';
       countEl.style.color = _searchMatches.length > 0 ? 'var(--accent)' : 'var(--danger)';
     }
     nodeLayer.batchDraw();
-    
-    // If exactly one match, zoom to it
+
     if (_searchMatches.length === 1) {
       var mn = nodes[_searchMatches[0]];
-      if (mn) {
-        stage.position({
-          x: stage.width() / 2 - mn.x * stage.scaleX(),
-          y: stage.height() / 2 - mn.y * stage.scaleY(),
-        });
+      if (mn && mn.group) {
+        stage.position({ x: stage.width()/2 - mn.group.x()*stage.scaleX(), y: stage.height()/2 - mn.group.y()*stage.scaleY() });
         stage.batchDraw();
-        _updateMiniMap();
+        _debounceMiniMap();
       }
     }
   }
 
-  return { init, setNodeState, loadNodes, zoomIn, zoomOut, zoomReset, handleEvent, _relistenWs, switchView, toggleLabels, rotateGraph, resetRotation, exportPNG, exportJSON, searchNodes };
+  // ── Handle events (scan) ────────────────────────────────────
+  function handleEvent(event, data) {
+    if (event === 'scan.started') _simulateSwarm(Object.keys(nodes));
+    if (event === 'scan.finding') {
+      var state = data.severity === 'critical' || data.severity === 'high' ? 'critical' :
+                  data.severity === 'medium' ? 'wounded' : 'done';
+      setNodeState(data.file, state);
+    }
+    if (event === 'scan.complete') _loadNodes();
+  }
+
+  function _simulateSwarm(nodeIds) {
+    if (!antLayer || !nodeIds.length) return;
+    antLayer.destroyChildren();
+    var targets = nodeIds.slice(0, Math.min(nodeIds.length, 26));
+    targets.forEach(function(id, i) {
+      setTimeout(function() {
+        var target = nodes[id];
+        if (!target || !target.group) return;
+        var ant = new Konva.Circle({ x: target.group.x(), y: target.group.y(), radius: 5, fill: COLORS.ant_minor });
+        antLayer.add(ant);
+        ants['ant_' + i] = ant;
+        antLayer.batchDraw();
+      }, i * 120);
+    });
+  }
+
+  // ── Public API ──────────────────────────────────────────────
+  function zoomIn() { _zoom(1.2); }
+  function zoomOut() { _zoom(1/1.2); }
+  function zoomReset() {
+    if (!stage) return;
+    stage.scale({ x: 1, y: 1 }); stage.position({ x: 0, y: 0 });
+    offsetX = 0; offsetY = 0; _onResize(); _updateZoomDisplay(); stage.batchDraw(); _debounceMiniMap();
+  }
+
+  return {
+    init: init,
+    setNodeState: setNodeState,
+    loadNodes: loadNodes,
+    zoomIn: zoomIn,
+    zoomOut: zoomOut,
+    zoomReset: zoomReset,
+    handleEvent: handleEvent,
+    _relistenWs: _relistenWs,
+    switchView: switchView,
+    toggleLabels: toggleLabels,
+    rotateGraph: rotateGraph,
+    resetRotation: resetRotation,
+    exportPNG: exportPNG,
+    exportJSON: exportJSON,
+    searchNodes: searchNodes,
+  };
 })();
