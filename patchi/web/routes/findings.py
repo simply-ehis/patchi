@@ -27,6 +27,63 @@ def _load_chain_intent(root: Path) -> dict:
     return {"chains": [], "intent_report": None}
 
 
+def _load_visual_regression(root: Path) -> dict:
+    """Load visual regression screenshots, diffs, and baselines."""
+    evidence_dir = root / ".patchi" / "evidence" / "screenshots" / "visual_regression"
+    baseline_dir = root / ".patchi" / "visual_baselines"
+
+    screenshots = []
+    if evidence_dir.is_dir():
+        for f in sorted(
+            evidence_dir.glob("*.png"), key=lambda x: x.stat().st_mtime, reverse=True
+        ):
+            try:
+                stat = f.stat()
+                is_diff = "_diff" in f.stem
+                screenshots.append(
+                    {
+                        "name": f.stem,
+                        "filename": f.name,
+                        "path": str(f.relative_to(root)),
+                        "serve_url": f"/api/live-testing/screenshot/{f.name}",
+                        "size_kb": round(stat.st_size / 1024, 1),
+                        "is_diff": is_diff,
+                        # Pair diff images with their source: "foo_diff" -> "foo"
+                        "source_name": f.stem.replace("_diff", "") if is_diff else None,
+                    }
+                )
+            except Exception:
+                pass
+
+    # Pair screenshots: for each diff, find its source screenshot
+    diff_map = {s["source_name"]: s for s in screenshots if s["is_diff"]}
+    pairs = []
+    seen = set()
+    for s in screenshots:
+        if s["is_diff"]:
+            continue  # handled via source pairing
+        pair = {"source": s, "diff": diff_map.get(s["name"])}
+        pairs.append(pair)
+        seen.add(s["name"])
+    # Add orphaned diffs (source missing)
+    for name, diff in diff_map.items():
+        if name not in seen:
+            pairs.append({"source": None, "diff": diff})
+
+    baseline_count = 0
+    if baseline_dir.is_dir():
+        baseline_count = len(list(baseline_dir.rglob("*.png")))
+
+    return {
+        "screenshots": screenshots,
+        "pairs": pairs,
+        "total": len([s for s in screenshots if not s["is_diff"]]),
+        "diffs": len([s for s in screenshots if s["is_diff"]]),
+        "baselines": baseline_count,
+        "total_size_kb": round(sum(s["size_kb"] for s in screenshots), 1),
+    }
+
+
 def _load_dast_evidence(root: Path) -> dict[str, dict]:
     """Load DAST screenshot evidence from .patchi/evidence/dast/."""
     evidence_dir = root / ".patchi" / "evidence" / "dast"
@@ -157,6 +214,9 @@ async def findings(request: Request):
     # Load scan history
     scan_history = _load_scan_history(root)
 
+    # Load visual regression data
+    vr_data = _load_visual_regression(root)
+
     return templates.TemplateResponse(
         request,
         "findings.html",
@@ -173,6 +233,11 @@ async def findings(request: Request):
             "dast_target": dast_target,
             "scan_agent_count": scan_agent_count,
             "scan_history": scan_history,
+            "vr_pairs": vr_data["pairs"],
+            "vr_total": vr_data["total"],
+            "vr_diffs": vr_data["diffs"],
+            "vr_baselines": vr_data["baselines"],
+            "vr_size_kb": vr_data["total_size_kb"],
         },
     )
 

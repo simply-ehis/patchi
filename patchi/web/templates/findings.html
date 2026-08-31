@@ -16,6 +16,12 @@
     <button class="tab-btn" onclick="showTab('charter')" id="tab-charter">
       Charter <span class="tab-count">{{ charter_violations|length }}</span>
     </button>
+    {% if vr_total > 0 or vr_diffs > 0 %}
+    <button class="tab-btn" onclick="showTab('vr')" id="tab-vr" style="color:#a855f7">
+      📸 Visual <span class="tab-count" style="background:#a855f720;color:#a855f7">{{ vr_total }}</span>
+      {% if vr_diffs > 0 %}<span class="tab-count" style="background:#ef444420;color:#ef4444">{{ vr_diffs }} diffs</span>{% endif %}
+    </button>
+    {% endif %}
     {% if dast_findings_count > 0 %}
     <button class="tab-btn" onclick="showTab('dast')" id="tab-dast" style="color:#ef4444">
       DAST <span class="tab-count" style="background:#ef4444;color:white">{{ dast_findings_count }}</span>
@@ -441,6 +447,60 @@
     </div>
   </div>
 
+  <!-- Visual Regression tab -->
+  <div id="panel-vr" class="tab-panel" style="display:none">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div>
+        <h3 style="margin:0;font-size:16px">📸 Visual Regression</h3>
+        <div style="font-size:12px;color:var(--text-secondary);margin-top:4px">
+          {{ vr_total }} screenshots · {{ vr_baselines }} baselines · {{ vr_size_kb }} KB
+          {% if vr_diffs > 0 %} · <span style="color:#ef4444;font-weight:600">{{ vr_diffs }} with visual changes</span>{% endif %}
+        </div>
+      </div>
+      <button class="btn" onclick="loadVRFromAPI()" style="font-size:12px">🔄 Refresh</button>
+    </div>
+    {% if vr_pairs %}
+    <div id="vr-gallery" style="display:grid;grid-template-columns:repeat(auto-fill, minmax(320px, 1fr));gap:16px">
+      {% for pair in vr_pairs %}
+      <div class="panel" style="padding:0;overflow:hidden">
+        {% if pair.source %}
+        <div style="position:relative;cursor:pointer" onclick="openScreenshotModal('{{ pair.source.serve_url }}')">
+          <img src="{{ pair.source.serve_url }}" alt="{{ pair.source.name }}"
+               style="width:100%;height:180px;object-fit:cover;display:block"
+               loading="lazy" onerror="this.style.display='none'">
+          {% if pair.diff %}
+          <span style="position:absolute;top:8px;right:8px;background:#ef4444;color:white;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600">CHANGED</span>
+          {% else %}
+          <span style="position:absolute;top:8px;right:8px;background:#22c55e20;color:#22c55e;padding:2px 8px;border-radius:10px;font-size:11px">STABLE</span>
+          {% endif %}
+        </div>
+        {% elif pair.diff %}
+        <div style="height:180px;background:var(--bg-tertiary);display:flex;align-items:center;justify-content:center;color:var(--text-secondary);font-size:13px">
+          Source screenshot unavailable
+        </div>
+        {% endif %}
+        <div style="padding:10px 12px">
+          <div style="font-size:12px;font-weight:500;color:var(--text-primary);margin-bottom:4px">
+            {{ pair.source.name if pair.source else pair.diff.name }}
+          </div>
+          <div style="font-size:11px;color:var(--text-secondary)">
+            {{ pair.source.size_kb if pair.source else '—' }} KB
+            {% if pair.diff %}
+            · <a href="{{ pair.diff.serve_url }}" style="color:#ef4444;text-decoration:none" onclick="event.preventDefault();openScreenshotModal('{{ pair.diff.serve_url }}')">View diff →</a>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <div class="empty-state-icon">📸</div>
+      <div class="empty-state-text">No visual regression screenshots yet. Run Visual Regression from <a href="/live-tests">Live Tests</a>.</div>
+    </div>
+    {% endif %}
+  </div>
+
   <!-- Charter violations tab -->
   <div id="panel-charter" class="tab-panel" style="display:none">
     {% if charter_violations %}
@@ -530,6 +590,56 @@ function showTab(name) {
   document.getElementById('panel-' + name).style.display = '';
   document.getElementById('tab-' + name).classList.add('active');
   if (name === 'history') loadHistory();
+  if (name === 'vr') loadVRFromAPI();
+}
+
+// Visual Regression gallery
+async function loadVRFromAPI() {
+  const gallery = document.getElementById('vr-gallery');
+  if (!gallery) return;
+  try {
+    const res = await fetch('/api/live-testing/screenshots');
+    const data = await res.json();
+    if (!data.ok || !data.screenshots.length) {
+      gallery.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📸</div><div class="empty-state-text">No visual regression screenshots yet. Run Visual Regression from <a href="/live-tests">Live Tests</a>.</div></div>';
+      return;
+    }
+    // Pair diffs with source images
+    const diffs = data.screenshots.filter(s => s.is_diff);
+    const sources = data.screenshots.filter(s => !s.is_diff);
+    const diffMap = {};
+    diffs.forEach(d => {
+      const src = d.name.replace('_diff', '');
+      diffMap[src] = d;
+    });
+    const pairs = sources.map(s => ({ source: s, diff: diffMap[s.name] || null }));
+    // Add orphaned diffs
+    diffs.forEach(d => {
+      const src = d.name.replace('_diff', '');
+      if (!sources.find(s => s.name === src)) {
+        pairs.push({ source: null, diff: d });
+      }
+    });
+    gallery.innerHTML = pairs.map(p => {
+      const src = p.source;
+      const diff = p.diff;
+      const name = src ? src.name : diff.name;
+      const size = src ? src.size_kb : diff.size_kb;
+      return '<div class="panel" style="padding:0;overflow:hidden">' +
+        (src ? '<div style="position:relative;cursor:pointer" onclick="openScreenshotModal(\'' + src.serve_url + '\')">' +
+          '<img src="' + src.serve_url + '" alt="' + name + '" style="width:100%;height:180px;object-fit:cover;display:block" loading="lazy" onerror="this.style.display=\'none\'">' +
+          (diff ? '<span style="position:absolute;top:8px;right:8px;background:#ef4444;color:white;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600">CHANGED</span>' :
+                 '<span style="position:absolute;top:8px;right:8px;background:#22c55e20;color:#22c55e;padding:2px 8px;border-radius:10px;font-size:11px">STABLE</span>') +
+          '</div>' : '<div style="height:180px;background:var(--bg-tertiary);display:flex;align-items:center;justify-content:center;color:var(--text-secondary);font-size:13px">Source unavailable</div>') +
+        '<div style="padding:10px 12px">' +
+          '<div style="font-size:12px;font-weight:500;color:var(--text-primary);margin-bottom:4px">' + name + '</div>' +
+          '<div style="font-size:11px;color:var(--text-secondary)">' + size + ' KB' +
+          (diff ? ' · <a href="' + diff.serve_url + '" style="color:#ef4444;text-decoration:none" onclick="event.preventDefault();openScreenshotModal(\'' + diff.serve_url + '\')">View diff →</a>' : '') +
+          '</div></div></div>';
+    }).join('');
+  } catch (e) {
+    console.error('VR gallery load failed:', e);
+  }
 }
 
 // Scan history
