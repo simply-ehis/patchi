@@ -164,12 +164,18 @@ var BrainMap = (() => {
     stage.container().style.userSelect = 'none';
     
     // ── Pinch-to-zoom (two-finger touch) ──
-    var _pinchState = { active: false, startDist: 0, startScale: 1, centerX: 0, centerY: 0 };
+    var _pinchState = {
+      active: false, startDist: 0, startScale: 1,
+      centerX: 0, centerY: 0, startAngle: 0,
+    };
     
     function _touchDist(t1, t2) {
       var dx = t2.clientX - t1.clientX;
       var dy = t2.clientY - t1.clientY;
       return Math.sqrt(dx * dx + dy * dy);
+    }
+    function _touchAngle(t1, t2) {
+      return Math.atan2(t2.clientY - t1.clientY, t2.clientX - t1.clientX) * 180 / Math.PI;
     }
     
     stage.on('touchstart', function(e) {
@@ -179,6 +185,8 @@ var BrainMap = (() => {
         _pinchState.active = true;
         _pinchState.startDist = _touchDist(touches[0], touches[1]);
         _pinchState.startScale = stage.scaleX();
+        _pinchState.startAngle = _touchAngle(touches[0], touches[1]);
+        _pinchState.startRotation = _rotation;
         var rect = stage.container().getBoundingClientRect();
         _pinchState.centerX = (touches[0].clientX + touches[1].clientX) / 2 - rect.left;
         _pinchState.centerY = (touches[0].clientY + touches[1].clientY) / 2 - rect.top;
@@ -206,6 +214,12 @@ var BrainMap = (() => {
           x: cx - mousePointTo.x * newScale,
           y: cy - mousePointTo.y * newScale,
         });
+        // Two-finger rotate
+        var angle = _touchAngle(touches[0], touches[1]);
+        var angleDelta = angle - _pinchState.startAngle;
+        _rotation = (_pinchState.startRotation + angleDelta + 360) % 360;
+        stage.rotation(_rotation);
+        _updateAngleDisplay();
         _updateZoomDisplay();
         stage.batchDraw();
         _updateMiniMap();
@@ -527,6 +541,11 @@ var BrainMap = (() => {
   function _updateZoomDisplay() {
     var el = document.getElementById('zoom-level');
     if (el && stage) el.textContent = Math.round(stage.scaleX() * 100) + '%';
+  }
+
+  function _updateAngleDisplay() {
+    var el = document.getElementById('angle-display');
+    if (el) el.textContent = Math.round(_rotation % 360) + '\u00B0';
   }
   
   function _zoomCenter(factor) {
@@ -1286,13 +1305,15 @@ var BrainMap = (() => {
   }
 
   function rotateGraph(deg) {
-    _rotation = (_rotation + deg) % 360;
+    _rotation = (_rotation + deg + 360) % 360;
     if (stage) { stage.rotation(_rotation); stage.batchDraw(); }
+    _updateAngleDisplay();
   }
 
   function resetRotation() {
     _rotation = 0;
     if (stage) { stage.rotation(0); stage.batchDraw(); }
+    _updateAngleDisplay();
   }
 
   function exportPNG() {
