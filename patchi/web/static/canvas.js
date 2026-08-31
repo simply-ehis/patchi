@@ -98,14 +98,27 @@ var BrainMap = (() => {
     }
     _addMiniMap();
     
-    // Tap-to-spawn on node click (skipped after long-press)
+    // Double-tap detection for zoom-to-node on mobile
+    var _lastTap = { time: 0, nodeId: null };
+
+    // Tap-to-spawn on node click (skipped after long-press or double-tap)
     nodeLayer.on("click tap", ({ target }) => {
       if (_longPressActive) { _longPressActive = false; return; }
       const nodeId = target.getAttr("nodeId");
-      if (nodeId) {
-        const _ws = window._ws;
-        if (_ws) _ws.send(JSON.stringify({action: "spawn.ant", data: {node_id: nodeId}}));
+      if (!nodeId) return;
+
+      // Double-tap: zoom to node
+      var now = Date.now();
+      if (_lastTap.nodeId === nodeId && now - _lastTap.time < 300) {
+        _lastTap = { time: 0, nodeId: null };
+        _zoomToNode(nodeId);
+        return;
       }
+      _lastTap = { time: now, nodeId: nodeId };
+
+      // Single tap: spawn ant
+      const _ws = window._ws;
+      if (_ws) _ws.send(JSON.stringify({action: "spawn.ant", data: {node_id: nodeId}}));
     });
     
     // ── Pan: left-click drag on background, middle-click anywhere, shift+drag ──
@@ -576,6 +589,23 @@ var BrainMap = (() => {
     _zoomCenter(factor);
   }
   
+  function _zoomToNode(nodeId) {
+    var node = nodes[nodeId];
+    if (!node || !stage) return;
+    var targetScale = 2.5;
+    var stageW = stage.width();
+    var stageH = stage.height();
+    stage.scale({ x: targetScale, y: targetScale });
+    stage.position({
+      x: stageW / 2 - node.x * targetScale,
+      y: stageH / 2 - node.y * targetScale,
+    });
+    _updateZoomDisplay();
+    _updateAngleDisplay();
+    stage.batchDraw();
+    _updateMiniMap();
+  }
+
   function _zoomToFit() {
     // Calculate bounding box of all nodes
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
