@@ -196,6 +196,7 @@
     <button class="tab-btn" onclick="showTab('campaigns')">Campaigns ({{ campaign_count }})</button>
     <button class="tab-btn" onclick="showTab('attackers')">Attackers ({{ attacker_count }})</button>
     <button class="tab-btn" onclick="showTab('domains')">Domains</button>
+    <button class="tab-btn" onclick="showTab('heatmap')">Heatmap</button>
     <button class="tab-btn" onclick="showTab('chainclaims')">Chains ({{ chain_claims|length }})</button>
     {% if dast_findings %}
     <button class="tab-btn" onclick="showTab('dast')" style="color:#ef4444">DAST ({{ dast_findings|length }})</button>
@@ -284,6 +285,46 @@
     {% endfor %}
   </div>
 
+  <!-- Heatmap Tab (full-screen) -->
+  <div id="tab-heatmap" class="tab-content">
+    <div style="margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+      <div style="display:flex;align-items:center;gap:12px">
+        <h2 style="margin:0;font-size:18px;font-weight:700;color:var(--text-primary)">Assurance Coverage Heatmap</h2>
+        <span id="hm-overall-badge" style="font-size:14px;font-weight:600;padding:4px 12px;border-radius:8px;background:var(--bg-tertiary);color:var(--text-secondary)"></span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <input id="hm-search" type="text" placeholder="Filter domains..." style="padding:6px 12px;border-radius:6px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);font-size:12px;width:180px">
+        <select id="hm-sort" style="padding:6px 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);font-size:12px">
+          <option value="asc">Lowest coverage first</option>
+          <option value="desc">Highest coverage first</option>
+          <option value="alpha">Alphabetical</option>
+          <option value="claims">Most claims</option>
+        </select>
+        <button class="btn btn-sm" onclick="loadFullHeatmap()" style="font-size:12px">Refresh</button>
+      </div>
+    </div>
+
+    <!-- Verdict breakdown -->
+    <div id="hm-verdicts" style="display:flex;gap:16px;margin-bottom:16px;flex-wrap:wrap"></div>
+
+    <!-- Overall coverage bar -->
+    <div id="hm-bar" style="margin-bottom:20px"></div>
+
+    <!-- Domain grid -->
+    <div id="hm-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px"></div>
+
+    <!-- Domain detail modal -->
+    <div id="hm-detail" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,0.7);align-items:center;justify-content:center" onclick="if(event.target===this)this.style.display='none'">
+      <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:24px;max-width:500px;width:90%;max-height:80vh;overflow-y:auto">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <h3 id="hm-detail-title" style="margin:0;font-size:16px"></h3>
+          <button onclick="document.getElementById('hm-detail').style.display='none'" style="background:none;border:none;color:var(--text-secondary);font-size:18px;cursor:pointer">✕</button>
+        </div>
+        <div id="hm-detail-body"></div>
+      </div>
+    </div>
+  </div>
+
   <!-- Chain Claims Tab -->
   <div id="tab-chainclaims" class="tab-content">
     {% if chain_claims %}
@@ -339,7 +380,166 @@
       document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
       document.getElementById('tab-' + name).classList.add('active');
       event.target.classList.add('active');
+      if (name === 'heatmap') loadFullHeatmap();
     }
+
+    // ── Full-Screen Heatmap ──────────────────────────────────────
+    let _hmTiles = [];
+    let _hmData = null;
+
+    async function loadFullHeatmap() {
+      const grid = document.getElementById('hm-grid');
+      const bar = document.getElementById('hm-bar');
+      const verdicts = document.getElementById('hm-verdicts');
+      const badge = document.getElementById('hm-overall-badge');
+      if (!grid) return;
+
+      grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:32px;color:var(--text-tertiary)">Loading coverage data...</div>';
+
+      try {
+        const resp = await fetch('/api/assurance/heatmap');
+        const d = await resp.json();
+
+        if (!d.ok || !d.tiles || d.tiles.length === 0) {
+          grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--text-secondary)"><div style="font-size:48px;margin-bottom:12px">🗺️</div>No coverage data yet.<br><span style="font-size:13px">Run <code>p scan</code> to generate assurance claims.</span></div>';
+          return;
+        }
+
+        _hmData = d;
+        _hmTiles = d.tiles;
+
+        // Overall badge
+        const pctColor = d.overall_pct >= 80 ? '#4ADE80' : d.overall_pct >= 50 ? '#FACC15' : '#FF4D6D';
+        badge.textContent = d.overall_pct + '% covered';
+        badge.style.background = pctColor + '20';
+        badge.style.color = pctColor;
+
+        // Verdict breakdown
+        verdicts.innerHTML = '';
+        const vd = [
+          {label: '✓ Proved', val: d.proved, color: '#4ADE80'},
+          {label: '✗ Violated', val: d.disproved, color: '#FF4D6D'},
+          {label: '○ Unproven', val: d.unproven, color: '#B8A898'},
+          {label: '? Pending', val: d.not_proved, color: '#FACC15'},
+        ];
+        for (const v of vd) {
+          if (v.val > 0) {
+            verdicts.innerHTML += '<div style="padding:6px 14px;border-radius:8px;background:' + v.color + '15;color:' + v.color + ';font-size:13px;font-weight:600">' + v.label + ': ' + v.val + '</div>';
+          }
+        }
+
+        // Overall bar
+        bar.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px"><span style="font-size:13px;font-weight:600;color:var(--text-primary)">Overall Coverage: ' + d.overall_pct + '%</span><span style="font-size:12px;color:var(--text-secondary)">' + d.proved + ' / ' + d.total_claims + ' claims proved</span></div><div style="height:10px;background:var(--bg-tertiary);border-radius:5px;overflow:hidden"><div style="height:100%;width:' + d.overall_pct + '%;background:' + pctColor + ';border-radius:5px;transition:width 0.6s ease"></div></div>';
+
+        _renderHeatmapTiles(_hmTiles);
+
+        // Wire search and sort
+        document.getElementById('hm-search').oninput = function() {
+          _renderHeatmapTiles(_hmTiles);
+        };
+        document.getElementById('hm-sort').onchange = function() {
+          _renderHeatmapTiles(_hmTiles);
+        };
+
+      } catch (e) {
+        grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:32px;color:#ef4444">Error: ' + e.message + '</div>';
+      }
+    }
+
+    function _renderHeatmapTiles(tiles) {
+      const grid = document.getElementById('hm-grid');
+      if (!grid) return;
+
+      // Filter
+      const query = (document.getElementById('hm-search').value || '').toLowerCase();
+      let filtered = tiles.filter(function(t) {
+        return !query || t.domain.toLowerCase().indexOf(query) >= 0;
+      });
+
+      // Sort
+      const sortBy = document.getElementById('hm-sort').value;
+      if (sortBy === 'asc') filtered.sort(function(a,b) { return a.coverage_pct - b.coverage_pct; });
+      else if (sortBy === 'desc') filtered.sort(function(a,b) { return b.coverage_pct - a.coverage_pct; });
+      else if (sortBy === 'alpha') filtered.sort(function(a,b) { return a.domain.localeCompare(b.domain); });
+      else if (sortBy === 'claims') filtered.sort(function(a,b) { return b.total - a.total; });
+
+      let html = '';
+      for (const tile of filtered) {
+        const pct = tile.coverage_pct;
+        let bgColor, textColor, borderColor;
+        if (pct >= 80) { bgColor = '#166534'; textColor = '#bbf7d0'; borderColor = '#22c55e'; }
+        else if (pct >= 60) { bgColor = '#14532d'; textColor = '#86efac'; borderColor = '#4ade80'; }
+        else if (pct >= 40) { bgColor = '#713f12'; textColor = '#fde68a'; borderColor = '#eab308'; }
+        else if (pct >= 20) { bgColor = '#7c2d12'; textColor = '#fed7aa'; borderColor = '#f97316'; }
+        else if (pct > 0) { bgColor = '#7f1d1d'; textColor = '#fecaca'; borderColor = '#ef4444'; }
+        else { bgColor = 'var(--bg-tertiary)'; textColor = 'var(--text-tertiary)'; borderColor = 'var(--border)'; }
+
+        html += '<div onclick="_showDomainDetail(\'' + tile.domain + '\')" ';
+        html += 'style="background:' + bgColor + ';border:1px solid ' + borderColor + ';border-radius:10px;padding:14px;text-align:center;cursor:pointer;transition:transform 0.15s,box-shadow 0.15s;position:relative" ';
+        html += 'onmouseenter="this.style.transform=\'scale(1.04)\';this.style.boxShadow=\'0 4px 20px ' + borderColor + '40\'" ';
+        html += 'onmouseleave="this.style.transform=\'scale(1)\';this.style.boxShadow=\'none\'" ';
+        html += '>';
+        html += '<div style="font-size:28px;font-weight:800;color:' + textColor + ';line-height:1.1">' + pct + '%</div>';
+        html += '<div style="font-size:12px;color:' + textColor + ';opacity:0.9;margin-top:4px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="' + tile.domain + '">' + tile.domain + '</div>';
+        html += '<div style="font-size:10px;color:' + textColor + ';opacity:0.6;margin-top:2px">' + tile.proved + ' / ' + tile.total + ' proved</div>';
+        // Mini progress ring
+        html += '<svg width="32" height="32" style="position:absolute;top:6px;right:6px"><circle cx="16" cy="16" r="12" fill="none" stroke="' + textColor + '" stroke-opacity="0.2" stroke-width="3"/><circle cx="16" cy="16" r="12" fill="none" stroke="' + textColor + '" stroke-width="3" stroke-dasharray="' + (pct * 0.754) + ' 75.4" stroke-linecap="round" transform="rotate(-90 16 16)"/></svg>';
+        html += '</div>';
+      }
+
+      if (filtered.length === 0) {
+        html = '<div style="grid-column:1/-1;text-align:center;padding:32px;color:var(--text-secondary)">No domains match your filter.</div>';
+      }
+
+      grid.innerHTML = html;
+    }
+
+    function _showDomainDetail(domain) {
+      const modal = document.getElementById('hm-detail');
+      const title = document.getElementById('hm-detail-title');
+      const body = document.getElementById('hm-detail-body');
+      if (!modal || !_hmData) return;
+
+      const tile = _hmTiles.find(function(t) { return t.domain === domain; });
+      if (!tile) return;
+
+      title.textContent = domain;
+      let html = '';
+      html += '<div style="display:flex;gap:16px;margin-bottom:16px;flex-wrap:wrap">';
+      html += '<div style="text-align:center;flex:1;min-width:80px"><div style="font-size:32px;font-weight:800;color:' + (tile.coverage_pct >= 80 ? '#4ADE80' : tile.coverage_pct >= 50 ? '#FACC15' : '#FF4D6D') + '">' + tile.coverage_pct + '%</div><div style="font-size:11px;color:var(--text-secondary)">Coverage</div></div>';
+      html += '<div style="text-align:center;flex:1;min-width:80px"><div style="font-size:32px;font-weight:800;color:#4ADE80">' + tile.proved + '</div><div style="font-size:11px;color:var(--text-secondary)">Proved</div></div>';
+      html += '<div style="text-align:center;flex:1;min-width:80px"><div style="font-size:32px;font-weight:800;color:#FF4D6D">' + (tile.total - tile.proved) + '</div><div style="font-size:11px;color:var(--text-secondary)">Unproved</div></div>';
+      html += '</div>';
+
+      // Coverage bar
+      html += '<div style="margin-bottom:16px"><div style="height:12px;background:var(--bg-tertiary);border-radius:6px;overflow:hidden"><div style="height:100%;width:' + tile.coverage_pct + '%;background:' + (tile.coverage_pct >= 80 ? '#4ADE80' : tile.coverage_pct >= 50 ? '#FACC15' : '#FF4D6D') + ';border-radius:6px"></div></div></div>';
+
+      // Claims list
+      html += '<h4 style="font-size:13px;color:var(--text-secondary);margin-bottom:8px">Claims in this domain</h4>';
+      html += '<div style="display:flex;flex-direction:column;gap:6px;max-height:300px;overflow-y:auto">';
+
+      // Find claims for this domain from the assurance page data (if available)
+      const claims = window._assuranceClaims || [];
+      const domainClaims = claims.filter(function(c) { return c.domain === domain; });
+      if (domainClaims.length > 0) {
+        for (const c of domainClaims) {
+          const vColor = c.verdict === 'proved' ? '#4ADE80' : c.verdict === 'disproved' ? '#FF4D6D' : '#FACC15';
+          html += '<div style="padding:8px 12px;border-radius:6px;border:1px solid var(--border);background:var(--bg-secondary)">';
+          html += '<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px;font-weight:600;color:' + vColor + '">' + c.verdict.toUpperCase() + '</span><span style="font-size:10px;color:var(--text-tertiary)">' + c.evidence_count + ' evidence</span></div>';
+          html += '<div style="font-size:12px;color:var(--text-primary);margin-top:2px">' + c.statement.substring(0, 120) + (c.statement.length > 120 ? '...' : '') + '</div>';
+          html += '</div>';
+        }
+      } else {
+        html += '<div style="padding:12px;text-align:center;color:var(--text-tertiary);font-size:12px">No individual claim details available for this domain.</div>';
+      }
+      html += '</div>';
+
+      body.innerHTML = html;
+      modal.style.display = 'flex';
+    }
+
+    // Expose claims for the detail modal
+    window._assuranceClaims = {{ claims|tojson }};
 
     async function runDAST() {
       const btn = document.getElementById('btn-run-dast');
