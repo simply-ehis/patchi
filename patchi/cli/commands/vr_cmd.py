@@ -73,10 +73,18 @@ def run(
         sys.exit(1)
 
 
+# Viewports matching the visual regression agent
+VIEWPORTS = [
+    {"width": 1440, "height": 900, "label": "desktop"},
+    {"width": 768, "height": 1024, "label": "tablet"},
+    {"width": 375, "height": 812, "label": "mobile"},
+]
+
+
 def _cmd_capture(
     root: Path, baseline_dir: Path, evidence_dir: Path
 ) -> None:
-    """Capture fresh baselines for all discovered routes using Playwright."""
+    """Capture fresh baselines for all routes at mobile/tablet/desktop viewports."""
     try:
         from playwright.sync_api import sync_playwright
     except ImportError:
@@ -95,47 +103,75 @@ def _cmd_capture(
         print("No routes discovered.")
         sys.exit(1)
 
+    vp_labels = ", ".join(vp["label"] for vp in VIEWPORTS)
     print(f"📸 Capturing baselines from {server_url}")
     print(f"   Routes: {len(routes)}")
+    print(f"   Viewports: {vp_labels}")
     print(f"   Baseline dir: {baseline_dir}")
 
     baseline_dir.mkdir(parents=True, exist_ok=True)
     captured = 0
     skipped = 0
+    errors = 0
 
     with sync_playwright() as pw:
         browser = pw.chromium.launch(headless=True)
-        ctx = browser.new_context(viewport={"width": 1280, "height": 720})
-        page = ctx.new_page()
 
         for route in routes:
             slug = route.strip("/").replace("/", "_") or "root"
-            shot_path = baseline_dir / slug / "desktop.png"
-            shot_path.parent.mkdir(parents=True, exist_ok=True)
+            route_dir = baseline_dir / slug
+            route_dir.mkdir(parents=True, exist_ok=True)
 
-            if shot_path.exists():
-                skipped += 1
-                print(f"   ⏭ {route} (baseline exists, use --reset to overwrite)")
-                continue
+            for vp in VIEWPORTS:
+                shot_path = route_dir / f"{vp['label']}.png"
 
-            try:
-                resp = page.goto(f"{server_url}{route}", wait_until="networkidle", timeout=15000)
-                status = resp.status if resp else 0
-                if status >= 400:
-                    print(f"   ⚠ {route} — HTTP {status}")
+                if shot_path.exists():
+                    skipped += 1
                     continue
-                # Wait for render
-                page.wait_for_timeout(1000)
-                page.screenshot(path=str(shot_path), full_page=True)
-                size_kb = shot_path.stat().st_size // 1024
-                print(f"   ✅ {route} → {shot_path.name} ({size_kb} KB)")
-                captured += 1
-            except Exception as e:
-                print(f"   ❌ {route} — {type(e).__name__}: {e}")
+
+                # Create a new context for each viewport
+                ctx = browser.new_context(
+                    viewport={"width": vp["width"], "height": vp["height"]},
+                    device_scale_factor=1,
+                )
+                page = ctx.new_page()
+
+                try:
+                    resp = page.goto(
+                        f"{server_url}{route}",
+                        wait_until="networkidle",
+                        timeout=15000,
+                    )
+                    status = resp.status if resp else 0
+                    if status >= 400:
+                        print(f"   ⚠ {route} @ {vp['label']} — HTTP {status}")
+                        errors += 1
+                        continue
+
+                    page.wait_for_timeout(1000)
+                    page.screenshot(path=str(shot_path), full_page=True)
+                    size_kb = shot_path.stat().st_size // 1024
+                    print(
+                        f"   ✅ {route} @ {vp['label']} "
+                        f"({vp['width']}×{vp['height']}) → {size_kb} KB"
+                    )
+                    captured += 1
+                except Exception as e:
+                    print(f"   ❌ {route} @ {vp['label']} — {type(e).__name__}: {e}")
+                    errors += 1
+                finally:
+                    try:
+                        ctx.close()
+                    except Exception:
+                        pass
 
         browser.close()
 
-    print(f"\nDone: {captured} captured, {skipped} skipped (already exist)")
+    total_expected = len(routes) * len(VIEWPORTS)
+    print(
+        f"\nDone: {captured} captured, {skipped} skipped, "
+        f"{errors} errors ({total_expected} total screenshots)"
+    )
     if captured > 0:
         print(f"Baselines saved to: {baseline_dir}")
 
@@ -363,8 +399,23 @@ def _cmd_list(
 
         print(f"Baselines: {len(baselines)}")
         if baselines:
+            # Group by viewport
+            vp_counts: dict[str, int] = {}
+            vp_size: dict[str, float] = {}
             for b in baselines:
-                print(f"   {b['route']} ({b['viewport']}) — {b['size_kb']} KB")
+                vp = b["viewport"]
+                vp_counts[vp] = vp_counts.get(vp, 0) + 1
+                vp_size[vp] = vp_size.get(vp, 0) + b["size_kb"]
+            print(f"   Routes: {len(set(b['route'] for b in baselines))}")
+            for vp_label in ["desktop", "tablet", "mobile"]:
+                if vp_label in vp_counts:
+                    print(
+                        f"   {vp_label}: {vp_counts[vp_label]} screenshots "
+                        f"({vp_size[vp_label]:.0f} KB)"
+                    )
+            print()
+            for b in baselines:
+                print(f"   {b['route']} @ {b['viewport']} — {b['size_kb']} KB")
         else:
             print("   No baselines. Run: p vr baseline")
 
