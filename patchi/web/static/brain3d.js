@@ -54,6 +54,55 @@ var BrainMap3D = (() => {
     return COLORS[type] || COLORS.default;
   }
 
+  // ── Two-finger rotate gesture ─────────────────────────────
+  let _rotateState = null; // {startAngle, startAzimuth, startPolar}
+
+  function _touchAngle(t1, t2) {
+    return Math.atan2(t2.clientY - t1.clientY, t2.clientX - t1.clientX);
+  }
+
+  function _setupTouchRotate(el) {
+    el.addEventListener('touchstart', function(e) {
+      if (e.touches.length === 2 && controls) {
+        var angle = _touchAngle(e.touches[0], e.touches[1]);
+        // Store camera orbit state
+        var offset = new THREE.Vector3().copy(camera.position).sub(controls.target);
+        var spherical = new THREE.Spherical().setFromVector3(offset);
+        _rotateState = {
+          startAngle: angle,
+          startAzimuth: spherical.theta,
+          startPolar: spherical.phi,
+        };
+        // Switch to DOLLY_ROTATE so two fingers can also zoom
+        controls.touches.TWO = THREE.TOUCH.DOLLY_ROTATE;
+      }
+    }, { passive: true });
+
+    el.addEventListener('touchmove', function(e) {
+      if (e.touches.length === 2 && _rotateState && controls) {
+        var angle = _touchAngle(e.touches[0], e.touches[1]);
+        var delta = angle - _rotateState.startAngle;
+        // Apply azimuthal rotation
+        var offset = new THREE.Vector3().copy(camera.position).sub(controls.target);
+        var spherical = new THREE.Spherical().setFromVector3(offset);
+        spherical.theta = _rotateState.startAzimuth + delta * 1.5;
+        // Clamp polar angle to prevent flipping
+        spherical.phi = Math.max(0.1, Math.min(Math.PI - 0.1, spherical.phi));
+        offset.setFromSpherical(spherical);
+        camera.position.copy(controls.target).add(offset);
+        camera.lookAt(controls.target);
+      }
+    }, { passive: true });
+
+    el.addEventListener('touchend', function(e) {
+      if (e.touches.length < 2 && _rotateState) {
+        _rotateState = null;
+        // Restore DOLLY_PAN for two fingers
+        if (controls) controls.touches.TWO = THREE.TOUCH.DOLLY_PAN;
+      }
+    }, { passive: true });
+  }
+
   function init(containerId) {
     const el = document.getElementById(containerId);
     if (!el) return;
@@ -104,6 +153,8 @@ var BrainMap3D = (() => {
       controls.enableKeys = true;
       // Prevent default touch actions on the canvas
       renderer.domElement.style.touchAction = 'none';
+      // Two-finger rotate gesture
+      _setupTouchRotate(renderer.domElement);
     }
 
     // Groups
