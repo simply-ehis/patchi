@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import time
 from dataclasses import dataclass
 from typing import Any
 
@@ -184,42 +185,43 @@ class DASTAgent(BaseAgent):
         result.data["findings_count"] = len(test_results)
 
     async def _run_tests(self, target_url: str, inp: AgentInput) -> list[Finding]:
-        """Run all DAST tests asynchronously."""
+        """Run all DAST tests asynchronously with video recording."""
         findings: list[Finding] = []
 
         try:
-            from patchi.core.testing.live_v2.browser_pool import (
-                BrowserConfig,
-                get_browser_pool,
-                shutdown_browser_pool,
-            )
             from patchi.core.testing.live_v2.screenshot_manager import ScreenshotManager
-
-            # Initialize browser pool
-            config = BrowserConfig(
-                headless=True,
-                max_browsers=2,
-                viewport={"width": 1280, "height": 720},
+            from patchi.core.testing.live_v2.video_recorder import (
+                RecordingConfig,
+                VideoRecorder,
             )
-            pool = await get_browser_pool(config)
+
             screenshot_mgr = ScreenshotManager(
                 baseline_dir=inp.root / ".patchi" / "evidence" / "dast"
             )
 
-            try:
-                # Run each test
-                for test in DAST_TESTS:
-                    try:
-                        finding = await self._run_test(
-                            pool, screenshot_mgr, test, target_url
-                        )
-                        if finding:
-                            findings.append(finding)
-                    except Exception as e:
-                        _log.warning("DAST test %s failed: %s", test.name, e)
+            # Initialize video recorder — outputs to evidence/video
+            video_dir = inp.root / ".patchi" / "evidence" / "video"
+            video_dir.mkdir(parents=True, exist_ok=True)
+            recorder = VideoRecorder(RecordingConfig(output_dir=video_dir))
 
-            finally:
-                await shutdown_browser_pool()
+            # Run each test with video recording
+            for test in DAST_TESTS:
+                recording_id = None
+                try:
+                    finding, recording_id = await self._run_test_recorded(
+                        recorder, screenshot_mgr, test, target_url
+                    )
+                    if finding:
+                        findings.append(finding)
+                except Exception as e:
+                    _log.warning("DAST test %s failed: %s", test.name, e)
+                finally:
+                    # Ensure recording is stopped even on error
+                    if recording_id and recording_id in recorder._active_recordings:
+                        try:
+                            await recorder.stop_recording(recording_id)
+                        except Exception:
+                            pass
 
         except ImportError:
             _log.warning("Playwright not installed. Install with: pip install playwright")
@@ -228,22 +230,30 @@ class DASTAgent(BaseAgent):
 
         return findings
 
-    async def _run_test(
+    async def _run_test_recorded(
         self,
-        pool,
+        recorder,
         screenshot_mgr,
         test: DASTTest,
         target_url: str,
-    ) -> Finding | None:
-        """Run a single DAST test and return a finding if vulnerability found."""
-        page = await pool.get_page()
+    ) -> tuple[Finding | None, str | None]:
+        """Run a single DAST test with video recording.
+
+        Returns (finding, recording_id) so the caller can stop the recording.
+        """
+        # Start a recorded browser context for this test
+        test_name = f"dast_{test.name}_{int(time.time())}"
+        context, browser = await recorder.start_recording(test_name)
+        recording_id = f"{test_name}-{int(time.time())}"
+
+        page = await context.new_page()
 
         try:
             # Get the test function
             test_fn = getattr(self, test.test_fn, None)
             if not test_fn:
                 _log.warning("DAST test function not found: %s", test.test_fn)
-                return None
+                return None, recording_id
 
             # Run the test
             vuln_found, evidence = await test_fn(page, target_url, screenshot_mgr)
@@ -265,12 +275,31 @@ class DASTAgent(BaseAgent):
                     file=target_url,
                     suggestion=f"Fix {test.category} vulnerability: {evidence}",
                     code_snippet=evidence[:500] if evidence else "",
-                )
+                ), recording_id
 
-            return None
+            return None, recording_id
 
         finally:
-            await pool.release_page(page)
+            # Close page and stop recording
+            try:
+                await page.close()
+            except Exception:
+                pass
+            # Stop recording and save video
+            try:
+                if recording_id in recorder._active_recordings:
+                    recording = await recorder.stop_recording(recording_id)
+                    _log.info(
+                        "DAST video recorded: %s (%.1fs)",
+                        test.name,
+                        recording.total_duration_seconds,
+                    )
+            except Exception as e:
+                _log.debug("Video recording stop failed: %s", e)
+            try:
+                await browser.close()
+            except Exception:
+                pass
 
     # ── XSS Tests ──────────────────────────────────────────────────────────
 
