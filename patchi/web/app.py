@@ -142,7 +142,6 @@ def create_app(root: Path) -> FastAPI:
 
     # Performance: cache static assets with versioned URLs
     from starlette.middleware.base import BaseHTTPMiddleware
-    from starlette.responses import Response
 
     class StaticCacheMiddleware(BaseHTTPMiddleware):
         async def dispatch(self, request, call_next):

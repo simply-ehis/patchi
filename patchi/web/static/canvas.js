@@ -1169,6 +1169,7 @@ var BrainMap = (() => {
 
   // ── Search ──────────────────────────────────────────────────
   var _searchQuery = '', _searchMatches = [], _searchOrigColors = {}, _searchIndex = -1;
+  var _selectedNodes = []; // multi-select for Ctrl+Click comparison
 
   // ── Fuzzy scoring ─────────────────────────────────────────
   function _fuzzyScore(query, full, short, tokens) {
@@ -1241,9 +1242,12 @@ var BrainMap = (() => {
         }
       }
       _searchMatches = [];
+      _selectedNodes = [];
       if (countEl) countEl.textContent = '';
       var dd = document.getElementById('brain-search-dropdown');
       if (dd) dd.style.display = 'none';
+      var cp = document.getElementById('brain-compare-panel');
+      if (cp) cp.style.display = 'none';
       nodeLayer.batchDraw();
       return;
     }
@@ -1318,6 +1322,13 @@ var BrainMap = (() => {
     if (!dd) return;
     if (_searchMatches.length === 0) { dd.style.display = 'none'; return; }
     var html = '';
+    // Compare panel header when 2+ selected
+    if (_selectedNodes.length >= 2) {
+      html += '<div style="padding:6px 10px;background:rgba(88,166,255,0.1);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:6px">';
+      html += '<span style="font-size:11px;font-weight:600;color:var(--accent)">' + _selectedNodes.length + ' selected</span>';
+      html += '<button onclick="BrainMap.clearSelection()" style="margin-left:auto;font-size:10px;padding:2px 6px;border-radius:4px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-secondary);cursor:pointer">Clear</button>';
+      html += '</div>';
+    }
     for (var di = 0; di < _searchMatches.length; di++) {
       var did = _searchMatches[di];
       var dn = nodes[did];
@@ -1326,7 +1337,13 @@ var BrainMap = (() => {
       var fc = (dn && dn._findings) || 0;
       var sevColor = sev === 'critical' ? '#FF4D6D' : sev === 'high' ? '#F97316' : sev === 'medium' ? '#FACC15' : '#4ADE80';
       var isActive = di === _searchIndex;
-      html += '<div class="sr-item" data-idx="' + di + '" style="padding:6px 10px;cursor:pointer;display:flex;align-items:center;gap:8px;border-bottom:1px solid rgba(255,255,255,0.05);transition:background 0.1s" onmouseenter="this.style.background=\'var(--bg-tertiary)\'" onmouseleave="this.style.background=\'\'" onclick="BrainMap.searchSelect(' + di + ')">';
+      var isSelected = _selectedNodes.indexOf(did) >= 0;
+      var bgColor = isSelected ? 'rgba(88,166,255,0.1)' : (isActive ? 'rgba(88,166,255,0.15)' : '');
+      html += '<div class="sr-item" data-idx="' + di + '" data-id="' + did + '" style="padding:6px 10px;cursor:pointer;display:flex;align-items:center;gap:8px;border-bottom:1px solid rgba(255,255,255,0.05);transition:background 0.1s;background:' + bgColor + '" onmouseenter="if(!this.style.background)this.style.background=\'var(--bg-tertiary)\'" onmouseleave="this.style.background=\'' + bgColor.replace(/'/g, '') + '\'" onclick="BrainMap.searchSelect(' + di + ', event)" oncontextmenu="BrainMap.toggleSelect(\'' + did + '\');return false">';
+      // Checkbox for multi-select
+      html += '<span style="display:inline-flex;width:14px;height:14px;border-radius:3px;border:1px solid ' + (isSelected ? 'var(--accent)' : 'var(--border)') + ';align-items:center;justify-content:center;flex-shrink:0;background:' + (isSelected ? 'var(--accent)' : 'transparent') + '">';
+      if (isSelected) html += '<svg width="10" height="10" viewBox="0 0 10 10"><path d="M2 5l2.5 2.5L8 3" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+      html += '</span>';
       html += '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:' + sevColor + ';flex-shrink:0"></span>';
       html += '<span style="flex:1;font-size:12px;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + did + '">' + shortName + '</span>';
       if (fc > 0) html += '<span style="font-size:10px;color:' + sevColor + ';font-weight:600;flex-shrink:0">' + fc + '</span>';
@@ -1338,12 +1355,102 @@ var BrainMap = (() => {
     // Highlight active item
     var items = dd.querySelectorAll('.sr-item');
     for (var hi = 0; hi < items.length; hi++) {
-      items[hi].style.background = hi === _searchIndex ? 'rgba(88,166,255,0.15)' : '';
+      if (hi !== _searchIndex && _selectedNodes.indexOf(items[hi].getAttribute('data-id')) < 0) {
+        items[hi].style.background = '';
+      }
     }
   }
 
-  function searchSelect(idx) {
+  function searchSelect(idx, evt) {
+    // Ctrl+Click or Cmd+Click = toggle multi-select
+    if (evt && (evt.ctrlKey || evt.metaKey)) {
+      toggleSelect(_searchMatches[idx]);
+      return;
+    }
     _zoomToSearchMatch(idx);
+  }
+
+  function toggleSelect(id) {
+    var pos = _selectedNodes.indexOf(id);
+    if (pos >= 0) {
+      _selectedNodes.splice(pos, 1);
+    } else {
+      _selectedNodes.push(id);
+    }
+    _highlightSelectedNodes();
+    _renderSearchDropdown();
+    _renderComparePanel();
+  }
+
+  function clearSelection() {
+    _selectedNodes = [];
+    _highlightSelectedNodes();
+    _renderSearchDropdown();
+    _renderComparePanel();
+  }
+
+  function _highlightSelectedNodes() {
+    // Reset all search-match nodes to default search style
+    for (var si = 0; si < _searchMatches.length; si++) {
+      var sn = nodes[_searchMatches[si]];
+      if (!sn || !sn.shape) continue;
+      var isSel = _selectedNodes.indexOf(_searchMatches[si]) >= 0;
+      if (isSel) {
+        sn.shape.shadowColor('#38bdf8'); sn.shape.shadowBlur(20); sn.shape.shadowOpacity(1);
+        sn.shape.stroke('#38bdf8'); sn.shape.strokeWidth(3);
+      } else if (si === _searchIndex) {
+        sn.shape.shadowColor('#fff'); sn.shape.shadowBlur(20); sn.shape.shadowOpacity(1);
+        sn.shape.strokeWidth(0);
+      } else {
+        sn.shape.shadowColor('#E8920A'); sn.shape.shadowBlur(12); sn.shape.shadowOpacity(0.8);
+        sn.shape.strokeWidth(0);
+      }
+    }
+    nodeLayer.batchDraw();
+  }
+
+  function _renderComparePanel() {
+    var panel = document.getElementById('brain-compare-panel');
+    if (!panel) {
+      // Create panel on demand
+      var dd = document.getElementById('brain-search-dropdown');
+      if (!dd) return;
+      panel = document.createElement('div');
+      panel.id = 'brain-compare-panel';
+      panel.style.cssText = 'display:none;border-top:1px solid var(--border);padding:8px 10px;background:var(--bg-secondary);font-size:11px';
+      dd.parentElement.appendChild(panel);
+    }
+    if (_selectedNodes.length < 2) {
+      panel.style.display = 'none';
+      return;
+    }
+    var html = '<div style="font-weight:600;color:var(--accent);margin-bottom:6px;font-size:11px">Compare (' + _selectedNodes.length + ' nodes)</div>';
+    html += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:4px">';
+    for (var ci = 0; ci < _selectedNodes.length; ci++) {
+      var cid = _selectedNodes[ci];
+      var cn = nodes[cid];
+      var cShort = cid.split('/').pop();
+      var cSev = (cn && cn._severity) || 'info';
+      var cFc = (cn && cn._findings) || 0;
+      var cColor = cSev === 'critical' ? '#FF4D6D' : cSev === 'high' ? '#F97316' : cSev === 'medium' ? '#FACC15' : '#4ADE80';
+      var cPath = cid.split('/');
+      var cDir = cPath.length > 1 ? cPath.slice(0, -1).join('/') : '';
+      html += '<div style="padding:4px 6px;background:var(--bg-primary);border:1px solid var(--border);border-radius:4px;position:relative">';
+      html += '<button onclick="BrainMap.removeSelected(\'' + cid + '\')" style="position:absolute;top:2px;right:2px;width:14px;height:14px;border:none;background:none;color:var(--text-tertiary);cursor:pointer;font-size:10px;line-height:1;padding:0">\u00d7</button>';
+      html += '<div style="display:flex;align-items:center;gap:4px;margin-bottom:2px">';
+      html += '<span style="width:6px;height:6px;border-radius:50%;background:' + cColor + ';flex-shrink:0"></span>';
+      html += '<span style="font-weight:600;color:var(--text-primary);font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + cid + '">' + cShort + '</span>';
+      html += '</div>';
+      if (cDir) html += '<div style="color:var(--text-tertiary);font-size:9px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + cDir + '">' + cDir + '</div>';
+      html += '<div style="display:flex;justify-content:space-between;margin-top:2px">';
+      html += '<span style="color:' + cColor + ';font-size:10px;font-weight:600">' + cFc + ' findings</span>';
+      html += '<span style="color:var(--text-tertiary);font-size:9px;text-transform:uppercase">' + cSev + '</span>';
+      html += '</div>';
+      html += '</div>';
+    }
+    html += '</div>';
+    panel.innerHTML = html;
+    panel.style.display = 'block';
   }
 
   function _zoomToSearchMatch(idx) {
@@ -1450,7 +1557,10 @@ var BrainMap = (() => {
     searchNodes: searchNodes,
     searchNext: function() { _searchNext(); },
     searchPrev: function() { _searchPrev(); },
-    searchSelect: function(idx) { searchSelect(idx); },
+    searchSelect: function(idx, evt) { searchSelect(idx, evt); },
+    toggleSelect: function(id) { toggleSelect(id); },
+    clearSelection: function() { clearSelection(); },
+    removeSelected: function(id) { toggleSelect(id); },
   };
 
   // Close search dropdown when clicking outside
