@@ -959,15 +959,24 @@
     ]).then(function(res){
       window._brainNodes = res[0].nodes || [];
       window._brainEdges = res[1].edges || [];
-      // Init the brain map
-      if(window.BrainMap) BrainMap.init('brain-map');
-      // Pass data directly to the canvas brain map
-      if(window.BrainMap && window.BrainMap.loadNodes) {
-        BrainMap.loadNodes(window._brainNodes, window._brainEdges);
-      }
+      // Lazy-load brain map libs then init
+      window._loadBrainLibs();
+      var _tryInit = function() {
+        if (window.BrainMap) {
+          BrainMap.init('brain-map');
+          BrainMap.loadNodes(window._brainNodes, window._brainEdges);
+        } else {
+          setTimeout(_tryInit, 100);
+        }
+      };
+      _tryInit();
     }).catch(function(){
-      // Fallback: init without data
-      if(window.BrainMap) BrainMap.init('brain-map');
+      window._loadBrainLibs();
+      var _tryInit2 = function() {
+        if (window.BrainMap) { BrainMap.init('brain-map'); }
+        else { setTimeout(_tryInit2, 100); }
+      };
+      _tryInit2();
     });
   });
 })();

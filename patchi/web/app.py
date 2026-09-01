@@ -140,6 +140,20 @@ def create_app(root: Path) -> FastAPI:
     static_dir = _base / "static"
     app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
+    # Performance: cache static assets with versioned URLs
+    from starlette.middleware.base import BaseHTTPMiddleware
+    from starlette.responses import Response
+
+    class StaticCacheMiddleware(BaseHTTPMiddleware):
+        async def dispatch(self, request, call_next):
+            response = await call_next(request)
+            if request.url.path.startswith("/static/"):
+                # Long cache for static assets (they have ?v=N cache-busting)
+                response.headers["Cache-Control"] = "public, max-age=86400, stale-while-revalidate=604800"
+            return response
+
+    app.add_middleware(StaticCacheMiddleware)
+
     # Import and register routes
     from patchi.web.api.brain_map import router as brain_map_router
     from patchi.web.api.charts import router as charts_router
