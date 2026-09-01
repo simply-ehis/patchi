@@ -457,6 +457,18 @@
     }
   };
 
+  // ── Fast agent refresh during active scans (5s) ──────────────
+  var _agentFastPoll = null;
+  function _startAgentFastPoll() {
+    if (_agentFastPoll) return;
+    _agentFastPoll = setInterval(function() {
+      window.refreshAgents();
+    }, 5000);
+  }
+  function _stopAgentFastPoll() {
+    if (_agentFastPoll) { clearInterval(_agentFastPoll); _agentFastPoll = null; }
+  }
+
   // Listen for scan.complete via WS to auto-refresh findings
   function _setupWSListener() {
     var ws = window._ws;
@@ -468,12 +480,19 @@
           // Show cancel button
           var btnCancel = document.getElementById('btn-cancel-scan');
           if (btnCancel) { btnCancel.style.display = 'inline-block'; btnCancel.textContent = 'Cancel'; btnCancel.disabled = false; btnCancel.style.opacity = '1'; }
+          // Start fast agent refresh
+          _startAgentFastPoll();
+        }
+        if (msg.event === 'scan.progress') {
+          // Refresh agents on each agent completion during scan
+          window.refreshAgents();
         }
         if (msg.event === 'scan.complete' || msg.event === 'scan.cancelled') {
           // Hide cancel button and unregister
           var btnCancel2 = document.getElementById('btn-cancel-scan');
           if (btnCancel2) { btnCancel2.style.display = 'none'; }
           if (typeof _unregisterOp === 'function') _unregisterOp('scan');
+          _stopAgentFastPoll();
           setTimeout(function() {
             window.refreshFindings();
             window.refreshAgents();
