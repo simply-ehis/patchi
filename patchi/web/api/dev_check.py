@@ -130,6 +130,10 @@ async def run_dev_check(request: Request, strict: bool = False, fast: bool = Fal
     results["overall"] = "PASS" if overall_pass else "FAIL"
     results["timestamp"] = time.time()
     results["strict"] = strict
+    results["fast"] = fast
+
+    # Record history for the timing chart
+    _record_history(root, results)
 
     return JSONResponse(results)
 
@@ -202,6 +206,67 @@ async def _run_gate(
             "output": str(e),
             "parsed": {},
         }
+
+
+def _record_history(root: Path, results: dict) -> None:
+    """Append gate timing data to history file for the chart."""
+    try:
+        import json as _json
+
+        history_path = root / ".patchi" / "dev_check_history.json"
+        history_path.parent.mkdir(parents=True, exist_ok=True)
+
+        history: list[dict] = []
+        if history_path.is_file():
+            try:
+                history = _json.loads(history_path.read_text(encoding="utf-8"))
+            except Exception:
+                history = []
+
+        entry = {
+            "timestamp": results.get("timestamp", time.time()),
+            "overall": results.get("overall", "?"),
+            "fast": results.get("fast", False),
+            "gates": [],
+        }
+        for g in results.get("gates", []):
+            entry["gates"].append({
+                "name": g.get("name", "?"),
+                "status": g.get("status", "?"),
+                "elapsed": g.get("elapsed", 0),
+            })
+        entry["total_time"] = sum(g["elapsed"] for g in entry["gates"])
+
+        history.append(entry)
+
+        # Keep last 50 runs
+        if len(history) > 50:
+            history = history[-50:]
+
+        tmp = history_path.with_suffix(".json.tmp")
+        tmp.write_text(_json.dumps(history, indent=2), encoding="utf-8")
+        tmp.replace(history_path)
+    except Exception:
+        pass  # best-effort
+
+
+@router.get("/dev-check/history")
+async def dev_check_history(request: Request) -> JSONResponse:
+    """Return gate execution history for the timing chart."""
+    root = request.app.state.root
+    import json as _json
+
+    history_path = root / ".patchi" / "dev_check_history.json"
+    history: list[dict] = []
+    if history_path.is_file():
+        try:
+            history = _json.loads(history_path.read_text(encoding="utf-8"))
+        except Exception:
+            history = []
+
+    # Keep last 20 for the chart
+    recent = history[-20:]
+    return JSONResponse({"ok": True, "runs": recent, "count": len(recent)})
 
 
 def _parse_gate_output(gate_name: str, output: str) -> dict:

@@ -227,6 +227,20 @@
       </div>
       <div id="scan-progress-agent" style="font-size:11px;color:var(--text-tertiary);margin-top:4px"></div>
     </div>
+    <!-- Gate Timing Chart -->
+    <div style="margin-top:12px;border-top:1px solid var(--border);padding-top:12px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <span style="font-size:12px;font-weight:600;color:var(--text-secondary)">&#x1F4CA; Gate Timing (last 20 runs)</span>
+        <button class="btn btn-sm" onclick="loadGateTimingChart()" style="font-size:10px;padding:2px 8px">Refresh</button>
+      </div>
+      <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:12px;position:relative">
+        <canvas id="gate-timing-canvas" width="600" height="160" style="width:100%;height:160px"></canvas>
+        <div id="gate-timing-empty" style="display:none;text-align:center;padding:20px;color:var(--text-tertiary);font-size:12px">
+          No dev check runs yet. Click Dev Check to start tracking.
+        </div>
+        <div id="gate-timing-tooltip" style="display:none;position:absolute;background:var(--bg-card);border:1px solid var(--border);border-radius:6px;padding:6px 10px;font-size:11px;pointer-events:none;z-index:10;white-space:nowrap"></div>
+      </div>
+    </div>
   </div>
 
   <!-- Assurance Heatmap -->
@@ -480,6 +494,179 @@
   }
 
   // Listen for scan.complete via WS to auto-refresh findings
+  // ── Gate Timing Chart ────────────────────────────────────
+  var _gateTimingData = null;
+
+  async function loadGateTimingChart() {
+    try {
+      var resp = await fetch('/api/dev-check/history');
+      var data = await resp.json();
+      if (!data.ok || !data.runs || data.runs.length === 0) {
+        document.getElementById('gate-timing-empty').style.display = 'block';
+        document.getElementById('gate-timing-canvas').style.display = 'none';
+        return;
+      }
+      _gateTimingData = data.runs;
+      document.getElementById('gate-timing-empty').style.display = 'none';
+      document.getElementById('gate-timing-canvas').style.display = 'block';
+      _drawGateTimingChart();
+    } catch (e) {
+      document.getElementById('gate-timing-empty').style.display = 'block';
+    }
+  }
+
+  function _drawGateTimingChart() {
+    var canvas = document.getElementById('gate-timing-canvas');
+    if (!canvas || !_gateTimingData || _gateTimingData.length === 0) return;
+    var ctx = canvas.getContext('2d');
+    var dpr = window.devicePixelRatio || 1;
+    var rect = canvas.parentElement.getBoundingClientRect();
+    var W = rect.width - 24;
+    var H = 160;
+    canvas.width = W * dpr;
+    canvas.height = H * dpr;
+    canvas.style.width = W + 'px';
+    canvas.style.height = H + 'px';
+    ctx.scale(dpr, dpr);
+
+    var runs = _gateTimingData;
+    var pad = { top: 16, right: 16, bottom: 28, left: 40 };
+    var cW = W - pad.left - pad.right;
+    var cH = H - pad.top - pad.bottom;
+
+    // Find max time for Y axis
+    var maxTime = 0;
+    for (var i = 0; i < runs.length; i++) {
+      if (runs[i].total_time > maxTime) maxTime = runs[i].total_time;
+    }
+    maxTime = Math.max(maxTime, 10);
+    // Round up to nice number
+    maxTime = Math.ceil(maxTime / 10) * 10;
+
+    ctx.clearRect(0, 0, W, H);
+
+    // Axes
+
+    ctx.strokeStyle = 'rgba(100,116,139,0.3)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(pad.left, pad.top);
+    ctx.lineTo(pad.left, H - pad.bottom);
+    ctx.lineTo(W - pad.right, H - pad.bottom);
+    ctx.stroke();
+
+    // Y-axis labels
+    ctx.fillStyle = '#64748b';
+    ctx.font = '9px JetBrains Mono, monospace';
+    ctx.textAlign = 'right';
+    for (var p = 0; p <= 4; p++) {
+      var val = Math.round(maxTime * p / 4);
+      var y = H - pad.bottom - (p / 4) * cH;
+      ctx.fillText(val + 's', pad.left - 4, y + 3);
+      if (p > 0) {
+        ctx.beginPath();
+        ctx.strokeStyle = 'rgba(100,116,139,0.15)';
+        ctx.setLineDash([3, 3]);
+        ctx.moveTo(pad.left, y);
+        ctx.lineTo(W - pad.right, y);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+    }
+
+    // Gate colors
+    var gateColors = { 'Ruff Lint': '#38bdf8', 'Pytest': '#4ADE80', 'Security Scan': '#f97316' };
+    var barW = Math.max(4, Math.min(16, cW / runs.length - 2));
+
+    // Draw stacked bars for each run
+    var coords = []; // for hover detection
+    for (var ri = 0; ri < runs.length; ri++) {
+      var run = runs[ri];
+      var x = pad.left + (ri + 0.5) * (cW / runs.length) - barW / 2;
+      var stackY = H - pad.bottom;
+      var gates = run.gates || [];
+      var runCoords = [];
+      for (var gi = 0; gi < gates.length; gi++) {
+        var g = gates[gi];
+        var barH = (g.elapsed / maxTime) * cH;
+        var color = gateColors[g.name] || '#94a3b8';
+        ctx.fillStyle = g.status === 'PASS' ? color : '#FF4D6D';
+        ctx.beginPath();
+        ctx.roundRect(x, stackY - barH, barW, barH, 2);
+        ctx.fill();
+        runCoords.push({ x: x, y: stackY - barH, w: barW, h: barH, gate: g.name, elapsed: g.elapsed, status: g.status });
+        stackY -= barH;
+      }
+      // Pass/fail dot
+
+      ctx.beginPath();
+      ctx.arc(x + barW / 2, H - pad.bottom + 8, 3, 0, Math.PI * 2);
+      ctx.fillStyle = run.overall === 'PASS' ? '#4ADE80' : '#FF4D6D';
+      ctx.fill();
+      // X-axis label (time)
+      if (runs.length <= 10 || ri % 2 === 0) {
+        ctx.fillStyle = '#64748b';
+        ctx.font = '8px JetBrains Mono, monospace';
+        ctx.textAlign = 'center';
+        var d = new Date(run.timestamp * 1000);
+        ctx.fillText((d.getMonth()+1) + '/' + d.getDate(), x + barW / 2, H - pad.bottom + 20);
+      }
+      coords.push({ x: x, w: barW, run: run, gateCoords: runCoords });
+    }
+
+    // Legend
+
+    var legendX = pad.left + 4;
+    var legendY = pad.top - 2;
+    var legendItems = [
+      { label: 'Ruff', color: '#38bdf8' },
+      { label: 'Pytest', color: '#4ADE80' },
+      { label: 'Scan', color: '#f97316' },
+    ];
+    ctx.font = '9px Inter, sans-serif';
+    for (var li = 0; li < legendItems.length; li++) {
+      ctx.fillStyle = legendItems[li].color;
+      ctx.fillRect(legendX, legendY - 6, 8, 8);
+      ctx.fillStyle = '#94a3b8';
+      ctx.textAlign = 'left';
+      ctx.fillText(legendItems[li].label, legendX + 10, legendY + 1);
+      legendX += ctx.measureText(legendItems[li].label).width + 18;
+    }
+
+    // Hover tooltip
+
+    canvas.onmousemove = function(e) {
+      var r = canvas.getBoundingClientRect();
+      var mx = e.clientX - r.left;
+      var tooltip = document.getElementById('gate-timing-tooltip');
+      var found = false;
+      for (var ci = 0; ci < coords.length; ci++) {
+        var c = coords[ci];
+        if (mx >= c.x && mx <= c.x + c.w) {
+          tooltip.style.display = 'block';
+          tooltip.style.left = Math.min(mx + 8, W - 200) + 'px';
+          tooltip.style.top = '10px';
+          var html = '<div style="font-weight:600;margin-bottom:4px">' + (c.run.overall === 'PASS' ? '&#x2705;' : '&#x274C;') + ' ' + (c.run.fast ? 'Fast' : 'Full') + ' run</div>';
+          for (var gi2 = 0; gi2 < c.gateCoords.length; gi2++) {
+            var gc = c.gateCoords[gi2];
+            html += '<div style="display:flex;justify-content:space-between;gap:12px"><span style="color:' + (gateColors[gc.gate]||'#94a3b8') + '">' + gc.gate + '</span><span style="font-family:monospace">' + gc.elapsed.toFixed(1) + 's</span></div>';
+          }
+          html += '<div style="border-top:1px solid var(--border);margin-top:4px;padding-top:4px;font-weight:600">Total: ' + c.run.total_time.toFixed(1) + 's</div>';
+          tooltip.innerHTML = html;
+          found = true;
+          break;
+        }
+      }
+      if (!found) tooltip.style.display = 'none';
+    };
+    canvas.onmouseleave = function() {
+      document.getElementById('gate-timing-tooltip').style.display = 'none';
+    };
+  }
+
+  // Auto-load chart on page load
+  setTimeout(loadGateTimingChart, 1000);
+
   // Dev Check fast toggle visual state
   (function() {
     var cb = document.getElementById('devcheck-fast');
