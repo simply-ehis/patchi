@@ -83,7 +83,7 @@ var BrainMap3D = (() => {
       container.appendChild(renderer.domElement);
     }
 
-    // OrbitControls
+    // OrbitControls — full touch support
     if (typeof THREE.OrbitControls !== 'undefined') {
       controls = new THREE.OrbitControls(camera, renderer.domElement);
       controls.enableDamping = true;
@@ -93,6 +93,17 @@ var BrainMap3D = (() => {
       controls.panSpeed = 0.8;
       controls.minDistance = 50;
       controls.maxDistance = 3000;
+      // Explicit touch configuration
+      controls.touches = {
+        ONE: THREE.TOUCH.ROTATE,
+        TWO: THREE.TOUCH.DOLLY_PAN,
+      };
+      controls.enableRotate = true;
+      controls.enableZoom = true;
+      controls.enablePan = true;
+      controls.enableKeys = true;
+      // Prevent default touch actions on the canvas
+      renderer.domElement.style.touchAction = 'none';
     }
 
     // Groups
