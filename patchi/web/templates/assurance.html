@@ -304,6 +304,7 @@
           <button id="hm-view-grid" class="btn btn-sm" onclick="_setHmView('grid')" style="border-radius:0;border:none;font-size:11px;padding:4px 10px;background:var(--accent);color:#fff">▦ Grid</button>
           <button id="hm-view-treemap" class="btn btn-sm" onclick="_setHmView('treemap')" style="border-radius:0;border:none;font-size:11px;padding:4px 10px;background:var(--bg-tertiary);color:var(--text-secondary)">◫ Treemap</button>
         </div>
+        <button class="btn btn-sm" onclick="_exportHeatmapPNG()" style="font-size:12px" title="Export current view as PNG">💾 Export PNG</button>
         <button class="btn btn-sm" onclick="loadFullHeatmap()" style="font-size:12px">Refresh</button>
       </div>
     </div>
@@ -474,6 +475,93 @@
       } catch (e) {
         grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:32px;color:#ef4444">Error: ' + e.message + '</div>';
       }
+    }
+
+    // ── Export PNG ──────────────────────────────────────────
+    function _exportHeatmapPNG() {
+      if (!_hmTiles || _hmTiles.length === 0) return toast('No heatmap data to export', 'info');
+      var cols = Math.ceil(Math.sqrt(_hmTiles.length));
+      var tileW = 160, tileH = 120, gap = 8, pad = 24;
+      var W = cols * (tileW + gap) + pad * 2;
+      var rows = Math.ceil(_hmTiles.length / cols);
+      var H = rows * (tileH + gap) + pad * 2 + 40; // +40 for title
+
+      var canvas = document.createElement('canvas');
+      var dpr = 2; // 2x for crisp export
+      canvas.width = W * dpr;
+      canvas.height = H * dpr;
+      var ctx = canvas.getContext('2d');
+      ctx.scale(dpr, dpr);
+
+      // Background
+      ctx.fillStyle = '#0d1117';
+      ctx.fillRect(0, 0, W, H);
+
+      // Title
+      ctx.fillStyle = '#e6edf3';
+      ctx.font = 'bold 16px Inter, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText('Assurance Coverage Heatmap', pad, pad + 16);
+      ctx.fillStyle = '#8b949e';
+      ctx.font = '11px Inter, sans-serif';
+      var now = new Date();
+      ctx.fillText(_hmTiles.length + ' domains • ' + now.toLocaleDateString() + ' ' + now.toLocaleTimeString(), pad, pad + 32);
+
+      // Draw tiles
+      var query = (document.getElementById('hm-search').value || '').toLowerCase();
+      var filtered = _hmTiles.filter(function(t) { return !query || t.domain.toLowerCase().indexOf(query) >= 0; });
+      for (var i = 0; i < filtered.length; i++) {
+        var tile = filtered[i];
+        var col = i % cols;
+        var row = Math.floor(i / cols);
+        var x = pad + col * (tileW + gap);
+        var y = pad + 40 + row * (tileH + gap);
+        var pct = tile.coverage_pct;
+        var color;
+        if (pct >= 80) color = '#166534';
+        else if (pct >= 60) color = '#14532d';
+        else if (pct >= 40) color = '#713f12';
+        else if (pct >= 20) color = '#7c2d12';
+        else if (pct > 0) color = '#7f1d1d';
+        else color = '#1e293b';
+
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.roundRect(x, y, tileW, tileH, 8);
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        // Percentage
+        ctx.fillStyle = pct >= 80 ? '#bbf7d0' : pct >= 40 ? '#fde68a' : '#fecaca';
+        ctx.font = 'bold 24px Inter, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(pct + '%', x + tileW / 2, y + tileH / 2 - 10);
+
+        // Domain name
+        ctx.fillStyle = 'rgba(255,255,255,0.7)';
+        ctx.font = '11px Inter, sans-serif';
+        var label = tile.domain.length > 18 ? tile.domain.substring(0, 17) + '…' : tile.domain;
+        ctx.fillText(label, x + tileW / 2, y + tileH / 2 + 12);
+
+        // Proved count
+        ctx.fillStyle = 'rgba(255,255,255,0.4)';
+        ctx.font = '10px Inter, sans-serif';
+        ctx.fillText(tile.proved + '/' + tile.total + ' proved', x + tileW / 2, y + tileH / 2 + 28);
+      }
+
+      // Download
+      canvas.toBlob(function(blob) {
+        var url = URL.createObjectURL(blob);
+        var link = document.createElement('a');
+        link.download = 'patchi-heatmap-' + now.toISOString().slice(0, 10) + '.png';
+        link.href = url;
+        link.click();
+        URL.revokeObjectURL(url);
+        toast('Heatmap exported as PNG', 'success');
+      }, 'image/png');
     }
 
     // ── Treemap view ─────────────────────────────────────────
