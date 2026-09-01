@@ -1,0 +1,62 @@
+# Patchi Security Domain: cis-fedora
+# Source: CIS Fedora Benchmark
+# Auto-generated — curated from CIS Fedora Benchmark
+
+domain_id: "cis-fedora"
+version: "1.0.0"
+display_name: "Fedora Linux Hardening"
+source_standard: "CIS Fedora Benchmark"
+component_type: "infra"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_cis_fedora_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_cis_fedora"
+
+controls:
+  - control_id: "CISFEDOR-01"
+    name: "Fedora Linux Hardening — Primary Control"
+    description: "System configuration and security hardening for Fedora."
+    source_clause: "CIS Fedora"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CISFEDOR-01"
+
+  - control_id: "CISFEDOR-02"
+    name: "Fedora Linux Hardening — Input Validation"
+    description: "Validate and sanitize all inputs related to fedora linux hardening"
+    source_clause: "CIS Fedora"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CISFEDOR-02"
+
+  - control_id: "CISFEDOR-03"
+    name: "Fedora Linux Hardening — Configuration Hardening"
+    description: "Apply secure configuration defaults for fedora linux hardening"
+    source_clause: "CIS Fedora"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CISFEDOR-03"
+
+  - control_id: "CISFEDOR-04"
+    name: "Fedora Linux Hardening — Monitoring and Logging"
+    description: "Log and monitor all fedora linux hardening events for audit and detection"
+    source_clause: "CIS Fedora"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CISFEDOR-04"
+
+  - control_id: "CISFEDOR-05"
+    name: "Fedora Linux Hardening — Error Handling"
+    description: "Handle fedora linux hardening errors securely without information leakage"
+    source_clause: "CIS Fedora"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CISFEDOR-05"

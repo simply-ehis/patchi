@@ -1,0 +1,60 @@
+# Playbook for: cis-fedora
+# Source: CIS Fedora Benchmark
+# Auto-generated
+
+playbooks:
+- control_id: "CISFEDOR-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary fedora linux hardening control patterns for cis-fedora"
+  blast_radius_notes: "Automated fix for CISFEDOR-01 - Primary Fedora Linux Hardening Control"
+  verification_checks:
+    - "Verify CISFEDOR-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CISFEDOR-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for fedora linux hardening patterns for cis-fedora"
+  blast_radius_notes: "Automated fix for CISFEDOR-02 - Input Validation for Fedora Linux Hardening"
+  verification_checks:
+    - "Verify CISFEDOR-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CISFEDOR-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for fedora linux hardening patterns for cis-fedora"
+  blast_radius_notes: "Automated fix for CISFEDOR-03 - Configuration Hardening for Fedora Linux Hardening"
+  verification_checks:
+    - "Verify CISFEDOR-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CISFEDOR-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for fedora linux hardening patterns for cis-fedora"
+  blast_radius_notes: "Automated fix for CISFEDOR-04 - Monitoring and Logging for Fedora Linux Hardening"
+  verification_checks:
+    - "Verify CISFEDOR-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CISFEDOR-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for fedora linux hardening patterns for cis-fedora"
+  blast_radius_notes: "Automated fix for CISFEDOR-05 - Error Handling for Fedora Linux Hardening"
+  verification_checks:
+    - "Verify CISFEDOR-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

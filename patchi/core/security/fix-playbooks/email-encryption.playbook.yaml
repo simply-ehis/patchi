@@ -1,0 +1,60 @@
+# Playbook for: email-encryption
+# Source: Email Security
+# Auto-generated
+
+playbooks:
+- control_id: "EMAILENC-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary email encryption control patterns for email-encryption"
+  blast_radius_notes: "Automated fix for EMAILENC-01 - Primary Email Encryption Control"
+  verification_checks:
+    - "Verify EMAILENC-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "EMAILENC-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for email encryption patterns for email-encryption"
+  blast_radius_notes: "Automated fix for EMAILENC-02 - Input Validation for Email Encryption"
+  verification_checks:
+    - "Verify EMAILENC-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "EMAILENC-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for email encryption patterns for email-encryption"
+  blast_radius_notes: "Automated fix for EMAILENC-03 - Configuration Hardening for Email Encryption"
+  verification_checks:
+    - "Verify EMAILENC-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "EMAILENC-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for email encryption patterns for email-encryption"
+  blast_radius_notes: "Automated fix for EMAILENC-04 - Monitoring and Logging for Email Encryption"
+  verification_checks:
+    - "Verify EMAILENC-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "EMAILENC-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for email encryption patterns for email-encryption"
+  blast_radius_notes: "Automated fix for EMAILENC-05 - Error Handling for Email Encryption"
+  verification_checks:
+    - "Verify EMAILENC-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

@@ -1,0 +1,62 @@
+# Patchi Security Domain: remix-action-csrf
+# Source: Remix Security
+# Auto-generated — curated from Remix Security
+
+domain_id: "remix-action-csrf"
+version: "1.0.0"
+display_name: "Remix Action CSRF"
+source_standard: "Remix Security"
+component_type: "backend-api"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_remix_action_csrf_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_remix_action_csrf"
+
+controls:
+  - control_id: "REMIXACT-01"
+    name: "Remix Action CSRF — Primary Control"
+    description: "Missing CSRF protection on Remix form actions."
+    source_clause: "Remix CSRF"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://REMIXACT-01"
+
+  - control_id: "REMIXACT-02"
+    name: "Remix Action CSRF — Input Validation"
+    description: "Validate and sanitize all inputs related to remix action csrf"
+    source_clause: "Remix CSRF"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://REMIXACT-02"
+
+  - control_id: "REMIXACT-03"
+    name: "Remix Action CSRF — Configuration Hardening"
+    description: "Apply secure configuration defaults for remix action csrf"
+    source_clause: "Remix CSRF"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://REMIXACT-03"
+
+  - control_id: "REMIXACT-04"
+    name: "Remix Action CSRF — Monitoring and Logging"
+    description: "Log and monitor all remix action csrf events for audit and detection"
+    source_clause: "Remix CSRF"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://REMIXACT-04"
+
+  - control_id: "REMIXACT-05"
+    name: "Remix Action CSRF — Error Handling"
+    description: "Handle remix action csrf errors securely without information leakage"
+    source_clause: "Remix CSRF"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://REMIXACT-05"

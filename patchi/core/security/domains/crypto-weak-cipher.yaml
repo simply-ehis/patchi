@@ -1,0 +1,62 @@
+# Patchi Security Domain: crypto-weak-cipher
+# Source: Cryptography Implementation
+# Auto-generated — curated from Cryptography Implementation
+
+domain_id: "crypto-weak-cipher"
+version: "1.0.0"
+display_name: "Weak Cipher Suites"
+source_standard: "Cryptography Implementation"
+component_type: "infra"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_crypto_weak_cipher_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_crypto_weak_cipher"
+
+controls:
+  - control_id: "CRYPTOWE-01"
+    name: "Weak Cipher Suites — Primary Control"
+    description: "Use of DES, RC4, 3DES, or export cipher suites."
+    source_clause: "Crypto Cipher"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CRYPTOWE-01"
+
+  - control_id: "CRYPTOWE-02"
+    name: "Weak Cipher Suites — Input Validation"
+    description: "Validate and sanitize all inputs related to weak cipher suites"
+    source_clause: "Crypto Cipher"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CRYPTOWE-02"
+
+  - control_id: "CRYPTOWE-03"
+    name: "Weak Cipher Suites — Configuration Hardening"
+    description: "Apply secure configuration defaults for weak cipher suites"
+    source_clause: "Crypto Cipher"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CRYPTOWE-03"
+
+  - control_id: "CRYPTOWE-04"
+    name: "Weak Cipher Suites — Monitoring and Logging"
+    description: "Log and monitor all weak cipher suites events for audit and detection"
+    source_clause: "Crypto Cipher"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CRYPTOWE-04"
+
+  - control_id: "CRYPTOWE-05"
+    name: "Weak Cipher Suites — Error Handling"
+    description: "Handle weak cipher suites errors securely without information leakage"
+    source_clause: "Crypto Cipher"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CRYPTOWE-05"

@@ -1,0 +1,60 @@
+# Playbook for: network-firewall-rules
+# Source: Network Security
+# Auto-generated
+
+playbooks:
+- control_id: "NETWORKF-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary firewall rules control patterns for network-firewall-rules"
+  blast_radius_notes: "Automated fix for NETWORKF-01 - Primary Firewall Rules Control"
+  verification_checks:
+    - "Verify NETWORKF-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NETWORKF-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for firewall rules patterns for network-firewall-rules"
+  blast_radius_notes: "Automated fix for NETWORKF-02 - Input Validation for Firewall Rules"
+  verification_checks:
+    - "Verify NETWORKF-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NETWORKF-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for firewall rules patterns for network-firewall-rules"
+  blast_radius_notes: "Automated fix for NETWORKF-03 - Configuration Hardening for Firewall Rules"
+  verification_checks:
+    - "Verify NETWORKF-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NETWORKF-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for firewall rules patterns for network-firewall-rules"
+  blast_radius_notes: "Automated fix for NETWORKF-04 - Monitoring and Logging for Firewall Rules"
+  verification_checks:
+    - "Verify NETWORKF-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NETWORKF-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for firewall rules patterns for network-firewall-rules"
+  blast_radius_notes: "Automated fix for NETWORKF-05 - Error Handling for Firewall Rules"
+  verification_checks:
+    - "Verify NETWORKF-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

@@ -1,0 +1,62 @@
+# Patchi Security Domain: cis-mongodb
+# Source: CIS MongoDB Benchmark
+# Auto-generated — curated from CIS MongoDB Benchmark
+
+domain_id: "cis-mongodb"
+version: "1.0.0"
+display_name: "MongoDB Hardening"
+source_standard: "CIS MongoDB Benchmark"
+component_type: "infra"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_cis_mongodb_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_cis_mongodb"
+
+controls:
+  - control_id: "CISMONGO-01"
+    name: "MongoDB Hardening — Primary Control"
+    description: "Authentication, authorization, network configuration, and auditing."
+    source_clause: "CIS MongoDB"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CISMONGO-01"
+
+  - control_id: "CISMONGO-02"
+    name: "MongoDB Hardening — Input Validation"
+    description: "Validate and sanitize all inputs related to mongodb hardening"
+    source_clause: "CIS MongoDB"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CISMONGO-02"
+
+  - control_id: "CISMONGO-03"
+    name: "MongoDB Hardening — Configuration Hardening"
+    description: "Apply secure configuration defaults for mongodb hardening"
+    source_clause: "CIS MongoDB"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CISMONGO-03"
+
+  - control_id: "CISMONGO-04"
+    name: "MongoDB Hardening — Monitoring and Logging"
+    description: "Log and monitor all mongodb hardening events for audit and detection"
+    source_clause: "CIS MongoDB"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CISMONGO-04"
+
+  - control_id: "CISMONGO-05"
+    name: "MongoDB Hardening — Error Handling"
+    description: "Handle mongodb hardening errors securely without information leakage"
+    source_clause: "CIS MongoDB"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CISMONGO-05"

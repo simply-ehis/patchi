@@ -1,0 +1,60 @@
+# Playbook for: hipaa-technical-access-control
+# Source: HIPAA Security Rule
+# Auto-generated
+
+playbooks:
+- control_id: "HIPAATEC-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary technical access controls control patterns for hipaa-technical-access-control"
+  blast_radius_notes: "Automated fix for HIPAATEC-01 - Primary Technical Access Controls Control"
+  verification_checks:
+    - "Verify HIPAATEC-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "HIPAATEC-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for technical access controls patterns for hipaa-technical-access-control"
+  blast_radius_notes: "Automated fix for HIPAATEC-02 - Input Validation for Technical Access Controls"
+  verification_checks:
+    - "Verify HIPAATEC-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "HIPAATEC-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for technical access controls patterns for hipaa-technical-access-control"
+  blast_radius_notes: "Automated fix for HIPAATEC-03 - Configuration Hardening for Technical Access Controls"
+  verification_checks:
+    - "Verify HIPAATEC-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "HIPAATEC-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for technical access controls patterns for hipaa-technical-access-control"
+  blast_radius_notes: "Automated fix for HIPAATEC-04 - Monitoring and Logging for Technical Access Controls"
+  verification_checks:
+    - "Verify HIPAATEC-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "HIPAATEC-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for technical access controls patterns for hipaa-technical-access-control"
+  blast_radius_notes: "Automated fix for HIPAATEC-05 - Error Handling for Technical Access Controls"
+  verification_checks:
+    - "Verify HIPAATEC-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

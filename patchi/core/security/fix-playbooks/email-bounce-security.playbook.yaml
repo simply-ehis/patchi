@@ -1,0 +1,60 @@
+# Playbook for: email-bounce-security
+# Source: Email Security
+# Auto-generated
+
+playbooks:
+- control_id: "EMAILBOU-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary email bounce handling control patterns for email-bounce-security"
+  blast_radius_notes: "Automated fix for EMAILBOU-01 - Primary Email Bounce Handling Control"
+  verification_checks:
+    - "Verify EMAILBOU-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "EMAILBOU-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for email bounce handling patterns for email-bounce-security"
+  blast_radius_notes: "Automated fix for EMAILBOU-02 - Input Validation for Email Bounce Handling"
+  verification_checks:
+    - "Verify EMAILBOU-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "EMAILBOU-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for email bounce handling patterns for email-bounce-security"
+  blast_radius_notes: "Automated fix for EMAILBOU-03 - Configuration Hardening for Email Bounce Handling"
+  verification_checks:
+    - "Verify EMAILBOU-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "EMAILBOU-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for email bounce handling patterns for email-bounce-security"
+  blast_radius_notes: "Automated fix for EMAILBOU-04 - Monitoring and Logging for Email Bounce Handling"
+  verification_checks:
+    - "Verify EMAILBOU-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "EMAILBOU-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for email bounce handling patterns for email-bounce-security"
+  blast_radius_notes: "Automated fix for EMAILBOU-05 - Error Handling for Email Bounce Handling"
+  verification_checks:
+    - "Verify EMAILBOU-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

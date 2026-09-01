@@ -1,0 +1,62 @@
+# Patchi Security Domain: cwe-704-incorrect-type-conversion
+# Source: CWE-704
+# Auto-generated — curated from CWE-704
+
+domain_id: "cwe-704-incorrect-type-conversion"
+version: "1.0.0"
+display_name: "Incorrect Type Conversion or Cast"
+source_standard: "CWE-704"
+component_type: "backend-api"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_cwe_704_incorrect_type_conversion_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_cwe_704_incorrect_type_conversion"
+
+controls:
+  - control_id: "CWE704IN-01"
+    name: "Incorrect Type Conversion or Cast — Primary Control"
+    description: "Application performs unsafe type conversions that could lead to buffer overflows or logic errors."
+    source_clause: "CWE-704"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CWE704IN-01"
+
+  - control_id: "CWE704IN-02"
+    name: "Incorrect Type Conversion or Cast — Input Validation"
+    description: "Validate and sanitize all inputs related to incorrect type conversion or cast"
+    source_clause: "CWE-704"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CWE704IN-02"
+
+  - control_id: "CWE704IN-03"
+    name: "Incorrect Type Conversion or Cast — Configuration Hardening"
+    description: "Apply secure configuration defaults for incorrect type conversion or cast"
+    source_clause: "CWE-704"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CWE704IN-03"
+
+  - control_id: "CWE704IN-04"
+    name: "Incorrect Type Conversion or Cast — Monitoring and Logging"
+    description: "Log and monitor all incorrect type conversion or cast events for audit and detection"
+    source_clause: "CWE-704"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CWE704IN-04"
+
+  - control_id: "CWE704IN-05"
+    name: "Incorrect Type Conversion or Cast — Error Handling"
+    description: "Handle incorrect type conversion or cast errors securely without information leakage"
+    source_clause: "CWE-704"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CWE704IN-05"

@@ -1,0 +1,62 @@
+# Patchi Security Domain: extension-message-passing
+# Source: Browser Extension Security
+# Auto-generated — curated from Browser Extension Security
+
+domain_id: "extension-message-passing"
+version: "1.0.0"
+display_name: "Extension Message Passing"
+source_standard: "Browser Extension Security"
+component_type: "frontend-web"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_extension_message_passing_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_extension_message_passing"
+
+controls:
+  - control_id: "EXTENSIO-01"
+    name: "Extension Message Passing — Primary Control"
+    description: "Insecure message passing between extension components."
+    source_clause: "Ext Message"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://EXTENSIO-01"
+
+  - control_id: "EXTENSIO-02"
+    name: "Extension Message Passing — Input Validation"
+    description: "Validate and sanitize all inputs related to extension message passing"
+    source_clause: "Ext Message"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://EXTENSIO-02"
+
+  - control_id: "EXTENSIO-03"
+    name: "Extension Message Passing — Configuration Hardening"
+    description: "Apply secure configuration defaults for extension message passing"
+    source_clause: "Ext Message"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://EXTENSIO-03"
+
+  - control_id: "EXTENSIO-04"
+    name: "Extension Message Passing — Monitoring and Logging"
+    description: "Log and monitor all extension message passing events for audit and detection"
+    source_clause: "Ext Message"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://EXTENSIO-04"
+
+  - control_id: "EXTENSIO-05"
+    name: "Extension Message Passing — Error Handling"
+    description: "Handle extension message passing errors securely without information leakage"
+    source_clause: "Ext Message"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://EXTENSIO-05"

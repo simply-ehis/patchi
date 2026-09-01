@@ -1,0 +1,62 @@
+# Patchi Security Domain: blogic-resource-exhaustion
+# Source: Business Logic
+# Auto-generated — curated from Business Logic
+
+domain_id: "blogic-resource-exhaustion"
+version: "1.0.0"
+display_name: "Resource Exhaustion"
+source_standard: "Business Logic"
+component_type: "backend-api"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_blogic_resource_exhaustion_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_blogic_resource_exhaustion"
+
+controls:
+  - control_id: "BLOGICRE-01"
+    name: "Resource Exhaustion — Primary Control"
+    description: "Abusing business operations to consume excessive resources."
+    source_clause: "BLogic Resource"
+    severity: "high"
+    check_method: "dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://BLOGICRE-01"
+
+  - control_id: "BLOGICRE-02"
+    name: "Resource Exhaustion — Input Validation"
+    description: "Validate and sanitize all inputs related to resource exhaustion"
+    source_clause: "BLogic Resource"
+    severity: "high"
+    check_method: "dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://BLOGICRE-02"
+
+  - control_id: "BLOGICRE-03"
+    name: "Resource Exhaustion — Configuration Hardening"
+    description: "Apply secure configuration defaults for resource exhaustion"
+    source_clause: "BLogic Resource"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://BLOGICRE-03"
+
+  - control_id: "BLOGICRE-04"
+    name: "Resource Exhaustion — Monitoring and Logging"
+    description: "Log and monitor all resource exhaustion events for audit and detection"
+    source_clause: "BLogic Resource"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://BLOGICRE-04"
+
+  - control_id: "BLOGICRE-05"
+    name: "Resource Exhaustion — Error Handling"
+    description: "Handle resource exhaustion errors securely without information leakage"
+    source_clause: "BLogic Resource"
+    severity: "medium"
+    check_method: "dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://BLOGICRE-05"

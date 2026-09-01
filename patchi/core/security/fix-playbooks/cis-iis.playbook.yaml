@@ -1,0 +1,60 @@
+# Playbook for: cis-iis
+# Source: CIS IIS Benchmark
+# Auto-generated
+
+playbooks:
+- control_id: "CISIIS-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary iis web server hardening control patterns for cis-iis"
+  blast_radius_notes: "Automated fix for CISIIS-01 - Primary IIS Web Server Hardening Control"
+  verification_checks:
+    - "Verify CISIIS-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CISIIS-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for iis web server hardening patterns for cis-iis"
+  blast_radius_notes: "Automated fix for CISIIS-02 - Input Validation for IIS Web Server Hardening"
+  verification_checks:
+    - "Verify CISIIS-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CISIIS-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for iis web server hardening patterns for cis-iis"
+  blast_radius_notes: "Automated fix for CISIIS-03 - Configuration Hardening for IIS Web Server Hardening"
+  verification_checks:
+    - "Verify CISIIS-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CISIIS-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for iis web server hardening patterns for cis-iis"
+  blast_radius_notes: "Automated fix for CISIIS-04 - Monitoring and Logging for IIS Web Server Hardening"
+  verification_checks:
+    - "Verify CISIIS-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CISIIS-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for iis web server hardening patterns for cis-iis"
+  blast_radius_notes: "Automated fix for CISIIS-05 - Error Handling for IIS Web Server Hardening"
+  verification_checks:
+    - "Verify CISIIS-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

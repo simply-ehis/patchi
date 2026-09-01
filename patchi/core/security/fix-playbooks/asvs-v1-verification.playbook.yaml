@@ -1,0 +1,60 @@
+# Playbook for: asvs-v1-verification
+# Source: OWASP ASVS 5.0 V1
+# Auto-generated
+
+playbooks:
+- control_id: "ASVSV1VE-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary verification requirements control patterns for asvs-v1-verification"
+  blast_radius_notes: "Automated fix for ASVSV1VE-01 - Primary Verification Requirements Control"
+  verification_checks:
+    - "Verify ASVSV1VE-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "ASVSV1VE-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for verification requirements patterns for asvs-v1-verification"
+  blast_radius_notes: "Automated fix for ASVSV1VE-02 - Input Validation for Verification Requirements"
+  verification_checks:
+    - "Verify ASVSV1VE-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "ASVSV1VE-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for verification requirements patterns for asvs-v1-verification"
+  blast_radius_notes: "Automated fix for ASVSV1VE-03 - Configuration Hardening for Verification Requirements"
+  verification_checks:
+    - "Verify ASVSV1VE-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "ASVSV1VE-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for verification requirements patterns for asvs-v1-verification"
+  blast_radius_notes: "Automated fix for ASVSV1VE-04 - Monitoring and Logging for Verification Requirements"
+  verification_checks:
+    - "Verify ASVSV1VE-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "ASVSV1VE-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for verification requirements patterns for asvs-v1-verification"
+  blast_radius_notes: "Automated fix for ASVSV1VE-05 - Error Handling for Verification Requirements"
+  verification_checks:
+    - "Verify ASVSV1VE-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

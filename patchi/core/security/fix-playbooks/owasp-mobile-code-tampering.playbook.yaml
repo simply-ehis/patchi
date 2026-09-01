@@ -1,0 +1,60 @@
+# Playbook for: owasp-mobile-code-tampering
+# Source: OWASP Mobile 2024 M8
+# Auto-generated
+
+playbooks:
+- control_id: "OWASPMOB-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary code tampering control patterns for owasp-mobile-code-tampering"
+  blast_radius_notes: "Automated fix for OWASPMOB-01 - Primary Code Tampering Control"
+  verification_checks:
+    - "Verify OWASPMOB-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "OWASPMOB-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for code tampering patterns for owasp-mobile-code-tampering"
+  blast_radius_notes: "Automated fix for OWASPMOB-02 - Input Validation for Code Tampering"
+  verification_checks:
+    - "Verify OWASPMOB-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "OWASPMOB-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for code tampering patterns for owasp-mobile-code-tampering"
+  blast_radius_notes: "Automated fix for OWASPMOB-03 - Configuration Hardening for Code Tampering"
+  verification_checks:
+    - "Verify OWASPMOB-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "OWASPMOB-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for code tampering patterns for owasp-mobile-code-tampering"
+  blast_radius_notes: "Automated fix for OWASPMOB-04 - Monitoring and Logging for Code Tampering"
+  verification_checks:
+    - "Verify OWASPMOB-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "OWASPMOB-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for code tampering patterns for owasp-mobile-code-tampering"
+  blast_radius_notes: "Automated fix for OWASPMOB-05 - Error Handling for Code Tampering"
+  verification_checks:
+    - "Verify OWASPMOB-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

@@ -1,0 +1,62 @@
+# Patchi Security Domain: nist-si-12
+# Source: NIST SP 800-53 SI-12
+# Auto-generated — curated from NIST SP 800-53 SI-12
+
+domain_id: "nist-si-12"
+version: "1.0.0"
+display_name: "Information Management and Retention"
+source_standard: "NIST SP 800-53 SI-12"
+component_type: "backend-api"
+weight: 0.7
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_nist_si_12_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_nist_si_12"
+
+controls:
+  - control_id: "NISTSI12-01"
+    name: "Information Management and Retention — Primary Control"
+    description: "Organization manages system-generated information and retains it per policy."
+    source_clause: "SI-12"
+    severity: "medium"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://NISTSI12-01"
+
+  - control_id: "NISTSI12-02"
+    name: "Information Management and Retention — Input Validation"
+    description: "Validate and sanitize all inputs related to information management and retention"
+    source_clause: "SI-12"
+    severity: "medium"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://NISTSI12-02"
+
+  - control_id: "NISTSI12-03"
+    name: "Information Management and Retention — Configuration Hardening"
+    description: "Apply secure configuration defaults for information management and retention"
+    source_clause: "SI-12"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://NISTSI12-03"
+
+  - control_id: "NISTSI12-04"
+    name: "Information Management and Retention — Monitoring and Logging"
+    description: "Log and monitor all information management and retention events for audit and detection"
+    source_clause: "SI-12"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://NISTSI12-04"
+
+  - control_id: "NISTSI12-05"
+    name: "Information Management and Retention — Error Handling"
+    description: "Handle information management and retention errors securely without information leakage"
+    source_clause: "SI-12"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://NISTSI12-05"

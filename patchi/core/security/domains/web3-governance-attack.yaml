@@ -1,0 +1,62 @@
+# Patchi Security Domain: web3-governance-attack
+# Source: Web3 Security
+# Auto-generated — curated from Web3 Security
+
+domain_id: "web3-governance-attack"
+version: "1.0.0"
+display_name: "Governance Attack"
+source_standard: "Web3 Security"
+component_type: "backend-api"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_web3_governance_attack_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_web3_governance_attack"
+
+controls:
+  - control_id: "WEB3GOVE-01"
+    name: "Governance Attack — Primary Control"
+    description: "Flash loan governance attacks or vote buying."
+    source_clause: "Web3 Gov"
+    severity: "high"
+    check_method: "dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://WEB3GOVE-01"
+
+  - control_id: "WEB3GOVE-02"
+    name: "Governance Attack — Input Validation"
+    description: "Validate and sanitize all inputs related to governance attack"
+    source_clause: "Web3 Gov"
+    severity: "high"
+    check_method: "dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://WEB3GOVE-02"
+
+  - control_id: "WEB3GOVE-03"
+    name: "Governance Attack — Configuration Hardening"
+    description: "Apply secure configuration defaults for governance attack"
+    source_clause: "Web3 Gov"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://WEB3GOVE-03"
+
+  - control_id: "WEB3GOVE-04"
+    name: "Governance Attack — Monitoring and Logging"
+    description: "Log and monitor all governance attack events for audit and detection"
+    source_clause: "Web3 Gov"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://WEB3GOVE-04"
+
+  - control_id: "WEB3GOVE-05"
+    name: "Governance Attack — Error Handling"
+    description: "Handle governance attack errors securely without information leakage"
+    source_clause: "Web3 Gov"
+    severity: "medium"
+    check_method: "dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://WEB3GOVE-05"

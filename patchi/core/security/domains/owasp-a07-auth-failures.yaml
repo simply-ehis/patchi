@@ -1,0 +1,62 @@
+# Patchi Security Domain: owasp-a07-auth-failures
+# Source: OWASP Top 10 2021 A07
+# Auto-generated — curated from OWASP Top 10 2021 A07
+
+domain_id: "owasp-a07-auth-failures"
+version: "1.0.0"
+display_name: "Identification and Authentication Failures"
+source_standard: "OWASP Top 10 2021 A07"
+component_type: "backend-api"
+weight: 0.9
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_owasp_a07_auth_failures_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_owasp_a07_auth_failures"
+
+controls:
+  - control_id: "OWASPA07-01"
+    name: "Identification and Authentication Failures — Primary Control"
+    description: "Confirmation of the user's identity, authentication, and session management is critical to protect against authentication attacks."
+    source_clause: "OWASP A07:2021"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://OWASPA07-01"
+
+  - control_id: "OWASPA07-02"
+    name: "Identification and Authentication Failures — Input Validation"
+    description: "Validate and sanitize all inputs related to identification and authentication failures"
+    source_clause: "OWASP A07:2021"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://OWASPA07-02"
+
+  - control_id: "OWASPA07-03"
+    name: "Identification and Authentication Failures — Configuration Hardening"
+    description: "Apply secure configuration defaults for identification and authentication failures"
+    source_clause: "OWASP A07:2021"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://OWASPA07-03"
+
+  - control_id: "OWASPA07-04"
+    name: "Identification and Authentication Failures — Monitoring and Logging"
+    description: "Log and monitor all identification and authentication failures events for audit and detection"
+    source_clause: "OWASP A07:2021"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://OWASPA07-04"
+
+  - control_id: "OWASPA07-05"
+    name: "Identification and Authentication Failures — Error Handling"
+    description: "Handle identification and authentication failures errors securely without information leakage"
+    source_clause: "OWASP A07:2021"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://OWASPA07-05"

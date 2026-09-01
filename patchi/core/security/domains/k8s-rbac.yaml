@@ -1,0 +1,62 @@
+# Patchi Security Domain: k8s-rbac
+# Source: Kubernetes Security
+# Auto-generated — curated from Kubernetes Security
+
+domain_id: "k8s-rbac"
+version: "1.0.0"
+display_name: "Kubernetes RBAC Configuration"
+source_standard: "Kubernetes Security"
+component_type: "infra"
+weight: 0.9
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_k8s_rbac_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_k8s_rbac"
+
+controls:
+  - control_id: "K8SRBAC-01"
+    name: "Kubernetes RBAC Configuration — Primary Control"
+    description: "Overly permissive ClusterRoleBindings or missing RBAC policies."
+    source_clause: "K8s RBAC"
+    severity: "critical"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://K8SRBAC-01"
+
+  - control_id: "K8SRBAC-02"
+    name: "Kubernetes RBAC Configuration — Input Validation"
+    description: "Validate and sanitize all inputs related to kubernetes rbac configuration"
+    source_clause: "K8s RBAC"
+    severity: "critical"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://K8SRBAC-02"
+
+  - control_id: "K8SRBAC-03"
+    name: "Kubernetes RBAC Configuration — Configuration Hardening"
+    description: "Apply secure configuration defaults for kubernetes rbac configuration"
+    source_clause: "K8s RBAC"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://K8SRBAC-03"
+
+  - control_id: "K8SRBAC-04"
+    name: "Kubernetes RBAC Configuration — Monitoring and Logging"
+    description: "Log and monitor all kubernetes rbac configuration events for audit and detection"
+    source_clause: "K8s RBAC"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://K8SRBAC-04"
+
+  - control_id: "K8SRBAC-05"
+    name: "Kubernetes RBAC Configuration — Error Handling"
+    description: "Handle kubernetes rbac configuration errors securely without information leakage"
+    source_clause: "K8s RBAC"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://K8SRBAC-05"

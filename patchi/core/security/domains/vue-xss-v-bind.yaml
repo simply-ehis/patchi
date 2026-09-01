@@ -1,0 +1,62 @@
+# Patchi Security Domain: vue-xss-v-bind
+# Source: Vue.js Security
+# Auto-generated — curated from Vue.js Security
+
+domain_id: "vue-xss-v-bind"
+version: "1.0.0"
+display_name: "XSS via v-bind with URLs"
+source_standard: "Vue.js Security"
+component_type: "frontend-web"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_vue_xss_v_bind_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_vue_xss_v_bind"
+
+controls:
+  - control_id: "VUEXSSVB-01"
+    name: "XSS via v-bind with URLs — Primary Control"
+    description: "Dynamic bindings to href or src with unsanitized user input."
+    source_clause: "Vue v-bind"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://VUEXSSVB-01"
+
+  - control_id: "VUEXSSVB-02"
+    name: "XSS via v-bind with URLs — Input Validation"
+    description: "Validate and sanitize all inputs related to xss via v-bind with urls"
+    source_clause: "Vue v-bind"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://VUEXSSVB-02"
+
+  - control_id: "VUEXSSVB-03"
+    name: "XSS via v-bind with URLs — Configuration Hardening"
+    description: "Apply secure configuration defaults for xss via v-bind with urls"
+    source_clause: "Vue v-bind"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://VUEXSSVB-03"
+
+  - control_id: "VUEXSSVB-04"
+    name: "XSS via v-bind with URLs — Monitoring and Logging"
+    description: "Log and monitor all xss via v-bind with urls events for audit and detection"
+    source_clause: "Vue v-bind"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://VUEXSSVB-04"
+
+  - control_id: "VUEXSSVB-05"
+    name: "XSS via v-bind with URLs — Error Handling"
+    description: "Handle xss via v-bind with urls errors securely without information leakage"
+    source_clause: "Vue v-bind"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://VUEXSSVB-05"

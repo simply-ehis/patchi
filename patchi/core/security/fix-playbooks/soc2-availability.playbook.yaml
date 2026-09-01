@@ -1,0 +1,60 @@
+# Playbook for: soc2-availability
+# Source: SOC 2 TSC
+# Auto-generated
+
+playbooks:
+- control_id: "SOC2AVAI-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary availability control patterns for soc2-availability"
+  blast_radius_notes: "Automated fix for SOC2AVAI-01 - Primary Availability Control"
+  verification_checks:
+    - "Verify SOC2AVAI-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "SOC2AVAI-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for availability patterns for soc2-availability"
+  blast_radius_notes: "Automated fix for SOC2AVAI-02 - Input Validation for Availability"
+  verification_checks:
+    - "Verify SOC2AVAI-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "SOC2AVAI-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for availability patterns for soc2-availability"
+  blast_radius_notes: "Automated fix for SOC2AVAI-03 - Configuration Hardening for Availability"
+  verification_checks:
+    - "Verify SOC2AVAI-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "SOC2AVAI-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for availability patterns for soc2-availability"
+  blast_radius_notes: "Automated fix for SOC2AVAI-04 - Monitoring and Logging for Availability"
+  verification_checks:
+    - "Verify SOC2AVAI-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "SOC2AVAI-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for availability patterns for soc2-availability"
+  blast_radius_notes: "Automated fix for SOC2AVAI-05 - Error Handling for Availability"
+  verification_checks:
+    - "Verify SOC2AVAI-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

@@ -1,0 +1,62 @@
+# Patchi Security Domain: rust-unsafe-raw-pointer
+# Source: Rust Security
+# Auto-generated — curated from Rust Security
+
+domain_id: "rust-unsafe-raw-pointer"
+version: "1.0.0"
+display_name: "Rust Unsafe Raw Pointer Usage"
+source_standard: "Rust Security"
+component_type: "native-code"
+weight: 0.9
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_rust_unsafe_raw_pointer_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_rust_unsafe_raw_pointer"
+
+controls:
+  - control_id: "RUSTUNSA-01"
+    name: "Rust Unsafe Raw Pointer Usage — Primary Control"
+    description: "Unsafe blocks with raw pointer dereference without bounds checking."
+    source_clause: "Rust Unsafe"
+    severity: "critical"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://RUSTUNSA-01"
+
+  - control_id: "RUSTUNSA-02"
+    name: "Rust Unsafe Raw Pointer Usage — Input Validation"
+    description: "Validate and sanitize all inputs related to rust unsafe raw pointer usage"
+    source_clause: "Rust Unsafe"
+    severity: "critical"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://RUSTUNSA-02"
+
+  - control_id: "RUSTUNSA-03"
+    name: "Rust Unsafe Raw Pointer Usage — Configuration Hardening"
+    description: "Apply secure configuration defaults for rust unsafe raw pointer usage"
+    source_clause: "Rust Unsafe"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://RUSTUNSA-03"
+
+  - control_id: "RUSTUNSA-04"
+    name: "Rust Unsafe Raw Pointer Usage — Monitoring and Logging"
+    description: "Log and monitor all rust unsafe raw pointer usage events for audit and detection"
+    source_clause: "Rust Unsafe"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://RUSTUNSA-04"
+
+  - control_id: "RUSTUNSA-05"
+    name: "Rust Unsafe Raw Pointer Usage — Error Handling"
+    description: "Handle rust unsafe raw pointer usage errors securely without information leakage"
+    source_clause: "Rust Unsafe"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://RUSTUNSA-05"

@@ -1,162 +1,0 @@
-playbooks:
-- blast_radius_notes: Automated fix for FH-01
-  control_id: FH-01
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Document file handling policy: The application''s documentation
-    must define permitted file types, expected extensions, maximum size (including
-    unpacked/decompressed size) for each upload feature, and how the app behaves when
-    a malicious file is detected.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify FH-01 is properly addressed
-- blast_radius_notes: Automated fix for FH-02
-  control_id: FH-02
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Enforce file size limits before processing: The application
-    must only accept files of a size it can process without a performance loss or
-    denial-of-service impact  -  enforced before significant processing begins, not
-    after.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify FH-02 is properly addressed
-- blast_radius_notes: Automated fix for FH-03
-  control_id: FH-03
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Validate file content matches claimed type, not just extension:
-    When accepting a file (standalone or within an archive), the application must
-    check that the file extension matches an expected type and validate that the actual
-    content corresponds to that type  -  via magic-byte inspection, image re-encoding,
-    or specialized content-validation libraries  -  not extension-string matching alone.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify FH-03 is properly addressed
-- blast_radius_notes: Automated fix for FH-04
-  control_id: FH-04
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Check compressed-file uncompressed size and file count before
-    extraction: The application must check compressed files (zip, gz, docx, odt, etc.)
-    against a maximum allowed uncompressed size and a maximum number of contained
-    files before decompression begins, to prevent zip-bomb / decompression-bomb denial-of-service
-    attacks.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify FH-04 is properly addressed
-- blast_radius_notes: Automated fix for FH-05
-  control_id: FH-05
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Enforce per-user file size quota and file count limits: A
-    file size quota and maximum number of files per user must be enforced so a single
-    user cannot exhaust storage with too many or too-large files.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify FH-05 is properly addressed
-- blast_radius_notes: Automated fix for FH-06
-  control_id: FH-06
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Reject or allowlist symlinks in uploaded compressed files:
-    The application must not allow uploading compressed files containing symlinks
-    unless specifically required, in which case an allowlist of permitted symlink
-    targets must be enforced.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify FH-06 is properly addressed
-- blast_radius_notes: Automated fix for FH-07
-  control_id: FH-07
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Reject oversized image dimensions (pixel flood protection):
-    Uploaded images with pixel dimensions larger than a defined maximum must be rejected,
-    to prevent pixel-flood attacks (images that decode to an enormous in-memory bitmap
-    despite a small file size).'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify FH-07 is properly addressed
-- blast_radius_notes: Automated fix for FH-08
-  control_id: FH-08
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Never execute uploaded/generated files as server-side code:
-    Files uploaded or generated from untrusted input and stored in a publicly accessible
-    folder must never be executable as server-side program code when accessed directly
-    via HTTP request.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify FH-08 is properly addressed
-- blast_radius_notes: Automated fix for FH-09
-  control_id: FH-09
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Never build file paths directly from user-submitted filenames
-    (path traversal / LFI / RFI / SSRF prevention): When constructing file paths for
-    file operations, the application must use internally generated or trusted data
-    rather than user-submitted filenames or metadata. If user-submitted values must
-    be used, strict validation and sanitization is required to prevent path traversal,
-    local/remote file inclusion, and SSRF.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify FH-09 is properly addressed
-- blast_radius_notes: Automated fix for FH-10
-  control_id: FH-10
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Ignore user-provided path information during server-side
-    decompression (zip-slip prevention): Server-side file processing such as decompression
-    must ignore any path information embedded in the archive entries themselves, extracting
-    to a fixed, sanitized destination rather than trusting the archive''s internal
-    file paths  -  this is the specific defense against zip-slip attacks.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify FH-10 is properly addressed
-- blast_radius_notes: Automated fix for FH-11
-  control_id: FH-11
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Validate or ignore user-submitted filenames in download responses:
-    The application must validate or ignore user-submitted filenames (including those
-    passed via JSON, JSONP, or URL parameters) and instead specify a filename explicitly
-    in the Content-Disposition response header rather than reflecting an unvalidated
-    user-controlled value.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify FH-11 is properly addressed
-- blast_radius_notes: Automated fix for FH-12
-  control_id: FH-12
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Encode/sanitize served filenames to prevent header/structure
-    injection: Filenames served in HTTP response headers or email attachments must
-    be encoded or sanitized (following RFC 6266 for Content-Disposition) to preserve
-    document/header structure and prevent injection attacks via crafted filenames.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify FH-12 is properly addressed
-- blast_radius_notes: Automated fix for FH-13
-  control_id: FH-13
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Scan files from untrusted sources with antivirus before serving:
-    Files obtained from untrusted sources must be scanned by an antivirus/malware
-    scanner to prevent the application from serving known malicious content to other
-    users.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify FH-13 is properly addressed

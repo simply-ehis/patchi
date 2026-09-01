@@ -1,0 +1,60 @@
+# Playbook for: database-data-masking
+# Source: Database Security
+# Auto-generated
+
+playbooks:
+- control_id: "DATABASE-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary database data masking control patterns for database-data-masking"
+  blast_radius_notes: "Automated fix for DATABASE-01 - Primary Database Data Masking Control"
+  verification_checks:
+    - "Verify DATABASE-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "DATABASE-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for database data masking patterns for database-data-masking"
+  blast_radius_notes: "Automated fix for DATABASE-02 - Input Validation for Database Data Masking"
+  verification_checks:
+    - "Verify DATABASE-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "DATABASE-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for database data masking patterns for database-data-masking"
+  blast_radius_notes: "Automated fix for DATABASE-03 - Configuration Hardening for Database Data Masking"
+  verification_checks:
+    - "Verify DATABASE-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "DATABASE-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for database data masking patterns for database-data-masking"
+  blast_radius_notes: "Automated fix for DATABASE-04 - Monitoring and Logging for Database Data Masking"
+  verification_checks:
+    - "Verify DATABASE-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "DATABASE-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for database data masking patterns for database-data-masking"
+  blast_radius_notes: "Automated fix for DATABASE-05 - Error Handling for Database Data Masking"
+  verification_checks:
+    - "Verify DATABASE-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

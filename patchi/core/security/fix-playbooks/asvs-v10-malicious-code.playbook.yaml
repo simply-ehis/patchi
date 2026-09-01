@@ -1,0 +1,60 @@
+# Playbook for: asvs-v10-malicious-code
+# Source: OWASP ASVS 5.0 V10
+# Auto-generated
+
+playbooks:
+- control_id: "ASVSV10M-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary malicious code protection control patterns for asvs-v10-malicious-code"
+  blast_radius_notes: "Automated fix for ASVSV10M-01 - Primary Malicious Code Protection Control"
+  verification_checks:
+    - "Verify ASVSV10M-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "ASVSV10M-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for malicious code protection patterns for asvs-v10-malicious-code"
+  blast_radius_notes: "Automated fix for ASVSV10M-02 - Input Validation for Malicious Code Protection"
+  verification_checks:
+    - "Verify ASVSV10M-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "ASVSV10M-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for malicious code protection patterns for asvs-v10-malicious-code"
+  blast_radius_notes: "Automated fix for ASVSV10M-03 - Configuration Hardening for Malicious Code Protection"
+  verification_checks:
+    - "Verify ASVSV10M-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "ASVSV10M-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for malicious code protection patterns for asvs-v10-malicious-code"
+  blast_radius_notes: "Automated fix for ASVSV10M-04 - Monitoring and Logging for Malicious Code Protection"
+  verification_checks:
+    - "Verify ASVSV10M-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "ASVSV10M-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for malicious code protection patterns for asvs-v10-malicious-code"
+  blast_radius_notes: "Automated fix for ASVSV10M-05 - Error Handling for Malicious Code Protection"
+  verification_checks:
+    - "Verify ASVSV10M-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

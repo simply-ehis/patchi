@@ -1,0 +1,60 @@
+# Playbook for: cis-sql-server
+# Source: CIS SQL Server Benchmark
+# Auto-generated
+
+playbooks:
+- control_id: "CISSQLSE-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary sql server hardening control patterns for cis-sql-server"
+  blast_radius_notes: "Automated fix for CISSQLSE-01 - Primary SQL Server Hardening Control"
+  verification_checks:
+    - "Verify CISSQLSE-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CISSQLSE-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for sql server hardening patterns for cis-sql-server"
+  blast_radius_notes: "Automated fix for CISSQLSE-02 - Input Validation for SQL Server Hardening"
+  verification_checks:
+    - "Verify CISSQLSE-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CISSQLSE-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for sql server hardening patterns for cis-sql-server"
+  blast_radius_notes: "Automated fix for CISSQLSE-03 - Configuration Hardening for SQL Server Hardening"
+  verification_checks:
+    - "Verify CISSQLSE-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CISSQLSE-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for sql server hardening patterns for cis-sql-server"
+  blast_radius_notes: "Automated fix for CISSQLSE-04 - Monitoring and Logging for SQL Server Hardening"
+  verification_checks:
+    - "Verify CISSQLSE-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CISSQLSE-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for sql server hardening patterns for cis-sql-server"
+  blast_radius_notes: "Automated fix for CISSQLSE-05 - Error Handling for SQL Server Hardening"
+  verification_checks:
+    - "Verify CISSQLSE-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

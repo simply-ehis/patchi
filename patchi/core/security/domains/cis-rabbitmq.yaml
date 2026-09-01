@@ -1,0 +1,62 @@
+# Patchi Security Domain: cis-rabbitmq
+# Source: CIS RabbitMQ Benchmark
+# Auto-generated — curated from CIS RabbitMQ Benchmark
+
+domain_id: "cis-rabbitmq"
+version: "1.0.0"
+display_name: "RabbitMQ Hardening"
+source_standard: "CIS RabbitMQ Benchmark"
+component_type: "infra"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_cis_rabbitmq_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_cis_rabbitmq"
+
+controls:
+  - control_id: "CISRABBI-01"
+    name: "RabbitMQ Hardening — Primary Control"
+    description: "Authentication, authorization, TLS, and management UI access."
+    source_clause: "CIS RabbitMQ"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CISRABBI-01"
+
+  - control_id: "CISRABBI-02"
+    name: "RabbitMQ Hardening — Input Validation"
+    description: "Validate and sanitize all inputs related to rabbitmq hardening"
+    source_clause: "CIS RabbitMQ"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CISRABBI-02"
+
+  - control_id: "CISRABBI-03"
+    name: "RabbitMQ Hardening — Configuration Hardening"
+    description: "Apply secure configuration defaults for rabbitmq hardening"
+    source_clause: "CIS RabbitMQ"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CISRABBI-03"
+
+  - control_id: "CISRABBI-04"
+    name: "RabbitMQ Hardening — Monitoring and Logging"
+    description: "Log and monitor all rabbitmq hardening events for audit and detection"
+    source_clause: "CIS RabbitMQ"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CISRABBI-04"
+
+  - control_id: "CISRABBI-05"
+    name: "RabbitMQ Hardening — Error Handling"
+    description: "Handle rabbitmq hardening errors securely without information leakage"
+    source_clause: "CIS RabbitMQ"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CISRABBI-05"

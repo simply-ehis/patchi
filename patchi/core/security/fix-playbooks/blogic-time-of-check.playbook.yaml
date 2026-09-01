@@ -1,0 +1,60 @@
+# Playbook for: blogic-time-of-check
+# Source: Business Logic
+# Auto-generated
+
+playbooks:
+- control_id: "BLOGICTI-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary time-of-check to time-of-use control patterns for blogic-time-of-check"
+  blast_radius_notes: "Automated fix for BLOGICTI-01 - Primary Time-of-Check to Time-of-Use Control"
+  verification_checks:
+    - "Verify BLOGICTI-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "BLOGICTI-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for time-of-check to time-of-use patterns for blogic-time-of-check"
+  blast_radius_notes: "Automated fix for BLOGICTI-02 - Input Validation for Time-of-Check to Time-of-Use"
+  verification_checks:
+    - "Verify BLOGICTI-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "BLOGICTI-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for time-of-check to time-of-use patterns for blogic-time-of-check"
+  blast_radius_notes: "Automated fix for BLOGICTI-03 - Configuration Hardening for Time-of-Check to Time-of-Use"
+  verification_checks:
+    - "Verify BLOGICTI-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "BLOGICTI-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for time-of-check to time-of-use patterns for blogic-time-of-check"
+  blast_radius_notes: "Automated fix for BLOGICTI-04 - Monitoring and Logging for Time-of-Check to Time-of-Use"
+  verification_checks:
+    - "Verify BLOGICTI-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "BLOGICTI-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for time-of-check to time-of-use patterns for blogic-time-of-check"
+  blast_radius_notes: "Automated fix for BLOGICTI-05 - Error Handling for Time-of-Check to Time-of-Use"
+  verification_checks:
+    - "Verify BLOGICTI-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

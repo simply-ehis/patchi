@@ -1,0 +1,60 @@
+# Playbook for: nist-cm-11
+# Source: NIST SP 800-53 CM-11
+# Auto-generated
+
+playbooks:
+- control_id: "NISTCM11-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary user-installed software control patterns for nist-cm-11"
+  blast_radius_notes: "Automated fix for NISTCM11-01 - Primary User-Installed Software Control"
+  verification_checks:
+    - "Verify NISTCM11-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NISTCM11-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for user-installed software patterns for nist-cm-11"
+  blast_radius_notes: "Automated fix for NISTCM11-02 - Input Validation for User-Installed Software"
+  verification_checks:
+    - "Verify NISTCM11-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NISTCM11-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for user-installed software patterns for nist-cm-11"
+  blast_radius_notes: "Automated fix for NISTCM11-03 - Configuration Hardening for User-Installed Software"
+  verification_checks:
+    - "Verify NISTCM11-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NISTCM11-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for user-installed software patterns for nist-cm-11"
+  blast_radius_notes: "Automated fix for NISTCM11-04 - Monitoring and Logging for User-Installed Software"
+  verification_checks:
+    - "Verify NISTCM11-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NISTCM11-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for user-installed software patterns for nist-cm-11"
+  blast_radius_notes: "Automated fix for NISTCM11-05 - Error Handling for User-Installed Software"
+  verification_checks:
+    - "Verify NISTCM11-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

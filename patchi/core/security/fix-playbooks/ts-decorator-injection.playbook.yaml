@@ -1,0 +1,60 @@
+# Playbook for: ts-decorator-injection
+# Source: TypeScript Security
+# Auto-generated
+
+playbooks:
+- control_id: "TSDECORA-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary typescript decorator injection control patterns for ts-decorator-injection"
+  blast_radius_notes: "Automated fix for TSDECORA-01 - Primary TypeScript Decorator Injection Control"
+  verification_checks:
+    - "Verify TSDECORA-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "TSDECORA-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for typescript decorator injection patterns for ts-decorator-injection"
+  blast_radius_notes: "Automated fix for TSDECORA-02 - Input Validation for TypeScript Decorator Injection"
+  verification_checks:
+    - "Verify TSDECORA-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "TSDECORA-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for typescript decorator injection patterns for ts-decorator-injection"
+  blast_radius_notes: "Automated fix for TSDECORA-03 - Configuration Hardening for TypeScript Decorator Injection"
+  verification_checks:
+    - "Verify TSDECORA-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "TSDECORA-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for typescript decorator injection patterns for ts-decorator-injection"
+  blast_radius_notes: "Automated fix for TSDECORA-04 - Monitoring and Logging for TypeScript Decorator Injection"
+  verification_checks:
+    - "Verify TSDECORA-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "TSDECORA-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for typescript decorator injection patterns for ts-decorator-injection"
+  blast_radius_notes: "Automated fix for TSDECORA-05 - Error Handling for TypeScript Decorator Injection"
+  verification_checks:
+    - "Verify TSDECORA-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

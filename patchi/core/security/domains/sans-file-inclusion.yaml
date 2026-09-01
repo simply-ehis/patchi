@@ -1,0 +1,62 @@
+# Patchi Security Domain: sans-file-inclusion
+# Source: SANS Top 25
+# Auto-generated — curated from SANS Top 25
+
+domain_id: "sans-file-inclusion"
+version: "1.0.0"
+display_name: "File Inclusion"
+source_standard: "SANS Top 25"
+component_type: "backend-api"
+weight: 0.9
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_sans_file_inclusion_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_sans_file_inclusion"
+
+controls:
+  - control_id: "SANSFILE-01"
+    name: "File Inclusion — Primary Control"
+    description: "Local or remote file inclusion via unvalidated input."
+    source_clause: "SANS"
+    severity: "critical"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://SANSFILE-01"
+
+  - control_id: "SANSFILE-02"
+    name: "File Inclusion — Input Validation"
+    description: "Validate and sanitize all inputs related to file inclusion"
+    source_clause: "SANS"
+    severity: "critical"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://SANSFILE-02"
+
+  - control_id: "SANSFILE-03"
+    name: "File Inclusion — Configuration Hardening"
+    description: "Apply secure configuration defaults for file inclusion"
+    source_clause: "SANS"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://SANSFILE-03"
+
+  - control_id: "SANSFILE-04"
+    name: "File Inclusion — Monitoring and Logging"
+    description: "Log and monitor all file inclusion events for audit and detection"
+    source_clause: "SANS"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://SANSFILE-04"
+
+  - control_id: "SANSFILE-05"
+    name: "File Inclusion — Error Handling"
+    description: "Handle file inclusion errors securely without information leakage"
+    source_clause: "SANS"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://SANSFILE-05"

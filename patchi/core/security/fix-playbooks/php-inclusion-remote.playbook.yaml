@@ -1,0 +1,60 @@
+# Playbook for: php-inclusion-remote
+# Source: PHP Security
+# Auto-generated
+
+playbooks:
+- control_id: "PHPINCLU-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary php remote file inclusion control patterns for php-inclusion-remote"
+  blast_radius_notes: "Automated fix for PHPINCLU-01 - Primary PHP Remote File Inclusion Control"
+  verification_checks:
+    - "Verify PHPINCLU-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "PHPINCLU-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for php remote file inclusion patterns for php-inclusion-remote"
+  blast_radius_notes: "Automated fix for PHPINCLU-02 - Input Validation for PHP Remote File Inclusion"
+  verification_checks:
+    - "Verify PHPINCLU-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "PHPINCLU-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for php remote file inclusion patterns for php-inclusion-remote"
+  blast_radius_notes: "Automated fix for PHPINCLU-03 - Configuration Hardening for PHP Remote File Inclusion"
+  verification_checks:
+    - "Verify PHPINCLU-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "PHPINCLU-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for php remote file inclusion patterns for php-inclusion-remote"
+  blast_radius_notes: "Automated fix for PHPINCLU-04 - Monitoring and Logging for PHP Remote File Inclusion"
+  verification_checks:
+    - "Verify PHPINCLU-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "PHPINCLU-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for php remote file inclusion patterns for php-inclusion-remote"
+  blast_radius_notes: "Automated fix for PHPINCLU-05 - Error Handling for PHP Remote File Inclusion"
+  verification_checks:
+    - "Verify PHPINCLU-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

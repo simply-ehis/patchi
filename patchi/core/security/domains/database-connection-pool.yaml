@@ -1,0 +1,62 @@
+# Patchi Security Domain: database-connection-pool
+# Source: Database Security
+# Auto-generated — curated from Database Security
+
+domain_id: "database-connection-pool"
+version: "1.0.0"
+display_name: "Database Connection Pool Security"
+source_standard: "Database Security"
+component_type: "infra"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_database_connection_pool_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_database_connection_pool"
+
+controls:
+  - control_id: "DATABASE-01"
+    name: "Database Connection Pool Security — Primary Control"
+    description: "Unbounded connection pools or missing connection timeout."
+    source_clause: "DB Pool"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://DATABASE-01"
+
+  - control_id: "DATABASE-02"
+    name: "Database Connection Pool Security — Input Validation"
+    description: "Validate and sanitize all inputs related to database connection pool security"
+    source_clause: "DB Pool"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://DATABASE-02"
+
+  - control_id: "DATABASE-03"
+    name: "Database Connection Pool Security — Configuration Hardening"
+    description: "Apply secure configuration defaults for database connection pool security"
+    source_clause: "DB Pool"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://DATABASE-03"
+
+  - control_id: "DATABASE-04"
+    name: "Database Connection Pool Security — Monitoring and Logging"
+    description: "Log and monitor all database connection pool security events for audit and detection"
+    source_clause: "DB Pool"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://DATABASE-04"
+
+  - control_id: "DATABASE-05"
+    name: "Database Connection Pool Security — Error Handling"
+    description: "Handle database connection pool security errors securely without information leakage"
+    source_clause: "DB Pool"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://DATABASE-05"

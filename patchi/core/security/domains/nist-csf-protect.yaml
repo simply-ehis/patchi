@@ -1,0 +1,62 @@
+# Patchi Security Domain: nist-csf-protect
+# Source: NIST CSF 2.0
+# Auto-generated — curated from NIST CSF 2.0
+
+domain_id: "nist-csf-protect"
+version: "1.0.0"
+display_name: "Protect Function"
+source_standard: "NIST CSF 2.0"
+component_type: "infra"
+weight: 0.9
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_nist_csf_protect_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_nist_csf_protect"
+
+controls:
+  - control_id: "NISTCSFP-01"
+    name: "Protect Function — Primary Control"
+    description: "Identity management, access control, awareness training, data security, and platform security."
+    source_clause: "CSF 2.0 PR"
+    severity: "critical"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://NISTCSFP-01"
+
+  - control_id: "NISTCSFP-02"
+    name: "Protect Function — Input Validation"
+    description: "Validate and sanitize all inputs related to protect function"
+    source_clause: "CSF 2.0 PR"
+    severity: "critical"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://NISTCSFP-02"
+
+  - control_id: "NISTCSFP-03"
+    name: "Protect Function — Configuration Hardening"
+    description: "Apply secure configuration defaults for protect function"
+    source_clause: "CSF 2.0 PR"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://NISTCSFP-03"
+
+  - control_id: "NISTCSFP-04"
+    name: "Protect Function — Monitoring and Logging"
+    description: "Log and monitor all protect function events for audit and detection"
+    source_clause: "CSF 2.0 PR"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://NISTCSFP-04"
+
+  - control_id: "NISTCSFP-05"
+    name: "Protect Function — Error Handling"
+    description: "Handle protect function errors securely without information leakage"
+    source_clause: "CSF 2.0 PR"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://NISTCSFP-05"

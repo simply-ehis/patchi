@@ -1,0 +1,62 @@
+# Patchi Security Domain: go-unsafe-conversion
+# Source: Go Security
+# Auto-generated — curated from Go Security
+
+domain_id: "go-unsafe-conversion"
+version: "1.0.0"
+display_name: "Go Unsafe Pointer Conversion"
+source_standard: "Go Security"
+component_type: "backend-api"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_go_unsafe_conversion_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_go_unsafe_conversion"
+
+controls:
+  - control_id: "GOUNSAFE-01"
+    name: "Go Unsafe Pointer Conversion — Primary Control"
+    description: "unsafe.Pointer usage leading to memory corruption."
+    source_clause: "Go Unsafe"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://GOUNSAFE-01"
+
+  - control_id: "GOUNSAFE-02"
+    name: "Go Unsafe Pointer Conversion — Input Validation"
+    description: "Validate and sanitize all inputs related to go unsafe pointer conversion"
+    source_clause: "Go Unsafe"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://GOUNSAFE-02"
+
+  - control_id: "GOUNSAFE-03"
+    name: "Go Unsafe Pointer Conversion — Configuration Hardening"
+    description: "Apply secure configuration defaults for go unsafe pointer conversion"
+    source_clause: "Go Unsafe"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://GOUNSAFE-03"
+
+  - control_id: "GOUNSAFE-04"
+    name: "Go Unsafe Pointer Conversion — Monitoring and Logging"
+    description: "Log and monitor all go unsafe pointer conversion events for audit and detection"
+    source_clause: "Go Unsafe"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://GOUNSAFE-04"
+
+  - control_id: "GOUNSAFE-05"
+    name: "Go Unsafe Pointer Conversion — Error Handling"
+    description: "Handle go unsafe pointer conversion errors securely without information leakage"
+    source_clause: "Go Unsafe"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://GOUNSAFE-05"

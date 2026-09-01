@@ -1,0 +1,62 @@
+# Patchi Security Domain: dotnet-xss-razor
+# Source: .NET Security
+# Auto-generated — curated from .NET Security
+
+domain_id: "dotnet-xss-razor"
+version: "1.0.0"
+display_name: ".NET Razor XSS"
+source_standard: ".NET Security"
+component_type: "frontend-web"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_dotnet_xss_razor_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_dotnet_xss_razor"
+
+controls:
+  - control_id: "DOTNETXS-01"
+    name: ".NET Razor XSS — Primary Control"
+    description: "Html.Raw() with user input or missing output encoding."
+    source_clause: ".NET XSS"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://DOTNETXS-01"
+
+  - control_id: "DOTNETXS-02"
+    name: ".NET Razor XSS — Input Validation"
+    description: "Validate and sanitize all inputs related to .net razor xss"
+    source_clause: ".NET XSS"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://DOTNETXS-02"
+
+  - control_id: "DOTNETXS-03"
+    name: ".NET Razor XSS — Configuration Hardening"
+    description: "Apply secure configuration defaults for .net razor xss"
+    source_clause: ".NET XSS"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://DOTNETXS-03"
+
+  - control_id: "DOTNETXS-04"
+    name: ".NET Razor XSS — Monitoring and Logging"
+    description: "Log and monitor all .net razor xss events for audit and detection"
+    source_clause: ".NET XSS"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://DOTNETXS-04"
+
+  - control_id: "DOTNETXS-05"
+    name: ".NET Razor XSS — Error Handling"
+    description: "Handle .net razor xss errors securely without information leakage"
+    source_clause: ".NET XSS"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://DOTNETXS-05"

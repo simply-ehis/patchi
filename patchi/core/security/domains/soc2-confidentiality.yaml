@@ -1,0 +1,62 @@
+# Patchi Security Domain: soc2-confidentiality
+# Source: SOC 2 TSC
+# Auto-generated — curated from SOC 2 TSC
+
+domain_id: "soc2-confidentiality"
+version: "1.0.0"
+display_name: "Confidentiality"
+source_standard: "SOC 2 TSC"
+component_type: "backend-api"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_soc2_confidentiality_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_soc2_confidentiality"
+
+controls:
+  - control_id: "SOC2CONF-01"
+    name: "Confidentiality — Primary Control"
+    description: "Protection of confidential information including encryption, access controls, and disposal."
+    source_clause: "SOC 2 C"
+    severity: "high"
+    check_method: "static+manual-review"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://SOC2CONF-01"
+
+  - control_id: "SOC2CONF-02"
+    name: "Confidentiality — Input Validation"
+    description: "Validate and sanitize all inputs related to confidentiality"
+    source_clause: "SOC 2 C"
+    severity: "high"
+    check_method: "static+manual-review"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://SOC2CONF-02"
+
+  - control_id: "SOC2CONF-03"
+    name: "Confidentiality — Configuration Hardening"
+    description: "Apply secure configuration defaults for confidentiality"
+    source_clause: "SOC 2 C"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://SOC2CONF-03"
+
+  - control_id: "SOC2CONF-04"
+    name: "Confidentiality — Monitoring and Logging"
+    description: "Log and monitor all confidentiality events for audit and detection"
+    source_clause: "SOC 2 C"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://SOC2CONF-04"
+
+  - control_id: "SOC2CONF-05"
+    name: "Confidentiality — Error Handling"
+    description: "Handle confidentiality errors securely without information leakage"
+    source_clause: "SOC 2 C"
+    severity: "medium"
+    check_method: "static+manual-review"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://SOC2CONF-05"

@@ -1,0 +1,62 @@
+# Patchi Security Domain: cloud-azure-storage
+# Source: Cloud Security Azure
+# Auto-generated — curated from Cloud Security Azure
+
+domain_id: "cloud-azure-storage"
+version: "1.0.0"
+display_name: "Azure Blob Storage Security"
+source_standard: "Cloud Security Azure"
+component_type: "cloud-azure"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_cloud_azure_storage_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_cloud_azure_storage"
+
+controls:
+  - control_id: "CLOUDAZU-01"
+    name: "Azure Blob Storage Security — Primary Control"
+    description: "Public blob container or missing encryption at rest."
+    source_clause: "Azure Storage"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CLOUDAZU-01"
+
+  - control_id: "CLOUDAZU-02"
+    name: "Azure Blob Storage Security — Input Validation"
+    description: "Validate and sanitize all inputs related to azure blob storage security"
+    source_clause: "Azure Storage"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CLOUDAZU-02"
+
+  - control_id: "CLOUDAZU-03"
+    name: "Azure Blob Storage Security — Configuration Hardening"
+    description: "Apply secure configuration defaults for azure blob storage security"
+    source_clause: "Azure Storage"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CLOUDAZU-03"
+
+  - control_id: "CLOUDAZU-04"
+    name: "Azure Blob Storage Security — Monitoring and Logging"
+    description: "Log and monitor all azure blob storage security events for audit and detection"
+    source_clause: "Azure Storage"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CLOUDAZU-04"
+
+  - control_id: "CLOUDAZU-05"
+    name: "Azure Blob Storage Security — Error Handling"
+    description: "Handle azure blob storage security errors securely without information leakage"
+    source_clause: "Azure Storage"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CLOUDAZU-05"

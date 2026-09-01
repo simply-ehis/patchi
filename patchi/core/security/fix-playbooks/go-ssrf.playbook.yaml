@@ -1,0 +1,60 @@
+# Playbook for: go-ssrf
+# Source: Go Security
+# Auto-generated
+
+playbooks:
+- control_id: "GOSSRF-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary go ssrf control patterns for go-ssrf"
+  blast_radius_notes: "Automated fix for GOSSRF-01 - Primary Go SSRF Control"
+  verification_checks:
+    - "Verify GOSSRF-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "GOSSRF-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for go ssrf patterns for go-ssrf"
+  blast_radius_notes: "Automated fix for GOSSRF-02 - Input Validation for Go SSRF"
+  verification_checks:
+    - "Verify GOSSRF-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "GOSSRF-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for go ssrf patterns for go-ssrf"
+  blast_radius_notes: "Automated fix for GOSSRF-03 - Configuration Hardening for Go SSRF"
+  verification_checks:
+    - "Verify GOSSRF-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "GOSSRF-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for go ssrf patterns for go-ssrf"
+  blast_radius_notes: "Automated fix for GOSSRF-04 - Monitoring and Logging for Go SSRF"
+  verification_checks:
+    - "Verify GOSSRF-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "GOSSRF-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for go ssrf patterns for go-ssrf"
+  blast_radius_notes: "Automated fix for GOSSRF-05 - Error Handling for Go SSRF"
+  verification_checks:
+    - "Verify GOSSRF-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

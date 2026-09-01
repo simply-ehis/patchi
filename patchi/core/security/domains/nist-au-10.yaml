@@ -1,0 +1,62 @@
+# Patchi Security Domain: nist-au-10
+# Source: NIST SP 800-53 AU-10
+# Auto-generated — curated from NIST SP 800-53 AU-10
+
+domain_id: "nist-au-10"
+version: "1.0.0"
+display_name: "Non-repudiation"
+source_standard: "NIST SP 800-53 AU-10"
+component_type: "backend-api"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_nist_au_10_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_nist_au_10"
+
+controls:
+  - control_id: "NISTAU10-01"
+    name: "Non-repudiation — Primary Control"
+    description: "System provides non-repudiation of information system actions."
+    source_clause: "AU-10"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://NISTAU10-01"
+
+  - control_id: "NISTAU10-02"
+    name: "Non-repudiation — Input Validation"
+    description: "Validate and sanitize all inputs related to non-repudiation"
+    source_clause: "AU-10"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://NISTAU10-02"
+
+  - control_id: "NISTAU10-03"
+    name: "Non-repudiation — Configuration Hardening"
+    description: "Apply secure configuration defaults for non-repudiation"
+    source_clause: "AU-10"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://NISTAU10-03"
+
+  - control_id: "NISTAU10-04"
+    name: "Non-repudiation — Monitoring and Logging"
+    description: "Log and monitor all non-repudiation events for audit and detection"
+    source_clause: "AU-10"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://NISTAU10-04"
+
+  - control_id: "NISTAU10-05"
+    name: "Non-repudiation — Error Handling"
+    description: "Handle non-repudiation errors securely without information leakage"
+    source_clause: "AU-10"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://NISTAU10-05"

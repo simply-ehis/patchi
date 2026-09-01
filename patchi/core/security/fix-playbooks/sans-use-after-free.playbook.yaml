@@ -1,0 +1,60 @@
+# Playbook for: sans-use-after-free
+# Source: SANS Top 25
+# Auto-generated
+
+playbooks:
+- control_id: "SANSUSEA-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary use after free control patterns for sans-use-after-free"
+  blast_radius_notes: "Automated fix for SANSUSEA-01 - Primary Use After Free Control"
+  verification_checks:
+    - "Verify SANSUSEA-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "SANSUSEA-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for use after free patterns for sans-use-after-free"
+  blast_radius_notes: "Automated fix for SANSUSEA-02 - Input Validation for Use After Free"
+  verification_checks:
+    - "Verify SANSUSEA-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "SANSUSEA-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for use after free patterns for sans-use-after-free"
+  blast_radius_notes: "Automated fix for SANSUSEA-03 - Configuration Hardening for Use After Free"
+  verification_checks:
+    - "Verify SANSUSEA-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "SANSUSEA-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for use after free patterns for sans-use-after-free"
+  blast_radius_notes: "Automated fix for SANSUSEA-04 - Monitoring and Logging for Use After Free"
+  verification_checks:
+    - "Verify SANSUSEA-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "SANSUSEA-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for use after free patterns for sans-use-after-free"
+  blast_radius_notes: "Automated fix for SANSUSEA-05 - Error Handling for Use After Free"
+  verification_checks:
+    - "Verify SANSUSEA-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

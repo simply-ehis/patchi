@@ -1,0 +1,62 @@
+# Patchi Security Domain: nist-au-6
+# Source: NIST SP 800-53 AU-6
+# Auto-generated — curated from NIST SP 800-53 AU-6
+
+domain_id: "nist-au-6"
+version: "1.0.0"
+display_name: "Audit Review, Analysis, and Reporting"
+source_standard: "NIST SP 800-53 AU-6"
+component_type: "infra"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_nist_au_6_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_nist_au_6"
+
+controls:
+  - control_id: "NISTAU6-01"
+    name: "Audit Review, Analysis, and Reporting — Primary Control"
+    description: "Organization reviews and analyzes audit records to identify unusual activity."
+    source_clause: "AU-6"
+    severity: "high"
+    check_method: "manual-review"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://NISTAU6-01"
+
+  - control_id: "NISTAU6-02"
+    name: "Audit Review, Analysis, and Reporting — Input Validation"
+    description: "Validate and sanitize all inputs related to audit review, analysis, and reporting"
+    source_clause: "AU-6"
+    severity: "high"
+    check_method: "manual-review"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://NISTAU6-02"
+
+  - control_id: "NISTAU6-03"
+    name: "Audit Review, Analysis, and Reporting — Configuration Hardening"
+    description: "Apply secure configuration defaults for audit review, analysis, and reporting"
+    source_clause: "AU-6"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://NISTAU6-03"
+
+  - control_id: "NISTAU6-04"
+    name: "Audit Review, Analysis, and Reporting — Monitoring and Logging"
+    description: "Log and monitor all audit review, analysis, and reporting events for audit and detection"
+    source_clause: "AU-6"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://NISTAU6-04"
+
+  - control_id: "NISTAU6-05"
+    name: "Audit Review, Analysis, and Reporting — Error Handling"
+    description: "Handle audit review, analysis, and reporting errors securely without information leakage"
+    source_clause: "AU-6"
+    severity: "medium"
+    check_method: "manual-review"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://NISTAU6-05"

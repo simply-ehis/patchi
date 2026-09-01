@@ -1,0 +1,60 @@
+# Playbook for: angular-prod-mode
+# Source: Angular Security
+# Auto-generated
+
+playbooks:
+- control_id: "ANGULARP-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary angular production mode control patterns for angular-prod-mode"
+  blast_radius_notes: "Automated fix for ANGULARP-01 - Primary Angular Production Mode Control"
+  verification_checks:
+    - "Verify ANGULARP-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "ANGULARP-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for angular production mode patterns for angular-prod-mode"
+  blast_radius_notes: "Automated fix for ANGULARP-02 - Input Validation for Angular Production Mode"
+  verification_checks:
+    - "Verify ANGULARP-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "ANGULARP-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for angular production mode patterns for angular-prod-mode"
+  blast_radius_notes: "Automated fix for ANGULARP-03 - Configuration Hardening for Angular Production Mode"
+  verification_checks:
+    - "Verify ANGULARP-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "ANGULARP-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for angular production mode patterns for angular-prod-mode"
+  blast_radius_notes: "Automated fix for ANGULARP-04 - Monitoring and Logging for Angular Production Mode"
+  verification_checks:
+    - "Verify ANGULARP-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "ANGULARP-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for angular production mode patterns for angular-prod-mode"
+  blast_radius_notes: "Automated fix for ANGULARP-05 - Error Handling for Angular Production Mode"
+  verification_checks:
+    - "Verify ANGULARP-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

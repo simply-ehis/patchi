@@ -1,0 +1,62 @@
+# Patchi Security Domain: owasp-api-improper-inventory
+# Source: OWASP API Security 2023 API9
+# Auto-generated — curated from OWASP API Security 2023 API9
+
+domain_id: "owasp-api-improper-inventory"
+version: "1.0.0"
+display_name: "Improper Inventory Management"
+source_standard: "OWASP API Security 2023 API9"
+component_type: "infra"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_owasp_api_improper_inventory_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_owasp_api_improper_inventory"
+
+controls:
+  - control_id: "OWASPAPI-01"
+    name: "Improper Inventory Management — Primary Control"
+    description: "Old or undocumented API versions exposed without proper access controls or deprecation."
+    source_clause: "API Top 10 API9"
+    severity: "medium"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://OWASPAPI-01"
+
+  - control_id: "OWASPAPI-02"
+    name: "Improper Inventory Management — Input Validation"
+    description: "Validate and sanitize all inputs related to improper inventory management"
+    source_clause: "API Top 10 API9"
+    severity: "medium"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://OWASPAPI-02"
+
+  - control_id: "OWASPAPI-03"
+    name: "Improper Inventory Management — Configuration Hardening"
+    description: "Apply secure configuration defaults for improper inventory management"
+    source_clause: "API Top 10 API9"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://OWASPAPI-03"
+
+  - control_id: "OWASPAPI-04"
+    name: "Improper Inventory Management — Monitoring and Logging"
+    description: "Log and monitor all improper inventory management events for audit and detection"
+    source_clause: "API Top 10 API9"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://OWASPAPI-04"
+
+  - control_id: "OWASPAPI-05"
+    name: "Improper Inventory Management — Error Handling"
+    description: "Handle improper inventory management errors securely without information leakage"
+    source_clause: "API Top 10 API9"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://OWASPAPI-05"

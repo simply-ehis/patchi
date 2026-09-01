@@ -1,0 +1,62 @@
+# Patchi Security Domain: network-proxy-security
+# Source: Network Security
+# Auto-generated — curated from Network Security
+
+domain_id: "network-proxy-security"
+version: "1.0.0"
+display_name: "Proxy Security"
+source_standard: "Network Security"
+component_type: "infra"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_network_proxy_security_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_network_proxy_security"
+
+controls:
+  - control_id: "NETWORKP-01"
+    name: "Proxy Security — Primary Control"
+    description: "Proxy server with weak authentication or forwarding internal headers."
+    source_clause: "Net Proxy"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://NETWORKP-01"
+
+  - control_id: "NETWORKP-02"
+    name: "Proxy Security — Input Validation"
+    description: "Validate and sanitize all inputs related to proxy security"
+    source_clause: "Net Proxy"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://NETWORKP-02"
+
+  - control_id: "NETWORKP-03"
+    name: "Proxy Security — Configuration Hardening"
+    description: "Apply secure configuration defaults for proxy security"
+    source_clause: "Net Proxy"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://NETWORKP-03"
+
+  - control_id: "NETWORKP-04"
+    name: "Proxy Security — Monitoring and Logging"
+    description: "Log and monitor all proxy security events for audit and detection"
+    source_clause: "Net Proxy"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://NETWORKP-04"
+
+  - control_id: "NETWORKP-05"
+    name: "Proxy Security — Error Handling"
+    description: "Handle proxy security errors securely without information leakage"
+    source_clause: "Net Proxy"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://NETWORKP-05"

@@ -1,0 +1,60 @@
+# Playbook for: wasm-untrusted-code
+# Source: WASM Security
+# Auto-generated
+
+playbooks:
+- control_id: "WASMUNTR-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary wasm untrusted code execution control patterns for wasm-untrusted-code"
+  blast_radius_notes: "Automated fix for WASMUNTR-01 - Primary WASM Untrusted Code Execution Control"
+  verification_checks:
+    - "Verify WASMUNTR-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "WASMUNTR-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for wasm untrusted code execution patterns for wasm-untrusted-code"
+  blast_radius_notes: "Automated fix for WASMUNTR-02 - Input Validation for WASM Untrusted Code Execution"
+  verification_checks:
+    - "Verify WASMUNTR-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "WASMUNTR-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for wasm untrusted code execution patterns for wasm-untrusted-code"
+  blast_radius_notes: "Automated fix for WASMUNTR-03 - Configuration Hardening for WASM Untrusted Code Execution"
+  verification_checks:
+    - "Verify WASMUNTR-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "WASMUNTR-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for wasm untrusted code execution patterns for wasm-untrusted-code"
+  blast_radius_notes: "Automated fix for WASMUNTR-04 - Monitoring and Logging for WASM Untrusted Code Execution"
+  verification_checks:
+    - "Verify WASMUNTR-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "WASMUNTR-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for wasm untrusted code execution patterns for wasm-untrusted-code"
+  blast_radius_notes: "Automated fix for WASMUNTR-05 - Error Handling for WASM Untrusted Code Execution"
+  verification_checks:
+    - "Verify WASMUNTR-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

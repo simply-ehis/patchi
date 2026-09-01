@@ -1,0 +1,60 @@
+# Playbook for: fraud-bot-detection
+# Source: Fraud Prevention
+# Auto-generated
+
+playbooks:
+- control_id: "FRAUDBOT-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary bot detection control patterns for fraud-bot-detection"
+  blast_radius_notes: "Automated fix for FRAUDBOT-01 - Primary Bot Detection Control"
+  verification_checks:
+    - "Verify FRAUDBOT-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "FRAUDBOT-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for bot detection patterns for fraud-bot-detection"
+  blast_radius_notes: "Automated fix for FRAUDBOT-02 - Input Validation for Bot Detection"
+  verification_checks:
+    - "Verify FRAUDBOT-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "FRAUDBOT-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for bot detection patterns for fraud-bot-detection"
+  blast_radius_notes: "Automated fix for FRAUDBOT-03 - Configuration Hardening for Bot Detection"
+  verification_checks:
+    - "Verify FRAUDBOT-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "FRAUDBOT-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for bot detection patterns for fraud-bot-detection"
+  blast_radius_notes: "Automated fix for FRAUDBOT-04 - Monitoring and Logging for Bot Detection"
+  verification_checks:
+    - "Verify FRAUDBOT-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "FRAUDBOT-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for bot detection patterns for fraud-bot-detection"
+  blast_radius_notes: "Automated fix for FRAUDBOT-05 - Error Handling for Bot Detection"
+  verification_checks:
+    - "Verify FRAUDBOT-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

@@ -1,0 +1,60 @@
+# Playbook for: nist-au-8
+# Source: NIST SP 800-53 AU-8
+# Auto-generated
+
+playbooks:
+- control_id: "NISTAU8-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary time stamps control patterns for nist-au-8"
+  blast_radius_notes: "Automated fix for NISTAU8-01 - Primary Time Stamps Control"
+  verification_checks:
+    - "Verify NISTAU8-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NISTAU8-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for time stamps patterns for nist-au-8"
+  blast_radius_notes: "Automated fix for NISTAU8-02 - Input Validation for Time Stamps"
+  verification_checks:
+    - "Verify NISTAU8-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NISTAU8-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for time stamps patterns for nist-au-8"
+  blast_radius_notes: "Automated fix for NISTAU8-03 - Configuration Hardening for Time Stamps"
+  verification_checks:
+    - "Verify NISTAU8-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NISTAU8-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for time stamps patterns for nist-au-8"
+  blast_radius_notes: "Automated fix for NISTAU8-04 - Monitoring and Logging for Time Stamps"
+  verification_checks:
+    - "Verify NISTAU8-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NISTAU8-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for time stamps patterns for nist-au-8"
+  blast_radius_notes: "Automated fix for NISTAU8-05 - Error Handling for Time Stamps"
+  verification_checks:
+    - "Verify NISTAU8-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

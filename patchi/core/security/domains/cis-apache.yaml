@@ -1,0 +1,62 @@
+# Patchi Security Domain: cis-apache
+# Source: CIS Apache Benchmark
+# Auto-generated — curated from CIS Apache Benchmark
+
+domain_id: "cis-apache"
+version: "1.0.0"
+display_name: "Apache HTTP Server Hardening"
+source_standard: "CIS Apache Benchmark"
+component_type: "infra"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_cis_apache_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_cis_apache"
+
+controls:
+  - control_id: "CISAPACH-01"
+    name: "Apache HTTP Server Hardening — Primary Control"
+    description: "Module management, directory permissions, TLS, and logging configuration."
+    source_clause: "CIS Apache"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CISAPACH-01"
+
+  - control_id: "CISAPACH-02"
+    name: "Apache HTTP Server Hardening — Input Validation"
+    description: "Validate and sanitize all inputs related to apache http server hardening"
+    source_clause: "CIS Apache"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CISAPACH-02"
+
+  - control_id: "CISAPACH-03"
+    name: "Apache HTTP Server Hardening — Configuration Hardening"
+    description: "Apply secure configuration defaults for apache http server hardening"
+    source_clause: "CIS Apache"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CISAPACH-03"
+
+  - control_id: "CISAPACH-04"
+    name: "Apache HTTP Server Hardening — Monitoring and Logging"
+    description: "Log and monitor all apache http server hardening events for audit and detection"
+    source_clause: "CIS Apache"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CISAPACH-04"
+
+  - control_id: "CISAPACH-05"
+    name: "Apache HTTP Server Hardening — Error Handling"
+    description: "Handle apache http server hardening errors securely without information leakage"
+    source_clause: "CIS Apache"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CISAPACH-05"

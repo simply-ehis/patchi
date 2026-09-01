@@ -1,0 +1,62 @@
+# Patchi Security Domain: fastapi-cors-misconfig
+# Source: FastAPI Security
+# Auto-generated — curated from FastAPI Security
+
+domain_id: "fastapi-cors-misconfig"
+version: "1.0.0"
+display_name: "FastAPI CORS Misconfiguration"
+source_standard: "FastAPI Security"
+component_type: "backend-api"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_fastapi_cors_misconfig_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_fastapi_cors_misconfig"
+
+controls:
+  - control_id: "FASTAPIC-01"
+    name: "FastAPI CORS Misconfiguration — Primary Control"
+    description: "Permissive CORS or missing origin validation."
+    source_clause: "FastAPI CORS"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://FASTAPIC-01"
+
+  - control_id: "FASTAPIC-02"
+    name: "FastAPI CORS Misconfiguration — Input Validation"
+    description: "Validate and sanitize all inputs related to fastapi cors misconfiguration"
+    source_clause: "FastAPI CORS"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://FASTAPIC-02"
+
+  - control_id: "FASTAPIC-03"
+    name: "FastAPI CORS Misconfiguration — Configuration Hardening"
+    description: "Apply secure configuration defaults for fastapi cors misconfiguration"
+    source_clause: "FastAPI CORS"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://FASTAPIC-03"
+
+  - control_id: "FASTAPIC-04"
+    name: "FastAPI CORS Misconfiguration — Monitoring and Logging"
+    description: "Log and monitor all fastapi cors misconfiguration events for audit and detection"
+    source_clause: "FastAPI CORS"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://FASTAPIC-04"
+
+  - control_id: "FASTAPIC-05"
+    name: "FastAPI CORS Misconfiguration — Error Handling"
+    description: "Handle fastapi cors misconfiguration errors securely without information leakage"
+    source_clause: "FastAPI CORS"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://FASTAPIC-05"

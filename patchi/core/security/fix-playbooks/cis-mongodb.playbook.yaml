@@ -1,0 +1,60 @@
+# Playbook for: cis-mongodb
+# Source: CIS MongoDB Benchmark
+# Auto-generated
+
+playbooks:
+- control_id: "CISMONGO-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary mongodb hardening control patterns for cis-mongodb"
+  blast_radius_notes: "Automated fix for CISMONGO-01 - Primary MongoDB Hardening Control"
+  verification_checks:
+    - "Verify CISMONGO-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CISMONGO-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for mongodb hardening patterns for cis-mongodb"
+  blast_radius_notes: "Automated fix for CISMONGO-02 - Input Validation for MongoDB Hardening"
+  verification_checks:
+    - "Verify CISMONGO-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CISMONGO-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for mongodb hardening patterns for cis-mongodb"
+  blast_radius_notes: "Automated fix for CISMONGO-03 - Configuration Hardening for MongoDB Hardening"
+  verification_checks:
+    - "Verify CISMONGO-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CISMONGO-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for mongodb hardening patterns for cis-mongodb"
+  blast_radius_notes: "Automated fix for CISMONGO-04 - Monitoring and Logging for MongoDB Hardening"
+  verification_checks:
+    - "Verify CISMONGO-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CISMONGO-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for mongodb hardening patterns for cis-mongodb"
+  blast_radius_notes: "Automated fix for CISMONGO-05 - Error Handling for MongoDB Hardening"
+  verification_checks:
+    - "Verify CISMONGO-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

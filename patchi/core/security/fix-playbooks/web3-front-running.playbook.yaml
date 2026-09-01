@@ -1,0 +1,60 @@
+# Playbook for: web3-front-running
+# Source: Web3 Security
+# Auto-generated
+
+playbooks:
+- control_id: "WEB3FRON-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary front-running control patterns for web3-front-running"
+  blast_radius_notes: "Automated fix for WEB3FRON-01 - Primary Front-Running Control"
+  verification_checks:
+    - "Verify WEB3FRON-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "WEB3FRON-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for front-running patterns for web3-front-running"
+  blast_radius_notes: "Automated fix for WEB3FRON-02 - Input Validation for Front-Running"
+  verification_checks:
+    - "Verify WEB3FRON-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "WEB3FRON-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for front-running patterns for web3-front-running"
+  blast_radius_notes: "Automated fix for WEB3FRON-03 - Configuration Hardening for Front-Running"
+  verification_checks:
+    - "Verify WEB3FRON-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "WEB3FRON-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for front-running patterns for web3-front-running"
+  blast_radius_notes: "Automated fix for WEB3FRON-04 - Monitoring and Logging for Front-Running"
+  verification_checks:
+    - "Verify WEB3FRON-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "WEB3FRON-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for front-running patterns for web3-front-running"
+  blast_radius_notes: "Automated fix for WEB3FRON-05 - Error Handling for Front-Running"
+  verification_checks:
+    - "Verify WEB3FRON-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

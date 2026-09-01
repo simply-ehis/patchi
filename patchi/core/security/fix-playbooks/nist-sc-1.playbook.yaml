@@ -1,0 +1,60 @@
+# Playbook for: nist-sc-1
+# Source: NIST SP 800-53 SC-1
+# Auto-generated
+
+playbooks:
+- control_id: "NISTSC1-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary system and communications protection policy control patterns for nist-sc-1"
+  blast_radius_notes: "Automated fix for NISTSC1-01 - Primary System and Communications Protection Policy Control"
+  verification_checks:
+    - "Verify NISTSC1-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NISTSC1-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for system and communications protection policy patterns for nist-sc-1"
+  blast_radius_notes: "Automated fix for NISTSC1-02 - Input Validation for System and Communications Protection Policy"
+  verification_checks:
+    - "Verify NISTSC1-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NISTSC1-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for system and communications protection policy patterns for nist-sc-1"
+  blast_radius_notes: "Automated fix for NISTSC1-03 - Configuration Hardening for System and Communications Protection Policy"
+  verification_checks:
+    - "Verify NISTSC1-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NISTSC1-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for system and communications protection policy patterns for nist-sc-1"
+  blast_radius_notes: "Automated fix for NISTSC1-04 - Monitoring and Logging for System and Communications Protection Policy"
+  verification_checks:
+    - "Verify NISTSC1-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NISTSC1-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for system and communications protection policy patterns for nist-sc-1"
+  blast_radius_notes: "Automated fix for NISTSC1-05 - Error Handling for System and Communications Protection Policy"
+  verification_checks:
+    - "Verify NISTSC1-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

@@ -1,0 +1,62 @@
+# Patchi Security Domain: cwe-799-improper-control-identifier
+# Source: CWE-799
+# Auto-generated — curated from CWE-799
+
+domain_id: "cwe-799-improper-control-identifier"
+version: "1.0.0"
+display_name: "Improper Control of Interaction Frequency"
+source_standard: "CWE-799"
+component_type: "backend-api"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_cwe_799_improper_control_identifier_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_cwe_799_improper_control_identifier"
+
+controls:
+  - control_id: "CWE799IM-01"
+    name: "Improper Control of Interaction Frequency — Primary Control"
+    description: "Application does not restrict the rate or number of interactions."
+    source_clause: "CWE-799"
+    severity: "high"
+    check_method: "dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CWE799IM-01"
+
+  - control_id: "CWE799IM-02"
+    name: "Improper Control of Interaction Frequency — Input Validation"
+    description: "Validate and sanitize all inputs related to improper control of interaction frequency"
+    source_clause: "CWE-799"
+    severity: "high"
+    check_method: "dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CWE799IM-02"
+
+  - control_id: "CWE799IM-03"
+    name: "Improper Control of Interaction Frequency — Configuration Hardening"
+    description: "Apply secure configuration defaults for improper control of interaction frequency"
+    source_clause: "CWE-799"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CWE799IM-03"
+
+  - control_id: "CWE799IM-04"
+    name: "Improper Control of Interaction Frequency — Monitoring and Logging"
+    description: "Log and monitor all improper control of interaction frequency events for audit and detection"
+    source_clause: "CWE-799"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CWE799IM-04"
+
+  - control_id: "CWE799IM-05"
+    name: "Improper Control of Interaction Frequency — Error Handling"
+    description: "Handle improper control of interaction frequency errors securely without information leakage"
+    source_clause: "CWE-799"
+    severity: "medium"
+    check_method: "dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CWE799IM-05"

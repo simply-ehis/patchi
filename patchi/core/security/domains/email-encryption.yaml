@@ -1,0 +1,62 @@
+# Patchi Security Domain: email-encryption
+# Source: Email Security
+# Auto-generated — curated from Email Security
+
+domain_id: "email-encryption"
+version: "1.0.0"
+display_name: "Email Encryption"
+source_standard: "Email Security"
+component_type: "infra"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_email_encryption_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_email_encryption"
+
+controls:
+  - control_id: "EMAILENC-01"
+    name: "Email Encryption — Primary Control"
+    description: "Email transmitted without TLS or S/MIME/PGP encryption."
+    source_clause: "Email Encrypt"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://EMAILENC-01"
+
+  - control_id: "EMAILENC-02"
+    name: "Email Encryption — Input Validation"
+    description: "Validate and sanitize all inputs related to email encryption"
+    source_clause: "Email Encrypt"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://EMAILENC-02"
+
+  - control_id: "EMAILENC-03"
+    name: "Email Encryption — Configuration Hardening"
+    description: "Apply secure configuration defaults for email encryption"
+    source_clause: "Email Encrypt"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://EMAILENC-03"
+
+  - control_id: "EMAILENC-04"
+    name: "Email Encryption — Monitoring and Logging"
+    description: "Log and monitor all email encryption events for audit and detection"
+    source_clause: "Email Encrypt"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://EMAILENC-04"
+
+  - control_id: "EMAILENC-05"
+    name: "Email Encryption — Error Handling"
+    description: "Handle email encryption errors securely without information leakage"
+    source_clause: "Email Encrypt"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://EMAILENC-05"

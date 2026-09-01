@@ -1,0 +1,62 @@
+# Patchi Security Domain: graphql-n-plus-one
+# Source: GraphQL Security
+# Auto-generated — curated from GraphQL Security
+
+domain_id: "graphql-n-plus-one"
+version: "1.0.0"
+display_name: "GraphQL N+1 Query"
+source_standard: "GraphQL Security"
+component_type: "backend-api"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_graphql_n_plus_one_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_graphql_n_plus_one"
+
+controls:
+  - control_id: "GRAPHQLN-01"
+    name: "GraphQL N+1 Query — Primary Control"
+    description: "Unbatched database queries leading to performance degradation."
+    source_clause: "GraphQL N+1"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://GRAPHQLN-01"
+
+  - control_id: "GRAPHQLN-02"
+    name: "GraphQL N+1 Query — Input Validation"
+    description: "Validate and sanitize all inputs related to graphql n+1 query"
+    source_clause: "GraphQL N+1"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://GRAPHQLN-02"
+
+  - control_id: "GRAPHQLN-03"
+    name: "GraphQL N+1 Query — Configuration Hardening"
+    description: "Apply secure configuration defaults for graphql n+1 query"
+    source_clause: "GraphQL N+1"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://GRAPHQLN-03"
+
+  - control_id: "GRAPHQLN-04"
+    name: "GraphQL N+1 Query — Monitoring and Logging"
+    description: "Log and monitor all graphql n+1 query events for audit and detection"
+    source_clause: "GraphQL N+1"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://GRAPHQLN-04"
+
+  - control_id: "GRAPHQLN-05"
+    name: "GraphQL N+1 Query — Error Handling"
+    description: "Handle graphql n+1 query errors securely without information leakage"
+    source_clause: "GraphQL N+1"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://GRAPHQLN-05"

@@ -1,0 +1,62 @@
+# Patchi Security Domain: crypto-key-length
+# Source: Cryptography Implementation
+# Auto-generated — curated from Cryptography Implementation
+
+domain_id: "crypto-key-length"
+version: "1.0.0"
+display_name: "Insufficient Key Length"
+source_standard: "Cryptography Implementation"
+component_type: "backend-api"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_crypto_key_length_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_crypto_key_length"
+
+controls:
+  - control_id: "CRYPTOKE-01"
+    name: "Insufficient Key Length — Primary Control"
+    description: "RSA keys < 2048-bit, AES keys < 128-bit, or other insufficient key sizes."
+    source_clause: "Crypto Length"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CRYPTOKE-01"
+
+  - control_id: "CRYPTOKE-02"
+    name: "Insufficient Key Length — Input Validation"
+    description: "Validate and sanitize all inputs related to insufficient key length"
+    source_clause: "Crypto Length"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CRYPTOKE-02"
+
+  - control_id: "CRYPTOKE-03"
+    name: "Insufficient Key Length — Configuration Hardening"
+    description: "Apply secure configuration defaults for insufficient key length"
+    source_clause: "Crypto Length"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CRYPTOKE-03"
+
+  - control_id: "CRYPTOKE-04"
+    name: "Insufficient Key Length — Monitoring and Logging"
+    description: "Log and monitor all insufficient key length events for audit and detection"
+    source_clause: "Crypto Length"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CRYPTOKE-04"
+
+  - control_id: "CRYPTOKE-05"
+    name: "Insufficient Key Length — Error Handling"
+    description: "Handle insufficient key length errors securely without information leakage"
+    source_clause: "Crypto Length"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CRYPTOKE-05"

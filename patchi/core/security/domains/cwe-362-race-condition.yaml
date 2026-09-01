@@ -1,0 +1,62 @@
+# Patchi Security Domain: cwe-362-race-condition
+# Source: CWE-362
+# Auto-generated — curated from CWE-362
+
+domain_id: "cwe-362-race-condition"
+version: "1.0.0"
+display_name: "Concurrent Execution Using Shared Resource with Improper Synchronization"
+source_standard: "CWE-362"
+component_type: "backend-api"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_cwe_362_race_condition_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_cwe_362_race_condition"
+
+controls:
+  - control_id: "CWE362RA-01"
+    name: "Concurrent Execution Using Shared Resource with Improper Synchronization — Primary Control"
+    description: "Race condition allows unintended behavior when concurrent processes share resources."
+    source_clause: "CWE-362"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CWE362RA-01"
+
+  - control_id: "CWE362RA-02"
+    name: "Concurrent Execution Using Shared Resource with Improper Synchronization — Input Validation"
+    description: "Validate and sanitize all inputs related to concurrent execution using shared resource with improper synchronization"
+    source_clause: "CWE-362"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CWE362RA-02"
+
+  - control_id: "CWE362RA-03"
+    name: "Concurrent Execution Using Shared Resource with Improper Synchronization — Configuration Hardening"
+    description: "Apply secure configuration defaults for concurrent execution using shared resource with improper synchronization"
+    source_clause: "CWE-362"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CWE362RA-03"
+
+  - control_id: "CWE362RA-04"
+    name: "Concurrent Execution Using Shared Resource with Improper Synchronization — Monitoring and Logging"
+    description: "Log and monitor all concurrent execution using shared resource with improper synchronization events for audit and detection"
+    source_clause: "CWE-362"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CWE362RA-04"
+
+  - control_id: "CWE362RA-05"
+    name: "Concurrent Execution Using Shared Resource with Improper Synchronization — Error Handling"
+    description: "Handle concurrent execution using shared resource with improper synchronization errors securely without information leakage"
+    source_clause: "CWE-362"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CWE362RA-05"

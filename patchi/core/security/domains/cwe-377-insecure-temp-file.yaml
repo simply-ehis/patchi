@@ -1,0 +1,62 @@
+# Patchi Security Domain: cwe-377-insecure-temp-file
+# Source: CWE-377
+# Auto-generated — curated from CWE-377
+
+domain_id: "cwe-377-insecure-temp-file"
+version: "1.0.0"
+display_name: "Insecure Temporary File Creation"
+source_standard: "CWE-377"
+component_type: "backend-api"
+weight: 0.7
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_cwe_377_insecure_temp_file_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_cwe_377_insecure_temp_file"
+
+controls:
+  - control_id: "CWE377IN-01"
+    name: "Insecure Temporary File Creation — Primary Control"
+    description: "Creation of temporary files with insecure permissions or predictable names."
+    source_clause: "CWE-377"
+    severity: "medium"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CWE377IN-01"
+
+  - control_id: "CWE377IN-02"
+    name: "Insecure Temporary File Creation — Input Validation"
+    description: "Validate and sanitize all inputs related to insecure temporary file creation"
+    source_clause: "CWE-377"
+    severity: "medium"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CWE377IN-02"
+
+  - control_id: "CWE377IN-03"
+    name: "Insecure Temporary File Creation — Configuration Hardening"
+    description: "Apply secure configuration defaults for insecure temporary file creation"
+    source_clause: "CWE-377"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CWE377IN-03"
+
+  - control_id: "CWE377IN-04"
+    name: "Insecure Temporary File Creation — Monitoring and Logging"
+    description: "Log and monitor all insecure temporary file creation events for audit and detection"
+    source_clause: "CWE-377"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CWE377IN-04"
+
+  - control_id: "CWE377IN-05"
+    name: "Insecure Temporary File Creation — Error Handling"
+    description: "Handle insecure temporary file creation errors securely without information leakage"
+    source_clause: "CWE-377"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CWE377IN-05"

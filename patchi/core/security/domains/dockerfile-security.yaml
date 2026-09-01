@@ -1,0 +1,62 @@
+# Patchi Security Domain: dockerfile-security
+# Source: Container Security
+# Auto-generated — curated from Container Security
+
+domain_id: "dockerfile-security"
+version: "1.0.0"
+display_name: "Dockerfile Security"
+source_standard: "Container Security"
+component_type: "infra"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_dockerfile_security_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_dockerfile_security"
+
+controls:
+  - control_id: "DOCKERFI-01"
+    name: "Dockerfile Security — Primary Control"
+    description: "Insecure Dockerfile instructions (ADD from URL, running as root, no COPY --chown)."
+    source_clause: "Dockerfile"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://DOCKERFI-01"
+
+  - control_id: "DOCKERFI-02"
+    name: "Dockerfile Security — Input Validation"
+    description: "Validate and sanitize all inputs related to dockerfile security"
+    source_clause: "Dockerfile"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://DOCKERFI-02"
+
+  - control_id: "DOCKERFI-03"
+    name: "Dockerfile Security — Configuration Hardening"
+    description: "Apply secure configuration defaults for dockerfile security"
+    source_clause: "Dockerfile"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://DOCKERFI-03"
+
+  - control_id: "DOCKERFI-04"
+    name: "Dockerfile Security — Monitoring and Logging"
+    description: "Log and monitor all dockerfile security events for audit and detection"
+    source_clause: "Dockerfile"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://DOCKERFI-04"
+
+  - control_id: "DOCKERFI-05"
+    name: "Dockerfile Security — Error Handling"
+    description: "Handle dockerfile security errors securely without information leakage"
+    source_clause: "Dockerfile"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://DOCKERFI-05"

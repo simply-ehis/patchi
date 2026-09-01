@@ -1,0 +1,62 @@
+# Patchi Security Domain: pci-protect-account
+# Source: PCI DSS 4.0 Req 3
+# Auto-generated — curated from PCI DSS 4.0 Req 3
+
+domain_id: "pci-protect-account"
+version: "1.0.0"
+display_name: "Protect Stored Account Data"
+source_standard: "PCI DSS 4.0 Req 3"
+component_type: "backend-api"
+weight: 0.95
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_pci_protect_account_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_pci_protect_account"
+
+controls:
+  - control_id: "PCIPROTE-01"
+    name: "Protect Stored Account Data — Primary Control"
+    description: "Protect stored cardholder data with encryption and minimization."
+    source_clause: "PCI DSS 3"
+    severity: "critical"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://PCIPROTE-01"
+
+  - control_id: "PCIPROTE-02"
+    name: "Protect Stored Account Data — Input Validation"
+    description: "Validate and sanitize all inputs related to protect stored account data"
+    source_clause: "PCI DSS 3"
+    severity: "critical"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://PCIPROTE-02"
+
+  - control_id: "PCIPROTE-03"
+    name: "Protect Stored Account Data — Configuration Hardening"
+    description: "Apply secure configuration defaults for protect stored account data"
+    source_clause: "PCI DSS 3"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://PCIPROTE-03"
+
+  - control_id: "PCIPROTE-04"
+    name: "Protect Stored Account Data — Monitoring and Logging"
+    description: "Log and monitor all protect stored account data events for audit and detection"
+    source_clause: "PCI DSS 3"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://PCIPROTE-04"
+
+  - control_id: "PCIPROTE-05"
+    name: "Protect Stored Account Data — Error Handling"
+    description: "Handle protect stored account data errors securely without information leakage"
+    source_clause: "PCI DSS 3"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://PCIPROTE-05"

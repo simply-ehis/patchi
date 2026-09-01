@@ -1,0 +1,62 @@
+# Patchi Security Domain: cwe-78-os-injection
+# Source: CWE Top 25 2024 CWE-78
+# Auto-generated — curated from CWE Top 25 2024 CWE-78
+
+domain_id: "cwe-78-os-injection"
+version: "1.0.0"
+display_name: "Improper Neutralization of Special Elements used in an OS Command"
+source_standard: "CWE Top 25 2024 CWE-78"
+component_type: "backend-api"
+weight: 0.9
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_cwe_78_os_injection_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_cwe_78_os_injection"
+
+controls:
+  - control_id: "CWE78OSI-01"
+    name: "Improper Neutralization of Special Elements used in an OS Command — Primary Control"
+    description: "User input passed to OS command execution functions without sanitization."
+    source_clause: "CWE-78"
+    severity: "critical"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CWE78OSI-01"
+
+  - control_id: "CWE78OSI-02"
+    name: "Improper Neutralization of Special Elements used in an OS Command — Input Validation"
+    description: "Validate and sanitize all inputs related to improper neutralization of special elements used in an os command"
+    source_clause: "CWE-78"
+    severity: "critical"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CWE78OSI-02"
+
+  - control_id: "CWE78OSI-03"
+    name: "Improper Neutralization of Special Elements used in an OS Command — Configuration Hardening"
+    description: "Apply secure configuration defaults for improper neutralization of special elements used in an os command"
+    source_clause: "CWE-78"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CWE78OSI-03"
+
+  - control_id: "CWE78OSI-04"
+    name: "Improper Neutralization of Special Elements used in an OS Command — Monitoring and Logging"
+    description: "Log and monitor all improper neutralization of special elements used in an os command events for audit and detection"
+    source_clause: "CWE-78"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CWE78OSI-04"
+
+  - control_id: "CWE78OSI-05"
+    name: "Improper Neutralization of Special Elements used in an OS Command — Error Handling"
+    description: "Handle improper neutralization of special elements used in an os command errors securely without information leakage"
+    source_clause: "CWE-78"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CWE78OSI-05"

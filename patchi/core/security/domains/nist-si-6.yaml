@@ -1,0 +1,62 @@
+# Patchi Security Domain: nist-si-6
+# Source: NIST SP 800-53 SI-6
+# Auto-generated — curated from NIST SP 800-53 SI-6
+
+domain_id: "nist-si-6"
+version: "1.0.0"
+display_name: "Security and Privacy Function Verification"
+source_standard: "NIST SP 800-53 SI-6"
+component_type: "infra"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_nist_si_6_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_nist_si_6"
+
+controls:
+  - control_id: "NISTSI6-01"
+    name: "Security and Privacy Function Verification — Primary Control"
+    description: "System verifies security and privacy functions are functioning correctly."
+    source_clause: "SI-6"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://NISTSI6-01"
+
+  - control_id: "NISTSI6-02"
+    name: "Security and Privacy Function Verification — Input Validation"
+    description: "Validate and sanitize all inputs related to security and privacy function verification"
+    source_clause: "SI-6"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://NISTSI6-02"
+
+  - control_id: "NISTSI6-03"
+    name: "Security and Privacy Function Verification — Configuration Hardening"
+    description: "Apply secure configuration defaults for security and privacy function verification"
+    source_clause: "SI-6"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://NISTSI6-03"
+
+  - control_id: "NISTSI6-04"
+    name: "Security and Privacy Function Verification — Monitoring and Logging"
+    description: "Log and monitor all security and privacy function verification events for audit and detection"
+    source_clause: "SI-6"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://NISTSI6-04"
+
+  - control_id: "NISTSI6-05"
+    name: "Security and Privacy Function Verification — Error Handling"
+    description: "Handle security and privacy function verification errors securely without information leakage"
+    source_clause: "SI-6"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://NISTSI6-05"

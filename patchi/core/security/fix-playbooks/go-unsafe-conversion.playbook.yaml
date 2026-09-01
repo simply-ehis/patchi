@@ -1,0 +1,60 @@
+# Playbook for: go-unsafe-conversion
+# Source: Go Security
+# Auto-generated
+
+playbooks:
+- control_id: "GOUNSAFE-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary go unsafe pointer conversion control patterns for go-unsafe-conversion"
+  blast_radius_notes: "Automated fix for GOUNSAFE-01 - Primary Go Unsafe Pointer Conversion Control"
+  verification_checks:
+    - "Verify GOUNSAFE-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "GOUNSAFE-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for go unsafe pointer conversion patterns for go-unsafe-conversion"
+  blast_radius_notes: "Automated fix for GOUNSAFE-02 - Input Validation for Go Unsafe Pointer Conversion"
+  verification_checks:
+    - "Verify GOUNSAFE-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "GOUNSAFE-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for go unsafe pointer conversion patterns for go-unsafe-conversion"
+  blast_radius_notes: "Automated fix for GOUNSAFE-03 - Configuration Hardening for Go Unsafe Pointer Conversion"
+  verification_checks:
+    - "Verify GOUNSAFE-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "GOUNSAFE-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for go unsafe pointer conversion patterns for go-unsafe-conversion"
+  blast_radius_notes: "Automated fix for GOUNSAFE-04 - Monitoring and Logging for Go Unsafe Pointer Conversion"
+  verification_checks:
+    - "Verify GOUNSAFE-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "GOUNSAFE-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for go unsafe pointer conversion patterns for go-unsafe-conversion"
+  blast_radius_notes: "Automated fix for GOUNSAFE-05 - Error Handling for Go Unsafe Pointer Conversion"
+  verification_checks:
+    - "Verify GOUNSAFE-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

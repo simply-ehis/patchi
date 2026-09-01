@@ -1,0 +1,60 @@
+# Playbook for: cis-aws
+# Source: CIS AWS Benchmark
+# Auto-generated
+
+playbooks:
+- control_id: "CISAWS-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary aws cloud hardening control patterns for cis-aws"
+  blast_radius_notes: "Automated fix for CISAWS-01 - Primary AWS Cloud Hardening Control"
+  verification_checks:
+    - "Verify CISAWS-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CISAWS-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for aws cloud hardening patterns for cis-aws"
+  blast_radius_notes: "Automated fix for CISAWS-02 - Input Validation for AWS Cloud Hardening"
+  verification_checks:
+    - "Verify CISAWS-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CISAWS-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for aws cloud hardening patterns for cis-aws"
+  blast_radius_notes: "Automated fix for CISAWS-03 - Configuration Hardening for AWS Cloud Hardening"
+  verification_checks:
+    - "Verify CISAWS-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CISAWS-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for aws cloud hardening patterns for cis-aws"
+  blast_radius_notes: "Automated fix for CISAWS-04 - Monitoring and Logging for AWS Cloud Hardening"
+  verification_checks:
+    - "Verify CISAWS-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CISAWS-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for aws cloud hardening patterns for cis-aws"
+  blast_radius_notes: "Automated fix for CISAWS-05 - Error Handling for AWS Cloud Hardening"
+  verification_checks:
+    - "Verify CISAWS-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

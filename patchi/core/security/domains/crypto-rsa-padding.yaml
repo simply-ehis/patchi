@@ -1,0 +1,62 @@
+# Patchi Security Domain: crypto-rsa-padding
+# Source: Cryptography Implementation
+# Auto-generated — curated from Cryptography Implementation
+
+domain_id: "crypto-rsa-padding"
+version: "1.0.0"
+display_name: "RSA Padding"
+source_standard: "Cryptography Implementation"
+component_type: "backend-api"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_crypto_rsa_padding_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_crypto_rsa_padding"
+
+controls:
+  - control_id: "CRYPTORS-01"
+    name: "RSA Padding — Primary Control"
+    description: "RSA with PKCS#1 v1.5 padding instead of OAEP."
+    source_clause: "Crypto RSA"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CRYPTORS-01"
+
+  - control_id: "CRYPTORS-02"
+    name: "RSA Padding — Input Validation"
+    description: "Validate and sanitize all inputs related to rsa padding"
+    source_clause: "Crypto RSA"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CRYPTORS-02"
+
+  - control_id: "CRYPTORS-03"
+    name: "RSA Padding — Configuration Hardening"
+    description: "Apply secure configuration defaults for rsa padding"
+    source_clause: "Crypto RSA"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CRYPTORS-03"
+
+  - control_id: "CRYPTORS-04"
+    name: "RSA Padding — Monitoring and Logging"
+    description: "Log and monitor all rsa padding events for audit and detection"
+    source_clause: "Crypto RSA"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CRYPTORS-04"
+
+  - control_id: "CRYPTORS-05"
+    name: "RSA Padding — Error Handling"
+    description: "Handle rsa padding errors securely without information leakage"
+    source_clause: "Crypto RSA"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CRYPTORS-05"

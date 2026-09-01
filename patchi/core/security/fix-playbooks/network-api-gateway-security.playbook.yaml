@@ -1,0 +1,60 @@
+# Playbook for: network-api-gateway-security
+# Source: Network Security
+# Auto-generated
+
+playbooks:
+- control_id: "NETWORKA-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary api gateway security control patterns for network-api-gateway-security"
+  blast_radius_notes: "Automated fix for NETWORKA-01 - Primary API Gateway Security Control"
+  verification_checks:
+    - "Verify NETWORKA-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NETWORKA-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for api gateway security patterns for network-api-gateway-security"
+  blast_radius_notes: "Automated fix for NETWORKA-02 - Input Validation for API Gateway Security"
+  verification_checks:
+    - "Verify NETWORKA-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NETWORKA-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for api gateway security patterns for network-api-gateway-security"
+  blast_radius_notes: "Automated fix for NETWORKA-03 - Configuration Hardening for API Gateway Security"
+  verification_checks:
+    - "Verify NETWORKA-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NETWORKA-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for api gateway security patterns for network-api-gateway-security"
+  blast_radius_notes: "Automated fix for NETWORKA-04 - Monitoring and Logging for API Gateway Security"
+  verification_checks:
+    - "Verify NETWORKA-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NETWORKA-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for api gateway security patterns for network-api-gateway-security"
+  blast_radius_notes: "Automated fix for NETWORKA-05 - Error Handling for API Gateway Security"
+  verification_checks:
+    - "Verify NETWORKA-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

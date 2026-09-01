@@ -1,0 +1,62 @@
+# Patchi Security Domain: nist-cm-9
+# Source: NIST SP 800-53 CM-9
+# Auto-generated — curated from NIST SP 800-53 CM-9
+
+domain_id: "nist-cm-9"
+version: "1.0.0"
+display_name: "Configuration Management Plan"
+source_standard: "NIST SP 800-53 CM-9"
+component_type: "infra"
+weight: 0.7
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_nist_cm_9_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_nist_cm_9"
+
+controls:
+  - control_id: "NISTCM9-01"
+    name: "Configuration Management Plan — Primary Control"
+    description: "Organization develops a configuration management plan for the system."
+    source_clause: "CM-9"
+    severity: "medium"
+    check_method: "manual-review"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://NISTCM9-01"
+
+  - control_id: "NISTCM9-02"
+    name: "Configuration Management Plan — Input Validation"
+    description: "Validate and sanitize all inputs related to configuration management plan"
+    source_clause: "CM-9"
+    severity: "medium"
+    check_method: "manual-review"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://NISTCM9-02"
+
+  - control_id: "NISTCM9-03"
+    name: "Configuration Management Plan — Configuration Hardening"
+    description: "Apply secure configuration defaults for configuration management plan"
+    source_clause: "CM-9"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://NISTCM9-03"
+
+  - control_id: "NISTCM9-04"
+    name: "Configuration Management Plan — Monitoring and Logging"
+    description: "Log and monitor all configuration management plan events for audit and detection"
+    source_clause: "CM-9"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://NISTCM9-04"
+
+  - control_id: "NISTCM9-05"
+    name: "Configuration Management Plan — Error Handling"
+    description: "Handle configuration management plan errors securely without information leakage"
+    source_clause: "CM-9"
+    severity: "medium"
+    check_method: "manual-review"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://NISTCM9-05"

@@ -1,0 +1,60 @@
+# Playbook for: cloud-gcp-compute
+# Source: Cloud Security GCP
+# Auto-generated
+
+playbooks:
+- control_id: "CLOUDGCP-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary gcp compute engine security control patterns for cloud-gcp-compute"
+  blast_radius_notes: "Automated fix for CLOUDGCP-01 - Primary GCP Compute Engine Security Control"
+  verification_checks:
+    - "Verify CLOUDGCP-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CLOUDGCP-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for gcp compute engine security patterns for cloud-gcp-compute"
+  blast_radius_notes: "Automated fix for CLOUDGCP-02 - Input Validation for GCP Compute Engine Security"
+  verification_checks:
+    - "Verify CLOUDGCP-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CLOUDGCP-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for gcp compute engine security patterns for cloud-gcp-compute"
+  blast_radius_notes: "Automated fix for CLOUDGCP-03 - Configuration Hardening for GCP Compute Engine Security"
+  verification_checks:
+    - "Verify CLOUDGCP-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CLOUDGCP-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for gcp compute engine security patterns for cloud-gcp-compute"
+  blast_radius_notes: "Automated fix for CLOUDGCP-04 - Monitoring and Logging for GCP Compute Engine Security"
+  verification_checks:
+    - "Verify CLOUDGCP-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CLOUDGCP-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for gcp compute engine security patterns for cloud-gcp-compute"
+  blast_radius_notes: "Automated fix for CLOUDGCP-05 - Error Handling for GCP Compute Engine Security"
+  verification_checks:
+    - "Verify CLOUDGCP-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

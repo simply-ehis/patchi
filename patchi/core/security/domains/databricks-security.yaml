@@ -1,0 +1,62 @@
+# Patchi Security Domain: databricks-security
+# Source: Data Engineering Security
+# Auto-generated — curated from Data Engineering Security
+
+domain_id: "databricks-security"
+version: "1.0.0"
+display_name: "Databricks Security"
+source_standard: "Data Engineering Security"
+component_type: "cloud-aws"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_databricks_security_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_databricks_security"
+
+controls:
+  - control_id: "DATABRIC-01"
+    name: "Databricks Security — Primary Control"
+    description: "Databricks notebooks with stored credentials or overly permissive clusters."
+    source_clause: "Databricks"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://DATABRIC-01"
+
+  - control_id: "DATABRIC-02"
+    name: "Databricks Security — Input Validation"
+    description: "Validate and sanitize all inputs related to databricks security"
+    source_clause: "Databricks"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://DATABRIC-02"
+
+  - control_id: "DATABRIC-03"
+    name: "Databricks Security — Configuration Hardening"
+    description: "Apply secure configuration defaults for databricks security"
+    source_clause: "Databricks"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://DATABRIC-03"
+
+  - control_id: "DATABRIC-04"
+    name: "Databricks Security — Monitoring and Logging"
+    description: "Log and monitor all databricks security events for audit and detection"
+    source_clause: "Databricks"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://DATABRIC-04"
+
+  - control_id: "DATABRIC-05"
+    name: "Databricks Security — Error Handling"
+    description: "Handle databricks security errors securely without information leakage"
+    source_clause: "Databricks"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://DATABRIC-05"

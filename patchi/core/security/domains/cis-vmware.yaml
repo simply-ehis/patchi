@@ -1,0 +1,62 @@
+# Patchi Security Domain: cis-vmware
+# Source: CIS VMware ESXi Benchmark
+# Auto-generated — curated from CIS VMware ESXi Benchmark
+
+domain_id: "cis-vmware"
+version: "1.0.0"
+display_name: "VMware ESXi Hardening"
+source_standard: "CIS VMware ESXi Benchmark"
+component_type: "infra"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_cis_vmware_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_cis_vmware"
+
+controls:
+  - control_id: "CISVMWAR-01"
+    name: "VMware ESXi Hardening — Primary Control"
+    description: "Service configuration, network policies, and logging."
+    source_clause: "CIS VMware"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CISVMWAR-01"
+
+  - control_id: "CISVMWAR-02"
+    name: "VMware ESXi Hardening — Input Validation"
+    description: "Validate and sanitize all inputs related to vmware esxi hardening"
+    source_clause: "CIS VMware"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CISVMWAR-02"
+
+  - control_id: "CISVMWAR-03"
+    name: "VMware ESXi Hardening — Configuration Hardening"
+    description: "Apply secure configuration defaults for vmware esxi hardening"
+    source_clause: "CIS VMware"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CISVMWAR-03"
+
+  - control_id: "CISVMWAR-04"
+    name: "VMware ESXi Hardening — Monitoring and Logging"
+    description: "Log and monitor all vmware esxi hardening events for audit and detection"
+    source_clause: "CIS VMware"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CISVMWAR-04"
+
+  - control_id: "CISVMWAR-05"
+    name: "VMware ESXi Hardening — Error Handling"
+    description: "Handle vmware esxi hardening errors securely without information leakage"
+    source_clause: "CIS VMware"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CISVMWAR-05"

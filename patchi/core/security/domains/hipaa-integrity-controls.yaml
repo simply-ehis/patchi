@@ -1,0 +1,62 @@
+# Patchi Security Domain: hipaa-integrity-controls
+# Source: HIPAA Security Rule
+# Auto-generated — curated from HIPAA Security Rule
+
+domain_id: "hipaa-integrity-controls"
+version: "1.0.0"
+display_name: "Data Integrity Controls"
+source_standard: "HIPAA Security Rule"
+component_type: "backend-api"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_hipaa_integrity_controls_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_hipaa_integrity_controls"
+
+controls:
+  - control_id: "HIPAAINT-01"
+    name: "Data Integrity Controls — Primary Control"
+    description: "Mechanisms to protect ePHI from improper alteration or destruction."
+    source_clause: "HIPAA"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://HIPAAINT-01"
+
+  - control_id: "HIPAAINT-02"
+    name: "Data Integrity Controls — Input Validation"
+    description: "Validate and sanitize all inputs related to data integrity controls"
+    source_clause: "HIPAA"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://HIPAAINT-02"
+
+  - control_id: "HIPAAINT-03"
+    name: "Data Integrity Controls — Configuration Hardening"
+    description: "Apply secure configuration defaults for data integrity controls"
+    source_clause: "HIPAA"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://HIPAAINT-03"
+
+  - control_id: "HIPAAINT-04"
+    name: "Data Integrity Controls — Monitoring and Logging"
+    description: "Log and monitor all data integrity controls events for audit and detection"
+    source_clause: "HIPAA"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://HIPAAINT-04"
+
+  - control_id: "HIPAAINT-05"
+    name: "Data Integrity Controls — Error Handling"
+    description: "Handle data integrity controls errors securely without information leakage"
+    source_clause: "HIPAA"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://HIPAAINT-05"

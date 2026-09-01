@@ -1,0 +1,60 @@
+# Playbook for: blogic-amount-tampering
+# Source: Business Logic
+# Auto-generated
+
+playbooks:
+- control_id: "BLOGICAM-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary amount/quantity tampering control patterns for blogic-amount-tampering"
+  blast_radius_notes: "Automated fix for BLOGICAM-01 - Primary Amount/Quantity Tampering Control"
+  verification_checks:
+    - "Verify BLOGICAM-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "BLOGICAM-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for amount/quantity tampering patterns for blogic-amount-tampering"
+  blast_radius_notes: "Automated fix for BLOGICAM-02 - Input Validation for Amount/Quantity Tampering"
+  verification_checks:
+    - "Verify BLOGICAM-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "BLOGICAM-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for amount/quantity tampering patterns for blogic-amount-tampering"
+  blast_radius_notes: "Automated fix for BLOGICAM-03 - Configuration Hardening for Amount/Quantity Tampering"
+  verification_checks:
+    - "Verify BLOGICAM-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "BLOGICAM-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for amount/quantity tampering patterns for blogic-amount-tampering"
+  blast_radius_notes: "Automated fix for BLOGICAM-04 - Monitoring and Logging for Amount/Quantity Tampering"
+  verification_checks:
+    - "Verify BLOGICAM-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "BLOGICAM-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for amount/quantity tampering patterns for blogic-amount-tampering"
+  blast_radius_notes: "Automated fix for BLOGICAM-05 - Error Handling for Amount/Quantity Tampering"
+  verification_checks:
+    - "Verify BLOGICAM-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

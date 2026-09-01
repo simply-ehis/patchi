@@ -1,0 +1,62 @@
+# Patchi Security Domain: cis-tomcat
+# Source: CIS Tomcat Benchmark
+# Auto-generated — curated from CIS Tomcat Benchmark
+
+domain_id: "cis-tomcat"
+version: "1.0.0"
+display_name: "Apache Tomcat Hardening"
+source_standard: "CIS Tomcat Benchmark"
+component_type: "infra"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_cis_tomcat_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_cis_tomcat"
+
+controls:
+  - control_id: "CISTOMCA-01"
+    name: "Apache Tomcat Hardening — Primary Control"
+    description: "Manager app security, TLS, access logging, and deployment security."
+    source_clause: "CIS Tomcat"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CISTOMCA-01"
+
+  - control_id: "CISTOMCA-02"
+    name: "Apache Tomcat Hardening — Input Validation"
+    description: "Validate and sanitize all inputs related to apache tomcat hardening"
+    source_clause: "CIS Tomcat"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CISTOMCA-02"
+
+  - control_id: "CISTOMCA-03"
+    name: "Apache Tomcat Hardening — Configuration Hardening"
+    description: "Apply secure configuration defaults for apache tomcat hardening"
+    source_clause: "CIS Tomcat"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CISTOMCA-03"
+
+  - control_id: "CISTOMCA-04"
+    name: "Apache Tomcat Hardening — Monitoring and Logging"
+    description: "Log and monitor all apache tomcat hardening events for audit and detection"
+    source_clause: "CIS Tomcat"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CISTOMCA-04"
+
+  - control_id: "CISTOMCA-05"
+    name: "Apache Tomcat Hardening — Error Handling"
+    description: "Handle apache tomcat hardening errors securely without information leakage"
+    source_clause: "CIS Tomcat"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CISTOMCA-05"

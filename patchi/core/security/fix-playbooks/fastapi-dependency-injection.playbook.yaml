@@ -1,0 +1,60 @@
+# Playbook for: fastapi-dependency-injection
+# Source: FastAPI Security
+# Auto-generated
+
+playbooks:
+- control_id: "FASTAPID-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary fastapi dependency injection security control patterns for fastapi-dependency-injection"
+  blast_radius_notes: "Automated fix for FASTAPID-01 - Primary FastAPI Dependency Injection Security Control"
+  verification_checks:
+    - "Verify FASTAPID-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "FASTAPID-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for fastapi dependency injection security patterns for fastapi-dependency-injection"
+  blast_radius_notes: "Automated fix for FASTAPID-02 - Input Validation for FastAPI Dependency Injection Security"
+  verification_checks:
+    - "Verify FASTAPID-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "FASTAPID-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for fastapi dependency injection security patterns for fastapi-dependency-injection"
+  blast_radius_notes: "Automated fix for FASTAPID-03 - Configuration Hardening for FastAPI Dependency Injection Security"
+  verification_checks:
+    - "Verify FASTAPID-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "FASTAPID-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for fastapi dependency injection security patterns for fastapi-dependency-injection"
+  blast_radius_notes: "Automated fix for FASTAPID-04 - Monitoring and Logging for FastAPI Dependency Injection Security"
+  verification_checks:
+    - "Verify FASTAPID-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "FASTAPID-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for fastapi dependency injection security patterns for fastapi-dependency-injection"
+  blast_radius_notes: "Automated fix for FASTAPID-05 - Error Handling for FastAPI Dependency Injection Security"
+  verification_checks:
+    - "Verify FASTAPID-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

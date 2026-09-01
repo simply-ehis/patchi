@@ -1,0 +1,60 @@
+# Playbook for: mobile-webview-security
+# Source: Mobile Security
+# Auto-generated
+
+playbooks:
+- control_id: "MOBILEWE-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary webview security control patterns for mobile-webview-security"
+  blast_radius_notes: "Automated fix for MOBILEWE-01 - Primary WebView Security Control"
+  verification_checks:
+    - "Verify MOBILEWE-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "MOBILEWE-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for webview security patterns for mobile-webview-security"
+  blast_radius_notes: "Automated fix for MOBILEWE-02 - Input Validation for WebView Security"
+  verification_checks:
+    - "Verify MOBILEWE-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "MOBILEWE-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for webview security patterns for mobile-webview-security"
+  blast_radius_notes: "Automated fix for MOBILEWE-03 - Configuration Hardening for WebView Security"
+  verification_checks:
+    - "Verify MOBILEWE-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "MOBILEWE-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for webview security patterns for mobile-webview-security"
+  blast_radius_notes: "Automated fix for MOBILEWE-04 - Monitoring and Logging for WebView Security"
+  verification_checks:
+    - "Verify MOBILEWE-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "MOBILEWE-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for webview security patterns for mobile-webview-security"
+  blast_radius_notes: "Automated fix for MOBILEWE-05 - Error Handling for WebView Security"
+  verification_checks:
+    - "Verify MOBILEWE-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

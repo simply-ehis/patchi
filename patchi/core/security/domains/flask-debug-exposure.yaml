@@ -1,0 +1,62 @@
+# Patchi Security Domain: flask-debug-exposure
+# Source: Flask Security
+# Auto-generated — curated from Flask Security
+
+domain_id: "flask-debug-exposure"
+version: "1.0.0"
+display_name: "Flask Debug Mode Exposure"
+source_standard: "Flask Security"
+component_type: "infra"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_flask_debug_exposure_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_flask_debug_exposure"
+
+controls:
+  - control_id: "FLASKDEB-01"
+    name: "Flask Debug Mode Exposure — Primary Control"
+    description: "Debug mode enabled in production or exposed debugger."
+    source_clause: "Flask Debug"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://FLASKDEB-01"
+
+  - control_id: "FLASKDEB-02"
+    name: "Flask Debug Mode Exposure — Input Validation"
+    description: "Validate and sanitize all inputs related to flask debug mode exposure"
+    source_clause: "Flask Debug"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://FLASKDEB-02"
+
+  - control_id: "FLASKDEB-03"
+    name: "Flask Debug Mode Exposure — Configuration Hardening"
+    description: "Apply secure configuration defaults for flask debug mode exposure"
+    source_clause: "Flask Debug"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://FLASKDEB-03"
+
+  - control_id: "FLASKDEB-04"
+    name: "Flask Debug Mode Exposure — Monitoring and Logging"
+    description: "Log and monitor all flask debug mode exposure events for audit and detection"
+    source_clause: "Flask Debug"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://FLASKDEB-04"
+
+  - control_id: "FLASKDEB-05"
+    name: "Flask Debug Mode Exposure — Error Handling"
+    description: "Handle flask debug mode exposure errors securely without information leakage"
+    source_clause: "Flask Debug"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://FLASKDEB-05"

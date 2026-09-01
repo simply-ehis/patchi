@@ -1,0 +1,62 @@
+# Patchi Security Domain: gdpr-data-minimization
+# Source: GDPR Art 5(1)(c)(e)
+# Auto-generated — curated from GDPR Art 5(1)(c)(e)
+
+domain_id: "gdpr-data-minimization"
+version: "1.0.0"
+display_name: "Data Minimization and Storage Limitation"
+source_standard: "GDPR Art 5(1)(c)(e)"
+component_type: "backend-api"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_gdpr_data_minimization_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_gdpr_data_minimization"
+
+controls:
+  - control_id: "GDPRDATA-01"
+    name: "Data Minimization and Storage Limitation — Primary Control"
+    description: "Collect only necessary data and retain only as long as required."
+    source_clause: "GDPR Art 5"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://GDPRDATA-01"
+
+  - control_id: "GDPRDATA-02"
+    name: "Data Minimization and Storage Limitation — Input Validation"
+    description: "Validate and sanitize all inputs related to data minimization and storage limitation"
+    source_clause: "GDPR Art 5"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://GDPRDATA-02"
+
+  - control_id: "GDPRDATA-03"
+    name: "Data Minimization and Storage Limitation — Configuration Hardening"
+    description: "Apply secure configuration defaults for data minimization and storage limitation"
+    source_clause: "GDPR Art 5"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://GDPRDATA-03"
+
+  - control_id: "GDPRDATA-04"
+    name: "Data Minimization and Storage Limitation — Monitoring and Logging"
+    description: "Log and monitor all data minimization and storage limitation events for audit and detection"
+    source_clause: "GDPR Art 5"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://GDPRDATA-04"
+
+  - control_id: "GDPRDATA-05"
+    name: "Data Minimization and Storage Limitation — Error Handling"
+    description: "Handle data minimization and storage limitation errors securely without information leakage"
+    source_clause: "GDPR Art 5"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://GDPRDATA-05"

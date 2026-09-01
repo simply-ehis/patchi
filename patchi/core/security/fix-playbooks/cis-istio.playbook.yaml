@@ -1,0 +1,60 @@
+# Playbook for: cis-istio
+# Source: CIS Istio Benchmark
+# Auto-generated
+
+playbooks:
+- control_id: "CISISTIO-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary istio service mesh hardening control patterns for cis-istio"
+  blast_radius_notes: "Automated fix for CISISTIO-01 - Primary Istio Service Mesh Hardening Control"
+  verification_checks:
+    - "Verify CISISTIO-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CISISTIO-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for istio service mesh hardening patterns for cis-istio"
+  blast_radius_notes: "Automated fix for CISISTIO-02 - Input Validation for Istio Service Mesh Hardening"
+  verification_checks:
+    - "Verify CISISTIO-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CISISTIO-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for istio service mesh hardening patterns for cis-istio"
+  blast_radius_notes: "Automated fix for CISISTIO-03 - Configuration Hardening for Istio Service Mesh Hardening"
+  verification_checks:
+    - "Verify CISISTIO-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CISISTIO-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for istio service mesh hardening patterns for cis-istio"
+  blast_radius_notes: "Automated fix for CISISTIO-04 - Monitoring and Logging for Istio Service Mesh Hardening"
+  verification_checks:
+    - "Verify CISISTIO-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CISISTIO-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for istio service mesh hardening patterns for cis-istio"
+  blast_radius_notes: "Automated fix for CISISTIO-05 - Error Handling for Istio Service Mesh Hardening"
+  verification_checks:
+    - "Verify CISISTIO-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

@@ -1,0 +1,62 @@
+# Patchi Security Domain: nextjs-api-routes-auth
+# Source: Next.js Security
+# Auto-generated — curated from Next.js Security
+
+domain_id: "nextjs-api-routes-auth"
+version: "1.0.0"
+display_name: "Next.js API Route Authentication"
+source_standard: "Next.js Security"
+component_type: "backend-api"
+weight: 0.9
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_nextjs_api_routes_auth_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_nextjs_api_routes_auth"
+
+controls:
+  - control_id: "NEXTJSAP-01"
+    name: "Next.js API Route Authentication — Primary Control"
+    description: "Missing authentication middleware on API routes."
+    source_clause: "Next.js API"
+    severity: "critical"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://NEXTJSAP-01"
+
+  - control_id: "NEXTJSAP-02"
+    name: "Next.js API Route Authentication — Input Validation"
+    description: "Validate and sanitize all inputs related to next.js api route authentication"
+    source_clause: "Next.js API"
+    severity: "critical"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://NEXTJSAP-02"
+
+  - control_id: "NEXTJSAP-03"
+    name: "Next.js API Route Authentication — Configuration Hardening"
+    description: "Apply secure configuration defaults for next.js api route authentication"
+    source_clause: "Next.js API"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://NEXTJSAP-03"
+
+  - control_id: "NEXTJSAP-04"
+    name: "Next.js API Route Authentication — Monitoring and Logging"
+    description: "Log and monitor all next.js api route authentication events for audit and detection"
+    source_clause: "Next.js API"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://NEXTJSAP-04"
+
+  - control_id: "NEXTJSAP-05"
+    name: "Next.js API Route Authentication — Error Handling"
+    description: "Handle next.js api route authentication errors securely without information leakage"
+    source_clause: "Next.js API"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://NEXTJSAP-05"

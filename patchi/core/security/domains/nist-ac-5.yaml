@@ -1,0 +1,62 @@
+# Patchi Security Domain: nist-ac-5
+# Source: NIST SP 800-53 AC-5
+# Auto-generated — curated from NIST SP 800-53 AC-5
+
+domain_id: "nist-ac-5"
+version: "1.0.0"
+display_name: "Separation of Duties"
+source_standard: "NIST SP 800-53 AC-5"
+component_type: "infra"
+weight: 0.75
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_nist_ac_5_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_nist_ac_5"
+
+controls:
+  - control_id: "NISTAC5-01"
+    name: "Separation of Duties — Primary Control"
+    description: "Organization separates duties of individuals to reduce risk of fraud or error."
+    source_clause: "AC-5"
+    severity: "medium"
+    check_method: "manual-review"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://NISTAC5-01"
+
+  - control_id: "NISTAC5-02"
+    name: "Separation of Duties — Input Validation"
+    description: "Validate and sanitize all inputs related to separation of duties"
+    source_clause: "AC-5"
+    severity: "medium"
+    check_method: "manual-review"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://NISTAC5-02"
+
+  - control_id: "NISTAC5-03"
+    name: "Separation of Duties — Configuration Hardening"
+    description: "Apply secure configuration defaults for separation of duties"
+    source_clause: "AC-5"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://NISTAC5-03"
+
+  - control_id: "NISTAC5-04"
+    name: "Separation of Duties — Monitoring and Logging"
+    description: "Log and monitor all separation of duties events for audit and detection"
+    source_clause: "AC-5"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://NISTAC5-04"
+
+  - control_id: "NISTAC5-05"
+    name: "Separation of Duties — Error Handling"
+    description: "Handle separation of duties errors securely without information leakage"
+    source_clause: "AC-5"
+    severity: "medium"
+    check_method: "manual-review"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://NISTAC5-05"

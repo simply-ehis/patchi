@@ -1,0 +1,60 @@
+# Playbook for: nist-cm-5
+# Source: NIST SP 800-53 CM-5
+# Auto-generated
+
+playbooks:
+- control_id: "NISTCM5-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary access restrictions for changes control patterns for nist-cm-5"
+  blast_radius_notes: "Automated fix for NISTCM5-01 - Primary Access Restrictions for Changes Control"
+  verification_checks:
+    - "Verify NISTCM5-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NISTCM5-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for access restrictions for changes patterns for nist-cm-5"
+  blast_radius_notes: "Automated fix for NISTCM5-02 - Input Validation for Access Restrictions for Changes"
+  verification_checks:
+    - "Verify NISTCM5-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NISTCM5-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for access restrictions for changes patterns for nist-cm-5"
+  blast_radius_notes: "Automated fix for NISTCM5-03 - Configuration Hardening for Access Restrictions for Changes"
+  verification_checks:
+    - "Verify NISTCM5-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NISTCM5-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for access restrictions for changes patterns for nist-cm-5"
+  blast_radius_notes: "Automated fix for NISTCM5-04 - Monitoring and Logging for Access Restrictions for Changes"
+  verification_checks:
+    - "Verify NISTCM5-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NISTCM5-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for access restrictions for changes patterns for nist-cm-5"
+  blast_radius_notes: "Automated fix for NISTCM5-05 - Error Handling for Access Restrictions for Changes"
+  verification_checks:
+    - "Verify NISTCM5-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

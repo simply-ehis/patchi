@@ -1,0 +1,62 @@
+# Patchi Security Domain: fraud-content-spam
+# Source: Fraud Prevention
+# Auto-generated — curated from Fraud Prevention
+
+domain_id: "fraud-content-spam"
+version: "1.0.0"
+display_name: "Content Spam"
+source_standard: "Fraud Prevention"
+component_type: "backend-api"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_fraud_content_spam_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_fraud_content_spam"
+
+controls:
+  - control_id: "FRAUDCON-01"
+    name: "Content Spam — Primary Control"
+    description: "Automated posting of spam content, links, or advertisements."
+    source_clause: "Fraud Spam"
+    severity: "high"
+    check_method: "dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://FRAUDCON-01"
+
+  - control_id: "FRAUDCON-02"
+    name: "Content Spam — Input Validation"
+    description: "Validate and sanitize all inputs related to content spam"
+    source_clause: "Fraud Spam"
+    severity: "high"
+    check_method: "dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://FRAUDCON-02"
+
+  - control_id: "FRAUDCON-03"
+    name: "Content Spam — Configuration Hardening"
+    description: "Apply secure configuration defaults for content spam"
+    source_clause: "Fraud Spam"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://FRAUDCON-03"
+
+  - control_id: "FRAUDCON-04"
+    name: "Content Spam — Monitoring and Logging"
+    description: "Log and monitor all content spam events for audit and detection"
+    source_clause: "Fraud Spam"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://FRAUDCON-04"
+
+  - control_id: "FRAUDCON-05"
+    name: "Content Spam — Error Handling"
+    description: "Handle content spam errors securely without information leakage"
+    source_clause: "Fraud Spam"
+    severity: "medium"
+    check_method: "dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://FRAUDCON-05"

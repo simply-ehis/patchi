@@ -1,0 +1,60 @@
+# Playbook for: nuxt-ssr-data-leak
+# Source: Nuxt Security
+# Auto-generated
+
+playbooks:
+- control_id: "NUXTSSRD-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary nuxt ssr data leakage control patterns for nuxt-ssr-data-leak"
+  blast_radius_notes: "Automated fix for NUXTSSRD-01 - Primary Nuxt SSR Data Leakage Control"
+  verification_checks:
+    - "Verify NUXTSSRD-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NUXTSSRD-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for nuxt ssr data leakage patterns for nuxt-ssr-data-leak"
+  blast_radius_notes: "Automated fix for NUXTSSRD-02 - Input Validation for Nuxt SSR Data Leakage"
+  verification_checks:
+    - "Verify NUXTSSRD-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NUXTSSRD-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for nuxt ssr data leakage patterns for nuxt-ssr-data-leak"
+  blast_radius_notes: "Automated fix for NUXTSSRD-03 - Configuration Hardening for Nuxt SSR Data Leakage"
+  verification_checks:
+    - "Verify NUXTSSRD-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NUXTSSRD-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for nuxt ssr data leakage patterns for nuxt-ssr-data-leak"
+  blast_radius_notes: "Automated fix for NUXTSSRD-04 - Monitoring and Logging for Nuxt SSR Data Leakage"
+  verification_checks:
+    - "Verify NUXTSSRD-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NUXTSSRD-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for nuxt ssr data leakage patterns for nuxt-ssr-data-leak"
+  blast_radius_notes: "Automated fix for NUXTSSRD-05 - Error Handling for Nuxt SSR Data Leakage"
+  verification_checks:
+    - "Verify NUXTSSRD-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

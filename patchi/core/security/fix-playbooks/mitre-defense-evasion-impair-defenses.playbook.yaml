@@ -1,0 +1,60 @@
+# Playbook for: mitre-defense-evasion-impair-defenses
+# Source: MITRE ATT&CK
+# Auto-generated
+
+playbooks:
+- control_id: "MITREDEF-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary impair defenses (t1562) control patterns for mitre-defense-evasion-impair-defenses"
+  blast_radius_notes: "Automated fix for MITREDEF-01 - Primary Impair Defenses (T1562) Control"
+  verification_checks:
+    - "Verify MITREDEF-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "MITREDEF-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for impair defenses (t1562) patterns for mitre-defense-evasion-impair-defenses"
+  blast_radius_notes: "Automated fix for MITREDEF-02 - Input Validation for Impair Defenses (T1562)"
+  verification_checks:
+    - "Verify MITREDEF-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "MITREDEF-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for impair defenses (t1562) patterns for mitre-defense-evasion-impair-defenses"
+  blast_radius_notes: "Automated fix for MITREDEF-03 - Configuration Hardening for Impair Defenses (T1562)"
+  verification_checks:
+    - "Verify MITREDEF-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "MITREDEF-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for impair defenses (t1562) patterns for mitre-defense-evasion-impair-defenses"
+  blast_radius_notes: "Automated fix for MITREDEF-04 - Monitoring and Logging for Impair Defenses (T1562)"
+  verification_checks:
+    - "Verify MITREDEF-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "MITREDEF-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for impair defenses (t1562) patterns for mitre-defense-evasion-impair-defenses"
+  blast_radius_notes: "Automated fix for MITREDEF-05 - Error Handling for Impair Defenses (T1562)"
+  verification_checks:
+    - "Verify MITREDEF-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

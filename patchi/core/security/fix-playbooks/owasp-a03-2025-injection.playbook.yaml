@@ -1,0 +1,60 @@
+# Playbook for: owasp-a03-2025-injection
+# Source: OWASP Top 10 2025 A03
+# Auto-generated
+
+playbooks:
+- control_id: "OWASPA03-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary injection & input handling control patterns for owasp-a03-2025-injection"
+  blast_radius_notes: "Automated fix for OWASPA03-01 - Primary Injection & Input Handling Control"
+  verification_checks:
+    - "Verify OWASPA03-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "OWASPA03-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for injection & input handling patterns for owasp-a03-2025-injection"
+  blast_radius_notes: "Automated fix for OWASPA03-02 - Input Validation for Injection & Input Handling"
+  verification_checks:
+    - "Verify OWASPA03-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "OWASPA03-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for injection & input handling patterns for owasp-a03-2025-injection"
+  blast_radius_notes: "Automated fix for OWASPA03-03 - Configuration Hardening for Injection & Input Handling"
+  verification_checks:
+    - "Verify OWASPA03-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "OWASPA03-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for injection & input handling patterns for owasp-a03-2025-injection"
+  blast_radius_notes: "Automated fix for OWASPA03-04 - Monitoring and Logging for Injection & Input Handling"
+  verification_checks:
+    - "Verify OWASPA03-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "OWASPA03-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for injection & input handling patterns for owasp-a03-2025-injection"
+  blast_radius_notes: "Automated fix for OWASPA03-05 - Error Handling for Injection & Input Handling"
+  verification_checks:
+    - "Verify OWASPA03-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

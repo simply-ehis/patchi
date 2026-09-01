@@ -1,0 +1,60 @@
+# Playbook for: cwe-733-compilation-code-injection
+# Source: CWE-733
+# Auto-generated
+
+playbooks:
+- control_id: "CWE733CO-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary compiler optimization removal or modification of security-critical code control patterns for cwe-733-compilation-code-injection"
+  blast_radius_notes: "Automated fix for CWE733CO-01 - Primary Compiler Optimization Removal or Modification of Security-critical Code Control"
+  verification_checks:
+    - "Verify CWE733CO-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CWE733CO-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for compiler optimization removal or modification of security-critical code patterns for cwe-733-compilation-code-injection"
+  blast_radius_notes: "Automated fix for CWE733CO-02 - Input Validation for Compiler Optimization Removal or Modification of Security-critical Code"
+  verification_checks:
+    - "Verify CWE733CO-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CWE733CO-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for compiler optimization removal or modification of security-critical code patterns for cwe-733-compilation-code-injection"
+  blast_radius_notes: "Automated fix for CWE733CO-03 - Configuration Hardening for Compiler Optimization Removal or Modification of Security-critical Code"
+  verification_checks:
+    - "Verify CWE733CO-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CWE733CO-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for compiler optimization removal or modification of security-critical code patterns for cwe-733-compilation-code-injection"
+  blast_radius_notes: "Automated fix for CWE733CO-04 - Monitoring and Logging for Compiler Optimization Removal or Modification of Security-critical Code"
+  verification_checks:
+    - "Verify CWE733CO-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CWE733CO-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for compiler optimization removal or modification of security-critical code patterns for cwe-733-compilation-code-injection"
+  blast_radius_notes: "Automated fix for CWE733CO-05 - Error Handling for Compiler Optimization Removal or Modification of Security-critical Code"
+  verification_checks:
+    - "Verify CWE733CO-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

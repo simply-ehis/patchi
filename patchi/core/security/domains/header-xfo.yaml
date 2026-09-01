@@ -1,0 +1,62 @@
+# Patchi Security Domain: header-xfo
+# Source: HTTP Security Headers
+# Auto-generated — curated from HTTP Security Headers
+
+domain_id: "header-xfo"
+version: "1.0.0"
+display_name: "X-Frame-Options"
+source_standard: "HTTP Security Headers"
+component_type: "infra"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_header_xfo_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_header_xfo"
+
+controls:
+  - control_id: "HEADERXF-01"
+    name: "X-Frame-Options — Primary Control"
+    description: "Missing X-Frame-Options allowing clickjacking."
+    source_clause: "Header XFO"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://HEADERXF-01"
+
+  - control_id: "HEADERXF-02"
+    name: "X-Frame-Options — Input Validation"
+    description: "Validate and sanitize all inputs related to x-frame-options"
+    source_clause: "Header XFO"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://HEADERXF-02"
+
+  - control_id: "HEADERXF-03"
+    name: "X-Frame-Options — Configuration Hardening"
+    description: "Apply secure configuration defaults for x-frame-options"
+    source_clause: "Header XFO"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://HEADERXF-03"
+
+  - control_id: "HEADERXF-04"
+    name: "X-Frame-Options — Monitoring and Logging"
+    description: "Log and monitor all x-frame-options events for audit and detection"
+    source_clause: "Header XFO"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://HEADERXF-04"
+
+  - control_id: "HEADERXF-05"
+    name: "X-Frame-Options — Error Handling"
+    description: "Handle x-frame-options errors securely without information leakage"
+    source_clause: "Header XFO"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://HEADERXF-05"

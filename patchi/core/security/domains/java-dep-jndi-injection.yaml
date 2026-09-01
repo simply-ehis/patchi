@@ -1,0 +1,62 @@
+# Patchi Security Domain: java-dep-jndi-injection
+# Source: Java Security
+# Auto-generated — curated from Java Security
+
+domain_id: "java-dep-jndi-injection"
+version: "1.0.0"
+display_name: "Java JNDI Injection"
+source_standard: "Java Security"
+component_type: "backend-api"
+weight: 0.95
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_java_dep_jndi_injection_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_java_dep_jndi_injection"
+
+controls:
+  - control_id: "JAVADEPJ-01"
+    name: "Java JNDI Injection — Primary Control"
+    description: "JNDI lookup with user-controlled input leading to RCE (Log4Shell)."
+    source_clause: "Java JNDI"
+    severity: "critical"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://JAVADEPJ-01"
+
+  - control_id: "JAVADEPJ-02"
+    name: "Java JNDI Injection — Input Validation"
+    description: "Validate and sanitize all inputs related to java jndi injection"
+    source_clause: "Java JNDI"
+    severity: "critical"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://JAVADEPJ-02"
+
+  - control_id: "JAVADEPJ-03"
+    name: "Java JNDI Injection — Configuration Hardening"
+    description: "Apply secure configuration defaults for java jndi injection"
+    source_clause: "Java JNDI"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://JAVADEPJ-03"
+
+  - control_id: "JAVADEPJ-04"
+    name: "Java JNDI Injection — Monitoring and Logging"
+    description: "Log and monitor all java jndi injection events for audit and detection"
+    source_clause: "Java JNDI"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://JAVADEPJ-04"
+
+  - control_id: "JAVADEPJ-05"
+    name: "Java JNDI Injection — Error Handling"
+    description: "Handle java jndi injection errors securely without information leakage"
+    source_clause: "Java JNDI"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://JAVADEPJ-05"

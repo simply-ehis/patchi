@@ -1,0 +1,60 @@
+# Playbook for: koa-middleware-skip
+# Source: Node.js Security
+# Auto-generated
+
+playbooks:
+- control_id: "KOAMIDDL-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary koa middleware skip control patterns for koa-middleware-skip"
+  blast_radius_notes: "Automated fix for KOAMIDDL-01 - Primary Koa Middleware Skip Control"
+  verification_checks:
+    - "Verify KOAMIDDL-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "KOAMIDDL-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for koa middleware skip patterns for koa-middleware-skip"
+  blast_radius_notes: "Automated fix for KOAMIDDL-02 - Input Validation for Koa Middleware Skip"
+  verification_checks:
+    - "Verify KOAMIDDL-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "KOAMIDDL-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for koa middleware skip patterns for koa-middleware-skip"
+  blast_radius_notes: "Automated fix for KOAMIDDL-03 - Configuration Hardening for Koa Middleware Skip"
+  verification_checks:
+    - "Verify KOAMIDDL-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "KOAMIDDL-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for koa middleware skip patterns for koa-middleware-skip"
+  blast_radius_notes: "Automated fix for KOAMIDDL-04 - Monitoring and Logging for Koa Middleware Skip"
+  verification_checks:
+    - "Verify KOAMIDDL-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "KOAMIDDL-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for koa middleware skip patterns for koa-middleware-skip"
+  blast_radius_notes: "Automated fix for KOAMIDDL-05 - Error Handling for Koa Middleware Skip"
+  verification_checks:
+    - "Verify KOAMIDDL-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

@@ -1,0 +1,62 @@
+# Patchi Security Domain: owasp-a02-cryptographic-failures
+# Source: OWASP Top 10 2021 A02
+# Auto-generated — curated from OWASP Top 10 2021 A02
+
+domain_id: "owasp-a02-cryptographic-failures"
+version: "1.0.0"
+display_name: "Cryptographic Failures"
+source_standard: "OWASP Top 10 2021 A02"
+component_type: "backend-api"
+weight: 0.95
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_owasp_a02_cryptographic_failures_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_owasp_a02_cryptographic_failures"
+
+controls:
+  - control_id: "OWASPA02-01"
+    name: "Cryptographic Failures — Primary Control"
+    description: "Failures related to cryptography which often lead to exposure of sensitive data. Includes weak algorithms, improper key management, and insufficient encryption."
+    source_clause: "OWASP A02:2021"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://OWASPA02-01"
+
+  - control_id: "OWASPA02-02"
+    name: "Cryptographic Failures — Input Validation"
+    description: "Validate and sanitize all inputs related to cryptographic failures"
+    source_clause: "OWASP A02:2021"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://OWASPA02-02"
+
+  - control_id: "OWASPA02-03"
+    name: "Cryptographic Failures — Configuration Hardening"
+    description: "Apply secure configuration defaults for cryptographic failures"
+    source_clause: "OWASP A02:2021"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://OWASPA02-03"
+
+  - control_id: "OWASPA02-04"
+    name: "Cryptographic Failures — Monitoring and Logging"
+    description: "Log and monitor all cryptographic failures events for audit and detection"
+    source_clause: "OWASP A02:2021"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://OWASPA02-04"
+
+  - control_id: "OWASPA02-05"
+    name: "Cryptographic Failures — Error Handling"
+    description: "Handle cryptographic failures errors securely without information leakage"
+    source_clause: "OWASP A02:2021"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://OWASPA02-05"

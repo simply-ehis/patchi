@@ -1,0 +1,60 @@
+# Playbook for: git-lfs-exposure
+# Source: Git Security
+# Auto-generated
+
+playbooks:
+- control_id: "GITLFSEX-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary git lfs data exposure control patterns for git-lfs-exposure"
+  blast_radius_notes: "Automated fix for GITLFSEX-01 - Primary Git LFS Data Exposure Control"
+  verification_checks:
+    - "Verify GITLFSEX-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "GITLFSEX-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for git lfs data exposure patterns for git-lfs-exposure"
+  blast_radius_notes: "Automated fix for GITLFSEX-02 - Input Validation for Git LFS Data Exposure"
+  verification_checks:
+    - "Verify GITLFSEX-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "GITLFSEX-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for git lfs data exposure patterns for git-lfs-exposure"
+  blast_radius_notes: "Automated fix for GITLFSEX-03 - Configuration Hardening for Git LFS Data Exposure"
+  verification_checks:
+    - "Verify GITLFSEX-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "GITLFSEX-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for git lfs data exposure patterns for git-lfs-exposure"
+  blast_radius_notes: "Automated fix for GITLFSEX-04 - Monitoring and Logging for Git LFS Data Exposure"
+  verification_checks:
+    - "Verify GITLFSEX-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "GITLFSEX-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for git lfs data exposure patterns for git-lfs-exposure"
+  blast_radius_notes: "Automated fix for GITLFSEX-05 - Error Handling for Git LFS Data Exposure"
+  verification_checks:
+    - "Verify GITLFSEX-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

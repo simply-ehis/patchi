@@ -1,0 +1,60 @@
+# Playbook for: rails-sql-injection
+# Source: Ruby on Rails Security
+# Auto-generated
+
+playbooks:
+- control_id: "RAILSSQL-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary rails activerecord sql injection control patterns for rails-sql-injection"
+  blast_radius_notes: "Automated fix for RAILSSQL-01 - Primary Rails ActiveRecord SQL Injection Control"
+  verification_checks:
+    - "Verify RAILSSQL-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "RAILSSQL-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for rails activerecord sql injection patterns for rails-sql-injection"
+  blast_radius_notes: "Automated fix for RAILSSQL-02 - Input Validation for Rails ActiveRecord SQL Injection"
+  verification_checks:
+    - "Verify RAILSSQL-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "RAILSSQL-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for rails activerecord sql injection patterns for rails-sql-injection"
+  blast_radius_notes: "Automated fix for RAILSSQL-03 - Configuration Hardening for Rails ActiveRecord SQL Injection"
+  verification_checks:
+    - "Verify RAILSSQL-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "RAILSSQL-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for rails activerecord sql injection patterns for rails-sql-injection"
+  blast_radius_notes: "Automated fix for RAILSSQL-04 - Monitoring and Logging for Rails ActiveRecord SQL Injection"
+  verification_checks:
+    - "Verify RAILSSQL-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "RAILSSQL-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for rails activerecord sql injection patterns for rails-sql-injection"
+  blast_radius_notes: "Automated fix for RAILSSQL-05 - Error Handling for Rails ActiveRecord SQL Injection"
+  verification_checks:
+    - "Verify RAILSSQL-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

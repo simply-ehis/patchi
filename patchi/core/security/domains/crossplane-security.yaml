@@ -1,0 +1,62 @@
+# Patchi Security Domain: crossplane-security
+# Source: IaC Security
+# Auto-generated — curated from IaC Security
+
+domain_id: "crossplane-security"
+version: "1.0.0"
+display_name: "Crossplane Provider Security"
+source_standard: "IaC Security"
+component_type: "infra"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_crossplane_security_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_crossplane_security"
+
+controls:
+  - control_id: "CROSSPLA-01"
+    name: "Crossplane Provider Security — Primary Control"
+    description: "Crossplane compositions with excessive provider permissions."
+    source_clause: "Crossplane"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CROSSPLA-01"
+
+  - control_id: "CROSSPLA-02"
+    name: "Crossplane Provider Security — Input Validation"
+    description: "Validate and sanitize all inputs related to crossplane provider security"
+    source_clause: "Crossplane"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CROSSPLA-02"
+
+  - control_id: "CROSSPLA-03"
+    name: "Crossplane Provider Security — Configuration Hardening"
+    description: "Apply secure configuration defaults for crossplane provider security"
+    source_clause: "Crossplane"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CROSSPLA-03"
+
+  - control_id: "CROSSPLA-04"
+    name: "Crossplane Provider Security — Monitoring and Logging"
+    description: "Log and monitor all crossplane provider security events for audit and detection"
+    source_clause: "Crossplane"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CROSSPLA-04"
+
+  - control_id: "CROSSPLA-05"
+    name: "Crossplane Provider Security — Error Handling"
+    description: "Handle crossplane provider security errors securely without information leakage"
+    source_clause: "Crossplane"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CROSSPLA-05"

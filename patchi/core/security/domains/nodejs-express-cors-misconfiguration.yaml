@@ -1,0 +1,62 @@
+# Patchi Security Domain: nodejs-express-cors-misconfiguration
+# Source: Node.js Security
+# Auto-generated — curated from Node.js Security
+
+domain_id: "nodejs-express-cors-misconfiguration"
+version: "1.0.0"
+display_name: "Express CORS Misconfiguration"
+source_standard: "Node.js Security"
+component_type: "backend-api"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_nodejs_express_cors_misconfiguration_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_nodejs_express_cors_misconfiguration"
+
+controls:
+  - control_id: "NODEJSEX-01"
+    name: "Express CORS Misconfiguration — Primary Control"
+    description: "Permissive CORS allowing any origin or wildcard with credentials."
+    source_clause: "Node.js CORS"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://NODEJSEX-01"
+
+  - control_id: "NODEJSEX-02"
+    name: "Express CORS Misconfiguration — Input Validation"
+    description: "Validate and sanitize all inputs related to express cors misconfiguration"
+    source_clause: "Node.js CORS"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://NODEJSEX-02"
+
+  - control_id: "NODEJSEX-03"
+    name: "Express CORS Misconfiguration — Configuration Hardening"
+    description: "Apply secure configuration defaults for express cors misconfiguration"
+    source_clause: "Node.js CORS"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://NODEJSEX-03"
+
+  - control_id: "NODEJSEX-04"
+    name: "Express CORS Misconfiguration — Monitoring and Logging"
+    description: "Log and monitor all express cors misconfiguration events for audit and detection"
+    source_clause: "Node.js CORS"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://NODEJSEX-04"
+
+  - control_id: "NODEJSEX-05"
+    name: "Express CORS Misconfiguration — Error Handling"
+    description: "Handle express cors misconfiguration errors securely without information leakage"
+    source_clause: "Node.js CORS"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://NODEJSEX-05"

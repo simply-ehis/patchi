@@ -1,0 +1,60 @@
+# Playbook for: mitre-impact-website-defacement
+# Source: MITRE ATT&CK
+# Auto-generated
+
+playbooks:
+- control_id: "MITREIMP-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary defacement: website (t1491) control patterns for mitre-impact-website-defacement"
+  blast_radius_notes: "Automated fix for MITREIMP-01 - Primary Defacement: Website (T1491) Control"
+  verification_checks:
+    - "Verify MITREIMP-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "MITREIMP-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for defacement: website (t1491) patterns for mitre-impact-website-defacement"
+  blast_radius_notes: "Automated fix for MITREIMP-02 - Input Validation for Defacement: Website (T1491)"
+  verification_checks:
+    - "Verify MITREIMP-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "MITREIMP-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for defacement: website (t1491) patterns for mitre-impact-website-defacement"
+  blast_radius_notes: "Automated fix for MITREIMP-03 - Configuration Hardening for Defacement: Website (T1491)"
+  verification_checks:
+    - "Verify MITREIMP-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "MITREIMP-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for defacement: website (t1491) patterns for mitre-impact-website-defacement"
+  blast_radius_notes: "Automated fix for MITREIMP-04 - Monitoring and Logging for Defacement: Website (T1491)"
+  verification_checks:
+    - "Verify MITREIMP-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "MITREIMP-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for defacement: website (t1491) patterns for mitre-impact-website-defacement"
+  blast_radius_notes: "Automated fix for MITREIMP-05 - Error Handling for Defacement: Website (T1491)"
+  verification_checks:
+    - "Verify MITREIMP-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

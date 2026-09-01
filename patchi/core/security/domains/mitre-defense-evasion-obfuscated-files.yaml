@@ -1,0 +1,62 @@
+# Patchi Security Domain: mitre-defense-evasion-obfuscated-files
+# Source: MITRE ATT&CK
+# Auto-generated — curated from MITRE ATT&CK
+
+domain_id: "mitre-defense-evasion-obfuscated-files"
+version: "1.0.0"
+display_name: "Obfuscated Files or Information (T1027)"
+source_standard: "MITRE ATT&CK"
+component_type: "native-code"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_mitre_defense_evasion_obfuscated_files_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_mitre_defense_evasion_obfuscated_files"
+
+controls:
+  - control_id: "MITREDEF-01"
+    name: "Obfuscated Files or Information (T1027) — Primary Control"
+    description: "Encoding or encrypting data to evade detection."
+    source_clause: "T1027"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://MITREDEF-01"
+
+  - control_id: "MITREDEF-02"
+    name: "Obfuscated Files or Information (T1027) — Input Validation"
+    description: "Validate and sanitize all inputs related to obfuscated files or information (t1027)"
+    source_clause: "T1027"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://MITREDEF-02"
+
+  - control_id: "MITREDEF-03"
+    name: "Obfuscated Files or Information (T1027) — Configuration Hardening"
+    description: "Apply secure configuration defaults for obfuscated files or information (t1027)"
+    source_clause: "T1027"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://MITREDEF-03"
+
+  - control_id: "MITREDEF-04"
+    name: "Obfuscated Files or Information (T1027) — Monitoring and Logging"
+    description: "Log and monitor all obfuscated files or information (t1027) events for audit and detection"
+    source_clause: "T1027"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://MITREDEF-04"
+
+  - control_id: "MITREDEF-05"
+    name: "Obfuscated Files or Information (T1027) — Error Handling"
+    description: "Handle obfuscated files or information (t1027) errors securely without information leakage"
+    source_clause: "T1027"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://MITREDEF-05"

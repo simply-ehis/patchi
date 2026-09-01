@@ -1,0 +1,62 @@
+# Patchi Security Domain: quantum-safe-crypto
+# Source: Post-Quantum Security
+# Auto-generated — curated from Post-Quantum Security
+
+domain_id: "quantum-safe-crypto"
+version: "1.0.0"
+display_name: "Quantum-Safe Cryptography"
+source_standard: "Post-Quantum Security"
+component_type: "backend-api"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_quantum_safe_crypto_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_quantum_safe_crypto"
+
+controls:
+  - control_id: "QUANTUMS-01"
+    name: "Quantum-Safe Cryptography — Primary Control"
+    description: "Use of algorithms vulnerable to quantum computing attacks (RSA, ECC, DH)."
+    source_clause: "PQC"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://QUANTUMS-01"
+
+  - control_id: "QUANTUMS-02"
+    name: "Quantum-Safe Cryptography — Input Validation"
+    description: "Validate and sanitize all inputs related to quantum-safe cryptography"
+    source_clause: "PQC"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://QUANTUMS-02"
+
+  - control_id: "QUANTUMS-03"
+    name: "Quantum-Safe Cryptography — Configuration Hardening"
+    description: "Apply secure configuration defaults for quantum-safe cryptography"
+    source_clause: "PQC"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://QUANTUMS-03"
+
+  - control_id: "QUANTUMS-04"
+    name: "Quantum-Safe Cryptography — Monitoring and Logging"
+    description: "Log and monitor all quantum-safe cryptography events for audit and detection"
+    source_clause: "PQC"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://QUANTUMS-04"
+
+  - control_id: "QUANTUMS-05"
+    name: "Quantum-Safe Cryptography — Error Handling"
+    description: "Handle quantum-safe cryptography errors securely without information leakage"
+    source_clause: "PQC"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://QUANTUMS-05"

@@ -1,0 +1,62 @@
+# Patchi Security Domain: privacy-cookie-consent
+# Source: Privacy Engineering
+# Auto-generated — curated from Privacy Engineering
+
+domain_id: "privacy-cookie-consent"
+version: "1.0.0"
+display_name: "Cookie Consent"
+source_standard: "Privacy Engineering"
+component_type: "frontend-web"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_privacy_cookie_consent_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_privacy_cookie_consent"
+
+controls:
+  - control_id: "PRIVACYC-01"
+    name: "Cookie Consent — Primary Control"
+    description: "Cookies set before user consent or missing consent mechanism."
+    source_clause: "Privacy Cookie"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://PRIVACYC-01"
+
+  - control_id: "PRIVACYC-02"
+    name: "Cookie Consent — Input Validation"
+    description: "Validate and sanitize all inputs related to cookie consent"
+    source_clause: "Privacy Cookie"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://PRIVACYC-02"
+
+  - control_id: "PRIVACYC-03"
+    name: "Cookie Consent — Configuration Hardening"
+    description: "Apply secure configuration defaults for cookie consent"
+    source_clause: "Privacy Cookie"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://PRIVACYC-03"
+
+  - control_id: "PRIVACYC-04"
+    name: "Cookie Consent — Monitoring and Logging"
+    description: "Log and monitor all cookie consent events for audit and detection"
+    source_clause: "Privacy Cookie"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://PRIVACYC-04"
+
+  - control_id: "PRIVACYC-05"
+    name: "Cookie Consent — Error Handling"
+    description: "Handle cookie consent errors securely without information leakage"
+    source_clause: "Privacy Cookie"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://PRIVACYC-05"

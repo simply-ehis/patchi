@@ -1,0 +1,62 @@
+# Patchi Security Domain: graphql-authorization
+# Source: GraphQL Security
+# Auto-generated — curated from GraphQL Security
+
+domain_id: "graphql-authorization"
+version: "1.0.0"
+display_name: "GraphQL Authorization Bypass"
+source_standard: "GraphQL Security"
+component_type: "backend-api"
+weight: 0.9
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_graphql_authorization_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_graphql_authorization"
+
+controls:
+  - control_id: "GRAPHQLA-01"
+    name: "GraphQL Authorization Bypass — Primary Control"
+    description: "Missing field-level authorization in GraphQL resolvers."
+    source_clause: "GraphQL Auth"
+    severity: "critical"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://GRAPHQLA-01"
+
+  - control_id: "GRAPHQLA-02"
+    name: "GraphQL Authorization Bypass — Input Validation"
+    description: "Validate and sanitize all inputs related to graphql authorization bypass"
+    source_clause: "GraphQL Auth"
+    severity: "critical"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://GRAPHQLA-02"
+
+  - control_id: "GRAPHQLA-03"
+    name: "GraphQL Authorization Bypass — Configuration Hardening"
+    description: "Apply secure configuration defaults for graphql authorization bypass"
+    source_clause: "GraphQL Auth"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://GRAPHQLA-03"
+
+  - control_id: "GRAPHQLA-04"
+    name: "GraphQL Authorization Bypass — Monitoring and Logging"
+    description: "Log and monitor all graphql authorization bypass events for audit and detection"
+    source_clause: "GraphQL Auth"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://GRAPHQLA-04"
+
+  - control_id: "GRAPHQLA-05"
+    name: "GraphQL Authorization Bypass — Error Handling"
+    description: "Handle graphql authorization bypass errors securely without information leakage"
+    source_clause: "GraphQL Auth"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://GRAPHQLA-05"

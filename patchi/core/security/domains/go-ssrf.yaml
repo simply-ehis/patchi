@@ -1,0 +1,62 @@
+# Patchi Security Domain: go-ssrf
+# Source: Go Security
+# Auto-generated — curated from Go Security
+
+domain_id: "go-ssrf"
+version: "1.0.0"
+display_name: "Go SSRF"
+source_standard: "Go Security"
+component_type: "backend-api"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_go_ssrf_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_go_ssrf"
+
+controls:
+  - control_id: "GOSSRF-01"
+    name: "Go SSRF — Primary Control"
+    description: "http.Get/Post with user-controlled URLs."
+    source_clause: "Go SSRF"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://GOSSRF-01"
+
+  - control_id: "GOSSRF-02"
+    name: "Go SSRF — Input Validation"
+    description: "Validate and sanitize all inputs related to go ssrf"
+    source_clause: "Go SSRF"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://GOSSRF-02"
+
+  - control_id: "GOSSRF-03"
+    name: "Go SSRF — Configuration Hardening"
+    description: "Apply secure configuration defaults for go ssrf"
+    source_clause: "Go SSRF"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://GOSSRF-03"
+
+  - control_id: "GOSSRF-04"
+    name: "Go SSRF — Monitoring and Logging"
+    description: "Log and monitor all go ssrf events for audit and detection"
+    source_clause: "Go SSRF"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://GOSSRF-04"
+
+  - control_id: "GOSSRF-05"
+    name: "Go SSRF — Error Handling"
+    description: "Handle go ssrf errors securely without information leakage"
+    source_clause: "Go SSRF"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://GOSSRF-05"

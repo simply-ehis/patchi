@@ -1,0 +1,62 @@
+# Patchi Security Domain: nist-ac-7
+# Source: NIST SP 800-53 AC-7
+# Auto-generated — curated from NIST SP 800-53 AC-7
+
+domain_id: "nist-ac-7"
+version: "1.0.0"
+display_name: "Unsuccessful Login Attempts"
+source_standard: "NIST SP 800-53 AC-7"
+component_type: "backend-api"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_nist_ac_7_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_nist_ac_7"
+
+controls:
+  - control_id: "NISTAC7-01"
+    name: "Unsuccessful Login Attempts — Primary Control"
+    description: "System limits consecutive failed login attempts."
+    source_clause: "AC-7"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://NISTAC7-01"
+
+  - control_id: "NISTAC7-02"
+    name: "Unsuccessful Login Attempts — Input Validation"
+    description: "Validate and sanitize all inputs related to unsuccessful login attempts"
+    source_clause: "AC-7"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://NISTAC7-02"
+
+  - control_id: "NISTAC7-03"
+    name: "Unsuccessful Login Attempts — Configuration Hardening"
+    description: "Apply secure configuration defaults for unsuccessful login attempts"
+    source_clause: "AC-7"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://NISTAC7-03"
+
+  - control_id: "NISTAC7-04"
+    name: "Unsuccessful Login Attempts — Monitoring and Logging"
+    description: "Log and monitor all unsuccessful login attempts events for audit and detection"
+    source_clause: "AC-7"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://NISTAC7-04"
+
+  - control_id: "NISTAC7-05"
+    name: "Unsuccessful Login Attempts — Error Handling"
+    description: "Handle unsuccessful login attempts errors securely without information leakage"
+    source_clause: "AC-7"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://NISTAC7-05"

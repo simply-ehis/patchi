@@ -1,0 +1,62 @@
+# Patchi Security Domain: nist-ac-14
+# Source: NIST SP 800-53 AC-14
+# Auto-generated — curated from NIST SP 800-53 AC-14
+
+domain_id: "nist-ac-14"
+version: "1.0.0"
+display_name: "Permitted Actions without Identification"
+source_standard: "NIST SP 800-53 AC-14"
+component_type: "backend-api"
+weight: 0.7
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_nist_ac_14_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_nist_ac_14"
+
+controls:
+  - control_id: "NISTAC14-01"
+    name: "Permitted Actions without Identification — Primary Control"
+    description: "System permits actions without identification under defined circumstances."
+    source_clause: "AC-14"
+    severity: "medium"
+    check_method: "manual-review"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://NISTAC14-01"
+
+  - control_id: "NISTAC14-02"
+    name: "Permitted Actions without Identification — Input Validation"
+    description: "Validate and sanitize all inputs related to permitted actions without identification"
+    source_clause: "AC-14"
+    severity: "medium"
+    check_method: "manual-review"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://NISTAC14-02"
+
+  - control_id: "NISTAC14-03"
+    name: "Permitted Actions without Identification — Configuration Hardening"
+    description: "Apply secure configuration defaults for permitted actions without identification"
+    source_clause: "AC-14"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://NISTAC14-03"
+
+  - control_id: "NISTAC14-04"
+    name: "Permitted Actions without Identification — Monitoring and Logging"
+    description: "Log and monitor all permitted actions without identification events for audit and detection"
+    source_clause: "AC-14"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://NISTAC14-04"
+
+  - control_id: "NISTAC14-05"
+    name: "Permitted Actions without Identification — Error Handling"
+    description: "Handle permitted actions without identification errors securely without information leakage"
+    source_clause: "AC-14"
+    severity: "medium"
+    check_method: "manual-review"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://NISTAC14-05"

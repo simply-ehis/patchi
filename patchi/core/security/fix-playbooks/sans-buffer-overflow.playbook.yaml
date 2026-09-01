@@ -1,0 +1,60 @@
+# Playbook for: sans-buffer-overflow
+# Source: SANS Top 25
+# Auto-generated
+
+playbooks:
+- control_id: "SANSBUFF-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary buffer overflow control patterns for sans-buffer-overflow"
+  blast_radius_notes: "Automated fix for SANSBUFF-01 - Primary Buffer Overflow Control"
+  verification_checks:
+    - "Verify SANSBUFF-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "SANSBUFF-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for buffer overflow patterns for sans-buffer-overflow"
+  blast_radius_notes: "Automated fix for SANSBUFF-02 - Input Validation for Buffer Overflow"
+  verification_checks:
+    - "Verify SANSBUFF-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "SANSBUFF-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for buffer overflow patterns for sans-buffer-overflow"
+  blast_radius_notes: "Automated fix for SANSBUFF-03 - Configuration Hardening for Buffer Overflow"
+  verification_checks:
+    - "Verify SANSBUFF-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "SANSBUFF-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for buffer overflow patterns for sans-buffer-overflow"
+  blast_radius_notes: "Automated fix for SANSBUFF-04 - Monitoring and Logging for Buffer Overflow"
+  verification_checks:
+    - "Verify SANSBUFF-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "SANSBUFF-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for buffer overflow patterns for sans-buffer-overflow"
+  blast_radius_notes: "Automated fix for SANSBUFF-05 - Error Handling for Buffer Overflow"
+  verification_checks:
+    - "Verify SANSBUFF-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

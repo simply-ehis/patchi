@@ -1,0 +1,60 @@
+# Playbook for: tauri-command-injection
+# Source: Desktop App Security
+# Auto-generated
+
+playbooks:
+- control_id: "TAURICOM-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary tauri command injection control patterns for tauri-command-injection"
+  blast_radius_notes: "Automated fix for TAURICOM-01 - Primary Tauri Command Injection Control"
+  verification_checks:
+    - "Verify TAURICOM-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "TAURICOM-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for tauri command injection patterns for tauri-command-injection"
+  blast_radius_notes: "Automated fix for TAURICOM-02 - Input Validation for Tauri Command Injection"
+  verification_checks:
+    - "Verify TAURICOM-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "TAURICOM-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for tauri command injection patterns for tauri-command-injection"
+  blast_radius_notes: "Automated fix for TAURICOM-03 - Configuration Hardening for Tauri Command Injection"
+  verification_checks:
+    - "Verify TAURICOM-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "TAURICOM-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for tauri command injection patterns for tauri-command-injection"
+  blast_radius_notes: "Automated fix for TAURICOM-04 - Monitoring and Logging for Tauri Command Injection"
+  verification_checks:
+    - "Verify TAURICOM-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "TAURICOM-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for tauri command injection patterns for tauri-command-injection"
+  blast_radius_notes: "Automated fix for TAURICOM-05 - Error Handling for Tauri Command Injection"
+  verification_checks:
+    - "Verify TAURICOM-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

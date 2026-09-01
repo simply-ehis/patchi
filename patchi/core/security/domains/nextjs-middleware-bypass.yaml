@@ -1,0 +1,62 @@
+# Patchi Security Domain: nextjs-middleware-bypass
+# Source: Next.js Security
+# Auto-generated — curated from Next.js Security
+
+domain_id: "nextjs-middleware-bypass"
+version: "1.0.0"
+display_name: "Next.js Middleware Bypass"
+source_standard: "Next.js Security"
+component_type: "backend-api"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_nextjs_middleware_bypass_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_nextjs_middleware_bypass"
+
+controls:
+  - control_id: "NEXTJSMI-01"
+    name: "Next.js Middleware Bypass — Primary Control"
+    description: "Middleware auth checks bypassable via direct route access."
+    source_clause: "Next.js Middleware"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://NEXTJSMI-01"
+
+  - control_id: "NEXTJSMI-02"
+    name: "Next.js Middleware Bypass — Input Validation"
+    description: "Validate and sanitize all inputs related to next.js middleware bypass"
+    source_clause: "Next.js Middleware"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://NEXTJSMI-02"
+
+  - control_id: "NEXTJSMI-03"
+    name: "Next.js Middleware Bypass — Configuration Hardening"
+    description: "Apply secure configuration defaults for next.js middleware bypass"
+    source_clause: "Next.js Middleware"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://NEXTJSMI-03"
+
+  - control_id: "NEXTJSMI-04"
+    name: "Next.js Middleware Bypass — Monitoring and Logging"
+    description: "Log and monitor all next.js middleware bypass events for audit and detection"
+    source_clause: "Next.js Middleware"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://NEXTJSMI-04"
+
+  - control_id: "NEXTJSMI-05"
+    name: "Next.js Middleware Bypass — Error Handling"
+    description: "Handle next.js middleware bypass errors securely without information leakage"
+    source_clause: "Next.js Middleware"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://NEXTJSMI-05"

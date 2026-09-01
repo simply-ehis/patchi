@@ -1,0 +1,62 @@
+# Patchi Security Domain: nist-sc-9
+# Source: NIST SP 800-53 SC-9
+# Auto-generated — curated from NIST SP 800-53 SC-9
+
+domain_id: "nist-sc-9"
+version: "1.0.0"
+display_name: "Transmission Confidentiality"
+source_standard: "NIST SP 800-53 SC-9"
+component_type: "infra"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_nist_sc_9_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_nist_sc_9"
+
+controls:
+  - control_id: "NISTSC9-01"
+    name: "Transmission Confidentiality — Primary Control"
+    description: "System protects the confidentiality of transmitted information."
+    source_clause: "SC-9"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://NISTSC9-01"
+
+  - control_id: "NISTSC9-02"
+    name: "Transmission Confidentiality — Input Validation"
+    description: "Validate and sanitize all inputs related to transmission confidentiality"
+    source_clause: "SC-9"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://NISTSC9-02"
+
+  - control_id: "NISTSC9-03"
+    name: "Transmission Confidentiality — Configuration Hardening"
+    description: "Apply secure configuration defaults for transmission confidentiality"
+    source_clause: "SC-9"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://NISTSC9-03"
+
+  - control_id: "NISTSC9-04"
+    name: "Transmission Confidentiality — Monitoring and Logging"
+    description: "Log and monitor all transmission confidentiality events for audit and detection"
+    source_clause: "SC-9"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://NISTSC9-04"
+
+  - control_id: "NISTSC9-05"
+    name: "Transmission Confidentiality — Error Handling"
+    description: "Handle transmission confidentiality errors securely without information leakage"
+    source_clause: "SC-9"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://NISTSC9-05"

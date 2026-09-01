@@ -1,0 +1,60 @@
+# Playbook for: config-dotenv-exposure
+# Source: Configuration Security
+# Auto-generated
+
+playbooks:
+- control_id: "CONFIGDO-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary .env file exposure control patterns for config-dotenv-exposure"
+  blast_radius_notes: "Automated fix for CONFIGDO-01 - Primary .env File Exposure Control"
+  verification_checks:
+    - "Verify CONFIGDO-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CONFIGDO-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for .env file exposure patterns for config-dotenv-exposure"
+  blast_radius_notes: "Automated fix for CONFIGDO-02 - Input Validation for .env File Exposure"
+  verification_checks:
+    - "Verify CONFIGDO-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CONFIGDO-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for .env file exposure patterns for config-dotenv-exposure"
+  blast_radius_notes: "Automated fix for CONFIGDO-03 - Configuration Hardening for .env File Exposure"
+  verification_checks:
+    - "Verify CONFIGDO-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CONFIGDO-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for .env file exposure patterns for config-dotenv-exposure"
+  blast_radius_notes: "Automated fix for CONFIGDO-04 - Monitoring and Logging for .env File Exposure"
+  verification_checks:
+    - "Verify CONFIGDO-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CONFIGDO-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for .env file exposure patterns for config-dotenv-exposure"
+  blast_radius_notes: "Automated fix for CONFIGDO-05 - Error Handling for .env File Exposure"
+  verification_checks:
+    - "Verify CONFIGDO-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

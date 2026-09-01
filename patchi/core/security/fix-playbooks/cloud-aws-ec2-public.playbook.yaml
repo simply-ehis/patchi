@@ -1,0 +1,60 @@
+# Playbook for: cloud-aws-ec2-public
+# Source: Cloud Security AWS
+# Auto-generated
+
+playbooks:
+- control_id: "CLOUDAWS-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary aws ec2 public instance control patterns for cloud-aws-ec2-public"
+  blast_radius_notes: "Automated fix for CLOUDAWS-01 - Primary AWS EC2 Public Instance Control"
+  verification_checks:
+    - "Verify CLOUDAWS-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CLOUDAWS-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for aws ec2 public instance patterns for cloud-aws-ec2-public"
+  blast_radius_notes: "Automated fix for CLOUDAWS-02 - Input Validation for AWS EC2 Public Instance"
+  verification_checks:
+    - "Verify CLOUDAWS-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CLOUDAWS-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for aws ec2 public instance patterns for cloud-aws-ec2-public"
+  blast_radius_notes: "Automated fix for CLOUDAWS-03 - Configuration Hardening for AWS EC2 Public Instance"
+  verification_checks:
+    - "Verify CLOUDAWS-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CLOUDAWS-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for aws ec2 public instance patterns for cloud-aws-ec2-public"
+  blast_radius_notes: "Automated fix for CLOUDAWS-04 - Monitoring and Logging for AWS EC2 Public Instance"
+  verification_checks:
+    - "Verify CLOUDAWS-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CLOUDAWS-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for aws ec2 public instance patterns for cloud-aws-ec2-public"
+  blast_radius_notes: "Automated fix for CLOUDAWS-05 - Error Handling for AWS EC2 Public Instance"
+  verification_checks:
+    - "Verify CLOUDAWS-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

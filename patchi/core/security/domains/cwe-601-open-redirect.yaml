@@ -1,0 +1,62 @@
+# Patchi Security Domain: cwe-601-open-redirect
+# Source: CWE-601
+# Auto-generated — curated from CWE-601
+
+domain_id: "cwe-601-open-redirect"
+version: "1.0.0"
+display_name: "URL Redirection to Untrusted Site ('Open Redirect')"
+source_standard: "CWE-601"
+component_type: "backend-api"
+weight: 0.75
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_cwe_601_open_redirect_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_cwe_601_open_redirect"
+
+controls:
+  - control_id: "CWE601OP-01"
+    name: "URL Redirection to Untrusted Site ('Open Redirect') — Primary Control"
+    description: "Application accepts unvalidated URL redirections that could send users to malicious sites."
+    source_clause: "CWE-601"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CWE601OP-01"
+
+  - control_id: "CWE601OP-02"
+    name: "URL Redirection to Untrusted Site ('Open Redirect') — Input Validation"
+    description: "Validate and sanitize all inputs related to url redirection to untrusted site ('open redirect')"
+    source_clause: "CWE-601"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CWE601OP-02"
+
+  - control_id: "CWE601OP-03"
+    name: "URL Redirection to Untrusted Site ('Open Redirect') — Configuration Hardening"
+    description: "Apply secure configuration defaults for url redirection to untrusted site ('open redirect')"
+    source_clause: "CWE-601"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CWE601OP-03"
+
+  - control_id: "CWE601OP-04"
+    name: "URL Redirection to Untrusted Site ('Open Redirect') — Monitoring and Logging"
+    description: "Log and monitor all url redirection to untrusted site ('open redirect') events for audit and detection"
+    source_clause: "CWE-601"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CWE601OP-04"
+
+  - control_id: "CWE601OP-05"
+    name: "URL Redirection to Untrusted Site ('Open Redirect') — Error Handling"
+    description: "Handle url redirection to untrusted site ('open redirect') errors securely without information leakage"
+    source_clause: "CWE-601"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CWE601OP-05"

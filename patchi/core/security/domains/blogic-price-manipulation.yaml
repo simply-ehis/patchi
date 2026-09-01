@@ -1,0 +1,62 @@
+# Patchi Security Domain: blogic-price-manipulation
+# Source: Business Logic
+# Auto-generated — curated from Business Logic
+
+domain_id: "blogic-price-manipulation"
+version: "1.0.0"
+display_name: "Price Manipulation"
+source_standard: "Business Logic"
+component_type: "backend-api"
+weight: 0.9
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_blogic_price_manipulation_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_blogic_price_manipulation"
+
+controls:
+  - control_id: "BLOGICPR-01"
+    name: "Price Manipulation — Primary Control"
+    description: "Modifying prices, quantities, or discounts in client-side requests."
+    source_clause: "BLogic Price"
+    severity: "critical"
+    check_method: "dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://BLOGICPR-01"
+
+  - control_id: "BLOGICPR-02"
+    name: "Price Manipulation — Input Validation"
+    description: "Validate and sanitize all inputs related to price manipulation"
+    source_clause: "BLogic Price"
+    severity: "critical"
+    check_method: "dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://BLOGICPR-02"
+
+  - control_id: "BLOGICPR-03"
+    name: "Price Manipulation — Configuration Hardening"
+    description: "Apply secure configuration defaults for price manipulation"
+    source_clause: "BLogic Price"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://BLOGICPR-03"
+
+  - control_id: "BLOGICPR-04"
+    name: "Price Manipulation — Monitoring and Logging"
+    description: "Log and monitor all price manipulation events for audit and detection"
+    source_clause: "BLogic Price"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://BLOGICPR-04"
+
+  - control_id: "BLOGICPR-05"
+    name: "Price Manipulation — Error Handling"
+    description: "Handle price manipulation errors securely without information leakage"
+    source_clause: "BLogic Price"
+    severity: "medium"
+    check_method: "dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://BLOGICPR-05"

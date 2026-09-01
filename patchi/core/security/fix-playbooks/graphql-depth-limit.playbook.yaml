@@ -1,0 +1,60 @@
+# Playbook for: graphql-depth-limit
+# Source: GraphQL Security
+# Auto-generated
+
+playbooks:
+- control_id: "GRAPHQLD-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary graphql query depth control patterns for graphql-depth-limit"
+  blast_radius_notes: "Automated fix for GRAPHQLD-01 - Primary GraphQL Query Depth Control"
+  verification_checks:
+    - "Verify GRAPHQLD-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "GRAPHQLD-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for graphql query depth patterns for graphql-depth-limit"
+  blast_radius_notes: "Automated fix for GRAPHQLD-02 - Input Validation for GraphQL Query Depth"
+  verification_checks:
+    - "Verify GRAPHQLD-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "GRAPHQLD-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for graphql query depth patterns for graphql-depth-limit"
+  blast_radius_notes: "Automated fix for GRAPHQLD-03 - Configuration Hardening for GraphQL Query Depth"
+  verification_checks:
+    - "Verify GRAPHQLD-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "GRAPHQLD-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for graphql query depth patterns for graphql-depth-limit"
+  blast_radius_notes: "Automated fix for GRAPHQLD-04 - Monitoring and Logging for GraphQL Query Depth"
+  verification_checks:
+    - "Verify GRAPHQLD-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "GRAPHQLD-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for graphql query depth patterns for graphql-depth-limit"
+  blast_radius_notes: "Automated fix for GRAPHQLD-05 - Error Handling for GraphQL Query Depth"
+  verification_checks:
+    - "Verify GRAPHQLD-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

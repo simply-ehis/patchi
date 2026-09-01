@@ -1,0 +1,60 @@
+# Playbook for: asvs-v12-files-resources
+# Source: OWASP ASVS 5.0 V12
+# Auto-generated
+
+playbooks:
+- control_id: "ASVSV12F-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary files and resources control patterns for asvs-v12-files-resources"
+  blast_radius_notes: "Automated fix for ASVSV12F-01 - Primary Files and Resources Control"
+  verification_checks:
+    - "Verify ASVSV12F-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "ASVSV12F-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for files and resources patterns for asvs-v12-files-resources"
+  blast_radius_notes: "Automated fix for ASVSV12F-02 - Input Validation for Files and Resources"
+  verification_checks:
+    - "Verify ASVSV12F-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "ASVSV12F-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for files and resources patterns for asvs-v12-files-resources"
+  blast_radius_notes: "Automated fix for ASVSV12F-03 - Configuration Hardening for Files and Resources"
+  verification_checks:
+    - "Verify ASVSV12F-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "ASVSV12F-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for files and resources patterns for asvs-v12-files-resources"
+  blast_radius_notes: "Automated fix for ASVSV12F-04 - Monitoring and Logging for Files and Resources"
+  verification_checks:
+    - "Verify ASVSV12F-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "ASVSV12F-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for files and resources patterns for asvs-v12-files-resources"
+  blast_radius_notes: "Automated fix for ASVSV12F-05 - Error Handling for Files and Resources"
+  verification_checks:
+    - "Verify ASVSV12F-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

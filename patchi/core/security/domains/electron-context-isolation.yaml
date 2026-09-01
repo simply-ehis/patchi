@@ -1,0 +1,62 @@
+# Patchi Security Domain: electron-context-isolation
+# Source: Desktop App Security
+# Auto-generated — curated from Desktop App Security
+
+domain_id: "electron-context-isolation"
+version: "1.0.0"
+display_name: "Electron Context Isolation"
+source_standard: "Desktop App Security"
+component_type: "desktop-app"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_electron_context_isolation_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_electron_context_isolation"
+
+controls:
+  - control_id: "ELECTRON-01"
+    name: "Electron Context Isolation — Primary Control"
+    description: "Missing contextIsolation exposing preload script to renderer."
+    source_clause: "Electron Context"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://ELECTRON-01"
+
+  - control_id: "ELECTRON-02"
+    name: "Electron Context Isolation — Input Validation"
+    description: "Validate and sanitize all inputs related to electron context isolation"
+    source_clause: "Electron Context"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://ELECTRON-02"
+
+  - control_id: "ELECTRON-03"
+    name: "Electron Context Isolation — Configuration Hardening"
+    description: "Apply secure configuration defaults for electron context isolation"
+    source_clause: "Electron Context"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://ELECTRON-03"
+
+  - control_id: "ELECTRON-04"
+    name: "Electron Context Isolation — Monitoring and Logging"
+    description: "Log and monitor all electron context isolation events for audit and detection"
+    source_clause: "Electron Context"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://ELECTRON-04"
+
+  - control_id: "ELECTRON-05"
+    name: "Electron Context Isolation — Error Handling"
+    description: "Handle electron context isolation errors securely without information leakage"
+    source_clause: "Electron Context"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://ELECTRON-05"

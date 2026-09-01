@@ -1,0 +1,62 @@
+# Patchi Security Domain: header-referrer-policy
+# Source: HTTP Security Headers
+# Auto-generated — curated from HTTP Security Headers
+
+domain_id: "header-referrer-policy"
+version: "1.0.0"
+display_name: "Referrer Policy"
+source_standard: "HTTP Security Headers"
+component_type: "infra"
+weight: 0.75
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_header_referrer_policy_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_header_referrer_policy"
+
+controls:
+  - control_id: "HEADERRE-01"
+    name: "Referrer Policy — Primary Control"
+    description: "Missing or overly permissive Referrer-Policy leaking sensitive URLs."
+    source_clause: "Header RP"
+    severity: "medium"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://HEADERRE-01"
+
+  - control_id: "HEADERRE-02"
+    name: "Referrer Policy — Input Validation"
+    description: "Validate and sanitize all inputs related to referrer policy"
+    source_clause: "Header RP"
+    severity: "medium"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://HEADERRE-02"
+
+  - control_id: "HEADERRE-03"
+    name: "Referrer Policy — Configuration Hardening"
+    description: "Apply secure configuration defaults for referrer policy"
+    source_clause: "Header RP"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://HEADERRE-03"
+
+  - control_id: "HEADERRE-04"
+    name: "Referrer Policy — Monitoring and Logging"
+    description: "Log and monitor all referrer policy events for audit and detection"
+    source_clause: "Header RP"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://HEADERRE-04"
+
+  - control_id: "HEADERRE-05"
+    name: "Referrer Policy — Error Handling"
+    description: "Handle referrer policy errors securely without information leakage"
+    source_clause: "Header RP"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://HEADERRE-05"

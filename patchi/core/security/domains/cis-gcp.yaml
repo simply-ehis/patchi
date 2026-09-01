@@ -1,0 +1,62 @@
+# Patchi Security Domain: cis-gcp
+# Source: CIS GCP Benchmark
+# Auto-generated — curated from CIS GCP Benchmark
+
+domain_id: "cis-gcp"
+version: "1.0.0"
+display_name: "GCP Cloud Hardening"
+source_standard: "CIS GCP Benchmark"
+component_type: "cloud-gcp"
+weight: 0.9
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_cis_gcp_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_cis_gcp"
+
+controls:
+  - control_id: "CISGCP-01"
+    name: "GCP Cloud Hardening — Primary Control"
+    description: "IAM, GCE, GCS, networking, and logging configuration."
+    source_clause: "CIS GCP"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CISGCP-01"
+
+  - control_id: "CISGCP-02"
+    name: "GCP Cloud Hardening — Input Validation"
+    description: "Validate and sanitize all inputs related to gcp cloud hardening"
+    source_clause: "CIS GCP"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CISGCP-02"
+
+  - control_id: "CISGCP-03"
+    name: "GCP Cloud Hardening — Configuration Hardening"
+    description: "Apply secure configuration defaults for gcp cloud hardening"
+    source_clause: "CIS GCP"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CISGCP-03"
+
+  - control_id: "CISGCP-04"
+    name: "GCP Cloud Hardening — Monitoring and Logging"
+    description: "Log and monitor all gcp cloud hardening events for audit and detection"
+    source_clause: "CIS GCP"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CISGCP-04"
+
+  - control_id: "CISGCP-05"
+    name: "GCP Cloud Hardening — Error Handling"
+    description: "Handle gcp cloud hardening errors securely without information leakage"
+    source_clause: "CIS GCP"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CISGCP-05"

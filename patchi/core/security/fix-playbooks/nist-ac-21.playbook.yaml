@@ -1,0 +1,60 @@
+# Playbook for: nist-ac-21
+# Source: NIST SP 800-53 AC-21
+# Auto-generated
+
+playbooks:
+- control_id: "NISTAC21-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary information sharing control patterns for nist-ac-21"
+  blast_radius_notes: "Automated fix for NISTAC21-01 - Primary Information Sharing Control"
+  verification_checks:
+    - "Verify NISTAC21-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NISTAC21-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for information sharing patterns for nist-ac-21"
+  blast_radius_notes: "Automated fix for NISTAC21-02 - Input Validation for Information Sharing"
+  verification_checks:
+    - "Verify NISTAC21-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NISTAC21-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for information sharing patterns for nist-ac-21"
+  blast_radius_notes: "Automated fix for NISTAC21-03 - Configuration Hardening for Information Sharing"
+  verification_checks:
+    - "Verify NISTAC21-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NISTAC21-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for information sharing patterns for nist-ac-21"
+  blast_radius_notes: "Automated fix for NISTAC21-04 - Monitoring and Logging for Information Sharing"
+  verification_checks:
+    - "Verify NISTAC21-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NISTAC21-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for information sharing patterns for nist-ac-21"
+  blast_radius_notes: "Automated fix for NISTAC21-05 - Error Handling for Information Sharing"
+  verification_checks:
+    - "Verify NISTAC21-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

@@ -1,0 +1,62 @@
+# Patchi Security Domain: owasp-llm-improper-output
+# Source: OWASP LLM 2025 LLM05
+# Auto-generated — curated from OWASP LLM 2025 LLM05
+
+domain_id: "owasp-llm-improper-output"
+version: "1.0.0"
+display_name: "Improper Output Handling"
+source_standard: "OWASP LLM 2025 LLM05"
+component_type: "ai-ml"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_owasp_llm_improper_output_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_owasp_llm_improper_output"
+
+controls:
+  - control_id: "OWASPLLM-01"
+    name: "Improper Output Handling — Primary Control"
+    description: "LLM output used without sanitization leads to XSS, SSRF, or command injection downstream."
+    source_clause: "LLM05"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://OWASPLLM-01"
+
+  - control_id: "OWASPLLM-02"
+    name: "Improper Output Handling — Input Validation"
+    description: "Validate and sanitize all inputs related to improper output handling"
+    source_clause: "LLM05"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://OWASPLLM-02"
+
+  - control_id: "OWASPLLM-03"
+    name: "Improper Output Handling — Configuration Hardening"
+    description: "Apply secure configuration defaults for improper output handling"
+    source_clause: "LLM05"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://OWASPLLM-03"
+
+  - control_id: "OWASPLLM-04"
+    name: "Improper Output Handling — Monitoring and Logging"
+    description: "Log and monitor all improper output handling events for audit and detection"
+    source_clause: "LLM05"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://OWASPLLM-04"
+
+  - control_id: "OWASPLLM-05"
+    name: "Improper Output Handling — Error Handling"
+    description: "Handle improper output handling errors securely without information leakage"
+    source_clause: "LLM05"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://OWASPLLM-05"

@@ -1,0 +1,60 @@
+# Playbook for: nodejs-prototype-pollution
+# Source: Node.js Security
+# Auto-generated
+
+playbooks:
+- control_id: "NODEJSPR-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary prototype pollution control patterns for nodejs-prototype-pollution"
+  blast_radius_notes: "Automated fix for NODEJSPR-01 - Primary Prototype Pollution Control"
+  verification_checks:
+    - "Verify NODEJSPR-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NODEJSPR-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for prototype pollution patterns for nodejs-prototype-pollution"
+  blast_radius_notes: "Automated fix for NODEJSPR-02 - Input Validation for Prototype Pollution"
+  verification_checks:
+    - "Verify NODEJSPR-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NODEJSPR-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for prototype pollution patterns for nodejs-prototype-pollution"
+  blast_radius_notes: "Automated fix for NODEJSPR-03 - Configuration Hardening for Prototype Pollution"
+  verification_checks:
+    - "Verify NODEJSPR-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NODEJSPR-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for prototype pollution patterns for nodejs-prototype-pollution"
+  blast_radius_notes: "Automated fix for NODEJSPR-04 - Monitoring and Logging for Prototype Pollution"
+  verification_checks:
+    - "Verify NODEJSPR-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NODEJSPR-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for prototype pollution patterns for nodejs-prototype-pollution"
+  blast_radius_notes: "Automated fix for NODEJSPR-05 - Error Handling for Prototype Pollution"
+  verification_checks:
+    - "Verify NODEJSPR-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

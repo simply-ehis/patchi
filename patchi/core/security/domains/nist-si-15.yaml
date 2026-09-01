@@ -1,0 +1,62 @@
+# Patchi Security Domain: nist-si-15
+# Source: NIST SP 800-53 SI-15
+# Auto-generated — curated from NIST SP 800-53 SI-15
+
+domain_id: "nist-si-15"
+version: "1.0.0"
+display_name: "Information Output Filtering"
+source_standard: "NIST SP 800-53 SI-15"
+component_type: "backend-api"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_nist_si_15_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_nist_si_15"
+
+controls:
+  - control_id: "NISTSI15-01"
+    name: "Information Output Filtering — Primary Control"
+    description: "System filters information outputs to prevent information leakage."
+    source_clause: "SI-15"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://NISTSI15-01"
+
+  - control_id: "NISTSI15-02"
+    name: "Information Output Filtering — Input Validation"
+    description: "Validate and sanitize all inputs related to information output filtering"
+    source_clause: "SI-15"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://NISTSI15-02"
+
+  - control_id: "NISTSI15-03"
+    name: "Information Output Filtering — Configuration Hardening"
+    description: "Apply secure configuration defaults for information output filtering"
+    source_clause: "SI-15"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://NISTSI15-03"
+
+  - control_id: "NISTSI15-04"
+    name: "Information Output Filtering — Monitoring and Logging"
+    description: "Log and monitor all information output filtering events for audit and detection"
+    source_clause: "SI-15"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://NISTSI15-04"
+
+  - control_id: "NISTSI15-05"
+    name: "Information Output Filtering — Error Handling"
+    description: "Handle information output filtering errors securely without information leakage"
+    source_clause: "SI-15"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://NISTSI15-05"

@@ -1,0 +1,62 @@
+# Patchi Security Domain: network-tls-configuration
+# Source: Network Security
+# Auto-generated — curated from Network Security
+
+domain_id: "network-tls-configuration"
+version: "1.0.0"
+display_name: "TLS Configuration"
+source_standard: "Network Security"
+component_type: "infra"
+weight: 0.9
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_network_tls_configuration_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_network_tls_configuration"
+
+controls:
+  - control_id: "NETWORKT-01"
+    name: "TLS Configuration — Primary Control"
+    description: "Weak TLS versions (SSLv3, TLS 1.0, 1.1) or cipher suites."
+    source_clause: "Net TLS"
+    severity: "critical"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://NETWORKT-01"
+
+  - control_id: "NETWORKT-02"
+    name: "TLS Configuration — Input Validation"
+    description: "Validate and sanitize all inputs related to tls configuration"
+    source_clause: "Net TLS"
+    severity: "critical"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://NETWORKT-02"
+
+  - control_id: "NETWORKT-03"
+    name: "TLS Configuration — Configuration Hardening"
+    description: "Apply secure configuration defaults for tls configuration"
+    source_clause: "Net TLS"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://NETWORKT-03"
+
+  - control_id: "NETWORKT-04"
+    name: "TLS Configuration — Monitoring and Logging"
+    description: "Log and monitor all tls configuration events for audit and detection"
+    source_clause: "Net TLS"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://NETWORKT-04"
+
+  - control_id: "NETWORKT-05"
+    name: "TLS Configuration — Error Handling"
+    description: "Handle tls configuration errors securely without information leakage"
+    source_clause: "Net TLS"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://NETWORKT-05"

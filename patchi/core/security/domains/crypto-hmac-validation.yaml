@@ -1,0 +1,62 @@
+# Patchi Security Domain: crypto-hmac-validation
+# Source: Cryptography Implementation
+# Auto-generated — curated from Cryptography Implementation
+
+domain_id: "crypto-hmac-validation"
+version: "1.0.0"
+display_name: "HMAC Validation"
+source_standard: "Cryptography Implementation"
+component_type: "backend-api"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_crypto_hmac_validation_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_crypto_hmac_validation"
+
+controls:
+  - control_id: "CRYPTOHM-01"
+    name: "HMAC Validation — Primary Control"
+    description: "HMAC comparison using non-constant-time function."
+    source_clause: "Crypto HMAC"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CRYPTOHM-01"
+
+  - control_id: "CRYPTOHM-02"
+    name: "HMAC Validation — Input Validation"
+    description: "Validate and sanitize all inputs related to hmac validation"
+    source_clause: "Crypto HMAC"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CRYPTOHM-02"
+
+  - control_id: "CRYPTOHM-03"
+    name: "HMAC Validation — Configuration Hardening"
+    description: "Apply secure configuration defaults for hmac validation"
+    source_clause: "Crypto HMAC"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CRYPTOHM-03"
+
+  - control_id: "CRYPTOHM-04"
+    name: "HMAC Validation — Monitoring and Logging"
+    description: "Log and monitor all hmac validation events for audit and detection"
+    source_clause: "Crypto HMAC"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CRYPTOHM-04"
+
+  - control_id: "CRYPTOHM-05"
+    name: "HMAC Validation — Error Handling"
+    description: "Handle hmac validation errors securely without information leakage"
+    source_clause: "Crypto HMAC"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CRYPTOHM-05"

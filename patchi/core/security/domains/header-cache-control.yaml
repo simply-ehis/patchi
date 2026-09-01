@@ -1,0 +1,62 @@
+# Patchi Security Domain: header-cache-control
+# Source: HTTP Security Headers
+# Auto-generated — curated from HTTP Security Headers
+
+domain_id: "header-cache-control"
+version: "1.0.0"
+display_name: "Cache Control Security"
+source_standard: "HTTP Security Headers"
+component_type: "infra"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_header_cache_control_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_header_cache_control"
+
+controls:
+  - control_id: "HEADERCA-01"
+    name: "Cache Control Security — Primary Control"
+    description: "Missing Cache-Control headers allowing sensitive data caching."
+    source_clause: "Header CC"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://HEADERCA-01"
+
+  - control_id: "HEADERCA-02"
+    name: "Cache Control Security — Input Validation"
+    description: "Validate and sanitize all inputs related to cache control security"
+    source_clause: "Header CC"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://HEADERCA-02"
+
+  - control_id: "HEADERCA-03"
+    name: "Cache Control Security — Configuration Hardening"
+    description: "Apply secure configuration defaults for cache control security"
+    source_clause: "Header CC"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://HEADERCA-03"
+
+  - control_id: "HEADERCA-04"
+    name: "Cache Control Security — Monitoring and Logging"
+    description: "Log and monitor all cache control security events for audit and detection"
+    source_clause: "Header CC"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://HEADERCA-04"
+
+  - control_id: "HEADERCA-05"
+    name: "Cache Control Security — Error Handling"
+    description: "Handle cache control security errors securely without information leakage"
+    source_clause: "Header CC"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://HEADERCA-05"

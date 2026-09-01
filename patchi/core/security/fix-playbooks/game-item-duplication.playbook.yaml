@@ -1,0 +1,60 @@
+# Playbook for: game-item-duplication
+# Source: Game Security
+# Auto-generated
+
+playbooks:
+- control_id: "GAMEITEM-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary game item duplication control patterns for game-item-duplication"
+  blast_radius_notes: "Automated fix for GAMEITEM-01 - Primary Game Item Duplication Control"
+  verification_checks:
+    - "Verify GAMEITEM-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "GAMEITEM-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for game item duplication patterns for game-item-duplication"
+  blast_radius_notes: "Automated fix for GAMEITEM-02 - Input Validation for Game Item Duplication"
+  verification_checks:
+    - "Verify GAMEITEM-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "GAMEITEM-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for game item duplication patterns for game-item-duplication"
+  blast_radius_notes: "Automated fix for GAMEITEM-03 - Configuration Hardening for Game Item Duplication"
+  verification_checks:
+    - "Verify GAMEITEM-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "GAMEITEM-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for game item duplication patterns for game-item-duplication"
+  blast_radius_notes: "Automated fix for GAMEITEM-04 - Monitoring and Logging for Game Item Duplication"
+  verification_checks:
+    - "Verify GAMEITEM-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "GAMEITEM-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for game item duplication patterns for game-item-duplication"
+  blast_radius_notes: "Automated fix for GAMEITEM-05 - Error Handling for Game Item Duplication"
+  verification_checks:
+    - "Verify GAMEITEM-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

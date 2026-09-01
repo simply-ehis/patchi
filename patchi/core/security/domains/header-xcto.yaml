@@ -1,0 +1,62 @@
+# Patchi Security Domain: header-xcto
+# Source: HTTP Security Headers
+# Auto-generated — curated from HTTP Security Headers
+
+domain_id: "header-xcto"
+version: "1.0.0"
+display_name: "X-Content-Type-Options"
+source_standard: "HTTP Security Headers"
+component_type: "infra"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_header_xcto_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_header_xcto"
+
+controls:
+  - control_id: "HEADERXC-01"
+    name: "X-Content-Type-Options — Primary Control"
+    description: "Missing X-Content-Type-Options: nosniff allowing MIME confusion."
+    source_clause: "Header XCTO"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://HEADERXC-01"
+
+  - control_id: "HEADERXC-02"
+    name: "X-Content-Type-Options — Input Validation"
+    description: "Validate and sanitize all inputs related to x-content-type-options"
+    source_clause: "Header XCTO"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://HEADERXC-02"
+
+  - control_id: "HEADERXC-03"
+    name: "X-Content-Type-Options — Configuration Hardening"
+    description: "Apply secure configuration defaults for x-content-type-options"
+    source_clause: "Header XCTO"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://HEADERXC-03"
+
+  - control_id: "HEADERXC-04"
+    name: "X-Content-Type-Options — Monitoring and Logging"
+    description: "Log and monitor all x-content-type-options events for audit and detection"
+    source_clause: "Header XCTO"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://HEADERXC-04"
+
+  - control_id: "HEADERXC-05"
+    name: "X-Content-Type-Options — Error Handling"
+    description: "Handle x-content-type-options errors securely without information leakage"
+    source_clause: "Header XCTO"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://HEADERXC-05"

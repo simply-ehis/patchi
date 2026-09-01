@@ -1,0 +1,60 @@
+# Playbook for: cwe-22-path-traversal
+# Source: CWE Top 25 2024 CWE-22
+# Auto-generated
+
+playbooks:
+- control_id: "CWE22PAT-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary improper limitation of a pathname to a restricted directory (path traversal) control patterns for cwe-22-path-traversal"
+  blast_radius_notes: "Automated fix for CWE22PAT-01 - Primary Improper Limitation of a Pathname to a Restricted Directory (Path Traversal) Control"
+  verification_checks:
+    - "Verify CWE22PAT-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CWE22PAT-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for improper limitation of a pathname to a restricted directory (path traversal) patterns for cwe-22-path-traversal"
+  blast_radius_notes: "Automated fix for CWE22PAT-02 - Input Validation for Improper Limitation of a Pathname to a Restricted Directory (Path Traversal)"
+  verification_checks:
+    - "Verify CWE22PAT-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CWE22PAT-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for improper limitation of a pathname to a restricted directory (path traversal) patterns for cwe-22-path-traversal"
+  blast_radius_notes: "Automated fix for CWE22PAT-03 - Configuration Hardening for Improper Limitation of a Pathname to a Restricted Directory (Path Traversal)"
+  verification_checks:
+    - "Verify CWE22PAT-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CWE22PAT-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for improper limitation of a pathname to a restricted directory (path traversal) patterns for cwe-22-path-traversal"
+  blast_radius_notes: "Automated fix for CWE22PAT-04 - Monitoring and Logging for Improper Limitation of a Pathname to a Restricted Directory (Path Traversal)"
+  verification_checks:
+    - "Verify CWE22PAT-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CWE22PAT-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for improper limitation of a pathname to a restricted directory (path traversal) patterns for cwe-22-path-traversal"
+  blast_radius_notes: "Automated fix for CWE22PAT-05 - Error Handling for Improper Limitation of a Pathname to a Restricted Directory (Path Traversal)"
+  verification_checks:
+    - "Verify CWE22PAT-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

@@ -1,0 +1,60 @@
+# Playbook for: cwe-611-improper-xml
+# Source: CWE Top 25 2024 CWE-611
+# Auto-generated
+
+playbooks:
+- control_id: "CWE611IM-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary improper restriction of xml external entity reference control patterns for cwe-611-improper-xml"
+  blast_radius_notes: "Automated fix for CWE611IM-01 - Primary Improper Restriction of XML External Entity Reference Control"
+  verification_checks:
+    - "Verify CWE611IM-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CWE611IM-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for improper restriction of xml external entity reference patterns for cwe-611-improper-xml"
+  blast_radius_notes: "Automated fix for CWE611IM-02 - Input Validation for Improper Restriction of XML External Entity Reference"
+  verification_checks:
+    - "Verify CWE611IM-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CWE611IM-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for improper restriction of xml external entity reference patterns for cwe-611-improper-xml"
+  blast_radius_notes: "Automated fix for CWE611IM-03 - Configuration Hardening for Improper Restriction of XML External Entity Reference"
+  verification_checks:
+    - "Verify CWE611IM-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CWE611IM-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for improper restriction of xml external entity reference patterns for cwe-611-improper-xml"
+  blast_radius_notes: "Automated fix for CWE611IM-04 - Monitoring and Logging for Improper Restriction of XML External Entity Reference"
+  verification_checks:
+    - "Verify CWE611IM-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CWE611IM-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for improper restriction of xml external entity reference patterns for cwe-611-improper-xml"
+  blast_radius_notes: "Automated fix for CWE611IM-05 - Error Handling for Improper Restriction of XML External Entity Reference"
+  verification_checks:
+    - "Verify CWE611IM-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

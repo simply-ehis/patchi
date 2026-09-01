@@ -1,0 +1,62 @@
+# Patchi Security Domain: cwe-829-inclusion-functionality
+# Source: CWE-829
+# Auto-generated — curated from CWE-829
+
+domain_id: "cwe-829-inclusion-functionality"
+version: "1.0.0"
+display_name: "Inclusion of Functionality from Untrusted Control Sphere"
+source_standard: "CWE-829"
+component_type: "backend-api"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_cwe_829_inclusion_functionality_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_cwe_829_inclusion_functionality"
+
+controls:
+  - control_id: "CWE829IN-01"
+    name: "Inclusion of Functionality from Untrusted Control Sphere — Primary Control"
+    description: "Application includes functionality from untrusted sources without validation."
+    source_clause: "CWE-829"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CWE829IN-01"
+
+  - control_id: "CWE829IN-02"
+    name: "Inclusion of Functionality from Untrusted Control Sphere — Input Validation"
+    description: "Validate and sanitize all inputs related to inclusion of functionality from untrusted control sphere"
+    source_clause: "CWE-829"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CWE829IN-02"
+
+  - control_id: "CWE829IN-03"
+    name: "Inclusion of Functionality from Untrusted Control Sphere — Configuration Hardening"
+    description: "Apply secure configuration defaults for inclusion of functionality from untrusted control sphere"
+    source_clause: "CWE-829"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CWE829IN-03"
+
+  - control_id: "CWE829IN-04"
+    name: "Inclusion of Functionality from Untrusted Control Sphere — Monitoring and Logging"
+    description: "Log and monitor all inclusion of functionality from untrusted control sphere events for audit and detection"
+    source_clause: "CWE-829"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CWE829IN-04"
+
+  - control_id: "CWE829IN-05"
+    name: "Inclusion of Functionality from Untrusted Control Sphere — Error Handling"
+    description: "Handle inclusion of functionality from untrusted control sphere errors securely without information leakage"
+    source_clause: "CWE-829"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CWE829IN-05"

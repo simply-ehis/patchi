@@ -1,0 +1,62 @@
+# Patchi Security Domain: c-cpp-uninitialized-memory
+# Source: C/C++ Security
+# Auto-generated — curated from C/C++ Security
+
+domain_id: "c-cpp-uninitialized-memory"
+version: "1.0.0"
+display_name: "C/C++ Uninitialized Memory"
+source_standard: "C/C++ Security"
+component_type: "native-code"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_c_cpp_uninitialized_memory_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_c_cpp_uninitialized_memory"
+
+controls:
+  - control_id: "CCPPUNIN-01"
+    name: "C/C++ Uninitialized Memory — Primary Control"
+    description: "Use of uninitialized stack or heap variables."
+    source_clause: "C/C++ Uninit"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CCPPUNIN-01"
+
+  - control_id: "CCPPUNIN-02"
+    name: "C/C++ Uninitialized Memory — Input Validation"
+    description: "Validate and sanitize all inputs related to c/c++ uninitialized memory"
+    source_clause: "C/C++ Uninit"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CCPPUNIN-02"
+
+  - control_id: "CCPPUNIN-03"
+    name: "C/C++ Uninitialized Memory — Configuration Hardening"
+    description: "Apply secure configuration defaults for c/c++ uninitialized memory"
+    source_clause: "C/C++ Uninit"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CCPPUNIN-03"
+
+  - control_id: "CCPPUNIN-04"
+    name: "C/C++ Uninitialized Memory — Monitoring and Logging"
+    description: "Log and monitor all c/c++ uninitialized memory events for audit and detection"
+    source_clause: "C/C++ Uninit"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CCPPUNIN-04"
+
+  - control_id: "CCPPUNIN-05"
+    name: "C/C++ Uninitialized Memory — Error Handling"
+    description: "Handle c/c++ uninitialized memory errors securely without information leakage"
+    source_clause: "C/C++ Uninit"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CCPPUNIN-05"

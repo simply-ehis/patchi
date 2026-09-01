@@ -1,0 +1,62 @@
+# Patchi Security Domain: nextjs-ssr-data-leak
+# Source: Next.js Security
+# Auto-generated — curated from Next.js Security
+
+domain_id: "nextjs-ssr-data-leak"
+version: "1.0.0"
+display_name: "Next.js SSR Data Leakage"
+source_standard: "Next.js Security"
+component_type: "frontend-web"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_nextjs_ssr_data_leak_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_nextjs_ssr_data_leak"
+
+controls:
+  - control_id: "NEXTJSSS-01"
+    name: "Next.js SSR Data Leakage — Primary Control"
+    description: "Server-side props leaking internal data in page source."
+    source_clause: "Next.js SSR"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://NEXTJSSS-01"
+
+  - control_id: "NEXTJSSS-02"
+    name: "Next.js SSR Data Leakage — Input Validation"
+    description: "Validate and sanitize all inputs related to next.js ssr data leakage"
+    source_clause: "Next.js SSR"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://NEXTJSSS-02"
+
+  - control_id: "NEXTJSSS-03"
+    name: "Next.js SSR Data Leakage — Configuration Hardening"
+    description: "Apply secure configuration defaults for next.js ssr data leakage"
+    source_clause: "Next.js SSR"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://NEXTJSSS-03"
+
+  - control_id: "NEXTJSSS-04"
+    name: "Next.js SSR Data Leakage — Monitoring and Logging"
+    description: "Log and monitor all next.js ssr data leakage events for audit and detection"
+    source_clause: "Next.js SSR"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://NEXTJSSS-04"
+
+  - control_id: "NEXTJSSS-05"
+    name: "Next.js SSR Data Leakage — Error Handling"
+    description: "Handle next.js ssr data leakage errors securely without information leakage"
+    source_clause: "Next.js SSR"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://NEXTJSSS-05"

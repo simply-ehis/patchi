@@ -1,0 +1,62 @@
+# Patchi Security Domain: django-csrf-protection
+# Source: Django Security
+# Auto-generated — curated from Django Security
+
+domain_id: "django-csrf-protection"
+version: "1.0.0"
+display_name: "Django CSRF Protection Bypass"
+source_standard: "Django Security"
+component_type: "backend-api"
+weight: 0.9
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_django_csrf_protection_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_django_csrf_protection"
+
+controls:
+  - control_id: "DJANGOCS-01"
+    name: "Django CSRF Protection Bypass — Primary Control"
+    description: "Missing or incorrectly configured CSRF middleware."
+    source_clause: "Django CSRF"
+    severity: "critical"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://DJANGOCS-01"
+
+  - control_id: "DJANGOCS-02"
+    name: "Django CSRF Protection Bypass — Input Validation"
+    description: "Validate and sanitize all inputs related to django csrf protection bypass"
+    source_clause: "Django CSRF"
+    severity: "critical"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://DJANGOCS-02"
+
+  - control_id: "DJANGOCS-03"
+    name: "Django CSRF Protection Bypass — Configuration Hardening"
+    description: "Apply secure configuration defaults for django csrf protection bypass"
+    source_clause: "Django CSRF"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://DJANGOCS-03"
+
+  - control_id: "DJANGOCS-04"
+    name: "Django CSRF Protection Bypass — Monitoring and Logging"
+    description: "Log and monitor all django csrf protection bypass events for audit and detection"
+    source_clause: "Django CSRF"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://DJANGOCS-04"
+
+  - control_id: "DJANGOCS-05"
+    name: "Django CSRF Protection Bypass — Error Handling"
+    description: "Handle django csrf protection bypass errors securely without information leakage"
+    source_clause: "Django CSRF"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://DJANGOCS-05"

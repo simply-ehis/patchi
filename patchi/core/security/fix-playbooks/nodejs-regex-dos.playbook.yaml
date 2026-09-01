@@ -1,0 +1,60 @@
+# Playbook for: nodejs-regex-dos
+# Source: Node.js Security
+# Auto-generated
+
+playbooks:
+- control_id: "NODEJSRE-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary regex denial of service (redos) control patterns for nodejs-regex-dos"
+  blast_radius_notes: "Automated fix for NODEJSRE-01 - Primary Regex Denial of Service (ReDoS) Control"
+  verification_checks:
+    - "Verify NODEJSRE-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NODEJSRE-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for regex denial of service (redos) patterns for nodejs-regex-dos"
+  blast_radius_notes: "Automated fix for NODEJSRE-02 - Input Validation for Regex Denial of Service (ReDoS)"
+  verification_checks:
+    - "Verify NODEJSRE-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NODEJSRE-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for regex denial of service (redos) patterns for nodejs-regex-dos"
+  blast_radius_notes: "Automated fix for NODEJSRE-03 - Configuration Hardening for Regex Denial of Service (ReDoS)"
+  verification_checks:
+    - "Verify NODEJSRE-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NODEJSRE-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for regex denial of service (redos) patterns for nodejs-regex-dos"
+  blast_radius_notes: "Automated fix for NODEJSRE-04 - Monitoring and Logging for Regex Denial of Service (ReDoS)"
+  verification_checks:
+    - "Verify NODEJSRE-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NODEJSRE-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for regex denial of service (redos) patterns for nodejs-regex-dos"
+  blast_radius_notes: "Automated fix for NODEJSRE-05 - Error Handling for Regex Denial of Service (ReDoS)"
+  verification_checks:
+    - "Verify NODEJSRE-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

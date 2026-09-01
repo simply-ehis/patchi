@@ -1,0 +1,62 @@
+# Patchi Security Domain: mitre-impact-website-defacement
+# Source: MITRE ATT&CK
+# Auto-generated — curated from MITRE ATT&CK
+
+domain_id: "mitre-impact-website-defacement"
+version: "1.0.0"
+display_name: "Defacement: Website (T1491)"
+source_standard: "MITRE ATT&CK"
+component_type: "frontend-web"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_mitre_impact_website_defacement_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_mitre_impact_website_defacement"
+
+controls:
+  - control_id: "MITREIMP-01"
+    name: "Defacement: Website (T1491) — Primary Control"
+    description: "Modifying web content to display attacker messaging."
+    source_clause: "T1491"
+    severity: "high"
+    check_method: "dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://MITREIMP-01"
+
+  - control_id: "MITREIMP-02"
+    name: "Defacement: Website (T1491) — Input Validation"
+    description: "Validate and sanitize all inputs related to defacement: website (t1491)"
+    source_clause: "T1491"
+    severity: "high"
+    check_method: "dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://MITREIMP-02"
+
+  - control_id: "MITREIMP-03"
+    name: "Defacement: Website (T1491) — Configuration Hardening"
+    description: "Apply secure configuration defaults for defacement: website (t1491)"
+    source_clause: "T1491"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://MITREIMP-03"
+
+  - control_id: "MITREIMP-04"
+    name: "Defacement: Website (T1491) — Monitoring and Logging"
+    description: "Log and monitor all defacement: website (t1491) events for audit and detection"
+    source_clause: "T1491"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://MITREIMP-04"
+
+  - control_id: "MITREIMP-05"
+    name: "Defacement: Website (T1491) — Error Handling"
+    description: "Handle defacement: website (t1491) errors securely without information leakage"
+    source_clause: "T1491"
+    severity: "medium"
+    check_method: "dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://MITREIMP-05"

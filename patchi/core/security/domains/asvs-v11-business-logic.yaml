@@ -1,0 +1,62 @@
+# Patchi Security Domain: asvs-v11-business-logic
+# Source: OWASP ASVS 5.0 V11
+# Auto-generated — curated from OWASP ASVS 5.0 V11
+
+domain_id: "asvs-v11-business-logic"
+version: "1.0.0"
+display_name: "Business Logic"
+source_standard: "OWASP ASVS 5.0 V11"
+component_type: "backend-api"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_asvs_v11_business_logic_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_asvs_v11_business_logic"
+
+controls:
+  - control_id: "ASVSV11B-01"
+    name: "Business Logic — Primary Control"
+    description: "Business logic abuse prevention, rate limiting, anti-automation, and workflow integrity."
+    source_clause: "ASVS V11"
+    severity: "high"
+    check_method: "manual-review"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://ASVSV11B-01"
+
+  - control_id: "ASVSV11B-02"
+    name: "Business Logic — Input Validation"
+    description: "Validate and sanitize all inputs related to business logic"
+    source_clause: "ASVS V11"
+    severity: "high"
+    check_method: "manual-review"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://ASVSV11B-02"
+
+  - control_id: "ASVSV11B-03"
+    name: "Business Logic — Configuration Hardening"
+    description: "Apply secure configuration defaults for business logic"
+    source_clause: "ASVS V11"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://ASVSV11B-03"
+
+  - control_id: "ASVSV11B-04"
+    name: "Business Logic — Monitoring and Logging"
+    description: "Log and monitor all business logic events for audit and detection"
+    source_clause: "ASVS V11"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://ASVSV11B-04"
+
+  - control_id: "ASVSV11B-05"
+    name: "Business Logic — Error Handling"
+    description: "Handle business logic errors securely without information leakage"
+    source_clause: "ASVS V11"
+    severity: "medium"
+    check_method: "manual-review"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://ASVSV11B-05"

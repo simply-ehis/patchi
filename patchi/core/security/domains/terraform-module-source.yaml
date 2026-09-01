@@ -1,0 +1,62 @@
+# Patchi Security Domain: terraform-module-source
+# Source: IaC Security
+# Auto-generated — curated from IaC Security
+
+domain_id: "terraform-module-source"
+version: "1.0.0"
+display_name: "Terraform Module Source Security"
+source_standard: "IaC Security"
+component_type: "infra"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_terraform_module_source_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_terraform_module_source"
+
+controls:
+  - control_id: "TERRAFOR-01"
+    name: "Terraform Module Source Security — Primary Control"
+    description: "Modules sourced from untrusted registries or Git URLs without pinning."
+    source_clause: "TF Module"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://TERRAFOR-01"
+
+  - control_id: "TERRAFOR-02"
+    name: "Terraform Module Source Security — Input Validation"
+    description: "Validate and sanitize all inputs related to terraform module source security"
+    source_clause: "TF Module"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://TERRAFOR-02"
+
+  - control_id: "TERRAFOR-03"
+    name: "Terraform Module Source Security — Configuration Hardening"
+    description: "Apply secure configuration defaults for terraform module source security"
+    source_clause: "TF Module"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://TERRAFOR-03"
+
+  - control_id: "TERRAFOR-04"
+    name: "Terraform Module Source Security — Monitoring and Logging"
+    description: "Log and monitor all terraform module source security events for audit and detection"
+    source_clause: "TF Module"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://TERRAFOR-04"
+
+  - control_id: "TERRAFOR-05"
+    name: "Terraform Module Source Security — Error Handling"
+    description: "Handle terraform module source security errors securely without information leakage"
+    source_clause: "TF Module"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://TERRAFOR-05"

@@ -1,0 +1,62 @@
+# Patchi Security Domain: network-waf-bypass
+# Source: Network Security
+# Auto-generated — curated from Network Security
+
+domain_id: "network-waf-bypass"
+version: "1.0.0"
+display_name: "WAF Bypass"
+source_standard: "Network Security"
+component_type: "infra"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_network_waf_bypass_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_network_waf_bypass"
+
+controls:
+  - control_id: "NETWORKW-01"
+    name: "WAF Bypass — Primary Control"
+    description: "WAF evasion techniques or incomplete rule coverage."
+    source_clause: "Net WAF"
+    severity: "high"
+    check_method: "dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://NETWORKW-01"
+
+  - control_id: "NETWORKW-02"
+    name: "WAF Bypass — Input Validation"
+    description: "Validate and sanitize all inputs related to waf bypass"
+    source_clause: "Net WAF"
+    severity: "high"
+    check_method: "dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://NETWORKW-02"
+
+  - control_id: "NETWORKW-03"
+    name: "WAF Bypass — Configuration Hardening"
+    description: "Apply secure configuration defaults for waf bypass"
+    source_clause: "Net WAF"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://NETWORKW-03"
+
+  - control_id: "NETWORKW-04"
+    name: "WAF Bypass — Monitoring and Logging"
+    description: "Log and monitor all waf bypass events for audit and detection"
+    source_clause: "Net WAF"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://NETWORKW-04"
+
+  - control_id: "NETWORKW-05"
+    name: "WAF Bypass — Error Handling"
+    description: "Handle waf bypass errors securely without information leakage"
+    source_clause: "Net WAF"
+    severity: "medium"
+    check_method: "dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://NETWORKW-05"

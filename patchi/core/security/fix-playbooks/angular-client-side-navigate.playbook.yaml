@@ -1,0 +1,60 @@
+# Playbook for: angular-client-side-navigate
+# Source: Angular Security
+# Auto-generated
+
+playbooks:
+- control_id: "ANGULARC-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary client-side navigation security control patterns for angular-client-side-navigate"
+  blast_radius_notes: "Automated fix for ANGULARC-01 - Primary Client-Side Navigation Security Control"
+  verification_checks:
+    - "Verify ANGULARC-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "ANGULARC-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for client-side navigation security patterns for angular-client-side-navigate"
+  blast_radius_notes: "Automated fix for ANGULARC-02 - Input Validation for Client-Side Navigation Security"
+  verification_checks:
+    - "Verify ANGULARC-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "ANGULARC-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for client-side navigation security patterns for angular-client-side-navigate"
+  blast_radius_notes: "Automated fix for ANGULARC-03 - Configuration Hardening for Client-Side Navigation Security"
+  verification_checks:
+    - "Verify ANGULARC-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "ANGULARC-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for client-side navigation security patterns for angular-client-side-navigate"
+  blast_radius_notes: "Automated fix for ANGULARC-04 - Monitoring and Logging for Client-Side Navigation Security"
+  verification_checks:
+    - "Verify ANGULARC-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "ANGULARC-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for client-side navigation security patterns for angular-client-side-navigate"
+  blast_radius_notes: "Automated fix for ANGULARC-05 - Error Handling for Client-Side Navigation Security"
+  verification_checks:
+    - "Verify ANGULARC-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

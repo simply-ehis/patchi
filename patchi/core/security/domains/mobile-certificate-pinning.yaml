@@ -1,0 +1,62 @@
+# Patchi Security Domain: mobile-certificate-pinning
+# Source: Mobile Security
+# Auto-generated — curated from Mobile Security
+
+domain_id: "mobile-certificate-pinning"
+version: "1.0.0"
+display_name: "Certificate Pinning"
+source_standard: "Mobile Security"
+component_type: "mobile-native"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_mobile_certificate_pinning_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_mobile_certificate_pinning"
+
+controls:
+  - control_id: "MOBILECE-01"
+    name: "Certificate Pinning — Primary Control"
+    description: "Missing or bypassable TLS certificate pinning."
+    source_clause: "Mobile Pin"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://MOBILECE-01"
+
+  - control_id: "MOBILECE-02"
+    name: "Certificate Pinning — Input Validation"
+    description: "Validate and sanitize all inputs related to certificate pinning"
+    source_clause: "Mobile Pin"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://MOBILECE-02"
+
+  - control_id: "MOBILECE-03"
+    name: "Certificate Pinning — Configuration Hardening"
+    description: "Apply secure configuration defaults for certificate pinning"
+    source_clause: "Mobile Pin"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://MOBILECE-03"
+
+  - control_id: "MOBILECE-04"
+    name: "Certificate Pinning — Monitoring and Logging"
+    description: "Log and monitor all certificate pinning events for audit and detection"
+    source_clause: "Mobile Pin"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://MOBILECE-04"
+
+  - control_id: "MOBILECE-05"
+    name: "Certificate Pinning — Error Handling"
+    description: "Handle certificate pinning errors securely without information leakage"
+    source_clause: "Mobile Pin"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://MOBILECE-05"

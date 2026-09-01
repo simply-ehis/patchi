@@ -1,0 +1,60 @@
+# Playbook for: nist-cm-4
+# Source: NIST SP 800-53 CM-4
+# Auto-generated
+
+playbooks:
+- control_id: "NISTCM4-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary impact analyses control patterns for nist-cm-4"
+  blast_radius_notes: "Automated fix for NISTCM4-01 - Primary Impact Analyses Control"
+  verification_checks:
+    - "Verify NISTCM4-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NISTCM4-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for impact analyses patterns for nist-cm-4"
+  blast_radius_notes: "Automated fix for NISTCM4-02 - Input Validation for Impact Analyses"
+  verification_checks:
+    - "Verify NISTCM4-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NISTCM4-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for impact analyses patterns for nist-cm-4"
+  blast_radius_notes: "Automated fix for NISTCM4-03 - Configuration Hardening for Impact Analyses"
+  verification_checks:
+    - "Verify NISTCM4-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NISTCM4-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for impact analyses patterns for nist-cm-4"
+  blast_radius_notes: "Automated fix for NISTCM4-04 - Monitoring and Logging for Impact Analyses"
+  verification_checks:
+    - "Verify NISTCM4-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NISTCM4-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for impact analyses patterns for nist-cm-4"
+  blast_radius_notes: "Automated fix for NISTCM4-05 - Error Handling for Impact Analyses"
+  verification_checks:
+    - "Verify NISTCM4-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

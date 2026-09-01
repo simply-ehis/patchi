@@ -1,0 +1,62 @@
+# Patchi Security Domain: database-sql-injection
+# Source: Database Security
+# Auto-generated — curated from Database Security
+
+domain_id: "database-sql-injection"
+version: "1.0.0"
+display_name: "Database SQL Injection"
+source_standard: "Database Security"
+component_type: "backend-api"
+weight: 0.95
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_database_sql_injection_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_database_sql_injection"
+
+controls:
+  - control_id: "DATABASE-01"
+    name: "Database SQL Injection — Primary Control"
+    description: "Direct SQL queries with string interpolation from user input."
+    source_clause: "DB SQL"
+    severity: "critical"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://DATABASE-01"
+
+  - control_id: "DATABASE-02"
+    name: "Database SQL Injection — Input Validation"
+    description: "Validate and sanitize all inputs related to database sql injection"
+    source_clause: "DB SQL"
+    severity: "critical"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://DATABASE-02"
+
+  - control_id: "DATABASE-03"
+    name: "Database SQL Injection — Configuration Hardening"
+    description: "Apply secure configuration defaults for database sql injection"
+    source_clause: "DB SQL"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://DATABASE-03"
+
+  - control_id: "DATABASE-04"
+    name: "Database SQL Injection — Monitoring and Logging"
+    description: "Log and monitor all database sql injection events for audit and detection"
+    source_clause: "DB SQL"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://DATABASE-04"
+
+  - control_id: "DATABASE-05"
+    name: "Database SQL Injection — Error Handling"
+    description: "Handle database sql injection errors securely without information leakage"
+    source_clause: "DB SQL"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://DATABASE-05"

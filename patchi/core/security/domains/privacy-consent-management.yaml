@@ -1,0 +1,62 @@
+# Patchi Security Domain: privacy-consent-management
+# Source: Privacy Engineering
+# Auto-generated — curated from Privacy Engineering
+
+domain_id: "privacy-consent-management"
+version: "1.0.0"
+display_name: "Consent Management Platform"
+source_standard: "Privacy Engineering"
+component_type: "frontend-web"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_privacy_consent_management_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_privacy_consent_management"
+
+controls:
+  - control_id: "PRIVACYC-01"
+    name: "Consent Management Platform — Primary Control"
+    description: "Missing or non-compliant consent management for GDPR/CCPA."
+    source_clause: "Privacy CMP"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://PRIVACYC-01"
+
+  - control_id: "PRIVACYC-02"
+    name: "Consent Management Platform — Input Validation"
+    description: "Validate and sanitize all inputs related to consent management platform"
+    source_clause: "Privacy CMP"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://PRIVACYC-02"
+
+  - control_id: "PRIVACYC-03"
+    name: "Consent Management Platform — Configuration Hardening"
+    description: "Apply secure configuration defaults for consent management platform"
+    source_clause: "Privacy CMP"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://PRIVACYC-03"
+
+  - control_id: "PRIVACYC-04"
+    name: "Consent Management Platform — Monitoring and Logging"
+    description: "Log and monitor all consent management platform events for audit and detection"
+    source_clause: "Privacy CMP"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://PRIVACYC-04"
+
+  - control_id: "PRIVACYC-05"
+    name: "Consent Management Platform — Error Handling"
+    description: "Handle consent management platform errors securely without information leakage"
+    source_clause: "Privacy CMP"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://PRIVACYC-05"

@@ -1,0 +1,62 @@
+# Patchi Security Domain: k8s-image-pull-policy
+# Source: Kubernetes Security
+# Auto-generated — curated from Kubernetes Security
+
+domain_id: "k8s-image-pull-policy"
+version: "1.0.0"
+display_name: "Kubernetes Image Pull Policy"
+source_standard: "Kubernetes Security"
+component_type: "infra"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_k8s_image_pull_policy_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_k8s_image_pull_policy"
+
+controls:
+  - control_id: "K8SIMAGE-01"
+    name: "Kubernetes Image Pull Policy — Primary Control"
+    description: "ImagePullPolicy: Always with untrusted registries or missing tag pinning."
+    source_clause: "K8s Image"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://K8SIMAGE-01"
+
+  - control_id: "K8SIMAGE-02"
+    name: "Kubernetes Image Pull Policy — Input Validation"
+    description: "Validate and sanitize all inputs related to kubernetes image pull policy"
+    source_clause: "K8s Image"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://K8SIMAGE-02"
+
+  - control_id: "K8SIMAGE-03"
+    name: "Kubernetes Image Pull Policy — Configuration Hardening"
+    description: "Apply secure configuration defaults for kubernetes image pull policy"
+    source_clause: "K8s Image"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://K8SIMAGE-03"
+
+  - control_id: "K8SIMAGE-04"
+    name: "Kubernetes Image Pull Policy — Monitoring and Logging"
+    description: "Log and monitor all kubernetes image pull policy events for audit and detection"
+    source_clause: "K8s Image"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://K8SIMAGE-04"
+
+  - control_id: "K8SIMAGE-05"
+    name: "Kubernetes Image Pull Policy — Error Handling"
+    description: "Handle kubernetes image pull policy errors securely without information leakage"
+    source_clause: "K8s Image"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://K8SIMAGE-05"

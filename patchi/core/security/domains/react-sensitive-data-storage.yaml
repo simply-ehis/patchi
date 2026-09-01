@@ -1,0 +1,62 @@
+# Patchi Security Domain: react-sensitive-data-storage
+# Source: React Security
+# Auto-generated — curated from React Security
+
+domain_id: "react-sensitive-data-storage"
+version: "1.0.0"
+display_name: "Sensitive Data in Client State"
+source_standard: "React Security"
+component_type: "frontend-web"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_react_sensitive_data_storage_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_react_sensitive_data_storage"
+
+controls:
+  - control_id: "REACTSEN-01"
+    name: "Sensitive Data in Client State — Primary Control"
+    description: "Secrets, tokens, or PII stored in component state or localStorage."
+    source_clause: "React Storage"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://REACTSEN-01"
+
+  - control_id: "REACTSEN-02"
+    name: "Sensitive Data in Client State — Input Validation"
+    description: "Validate and sanitize all inputs related to sensitive data in client state"
+    source_clause: "React Storage"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://REACTSEN-02"
+
+  - control_id: "REACTSEN-03"
+    name: "Sensitive Data in Client State — Configuration Hardening"
+    description: "Apply secure configuration defaults for sensitive data in client state"
+    source_clause: "React Storage"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://REACTSEN-03"
+
+  - control_id: "REACTSEN-04"
+    name: "Sensitive Data in Client State — Monitoring and Logging"
+    description: "Log and monitor all sensitive data in client state events for audit and detection"
+    source_clause: "React Storage"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://REACTSEN-04"
+
+  - control_id: "REACTSEN-05"
+    name: "Sensitive Data in Client State — Error Handling"
+    description: "Handle sensitive data in client state errors securely without information leakage"
+    source_clause: "React Storage"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://REACTSEN-05"

@@ -1,0 +1,62 @@
+# Patchi Security Domain: cwe-541-inclusion-sensitive-info
+# Source: CWE-541
+# Auto-generated — curated from CWE-541
+
+domain_id: "cwe-541-inclusion-sensitive-info"
+version: "1.0.0"
+display_name: "Inclusion of Sensitive Information in Include Files"
+source_standard: "CWE-541"
+component_type: "backend-api"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_cwe_541_inclusion_sensitive_info_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_cwe_541_inclusion_sensitive_info"
+
+controls:
+  - control_id: "CWE541IN-01"
+    name: "Inclusion of Sensitive Information in Include Files — Primary Control"
+    description: "Sensitive data included in include/header files that may be exposed."
+    source_clause: "CWE-541"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CWE541IN-01"
+
+  - control_id: "CWE541IN-02"
+    name: "Inclusion of Sensitive Information in Include Files — Input Validation"
+    description: "Validate and sanitize all inputs related to inclusion of sensitive information in include files"
+    source_clause: "CWE-541"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CWE541IN-02"
+
+  - control_id: "CWE541IN-03"
+    name: "Inclusion of Sensitive Information in Include Files — Configuration Hardening"
+    description: "Apply secure configuration defaults for inclusion of sensitive information in include files"
+    source_clause: "CWE-541"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CWE541IN-03"
+
+  - control_id: "CWE541IN-04"
+    name: "Inclusion of Sensitive Information in Include Files — Monitoring and Logging"
+    description: "Log and monitor all inclusion of sensitive information in include files events for audit and detection"
+    source_clause: "CWE-541"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CWE541IN-04"
+
+  - control_id: "CWE541IN-05"
+    name: "Inclusion of Sensitive Information in Include Files — Error Handling"
+    description: "Handle inclusion of sensitive information in include files errors securely without information leakage"
+    source_clause: "CWE-541"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CWE541IN-05"

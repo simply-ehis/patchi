@@ -1,0 +1,62 @@
+# Patchi Security Domain: mobile-pasteboard-security
+# Source: Mobile Security
+# Auto-generated — curated from Mobile Security
+
+domain_id: "mobile-pasteboard-security"
+version: "1.0.0"
+display_name: "Pasteboard Security"
+source_standard: "Mobile Security"
+component_type: "mobile-native"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_mobile_pasteboard_security_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_mobile_pasteboard_security"
+
+controls:
+  - control_id: "MOBILEPA-01"
+    name: "Pasteboard Security — Primary Control"
+    description: "Sensitive data copied to system clipboard accessible by other apps."
+    source_clause: "Mobile Paste"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://MOBILEPA-01"
+
+  - control_id: "MOBILEPA-02"
+    name: "Pasteboard Security — Input Validation"
+    description: "Validate and sanitize all inputs related to pasteboard security"
+    source_clause: "Mobile Paste"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://MOBILEPA-02"
+
+  - control_id: "MOBILEPA-03"
+    name: "Pasteboard Security — Configuration Hardening"
+    description: "Apply secure configuration defaults for pasteboard security"
+    source_clause: "Mobile Paste"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://MOBILEPA-03"
+
+  - control_id: "MOBILEPA-04"
+    name: "Pasteboard Security — Monitoring and Logging"
+    description: "Log and monitor all pasteboard security events for audit and detection"
+    source_clause: "Mobile Paste"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://MOBILEPA-04"
+
+  - control_id: "MOBILEPA-05"
+    name: "Pasteboard Security — Error Handling"
+    description: "Handle pasteboard security errors securely without information leakage"
+    source_clause: "Mobile Paste"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://MOBILEPA-05"

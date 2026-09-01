@@ -1,0 +1,62 @@
+# Patchi Security Domain: cwe-425-direct-request-forbidden
+# Source: CWE-425
+# Auto-generated — curated from CWE-425
+
+domain_id: "cwe-425-direct-request-forbidden"
+version: "1.0.0"
+display_name: "Direct Request ('Forced Browsing')"
+source_standard: "CWE-425"
+component_type: "backend-api"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_cwe_425_direct_request_forbidden_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_cwe_425_direct_request_forbidden"
+
+controls:
+  - control_id: "CWE425DI-01"
+    name: "Direct Request ('Forced Browsing') — Primary Control"
+    description: "Application does not adequately enforce appropriate authorization on restricted URLs."
+    source_clause: "CWE-425"
+    severity: "high"
+    check_method: "dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CWE425DI-01"
+
+  - control_id: "CWE425DI-02"
+    name: "Direct Request ('Forced Browsing') — Input Validation"
+    description: "Validate and sanitize all inputs related to direct request ('forced browsing')"
+    source_clause: "CWE-425"
+    severity: "high"
+    check_method: "dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CWE425DI-02"
+
+  - control_id: "CWE425DI-03"
+    name: "Direct Request ('Forced Browsing') — Configuration Hardening"
+    description: "Apply secure configuration defaults for direct request ('forced browsing')"
+    source_clause: "CWE-425"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CWE425DI-03"
+
+  - control_id: "CWE425DI-04"
+    name: "Direct Request ('Forced Browsing') — Monitoring and Logging"
+    description: "Log and monitor all direct request ('forced browsing') events for audit and detection"
+    source_clause: "CWE-425"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CWE425DI-04"
+
+  - control_id: "CWE425DI-05"
+    name: "Direct Request ('Forced Browsing') — Error Handling"
+    description: "Handle direct request ('forced browsing') errors securely without information leakage"
+    source_clause: "CWE-425"
+    severity: "medium"
+    check_method: "dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CWE425DI-05"

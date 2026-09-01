@@ -1,0 +1,62 @@
+# Patchi Security Domain: network-packet-filtering
+# Source: Network Security
+# Auto-generated — curated from Network Security
+
+domain_id: "network-packet-filtering"
+version: "1.0.0"
+display_name: "Packet Filtering"
+source_standard: "Network Security"
+component_type: "infra"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_network_packet_filtering_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_network_packet_filtering"
+
+controls:
+  - control_id: "NETWORKP-01"
+    name: "Packet Filtering — Primary Control"
+    description: "Insufficient packet inspection or missing IPS rules."
+    source_clause: "Net Packet"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://NETWORKP-01"
+
+  - control_id: "NETWORKP-02"
+    name: "Packet Filtering — Input Validation"
+    description: "Validate and sanitize all inputs related to packet filtering"
+    source_clause: "Net Packet"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://NETWORKP-02"
+
+  - control_id: "NETWORKP-03"
+    name: "Packet Filtering — Configuration Hardening"
+    description: "Apply secure configuration defaults for packet filtering"
+    source_clause: "Net Packet"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://NETWORKP-03"
+
+  - control_id: "NETWORKP-04"
+    name: "Packet Filtering — Monitoring and Logging"
+    description: "Log and monitor all packet filtering events for audit and detection"
+    source_clause: "Net Packet"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://NETWORKP-04"
+
+  - control_id: "NETWORKP-05"
+    name: "Packet Filtering — Error Handling"
+    description: "Handle packet filtering errors securely without information leakage"
+    source_clause: "Net Packet"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://NETWORKP-05"

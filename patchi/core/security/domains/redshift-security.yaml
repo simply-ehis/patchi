@@ -1,0 +1,62 @@
+# Patchi Security Domain: redshift-security
+# Source: Data Engineering Security
+# Auto-generated — curated from Data Engineering Security
+
+domain_id: "redshift-security"
+version: "1.0.0"
+display_name: "Redshift Security"
+source_standard: "Data Engineering Security"
+component_type: "cloud-aws"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_redshift_security_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_redshift_security"
+
+controls:
+  - control_id: "REDSHIFT-01"
+    name: "Redshift Security — Primary Control"
+    description: "Redshift cluster with public accessibility or weak encryption."
+    source_clause: "Redshift"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://REDSHIFT-01"
+
+  - control_id: "REDSHIFT-02"
+    name: "Redshift Security — Input Validation"
+    description: "Validate and sanitize all inputs related to redshift security"
+    source_clause: "Redshift"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://REDSHIFT-02"
+
+  - control_id: "REDSHIFT-03"
+    name: "Redshift Security — Configuration Hardening"
+    description: "Apply secure configuration defaults for redshift security"
+    source_clause: "Redshift"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://REDSHIFT-03"
+
+  - control_id: "REDSHIFT-04"
+    name: "Redshift Security — Monitoring and Logging"
+    description: "Log and monitor all redshift security events for audit and detection"
+    source_clause: "Redshift"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://REDSHIFT-04"
+
+  - control_id: "REDSHIFT-05"
+    name: "Redshift Security — Error Handling"
+    description: "Handle redshift security errors securely without information leakage"
+    source_clause: "Redshift"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://REDSHIFT-05"

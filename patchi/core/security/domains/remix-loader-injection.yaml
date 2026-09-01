@@ -1,0 +1,62 @@
+# Patchi Security Domain: remix-loader-injection
+# Source: Remix Security
+# Auto-generated — curated from Remix Security
+
+domain_id: "remix-loader-injection"
+version: "1.0.0"
+display_name: "Remix Loader Injection"
+source_standard: "Remix Security"
+component_type: "backend-api"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_remix_loader_injection_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_remix_loader_injection"
+
+controls:
+  - control_id: "REMIXLOA-01"
+    name: "Remix Loader Injection — Primary Control"
+    description: "Unvalidated data in Remix loaders leading to injection."
+    source_clause: "Remix Loader"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://REMIXLOA-01"
+
+  - control_id: "REMIXLOA-02"
+    name: "Remix Loader Injection — Input Validation"
+    description: "Validate and sanitize all inputs related to remix loader injection"
+    source_clause: "Remix Loader"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://REMIXLOA-02"
+
+  - control_id: "REMIXLOA-03"
+    name: "Remix Loader Injection — Configuration Hardening"
+    description: "Apply secure configuration defaults for remix loader injection"
+    source_clause: "Remix Loader"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://REMIXLOA-03"
+
+  - control_id: "REMIXLOA-04"
+    name: "Remix Loader Injection — Monitoring and Logging"
+    description: "Log and monitor all remix loader injection events for audit and detection"
+    source_clause: "Remix Loader"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://REMIXLOA-04"
+
+  - control_id: "REMIXLOA-05"
+    name: "Remix Loader Injection — Error Handling"
+    description: "Handle remix loader injection errors securely without information leakage"
+    source_clause: "Remix Loader"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://REMIXLOA-05"

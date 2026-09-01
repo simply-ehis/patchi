@@ -1,0 +1,62 @@
+# Patchi Security Domain: cwe-807-improper-neutralization-user
+# Source: CWE-807
+# Auto-generated — curated from CWE-807
+
+domain_id: "cwe-807-improper-neutralization-user"
+version: "1.0.0"
+display_name: "Improper Neutralization of Input During Web Page Generation"
+source_standard: "CWE-807"
+component_type: "frontend-web"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_cwe_807_improper_neutralization_user_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_cwe_807_improper_neutralization_user"
+
+controls:
+  - control_id: "CWE807IM-01"
+    name: "Improper Neutralization of Input During Web Page Generation — Primary Control"
+    description: "User-controlled input is reflected in web pages without encoding."
+    source_clause: "CWE-807"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CWE807IM-01"
+
+  - control_id: "CWE807IM-02"
+    name: "Improper Neutralization of Input During Web Page Generation — Input Validation"
+    description: "Validate and sanitize all inputs related to improper neutralization of input during web page generation"
+    source_clause: "CWE-807"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CWE807IM-02"
+
+  - control_id: "CWE807IM-03"
+    name: "Improper Neutralization of Input During Web Page Generation — Configuration Hardening"
+    description: "Apply secure configuration defaults for improper neutralization of input during web page generation"
+    source_clause: "CWE-807"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CWE807IM-03"
+
+  - control_id: "CWE807IM-04"
+    name: "Improper Neutralization of Input During Web Page Generation — Monitoring and Logging"
+    description: "Log and monitor all improper neutralization of input during web page generation events for audit and detection"
+    source_clause: "CWE-807"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CWE807IM-04"
+
+  - control_id: "CWE807IM-05"
+    name: "Improper Neutralization of Input During Web Page Generation — Error Handling"
+    description: "Handle improper neutralization of input during web page generation errors securely without information leakage"
+    source_clause: "CWE-807"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CWE807IM-05"

@@ -1,0 +1,62 @@
+# Patchi Security Domain: nist-sc-6
+# Source: NIST SP 800-53 SC-6
+# Auto-generated — curated from NIST SP 800-53 SC-6
+
+domain_id: "nist-sc-6"
+version: "1.0.0"
+display_name: "Resource Availability"
+source_standard: "NIST SP 800-53 SC-6"
+component_type: "infra"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_nist_sc_6_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_nist_sc_6"
+
+controls:
+  - control_id: "NISTSC6-01"
+    name: "Resource Availability — Primary Control"
+    description: "System allocates resources to prevent or mitigate denial of service."
+    source_clause: "SC-6"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://NISTSC6-01"
+
+  - control_id: "NISTSC6-02"
+    name: "Resource Availability — Input Validation"
+    description: "Validate and sanitize all inputs related to resource availability"
+    source_clause: "SC-6"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://NISTSC6-02"
+
+  - control_id: "NISTSC6-03"
+    name: "Resource Availability — Configuration Hardening"
+    description: "Apply secure configuration defaults for resource availability"
+    source_clause: "SC-6"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://NISTSC6-03"
+
+  - control_id: "NISTSC6-04"
+    name: "Resource Availability — Monitoring and Logging"
+    description: "Log and monitor all resource availability events for audit and detection"
+    source_clause: "SC-6"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://NISTSC6-04"
+
+  - control_id: "NISTSC6-05"
+    name: "Resource Availability — Error Handling"
+    description: "Handle resource availability errors securely without information leakage"
+    source_clause: "SC-6"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://NISTSC6-05"

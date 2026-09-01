@@ -1,0 +1,60 @@
+# Playbook for: nodejs-express-error-leak
+# Source: Node.js Security
+# Auto-generated
+
+playbooks:
+- control_id: "NODEJSEX-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary express error information leak control patterns for nodejs-express-error-leak"
+  blast_radius_notes: "Automated fix for NODEJSEX-01 - Primary Express Error Information Leak Control"
+  verification_checks:
+    - "Verify NODEJSEX-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NODEJSEX-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for express error information leak patterns for nodejs-express-error-leak"
+  blast_radius_notes: "Automated fix for NODEJSEX-02 - Input Validation for Express Error Information Leak"
+  verification_checks:
+    - "Verify NODEJSEX-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NODEJSEX-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for express error information leak patterns for nodejs-express-error-leak"
+  blast_radius_notes: "Automated fix for NODEJSEX-03 - Configuration Hardening for Express Error Information Leak"
+  verification_checks:
+    - "Verify NODEJSEX-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NODEJSEX-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for express error information leak patterns for nodejs-express-error-leak"
+  blast_radius_notes: "Automated fix for NODEJSEX-04 - Monitoring and Logging for Express Error Information Leak"
+  verification_checks:
+    - "Verify NODEJSEX-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NODEJSEX-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for express error information leak patterns for nodejs-express-error-leak"
+  blast_radius_notes: "Automated fix for NODEJSEX-05 - Error Handling for Express Error Information Leak"
+  verification_checks:
+    - "Verify NODEJSEX-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

@@ -1,0 +1,62 @@
+# Patchi Security Domain: git-lfs-exposure
+# Source: Git Security
+# Auto-generated — curated from Git Security
+
+domain_id: "git-lfs-exposure"
+version: "1.0.0"
+display_name: "Git LFS Data Exposure"
+source_standard: "Git Security"
+component_type: "infra"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_git_lfs_exposure_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_git_lfs_exposure"
+
+controls:
+  - control_id: "GITLFSEX-01"
+    name: "Git LFS Data Exposure — Primary Control"
+    description: "Large files with sensitive data stored in Git LFS accessible to unauthorized users."
+    source_clause: "Git LFS"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://GITLFSEX-01"
+
+  - control_id: "GITLFSEX-02"
+    name: "Git LFS Data Exposure — Input Validation"
+    description: "Validate and sanitize all inputs related to git lfs data exposure"
+    source_clause: "Git LFS"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://GITLFSEX-02"
+
+  - control_id: "GITLFSEX-03"
+    name: "Git LFS Data Exposure — Configuration Hardening"
+    description: "Apply secure configuration defaults for git lfs data exposure"
+    source_clause: "Git LFS"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://GITLFSEX-03"
+
+  - control_id: "GITLFSEX-04"
+    name: "Git LFS Data Exposure — Monitoring and Logging"
+    description: "Log and monitor all git lfs data exposure events for audit and detection"
+    source_clause: "Git LFS"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://GITLFSEX-04"
+
+  - control_id: "GITLFSEX-05"
+    name: "Git LFS Data Exposure — Error Handling"
+    description: "Handle git lfs data exposure errors securely without information leakage"
+    source_clause: "Git LFS"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://GITLFSEX-05"

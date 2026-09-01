@@ -1,0 +1,62 @@
+# Patchi Security Domain: soc2-common-criteria
+# Source: SOC 2 TSC
+# Auto-generated — curated from SOC 2 TSC
+
+domain_id: "soc2-common-criteria"
+version: "1.0.0"
+display_name: "Common Criteria (CC)"
+source_standard: "SOC 2 TSC"
+component_type: "infra"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_soc2_common_criteria_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_soc2_common_criteria"
+
+controls:
+  - control_id: "SOC2COMM-01"
+    name: "Common Criteria (CC) — Primary Control"
+    description: "Logical and physical access controls, system operations, change management, and risk mitigation."
+    source_clause: "SOC 2 CC"
+    severity: "high"
+    check_method: "static+manual-review"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://SOC2COMM-01"
+
+  - control_id: "SOC2COMM-02"
+    name: "Common Criteria (CC) — Input Validation"
+    description: "Validate and sanitize all inputs related to common criteria (cc)"
+    source_clause: "SOC 2 CC"
+    severity: "high"
+    check_method: "static+manual-review"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://SOC2COMM-02"
+
+  - control_id: "SOC2COMM-03"
+    name: "Common Criteria (CC) — Configuration Hardening"
+    description: "Apply secure configuration defaults for common criteria (cc)"
+    source_clause: "SOC 2 CC"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://SOC2COMM-03"
+
+  - control_id: "SOC2COMM-04"
+    name: "Common Criteria (CC) — Monitoring and Logging"
+    description: "Log and monitor all common criteria (cc) events for audit and detection"
+    source_clause: "SOC 2 CC"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://SOC2COMM-04"
+
+  - control_id: "SOC2COMM-05"
+    name: "Common Criteria (CC) — Error Handling"
+    description: "Handle common criteria (cc) errors securely without information leakage"
+    source_clause: "SOC 2 CC"
+    severity: "medium"
+    check_method: "static+manual-review"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://SOC2COMM-05"

@@ -1,0 +1,62 @@
+# Patchi Security Domain: cicd-cache-poisoning
+# Source: CI/CD Security
+# Auto-generated — curated from CI/CD Security
+
+domain_id: "cicd-cache-poisoning"
+version: "1.0.0"
+display_name: "CI/CD Cache Poisoning"
+source_standard: "CI/CD Security"
+component_type: "infra"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_cicd_cache_poisoning_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_cicd_cache_poisoning"
+
+controls:
+  - control_id: "CICDCACH-01"
+    name: "CI/CD Cache Poisoning — Primary Control"
+    description: "Dependency or build cache manipulation leading to supply chain attacks."
+    source_clause: "CI/CD Cache"
+    severity: "high"
+    check_method: "dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CICDCACH-01"
+
+  - control_id: "CICDCACH-02"
+    name: "CI/CD Cache Poisoning — Input Validation"
+    description: "Validate and sanitize all inputs related to ci/cd cache poisoning"
+    source_clause: "CI/CD Cache"
+    severity: "high"
+    check_method: "dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CICDCACH-02"
+
+  - control_id: "CICDCACH-03"
+    name: "CI/CD Cache Poisoning — Configuration Hardening"
+    description: "Apply secure configuration defaults for ci/cd cache poisoning"
+    source_clause: "CI/CD Cache"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CICDCACH-03"
+
+  - control_id: "CICDCACH-04"
+    name: "CI/CD Cache Poisoning — Monitoring and Logging"
+    description: "Log and monitor all ci/cd cache poisoning events for audit and detection"
+    source_clause: "CI/CD Cache"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CICDCACH-04"
+
+  - control_id: "CICDCACH-05"
+    name: "CI/CD Cache Poisoning — Error Handling"
+    description: "Handle ci/cd cache poisoning errors securely without information leakage"
+    source_clause: "CI/CD Cache"
+    severity: "medium"
+    check_method: "dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CICDCACH-05"

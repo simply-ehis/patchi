@@ -1,0 +1,60 @@
+# Playbook for: cwe-775-missing-release-descriptor
+# Source: CWE-775
+# Auto-generated
+
+playbooks:
+- control_id: "CWE775MI-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary missing release of file descriptor or handle after effective lifetime control patterns for cwe-775-missing-release-descriptor"
+  blast_radius_notes: "Automated fix for CWE775MI-01 - Primary Missing Release of File Descriptor or Handle after Effective Lifetime Control"
+  verification_checks:
+    - "Verify CWE775MI-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CWE775MI-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for missing release of file descriptor or handle after effective lifetime patterns for cwe-775-missing-release-descriptor"
+  blast_radius_notes: "Automated fix for CWE775MI-02 - Input Validation for Missing Release of File Descriptor or Handle after Effective Lifetime"
+  verification_checks:
+    - "Verify CWE775MI-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CWE775MI-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for missing release of file descriptor or handle after effective lifetime patterns for cwe-775-missing-release-descriptor"
+  blast_radius_notes: "Automated fix for CWE775MI-03 - Configuration Hardening for Missing Release of File Descriptor or Handle after Effective Lifetime"
+  verification_checks:
+    - "Verify CWE775MI-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CWE775MI-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for missing release of file descriptor or handle after effective lifetime patterns for cwe-775-missing-release-descriptor"
+  blast_radius_notes: "Automated fix for CWE775MI-04 - Monitoring and Logging for Missing Release of File Descriptor or Handle after Effective Lifetime"
+  verification_checks:
+    - "Verify CWE775MI-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CWE775MI-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for missing release of file descriptor or handle after effective lifetime patterns for cwe-775-missing-release-descriptor"
+  blast_radius_notes: "Automated fix for CWE775MI-05 - Error Handling for Missing Release of File Descriptor or Handle after Effective Lifetime"
+  verification_checks:
+    - "Verify CWE775MI-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

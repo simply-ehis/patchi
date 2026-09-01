@@ -1,0 +1,60 @@
+# Playbook for: mobile-backup-security
+# Source: Mobile Security
+# Auto-generated
+
+playbooks:
+- control_id: "MOBILEBA-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary mobile backup security control patterns for mobile-backup-security"
+  blast_radius_notes: "Automated fix for MOBILEBA-01 - Primary Mobile Backup Security Control"
+  verification_checks:
+    - "Verify MOBILEBA-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "MOBILEBA-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for mobile backup security patterns for mobile-backup-security"
+  blast_radius_notes: "Automated fix for MOBILEBA-02 - Input Validation for Mobile Backup Security"
+  verification_checks:
+    - "Verify MOBILEBA-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "MOBILEBA-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for mobile backup security patterns for mobile-backup-security"
+  blast_radius_notes: "Automated fix for MOBILEBA-03 - Configuration Hardening for Mobile Backup Security"
+  verification_checks:
+    - "Verify MOBILEBA-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "MOBILEBA-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for mobile backup security patterns for mobile-backup-security"
+  blast_radius_notes: "Automated fix for MOBILEBA-04 - Monitoring and Logging for Mobile Backup Security"
+  verification_checks:
+    - "Verify MOBILEBA-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "MOBILEBA-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for mobile backup security patterns for mobile-backup-security"
+  blast_radius_notes: "Automated fix for MOBILEBA-05 - Error Handling for Mobile Backup Security"
+  verification_checks:
+    - "Verify MOBILEBA-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

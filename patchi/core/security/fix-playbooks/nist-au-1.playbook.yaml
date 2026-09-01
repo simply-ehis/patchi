@@ -1,0 +1,60 @@
+# Playbook for: nist-au-1
+# Source: NIST SP 800-53 AU-1
+# Auto-generated
+
+playbooks:
+- control_id: "NISTAU1-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary audit and accountability policy control patterns for nist-au-1"
+  blast_radius_notes: "Automated fix for NISTAU1-01 - Primary Audit and Accountability Policy Control"
+  verification_checks:
+    - "Verify NISTAU1-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NISTAU1-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for audit and accountability policy patterns for nist-au-1"
+  blast_radius_notes: "Automated fix for NISTAU1-02 - Input Validation for Audit and Accountability Policy"
+  verification_checks:
+    - "Verify NISTAU1-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NISTAU1-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for audit and accountability policy patterns for nist-au-1"
+  blast_radius_notes: "Automated fix for NISTAU1-03 - Configuration Hardening for Audit and Accountability Policy"
+  verification_checks:
+    - "Verify NISTAU1-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NISTAU1-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for audit and accountability policy patterns for nist-au-1"
+  blast_radius_notes: "Automated fix for NISTAU1-04 - Monitoring and Logging for Audit and Accountability Policy"
+  verification_checks:
+    - "Verify NISTAU1-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NISTAU1-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for audit and accountability policy patterns for nist-au-1"
+  blast_radius_notes: "Automated fix for NISTAU1-05 - Error Handling for Audit and Accountability Policy"
+  verification_checks:
+    - "Verify NISTAU1-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

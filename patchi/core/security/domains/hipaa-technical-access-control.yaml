@@ -1,0 +1,62 @@
+# Patchi Security Domain: hipaa-technical-access-control
+# Source: HIPAA Security Rule
+# Auto-generated — curated from HIPAA Security Rule
+
+domain_id: "hipaa-technical-access-control"
+version: "1.0.0"
+display_name: "Technical Access Controls"
+source_standard: "HIPAA Security Rule"
+component_type: "backend-api"
+weight: 0.9
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_hipaa_technical_access_control_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_hipaa_technical_access_control"
+
+controls:
+  - control_id: "HIPAATEC-01"
+    name: "Technical Access Controls — Primary Control"
+    description: "Access control, audit controls, integrity, and transmission security for ePHI."
+    source_clause: "HIPAA"
+    severity: "critical"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://HIPAATEC-01"
+
+  - control_id: "HIPAATEC-02"
+    name: "Technical Access Controls — Input Validation"
+    description: "Validate and sanitize all inputs related to technical access controls"
+    source_clause: "HIPAA"
+    severity: "critical"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://HIPAATEC-02"
+
+  - control_id: "HIPAATEC-03"
+    name: "Technical Access Controls — Configuration Hardening"
+    description: "Apply secure configuration defaults for technical access controls"
+    source_clause: "HIPAA"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://HIPAATEC-03"
+
+  - control_id: "HIPAATEC-04"
+    name: "Technical Access Controls — Monitoring and Logging"
+    description: "Log and monitor all technical access controls events for audit and detection"
+    source_clause: "HIPAA"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://HIPAATEC-04"
+
+  - control_id: "HIPAATEC-05"
+    name: "Technical Access Controls — Error Handling"
+    description: "Handle technical access controls errors securely without information leakage"
+    source_clause: "HIPAA"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://HIPAATEC-05"

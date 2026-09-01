@@ -1,0 +1,60 @@
+# Playbook for: dbt-model-security
+# Source: Data Engineering Security
+# Auto-generated
+
+playbooks:
+- control_id: "DBTMODEL-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary dbt model security control patterns for dbt-model-security"
+  blast_radius_notes: "Automated fix for DBTMODEL-01 - Primary dbt Model Security Control"
+  verification_checks:
+    - "Verify DBTMODEL-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "DBTMODEL-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for dbt model security patterns for dbt-model-security"
+  blast_radius_notes: "Automated fix for DBTMODEL-02 - Input Validation for dbt Model Security"
+  verification_checks:
+    - "Verify DBTMODEL-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "DBTMODEL-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for dbt model security patterns for dbt-model-security"
+  blast_radius_notes: "Automated fix for DBTMODEL-03 - Configuration Hardening for dbt Model Security"
+  verification_checks:
+    - "Verify DBTMODEL-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "DBTMODEL-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for dbt model security patterns for dbt-model-security"
+  blast_radius_notes: "Automated fix for DBTMODEL-04 - Monitoring and Logging for dbt Model Security"
+  verification_checks:
+    - "Verify DBTMODEL-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "DBTMODEL-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for dbt model security patterns for dbt-model-security"
+  blast_radius_notes: "Automated fix for DBTMODEL-05 - Error Handling for dbt Model Security"
+  verification_checks:
+    - "Verify DBTMODEL-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

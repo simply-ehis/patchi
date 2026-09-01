@@ -1,0 +1,60 @@
+# Playbook for: go-path-traversal
+# Source: Go Security
+# Auto-generated
+
+playbooks:
+- control_id: "GOPATHTR-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary go path traversal control patterns for go-path-traversal"
+  blast_radius_notes: "Automated fix for GOPATHTR-01 - Primary Go Path Traversal Control"
+  verification_checks:
+    - "Verify GOPATHTR-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "GOPATHTR-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for go path traversal patterns for go-path-traversal"
+  blast_radius_notes: "Automated fix for GOPATHTR-02 - Input Validation for Go Path Traversal"
+  verification_checks:
+    - "Verify GOPATHTR-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "GOPATHTR-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for go path traversal patterns for go-path-traversal"
+  blast_radius_notes: "Automated fix for GOPATHTR-03 - Configuration Hardening for Go Path Traversal"
+  verification_checks:
+    - "Verify GOPATHTR-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "GOPATHTR-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for go path traversal patterns for go-path-traversal"
+  blast_radius_notes: "Automated fix for GOPATHTR-04 - Monitoring and Logging for Go Path Traversal"
+  verification_checks:
+    - "Verify GOPATHTR-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "GOPATHTR-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for go path traversal patterns for go-path-traversal"
+  blast_radius_notes: "Automated fix for GOPATHTR-05 - Error Handling for Go Path Traversal"
+  verification_checks:
+    - "Verify GOPATHTR-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

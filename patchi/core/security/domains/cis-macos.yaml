@@ -1,0 +1,62 @@
+# Patchi Security Domain: cis-macos
+# Source: CIS macOS Benchmark
+# Auto-generated — curated from CIS macOS Benchmark
+
+domain_id: "cis-macos"
+version: "1.0.0"
+display_name: "macOS Workstation Hardening"
+source_standard: "CIS macOS Benchmark"
+component_type: "desktop-app"
+weight: 0.75
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_cis_macos_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_cis_macos"
+
+controls:
+  - control_id: "CISMACOS-01"
+    name: "macOS Workstation Hardening — Primary Control"
+    description: "System settings, firewall, FileVault, and privacy controls."
+    source_clause: "CIS macOS"
+    severity: "medium"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CISMACOS-01"
+
+  - control_id: "CISMACOS-02"
+    name: "macOS Workstation Hardening — Input Validation"
+    description: "Validate and sanitize all inputs related to macos workstation hardening"
+    source_clause: "CIS macOS"
+    severity: "medium"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CISMACOS-02"
+
+  - control_id: "CISMACOS-03"
+    name: "macOS Workstation Hardening — Configuration Hardening"
+    description: "Apply secure configuration defaults for macos workstation hardening"
+    source_clause: "CIS macOS"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CISMACOS-03"
+
+  - control_id: "CISMACOS-04"
+    name: "macOS Workstation Hardening — Monitoring and Logging"
+    description: "Log and monitor all macos workstation hardening events for audit and detection"
+    source_clause: "CIS macOS"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CISMACOS-04"
+
+  - control_id: "CISMACOS-05"
+    name: "macOS Workstation Hardening — Error Handling"
+    description: "Handle macos workstation hardening errors securely without information leakage"
+    source_clause: "CIS macOS"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CISMACOS-05"

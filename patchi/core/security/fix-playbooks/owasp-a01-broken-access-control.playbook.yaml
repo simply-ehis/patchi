@@ -1,0 +1,60 @@
+# Playbook for: owasp-a01-broken-access-control
+# Source: OWASP Top 10 2021 A01
+# Auto-generated
+
+playbooks:
+- control_id: "OWASPA01-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary broken access control control patterns for owasp-a01-broken-access-control"
+  blast_radius_notes: "Automated fix for OWASPA01-01 - Primary Broken Access Control Control"
+  verification_checks:
+    - "Verify OWASPA01-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "OWASPA01-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for broken access control patterns for owasp-a01-broken-access-control"
+  blast_radius_notes: "Automated fix for OWASPA01-02 - Input Validation for Broken Access Control"
+  verification_checks:
+    - "Verify OWASPA01-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "OWASPA01-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for broken access control patterns for owasp-a01-broken-access-control"
+  blast_radius_notes: "Automated fix for OWASPA01-03 - Configuration Hardening for Broken Access Control"
+  verification_checks:
+    - "Verify OWASPA01-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "OWASPA01-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for broken access control patterns for owasp-a01-broken-access-control"
+  blast_radius_notes: "Automated fix for OWASPA01-04 - Monitoring and Logging for Broken Access Control"
+  verification_checks:
+    - "Verify OWASPA01-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "OWASPA01-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for broken access control patterns for owasp-a01-broken-access-control"
+  blast_radius_notes: "Automated fix for OWASPA01-05 - Error Handling for Broken Access Control"
+  verification_checks:
+    - "Verify OWASPA01-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

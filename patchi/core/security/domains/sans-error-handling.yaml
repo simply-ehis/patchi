@@ -1,0 +1,62 @@
+# Patchi Security Domain: sans-error-handling
+# Source: SANS Top 25
+# Auto-generated — curated from SANS Top 25
+
+domain_id: "sans-error-handling"
+version: "1.0.0"
+display_name: "Improper Error Handling"
+source_standard: "SANS Top 25"
+component_type: "backend-api"
+weight: 0.75
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_sans_error_handling_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_sans_error_handling"
+
+controls:
+  - control_id: "SANSERRO-01"
+    name: "Improper Error Handling — Primary Control"
+    description: "Verbose error messages exposing sensitive system information."
+    source_clause: "SANS"
+    severity: "medium"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://SANSERRO-01"
+
+  - control_id: "SANSERRO-02"
+    name: "Improper Error Handling — Input Validation"
+    description: "Validate and sanitize all inputs related to improper error handling"
+    source_clause: "SANS"
+    severity: "medium"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://SANSERRO-02"
+
+  - control_id: "SANSERRO-03"
+    name: "Improper Error Handling — Configuration Hardening"
+    description: "Apply secure configuration defaults for improper error handling"
+    source_clause: "SANS"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://SANSERRO-03"
+
+  - control_id: "SANSERRO-04"
+    name: "Improper Error Handling — Monitoring and Logging"
+    description: "Log and monitor all improper error handling events for audit and detection"
+    source_clause: "SANS"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://SANSERRO-04"
+
+  - control_id: "SANSERRO-05"
+    name: "Improper Error Handling — Error Handling"
+    description: "Handle improper error handling errors securely without information leakage"
+    source_clause: "SANS"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://SANSERRO-05"

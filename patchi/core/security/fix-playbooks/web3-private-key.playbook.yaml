@@ -1,0 +1,60 @@
+# Playbook for: web3-private-key
+# Source: Web3 Security
+# Auto-generated
+
+playbooks:
+- control_id: "WEB3PRIV-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary private key exposure control patterns for web3-private-key"
+  blast_radius_notes: "Automated fix for WEB3PRIV-01 - Primary Private Key Exposure Control"
+  verification_checks:
+    - "Verify WEB3PRIV-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "WEB3PRIV-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for private key exposure patterns for web3-private-key"
+  blast_radius_notes: "Automated fix for WEB3PRIV-02 - Input Validation for Private Key Exposure"
+  verification_checks:
+    - "Verify WEB3PRIV-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "WEB3PRIV-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for private key exposure patterns for web3-private-key"
+  blast_radius_notes: "Automated fix for WEB3PRIV-03 - Configuration Hardening for Private Key Exposure"
+  verification_checks:
+    - "Verify WEB3PRIV-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "WEB3PRIV-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for private key exposure patterns for web3-private-key"
+  blast_radius_notes: "Automated fix for WEB3PRIV-04 - Monitoring and Logging for Private Key Exposure"
+  verification_checks:
+    - "Verify WEB3PRIV-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "WEB3PRIV-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for private key exposure patterns for web3-private-key"
+  blast_radius_notes: "Automated fix for WEB3PRIV-05 - Error Handling for Private Key Exposure"
+  verification_checks:
+    - "Verify WEB3PRIV-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

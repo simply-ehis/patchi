@@ -1,0 +1,62 @@
+# Patchi Security Domain: blogic-time-of-check
+# Source: Business Logic
+# Auto-generated — curated from Business Logic
+
+domain_id: "blogic-time-of-check"
+version: "1.0.0"
+display_name: "Time-of-Check to Time-of-Use"
+source_standard: "Business Logic"
+component_type: "backend-api"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_blogic_time_of_check_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_blogic_time_of_check"
+
+controls:
+  - control_id: "BLOGICTI-01"
+    name: "Time-of-Check to Time-of-Use — Primary Control"
+    description: "Resource state changes between validation and usage."
+    source_clause: "BLogic TOCTOU"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://BLOGICTI-01"
+
+  - control_id: "BLOGICTI-02"
+    name: "Time-of-Check to Time-of-Use — Input Validation"
+    description: "Validate and sanitize all inputs related to time-of-check to time-of-use"
+    source_clause: "BLogic TOCTOU"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://BLOGICTI-02"
+
+  - control_id: "BLOGICTI-03"
+    name: "Time-of-Check to Time-of-Use — Configuration Hardening"
+    description: "Apply secure configuration defaults for time-of-check to time-of-use"
+    source_clause: "BLogic TOCTOU"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://BLOGICTI-03"
+
+  - control_id: "BLOGICTI-04"
+    name: "Time-of-Check to Time-of-Use — Monitoring and Logging"
+    description: "Log and monitor all time-of-check to time-of-use events for audit and detection"
+    source_clause: "BLogic TOCTOU"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://BLOGICTI-04"
+
+  - control_id: "BLOGICTI-05"
+    name: "Time-of-Check to Time-of-Use — Error Handling"
+    description: "Handle time-of-check to time-of-use errors securely without information leakage"
+    source_clause: "BLogic TOCTOU"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://BLOGICTI-05"

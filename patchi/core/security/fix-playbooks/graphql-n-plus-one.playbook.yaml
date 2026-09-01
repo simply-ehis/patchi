@@ -1,0 +1,60 @@
+# Playbook for: graphql-n-plus-one
+# Source: GraphQL Security
+# Auto-generated
+
+playbooks:
+- control_id: "GRAPHQLN-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary graphql n+1 query control patterns for graphql-n-plus-one"
+  blast_radius_notes: "Automated fix for GRAPHQLN-01 - Primary GraphQL N+1 Query Control"
+  verification_checks:
+    - "Verify GRAPHQLN-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "GRAPHQLN-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for graphql n+1 query patterns for graphql-n-plus-one"
+  blast_radius_notes: "Automated fix for GRAPHQLN-02 - Input Validation for GraphQL N+1 Query"
+  verification_checks:
+    - "Verify GRAPHQLN-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "GRAPHQLN-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for graphql n+1 query patterns for graphql-n-plus-one"
+  blast_radius_notes: "Automated fix for GRAPHQLN-03 - Configuration Hardening for GraphQL N+1 Query"
+  verification_checks:
+    - "Verify GRAPHQLN-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "GRAPHQLN-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for graphql n+1 query patterns for graphql-n-plus-one"
+  blast_radius_notes: "Automated fix for GRAPHQLN-04 - Monitoring and Logging for GraphQL N+1 Query"
+  verification_checks:
+    - "Verify GRAPHQLN-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "GRAPHQLN-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for graphql n+1 query patterns for graphql-n-plus-one"
+  blast_radius_notes: "Automated fix for GRAPHQLN-05 - Error Handling for GraphQL N+1 Query"
+  verification_checks:
+    - "Verify GRAPHQLN-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

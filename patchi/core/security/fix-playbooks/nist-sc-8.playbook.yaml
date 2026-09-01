@@ -1,0 +1,60 @@
+# Playbook for: nist-sc-8
+# Source: NIST SP 800-53 SC-8
+# Auto-generated
+
+playbooks:
+- control_id: "NISTSC8-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary transmission confidentiality and integrity control patterns for nist-sc-8"
+  blast_radius_notes: "Automated fix for NISTSC8-01 - Primary Transmission Confidentiality and Integrity Control"
+  verification_checks:
+    - "Verify NISTSC8-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NISTSC8-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for transmission confidentiality and integrity patterns for nist-sc-8"
+  blast_radius_notes: "Automated fix for NISTSC8-02 - Input Validation for Transmission Confidentiality and Integrity"
+  verification_checks:
+    - "Verify NISTSC8-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NISTSC8-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for transmission confidentiality and integrity patterns for nist-sc-8"
+  blast_radius_notes: "Automated fix for NISTSC8-03 - Configuration Hardening for Transmission Confidentiality and Integrity"
+  verification_checks:
+    - "Verify NISTSC8-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NISTSC8-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for transmission confidentiality and integrity patterns for nist-sc-8"
+  blast_radius_notes: "Automated fix for NISTSC8-04 - Monitoring and Logging for Transmission Confidentiality and Integrity"
+  verification_checks:
+    - "Verify NISTSC8-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NISTSC8-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for transmission confidentiality and integrity patterns for nist-sc-8"
+  blast_radius_notes: "Automated fix for NISTSC8-05 - Error Handling for Transmission Confidentiality and Integrity"
+  verification_checks:
+    - "Verify NISTSC8-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

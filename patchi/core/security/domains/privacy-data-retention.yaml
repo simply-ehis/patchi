@@ -1,0 +1,62 @@
+# Patchi Security Domain: privacy-data-retention
+# Source: Privacy Engineering
+# Auto-generated — curated from Privacy Engineering
+
+domain_id: "privacy-data-retention"
+version: "1.0.0"
+display_name: "Data Retention Limits"
+source_standard: "Privacy Engineering"
+component_type: "backend-api"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_privacy_data_retention_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_privacy_data_retention"
+
+controls:
+  - control_id: "PRIVACYD-01"
+    name: "Data Retention Limits — Primary Control"
+    description: "No defined data retention period or automatic deletion mechanism."
+    source_clause: "Privacy Retain"
+    severity: "high"
+    check_method: "static+manual-review"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://PRIVACYD-01"
+
+  - control_id: "PRIVACYD-02"
+    name: "Data Retention Limits — Input Validation"
+    description: "Validate and sanitize all inputs related to data retention limits"
+    source_clause: "Privacy Retain"
+    severity: "high"
+    check_method: "static+manual-review"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://PRIVACYD-02"
+
+  - control_id: "PRIVACYD-03"
+    name: "Data Retention Limits — Configuration Hardening"
+    description: "Apply secure configuration defaults for data retention limits"
+    source_clause: "Privacy Retain"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://PRIVACYD-03"
+
+  - control_id: "PRIVACYD-04"
+    name: "Data Retention Limits — Monitoring and Logging"
+    description: "Log and monitor all data retention limits events for audit and detection"
+    source_clause: "Privacy Retain"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://PRIVACYD-04"
+
+  - control_id: "PRIVACYD-05"
+    name: "Data Retention Limits — Error Handling"
+    description: "Handle data retention limits errors securely without information leakage"
+    source_clause: "Privacy Retain"
+    severity: "medium"
+    check_method: "static+manual-review"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://PRIVACYD-05"

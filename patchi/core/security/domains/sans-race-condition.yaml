@@ -1,0 +1,62 @@
+# Patchi Security Domain: sans-race-condition
+# Source: SANS Top 25
+# Auto-generated — curated from SANS Top 25
+
+domain_id: "sans-race-condition"
+version: "1.0.0"
+display_name: "Race Condition"
+source_standard: "SANS Top 25"
+component_type: "backend-api"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_sans_race_condition_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_sans_race_condition"
+
+controls:
+  - control_id: "SANSRACE-01"
+    name: "Race Condition — Primary Control"
+    description: "Concurrent access vulnerabilities leading to privilege escalation."
+    source_clause: "SANS"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://SANSRACE-01"
+
+  - control_id: "SANSRACE-02"
+    name: "Race Condition — Input Validation"
+    description: "Validate and sanitize all inputs related to race condition"
+    source_clause: "SANS"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://SANSRACE-02"
+
+  - control_id: "SANSRACE-03"
+    name: "Race Condition — Configuration Hardening"
+    description: "Apply secure configuration defaults for race condition"
+    source_clause: "SANS"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://SANSRACE-03"
+
+  - control_id: "SANSRACE-04"
+    name: "Race Condition — Monitoring and Logging"
+    description: "Log and monitor all race condition events for audit and detection"
+    source_clause: "SANS"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://SANSRACE-04"
+
+  - control_id: "SANSRACE-05"
+    name: "Race Condition — Error Handling"
+    description: "Handle race condition errors securely without information leakage"
+    source_clause: "SANS"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://SANSRACE-05"

@@ -1,0 +1,62 @@
+# Patchi Security Domain: cwe-693-protection-mechanism
+# Source: CWE-693
+# Auto-generated — curated from CWE-693
+
+domain_id: "cwe-693-protection-mechanism"
+version: "1.0.0"
+display_name: "Protection Mechanism Failure"
+source_standard: "CWE-693"
+component_type: "backend-api"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_cwe_693_protection_mechanism_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_cwe_693_protection_mechanism"
+
+controls:
+  - control_id: "CWE693PR-01"
+    name: "Protection Mechanism Failure — Primary Control"
+    description: "Application does not correctly use its protection mechanisms."
+    source_clause: "CWE-693"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CWE693PR-01"
+
+  - control_id: "CWE693PR-02"
+    name: "Protection Mechanism Failure — Input Validation"
+    description: "Validate and sanitize all inputs related to protection mechanism failure"
+    source_clause: "CWE-693"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CWE693PR-02"
+
+  - control_id: "CWE693PR-03"
+    name: "Protection Mechanism Failure — Configuration Hardening"
+    description: "Apply secure configuration defaults for protection mechanism failure"
+    source_clause: "CWE-693"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CWE693PR-03"
+
+  - control_id: "CWE693PR-04"
+    name: "Protection Mechanism Failure — Monitoring and Logging"
+    description: "Log and monitor all protection mechanism failure events for audit and detection"
+    source_clause: "CWE-693"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CWE693PR-04"
+
+  - control_id: "CWE693PR-05"
+    name: "Protection Mechanism Failure — Error Handling"
+    description: "Handle protection mechanism failure errors securely without information leakage"
+    source_clause: "CWE-693"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CWE693PR-05"

@@ -1,128 +1,0 @@
-playbooks:
-- blast_radius_notes: Automated fix for DJG-001
-  control_id: DJG-001
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix DEBUG=True in production settings: Detect Django settings.py
-    (or settings/base.py, settings/production.py) where DEBUG = True is hardcoded
-    or where DEBUG defaults to True (DEBUG = os.environ.get(''DEBUG'', ''True'') ==
-    ''True''). When DEBUG=True, Django exposes detailed error pages with stack traces,
-    source code snippets, settings values (including SECRET_KEY if logged), and the
-    Django admin toolbar. It also disables ALLOWED_HOSTS validation, allowing HTTP
-    Host header attacks. The fix is to set DEBUG = os.environ.get(''DEBUG'', ''False'')
-    == ''True'' (default False) and require an explicit env var to enable. Also audit
-    any settings file that is imported in production (settings/production.py, settings/heroku.py)
-    for DEBUG=True.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify DJG-001 is properly addressed
-- blast_radius_notes: Automated fix for DJG-002
-  control_id: DJG-002
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix ALLOWED_HOSTS wildcard in production: Detect Django settings
-    where ALLOWED_HOSTS = [''*''] or ALLOWED_HOSTS = [''*''] combined with DEBUG=False.
-    ALLOWED_HOSTS validates the HTTP Host header to prevent cache poisoning, password-reset
-    email poisoning (via host in reset link), and DNS rebinding attacks. With [''*''],
-    Django accepts any Host header, so an attacker can make password-reset emails
-    point to attacker.com (the reset link uses request.build_absolute_uri which includes
-    the Host header). With DEBUG=True, ALLOWED_HOSTS is ignored (Django allows any
-    host) - this is the default in development. The fix is to enumerate the production
-    domains: ALLOWED_HOSTS = [''app.example.com'', ''www.example.com''] or read from
-    env: ALLOWED_HOSTS = os.environ.get(''ALLOWED_HOSTS'', '''').split('','').'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify DJG-002 is properly addressed
-- blast_radius_notes: Automated fix for DJG-003
-  control_id: DJG-003
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix SECRET_KEY hardcoded or weak: Detect Django settings where
-    SECRET_KEY is hardcoded (SECRET_KEY = ''django-insecure-...''), where the key
-    is shorter than 50 characters, where the key is the default from django-admin
-    startproject (which has ''django-insecure-'' prefix), or where the key is read
-    from a hardcoded fallback (SECRET_KEY = os.environ.get(''SECRET_KEY'', ''fallback-hardcoded-value'')).
-    The SECRET_KEY is used to sign sessions, CSRF tokens, password reset tokens, and
-    signed cookies - if leaked, an attacker can forge sessions, CSRF tokens, and password
-    reset links. The fix is to read it exclusively from an environment variable or
-    a secret manager with no fallback: SECRET_KEY = os.environ[''SECRET_KEY''] (raises
-    KeyError if missing, which is desired in production). Rotate the key if it was
-    ever committed to git.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify DJG-003 is properly addressed
-- blast_radius_notes: Automated fix for DJG-004
-  control_id: DJG-004
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix SQL injection via raw queries or cursor.execute with f-strings:
-    Detect Django Model.objects.raw(), cursor.execute(), or cursor.executemany() calls
-    where the SQL string is constructed via f-string, .format(), or % string formatting
-    with user input. Flag: Model.objects.raw(f"SELECT * FROM users WHERE name = ''{request.POST[''name'']}''"),
-    cursor.execute(f"SELECT * FROM users WHERE id = {user_id}"), cursor.execute("SELECT
-    * FROM users WHERE name = ''%s''" % name). Also flag QuerySet.extra(where=[...])
-    with user input (deprecated but still present). The fix is to use parameterized
-    queries: Model.objects.raw("SELECT * FROM users WHERE name = %s", [name]), cursor.execute("SELECT
-    * FROM users WHERE id = %s", (user_id,)), or prefer the ORM: User.objects.filter(name=name).'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify DJG-004 is properly addressed
-- blast_radius_notes: Automated fix for DJG-005
-  control_id: DJG-005
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Template autoescape disabled: Detect Django templates that
-    use {% autoescape off %} blocks, the |safe filter on user input, or Template()
-    / render() calls with user-controlled template strings. Django''s default is autoescape=True
-    which escapes <, >, &, '', " in template variables - this prevents XSS. Disabling
-    autoescape via {% autoescape off %} or |safe on user input allows XSS. Flag: {{
-    user_input|safe }}, {% autoescape off %}{{ user_input }}{% endautoescape %}, render(request,
-    ''tpl.html'', {''content'': user_html}) where the template then uses {{ content|safe
-    }}. The fix is to keep autoescape on (default) and remove |safe filters on user
-    input. For trusted HTML (e.g. from a CMS), use a sanitizer like bleach.clean()
-    before storing.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify DJG-005 is properly addressed
-- blast_radius_notes: Automated fix for DJG-006
-  control_id: DJG-006
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix CSRF middleware disabled or exempted: Detect Django settings
-    where ''django.middleware.csrf.CsrfViewMiddleware'' is removed from MIDDLEWARE,
-    and view decorators @csrf_exempt / @method_decorator(csrf_exempt) applied to views
-    that accept state-changing requests from cookie-authenticated users. The CsrfViewMiddleware
-    requires a CSRF token cookie + X-CSRFToken header (or csrfmiddlewaretoken form
-    field) on all POST/PUT/PATCH/DELETE. Removing the middleware or exempting a view
-    disables this protection. Flag: @csrf_exempt on a view that uses request.user
-    (cookie-authenticated). Bearer-token-authenticated APIs (DRF TokenAuthentication,
-    JWT) are NOT vulnerable to CSRF and can be exempted - but audit that they truly
-    do not read session cookies.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify DJG-006 is properly addressed
-- blast_radius_notes: Automated fix for DJG-007
-  control_id: DJG-007
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Clickjacking (XFrameOptionsMiddleware missing or disabled):
-    Detect Django settings where ''django.middleware.clickjacking.XFrameOptionsMiddleware''
-    is removed from MIDDLEWARE, or where X_FRAME_OPTIONS = ''DENY'' is overridden
-    to ''SAMEORIGIN'' or removed (defaults to ''SAMEORIGIN'' in Django 3.0+; the safer
-    value is ''DENY''). Also flag the @xframe_options_exempt decorator on views that
-    render sensitive forms. Clickjacking allows an attacker to embed the app in an
-    iframe, overlay transparent UI, and trick the user into clicking. The fix is to
-    ensure the middleware is in MIDDLEWARE and X_FRAME_OPTIONS = ''DENY'' (or use
-    CSP frame-ancestors for modern browsers). For specific views that need to be embedded
-    (e.g. an embeddable widget), use @xframe_options_sameorigin (not exempt) on those
-    views only.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify DJG-007 is properly addressed

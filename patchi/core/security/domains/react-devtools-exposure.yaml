@@ -1,0 +1,62 @@
+# Patchi Security Domain: react-devtools-exposure
+# Source: React Security
+# Auto-generated — curated from React Security
+
+domain_id: "react-devtools-exposure"
+version: "1.0.0"
+display_name: "DevTools in Production"
+source_standard: "React Security"
+component_type: "frontend-web"
+weight: 0.7
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_react_devtools_exposure_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_react_devtools_exposure"
+
+controls:
+  - control_id: "REACTDEV-01"
+    name: "DevTools in Production — Primary Control"
+    description: "React DevTools or development mode enabled in production builds."
+    source_clause: "React DevTools"
+    severity: "medium"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://REACTDEV-01"
+
+  - control_id: "REACTDEV-02"
+    name: "DevTools in Production — Input Validation"
+    description: "Validate and sanitize all inputs related to devtools in production"
+    source_clause: "React DevTools"
+    severity: "medium"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://REACTDEV-02"
+
+  - control_id: "REACTDEV-03"
+    name: "DevTools in Production — Configuration Hardening"
+    description: "Apply secure configuration defaults for devtools in production"
+    source_clause: "React DevTools"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://REACTDEV-03"
+
+  - control_id: "REACTDEV-04"
+    name: "DevTools in Production — Monitoring and Logging"
+    description: "Log and monitor all devtools in production events for audit and detection"
+    source_clause: "React DevTools"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://REACTDEV-04"
+
+  - control_id: "REACTDEV-05"
+    name: "DevTools in Production — Error Handling"
+    description: "Handle devtools in production errors securely without information leakage"
+    source_clause: "React DevTools"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://REACTDEV-05"

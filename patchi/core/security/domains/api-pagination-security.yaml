@@ -1,0 +1,62 @@
+# Patchi Security Domain: api-pagination-security
+# Source: API Design Security
+# Auto-generated — curated from API Design Security
+
+domain_id: "api-pagination-security"
+version: "1.0.0"
+display_name: "API Pagination Security"
+source_standard: "API Design Security"
+component_type: "backend-api"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_api_pagination_security_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_api_pagination_security"
+
+controls:
+  - control_id: "APIPAGIN-01"
+    name: "API Pagination Security — Primary Control"
+    description: "Unbounded pagination allowing resource exhaustion."
+    source_clause: "API Page"
+    severity: "high"
+    check_method: "dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://APIPAGIN-01"
+
+  - control_id: "APIPAGIN-02"
+    name: "API Pagination Security — Input Validation"
+    description: "Validate and sanitize all inputs related to api pagination security"
+    source_clause: "API Page"
+    severity: "high"
+    check_method: "dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://APIPAGIN-02"
+
+  - control_id: "APIPAGIN-03"
+    name: "API Pagination Security — Configuration Hardening"
+    description: "Apply secure configuration defaults for api pagination security"
+    source_clause: "API Page"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://APIPAGIN-03"
+
+  - control_id: "APIPAGIN-04"
+    name: "API Pagination Security — Monitoring and Logging"
+    description: "Log and monitor all api pagination security events for audit and detection"
+    source_clause: "API Page"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://APIPAGIN-04"
+
+  - control_id: "APIPAGIN-05"
+    name: "API Pagination Security — Error Handling"
+    description: "Handle api pagination security errors securely without information leakage"
+    source_clause: "API Page"
+    severity: "medium"
+    check_method: "dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://APIPAGIN-05"

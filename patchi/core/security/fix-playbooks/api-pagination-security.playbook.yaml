@@ -1,0 +1,60 @@
+# Playbook for: api-pagination-security
+# Source: API Design Security
+# Auto-generated
+
+playbooks:
+- control_id: "APIPAGIN-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary api pagination security control patterns for api-pagination-security"
+  blast_radius_notes: "Automated fix for APIPAGIN-01 - Primary API Pagination Security Control"
+  verification_checks:
+    - "Verify APIPAGIN-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "APIPAGIN-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for api pagination security patterns for api-pagination-security"
+  blast_radius_notes: "Automated fix for APIPAGIN-02 - Input Validation for API Pagination Security"
+  verification_checks:
+    - "Verify APIPAGIN-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "APIPAGIN-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for api pagination security patterns for api-pagination-security"
+  blast_radius_notes: "Automated fix for APIPAGIN-03 - Configuration Hardening for API Pagination Security"
+  verification_checks:
+    - "Verify APIPAGIN-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "APIPAGIN-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for api pagination security patterns for api-pagination-security"
+  blast_radius_notes: "Automated fix for APIPAGIN-04 - Monitoring and Logging for API Pagination Security"
+  verification_checks:
+    - "Verify APIPAGIN-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "APIPAGIN-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for api pagination security patterns for api-pagination-security"
+  blast_radius_notes: "Automated fix for APIPAGIN-05 - Error Handling for API Pagination Security"
+  verification_checks:
+    - "Verify APIPAGIN-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

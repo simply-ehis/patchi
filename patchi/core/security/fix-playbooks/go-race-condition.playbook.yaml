@@ -1,0 +1,60 @@
+# Playbook for: go-race-condition
+# Source: Go Security
+# Auto-generated
+
+playbooks:
+- control_id: "GORACECO-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary go race condition control patterns for go-race-condition"
+  blast_radius_notes: "Automated fix for GORACECO-01 - Primary Go Race Condition Control"
+  verification_checks:
+    - "Verify GORACECO-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "GORACECO-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for go race condition patterns for go-race-condition"
+  blast_radius_notes: "Automated fix for GORACECO-02 - Input Validation for Go Race Condition"
+  verification_checks:
+    - "Verify GORACECO-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "GORACECO-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for go race condition patterns for go-race-condition"
+  blast_radius_notes: "Automated fix for GORACECO-03 - Configuration Hardening for Go Race Condition"
+  verification_checks:
+    - "Verify GORACECO-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "GORACECO-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for go race condition patterns for go-race-condition"
+  blast_radius_notes: "Automated fix for GORACECO-04 - Monitoring and Logging for Go Race Condition"
+  verification_checks:
+    - "Verify GORACECO-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "GORACECO-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for go race condition patterns for go-race-condition"
+  blast_radius_notes: "Automated fix for GORACECO-05 - Error Handling for Go Race Condition"
+  verification_checks:
+    - "Verify GORACECO-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

@@ -1,0 +1,60 @@
+# Playbook for: cwe-838-improper-encoding
+# Source: CWE-838
+# Auto-generated
+
+playbooks:
+- control_id: "CWE838IM-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary use of encoding for authentication or authorization control patterns for cwe-838-improper-encoding"
+  blast_radius_notes: "Automated fix for CWE838IM-01 - Primary Use of Encoding for Authentication or Authorization Control"
+  verification_checks:
+    - "Verify CWE838IM-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CWE838IM-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for use of encoding for authentication or authorization patterns for cwe-838-improper-encoding"
+  blast_radius_notes: "Automated fix for CWE838IM-02 - Input Validation for Use of Encoding for Authentication or Authorization"
+  verification_checks:
+    - "Verify CWE838IM-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CWE838IM-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for use of encoding for authentication or authorization patterns for cwe-838-improper-encoding"
+  blast_radius_notes: "Automated fix for CWE838IM-03 - Configuration Hardening for Use of Encoding for Authentication or Authorization"
+  verification_checks:
+    - "Verify CWE838IM-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CWE838IM-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for use of encoding for authentication or authorization patterns for cwe-838-improper-encoding"
+  blast_radius_notes: "Automated fix for CWE838IM-04 - Monitoring and Logging for Use of Encoding for Authentication or Authorization"
+  verification_checks:
+    - "Verify CWE838IM-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CWE838IM-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for use of encoding for authentication or authorization patterns for cwe-838-improper-encoding"
+  blast_radius_notes: "Automated fix for CWE838IM-05 - Error Handling for Use of Encoding for Authentication or Authorization"
+  verification_checks:
+    - "Verify CWE838IM-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

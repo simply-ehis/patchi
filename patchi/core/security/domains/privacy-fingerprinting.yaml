@@ -1,0 +1,62 @@
+# Patchi Security Domain: privacy-fingerprinting
+# Source: Privacy Engineering
+# Auto-generated — curated from Privacy Engineering
+
+domain_id: "privacy-fingerprinting"
+version: "1.0.0"
+display_name: "Browser Fingerprinting"
+source_standard: "Privacy Engineering"
+component_type: "frontend-web"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_privacy_fingerprinting_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_privacy_fingerprinting"
+
+controls:
+  - control_id: "PRIVACYF-01"
+    name: "Browser Fingerprinting — Primary Control"
+    description: "Canvas, WebGL, or Audio fingerprinting collecting device identifiers."
+    source_clause: "Privacy FP"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://PRIVACYF-01"
+
+  - control_id: "PRIVACYF-02"
+    name: "Browser Fingerprinting — Input Validation"
+    description: "Validate and sanitize all inputs related to browser fingerprinting"
+    source_clause: "Privacy FP"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://PRIVACYF-02"
+
+  - control_id: "PRIVACYF-03"
+    name: "Browser Fingerprinting — Configuration Hardening"
+    description: "Apply secure configuration defaults for browser fingerprinting"
+    source_clause: "Privacy FP"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://PRIVACYF-03"
+
+  - control_id: "PRIVACYF-04"
+    name: "Browser Fingerprinting — Monitoring and Logging"
+    description: "Log and monitor all browser fingerprinting events for audit and detection"
+    source_clause: "Privacy FP"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://PRIVACYF-04"
+
+  - control_id: "PRIVACYF-05"
+    name: "Browser Fingerprinting — Error Handling"
+    description: "Handle browser fingerprinting errors securely without information leakage"
+    source_clause: "Privacy FP"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://PRIVACYF-05"

@@ -1,0 +1,60 @@
+# Playbook for: java-xml-external-entity
+# Source: Java Security
+# Auto-generated
+
+playbooks:
+- control_id: "JAVAXMLE-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary java xxe control patterns for java-xml-external-entity"
+  blast_radius_notes: "Automated fix for JAVAXMLE-01 - Primary Java XXE Control"
+  verification_checks:
+    - "Verify JAVAXMLE-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "JAVAXMLE-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for java xxe patterns for java-xml-external-entity"
+  blast_radius_notes: "Automated fix for JAVAXMLE-02 - Input Validation for Java XXE"
+  verification_checks:
+    - "Verify JAVAXMLE-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "JAVAXMLE-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for java xxe patterns for java-xml-external-entity"
+  blast_radius_notes: "Automated fix for JAVAXMLE-03 - Configuration Hardening for Java XXE"
+  verification_checks:
+    - "Verify JAVAXMLE-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "JAVAXMLE-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for java xxe patterns for java-xml-external-entity"
+  blast_radius_notes: "Automated fix for JAVAXMLE-04 - Monitoring and Logging for Java XXE"
+  verification_checks:
+    - "Verify JAVAXMLE-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "JAVAXMLE-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for java xxe patterns for java-xml-external-entity"
+  blast_radius_notes: "Automated fix for JAVAXMLE-05 - Error Handling for Java XXE"
+  verification_checks:
+    - "Verify JAVAXMLE-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

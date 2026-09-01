@@ -1,0 +1,60 @@
+# Playbook for: privacy-cookie-consent
+# Source: Privacy Engineering
+# Auto-generated
+
+playbooks:
+- control_id: "PRIVACYC-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary cookie consent control patterns for privacy-cookie-consent"
+  blast_radius_notes: "Automated fix for PRIVACYC-01 - Primary Cookie Consent Control"
+  verification_checks:
+    - "Verify PRIVACYC-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "PRIVACYC-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for cookie consent patterns for privacy-cookie-consent"
+  blast_radius_notes: "Automated fix for PRIVACYC-02 - Input Validation for Cookie Consent"
+  verification_checks:
+    - "Verify PRIVACYC-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "PRIVACYC-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for cookie consent patterns for privacy-cookie-consent"
+  blast_radius_notes: "Automated fix for PRIVACYC-03 - Configuration Hardening for Cookie Consent"
+  verification_checks:
+    - "Verify PRIVACYC-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "PRIVACYC-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for cookie consent patterns for privacy-cookie-consent"
+  blast_radius_notes: "Automated fix for PRIVACYC-04 - Monitoring and Logging for Cookie Consent"
+  verification_checks:
+    - "Verify PRIVACYC-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "PRIVACYC-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for cookie consent patterns for privacy-cookie-consent"
+  blast_radius_notes: "Automated fix for PRIVACYC-05 - Error Handling for Cookie Consent"
+  verification_checks:
+    - "Verify PRIVACYC-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

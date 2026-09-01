@@ -1,0 +1,60 @@
+# Playbook for: owasp-php-sqli
+# Source: OWASP PHP Top 10
+# Auto-generated
+
+playbooks:
+- control_id: "OWASPPHP-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary sql injection control patterns for owasp-php-sqli"
+  blast_radius_notes: "Automated fix for OWASPPHP-01 - Primary SQL Injection Control"
+  verification_checks:
+    - "Verify OWASPPHP-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "OWASPPHP-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for sql injection patterns for owasp-php-sqli"
+  blast_radius_notes: "Automated fix for OWASPPHP-02 - Input Validation for SQL Injection"
+  verification_checks:
+    - "Verify OWASPPHP-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "OWASPPHP-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for sql injection patterns for owasp-php-sqli"
+  blast_radius_notes: "Automated fix for OWASPPHP-03 - Configuration Hardening for SQL Injection"
+  verification_checks:
+    - "Verify OWASPPHP-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "OWASPPHP-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for sql injection patterns for owasp-php-sqli"
+  blast_radius_notes: "Automated fix for OWASPPHP-04 - Monitoring and Logging for SQL Injection"
+  verification_checks:
+    - "Verify OWASPPHP-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "OWASPPHP-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for sql injection patterns for owasp-php-sqli"
+  blast_radius_notes: "Automated fix for OWASPPHP-05 - Error Handling for SQL Injection"
+  verification_checks:
+    - "Verify OWASPPHP-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

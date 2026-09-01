@@ -1,0 +1,62 @@
+# Patchi Security Domain: fraud-web-scraping
+# Source: Fraud Prevention
+# Auto-generated — curated from Fraud Prevention
+
+domain_id: "fraud-web-scraping"
+version: "1.0.0"
+display_name: "Web Scraping"
+source_standard: "Fraud Prevention"
+component_type: "backend-api"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_fraud_web_scraping_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_fraud_web_scraping"
+
+controls:
+  - control_id: "FRAUDWEB-01"
+    name: "Web Scraping — Primary Control"
+    description: "Automated data extraction bypassing rate limits or access controls."
+    source_clause: "Fraud Scrape"
+    severity: "high"
+    check_method: "dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://FRAUDWEB-01"
+
+  - control_id: "FRAUDWEB-02"
+    name: "Web Scraping — Input Validation"
+    description: "Validate and sanitize all inputs related to web scraping"
+    source_clause: "Fraud Scrape"
+    severity: "high"
+    check_method: "dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://FRAUDWEB-02"
+
+  - control_id: "FRAUDWEB-03"
+    name: "Web Scraping — Configuration Hardening"
+    description: "Apply secure configuration defaults for web scraping"
+    source_clause: "Fraud Scrape"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://FRAUDWEB-03"
+
+  - control_id: "FRAUDWEB-04"
+    name: "Web Scraping — Monitoring and Logging"
+    description: "Log and monitor all web scraping events for audit and detection"
+    source_clause: "Fraud Scrape"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://FRAUDWEB-04"
+
+  - control_id: "FRAUDWEB-05"
+    name: "Web Scraping — Error Handling"
+    description: "Handle web scraping errors securely without information leakage"
+    source_clause: "Fraud Scrape"
+    severity: "medium"
+    check_method: "dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://FRAUDWEB-05"

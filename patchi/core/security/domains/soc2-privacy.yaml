@@ -1,0 +1,62 @@
+# Patchi Security Domain: soc2-privacy
+# Source: SOC 2 TSC
+# Auto-generated — curated from SOC 2 TSC
+
+domain_id: "soc2-privacy"
+version: "1.0.0"
+display_name: "Privacy"
+source_standard: "SOC 2 TSC"
+component_type: "backend-api"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_soc2_privacy_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_soc2_privacy"
+
+controls:
+  - control_id: "SOC2PRIV-01"
+    name: "Privacy — Primary Control"
+    description: "Collection, use, retention, disclosure, and disposal of personal information."
+    source_clause: "SOC 2 P"
+    severity: "high"
+    check_method: "static+manual-review"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://SOC2PRIV-01"
+
+  - control_id: "SOC2PRIV-02"
+    name: "Privacy — Input Validation"
+    description: "Validate and sanitize all inputs related to privacy"
+    source_clause: "SOC 2 P"
+    severity: "high"
+    check_method: "static+manual-review"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://SOC2PRIV-02"
+
+  - control_id: "SOC2PRIV-03"
+    name: "Privacy — Configuration Hardening"
+    description: "Apply secure configuration defaults for privacy"
+    source_clause: "SOC 2 P"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://SOC2PRIV-03"
+
+  - control_id: "SOC2PRIV-04"
+    name: "Privacy — Monitoring and Logging"
+    description: "Log and monitor all privacy events for audit and detection"
+    source_clause: "SOC 2 P"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://SOC2PRIV-04"
+
+  - control_id: "SOC2PRIV-05"
+    name: "Privacy — Error Handling"
+    description: "Handle privacy errors securely without information leakage"
+    source_clause: "SOC 2 P"
+    severity: "medium"
+    check_method: "static+manual-review"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://SOC2PRIV-05"

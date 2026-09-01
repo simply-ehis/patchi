@@ -1,0 +1,60 @@
+# Playbook for: django-xss-template
+# Source: Django Security
+# Auto-generated
+
+playbooks:
+- control_id: "DJANGOXS-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary django template xss control patterns for django-xss-template"
+  blast_radius_notes: "Automated fix for DJANGOXS-01 - Primary Django Template XSS Control"
+  verification_checks:
+    - "Verify DJANGOXS-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "DJANGOXS-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for django template xss patterns for django-xss-template"
+  blast_radius_notes: "Automated fix for DJANGOXS-02 - Input Validation for Django Template XSS"
+  verification_checks:
+    - "Verify DJANGOXS-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "DJANGOXS-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for django template xss patterns for django-xss-template"
+  blast_radius_notes: "Automated fix for DJANGOXS-03 - Configuration Hardening for Django Template XSS"
+  verification_checks:
+    - "Verify DJANGOXS-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "DJANGOXS-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for django template xss patterns for django-xss-template"
+  blast_radius_notes: "Automated fix for DJANGOXS-04 - Monitoring and Logging for Django Template XSS"
+  verification_checks:
+    - "Verify DJANGOXS-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "DJANGOXS-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for django template xss patterns for django-xss-template"
+  blast_radius_notes: "Automated fix for DJANGOXS-05 - Error Handling for Django Template XSS"
+  verification_checks:
+    - "Verify DJANGOXS-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

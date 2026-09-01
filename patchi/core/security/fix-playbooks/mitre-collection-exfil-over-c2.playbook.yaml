@@ -1,0 +1,60 @@
+# Playbook for: mitre-collection-exfil-over-c2
+# Source: MITRE ATT&CK
+# Auto-generated
+
+playbooks:
+- control_id: "MITRECOL-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary exfiltration over c2 channel (t1041) control patterns for mitre-collection-exfil-over-c2"
+  blast_radius_notes: "Automated fix for MITRECOL-01 - Primary Exfiltration Over C2 Channel (T1041) Control"
+  verification_checks:
+    - "Verify MITRECOL-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "MITRECOL-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for exfiltration over c2 channel (t1041) patterns for mitre-collection-exfil-over-c2"
+  blast_radius_notes: "Automated fix for MITRECOL-02 - Input Validation for Exfiltration Over C2 Channel (T1041)"
+  verification_checks:
+    - "Verify MITRECOL-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "MITRECOL-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for exfiltration over c2 channel (t1041) patterns for mitre-collection-exfil-over-c2"
+  blast_radius_notes: "Automated fix for MITRECOL-03 - Configuration Hardening for Exfiltration Over C2 Channel (T1041)"
+  verification_checks:
+    - "Verify MITRECOL-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "MITRECOL-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for exfiltration over c2 channel (t1041) patterns for mitre-collection-exfil-over-c2"
+  blast_radius_notes: "Automated fix for MITRECOL-04 - Monitoring and Logging for Exfiltration Over C2 Channel (T1041)"
+  verification_checks:
+    - "Verify MITRECOL-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "MITRECOL-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for exfiltration over c2 channel (t1041) patterns for mitre-collection-exfil-over-c2"
+  blast_radius_notes: "Automated fix for MITRECOL-05 - Error Handling for Exfiltration Over C2 Channel (T1041)"
+  verification_checks:
+    - "Verify MITRECOL-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

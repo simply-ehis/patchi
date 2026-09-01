@@ -1,0 +1,60 @@
+# Playbook for: terraform-module-source
+# Source: IaC Security
+# Auto-generated
+
+playbooks:
+- control_id: "TERRAFOR-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary terraform module source security control patterns for terraform-module-source"
+  blast_radius_notes: "Automated fix for TERRAFOR-01 - Primary Terraform Module Source Security Control"
+  verification_checks:
+    - "Verify TERRAFOR-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "TERRAFOR-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for terraform module source security patterns for terraform-module-source"
+  blast_radius_notes: "Automated fix for TERRAFOR-02 - Input Validation for Terraform Module Source Security"
+  verification_checks:
+    - "Verify TERRAFOR-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "TERRAFOR-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for terraform module source security patterns for terraform-module-source"
+  blast_radius_notes: "Automated fix for TERRAFOR-03 - Configuration Hardening for Terraform Module Source Security"
+  verification_checks:
+    - "Verify TERRAFOR-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "TERRAFOR-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for terraform module source security patterns for terraform-module-source"
+  blast_radius_notes: "Automated fix for TERRAFOR-04 - Monitoring and Logging for Terraform Module Source Security"
+  verification_checks:
+    - "Verify TERRAFOR-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "TERRAFOR-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for terraform module source security patterns for terraform-module-source"
+  blast_radius_notes: "Automated fix for TERRAFOR-05 - Error Handling for Terraform Module Source Security"
+  verification_checks:
+    - "Verify TERRAFOR-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

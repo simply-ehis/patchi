@@ -1,0 +1,62 @@
+# Patchi Security Domain: nist-ac-19
+# Source: NIST SP 800-53 AC-19
+# Auto-generated — curated from NIST SP 800-53 AC-19
+
+domain_id: "nist-ac-19"
+version: "1.0.0"
+display_name: "Access Control for Portable Devices"
+source_standard: "NIST SP 800-53 AC-19"
+component_type: "infra"
+weight: 0.75
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_nist_ac_19_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_nist_ac_19"
+
+controls:
+  - control_id: "NISTAC19-01"
+    name: "Access Control for Portable Devices — Primary Control"
+    description: "Organization manages access to portable devices containing organizational information."
+    source_clause: "AC-19"
+    severity: "medium"
+    check_method: "manual-review"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://NISTAC19-01"
+
+  - control_id: "NISTAC19-02"
+    name: "Access Control for Portable Devices — Input Validation"
+    description: "Validate and sanitize all inputs related to access control for portable devices"
+    source_clause: "AC-19"
+    severity: "medium"
+    check_method: "manual-review"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://NISTAC19-02"
+
+  - control_id: "NISTAC19-03"
+    name: "Access Control for Portable Devices — Configuration Hardening"
+    description: "Apply secure configuration defaults for access control for portable devices"
+    source_clause: "AC-19"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://NISTAC19-03"
+
+  - control_id: "NISTAC19-04"
+    name: "Access Control for Portable Devices — Monitoring and Logging"
+    description: "Log and monitor all access control for portable devices events for audit and detection"
+    source_clause: "AC-19"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://NISTAC19-04"
+
+  - control_id: "NISTAC19-05"
+    name: "Access Control for Portable Devices — Error Handling"
+    description: "Handle access control for portable devices errors securely without information leakage"
+    source_clause: "AC-19"
+    severity: "medium"
+    check_method: "manual-review"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://NISTAC19-05"

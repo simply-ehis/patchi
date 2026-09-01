@@ -1,104 +1,0 @@
-playbooks:
-- blast_radius_notes: Automated fix for GCO-001
-  control_id: GCO-001
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Goroutine leak without context cancellation: Detect goroutines
-    spawned with ''go func()'' that do not have a matching context.Context cancellation
-    path, WaitGroup.Done() call, or channel-based shutdown signal. The check should
-    flag any goroutine that performs blocking I/O (HTTP, gRPC, file, channel receive)
-    without a select case on ctx.Done(). Long-running goroutines in HTTP handlers
-    are a particularly common source of leaks because the handler goroutine exits
-    but the spawned goroutine continues.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify GCO-001 is properly addressed
-- blast_radius_notes: Automated fix for GCO-002
-  control_id: GCO-002
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Send to nil channel blocks forever: Detect send or receive
-    operations on channels that may be nil. A send to a nil channel blocks the goroutine
-    forever with no panic, making it extremely hard to diagnose. The check should
-    flag: (1) channel variables declared but not initialized before first use, (2)
-    channel-typed struct fields accessed without nil check, (3) channel returns from
-    functions that may return nil on error path. In particular, flag maps-of-channels
-    where the map lookup may return the zero value (nil).'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify GCO-002 is properly addressed
-- blast_radius_notes: Automated fix for GCO-003
-  control_id: GCO-003
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Race condition on shared mutable state: Detect access to
-    shared variables from multiple goroutines without synchronization. Flag patterns
-    such as: (1) package-level or struct fields modified inside go func() without
-    sync.Mutex/RWMutex, (2) iteration variable capture in go func() loops (pre-Go-1.22
-    bug), (3) map reads and writes from multiple goroutines without sync.Map or mutex,
-    (4) sync/atomic operations used inconsistently with non-atomic accesses on the
-    same variable.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify GCO-003 is properly addressed
-- blast_radius_notes: Automated fix for GCO-004
-  control_id: GCO-004
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Empty select blocks forever: Detect select statements with
-    zero cases (select{}), which block the goroutine forever with no escape path.
-    These are sometimes used intentionally as a ''park forever'' idiom but more commonly
-    indicate incomplete code or a refactoring artifact. The check should flag any
-    select{} in non-test code and additionally flag select statements where all cases
-    have been commented out or wrapped in if-false conditions.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify GCO-004 is properly addressed
-- blast_radius_notes: Automated fix for GCO-005
-  control_id: GCO-005
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix sync.Mutex misuse (copy or unlock-without-lock): Detect two
-    misuse patterns of sync.Mutex and sync.RWMutex: (1) Copy by value - a Mutex passed
-    by value to a function or stored in a value-typed struct creates two independent
-    mutexes with confusing semantics. Go''s go vet tool catches this but only in simple
-    cases. (2) Unlock without matching Lock - typically caused by early-return error
-    paths where defer mu.Unlock() was forgotten. Flag any function that calls mu.Unlock()
-    on a path where mu.Lock() was not called.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify GCO-005 is properly addressed
-- blast_radius_notes: Automated fix for GCO-006
-  control_id: GCO-006
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Unbounded goroutine spawn: Detect patterns where goroutines
-    are spawned in a loop or per-request without a worker pool, semaphore, or other
-    bound. Flag any ''go func()'' inside a for loop, any ''go handler()'' inside an
-    HTTP handler without a concurrency limit, and any pattern that spawns one goroutine
-    per database row. Unbounded goroutine creation can exhaust memory or file descriptors
-    under load. The fix is to use a buffered channel as a semaphore or an errgroup.Group
-    with SetLimit.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify GCO-006 is properly addressed
-- blast_radius_notes: Automated fix for GCO-007
-  control_id: GCO-007
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Defer inside loop never runs until function exits: Detect
-    defer statements inside for or range loops. Each iteration adds a deferred call
-    to the defer stack but none execute until the function returns, causing resource
-    leaks (file handles, mutexes, DB connections) proportional to iteration count.
-    The fix is to extract the loop body into a separate function so defers run per-iteration.
-    This is one of the most common Go resource leak patterns in production code.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify GCO-007 is properly addressed

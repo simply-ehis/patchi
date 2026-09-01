@@ -1,0 +1,62 @@
+# Patchi Security Domain: nist-au-11
+# Source: NIST SP 800-53 AU-11
+# Auto-generated — curated from NIST SP 800-53 AU-11
+
+domain_id: "nist-au-11"
+version: "1.0.0"
+display_name: "Audit Record Retention"
+source_standard: "NIST SP 800-53 AU-11"
+component_type: "infra"
+weight: 0.7
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_nist_au_11_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_nist_au_11"
+
+controls:
+  - control_id: "NISTAU11-01"
+    name: "Audit Record Retention — Primary Control"
+    description: "Organization retains audit records for defined period."
+    source_clause: "AU-11"
+    severity: "medium"
+    check_method: "manual-review"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://NISTAU11-01"
+
+  - control_id: "NISTAU11-02"
+    name: "Audit Record Retention — Input Validation"
+    description: "Validate and sanitize all inputs related to audit record retention"
+    source_clause: "AU-11"
+    severity: "medium"
+    check_method: "manual-review"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://NISTAU11-02"
+
+  - control_id: "NISTAU11-03"
+    name: "Audit Record Retention — Configuration Hardening"
+    description: "Apply secure configuration defaults for audit record retention"
+    source_clause: "AU-11"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://NISTAU11-03"
+
+  - control_id: "NISTAU11-04"
+    name: "Audit Record Retention — Monitoring and Logging"
+    description: "Log and monitor all audit record retention events for audit and detection"
+    source_clause: "AU-11"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://NISTAU11-04"
+
+  - control_id: "NISTAU11-05"
+    name: "Audit Record Retention — Error Handling"
+    description: "Handle audit record retention errors securely without information leakage"
+    source_clause: "AU-11"
+    severity: "medium"
+    check_method: "manual-review"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://NISTAU11-05"

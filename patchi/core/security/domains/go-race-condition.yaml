@@ -1,0 +1,62 @@
+# Patchi Security Domain: go-race-condition
+# Source: Go Security
+# Auto-generated — curated from Go Security
+
+domain_id: "go-race-condition"
+version: "1.0.0"
+display_name: "Go Race Condition"
+source_standard: "Go Security"
+component_type: "backend-api"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_go_race_condition_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_go_race_condition"
+
+controls:
+  - control_id: "GORACECO-01"
+    name: "Go Race Condition — Primary Control"
+    description: "Concurrent goroutine access to shared state without synchronization."
+    source_clause: "Go Race"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://GORACECO-01"
+
+  - control_id: "GORACECO-02"
+    name: "Go Race Condition — Input Validation"
+    description: "Validate and sanitize all inputs related to go race condition"
+    source_clause: "Go Race"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://GORACECO-02"
+
+  - control_id: "GORACECO-03"
+    name: "Go Race Condition — Configuration Hardening"
+    description: "Apply secure configuration defaults for go race condition"
+    source_clause: "Go Race"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://GORACECO-03"
+
+  - control_id: "GORACECO-04"
+    name: "Go Race Condition — Monitoring and Logging"
+    description: "Log and monitor all go race condition events for audit and detection"
+    source_clause: "Go Race"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://GORACECO-04"
+
+  - control_id: "GORACECO-05"
+    name: "Go Race Condition — Error Handling"
+    description: "Handle go race condition errors securely without information leakage"
+    source_clause: "Go Race"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://GORACECO-05"

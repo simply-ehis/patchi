@@ -1,0 +1,60 @@
+# Playbook for: asvs-v6-crypto
+# Source: OWASP ASVS 5.0 V6
+# Auto-generated
+
+playbooks:
+- control_id: "ASVSV6CR-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary cryptography at rest control patterns for asvs-v6-crypto"
+  blast_radius_notes: "Automated fix for ASVSV6CR-01 - Primary Cryptography at Rest Control"
+  verification_checks:
+    - "Verify ASVSV6CR-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "ASVSV6CR-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for cryptography at rest patterns for asvs-v6-crypto"
+  blast_radius_notes: "Automated fix for ASVSV6CR-02 - Input Validation for Cryptography at Rest"
+  verification_checks:
+    - "Verify ASVSV6CR-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "ASVSV6CR-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for cryptography at rest patterns for asvs-v6-crypto"
+  blast_radius_notes: "Automated fix for ASVSV6CR-03 - Configuration Hardening for Cryptography at Rest"
+  verification_checks:
+    - "Verify ASVSV6CR-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "ASVSV6CR-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for cryptography at rest patterns for asvs-v6-crypto"
+  blast_radius_notes: "Automated fix for ASVSV6CR-04 - Monitoring and Logging for Cryptography at Rest"
+  verification_checks:
+    - "Verify ASVSV6CR-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "ASVSV6CR-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for cryptography at rest patterns for asvs-v6-crypto"
+  blast_radius_notes: "Automated fix for ASVSV6CR-05 - Error Handling for Cryptography at Rest"
+  verification_checks:
+    - "Verify ASVSV6CR-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

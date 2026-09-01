@@ -1,0 +1,60 @@
+# Playbook for: git-signed-commits
+# Source: Git Security
+# Auto-generated
+
+playbooks:
+- control_id: "GITSIGNE-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary git signed commits control patterns for git-signed-commits"
+  blast_radius_notes: "Automated fix for GITSIGNE-01 - Primary Git Signed Commits Control"
+  verification_checks:
+    - "Verify GITSIGNE-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "GITSIGNE-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for git signed commits patterns for git-signed-commits"
+  blast_radius_notes: "Automated fix for GITSIGNE-02 - Input Validation for Git Signed Commits"
+  verification_checks:
+    - "Verify GITSIGNE-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "GITSIGNE-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for git signed commits patterns for git-signed-commits"
+  blast_radius_notes: "Automated fix for GITSIGNE-03 - Configuration Hardening for Git Signed Commits"
+  verification_checks:
+    - "Verify GITSIGNE-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "GITSIGNE-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for git signed commits patterns for git-signed-commits"
+  blast_radius_notes: "Automated fix for GITSIGNE-04 - Monitoring and Logging for Git Signed Commits"
+  verification_checks:
+    - "Verify GITSIGNE-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "GITSIGNE-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for git signed commits patterns for git-signed-commits"
+  blast_radius_notes: "Automated fix for GITSIGNE-05 - Error Handling for Git Signed Commits"
+  verification_checks:
+    - "Verify GITSIGNE-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

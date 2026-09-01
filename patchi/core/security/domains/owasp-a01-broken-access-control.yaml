@@ -1,0 +1,62 @@
+# Patchi Security Domain: owasp-a01-broken-access-control
+# Source: OWASP Top 10 2021 A01
+# Auto-generated — curated from OWASP Top 10 2021 A01
+
+domain_id: "owasp-a01-broken-access-control"
+version: "1.0.0"
+display_name: "Broken Access Control"
+source_standard: "OWASP Top 10 2021 A01"
+component_type: "backend-api"
+weight: 0.95
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_owasp_a01_broken_access_control_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_owasp_a01_broken_access_control"
+
+controls:
+  - control_id: "OWASPA01-01"
+    name: "Broken Access Control — Primary Control"
+    description: "Unauthorized access to resources or functions beyond intended permissions. Includes IDOR, privilege escalation, CORS misconfig, and missing function-level access checks."
+    source_clause: "OWASP A01:2021"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://OWASPA01-01"
+
+  - control_id: "OWASPA01-02"
+    name: "Broken Access Control — Input Validation"
+    description: "Validate and sanitize all inputs related to broken access control"
+    source_clause: "OWASP A01:2021"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://OWASPA01-02"
+
+  - control_id: "OWASPA01-03"
+    name: "Broken Access Control — Configuration Hardening"
+    description: "Apply secure configuration defaults for broken access control"
+    source_clause: "OWASP A01:2021"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://OWASPA01-03"
+
+  - control_id: "OWASPA01-04"
+    name: "Broken Access Control — Monitoring and Logging"
+    description: "Log and monitor all broken access control events for audit and detection"
+    source_clause: "OWASP A01:2021"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://OWASPA01-04"
+
+  - control_id: "OWASPA01-05"
+    name: "Broken Access Control — Error Handling"
+    description: "Handle broken access control errors securely without information leakage"
+    source_clause: "OWASP A01:2021"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://OWASPA01-05"

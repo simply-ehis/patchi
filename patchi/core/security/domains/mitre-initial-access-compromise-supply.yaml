@@ -1,0 +1,62 @@
+# Patchi Security Domain: mitre-initial-access-compromise-supply
+# Source: MITRE ATT&CK
+# Auto-generated — curated from MITRE ATT&CK
+
+domain_id: "mitre-initial-access-compromise-supply"
+version: "1.0.0"
+display_name: "Compromise Software Supply Chain (T1195)"
+source_standard: "MITRE ATT&CK"
+component_type: "backend-api"
+weight: 0.9
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_mitre_initial_access_compromise_supply_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_mitre_initial_access_compromise_supply"
+
+controls:
+  - control_id: "MITREINI-01"
+    name: "Compromise Software Supply Chain (T1195) — Primary Control"
+    description: "Compromising software development or distribution infrastructure."
+    source_clause: "T1195"
+    severity: "critical"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://MITREINI-01"
+
+  - control_id: "MITREINI-02"
+    name: "Compromise Software Supply Chain (T1195) — Input Validation"
+    description: "Validate and sanitize all inputs related to compromise software supply chain (t1195)"
+    source_clause: "T1195"
+    severity: "critical"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://MITREINI-02"
+
+  - control_id: "MITREINI-03"
+    name: "Compromise Software Supply Chain (T1195) — Configuration Hardening"
+    description: "Apply secure configuration defaults for compromise software supply chain (t1195)"
+    source_clause: "T1195"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://MITREINI-03"
+
+  - control_id: "MITREINI-04"
+    name: "Compromise Software Supply Chain (T1195) — Monitoring and Logging"
+    description: "Log and monitor all compromise software supply chain (t1195) events for audit and detection"
+    source_clause: "T1195"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://MITREINI-04"
+
+  - control_id: "MITREINI-05"
+    name: "Compromise Software Supply Chain (T1195) — Error Handling"
+    description: "Handle compromise software supply chain (t1195) errors securely without information leakage"
+    source_clause: "T1195"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://MITREINI-05"

@@ -1,0 +1,60 @@
+# Playbook for: cis-debian
+# Source: CIS Debian Benchmark
+# Auto-generated
+
+playbooks:
+- control_id: "CISDEBIA-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary debian server hardening control patterns for cis-debian"
+  blast_radius_notes: "Automated fix for CISDEBIA-01 - Primary Debian Server Hardening Control"
+  verification_checks:
+    - "Verify CISDEBIA-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CISDEBIA-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for debian server hardening patterns for cis-debian"
+  blast_radius_notes: "Automated fix for CISDEBIA-02 - Input Validation for Debian Server Hardening"
+  verification_checks:
+    - "Verify CISDEBIA-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CISDEBIA-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for debian server hardening patterns for cis-debian"
+  blast_radius_notes: "Automated fix for CISDEBIA-03 - Configuration Hardening for Debian Server Hardening"
+  verification_checks:
+    - "Verify CISDEBIA-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CISDEBIA-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for debian server hardening patterns for cis-debian"
+  blast_radius_notes: "Automated fix for CISDEBIA-04 - Monitoring and Logging for Debian Server Hardening"
+  verification_checks:
+    - "Verify CISDEBIA-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CISDEBIA-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for debian server hardening patterns for cis-debian"
+  blast_radius_notes: "Automated fix for CISDEBIA-05 - Error Handling for Debian Server Hardening"
+  verification_checks:
+    - "Verify CISDEBIA-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

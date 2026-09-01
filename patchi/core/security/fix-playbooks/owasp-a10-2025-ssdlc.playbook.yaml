@@ -1,0 +1,60 @@
+# Playbook for: owasp-a10-2025-ssdlc
+# Source: OWASP Top 10 2025 A10
+# Auto-generated
+
+playbooks:
+- control_id: "OWASPA10-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary secure software development lifecycle failures control patterns for owasp-a10-2025-ssdlc"
+  blast_radius_notes: "Automated fix for OWASPA10-01 - Primary Secure Software Development Lifecycle Failures Control"
+  verification_checks:
+    - "Verify OWASPA10-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "OWASPA10-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for secure software development lifecycle failures patterns for owasp-a10-2025-ssdlc"
+  blast_radius_notes: "Automated fix for OWASPA10-02 - Input Validation for Secure Software Development Lifecycle Failures"
+  verification_checks:
+    - "Verify OWASPA10-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "OWASPA10-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for secure software development lifecycle failures patterns for owasp-a10-2025-ssdlc"
+  blast_radius_notes: "Automated fix for OWASPA10-03 - Configuration Hardening for Secure Software Development Lifecycle Failures"
+  verification_checks:
+    - "Verify OWASPA10-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "OWASPA10-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for secure software development lifecycle failures patterns for owasp-a10-2025-ssdlc"
+  blast_radius_notes: "Automated fix for OWASPA10-04 - Monitoring and Logging for Secure Software Development Lifecycle Failures"
+  verification_checks:
+    - "Verify OWASPA10-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "OWASPA10-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for secure software development lifecycle failures patterns for owasp-a10-2025-ssdlc"
+  blast_radius_notes: "Automated fix for OWASPA10-05 - Error Handling for Secure Software Development Lifecycle Failures"
+  verification_checks:
+    - "Verify OWASPA10-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

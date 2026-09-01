@@ -1,0 +1,60 @@
+# Playbook for: graphql-injection
+# Source: GraphQL Security
+# Auto-generated
+
+playbooks:
+- control_id: "GRAPHQLI-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary graphql query injection control patterns for graphql-injection"
+  blast_radius_notes: "Automated fix for GRAPHQLI-01 - Primary GraphQL Query Injection Control"
+  verification_checks:
+    - "Verify GRAPHQLI-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "GRAPHQLI-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for graphql query injection patterns for graphql-injection"
+  blast_radius_notes: "Automated fix for GRAPHQLI-02 - Input Validation for GraphQL Query Injection"
+  verification_checks:
+    - "Verify GRAPHQLI-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "GRAPHQLI-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for graphql query injection patterns for graphql-injection"
+  blast_radius_notes: "Automated fix for GRAPHQLI-03 - Configuration Hardening for GraphQL Query Injection"
+  verification_checks:
+    - "Verify GRAPHQLI-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "GRAPHQLI-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for graphql query injection patterns for graphql-injection"
+  blast_radius_notes: "Automated fix for GRAPHQLI-04 - Monitoring and Logging for GraphQL Query Injection"
+  verification_checks:
+    - "Verify GRAPHQLI-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "GRAPHQLI-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for graphql query injection patterns for graphql-injection"
+  blast_radius_notes: "Automated fix for GRAPHQLI-05 - Error Handling for GraphQL Query Injection"
+  verification_checks:
+    - "Verify GRAPHQLI-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

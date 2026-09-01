@@ -1,0 +1,62 @@
+# Patchi Security Domain: ts-strict-mode-bypass
+# Source: TypeScript Security
+# Auto-generated — curated from TypeScript Security
+
+domain_id: "ts-strict-mode-bypass"
+version: "1.0.0"
+display_name: "TypeScript Strict Mode Bypass"
+source_standard: "TypeScript Security"
+component_type: "backend-api"
+weight: 0.7
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_ts_strict_mode_bypass_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_ts_strict_mode_bypass"
+
+controls:
+  - control_id: "TSSTRICT-01"
+    name: "TypeScript Strict Mode Bypass — Primary Control"
+    description: "Type assertions or any type bypassing compile-time checks."
+    source_clause: "TS Strict"
+    severity: "medium"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://TSSTRICT-01"
+
+  - control_id: "TSSTRICT-02"
+    name: "TypeScript Strict Mode Bypass — Input Validation"
+    description: "Validate and sanitize all inputs related to typescript strict mode bypass"
+    source_clause: "TS Strict"
+    severity: "medium"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://TSSTRICT-02"
+
+  - control_id: "TSSTRICT-03"
+    name: "TypeScript Strict Mode Bypass — Configuration Hardening"
+    description: "Apply secure configuration defaults for typescript strict mode bypass"
+    source_clause: "TS Strict"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://TSSTRICT-03"
+
+  - control_id: "TSSTRICT-04"
+    name: "TypeScript Strict Mode Bypass — Monitoring and Logging"
+    description: "Log and monitor all typescript strict mode bypass events for audit and detection"
+    source_clause: "TS Strict"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://TSSTRICT-04"
+
+  - control_id: "TSSTRICT-05"
+    name: "TypeScript Strict Mode Bypass — Error Handling"
+    description: "Handle typescript strict mode bypass errors securely without information leakage"
+    source_clause: "TS Strict"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://TSSTRICT-05"

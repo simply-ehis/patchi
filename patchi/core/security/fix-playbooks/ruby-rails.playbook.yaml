@@ -1,116 +1,0 @@
-playbooks:
-- blast_radius_notes: Automated fix for RRS-001
-  control_id: RRS-001
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Mass assignment via params.permit! or attr_accessible: Detect
-    controllers that call params.permit! (which permits all parameters) or models
-    that use attr_accessible without an explicit allow-list (deprecated in Rails 4+
-    but still present in legacy code). Also flag models using accepts_nested_attributes_for
-    on associations that are not in the attr_accessible list, since nested params
-    can be used to set has_many :through associations the developer did not intend.
-    The canonical exploit is setting admin=true or role=''superadmin'' on a User model
-    via a signup form.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify RRS-001 is properly addressed
-- blast_radius_notes: Automated fix for RRS-002
-  control_id: RRS-002
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix SQL injection via string interpolation in ActiveRecord: Detect
-    ActiveRecord calls where SQL fragments are constructed via string interpolation
-    or concatenation with user input. Flag Model.where("field = ''#{user_input}''"),
-    Model.where("field = #{params[:id]}"), Model.order(params[:sort]), Model.joins(params[:join]),
-    Model.find_by_sql("...#{params[:q]}..."), and Model.connection.execute with interpolated
-    strings. The fix is to use parameterized queries: where(field: user_input), where(''field
-    = ?'', user_input), or the Arel DSL for complex conditions. Pay special attention
-    to .order(), .group(), .joins(), and .select() which cannot be parameterized via
-    the hash form and require explicit allow-listing of permitted column names.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify RRS-002 is properly addressed
-- blast_radius_notes: Automated fix for RRS-003
-  control_id: RRS-003
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Unsafe reflection via send / public_send / eval: Detect use
-    of Object#send, Object#public_send, Kernel#eval, Kernel#class_eval, Module#module_eval,
-    or Object#instance_eval with arguments that may include user input. These methods
-    execute arbitrary methods or code on the target object. Flag any send/eval where
-    the first argument is derived from params, request headers, JSON body, or database
-    column containing user-supplied content. Also flag send with a string literal
-    that is constructed via interpolation. The fix is to use a case/when allow-list
-    or, if dynamic dispatch is genuinely needed, to validate the method name against
-    Object.instance_methods(false) filtered to a permitted subset.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify RRS-003 is properly addressed
-- blast_radius_notes: Automated fix for RRS-004
-  control_id: RRS-004
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix CSRF protection disabled in API mode: Detect Rails controllers
-    that call protect_from_forgery :null_session or skip_forgery_protection without
-    an alternative CSRF mitigation. The :null_session strategy is intended for API-only
-    controllers that use token-based auth (Bearer tokens), but it is frequently applied
-    to cookie-authenticated endpoints that remain vulnerable to CSRF. Flag any controller
-    inheriting ActionController::Base that uses :null_session, any skip_before_action
-    :verify_authenticity_token, and any controller that sets protect_from_forgery
-    with: :exception in ApplicationController but then skips it in a cookie-authenticated
-    controller.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify RRS-004 is properly addressed
-- blast_radius_notes: Automated fix for RRS-005
-  control_id: RRS-005
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Insecure YAML / Marshal deserialization: Detect YAML.load
-    (deprecated in Ruby 3.1+ but still present in legacy code) and Marshal.load on
-    untrusted data. YAML.load can instantiate arbitrary Ruby classes via the !ruby/object
-    tag, leading to RCE (CVE-2013-0156 Rails YAML parser, CVE-2017-9096 Psych, etc.).
-    The fix is to use YAML.safe_load with an explicit allow-list of permitted classes.
-    Also flag Oj.load (whose default mode is :object, which is dangerous - it allows
-    arbitrary class instantiation) and any custom deserialize method that calls instance_variable_set
-    on user-controlled keys. The safe Oj modes are :strict (primitives only), :compat
-    (JSON-compatible), and :rails (ActiveSupport-compatible); use Oj.strict_load or
-    Oj.compat_load explicitly.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify RRS-005 is properly addressed
-- blast_radius_notes: Automated fix for RRS-006
-  control_id: RRS-006
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Insecure file upload handling: Detect Rails controllers that
-    accept file uploads without validating content type, file extension, and file
-    size. Flag File.write or File.binwrite where the path includes params[:file].original_filename
-    (path traversal), any send_file call where the path is derived from user input
-    without File.expand_path + base directory check, and any use of params[:file].read
-    into an eval/exec context. Also flag attachments stored with user-supplied filenames
-    that may include ../ sequences or null bytes.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify RRS-006 is properly addressed
-- blast_radius_notes: Automated fix for RRS-007
-  control_id: RRS-007
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Secret key base hardcoded or weak: Detect Rails applications
-    where Rails.application.secret_key_base or Rails.application.config.secret_key_base
-    is set to a hardcoded value in source, where config/secrets.yml contains production
-    keys in plain text (should be env var), where config/master.key or config/credentials.yml.enc
-    is committed to source control (master.key must be in .gitignore), and where the
-    secret_key_base is shorter than 32 bytes. Also flag any test or development secret
-    reused in production via fallback.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify RRS-007 is properly addressed

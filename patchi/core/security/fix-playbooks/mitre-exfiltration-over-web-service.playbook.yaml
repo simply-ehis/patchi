@@ -1,0 +1,60 @@
+# Playbook for: mitre-exfiltration-over-web-service
+# Source: MITRE ATT&CK
+# Auto-generated
+
+playbooks:
+- control_id: "MITREEXF-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary exfiltration over web service (t1567) control patterns for mitre-exfiltration-over-web-service"
+  blast_radius_notes: "Automated fix for MITREEXF-01 - Primary Exfiltration Over Web Service (T1567) Control"
+  verification_checks:
+    - "Verify MITREEXF-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "MITREEXF-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for exfiltration over web service (t1567) patterns for mitre-exfiltration-over-web-service"
+  blast_radius_notes: "Automated fix for MITREEXF-02 - Input Validation for Exfiltration Over Web Service (T1567)"
+  verification_checks:
+    - "Verify MITREEXF-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "MITREEXF-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for exfiltration over web service (t1567) patterns for mitre-exfiltration-over-web-service"
+  blast_radius_notes: "Automated fix for MITREEXF-03 - Configuration Hardening for Exfiltration Over Web Service (T1567)"
+  verification_checks:
+    - "Verify MITREEXF-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "MITREEXF-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for exfiltration over web service (t1567) patterns for mitre-exfiltration-over-web-service"
+  blast_radius_notes: "Automated fix for MITREEXF-04 - Monitoring and Logging for Exfiltration Over Web Service (T1567)"
+  verification_checks:
+    - "Verify MITREEXF-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "MITREEXF-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for exfiltration over web service (t1567) patterns for mitre-exfiltration-over-web-service"
+  blast_radius_notes: "Automated fix for MITREEXF-05 - Error Handling for Exfiltration Over Web Service (T1567)"
+  verification_checks:
+    - "Verify MITREEXF-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

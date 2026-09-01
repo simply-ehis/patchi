@@ -1,0 +1,62 @@
+# Patchi Security Domain: git-signed-commits
+# Source: Git Security
+# Auto-generated — curated from Git Security
+
+domain_id: "git-signed-commits"
+version: "1.0.0"
+display_name: "Git Signed Commits"
+source_standard: "Git Security"
+component_type: "infra"
+weight: 0.75
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_git_signed_commits_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_git_signed_commits"
+
+controls:
+  - control_id: "GITSIGNE-01"
+    name: "Git Signed Commits — Primary Control"
+    description: "Unsigned commits allowing impersonation."
+    source_clause: "Git Signed"
+    severity: "medium"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://GITSIGNE-01"
+
+  - control_id: "GITSIGNE-02"
+    name: "Git Signed Commits — Input Validation"
+    description: "Validate and sanitize all inputs related to git signed commits"
+    source_clause: "Git Signed"
+    severity: "medium"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://GITSIGNE-02"
+
+  - control_id: "GITSIGNE-03"
+    name: "Git Signed Commits — Configuration Hardening"
+    description: "Apply secure configuration defaults for git signed commits"
+    source_clause: "Git Signed"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://GITSIGNE-03"
+
+  - control_id: "GITSIGNE-04"
+    name: "Git Signed Commits — Monitoring and Logging"
+    description: "Log and monitor all git signed commits events for audit and detection"
+    source_clause: "Git Signed"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://GITSIGNE-04"
+
+  - control_id: "GITSIGNE-05"
+    name: "Git Signed Commits — Error Handling"
+    description: "Handle git signed commits errors securely without information leakage"
+    source_clause: "Git Signed"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://GITSIGNE-05"

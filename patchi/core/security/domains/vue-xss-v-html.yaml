@@ -1,0 +1,62 @@
+# Patchi Security Domain: vue-xss-v-html
+# Source: Vue.js Security
+# Auto-generated — curated from Vue.js Security
+
+domain_id: "vue-xss-v-html"
+version: "1.0.0"
+display_name: "XSS via v-html Directive"
+source_standard: "Vue.js Security"
+component_type: "frontend-web"
+weight: 0.9
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_vue_xss_v_html_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_vue_xss_v_html"
+
+controls:
+  - control_id: "VUEXSSVH-01"
+    name: "XSS via v-html Directive — Primary Control"
+    description: "Using v-html with user content enables XSS."
+    source_clause: "Vue XSS"
+    severity: "critical"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://VUEXSSVH-01"
+
+  - control_id: "VUEXSSVH-02"
+    name: "XSS via v-html Directive — Input Validation"
+    description: "Validate and sanitize all inputs related to xss via v-html directive"
+    source_clause: "Vue XSS"
+    severity: "critical"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://VUEXSSVH-02"
+
+  - control_id: "VUEXSSVH-03"
+    name: "XSS via v-html Directive — Configuration Hardening"
+    description: "Apply secure configuration defaults for xss via v-html directive"
+    source_clause: "Vue XSS"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://VUEXSSVH-03"
+
+  - control_id: "VUEXSSVH-04"
+    name: "XSS via v-html Directive — Monitoring and Logging"
+    description: "Log and monitor all xss via v-html directive events for audit and detection"
+    source_clause: "Vue XSS"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://VUEXSSVH-04"
+
+  - control_id: "VUEXSSVH-05"
+    name: "XSS via v-html Directive — Error Handling"
+    description: "Handle xss via v-html directive errors securely without information leakage"
+    source_clause: "Vue XSS"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://VUEXSSVH-05"

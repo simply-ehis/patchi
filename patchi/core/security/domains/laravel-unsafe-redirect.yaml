@@ -1,0 +1,62 @@
+# Patchi Security Domain: laravel-unsafe-redirect
+# Source: Laravel Security
+# Auto-generated — curated from Laravel Security
+
+domain_id: "laravel-unsafe-redirect"
+version: "1.0.0"
+display_name: "Laravel Open Redirect"
+source_standard: "Laravel Security"
+component_type: "backend-api"
+weight: 0.75
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_laravel_unsafe_redirect_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_laravel_unsafe_redirect"
+
+controls:
+  - control_id: "LARAVELU-01"
+    name: "Laravel Open Redirect — Primary Control"
+    description: "Redirect with unvalidated URL parameter."
+    source_clause: "Laravel Redirect"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://LARAVELU-01"
+
+  - control_id: "LARAVELU-02"
+    name: "Laravel Open Redirect — Input Validation"
+    description: "Validate and sanitize all inputs related to laravel open redirect"
+    source_clause: "Laravel Redirect"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://LARAVELU-02"
+
+  - control_id: "LARAVELU-03"
+    name: "Laravel Open Redirect — Configuration Hardening"
+    description: "Apply secure configuration defaults for laravel open redirect"
+    source_clause: "Laravel Redirect"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://LARAVELU-03"
+
+  - control_id: "LARAVELU-04"
+    name: "Laravel Open Redirect — Monitoring and Logging"
+    description: "Log and monitor all laravel open redirect events for audit and detection"
+    source_clause: "Laravel Redirect"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://LARAVELU-04"
+
+  - control_id: "LARAVELU-05"
+    name: "Laravel Open Redirect — Error Handling"
+    description: "Handle laravel open redirect errors securely without information leakage"
+    source_clause: "Laravel Redirect"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://LARAVELU-05"

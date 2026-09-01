@@ -1,0 +1,62 @@
+# Patchi Security Domain: mitre-defense-evasion-signed-binary
+# Source: MITRE ATT&CK
+# Auto-generated — curated from MITRE ATT&CK
+
+domain_id: "mitre-defense-evasion-signed-binary"
+version: "1.0.0"
+display_name: "Signed Binary Proxy Execution (T1218)"
+source_standard: "MITRE ATT&CK"
+component_type: "infra"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_mitre_defense_evasion_signed_binary_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_mitre_defense_evasion_signed_binary"
+
+controls:
+  - control_id: "MITREDEF-01"
+    name: "Signed Binary Proxy Execution (T1218) — Primary Control"
+    description: "Using signed binaries to proxy execution of malicious code."
+    source_clause: "T1218"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://MITREDEF-01"
+
+  - control_id: "MITREDEF-02"
+    name: "Signed Binary Proxy Execution (T1218) — Input Validation"
+    description: "Validate and sanitize all inputs related to signed binary proxy execution (t1218)"
+    source_clause: "T1218"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://MITREDEF-02"
+
+  - control_id: "MITREDEF-03"
+    name: "Signed Binary Proxy Execution (T1218) — Configuration Hardening"
+    description: "Apply secure configuration defaults for signed binary proxy execution (t1218)"
+    source_clause: "T1218"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://MITREDEF-03"
+
+  - control_id: "MITREDEF-04"
+    name: "Signed Binary Proxy Execution (T1218) — Monitoring and Logging"
+    description: "Log and monitor all signed binary proxy execution (t1218) events for audit and detection"
+    source_clause: "T1218"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://MITREDEF-04"
+
+  - control_id: "MITREDEF-05"
+    name: "Signed Binary Proxy Execution (T1218) — Error Handling"
+    description: "Handle signed binary proxy execution (t1218) errors securely without information leakage"
+    source_clause: "T1218"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://MITREDEF-05"

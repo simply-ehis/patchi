@@ -1,0 +1,62 @@
+# Patchi Security Domain: cloud-gcp-iam
+# Source: Cloud Security GCP
+# Auto-generated — curated from Cloud Security GCP
+
+domain_id: "cloud-gcp-iam"
+version: "1.0.0"
+display_name: "GCP IAM Over-Permission"
+source_standard: "Cloud Security GCP"
+component_type: "cloud-gcp"
+weight: 0.9
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_cloud_gcp_iam_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_cloud_gcp_iam"
+
+controls:
+  - control_id: "CLOUDGCP-01"
+    name: "GCP IAM Over-Permission — Primary Control"
+    description: "roles/editor or roles/owner granted to service accounts."
+    source_clause: "GCP IAM"
+    severity: "critical"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CLOUDGCP-01"
+
+  - control_id: "CLOUDGCP-02"
+    name: "GCP IAM Over-Permission — Input Validation"
+    description: "Validate and sanitize all inputs related to gcp iam over-permission"
+    source_clause: "GCP IAM"
+    severity: "critical"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CLOUDGCP-02"
+
+  - control_id: "CLOUDGCP-03"
+    name: "GCP IAM Over-Permission — Configuration Hardening"
+    description: "Apply secure configuration defaults for gcp iam over-permission"
+    source_clause: "GCP IAM"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CLOUDGCP-03"
+
+  - control_id: "CLOUDGCP-04"
+    name: "GCP IAM Over-Permission — Monitoring and Logging"
+    description: "Log and monitor all gcp iam over-permission events for audit and detection"
+    source_clause: "GCP IAM"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CLOUDGCP-04"
+
+  - control_id: "CLOUDGCP-05"
+    name: "GCP IAM Over-Permission — Error Handling"
+    description: "Handle gcp iam over-permission errors securely without information leakage"
+    source_clause: "GCP IAM"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CLOUDGCP-05"

@@ -1,0 +1,62 @@
+# Patchi Security Domain: privacy-data-anonymization
+# Source: Privacy Engineering
+# Auto-generated — curated from Privacy Engineering
+
+domain_id: "privacy-data-anonymization"
+version: "1.0.0"
+display_name: "Data Anonymization"
+source_standard: "Privacy Engineering"
+component_type: "backend-api"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_privacy_data_anonymization_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_privacy_data_anonymization"
+
+controls:
+  - control_id: "PRIVACYD-01"
+    name: "Data Anonymization — Primary Control"
+    description: "Personal data not properly anonymized or pseudonymized."
+    source_clause: "Privacy Anon"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://PRIVACYD-01"
+
+  - control_id: "PRIVACYD-02"
+    name: "Data Anonymization — Input Validation"
+    description: "Validate and sanitize all inputs related to data anonymization"
+    source_clause: "Privacy Anon"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://PRIVACYD-02"
+
+  - control_id: "PRIVACYD-03"
+    name: "Data Anonymization — Configuration Hardening"
+    description: "Apply secure configuration defaults for data anonymization"
+    source_clause: "Privacy Anon"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://PRIVACYD-03"
+
+  - control_id: "PRIVACYD-04"
+    name: "Data Anonymization — Monitoring and Logging"
+    description: "Log and monitor all data anonymization events for audit and detection"
+    source_clause: "Privacy Anon"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://PRIVACYD-04"
+
+  - control_id: "PRIVACYD-05"
+    name: "Data Anonymization — Error Handling"
+    description: "Handle data anonymization errors securely without information leakage"
+    source_clause: "Privacy Anon"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://PRIVACYD-05"

@@ -1,0 +1,60 @@
+# Playbook for: owasp-iot-insecure-defaults
+# Source: OWASP IoT 2024 IoT7
+# Auto-generated
+
+playbooks:
+- control_id: "OWASPIOT-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary insecure default settings control patterns for owasp-iot-insecure-defaults"
+  blast_radius_notes: "Automated fix for OWASPIOT-01 - Primary Insecure Default Settings Control"
+  verification_checks:
+    - "Verify OWASPIOT-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "OWASPIOT-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for insecure default settings patterns for owasp-iot-insecure-defaults"
+  blast_radius_notes: "Automated fix for OWASPIOT-02 - Input Validation for Insecure Default Settings"
+  verification_checks:
+    - "Verify OWASPIOT-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "OWASPIOT-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for insecure default settings patterns for owasp-iot-insecure-defaults"
+  blast_radius_notes: "Automated fix for OWASPIOT-03 - Configuration Hardening for Insecure Default Settings"
+  verification_checks:
+    - "Verify OWASPIOT-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "OWASPIOT-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for insecure default settings patterns for owasp-iot-insecure-defaults"
+  blast_radius_notes: "Automated fix for OWASPIOT-04 - Monitoring and Logging for Insecure Default Settings"
+  verification_checks:
+    - "Verify OWASPIOT-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "OWASPIOT-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for insecure default settings patterns for owasp-iot-insecure-defaults"
+  blast_radius_notes: "Automated fix for OWASPIOT-05 - Error Handling for Insecure Default Settings"
+  verification_checks:
+    - "Verify OWASPIOT-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

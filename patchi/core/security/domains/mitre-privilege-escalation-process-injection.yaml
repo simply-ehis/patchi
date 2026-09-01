@@ -1,0 +1,62 @@
+# Patchi Security Domain: mitre-privilege-escalation-process-injection
+# Source: MITRE ATT&CK
+# Auto-generated — curated from MITRE ATT&CK
+
+domain_id: "mitre-privilege-escalation-process-injection"
+version: "1.0.0"
+display_name: "Process Injection (T1055)"
+source_standard: "MITRE ATT&CK"
+component_type: "native-code"
+weight: 0.9
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_mitre_privilege_escalation_process_injection_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_mitre_privilege_escalation_process_injection"
+
+controls:
+  - control_id: "MITREPRI-01"
+    name: "Process Injection (T1055) — Primary Control"
+    description: "Injecting code into running processes for privilege escalation."
+    source_clause: "T1055"
+    severity: "critical"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://MITREPRI-01"
+
+  - control_id: "MITREPRI-02"
+    name: "Process Injection (T1055) — Input Validation"
+    description: "Validate and sanitize all inputs related to process injection (t1055)"
+    source_clause: "T1055"
+    severity: "critical"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://MITREPRI-02"
+
+  - control_id: "MITREPRI-03"
+    name: "Process Injection (T1055) — Configuration Hardening"
+    description: "Apply secure configuration defaults for process injection (t1055)"
+    source_clause: "T1055"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://MITREPRI-03"
+
+  - control_id: "MITREPRI-04"
+    name: "Process Injection (T1055) — Monitoring and Logging"
+    description: "Log and monitor all process injection (t1055) events for audit and detection"
+    source_clause: "T1055"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://MITREPRI-04"
+
+  - control_id: "MITREPRI-05"
+    name: "Process Injection (T1055) — Error Handling"
+    description: "Handle process injection (t1055) errors securely without information leakage"
+    source_clause: "T1055"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://MITREPRI-05"

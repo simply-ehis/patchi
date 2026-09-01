@@ -1,0 +1,60 @@
+# Playbook for: dockerfile-security
+# Source: Container Security
+# Auto-generated
+
+playbooks:
+- control_id: "DOCKERFI-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary dockerfile security control patterns for dockerfile-security"
+  blast_radius_notes: "Automated fix for DOCKERFI-01 - Primary Dockerfile Security Control"
+  verification_checks:
+    - "Verify DOCKERFI-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "DOCKERFI-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for dockerfile security patterns for dockerfile-security"
+  blast_radius_notes: "Automated fix for DOCKERFI-02 - Input Validation for Dockerfile Security"
+  verification_checks:
+    - "Verify DOCKERFI-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "DOCKERFI-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for dockerfile security patterns for dockerfile-security"
+  blast_radius_notes: "Automated fix for DOCKERFI-03 - Configuration Hardening for Dockerfile Security"
+  verification_checks:
+    - "Verify DOCKERFI-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "DOCKERFI-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for dockerfile security patterns for dockerfile-security"
+  blast_radius_notes: "Automated fix for DOCKERFI-04 - Monitoring and Logging for Dockerfile Security"
+  verification_checks:
+    - "Verify DOCKERFI-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "DOCKERFI-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for dockerfile security patterns for dockerfile-security"
+  blast_radius_notes: "Automated fix for DOCKERFI-05 - Error Handling for Dockerfile Security"
+  verification_checks:
+    - "Verify DOCKERFI-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

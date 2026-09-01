@@ -1,0 +1,60 @@
+# Playbook for: cwe-125-out-of-bounds-read
+# Source: CWE Top 25 2024 CWE-125
+# Auto-generated
+
+playbooks:
+- control_id: "CWE125OU-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary out-of-bounds read control patterns for cwe-125-out-of-bounds-read"
+  blast_radius_notes: "Automated fix for CWE125OU-01 - Primary Out-of-bounds Read Control"
+  verification_checks:
+    - "Verify CWE125OU-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CWE125OU-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for out-of-bounds read patterns for cwe-125-out-of-bounds-read"
+  blast_radius_notes: "Automated fix for CWE125OU-02 - Input Validation for Out-of-bounds Read"
+  verification_checks:
+    - "Verify CWE125OU-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CWE125OU-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for out-of-bounds read patterns for cwe-125-out-of-bounds-read"
+  blast_radius_notes: "Automated fix for CWE125OU-03 - Configuration Hardening for Out-of-bounds Read"
+  verification_checks:
+    - "Verify CWE125OU-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CWE125OU-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for out-of-bounds read patterns for cwe-125-out-of-bounds-read"
+  blast_radius_notes: "Automated fix for CWE125OU-04 - Monitoring and Logging for Out-of-bounds Read"
+  verification_checks:
+    - "Verify CWE125OU-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CWE125OU-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for out-of-bounds read patterns for cwe-125-out-of-bounds-read"
+  blast_radius_notes: "Automated fix for CWE125OU-05 - Error Handling for Out-of-bounds Read"
+  verification_checks:
+    - "Verify CWE125OU-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

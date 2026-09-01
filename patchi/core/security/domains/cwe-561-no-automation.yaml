@@ -1,0 +1,62 @@
+# Patchi Security Domain: cwe-561-no-automation
+# Source: CWE-561
+# Auto-generated — curated from CWE-561
+
+domain_id: "cwe-561-no-automation"
+version: "1.0.0"
+display_name: "Use of Homoglyphs in URL Path"
+source_standard: "CWE-561"
+component_type: "frontend-web"
+weight: 0.7
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_cwe_561_no_automation_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_cwe_561_no_automation"
+
+controls:
+  - control_id: "CWE561NO-01"
+    name: "Use of Homoglyphs in URL Path — Primary Control"
+    description: "Application does not normalize or validate URL paths for homoglyph attacks."
+    source_clause: "CWE-561"
+    severity: "medium"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CWE561NO-01"
+
+  - control_id: "CWE561NO-02"
+    name: "Use of Homoglyphs in URL Path — Input Validation"
+    description: "Validate and sanitize all inputs related to use of homoglyphs in url path"
+    source_clause: "CWE-561"
+    severity: "medium"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CWE561NO-02"
+
+  - control_id: "CWE561NO-03"
+    name: "Use of Homoglyphs in URL Path — Configuration Hardening"
+    description: "Apply secure configuration defaults for use of homoglyphs in url path"
+    source_clause: "CWE-561"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CWE561NO-03"
+
+  - control_id: "CWE561NO-04"
+    name: "Use of Homoglyphs in URL Path — Monitoring and Logging"
+    description: "Log and monitor all use of homoglyphs in url path events for audit and detection"
+    source_clause: "CWE-561"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CWE561NO-04"
+
+  - control_id: "CWE561NO-05"
+    name: "Use of Homoglyphs in URL Path — Error Handling"
+    description: "Handle use of homoglyphs in url path errors securely without information leakage"
+    source_clause: "CWE-561"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CWE561NO-05"

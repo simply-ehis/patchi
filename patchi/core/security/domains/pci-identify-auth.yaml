@@ -1,0 +1,62 @@
+# Patchi Security Domain: pci-identify-auth
+# Source: PCI DSS 4.0 Req 8
+# Auto-generated — curated from PCI DSS 4.0 Req 8
+
+domain_id: "pci-identify-auth"
+version: "1.0.0"
+display_name: "Identify Users and Authenticate Access"
+source_standard: "PCI DSS 4.0 Req 8"
+component_type: "backend-api"
+weight: 0.9
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_pci_identify_auth_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_pci_identify_auth"
+
+controls:
+  - control_id: "PCIIDENT-01"
+    name: "Identify Users and Authenticate Access — Primary Control"
+    description: "Identify and authenticate access to system components."
+    source_clause: "PCI DSS 8"
+    severity: "critical"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://PCIIDENT-01"
+
+  - control_id: "PCIIDENT-02"
+    name: "Identify Users and Authenticate Access — Input Validation"
+    description: "Validate and sanitize all inputs related to identify users and authenticate access"
+    source_clause: "PCI DSS 8"
+    severity: "critical"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://PCIIDENT-02"
+
+  - control_id: "PCIIDENT-03"
+    name: "Identify Users and Authenticate Access — Configuration Hardening"
+    description: "Apply secure configuration defaults for identify users and authenticate access"
+    source_clause: "PCI DSS 8"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://PCIIDENT-03"
+
+  - control_id: "PCIIDENT-04"
+    name: "Identify Users and Authenticate Access — Monitoring and Logging"
+    description: "Log and monitor all identify users and authenticate access events for audit and detection"
+    source_clause: "PCI DSS 8"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://PCIIDENT-04"
+
+  - control_id: "PCIIDENT-05"
+    name: "Identify Users and Authenticate Access — Error Handling"
+    description: "Handle identify users and authenticate access errors securely without information leakage"
+    source_clause: "PCI DSS 8"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://PCIIDENT-05"

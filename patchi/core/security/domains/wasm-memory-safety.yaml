@@ -1,0 +1,62 @@
+# Patchi Security Domain: wasm-memory-safety
+# Source: WebAssembly Security
+# Auto-generated — curated from WebAssembly Security
+
+domain_id: "wasm-memory-safety"
+version: "1.0.0"
+display_name: "WebAssembly Memory Safety"
+source_standard: "WebAssembly Security"
+component_type: "frontend-web"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_wasm_memory_safety_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_wasm_memory_safety"
+
+controls:
+  - control_id: "WASMMEMO-01"
+    name: "WebAssembly Memory Safety — Primary Control"
+    description: "Out-of-bounds memory access in WASM modules."
+    source_clause: "WASM Memory"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://WASMMEMO-01"
+
+  - control_id: "WASMMEMO-02"
+    name: "WebAssembly Memory Safety — Input Validation"
+    description: "Validate and sanitize all inputs related to webassembly memory safety"
+    source_clause: "WASM Memory"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://WASMMEMO-02"
+
+  - control_id: "WASMMEMO-03"
+    name: "WebAssembly Memory Safety — Configuration Hardening"
+    description: "Apply secure configuration defaults for webassembly memory safety"
+    source_clause: "WASM Memory"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://WASMMEMO-03"
+
+  - control_id: "WASMMEMO-04"
+    name: "WebAssembly Memory Safety — Monitoring and Logging"
+    description: "Log and monitor all webassembly memory safety events for audit and detection"
+    source_clause: "WASM Memory"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://WASMMEMO-04"
+
+  - control_id: "WASMMEMO-05"
+    name: "WebAssembly Memory Safety — Error Handling"
+    description: "Handle webassembly memory safety errors securely without information leakage"
+    source_clause: "WASM Memory"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://WASMMEMO-05"

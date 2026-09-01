@@ -1,0 +1,62 @@
+# Patchi Security Domain: cicd-workflow-injection
+# Source: CI/CD Security
+# Auto-generated — curated from CI/CD Security
+
+domain_id: "cicd-workflow-injection"
+version: "1.0.0"
+display_name: "GitHub Actions Workflow Injection"
+source_standard: "CI/CD Security"
+component_type: "infra"
+weight: 0.9
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_cicd_workflow_injection_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_cicd_workflow_injection"
+
+controls:
+  - control_id: "CICDWORK-01"
+    name: "GitHub Actions Workflow Injection — Primary Control"
+    description: "Untrusted input in GitHub Actions workflow expressions leading to code execution."
+    source_clause: "GH Actions"
+    severity: "critical"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CICDWORK-01"
+
+  - control_id: "CICDWORK-02"
+    name: "GitHub Actions Workflow Injection — Input Validation"
+    description: "Validate and sanitize all inputs related to github actions workflow injection"
+    source_clause: "GH Actions"
+    severity: "critical"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CICDWORK-02"
+
+  - control_id: "CICDWORK-03"
+    name: "GitHub Actions Workflow Injection — Configuration Hardening"
+    description: "Apply secure configuration defaults for github actions workflow injection"
+    source_clause: "GH Actions"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CICDWORK-03"
+
+  - control_id: "CICDWORK-04"
+    name: "GitHub Actions Workflow Injection — Monitoring and Logging"
+    description: "Log and monitor all github actions workflow injection events for audit and detection"
+    source_clause: "GH Actions"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CICDWORK-04"
+
+  - control_id: "CICDWORK-05"
+    name: "GitHub Actions Workflow Injection — Error Handling"
+    description: "Handle github actions workflow injection errors securely without information leakage"
+    source_clause: "GH Actions"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CICDWORK-05"

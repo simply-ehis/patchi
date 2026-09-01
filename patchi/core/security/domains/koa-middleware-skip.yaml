@@ -1,0 +1,62 @@
+# Patchi Security Domain: koa-middleware-skip
+# Source: Node.js Security
+# Auto-generated — curated from Node.js Security
+
+domain_id: "koa-middleware-skip"
+version: "1.0.0"
+display_name: "Koa Middleware Skip"
+source_standard: "Node.js Security"
+component_type: "backend-api"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_koa_middleware_skip_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_koa_middleware_skip"
+
+controls:
+  - control_id: "KOAMIDDL-01"
+    name: "Koa Middleware Skip — Primary Control"
+    description: "Missing or bypassable authentication middleware."
+    source_clause: "Koa Middleware"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://KOAMIDDL-01"
+
+  - control_id: "KOAMIDDL-02"
+    name: "Koa Middleware Skip — Input Validation"
+    description: "Validate and sanitize all inputs related to koa middleware skip"
+    source_clause: "Koa Middleware"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://KOAMIDDL-02"
+
+  - control_id: "KOAMIDDL-03"
+    name: "Koa Middleware Skip — Configuration Hardening"
+    description: "Apply secure configuration defaults for koa middleware skip"
+    source_clause: "Koa Middleware"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://KOAMIDDL-03"
+
+  - control_id: "KOAMIDDL-04"
+    name: "Koa Middleware Skip — Monitoring and Logging"
+    description: "Log and monitor all koa middleware skip events for audit and detection"
+    source_clause: "Koa Middleware"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://KOAMIDDL-04"
+
+  - control_id: "KOAMIDDL-05"
+    name: "Koa Middleware Skip — Error Handling"
+    description: "Handle koa middleware skip errors securely without information leakage"
+    source_clause: "Koa Middleware"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://KOAMIDDL-05"

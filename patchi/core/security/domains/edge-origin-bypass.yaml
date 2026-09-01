@@ -1,0 +1,62 @@
+# Patchi Security Domain: edge-origin-bypass
+# Source: Edge Computing Security
+# Auto-generated — curated from Edge Computing Security
+
+domain_id: "edge-origin-bypass"
+version: "1.0.0"
+display_name: "Edge Origin Bypass"
+source_standard: "Edge Computing Security"
+component_type: "infra"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_edge_origin_bypass_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_edge_origin_bypass"
+
+controls:
+  - control_id: "EDGEORIG-01"
+    name: "Edge Origin Bypass — Primary Control"
+    description: "Bypassing edge protection to access origin directly."
+    source_clause: "Edge Origin"
+    severity: "high"
+    check_method: "dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://EDGEORIG-01"
+
+  - control_id: "EDGEORIG-02"
+    name: "Edge Origin Bypass — Input Validation"
+    description: "Validate and sanitize all inputs related to edge origin bypass"
+    source_clause: "Edge Origin"
+    severity: "high"
+    check_method: "dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://EDGEORIG-02"
+
+  - control_id: "EDGEORIG-03"
+    name: "Edge Origin Bypass — Configuration Hardening"
+    description: "Apply secure configuration defaults for edge origin bypass"
+    source_clause: "Edge Origin"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://EDGEORIG-03"
+
+  - control_id: "EDGEORIG-04"
+    name: "Edge Origin Bypass — Monitoring and Logging"
+    description: "Log and monitor all edge origin bypass events for audit and detection"
+    source_clause: "Edge Origin"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://EDGEORIG-04"
+
+  - control_id: "EDGEORIG-05"
+    name: "Edge Origin Bypass — Error Handling"
+    description: "Handle edge origin bypass errors securely without information leakage"
+    source_clause: "Edge Origin"
+    severity: "medium"
+    check_method: "dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://EDGEORIG-05"

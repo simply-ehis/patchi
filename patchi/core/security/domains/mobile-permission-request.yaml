@@ -1,0 +1,62 @@
+# Patchi Security Domain: mobile-permission-request
+# Source: Mobile Security
+# Auto-generated — curated from Mobile Security
+
+domain_id: "mobile-permission-request"
+version: "1.0.0"
+display_name: "Permission Request Security"
+source_standard: "Mobile Security"
+component_type: "mobile-native"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_mobile_permission_request_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_mobile_permission_request"
+
+controls:
+  - control_id: "MOBILEPE-01"
+    name: "Permission Request Security — Primary Control"
+    description: "Requesting excessive or unnecessary device permissions."
+    source_clause: "Mobile Perm"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://MOBILEPE-01"
+
+  - control_id: "MOBILEPE-02"
+    name: "Permission Request Security — Input Validation"
+    description: "Validate and sanitize all inputs related to permission request security"
+    source_clause: "Mobile Perm"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://MOBILEPE-02"
+
+  - control_id: "MOBILEPE-03"
+    name: "Permission Request Security — Configuration Hardening"
+    description: "Apply secure configuration defaults for permission request security"
+    source_clause: "Mobile Perm"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://MOBILEPE-03"
+
+  - control_id: "MOBILEPE-04"
+    name: "Permission Request Security — Monitoring and Logging"
+    description: "Log and monitor all permission request security events for audit and detection"
+    source_clause: "Mobile Perm"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://MOBILEPE-04"
+
+  - control_id: "MOBILEPE-05"
+    name: "Permission Request Security — Error Handling"
+    description: "Handle permission request security errors securely without information leakage"
+    source_clause: "Mobile Perm"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://MOBILEPE-05"

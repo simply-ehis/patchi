@@ -1,0 +1,60 @@
+# Playbook for: flask-jinja2-xss
+# Source: Flask Security
+# Auto-generated
+
+playbooks:
+- control_id: "FLASKJIN-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary flask jinja2 xss control patterns for flask-jinja2-xss"
+  blast_radius_notes: "Automated fix for FLASKJIN-01 - Primary Flask Jinja2 XSS Control"
+  verification_checks:
+    - "Verify FLASKJIN-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "FLASKJIN-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for flask jinja2 xss patterns for flask-jinja2-xss"
+  blast_radius_notes: "Automated fix for FLASKJIN-02 - Input Validation for Flask Jinja2 XSS"
+  verification_checks:
+    - "Verify FLASKJIN-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "FLASKJIN-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for flask jinja2 xss patterns for flask-jinja2-xss"
+  blast_radius_notes: "Automated fix for FLASKJIN-03 - Configuration Hardening for Flask Jinja2 XSS"
+  verification_checks:
+    - "Verify FLASKJIN-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "FLASKJIN-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for flask jinja2 xss patterns for flask-jinja2-xss"
+  blast_radius_notes: "Automated fix for FLASKJIN-04 - Monitoring and Logging for Flask Jinja2 XSS"
+  verification_checks:
+    - "Verify FLASKJIN-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "FLASKJIN-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for flask jinja2 xss patterns for flask-jinja2-xss"
+  blast_radius_notes: "Automated fix for FLASKJIN-05 - Error Handling for Flask Jinja2 XSS"
+  verification_checks:
+    - "Verify FLASKJIN-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

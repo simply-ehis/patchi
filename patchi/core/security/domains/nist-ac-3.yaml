@@ -1,0 +1,62 @@
+# Patchi Security Domain: nist-ac-3
+# Source: NIST SP 800-53 AC-3
+# Auto-generated — curated from NIST SP 800-53 AC-3
+
+domain_id: "nist-ac-3"
+version: "1.0.0"
+display_name: "Access Enforcement"
+source_standard: "NIST SP 800-53 AC-3"
+component_type: "backend-api"
+weight: 0.9
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_nist_ac_3_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_nist_ac_3"
+
+controls:
+  - control_id: "NISTAC3-01"
+    name: "Access Enforcement — Primary Control"
+    description: "System enforces approved authorizations for logical access control."
+    source_clause: "AC-3"
+    severity: "critical"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://NISTAC3-01"
+
+  - control_id: "NISTAC3-02"
+    name: "Access Enforcement — Input Validation"
+    description: "Validate and sanitize all inputs related to access enforcement"
+    source_clause: "AC-3"
+    severity: "critical"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://NISTAC3-02"
+
+  - control_id: "NISTAC3-03"
+    name: "Access Enforcement — Configuration Hardening"
+    description: "Apply secure configuration defaults for access enforcement"
+    source_clause: "AC-3"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://NISTAC3-03"
+
+  - control_id: "NISTAC3-04"
+    name: "Access Enforcement — Monitoring and Logging"
+    description: "Log and monitor all access enforcement events for audit and detection"
+    source_clause: "AC-3"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://NISTAC3-04"
+
+  - control_id: "NISTAC3-05"
+    name: "Access Enforcement — Error Handling"
+    description: "Handle access enforcement errors securely without information leakage"
+    source_clause: "AC-3"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://NISTAC3-05"

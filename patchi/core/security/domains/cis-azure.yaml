@@ -1,0 +1,62 @@
+# Patchi Security Domain: cis-azure
+# Source: CIS Azure Benchmark
+# Auto-generated — curated from CIS Azure Benchmark
+
+domain_id: "cis-azure"
+version: "1.0.0"
+display_name: "Azure Cloud Hardening"
+source_standard: "CIS Azure Benchmark"
+component_type: "cloud-azure"
+weight: 0.9
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_cis_azure_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_cis_azure"
+
+controls:
+  - control_id: "CISAZURE-01"
+    name: "Azure Cloud Hardening — Primary Control"
+    description: "IAM, storage, networking, monitoring, and database security in Azure."
+    source_clause: "CIS Azure"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CISAZURE-01"
+
+  - control_id: "CISAZURE-02"
+    name: "Azure Cloud Hardening — Input Validation"
+    description: "Validate and sanitize all inputs related to azure cloud hardening"
+    source_clause: "CIS Azure"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CISAZURE-02"
+
+  - control_id: "CISAZURE-03"
+    name: "Azure Cloud Hardening — Configuration Hardening"
+    description: "Apply secure configuration defaults for azure cloud hardening"
+    source_clause: "CIS Azure"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CISAZURE-03"
+
+  - control_id: "CISAZURE-04"
+    name: "Azure Cloud Hardening — Monitoring and Logging"
+    description: "Log and monitor all azure cloud hardening events for audit and detection"
+    source_clause: "CIS Azure"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CISAZURE-04"
+
+  - control_id: "CISAZURE-05"
+    name: "Azure Cloud Hardening — Error Handling"
+    description: "Handle azure cloud hardening errors securely without information leakage"
+    source_clause: "CIS Azure"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CISAZURE-05"

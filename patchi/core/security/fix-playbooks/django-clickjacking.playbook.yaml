@@ -1,0 +1,60 @@
+# Playbook for: django-clickjacking
+# Source: Django Security
+# Auto-generated
+
+playbooks:
+- control_id: "DJANGOCL-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary django clickjacking protection control patterns for django-clickjacking"
+  blast_radius_notes: "Automated fix for DJANGOCL-01 - Primary Django Clickjacking Protection Control"
+  verification_checks:
+    - "Verify DJANGOCL-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "DJANGOCL-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for django clickjacking protection patterns for django-clickjacking"
+  blast_radius_notes: "Automated fix for DJANGOCL-02 - Input Validation for Django Clickjacking Protection"
+  verification_checks:
+    - "Verify DJANGOCL-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "DJANGOCL-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for django clickjacking protection patterns for django-clickjacking"
+  blast_radius_notes: "Automated fix for DJANGOCL-03 - Configuration Hardening for Django Clickjacking Protection"
+  verification_checks:
+    - "Verify DJANGOCL-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "DJANGOCL-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for django clickjacking protection patterns for django-clickjacking"
+  blast_radius_notes: "Automated fix for DJANGOCL-04 - Monitoring and Logging for Django Clickjacking Protection"
+  verification_checks:
+    - "Verify DJANGOCL-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "DJANGOCL-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for django clickjacking protection patterns for django-clickjacking"
+  blast_radius_notes: "Automated fix for DJANGOCL-05 - Error Handling for Django Clickjacking Protection"
+  verification_checks:
+    - "Verify DJANGOCL-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

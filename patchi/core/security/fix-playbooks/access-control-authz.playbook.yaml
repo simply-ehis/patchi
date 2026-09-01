@@ -1,164 +1,0 @@
-playbooks:
-- blast_radius_notes: Automated fix for AUTHZ-01
-  control_id: AUTHZ-01
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Document function-level and data-specific authorization rules:
-    Authorization documentation must define rules for restricting function-level and
-    data-specific access based on consumer permissions and resource attributes.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify AUTHZ-01 is properly addressed
-- blast_radius_notes: Automated fix for AUTHZ-02
-  control_id: AUTHZ-02
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Document field-level access restriction rules: Authorization
-    documentation must define rules for field-level access restrictions (both read
-    and write) based on consumer permissions and resource attributes, noting these
-    rules may depend on other attribute values of the data object (e.g. its state/status).'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify AUTHZ-02 is properly addressed
-- blast_radius_notes: Automated fix for AUTHZ-03
-  control_id: AUTHZ-03
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Document environmental/contextual attributes used in security
-    decisions: Documentation must define the environmental and contextual attributes
-    (time of day, user location, IP address, device, etc.) used to make security decisions,
-    including authentication and authorization decisions.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify AUTHZ-03 is properly addressed
-- blast_radius_notes: Automated fix for AUTHZ-04
-  control_id: AUTHZ-04
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Document how contextual factors drive decision-making and
-    actions: Documentation must define how environmental/contextual factors are used
-    in decision-making alongside function-level, data-specific, and field-level authorization,
-    including which attributes are evaluated, risk thresholds, and resulting actions
-    (allow, challenge, deny, step-up authentication).'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify AUTHZ-04 is properly addressed
-- blast_radius_notes: Automated fix for AUTHZ-05
-  control_id: AUTHZ-05
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Restrict function-level access to consumers with explicit
-    permission: The application must ensure function-level access (e.g. an action
-    or operation) is restricted to consumers who have been explicitly granted permission
-    to perform it.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify AUTHZ-05 is properly addressed
-- blast_radius_notes: Automated fix for AUTHZ-06
-  control_id: AUTHZ-06
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Restrict data-specific access to prevent IDOR/BOLA: The application
-    must ensure data-specific access is restricted to consumers with explicit permission
-    to the specific data item requested, to mitigate insecure direct object reference
-    (IDOR) and broken object level authorization (BOLA). Possible overlap with backend-api''s
-    API-specific BOLA controls  -  see domain-level scope note.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify AUTHZ-06 is properly addressed
-- blast_radius_notes: Automated fix for AUTHZ-07
-  control_id: AUTHZ-07
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Restrict field-level access to prevent BOPLA: The application
-    must ensure field-level access is restricted to consumers with explicit permission
-    to specific fields, to mitigate broken object property level authorization (BOPLA)
-     -  i.e. a consumer authorized to view/edit some fields of an object should not
-    automatically gain access to all of that object''s fields. Possible overlap with
-    backend-api  -  see domain-level scope note.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify AUTHZ-07 is properly addressed
-- blast_radius_notes: Automated fix for AUTHZ-08
-  control_id: AUTHZ-08
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Apply adaptive, context-aware authorization controls throughout
-    a session: Adaptive security controls based on a consumer''s environmental/contextual
-    attributes (time, location, IP, device) must be applied both when starting a new
-    session and during an existing session, as defined in the application''s documentation.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify AUTHZ-08 is properly addressed
-- blast_radius_notes: Automated fix for AUTHZ-09
-  control_id: AUTHZ-09
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Enforce authorization at a trusted service layer, never client-side
-    only: The application must enforce authorization rules at a trusted service layer
-    and must not rely on controls an untrusted consumer could manipulate, such as
-    client-side JavaScript.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify AUTHZ-09 is properly addressed
-- blast_radius_notes: Automated fix for AUTHZ-10
-  control_id: AUTHZ-10
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Apply authorization-relevant data changes immediately, or
-    mitigate the delay: Changes to values that authorization decisions depend on must
-    be applied immediately. Where immediate application isn''t possible (e.g. self-contained/stateless
-    tokens carrying stale permission data), mitigating controls must alert when a
-    consumer acts after their authorization has changed, and revert the resulting
-    action  -  noting this does not mitigate any information already leaked.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify AUTHZ-10 is properly addressed
-- blast_radius_notes: Automated fix for AUTHZ-11
-  control_id: AUTHZ-11
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Base object access on the originating consumer''s permissions,
-    not an intermediary service''s: Access to an object must be based on the originating
-    subject''s (e.g. consumer''s) permissions, not the permissions of an intermediary
-    or service acting on their behalf  -  in a service-to-service call chain, downstream
-    services must use the original consumer''s identity/token, not a separate machine-to-machine
-    credential, to make permission decisions.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify AUTHZ-11 is properly addressed
-- blast_radius_notes: Automated fix for AUTHZ-12
-  control_id: AUTHZ-12
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Enforce cross-tenant isolation in multi-tenant applications:
-    Multi-tenant applications must use cross-tenant controls ensuring a consumer''s
-    operations never affect tenants they do not have permission to interact with.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify AUTHZ-12 is properly addressed
-- blast_radius_notes: Automated fix for AUTHZ-13
-  control_id: AUTHZ-13
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Apply layered, continuous verification for administrative
-    interface access: Access to administrative interfaces must incorporate multiple
-    layers of security  -  continuous identity verification, device security posture
-    assessment, and contextual risk analysis  -  rather than relying on network location
-    or a trusted endpoint alone as the sole authorization factor.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify AUTHZ-13 is properly addressed

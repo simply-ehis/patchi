@@ -1,0 +1,60 @@
+# Playbook for: cwe-79-xss
+# Source: CWE Top 25 2024 CWE-79
+# Auto-generated
+
+playbooks:
+- control_id: "CWE79XSS-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary improper neutralization of input during web page generation (xss) control patterns for cwe-79-xss"
+  blast_radius_notes: "Automated fix for CWE79XSS-01 - Primary Improper Neutralization of Input During Web Page Generation (XSS) Control"
+  verification_checks:
+    - "Verify CWE79XSS-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CWE79XSS-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for improper neutralization of input during web page generation (xss) patterns for cwe-79-xss"
+  blast_radius_notes: "Automated fix for CWE79XSS-02 - Input Validation for Improper Neutralization of Input During Web Page Generation (XSS)"
+  verification_checks:
+    - "Verify CWE79XSS-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CWE79XSS-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for improper neutralization of input during web page generation (xss) patterns for cwe-79-xss"
+  blast_radius_notes: "Automated fix for CWE79XSS-03 - Configuration Hardening for Improper Neutralization of Input During Web Page Generation (XSS)"
+  verification_checks:
+    - "Verify CWE79XSS-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CWE79XSS-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for improper neutralization of input during web page generation (xss) patterns for cwe-79-xss"
+  blast_radius_notes: "Automated fix for CWE79XSS-04 - Monitoring and Logging for Improper Neutralization of Input During Web Page Generation (XSS)"
+  verification_checks:
+    - "Verify CWE79XSS-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CWE79XSS-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for improper neutralization of input during web page generation (xss) patterns for cwe-79-xss"
+  blast_radius_notes: "Automated fix for CWE79XSS-05 - Error Handling for Improper Neutralization of Input During Web Page Generation (XSS)"
+  verification_checks:
+    - "Verify CWE79XSS-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

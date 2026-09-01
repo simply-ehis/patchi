@@ -1,0 +1,62 @@
+# Patchi Security Domain: django-clickjacking
+# Source: Django Security
+# Auto-generated — curated from Django Security
+
+domain_id: "django-clickjacking"
+version: "1.0.0"
+display_name: "Django Clickjacking Protection"
+source_standard: "Django Security"
+component_type: "frontend-web"
+weight: 0.75
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_django_clickjacking_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_django_clickjacking"
+
+controls:
+  - control_id: "DJANGOCL-01"
+    name: "Django Clickjacking Protection — Primary Control"
+    description: "Missing X-Frame-Options or CSP frame-ancestors."
+    source_clause: "Django Clickjack"
+    severity: "medium"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://DJANGOCL-01"
+
+  - control_id: "DJANGOCL-02"
+    name: "Django Clickjacking Protection — Input Validation"
+    description: "Validate and sanitize all inputs related to django clickjacking protection"
+    source_clause: "Django Clickjack"
+    severity: "medium"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://DJANGOCL-02"
+
+  - control_id: "DJANGOCL-03"
+    name: "Django Clickjacking Protection — Configuration Hardening"
+    description: "Apply secure configuration defaults for django clickjacking protection"
+    source_clause: "Django Clickjack"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://DJANGOCL-03"
+
+  - control_id: "DJANGOCL-04"
+    name: "Django Clickjacking Protection — Monitoring and Logging"
+    description: "Log and monitor all django clickjacking protection events for audit and detection"
+    source_clause: "Django Clickjack"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://DJANGOCL-04"
+
+  - control_id: "DJANGOCL-05"
+    name: "Django Clickjacking Protection — Error Handling"
+    description: "Handle django clickjacking protection errors securely without information leakage"
+    source_clause: "Django Clickjack"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://DJANGOCL-05"

@@ -1,0 +1,60 @@
+# Playbook for: crypto-key-derivation
+# Source: Cryptography Implementation
+# Auto-generated
+
+playbooks:
+- control_id: "CRYPTOKE-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary weak key derivation control patterns for crypto-key-derivation"
+  blast_radius_notes: "Automated fix for CRYPTOKE-01 - Primary Weak Key Derivation Control"
+  verification_checks:
+    - "Verify CRYPTOKE-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CRYPTOKE-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for weak key derivation patterns for crypto-key-derivation"
+  blast_radius_notes: "Automated fix for CRYPTOKE-02 - Input Validation for Weak Key Derivation"
+  verification_checks:
+    - "Verify CRYPTOKE-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CRYPTOKE-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for weak key derivation patterns for crypto-key-derivation"
+  blast_radius_notes: "Automated fix for CRYPTOKE-03 - Configuration Hardening for Weak Key Derivation"
+  verification_checks:
+    - "Verify CRYPTOKE-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CRYPTOKE-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for weak key derivation patterns for crypto-key-derivation"
+  blast_radius_notes: "Automated fix for CRYPTOKE-04 - Monitoring and Logging for Weak Key Derivation"
+  verification_checks:
+    - "Verify CRYPTOKE-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CRYPTOKE-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for weak key derivation patterns for crypto-key-derivation"
+  blast_radius_notes: "Automated fix for CRYPTOKE-05 - Error Handling for Weak Key Derivation"
+  verification_checks:
+    - "Verify CRYPTOKE-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

@@ -1,0 +1,60 @@
+# Playbook for: wasm-unsafe-imports
+# Source: WebAssembly Security
+# Auto-generated
+
+playbooks:
+- control_id: "WASMUNSA-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary webassembly unsafe imports control patterns for wasm-unsafe-imports"
+  blast_radius_notes: "Automated fix for WASMUNSA-01 - Primary WebAssembly Unsafe Imports Control"
+  verification_checks:
+    - "Verify WASMUNSA-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "WASMUNSA-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for webassembly unsafe imports patterns for wasm-unsafe-imports"
+  blast_radius_notes: "Automated fix for WASMUNSA-02 - Input Validation for WebAssembly Unsafe Imports"
+  verification_checks:
+    - "Verify WASMUNSA-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "WASMUNSA-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for webassembly unsafe imports patterns for wasm-unsafe-imports"
+  blast_radius_notes: "Automated fix for WASMUNSA-03 - Configuration Hardening for WebAssembly Unsafe Imports"
+  verification_checks:
+    - "Verify WASMUNSA-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "WASMUNSA-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for webassembly unsafe imports patterns for wasm-unsafe-imports"
+  blast_radius_notes: "Automated fix for WASMUNSA-04 - Monitoring and Logging for WebAssembly Unsafe Imports"
+  verification_checks:
+    - "Verify WASMUNSA-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "WASMUNSA-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for webassembly unsafe imports patterns for wasm-unsafe-imports"
+  blast_radius_notes: "Automated fix for WASMUNSA-05 - Error Handling for WebAssembly Unsafe Imports"
+  verification_checks:
+    - "Verify WASMUNSA-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

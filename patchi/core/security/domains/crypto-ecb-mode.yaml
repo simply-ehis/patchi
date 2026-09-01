@@ -1,0 +1,62 @@
+# Patchi Security Domain: crypto-ecb-mode
+# Source: Cryptography Implementation
+# Auto-generated — curated from Cryptography Implementation
+
+domain_id: "crypto-ecb-mode"
+version: "1.0.0"
+display_name: "ECB Mode Usage"
+source_standard: "Cryptography Implementation"
+component_type: "backend-api"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_crypto_ecb_mode_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_crypto_ecb_mode"
+
+controls:
+  - control_id: "CRYPTOEC-01"
+    name: "ECB Mode Usage — Primary Control"
+    description: "Using ECB mode for symmetric encryption leaking patterns."
+    source_clause: "Crypto ECB"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CRYPTOEC-01"
+
+  - control_id: "CRYPTOEC-02"
+    name: "ECB Mode Usage — Input Validation"
+    description: "Validate and sanitize all inputs related to ecb mode usage"
+    source_clause: "Crypto ECB"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CRYPTOEC-02"
+
+  - control_id: "CRYPTOEC-03"
+    name: "ECB Mode Usage — Configuration Hardening"
+    description: "Apply secure configuration defaults for ecb mode usage"
+    source_clause: "Crypto ECB"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CRYPTOEC-03"
+
+  - control_id: "CRYPTOEC-04"
+    name: "ECB Mode Usage — Monitoring and Logging"
+    description: "Log and monitor all ecb mode usage events for audit and detection"
+    source_clause: "Crypto ECB"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CRYPTOEC-04"
+
+  - control_id: "CRYPTOEC-05"
+    name: "ECB Mode Usage — Error Handling"
+    description: "Handle ecb mode usage errors securely without information leakage"
+    source_clause: "Crypto ECB"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CRYPTOEC-05"

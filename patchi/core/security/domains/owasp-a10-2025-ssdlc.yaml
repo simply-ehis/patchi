@@ -1,0 +1,62 @@
+# Patchi Security Domain: owasp-a10-2025-ssdlc
+# Source: OWASP Top 10 2025 A10
+# Auto-generated — curated from OWASP Top 10 2025 A10
+
+domain_id: "owasp-a10-2025-ssdlc"
+version: "1.0.0"
+display_name: "Secure Software Development Lifecycle Failures"
+source_standard: "OWASP Top 10 2025 A10"
+component_type: "backend-api"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_owasp_a10_2025_ssdlc_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_owasp_a10_2025_ssdlc"
+
+controls:
+  - control_id: "OWASPA10-01"
+    name: "Secure Software Development Lifecycle Failures — Primary Control"
+    description: "Missing threat modeling, insecure design patterns, and lack of security testing in the SDLC."
+    source_clause: "OWASP A10:2025"
+    severity: "high"
+    check_method: "manual-review"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://OWASPA10-01"
+
+  - control_id: "OWASPA10-02"
+    name: "Secure Software Development Lifecycle Failures — Input Validation"
+    description: "Validate and sanitize all inputs related to secure software development lifecycle failures"
+    source_clause: "OWASP A10:2025"
+    severity: "high"
+    check_method: "manual-review"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://OWASPA10-02"
+
+  - control_id: "OWASPA10-03"
+    name: "Secure Software Development Lifecycle Failures — Configuration Hardening"
+    description: "Apply secure configuration defaults for secure software development lifecycle failures"
+    source_clause: "OWASP A10:2025"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://OWASPA10-03"
+
+  - control_id: "OWASPA10-04"
+    name: "Secure Software Development Lifecycle Failures — Monitoring and Logging"
+    description: "Log and monitor all secure software development lifecycle failures events for audit and detection"
+    source_clause: "OWASP A10:2025"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://OWASPA10-04"
+
+  - control_id: "OWASPA10-05"
+    name: "Secure Software Development Lifecycle Failures — Error Handling"
+    description: "Handle secure software development lifecycle failures errors securely without information leakage"
+    source_clause: "OWASP A10:2025"
+    severity: "medium"
+    check_method: "manual-review"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://OWASPA10-05"

@@ -1,0 +1,62 @@
+# Patchi Security Domain: owasp-mobile-insecure-data
+# Source: OWASP Mobile 2024 M2
+# Auto-generated — curated from OWASP Mobile 2024 M2
+
+domain_id: "owasp-mobile-insecure-data"
+version: "1.0.0"
+display_name: "Insecure Data Storage"
+source_standard: "OWASP Mobile 2024 M2"
+component_type: "mobile-native"
+weight: 0.9
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_owasp_mobile_insecure_data_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_owasp_mobile_insecure_data"
+
+controls:
+  - control_id: "OWASPMOB-01"
+    name: "Insecure Data Storage — Primary Control"
+    description: "Sensitive data stored insecurely on device (plaintext, world-readable, backup risks)."
+    source_clause: "Mobile M2"
+    severity: "critical"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://OWASPMOB-01"
+
+  - control_id: "OWASPMOB-02"
+    name: "Insecure Data Storage — Input Validation"
+    description: "Validate and sanitize all inputs related to insecure data storage"
+    source_clause: "Mobile M2"
+    severity: "critical"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://OWASPMOB-02"
+
+  - control_id: "OWASPMOB-03"
+    name: "Insecure Data Storage — Configuration Hardening"
+    description: "Apply secure configuration defaults for insecure data storage"
+    source_clause: "Mobile M2"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://OWASPMOB-03"
+
+  - control_id: "OWASPMOB-04"
+    name: "Insecure Data Storage — Monitoring and Logging"
+    description: "Log and monitor all insecure data storage events for audit and detection"
+    source_clause: "Mobile M2"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://OWASPMOB-04"
+
+  - control_id: "OWASPMOB-05"
+    name: "Insecure Data Storage — Error Handling"
+    description: "Handle insecure data storage errors securely without information leakage"
+    source_clause: "Mobile M2"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://OWASPMOB-05"

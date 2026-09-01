@@ -1,0 +1,62 @@
+# Patchi Security Domain: java-xss-jsp
+# Source: Java Security
+# Auto-generated — curated from Java Security
+
+domain_id: "java-xss-jsp"
+version: "1.0.0"
+display_name: "Java JSP XSS"
+source_standard: "Java Security"
+component_type: "frontend-web"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_java_xss_jsp_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_java_xss_jsp"
+
+controls:
+  - control_id: "JAVAXSSJ-01"
+    name: "Java JSP XSS — Primary Control"
+    description: "Unescaped output in JSP pages with user input."
+    source_clause: "Java XSS"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://JAVAXSSJ-01"
+
+  - control_id: "JAVAXSSJ-02"
+    name: "Java JSP XSS — Input Validation"
+    description: "Validate and sanitize all inputs related to java jsp xss"
+    source_clause: "Java XSS"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://JAVAXSSJ-02"
+
+  - control_id: "JAVAXSSJ-03"
+    name: "Java JSP XSS — Configuration Hardening"
+    description: "Apply secure configuration defaults for java jsp xss"
+    source_clause: "Java XSS"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://JAVAXSSJ-03"
+
+  - control_id: "JAVAXSSJ-04"
+    name: "Java JSP XSS — Monitoring and Logging"
+    description: "Log and monitor all java jsp xss events for audit and detection"
+    source_clause: "Java XSS"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://JAVAXSSJ-04"
+
+  - control_id: "JAVAXSSJ-05"
+    name: "Java JSP XSS — Error Handling"
+    description: "Handle java jsp xss errors securely without information leakage"
+    source_clause: "Java XSS"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://JAVAXSSJ-05"

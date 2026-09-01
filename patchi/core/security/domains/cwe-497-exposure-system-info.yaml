@@ -1,0 +1,62 @@
+# Patchi Security Domain: cwe-497-exposure-system-info
+# Source: CWE-497
+# Auto-generated — curated from CWE-497
+
+domain_id: "cwe-497-exposure-system-info"
+version: "1.0.0"
+display_name: "Exposure of Sensitive System Information to an Unauthorized Control Sphere"
+source_standard: "CWE-497"
+component_type: "backend-api"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_cwe_497_exposure_system_info_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_cwe_497_exposure_system_info"
+
+controls:
+  - control_id: "CWE497EX-01"
+    name: "Exposure of Sensitive System Information to an Unauthorized Control Sphere — Primary Control"
+    description: "Application exposes internal system information (stack traces, configs, paths) to users."
+    source_clause: "CWE-497"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CWE497EX-01"
+
+  - control_id: "CWE497EX-02"
+    name: "Exposure of Sensitive System Information to an Unauthorized Control Sphere — Input Validation"
+    description: "Validate and sanitize all inputs related to exposure of sensitive system information to an unauthorized control sphere"
+    source_clause: "CWE-497"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CWE497EX-02"
+
+  - control_id: "CWE497EX-03"
+    name: "Exposure of Sensitive System Information to an Unauthorized Control Sphere — Configuration Hardening"
+    description: "Apply secure configuration defaults for exposure of sensitive system information to an unauthorized control sphere"
+    source_clause: "CWE-497"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CWE497EX-03"
+
+  - control_id: "CWE497EX-04"
+    name: "Exposure of Sensitive System Information to an Unauthorized Control Sphere — Monitoring and Logging"
+    description: "Log and monitor all exposure of sensitive system information to an unauthorized control sphere events for audit and detection"
+    source_clause: "CWE-497"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CWE497EX-04"
+
+  - control_id: "CWE497EX-05"
+    name: "Exposure of Sensitive System Information to an Unauthorized Control Sphere — Error Handling"
+    description: "Handle exposure of sensitive system information to an unauthorized control sphere errors securely without information leakage"
+    source_clause: "CWE-497"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CWE497EX-05"

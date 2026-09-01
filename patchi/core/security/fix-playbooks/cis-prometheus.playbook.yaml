@@ -1,0 +1,60 @@
+# Playbook for: cis-prometheus
+# Source: CIS Prometheus Benchmark
+# Auto-generated
+
+playbooks:
+- control_id: "CISPROME-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary prometheus monitoring hardening control patterns for cis-prometheus"
+  blast_radius_notes: "Automated fix for CISPROME-01 - Primary Prometheus Monitoring Hardening Control"
+  verification_checks:
+    - "Verify CISPROME-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CISPROME-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for prometheus monitoring hardening patterns for cis-prometheus"
+  blast_radius_notes: "Automated fix for CISPROME-02 - Input Validation for Prometheus Monitoring Hardening"
+  verification_checks:
+    - "Verify CISPROME-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CISPROME-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for prometheus monitoring hardening patterns for cis-prometheus"
+  blast_radius_notes: "Automated fix for CISPROME-03 - Configuration Hardening for Prometheus Monitoring Hardening"
+  verification_checks:
+    - "Verify CISPROME-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CISPROME-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for prometheus monitoring hardening patterns for cis-prometheus"
+  blast_radius_notes: "Automated fix for CISPROME-04 - Monitoring and Logging for Prometheus Monitoring Hardening"
+  verification_checks:
+    - "Verify CISPROME-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CISPROME-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for prometheus monitoring hardening patterns for cis-prometheus"
+  blast_radius_notes: "Automated fix for CISPROME-05 - Error Handling for Prometheus Monitoring Hardening"
+  verification_checks:
+    - "Verify CISPROME-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

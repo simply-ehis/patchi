@@ -1,0 +1,62 @@
+# Patchi Security Domain: graphql-injection
+# Source: GraphQL Security
+# Auto-generated — curated from GraphQL Security
+
+domain_id: "graphql-injection"
+version: "1.0.0"
+display_name: "GraphQL Query Injection"
+source_standard: "GraphQL Security"
+component_type: "backend-api"
+weight: 0.9
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_graphql_injection_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_graphql_injection"
+
+controls:
+  - control_id: "GRAPHQLI-01"
+    name: "GraphQL Query Injection — Primary Control"
+    description: "User input in GraphQL resolvers without sanitization."
+    source_clause: "GraphQL Inject"
+    severity: "critical"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://GRAPHQLI-01"
+
+  - control_id: "GRAPHQLI-02"
+    name: "GraphQL Query Injection — Input Validation"
+    description: "Validate and sanitize all inputs related to graphql query injection"
+    source_clause: "GraphQL Inject"
+    severity: "critical"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://GRAPHQLI-02"
+
+  - control_id: "GRAPHQLI-03"
+    name: "GraphQL Query Injection — Configuration Hardening"
+    description: "Apply secure configuration defaults for graphql query injection"
+    source_clause: "GraphQL Inject"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://GRAPHQLI-03"
+
+  - control_id: "GRAPHQLI-04"
+    name: "GraphQL Query Injection — Monitoring and Logging"
+    description: "Log and monitor all graphql query injection events for audit and detection"
+    source_clause: "GraphQL Inject"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://GRAPHQLI-04"
+
+  - control_id: "GRAPHQLI-05"
+    name: "GraphQL Query Injection — Error Handling"
+    description: "Handle graphql query injection errors securely without information leakage"
+    source_clause: "GraphQL Inject"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://GRAPHQLI-05"

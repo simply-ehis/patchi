@@ -1,0 +1,62 @@
+# Patchi Security Domain: owasp-iot-insufficient-testing
+# Source: OWASP IoT 2024 IoT10
+# Auto-generated — curated from OWASP IoT 2024 IoT10
+
+domain_id: "owasp-iot-insufficient-testing"
+version: "1.0.0"
+display_name: "Insufficient Security Testing"
+source_standard: "OWASP IoT 2024 IoT10"
+component_type: "iot-device"
+weight: 0.75
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_owasp_iot_insufficient_testing_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_owasp_iot_insufficient_testing"
+
+controls:
+  - control_id: "OWASPIOT-01"
+    name: "Insufficient Security Testing — Primary Control"
+    description: "Lack of penetration testing, fuzzing, or security reviews during IoT product development."
+    source_clause: "IoT10"
+    severity: "medium"
+    check_method: "manual-review"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://OWASPIOT-01"
+
+  - control_id: "OWASPIOT-02"
+    name: "Insufficient Security Testing — Input Validation"
+    description: "Validate and sanitize all inputs related to insufficient security testing"
+    source_clause: "IoT10"
+    severity: "medium"
+    check_method: "manual-review"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://OWASPIOT-02"
+
+  - control_id: "OWASPIOT-03"
+    name: "Insufficient Security Testing — Configuration Hardening"
+    description: "Apply secure configuration defaults for insufficient security testing"
+    source_clause: "IoT10"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://OWASPIOT-03"
+
+  - control_id: "OWASPIOT-04"
+    name: "Insufficient Security Testing — Monitoring and Logging"
+    description: "Log and monitor all insufficient security testing events for audit and detection"
+    source_clause: "IoT10"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://OWASPIOT-04"
+
+  - control_id: "OWASPIOT-05"
+    name: "Insufficient Security Testing — Error Handling"
+    description: "Handle insufficient security testing errors securely without information leakage"
+    source_clause: "IoT10"
+    severity: "medium"
+    check_method: "manual-review"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://OWASPIOT-05"

@@ -1,0 +1,62 @@
+# Patchi Security Domain: vue-reactivity-security
+# Source: Vue.js Security
+# Auto-generated — curated from Vue.js Security
+
+domain_id: "vue-reactivity-security"
+version: "1.0.0"
+display_name: "Reactivity Data Exposure"
+source_standard: "Vue.js Security"
+component_type: "frontend-web"
+weight: 0.75
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_vue_reactivity_security_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_vue_reactivity_security"
+
+controls:
+  - control_id: "VUEREACT-01"
+    name: "Reactivity Data Exposure — Primary Control"
+    description: "Sensitive data exposed through reactive state in browser."
+    source_clause: "Vue Reactivity"
+    severity: "medium"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://VUEREACT-01"
+
+  - control_id: "VUEREACT-02"
+    name: "Reactivity Data Exposure — Input Validation"
+    description: "Validate and sanitize all inputs related to reactivity data exposure"
+    source_clause: "Vue Reactivity"
+    severity: "medium"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://VUEREACT-02"
+
+  - control_id: "VUEREACT-03"
+    name: "Reactivity Data Exposure — Configuration Hardening"
+    description: "Apply secure configuration defaults for reactivity data exposure"
+    source_clause: "Vue Reactivity"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://VUEREACT-03"
+
+  - control_id: "VUEREACT-04"
+    name: "Reactivity Data Exposure — Monitoring and Logging"
+    description: "Log and monitor all reactivity data exposure events for audit and detection"
+    source_clause: "Vue Reactivity"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://VUEREACT-04"
+
+  - control_id: "VUEREACT-05"
+    name: "Reactivity Data Exposure — Error Handling"
+    description: "Handle reactivity data exposure errors securely without information leakage"
+    source_clause: "Vue Reactivity"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://VUEREACT-05"

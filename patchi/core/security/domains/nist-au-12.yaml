@@ -1,0 +1,62 @@
+# Patchi Security Domain: nist-au-12
+# Source: NIST SP 800-53 AU-12
+# Auto-generated — curated from NIST SP 800-53 AU-12
+
+domain_id: "nist-au-12"
+version: "1.0.0"
+display_name: "Audit Record Generation"
+source_standard: "NIST SP 800-53 AU-12"
+component_type: "infra"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_nist_au_12_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_nist_au_12"
+
+controls:
+  - control_id: "NISTAU12-01"
+    name: "Audit Record Generation — Primary Control"
+    description: "System generates audit records for defined events."
+    source_clause: "AU-12"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://NISTAU12-01"
+
+  - control_id: "NISTAU12-02"
+    name: "Audit Record Generation — Input Validation"
+    description: "Validate and sanitize all inputs related to audit record generation"
+    source_clause: "AU-12"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://NISTAU12-02"
+
+  - control_id: "NISTAU12-03"
+    name: "Audit Record Generation — Configuration Hardening"
+    description: "Apply secure configuration defaults for audit record generation"
+    source_clause: "AU-12"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://NISTAU12-03"
+
+  - control_id: "NISTAU12-04"
+    name: "Audit Record Generation — Monitoring and Logging"
+    description: "Log and monitor all audit record generation events for audit and detection"
+    source_clause: "AU-12"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://NISTAU12-04"
+
+  - control_id: "NISTAU12-05"
+    name: "Audit Record Generation — Error Handling"
+    description: "Handle audit record generation errors securely without information leakage"
+    source_clause: "AU-12"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://NISTAU12-05"

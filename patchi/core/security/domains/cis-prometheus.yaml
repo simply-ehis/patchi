@@ -1,0 +1,62 @@
+# Patchi Security Domain: cis-prometheus
+# Source: CIS Prometheus Benchmark
+# Auto-generated — curated from CIS Prometheus Benchmark
+
+domain_id: "cis-prometheus"
+version: "1.0.0"
+display_name: "Prometheus Monitoring Hardening"
+source_standard: "CIS Prometheus Benchmark"
+component_type: "infra"
+weight: 0.75
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_cis_prometheus_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_cis_prometheus"
+
+controls:
+  - control_id: "CISPROME-01"
+    name: "Prometheus Monitoring Hardening — Primary Control"
+    description: "Authentication, TLS, alert manager configuration."
+    source_clause: "CIS Prometheus"
+    severity: "medium"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CISPROME-01"
+
+  - control_id: "CISPROME-02"
+    name: "Prometheus Monitoring Hardening — Input Validation"
+    description: "Validate and sanitize all inputs related to prometheus monitoring hardening"
+    source_clause: "CIS Prometheus"
+    severity: "medium"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CISPROME-02"
+
+  - control_id: "CISPROME-03"
+    name: "Prometheus Monitoring Hardening — Configuration Hardening"
+    description: "Apply secure configuration defaults for prometheus monitoring hardening"
+    source_clause: "CIS Prometheus"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CISPROME-03"
+
+  - control_id: "CISPROME-04"
+    name: "Prometheus Monitoring Hardening — Monitoring and Logging"
+    description: "Log and monitor all prometheus monitoring hardening events for audit and detection"
+    source_clause: "CIS Prometheus"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CISPROME-04"
+
+  - control_id: "CISPROME-05"
+    name: "Prometheus Monitoring Hardening — Error Handling"
+    description: "Handle prometheus monitoring hardening errors securely without information leakage"
+    source_clause: "CIS Prometheus"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CISPROME-05"

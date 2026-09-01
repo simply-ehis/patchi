@@ -1,0 +1,62 @@
+# Patchi Security Domain: tauri-permission-scope
+# Source: Desktop App Security
+# Auto-generated — curated from Desktop App Security
+
+domain_id: "tauri-permission-scope"
+version: "1.0.0"
+display_name: "Tauri Permission Scope"
+source_standard: "Desktop App Security"
+component_type: "desktop-app"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_tauri_permission_scope_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_tauri_permission_scope"
+
+controls:
+  - control_id: "TAURIPER-01"
+    name: "Tauri Permission Scope — Primary Control"
+    description: "Overly permissive Tauri plugin permissions."
+    source_clause: "Tauri Scope"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://TAURIPER-01"
+
+  - control_id: "TAURIPER-02"
+    name: "Tauri Permission Scope — Input Validation"
+    description: "Validate and sanitize all inputs related to tauri permission scope"
+    source_clause: "Tauri Scope"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://TAURIPER-02"
+
+  - control_id: "TAURIPER-03"
+    name: "Tauri Permission Scope — Configuration Hardening"
+    description: "Apply secure configuration defaults for tauri permission scope"
+    source_clause: "Tauri Scope"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://TAURIPER-03"
+
+  - control_id: "TAURIPER-04"
+    name: "Tauri Permission Scope — Monitoring and Logging"
+    description: "Log and monitor all tauri permission scope events for audit and detection"
+    source_clause: "Tauri Scope"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://TAURIPER-04"
+
+  - control_id: "TAURIPER-05"
+    name: "Tauri Permission Scope — Error Handling"
+    description: "Handle tauri permission scope errors securely without information leakage"
+    source_clause: "Tauri Scope"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://TAURIPER-05"

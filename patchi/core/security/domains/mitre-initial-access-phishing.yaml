@@ -1,0 +1,62 @@
+# Patchi Security Domain: mitre-initial-access-phishing
+# Source: MITRE ATT&CK
+# Auto-generated — curated from MITRE ATT&CK
+
+domain_id: "mitre-initial-access-phishing"
+version: "1.0.0"
+display_name: "Phishing (T1566)"
+source_standard: "MITRE ATT&CK"
+component_type: "frontend-web"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_mitre_initial_access_phishing_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_mitre_initial_access_phishing"
+
+controls:
+  - control_id: "MITREINI-01"
+    name: "Phishing (T1566) — Primary Control"
+    description: "Emails containing malicious links or attachments used to gain initial access."
+    source_clause: "T1566"
+    severity: "high"
+    check_method: "dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://MITREINI-01"
+
+  - control_id: "MITREINI-02"
+    name: "Phishing (T1566) — Input Validation"
+    description: "Validate and sanitize all inputs related to phishing (t1566)"
+    source_clause: "T1566"
+    severity: "high"
+    check_method: "dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://MITREINI-02"
+
+  - control_id: "MITREINI-03"
+    name: "Phishing (T1566) — Configuration Hardening"
+    description: "Apply secure configuration defaults for phishing (t1566)"
+    source_clause: "T1566"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://MITREINI-03"
+
+  - control_id: "MITREINI-04"
+    name: "Phishing (T1566) — Monitoring and Logging"
+    description: "Log and monitor all phishing (t1566) events for audit and detection"
+    source_clause: "T1566"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://MITREINI-04"
+
+  - control_id: "MITREINI-05"
+    name: "Phishing (T1566) — Error Handling"
+    description: "Handle phishing (t1566) errors securely without information leakage"
+    source_clause: "T1566"
+    severity: "medium"
+    check_method: "dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://MITREINI-05"

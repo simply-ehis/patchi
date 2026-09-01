@@ -1,0 +1,60 @@
+# Playbook for: cis-ssh
+# Source: CIS SSH Benchmark
+# Auto-generated
+
+playbooks:
+- control_id: "CISSSH-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary ssh server hardening control patterns for cis-ssh"
+  blast_radius_notes: "Automated fix for CISSSH-01 - Primary SSH Server Hardening Control"
+  verification_checks:
+    - "Verify CISSSH-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CISSSH-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for ssh server hardening patterns for cis-ssh"
+  blast_radius_notes: "Automated fix for CISSSH-02 - Input Validation for SSH Server Hardening"
+  verification_checks:
+    - "Verify CISSSH-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CISSSH-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for ssh server hardening patterns for cis-ssh"
+  blast_radius_notes: "Automated fix for CISSSH-03 - Configuration Hardening for SSH Server Hardening"
+  verification_checks:
+    - "Verify CISSSH-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CISSSH-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for ssh server hardening patterns for cis-ssh"
+  blast_radius_notes: "Automated fix for CISSSH-04 - Monitoring and Logging for SSH Server Hardening"
+  verification_checks:
+    - "Verify CISSSH-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CISSSH-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for ssh server hardening patterns for cis-ssh"
+  blast_radius_notes: "Automated fix for CISSSH-05 - Error Handling for SSH Server Hardening"
+  verification_checks:
+    - "Verify CISSSH-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

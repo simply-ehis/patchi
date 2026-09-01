@@ -1,0 +1,62 @@
+# Patchi Security Domain: database-privilege-management
+# Source: Database Security
+# Auto-generated — curated from Database Security
+
+domain_id: "database-privilege-management"
+version: "1.0.0"
+display_name: "Database Privilege Management"
+source_standard: "Database Security"
+component_type: "infra"
+weight: 0.9
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_database_privilege_management_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_database_privilege_management"
+
+controls:
+  - control_id: "DATABASE-01"
+    name: "Database Privilege Management — Primary Control"
+    description: "Application using DBA/root account instead of least-privilege user."
+    source_clause: "DB Priv"
+    severity: "critical"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://DATABASE-01"
+
+  - control_id: "DATABASE-02"
+    name: "Database Privilege Management — Input Validation"
+    description: "Validate and sanitize all inputs related to database privilege management"
+    source_clause: "DB Priv"
+    severity: "critical"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://DATABASE-02"
+
+  - control_id: "DATABASE-03"
+    name: "Database Privilege Management — Configuration Hardening"
+    description: "Apply secure configuration defaults for database privilege management"
+    source_clause: "DB Priv"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://DATABASE-03"
+
+  - control_id: "DATABASE-04"
+    name: "Database Privilege Management — Monitoring and Logging"
+    description: "Log and monitor all database privilege management events for audit and detection"
+    source_clause: "DB Priv"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://DATABASE-04"
+
+  - control_id: "DATABASE-05"
+    name: "Database Privilege Management — Error Handling"
+    description: "Handle database privilege management errors securely without information leakage"
+    source_clause: "DB Priv"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://DATABASE-05"

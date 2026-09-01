@@ -1,0 +1,62 @@
+# Patchi Security Domain: gdpr-consent
+# Source: GDPR Art 7
+# Auto-generated — curated from GDPR Art 7
+
+domain_id: "gdpr-consent"
+version: "1.0.0"
+display_name: "Consent Management"
+source_standard: "GDPR Art 7"
+component_type: "backend-api"
+weight: 0.9
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_gdpr_consent_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_gdpr_consent"
+
+controls:
+  - control_id: "GDPRCONS-01"
+    name: "Consent Management — Primary Control"
+    description: "Freely given, specific, informed, and unambiguous consent."
+    source_clause: "GDPR Art 7"
+    severity: "critical"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://GDPRCONS-01"
+
+  - control_id: "GDPRCONS-02"
+    name: "Consent Management — Input Validation"
+    description: "Validate and sanitize all inputs related to consent management"
+    source_clause: "GDPR Art 7"
+    severity: "critical"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://GDPRCONS-02"
+
+  - control_id: "GDPRCONS-03"
+    name: "Consent Management — Configuration Hardening"
+    description: "Apply secure configuration defaults for consent management"
+    source_clause: "GDPR Art 7"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://GDPRCONS-03"
+
+  - control_id: "GDPRCONS-04"
+    name: "Consent Management — Monitoring and Logging"
+    description: "Log and monitor all consent management events for audit and detection"
+    source_clause: "GDPR Art 7"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://GDPRCONS-04"
+
+  - control_id: "GDPRCONS-05"
+    name: "Consent Management — Error Handling"
+    description: "Handle consent management errors securely without information leakage"
+    source_clause: "GDPR Art 7"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://GDPRCONS-05"

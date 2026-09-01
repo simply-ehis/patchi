@@ -1,112 +1,0 @@
-playbooks:
-- blast_radius_notes: Automated fix for MOB-001
-  control_id: MOB-001
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix URL scheme hijacking on incoming URLs: Detect iOS AppDelegate
-    / SceneDelegate application(_:open:options:) handlers and Android Intent handlers
-    that accept URLs from other apps without validating the source bundle ID or signing
-    identity. An attacker app can register the same URL scheme on iOS (pre-iOS 14,
-    or on iOS 14+ via openURL the last-registered wins) and intercept authentication
-    callback URLs from OAuth flows. The check should flag any URL handling that does
-    not call canOpenURL with an allow-list, and any Android intent-filter that does
-    not set android:exported="false" or require a signature permission.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify MOB-001 is properly addressed
-- blast_radius_notes: Automated fix for MOB-002
-  control_id: MOB-002
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Insecure Keychain / Keystore accessibility: Detect iOS Keychain
-    items stored with kSecAttrAccessible set to .always or .alwaysThisDeviceOnly (decrypted
-    when device is unlocked, vulnerable to forensic extraction with a lockdownd bypass),
-    and Android Keystore entries created with setUserAuthenticationRequired(false)
-    and without setUserAuthenticationValidityDurationSeconds. Flag any Android Keystore
-    alias created without setEncrypted(true), any iOS keychain query that does not
-    set kSecAttrAccessible at all (defaults to .whenUnlocked which is borderline),
-    and any storage of biometric-protected keys without BiometricPrompt fallback.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify MOB-002 is properly addressed
-- blast_radius_notes: Automated fix for MOB-003
-  control_id: MOB-003
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Debug build released to production: Detect iOS builds where
-    Swift DEBUG flag is defined in Release configuration, where Android debuggable=true
-    in AndroidManifest or in a build variant used for release, where iOS strip style
-    is set to ''Debugging Symbols'' rather than ''All Symbols'' in Release, and where
-    ProGuard/R8 minification is disabled for release builds. Also flag iOS Info.plist
-    entries that ship with APS Environment = development, and any use of #if DEBUG
-    in code paths that affect security posture (logging tokens, disabling TLS pinning).'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify MOB-003 is properly addressed
-- blast_radius_notes: Automated fix for MOB-004
-  control_id: MOB-004
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Hardcoded API keys and secrets in source: Detect hardcoded
-    API keys, OAuth client secrets, Firebase google-services.json content, AWS keys,
-    Stripe secret keys, and any other credential material in Swift/Kotlin source files
-    and asset catalogs. Flag string literals assigned to constants with names matching
-    apiKey, secret, clientId, accessToken. Also flag Config.plist / secrets.xml /
-    .xcconfig files committed to source control. On Android, also check the res/values/strings.xml
-    for keys mistakenly placed as string resources. Use high-entropy detection for
-    non-obvious secrets.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify MOB-004 is properly addressed
-- blast_radius_notes: Automated fix for MOB-005
-  control_id: MOB-005
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix TLS certificate pinning missing: Detect URLSession / Alamofire
-    / OkHttp / Retrofit network clients without an associated certificate pinning
-    policy. MITM attacks via installed root certificates (common on managed devices)
-    can intercept traffic without pinning. Flag any URLSession with a custom delegate
-    that does not implement urlSession(_:didReceive:completionHandler:), any OkHttp
-    client without a CertificatePinner, and any retrofit/OkHttp config that calls
-    .hostnameVerifier(AllowAll) or .trustAllCerts(). Pinning should be enabled for
-    at least the API endpoint host and any OAuth token endpoint.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify MOB-005 is properly addressed
-- blast_radius_notes: Automated fix for MOB-006
-  control_id: MOB-006
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Insecure local storage of sensitive data: Detect storage
-    of credentials, tokens, PII, or health/financial data in UserDefaults (iOS), SharedPreferences
-    (Android), SQLite databases without SQLCipher, plain text files in app sandbox,
-    or files in shared App Group containers accessible to extensions. Flag any call
-    to UserDefaults.standard.set with a value matching token/password/key patterns,
-    any SharedPreferences without MODE_PRIVATE (the default on modern Android but
-    legacy code often uses MODE_WORLD_READABLE), and any Core Data / Room entity that
-    stores sensitive fields without an @Encrypted annotation or equivalent.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify MOB-006 is properly addressed
-- blast_radius_notes: Automated fix for MOB-007
-  control_id: MOB-007
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Exported components without permission enforcement: Detect
-    Android activities, services, broadcast receivers, and content providers declared
-    with android:exported="true" (or implicitly exported due to intent-filter) without
-    a corresponding android:permission attribute. Such components can be invoked by
-    any other app on the device, enabling privilege escalation. Flag any <activity>,
-    <service>, <receiver> with exported=true and no permission attribute, any <provider>
-    with exported=true without both android:permission and android:grantUriPermissions=false,
-    and any use of PendingIntent without FLAG_IMMUTABLE (Android 12+ requirement).'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify MOB-007 is properly addressed

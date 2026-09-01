@@ -1,0 +1,60 @@
+# Playbook for: cwe-306-missing-auth
+# Source: CWE Top 25 2024 CWE-306
+# Auto-generated
+
+playbooks:
+- control_id: "CWE306MI-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary missing authentication for critical function control patterns for cwe-306-missing-auth"
+  blast_radius_notes: "Automated fix for CWE306MI-01 - Primary Missing Authentication for Critical Function Control"
+  verification_checks:
+    - "Verify CWE306MI-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CWE306MI-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for missing authentication for critical function patterns for cwe-306-missing-auth"
+  blast_radius_notes: "Automated fix for CWE306MI-02 - Input Validation for Missing Authentication for Critical Function"
+  verification_checks:
+    - "Verify CWE306MI-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CWE306MI-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for missing authentication for critical function patterns for cwe-306-missing-auth"
+  blast_radius_notes: "Automated fix for CWE306MI-03 - Configuration Hardening for Missing Authentication for Critical Function"
+  verification_checks:
+    - "Verify CWE306MI-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CWE306MI-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for missing authentication for critical function patterns for cwe-306-missing-auth"
+  blast_radius_notes: "Automated fix for CWE306MI-04 - Monitoring and Logging for Missing Authentication for Critical Function"
+  verification_checks:
+    - "Verify CWE306MI-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CWE306MI-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for missing authentication for critical function patterns for cwe-306-missing-auth"
+  blast_radius_notes: "Automated fix for CWE306MI-05 - Error Handling for Missing Authentication for Critical Function"
+  verification_checks:
+    - "Verify CWE306MI-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

@@ -1,0 +1,60 @@
+# Playbook for: crypto-hmac-validation
+# Source: Cryptography Implementation
+# Auto-generated
+
+playbooks:
+- control_id: "CRYPTOHM-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary hmac validation control patterns for crypto-hmac-validation"
+  blast_radius_notes: "Automated fix for CRYPTOHM-01 - Primary HMAC Validation Control"
+  verification_checks:
+    - "Verify CRYPTOHM-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CRYPTOHM-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for hmac validation patterns for crypto-hmac-validation"
+  blast_radius_notes: "Automated fix for CRYPTOHM-02 - Input Validation for HMAC Validation"
+  verification_checks:
+    - "Verify CRYPTOHM-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CRYPTOHM-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for hmac validation patterns for crypto-hmac-validation"
+  blast_radius_notes: "Automated fix for CRYPTOHM-03 - Configuration Hardening for HMAC Validation"
+  verification_checks:
+    - "Verify CRYPTOHM-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CRYPTOHM-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for hmac validation patterns for crypto-hmac-validation"
+  blast_radius_notes: "Automated fix for CRYPTOHM-04 - Monitoring and Logging for HMAC Validation"
+  verification_checks:
+    - "Verify CRYPTOHM-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CRYPTOHM-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for hmac validation patterns for crypto-hmac-validation"
+  blast_radius_notes: "Automated fix for CRYPTOHM-05 - Error Handling for HMAC Validation"
+  verification_checks:
+    - "Verify CRYPTOHM-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

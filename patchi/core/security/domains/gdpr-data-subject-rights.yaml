@@ -1,0 +1,62 @@
+# Patchi Security Domain: gdpr-data-subject-rights
+# Source: GDPR Art 15-22
+# Auto-generated — curated from GDPR Art 15-22
+
+domain_id: "gdpr-data-subject-rights"
+version: "1.0.0"
+display_name: "Data Subject Rights"
+source_standard: "GDPR Art 15-22"
+component_type: "backend-api"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_gdpr_data_subject_rights_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_gdpr_data_subject_rights"
+
+controls:
+  - control_id: "GDPRDATA-01"
+    name: "Data Subject Rights — Primary Control"
+    description: "Access, rectification, erasure, portability, and objection rights."
+    source_clause: "GDPR Art 15-22"
+    severity: "high"
+    check_method: "static+manual-review"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://GDPRDATA-01"
+
+  - control_id: "GDPRDATA-02"
+    name: "Data Subject Rights — Input Validation"
+    description: "Validate and sanitize all inputs related to data subject rights"
+    source_clause: "GDPR Art 15-22"
+    severity: "high"
+    check_method: "static+manual-review"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://GDPRDATA-02"
+
+  - control_id: "GDPRDATA-03"
+    name: "Data Subject Rights — Configuration Hardening"
+    description: "Apply secure configuration defaults for data subject rights"
+    source_clause: "GDPR Art 15-22"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://GDPRDATA-03"
+
+  - control_id: "GDPRDATA-04"
+    name: "Data Subject Rights — Monitoring and Logging"
+    description: "Log and monitor all data subject rights events for audit and detection"
+    source_clause: "GDPR Art 15-22"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://GDPRDATA-04"
+
+  - control_id: "GDPRDATA-05"
+    name: "Data Subject Rights — Error Handling"
+    description: "Handle data subject rights errors securely without information leakage"
+    source_clause: "GDPR Art 15-22"
+    severity: "medium"
+    check_method: "static+manual-review"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://GDPRDATA-05"

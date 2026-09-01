@@ -1,0 +1,62 @@
+# Patchi Security Domain: mitre-resource-development-compromise-accounts
+# Source: MITRE ATT&CK
+# Auto-generated — curated from MITRE ATT&CK
+
+domain_id: "mitre-resource-development-compromise-accounts"
+version: "1.0.0"
+display_name: "Compromise Accounts (T1586)"
+source_standard: "MITRE ATT&CK"
+component_type: "backend-api"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_mitre_resource_development_compromise_accounts_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_mitre_resource_development_compromise_accounts"
+
+controls:
+  - control_id: "MITRERES-01"
+    name: "Compromise Accounts (T1586) — Primary Control"
+    description: "Taking over legitimate accounts for operations."
+    source_clause: "T1586"
+    severity: "high"
+    check_method: "dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://MITRERES-01"
+
+  - control_id: "MITRERES-02"
+    name: "Compromise Accounts (T1586) — Input Validation"
+    description: "Validate and sanitize all inputs related to compromise accounts (t1586)"
+    source_clause: "T1586"
+    severity: "high"
+    check_method: "dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://MITRERES-02"
+
+  - control_id: "MITRERES-03"
+    name: "Compromise Accounts (T1586) — Configuration Hardening"
+    description: "Apply secure configuration defaults for compromise accounts (t1586)"
+    source_clause: "T1586"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://MITRERES-03"
+
+  - control_id: "MITRERES-04"
+    name: "Compromise Accounts (T1586) — Monitoring and Logging"
+    description: "Log and monitor all compromise accounts (t1586) events for audit and detection"
+    source_clause: "T1586"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://MITRERES-04"
+
+  - control_id: "MITRERES-05"
+    name: "Compromise Accounts (T1586) — Error Handling"
+    description: "Handle compromise accounts (t1586) errors securely without information leakage"
+    source_clause: "T1586"
+    severity: "medium"
+    check_method: "dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://MITRERES-05"

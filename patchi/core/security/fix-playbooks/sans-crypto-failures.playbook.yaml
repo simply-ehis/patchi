@@ -1,0 +1,60 @@
+# Playbook for: sans-crypto-failures
+# Source: SANS Top 25
+# Auto-generated
+
+playbooks:
+- control_id: "SANSCRYP-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary cryptographic failures control patterns for sans-crypto-failures"
+  blast_radius_notes: "Automated fix for SANSCRYP-01 - Primary Cryptographic Failures Control"
+  verification_checks:
+    - "Verify SANSCRYP-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "SANSCRYP-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for cryptographic failures patterns for sans-crypto-failures"
+  blast_radius_notes: "Automated fix for SANSCRYP-02 - Input Validation for Cryptographic Failures"
+  verification_checks:
+    - "Verify SANSCRYP-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "SANSCRYP-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for cryptographic failures patterns for sans-crypto-failures"
+  blast_radius_notes: "Automated fix for SANSCRYP-03 - Configuration Hardening for Cryptographic Failures"
+  verification_checks:
+    - "Verify SANSCRYP-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "SANSCRYP-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for cryptographic failures patterns for sans-crypto-failures"
+  blast_radius_notes: "Automated fix for SANSCRYP-04 - Monitoring and Logging for Cryptographic Failures"
+  verification_checks:
+    - "Verify SANSCRYP-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "SANSCRYP-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for cryptographic failures patterns for sans-crypto-failures"
+  blast_radius_notes: "Automated fix for SANSCRYP-05 - Error Handling for Cryptographic Failures"
+  verification_checks:
+    - "Verify SANSCRYP-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

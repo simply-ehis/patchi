@@ -1,0 +1,62 @@
+# Patchi Security Domain: nist-ia-5
+# Source: NIST SP 800-53 IA-5
+# Auto-generated — curated from NIST SP 800-53 IA-5
+
+domain_id: "nist-ia-5"
+version: "1.0.0"
+display_name: "Authenticator Management"
+source_standard: "NIST SP 800-53 IA-5"
+component_type: "backend-api"
+weight: 0.9
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_nist_ia_5_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_nist_ia_5"
+
+controls:
+  - control_id: "NISTIA5-01"
+    name: "Authenticator Management — Primary Control"
+    description: "Organization manages authenticators including password complexity, composition, and rotation."
+    source_clause: "IA-5"
+    severity: "critical"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://NISTIA5-01"
+
+  - control_id: "NISTIA5-02"
+    name: "Authenticator Management — Input Validation"
+    description: "Validate and sanitize all inputs related to authenticator management"
+    source_clause: "IA-5"
+    severity: "critical"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://NISTIA5-02"
+
+  - control_id: "NISTIA5-03"
+    name: "Authenticator Management — Configuration Hardening"
+    description: "Apply secure configuration defaults for authenticator management"
+    source_clause: "IA-5"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://NISTIA5-03"
+
+  - control_id: "NISTIA5-04"
+    name: "Authenticator Management — Monitoring and Logging"
+    description: "Log and monitor all authenticator management events for audit and detection"
+    source_clause: "IA-5"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://NISTIA5-04"
+
+  - control_id: "NISTIA5-05"
+    name: "Authenticator Management — Error Handling"
+    description: "Handle authenticator management errors securely without information leakage"
+    source_clause: "IA-5"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://NISTIA5-05"

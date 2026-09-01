@@ -1,0 +1,62 @@
+# Patchi Security Domain: owasp-a06-2025-components
+# Source: OWASP Top 10 2025 A06
+# Auto-generated — curated from OWASP Top 10 2025 A06
+
+domain_id: "owasp-a06-2025-components"
+version: "1.0.0"
+display_name: "Vulnerable and Outdated Components"
+source_standard: "OWASP Top 10 2025 A06"
+component_type: "backend-api"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_owasp_a06_2025_components_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_owasp_a06_2025_components"
+
+controls:
+  - control_id: "OWASPA06-01"
+    name: "Vulnerable and Outdated Components — Primary Control"
+    description: "Dependencies with known CVEs, unmaintained libraries, and transitive dependency risks."
+    source_clause: "OWASP A06:2025"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://OWASPA06-01"
+
+  - control_id: "OWASPA06-02"
+    name: "Vulnerable and Outdated Components — Input Validation"
+    description: "Validate and sanitize all inputs related to vulnerable and outdated components"
+    source_clause: "OWASP A06:2025"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://OWASPA06-02"
+
+  - control_id: "OWASPA06-03"
+    name: "Vulnerable and Outdated Components — Configuration Hardening"
+    description: "Apply secure configuration defaults for vulnerable and outdated components"
+    source_clause: "OWASP A06:2025"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://OWASPA06-03"
+
+  - control_id: "OWASPA06-04"
+    name: "Vulnerable and Outdated Components — Monitoring and Logging"
+    description: "Log and monitor all vulnerable and outdated components events for audit and detection"
+    source_clause: "OWASP A06:2025"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://OWASPA06-04"
+
+  - control_id: "OWASPA06-05"
+    name: "Vulnerable and Outdated Components — Error Handling"
+    description: "Handle vulnerable and outdated components errors securely without information leakage"
+    source_clause: "OWASP A06:2025"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://OWASPA06-05"

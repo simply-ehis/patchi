@@ -1,0 +1,60 @@
+# Playbook for: pci-protect-account
+# Source: PCI DSS 4.0 Req 3
+# Auto-generated
+
+playbooks:
+- control_id: "PCIPROTE-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary protect stored account data control patterns for pci-protect-account"
+  blast_radius_notes: "Automated fix for PCIPROTE-01 - Primary Protect Stored Account Data Control"
+  verification_checks:
+    - "Verify PCIPROTE-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "PCIPROTE-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for protect stored account data patterns for pci-protect-account"
+  blast_radius_notes: "Automated fix for PCIPROTE-02 - Input Validation for Protect Stored Account Data"
+  verification_checks:
+    - "Verify PCIPROTE-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "PCIPROTE-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for protect stored account data patterns for pci-protect-account"
+  blast_radius_notes: "Automated fix for PCIPROTE-03 - Configuration Hardening for Protect Stored Account Data"
+  verification_checks:
+    - "Verify PCIPROTE-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "PCIPROTE-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for protect stored account data patterns for pci-protect-account"
+  blast_radius_notes: "Automated fix for PCIPROTE-04 - Monitoring and Logging for Protect Stored Account Data"
+  verification_checks:
+    - "Verify PCIPROTE-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "PCIPROTE-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for protect stored account data patterns for pci-protect-account"
+  blast_radius_notes: "Automated fix for PCIPROTE-05 - Error Handling for Protect Stored Account Data"
+  verification_checks:
+    - "Verify PCIPROTE-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

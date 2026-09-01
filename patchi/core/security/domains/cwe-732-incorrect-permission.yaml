@@ -1,0 +1,62 @@
+# Patchi Security Domain: cwe-732-incorrect-permission
+# Source: CWE Top 25 2024 CWE-732
+# Auto-generated — curated from CWE Top 25 2024 CWE-732
+
+domain_id: "cwe-732-incorrect-permission"
+version: "1.0.0"
+display_name: "Incorrect Permission Assignment for Critical Resource"
+source_standard: "CWE Top 25 2024 CWE-732"
+component_type: "infra"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_cwe_732_incorrect_permission_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_cwe_732_incorrect_permission"
+
+controls:
+  - control_id: "CWE732IN-01"
+    name: "Incorrect Permission Assignment for Critical Resource — Primary Control"
+    description: "Resource has incorrect permissions, allowing unintended access."
+    source_clause: "CWE-732"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CWE732IN-01"
+
+  - control_id: "CWE732IN-02"
+    name: "Incorrect Permission Assignment for Critical Resource — Input Validation"
+    description: "Validate and sanitize all inputs related to incorrect permission assignment for critical resource"
+    source_clause: "CWE-732"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CWE732IN-02"
+
+  - control_id: "CWE732IN-03"
+    name: "Incorrect Permission Assignment for Critical Resource — Configuration Hardening"
+    description: "Apply secure configuration defaults for incorrect permission assignment for critical resource"
+    source_clause: "CWE-732"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CWE732IN-03"
+
+  - control_id: "CWE732IN-04"
+    name: "Incorrect Permission Assignment for Critical Resource — Monitoring and Logging"
+    description: "Log and monitor all incorrect permission assignment for critical resource events for audit and detection"
+    source_clause: "CWE-732"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CWE732IN-04"
+
+  - control_id: "CWE732IN-05"
+    name: "Incorrect Permission Assignment for Critical Resource — Error Handling"
+    description: "Handle incorrect permission assignment for critical resource errors securely without information leakage"
+    source_clause: "CWE-732"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CWE732IN-05"

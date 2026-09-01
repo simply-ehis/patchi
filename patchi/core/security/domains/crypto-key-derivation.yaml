@@ -1,0 +1,62 @@
+# Patchi Security Domain: crypto-key-derivation
+# Source: Cryptography Implementation
+# Auto-generated — curated from Cryptography Implementation
+
+domain_id: "crypto-key-derivation"
+version: "1.0.0"
+display_name: "Weak Key Derivation"
+source_standard: "Cryptography Implementation"
+component_type: "backend-api"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_crypto_key_derivation_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_crypto_key_derivation"
+
+controls:
+  - control_id: "CRYPTOKE-01"
+    name: "Weak Key Derivation — Primary Control"
+    description: "Insufficient iterations in PBKDF2, bcrypt, or argon2."
+    source_clause: "Crypto KDF"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CRYPTOKE-01"
+
+  - control_id: "CRYPTOKE-02"
+    name: "Weak Key Derivation — Input Validation"
+    description: "Validate and sanitize all inputs related to weak key derivation"
+    source_clause: "Crypto KDF"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CRYPTOKE-02"
+
+  - control_id: "CRYPTOKE-03"
+    name: "Weak Key Derivation — Configuration Hardening"
+    description: "Apply secure configuration defaults for weak key derivation"
+    source_clause: "Crypto KDF"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CRYPTOKE-03"
+
+  - control_id: "CRYPTOKE-04"
+    name: "Weak Key Derivation — Monitoring and Logging"
+    description: "Log and monitor all weak key derivation events for audit and detection"
+    source_clause: "Crypto KDF"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CRYPTOKE-04"
+
+  - control_id: "CRYPTOKE-05"
+    name: "Weak Key Derivation — Error Handling"
+    description: "Handle weak key derivation errors securely without information leakage"
+    source_clause: "Crypto KDF"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CRYPTOKE-05"

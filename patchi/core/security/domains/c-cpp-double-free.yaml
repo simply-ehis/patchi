@@ -1,0 +1,62 @@
+# Patchi Security Domain: c-cpp-double-free
+# Source: C/C++ Security
+# Auto-generated — curated from C/C++ Security
+
+domain_id: "c-cpp-double-free"
+version: "1.0.0"
+display_name: "C/C++ Double Free"
+source_standard: "C/C++ Security"
+component_type: "native-code"
+weight: 0.9
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_c_cpp_double_free_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_c_cpp_double_free"
+
+controls:
+  - control_id: "CCPPDOUB-01"
+    name: "C/C++ Double Free — Primary Control"
+    description: "Freeing memory twice leading to heap corruption."
+    source_clause: "C/C++ Free"
+    severity: "critical"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CCPPDOUB-01"
+
+  - control_id: "CCPPDOUB-02"
+    name: "C/C++ Double Free — Input Validation"
+    description: "Validate and sanitize all inputs related to c/c++ double free"
+    source_clause: "C/C++ Free"
+    severity: "critical"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CCPPDOUB-02"
+
+  - control_id: "CCPPDOUB-03"
+    name: "C/C++ Double Free — Configuration Hardening"
+    description: "Apply secure configuration defaults for c/c++ double free"
+    source_clause: "C/C++ Free"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CCPPDOUB-03"
+
+  - control_id: "CCPPDOUB-04"
+    name: "C/C++ Double Free — Monitoring and Logging"
+    description: "Log and monitor all c/c++ double free events for audit and detection"
+    source_clause: "C/C++ Free"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CCPPDOUB-04"
+
+  - control_id: "CCPPDOUB-05"
+    name: "C/C++ Double Free — Error Handling"
+    description: "Handle c/c++ double free errors securely without information leakage"
+    source_clause: "C/C++ Free"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CCPPDOUB-05"

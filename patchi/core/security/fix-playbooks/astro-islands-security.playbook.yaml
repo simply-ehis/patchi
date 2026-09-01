@@ -1,0 +1,60 @@
+# Playbook for: astro-islands-security
+# Source: Astro Security
+# Auto-generated
+
+playbooks:
+- control_id: "ASTROISL-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary astro islands security control patterns for astro-islands-security"
+  blast_radius_notes: "Automated fix for ASTROISL-01 - Primary Astro Islands Security Control"
+  verification_checks:
+    - "Verify ASTROISL-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "ASTROISL-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for astro islands security patterns for astro-islands-security"
+  blast_radius_notes: "Automated fix for ASTROISL-02 - Input Validation for Astro Islands Security"
+  verification_checks:
+    - "Verify ASTROISL-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "ASTROISL-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for astro islands security patterns for astro-islands-security"
+  blast_radius_notes: "Automated fix for ASTROISL-03 - Configuration Hardening for Astro Islands Security"
+  verification_checks:
+    - "Verify ASTROISL-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "ASTROISL-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for astro islands security patterns for astro-islands-security"
+  blast_radius_notes: "Automated fix for ASTROISL-04 - Monitoring and Logging for Astro Islands Security"
+  verification_checks:
+    - "Verify ASTROISL-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "ASTROISL-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for astro islands security patterns for astro-islands-security"
+  blast_radius_notes: "Automated fix for ASTROISL-05 - Error Handling for Astro Islands Security"
+  verification_checks:
+    - "Verify ASTROISL-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

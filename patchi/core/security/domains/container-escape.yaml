@@ -1,0 +1,62 @@
+# Patchi Security Domain: container-escape
+# Source: Container Security
+# Auto-generated — curated from Container Security
+
+domain_id: "container-escape"
+version: "1.0.0"
+display_name: "Container Escape Vulnerability"
+source_standard: "Container Security"
+component_type: "infra"
+weight: 0.95
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_container_escape_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_container_escape"
+
+controls:
+  - control_id: "CONTAINE-01"
+    name: "Container Escape Vulnerability — Primary Control"
+    description: "Kernel or runtime vulnerabilities allowing container escape."
+    source_clause: "Container Escape"
+    severity: "critical"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CONTAINE-01"
+
+  - control_id: "CONTAINE-02"
+    name: "Container Escape Vulnerability — Input Validation"
+    description: "Validate and sanitize all inputs related to container escape vulnerability"
+    source_clause: "Container Escape"
+    severity: "critical"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CONTAINE-02"
+
+  - control_id: "CONTAINE-03"
+    name: "Container Escape Vulnerability — Configuration Hardening"
+    description: "Apply secure configuration defaults for container escape vulnerability"
+    source_clause: "Container Escape"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CONTAINE-03"
+
+  - control_id: "CONTAINE-04"
+    name: "Container Escape Vulnerability — Monitoring and Logging"
+    description: "Log and monitor all container escape vulnerability events for audit and detection"
+    source_clause: "Container Escape"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CONTAINE-04"
+
+  - control_id: "CONTAINE-05"
+    name: "Container Escape Vulnerability — Error Handling"
+    description: "Handle container escape vulnerability errors securely without information leakage"
+    source_clause: "Container Escape"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CONTAINE-05"

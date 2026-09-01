@@ -1,0 +1,62 @@
+# Patchi Security Domain: nist-ac-21
+# Source: NIST SP 800-53 AC-21
+# Auto-generated — curated from NIST SP 800-53 AC-21
+
+domain_id: "nist-ac-21"
+version: "1.0.0"
+display_name: "Information Sharing"
+source_standard: "NIST SP 800-53 AC-21"
+component_type: "infra"
+weight: 0.75
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_nist_ac_21_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_nist_ac_21"
+
+controls:
+  - control_id: "NISTAC21-01"
+    name: "Information Sharing — Primary Control"
+    description: "Organization facilitates information sharing using appropriate mechanisms."
+    source_clause: "AC-21"
+    severity: "medium"
+    check_method: "manual-review"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://NISTAC21-01"
+
+  - control_id: "NISTAC21-02"
+    name: "Information Sharing — Input Validation"
+    description: "Validate and sanitize all inputs related to information sharing"
+    source_clause: "AC-21"
+    severity: "medium"
+    check_method: "manual-review"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://NISTAC21-02"
+
+  - control_id: "NISTAC21-03"
+    name: "Information Sharing — Configuration Hardening"
+    description: "Apply secure configuration defaults for information sharing"
+    source_clause: "AC-21"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://NISTAC21-03"
+
+  - control_id: "NISTAC21-04"
+    name: "Information Sharing — Monitoring and Logging"
+    description: "Log and monitor all information sharing events for audit and detection"
+    source_clause: "AC-21"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://NISTAC21-04"
+
+  - control_id: "NISTAC21-05"
+    name: "Information Sharing — Error Handling"
+    description: "Handle information sharing errors securely without information leakage"
+    source_clause: "AC-21"
+    severity: "medium"
+    check_method: "manual-review"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://NISTAC21-05"

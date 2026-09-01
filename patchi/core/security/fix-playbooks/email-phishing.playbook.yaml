@@ -1,0 +1,60 @@
+# Playbook for: email-phishing
+# Source: Email Security
+# Auto-generated
+
+playbooks:
+- control_id: "EMAILPHI-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary phishing protection control patterns for email-phishing"
+  blast_radius_notes: "Automated fix for EMAILPHI-01 - Primary Phishing Protection Control"
+  verification_checks:
+    - "Verify EMAILPHI-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "EMAILPHI-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for phishing protection patterns for email-phishing"
+  blast_radius_notes: "Automated fix for EMAILPHI-02 - Input Validation for Phishing Protection"
+  verification_checks:
+    - "Verify EMAILPHI-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "EMAILPHI-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for phishing protection patterns for email-phishing"
+  blast_radius_notes: "Automated fix for EMAILPHI-03 - Configuration Hardening for Phishing Protection"
+  verification_checks:
+    - "Verify EMAILPHI-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "EMAILPHI-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for phishing protection patterns for email-phishing"
+  blast_radius_notes: "Automated fix for EMAILPHI-04 - Monitoring and Logging for Phishing Protection"
+  verification_checks:
+    - "Verify EMAILPHI-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "EMAILPHI-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for phishing protection patterns for email-phishing"
+  blast_radius_notes: "Automated fix for EMAILPHI-05 - Error Handling for Phishing Protection"
+  verification_checks:
+    - "Verify EMAILPHI-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

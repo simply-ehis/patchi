@@ -1,0 +1,60 @@
+# Playbook for: database-stored-procedure
+# Source: Database Security
+# Auto-generated
+
+playbooks:
+- control_id: "DATABASE-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary database stored procedure security control patterns for database-stored-procedure"
+  blast_radius_notes: "Automated fix for DATABASE-01 - Primary Database Stored Procedure Security Control"
+  verification_checks:
+    - "Verify DATABASE-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "DATABASE-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for database stored procedure security patterns for database-stored-procedure"
+  blast_radius_notes: "Automated fix for DATABASE-02 - Input Validation for Database Stored Procedure Security"
+  verification_checks:
+    - "Verify DATABASE-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "DATABASE-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for database stored procedure security patterns for database-stored-procedure"
+  blast_radius_notes: "Automated fix for DATABASE-03 - Configuration Hardening for Database Stored Procedure Security"
+  verification_checks:
+    - "Verify DATABASE-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "DATABASE-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for database stored procedure security patterns for database-stored-procedure"
+  blast_radius_notes: "Automated fix for DATABASE-04 - Monitoring and Logging for Database Stored Procedure Security"
+  verification_checks:
+    - "Verify DATABASE-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "DATABASE-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for database stored procedure security patterns for database-stored-procedure"
+  blast_radius_notes: "Automated fix for DATABASE-05 - Error Handling for Database Stored Procedure Security"
+  verification_checks:
+    - "Verify DATABASE-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

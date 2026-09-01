@@ -1,0 +1,60 @@
+# Playbook for: game-memory-corruption
+# Source: Game Security
+# Auto-generated
+
+playbooks:
+- control_id: "GAMEMEMO-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary game memory corruption control patterns for game-memory-corruption"
+  blast_radius_notes: "Automated fix for GAMEMEMO-01 - Primary Game Memory Corruption Control"
+  verification_checks:
+    - "Verify GAMEMEMO-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "GAMEMEMO-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for game memory corruption patterns for game-memory-corruption"
+  blast_radius_notes: "Automated fix for GAMEMEMO-02 - Input Validation for Game Memory Corruption"
+  verification_checks:
+    - "Verify GAMEMEMO-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "GAMEMEMO-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for game memory corruption patterns for game-memory-corruption"
+  blast_radius_notes: "Automated fix for GAMEMEMO-03 - Configuration Hardening for Game Memory Corruption"
+  verification_checks:
+    - "Verify GAMEMEMO-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "GAMEMEMO-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for game memory corruption patterns for game-memory-corruption"
+  blast_radius_notes: "Automated fix for GAMEMEMO-04 - Monitoring and Logging for Game Memory Corruption"
+  verification_checks:
+    - "Verify GAMEMEMO-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "GAMEMEMO-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for game memory corruption patterns for game-memory-corruption"
+  blast_radius_notes: "Automated fix for GAMEMEMO-05 - Error Handling for Game Memory Corruption"
+  verification_checks:
+    - "Verify GAMEMEMO-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

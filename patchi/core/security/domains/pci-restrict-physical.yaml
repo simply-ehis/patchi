@@ -1,0 +1,62 @@
+# Patchi Security Domain: pci-restrict-physical
+# Source: PCI DSS 4.0 Req 9
+# Auto-generated — curated from PCI DSS 4.0 Req 9
+
+domain_id: "pci-restrict-physical"
+version: "1.0.0"
+display_name: "Restrict Physical Access to Cardholder Data"
+source_standard: "PCI DSS 4.0 Req 9"
+component_type: "infra"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_pci_restrict_physical_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_pci_restrict_physical"
+
+controls:
+  - control_id: "PCIRESTR-01"
+    name: "Restrict Physical Access to Cardholder Data — Primary Control"
+    description: "Restrict physical access to cardholder data."
+    source_clause: "PCI DSS 9"
+    severity: "high"
+    check_method: "manual-review"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://PCIRESTR-01"
+
+  - control_id: "PCIRESTR-02"
+    name: "Restrict Physical Access to Cardholder Data — Input Validation"
+    description: "Validate and sanitize all inputs related to restrict physical access to cardholder data"
+    source_clause: "PCI DSS 9"
+    severity: "high"
+    check_method: "manual-review"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://PCIRESTR-02"
+
+  - control_id: "PCIRESTR-03"
+    name: "Restrict Physical Access to Cardholder Data — Configuration Hardening"
+    description: "Apply secure configuration defaults for restrict physical access to cardholder data"
+    source_clause: "PCI DSS 9"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://PCIRESTR-03"
+
+  - control_id: "PCIRESTR-04"
+    name: "Restrict Physical Access to Cardholder Data — Monitoring and Logging"
+    description: "Log and monitor all restrict physical access to cardholder data events for audit and detection"
+    source_clause: "PCI DSS 9"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://PCIRESTR-04"
+
+  - control_id: "PCIRESTR-05"
+    name: "Restrict Physical Access to Cardholder Data — Error Handling"
+    description: "Handle restrict physical access to cardholder data errors securely without information leakage"
+    source_clause: "PCI DSS 9"
+    severity: "medium"
+    check_method: "manual-review"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://PCIRESTR-05"

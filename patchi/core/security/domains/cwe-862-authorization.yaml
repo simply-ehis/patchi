@@ -1,0 +1,62 @@
+# Patchi Security Domain: cwe-862-authorization
+# Source: CWE Top 25 2024 CWE-862
+# Auto-generated — curated from CWE Top 25 2024 CWE-862
+
+domain_id: "cwe-862-authorization"
+version: "1.0.0"
+display_name: "Missing Authorization"
+source_standard: "CWE Top 25 2024 CWE-862"
+component_type: "backend-api"
+weight: 0.9
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_cwe_862_authorization_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_cwe_862_authorization"
+
+controls:
+  - control_id: "CWE862AU-01"
+    name: "Missing Authorization — Primary Control"
+    description: "Application does not perform authorization check when accessing resources."
+    source_clause: "CWE-862"
+    severity: "critical"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CWE862AU-01"
+
+  - control_id: "CWE862AU-02"
+    name: "Missing Authorization — Input Validation"
+    description: "Validate and sanitize all inputs related to missing authorization"
+    source_clause: "CWE-862"
+    severity: "critical"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CWE862AU-02"
+
+  - control_id: "CWE862AU-03"
+    name: "Missing Authorization — Configuration Hardening"
+    description: "Apply secure configuration defaults for missing authorization"
+    source_clause: "CWE-862"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CWE862AU-03"
+
+  - control_id: "CWE862AU-04"
+    name: "Missing Authorization — Monitoring and Logging"
+    description: "Log and monitor all missing authorization events for audit and detection"
+    source_clause: "CWE-862"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CWE862AU-04"
+
+  - control_id: "CWE862AU-05"
+    name: "Missing Authorization — Error Handling"
+    description: "Handle missing authorization errors securely without information leakage"
+    source_clause: "CWE-862"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CWE862AU-05"

@@ -1,0 +1,62 @@
+# Patchi Security Domain: owasp-php-rce
+# Source: OWASP PHP Top 10
+# Auto-generated — curated from OWASP PHP Top 10
+
+domain_id: "owasp-php-rce"
+version: "1.0.0"
+display_name: "Remote Code Execution"
+source_standard: "OWASP PHP Top 10"
+component_type: "backend-api"
+weight: 0.95
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_owasp_php_rce_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_owasp_php_rce"
+
+controls:
+  - control_id: "OWASPPHP-01"
+    name: "Remote Code Execution — Primary Control"
+    description: "eval(), system(), exec(), passthru() on user-controlled input."
+    source_clause: "OWASP PHP"
+    severity: "critical"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://OWASPPHP-01"
+
+  - control_id: "OWASPPHP-02"
+    name: "Remote Code Execution — Input Validation"
+    description: "Validate and sanitize all inputs related to remote code execution"
+    source_clause: "OWASP PHP"
+    severity: "critical"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://OWASPPHP-02"
+
+  - control_id: "OWASPPHP-03"
+    name: "Remote Code Execution — Configuration Hardening"
+    description: "Apply secure configuration defaults for remote code execution"
+    source_clause: "OWASP PHP"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://OWASPPHP-03"
+
+  - control_id: "OWASPPHP-04"
+    name: "Remote Code Execution — Monitoring and Logging"
+    description: "Log and monitor all remote code execution events for audit and detection"
+    source_clause: "OWASP PHP"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://OWASPPHP-04"
+
+  - control_id: "OWASPPHP-05"
+    name: "Remote Code Execution — Error Handling"
+    description: "Handle remote code execution errors securely without information leakage"
+    source_clause: "OWASP PHP"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://OWASPPHP-05"

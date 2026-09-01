@@ -1,0 +1,62 @@
+# Patchi Security Domain: cwe-650-trust-HTTP-methods
+# Source: CWE-650
+# Auto-generated — curated from CWE-650
+
+domain_id: "cwe-650-trust-HTTP-methods"
+version: "1.0.0"
+display_name: "HTTP Verb Tampering"
+source_standard: "CWE-650"
+component_type: "backend-api"
+weight: 0.7
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_cwe_650_trust_HTTP_methods_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_cwe_650_trust_HTTP_methods"
+
+controls:
+  - control_id: "CWE650TR-01"
+    name: "HTTP Verb Tampering — Primary Control"
+    description: "Application does not properly restrict access based on HTTP method."
+    source_clause: "CWE-650"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CWE650TR-01"
+
+  - control_id: "CWE650TR-02"
+    name: "HTTP Verb Tampering — Input Validation"
+    description: "Validate and sanitize all inputs related to http verb tampering"
+    source_clause: "CWE-650"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CWE650TR-02"
+
+  - control_id: "CWE650TR-03"
+    name: "HTTP Verb Tampering — Configuration Hardening"
+    description: "Apply secure configuration defaults for http verb tampering"
+    source_clause: "CWE-650"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CWE650TR-03"
+
+  - control_id: "CWE650TR-04"
+    name: "HTTP Verb Tampering — Monitoring and Logging"
+    description: "Log and monitor all http verb tampering events for audit and detection"
+    source_clause: "CWE-650"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CWE650TR-04"
+
+  - control_id: "CWE650TR-05"
+    name: "HTTP Verb Tampering — Error Handling"
+    description: "Handle http verb tampering errors securely without information leakage"
+    source_clause: "CWE-650"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CWE650TR-05"

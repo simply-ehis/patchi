@@ -1,0 +1,62 @@
+# Patchi Security Domain: owasp-llm-sensitive-info
+# Source: OWASP LLM 2025 LLM02
+# Auto-generated — curated from OWASP LLM 2025 LLM02
+
+domain_id: "owasp-llm-sensitive-info"
+version: "1.0.0"
+display_name: "Sensitive Information Disclosure"
+source_standard: "OWASP LLM 2025 LLM02"
+component_type: "ai-ml"
+weight: 0.9
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_owasp_llm_sensitive_info_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_owasp_llm_sensitive_info"
+
+controls:
+  - control_id: "OWASPLLM-01"
+    name: "Sensitive Information Disclosure — Primary Control"
+    description: "LLM reveals training data, system prompts, PII, or confidential information in responses."
+    source_clause: "LLM02"
+    severity: "critical"
+    check_method: "dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://OWASPLLM-01"
+
+  - control_id: "OWASPLLM-02"
+    name: "Sensitive Information Disclosure — Input Validation"
+    description: "Validate and sanitize all inputs related to sensitive information disclosure"
+    source_clause: "LLM02"
+    severity: "critical"
+    check_method: "dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://OWASPLLM-02"
+
+  - control_id: "OWASPLLM-03"
+    name: "Sensitive Information Disclosure — Configuration Hardening"
+    description: "Apply secure configuration defaults for sensitive information disclosure"
+    source_clause: "LLM02"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://OWASPLLM-03"
+
+  - control_id: "OWASPLLM-04"
+    name: "Sensitive Information Disclosure — Monitoring and Logging"
+    description: "Log and monitor all sensitive information disclosure events for audit and detection"
+    source_clause: "LLM02"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://OWASPLLM-04"
+
+  - control_id: "OWASPLLM-05"
+    name: "Sensitive Information Disclosure — Error Handling"
+    description: "Handle sensitive information disclosure errors securely without information leakage"
+    source_clause: "LLM02"
+    severity: "medium"
+    check_method: "dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://OWASPLLM-05"

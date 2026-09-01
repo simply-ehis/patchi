@@ -1,0 +1,62 @@
+# Patchi Security Domain: k8s-admission-control
+# Source: Kubernetes Security
+# Auto-generated — curated from Kubernetes Security
+
+domain_id: "k8s-admission-control"
+version: "1.0.0"
+display_name: "Kubernetes Admission Control"
+source_standard: "Kubernetes Security"
+component_type: "infra"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_k8s_admission_control_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_k8s_admission_control"
+
+controls:
+  - control_id: "K8SADMIS-01"
+    name: "Kubernetes Admission Control — Primary Control"
+    description: "Missing PodSecurityPolicy or OPA Gatekeeper constraints."
+    source_clause: "K8s Admission"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://K8SADMIS-01"
+
+  - control_id: "K8SADMIS-02"
+    name: "Kubernetes Admission Control — Input Validation"
+    description: "Validate and sanitize all inputs related to kubernetes admission control"
+    source_clause: "K8s Admission"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://K8SADMIS-02"
+
+  - control_id: "K8SADMIS-03"
+    name: "Kubernetes Admission Control — Configuration Hardening"
+    description: "Apply secure configuration defaults for kubernetes admission control"
+    source_clause: "K8s Admission"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://K8SADMIS-03"
+
+  - control_id: "K8SADMIS-04"
+    name: "Kubernetes Admission Control — Monitoring and Logging"
+    description: "Log and monitor all kubernetes admission control events for audit and detection"
+    source_clause: "K8s Admission"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://K8SADMIS-04"
+
+  - control_id: "K8SADMIS-05"
+    name: "Kubernetes Admission Control — Error Handling"
+    description: "Handle kubernetes admission control errors securely without information leakage"
+    source_clause: "K8s Admission"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://K8SADMIS-05"

@@ -1,0 +1,60 @@
+# Playbook for: cis-gcp
+# Source: CIS GCP Benchmark
+# Auto-generated
+
+playbooks:
+- control_id: "CISGCP-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary gcp cloud hardening control patterns for cis-gcp"
+  blast_radius_notes: "Automated fix for CISGCP-01 - Primary GCP Cloud Hardening Control"
+  verification_checks:
+    - "Verify CISGCP-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CISGCP-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for gcp cloud hardening patterns for cis-gcp"
+  blast_radius_notes: "Automated fix for CISGCP-02 - Input Validation for GCP Cloud Hardening"
+  verification_checks:
+    - "Verify CISGCP-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CISGCP-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for gcp cloud hardening patterns for cis-gcp"
+  blast_radius_notes: "Automated fix for CISGCP-03 - Configuration Hardening for GCP Cloud Hardening"
+  verification_checks:
+    - "Verify CISGCP-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CISGCP-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for gcp cloud hardening patterns for cis-gcp"
+  blast_radius_notes: "Automated fix for CISGCP-04 - Monitoring and Logging for GCP Cloud Hardening"
+  verification_checks:
+    - "Verify CISGCP-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CISGCP-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for gcp cloud hardening patterns for cis-gcp"
+  blast_radius_notes: "Automated fix for CISGCP-05 - Error Handling for GCP Cloud Hardening"
+  verification_checks:
+    - "Verify CISGCP-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

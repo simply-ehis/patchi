@@ -1,0 +1,62 @@
+# Patchi Security Domain: nist-ac-22
+# Source: NIST SP 800-53 AC-22
+# Auto-generated — curated from NIST SP 800-53 AC-22
+
+domain_id: "nist-ac-22"
+version: "1.0.0"
+display_name: "Publicly Accessible Content"
+source_standard: "NIST SP 800-53 AC-22"
+component_type: "infra"
+weight: 0.7
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_nist_ac_22_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_nist_ac_22"
+
+controls:
+  - control_id: "NISTAC22-01"
+    name: "Publicly Accessible Content — Primary Control"
+    description: "Organization manages public access to system resources."
+    source_clause: "AC-22"
+    severity: "medium"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://NISTAC22-01"
+
+  - control_id: "NISTAC22-02"
+    name: "Publicly Accessible Content — Input Validation"
+    description: "Validate and sanitize all inputs related to publicly accessible content"
+    source_clause: "AC-22"
+    severity: "medium"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://NISTAC22-02"
+
+  - control_id: "NISTAC22-03"
+    name: "Publicly Accessible Content — Configuration Hardening"
+    description: "Apply secure configuration defaults for publicly accessible content"
+    source_clause: "AC-22"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://NISTAC22-03"
+
+  - control_id: "NISTAC22-04"
+    name: "Publicly Accessible Content — Monitoring and Logging"
+    description: "Log and monitor all publicly accessible content events for audit and detection"
+    source_clause: "AC-22"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://NISTAC22-04"
+
+  - control_id: "NISTAC22-05"
+    name: "Publicly Accessible Content — Error Handling"
+    description: "Handle publicly accessible content errors securely without information leakage"
+    source_clause: "AC-22"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://NISTAC22-05"

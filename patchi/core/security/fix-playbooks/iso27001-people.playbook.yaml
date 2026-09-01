@@ -1,0 +1,60 @@
+# Playbook for: iso27001-people
+# Source: ISO 27001:2022
+# Auto-generated
+
+playbooks:
+- control_id: "ISO27001-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary people controls (a.6) control patterns for iso27001-people"
+  blast_radius_notes: "Automated fix for ISO27001-01 - Primary People Controls (A.6) Control"
+  verification_checks:
+    - "Verify ISO27001-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "ISO27001-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for people controls (a.6) patterns for iso27001-people"
+  blast_radius_notes: "Automated fix for ISO27001-02 - Input Validation for People Controls (A.6)"
+  verification_checks:
+    - "Verify ISO27001-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "ISO27001-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for people controls (a.6) patterns for iso27001-people"
+  blast_radius_notes: "Automated fix for ISO27001-03 - Configuration Hardening for People Controls (A.6)"
+  verification_checks:
+    - "Verify ISO27001-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "ISO27001-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for people controls (a.6) patterns for iso27001-people"
+  blast_radius_notes: "Automated fix for ISO27001-04 - Monitoring and Logging for People Controls (A.6)"
+  verification_checks:
+    - "Verify ISO27001-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "ISO27001-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for people controls (a.6) patterns for iso27001-people"
+  blast_radius_notes: "Automated fix for ISO27001-05 - Error Handling for People Controls (A.6)"
+  verification_checks:
+    - "Verify ISO27001-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

@@ -1,0 +1,60 @@
+# Playbook for: cloud-azure-keyvault
+# Source: Cloud Security Azure
+# Auto-generated
+
+playbooks:
+- control_id: "CLOUDAZU-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary azure key vault security control patterns for cloud-azure-keyvault"
+  blast_radius_notes: "Automated fix for CLOUDAZU-01 - Primary Azure Key Vault Security Control"
+  verification_checks:
+    - "Verify CLOUDAZU-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CLOUDAZU-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for azure key vault security patterns for cloud-azure-keyvault"
+  blast_radius_notes: "Automated fix for CLOUDAZU-02 - Input Validation for Azure Key Vault Security"
+  verification_checks:
+    - "Verify CLOUDAZU-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CLOUDAZU-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for azure key vault security patterns for cloud-azure-keyvault"
+  blast_radius_notes: "Automated fix for CLOUDAZU-03 - Configuration Hardening for Azure Key Vault Security"
+  verification_checks:
+    - "Verify CLOUDAZU-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CLOUDAZU-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for azure key vault security patterns for cloud-azure-keyvault"
+  blast_radius_notes: "Automated fix for CLOUDAZU-04 - Monitoring and Logging for Azure Key Vault Security"
+  verification_checks:
+    - "Verify CLOUDAZU-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CLOUDAZU-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for azure key vault security patterns for cloud-azure-keyvault"
+  blast_radius_notes: "Automated fix for CLOUDAZU-05 - Error Handling for Azure Key Vault Security"
+  verification_checks:
+    - "Verify CLOUDAZU-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

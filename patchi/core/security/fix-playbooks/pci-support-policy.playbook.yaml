@@ -1,0 +1,60 @@
+# Playbook for: pci-support-policy
+# Source: PCI DSS 4.0 Req 12
+# Auto-generated
+
+playbooks:
+- control_id: "PCISUPPO-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary maintain information security policy control patterns for pci-support-policy"
+  blast_radius_notes: "Automated fix for PCISUPPO-01 - Primary Maintain Information Security Policy Control"
+  verification_checks:
+    - "Verify PCISUPPO-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "PCISUPPO-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for maintain information security policy patterns for pci-support-policy"
+  blast_radius_notes: "Automated fix for PCISUPPO-02 - Input Validation for Maintain Information Security Policy"
+  verification_checks:
+    - "Verify PCISUPPO-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "PCISUPPO-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for maintain information security policy patterns for pci-support-policy"
+  blast_radius_notes: "Automated fix for PCISUPPO-03 - Configuration Hardening for Maintain Information Security Policy"
+  verification_checks:
+    - "Verify PCISUPPO-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "PCISUPPO-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for maintain information security policy patterns for pci-support-policy"
+  blast_radius_notes: "Automated fix for PCISUPPO-04 - Monitoring and Logging for Maintain Information Security Policy"
+  verification_checks:
+    - "Verify PCISUPPO-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "PCISUPPO-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for maintain information security policy patterns for pci-support-policy"
+  blast_radius_notes: "Automated fix for PCISUPPO-05 - Error Handling for Maintain Information Security Policy"
+  verification_checks:
+    - "Verify PCISUPPO-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

@@ -1,0 +1,62 @@
+# Patchi Security Domain: iso27001-secure-development
+# Source: ISO 27001:2022
+# Auto-generated — curated from ISO 27001:2022
+
+domain_id: "iso27001-secure-development"
+version: "1.0.0"
+display_name: "Secure Development (A.8.25-A.8.34)"
+source_standard: "ISO 27001:2022"
+component_type: "backend-api"
+weight: 0.9
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_iso27001_secure_development_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_iso27001_secure_development"
+
+controls:
+  - control_id: "ISO27001-01"
+    name: "Secure Development (A.8.25-A.8.34) — Primary Control"
+    description: "Secure development lifecycle, code review, and testing."
+    source_clause: "ISO A.8.25-A.8.34"
+    severity: "critical"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://ISO27001-01"
+
+  - control_id: "ISO27001-02"
+    name: "Secure Development (A.8.25-A.8.34) — Input Validation"
+    description: "Validate and sanitize all inputs related to secure development (a.8.25-a.8.34)"
+    source_clause: "ISO A.8.25-A.8.34"
+    severity: "critical"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://ISO27001-02"
+
+  - control_id: "ISO27001-03"
+    name: "Secure Development (A.8.25-A.8.34) — Configuration Hardening"
+    description: "Apply secure configuration defaults for secure development (a.8.25-a.8.34)"
+    source_clause: "ISO A.8.25-A.8.34"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://ISO27001-03"
+
+  - control_id: "ISO27001-04"
+    name: "Secure Development (A.8.25-A.8.34) — Monitoring and Logging"
+    description: "Log and monitor all secure development (a.8.25-a.8.34) events for audit and detection"
+    source_clause: "ISO A.8.25-A.8.34"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://ISO27001-04"
+
+  - control_id: "ISO27001-05"
+    name: "Secure Development (A.8.25-A.8.34) — Error Handling"
+    description: "Handle secure development (a.8.25-a.8.34) errors securely without information leakage"
+    source_clause: "ISO A.8.25-A.8.34"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://ISO27001-05"

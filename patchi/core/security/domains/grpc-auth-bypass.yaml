@@ -1,0 +1,62 @@
+# Patchi Security Domain: grpc-auth-bypass
+# Source: gRPC Security
+# Auto-generated — curated from gRPC Security
+
+domain_id: "grpc-auth-bypass"
+version: "1.0.0"
+display_name: "gRPC Authentication Bypass"
+source_standard: "gRPC Security"
+component_type: "backend-api"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_grpc_auth_bypass_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_grpc_auth_bypass"
+
+controls:
+  - control_id: "GRPCAUTH-01"
+    name: "gRPC Authentication Bypass — Primary Control"
+    description: "Missing or weak interceptors for authentication."
+    source_clause: "gRPC Auth"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://GRPCAUTH-01"
+
+  - control_id: "GRPCAUTH-02"
+    name: "gRPC Authentication Bypass — Input Validation"
+    description: "Validate and sanitize all inputs related to grpc authentication bypass"
+    source_clause: "gRPC Auth"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://GRPCAUTH-02"
+
+  - control_id: "GRPCAUTH-03"
+    name: "gRPC Authentication Bypass — Configuration Hardening"
+    description: "Apply secure configuration defaults for grpc authentication bypass"
+    source_clause: "gRPC Auth"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://GRPCAUTH-03"
+
+  - control_id: "GRPCAUTH-04"
+    name: "gRPC Authentication Bypass — Monitoring and Logging"
+    description: "Log and monitor all grpc authentication bypass events for audit and detection"
+    source_clause: "gRPC Auth"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://GRPCAUTH-04"
+
+  - control_id: "GRPCAUTH-05"
+    name: "gRPC Authentication Bypass — Error Handling"
+    description: "Handle grpc authentication bypass errors securely without information leakage"
+    source_clause: "gRPC Auth"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://GRPCAUTH-05"

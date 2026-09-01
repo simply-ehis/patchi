@@ -1,0 +1,60 @@
+# Playbook for: nist-sc-4
+# Source: NIST SP 800-53 SC-4
+# Auto-generated
+
+playbooks:
+- control_id: "NISTSC4-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary information in shared resources control patterns for nist-sc-4"
+  blast_radius_notes: "Automated fix for NISTSC4-01 - Primary Information in Shared Resources Control"
+  verification_checks:
+    - "Verify NISTSC4-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NISTSC4-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for information in shared resources patterns for nist-sc-4"
+  blast_radius_notes: "Automated fix for NISTSC4-02 - Input Validation for Information in Shared Resources"
+  verification_checks:
+    - "Verify NISTSC4-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NISTSC4-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for information in shared resources patterns for nist-sc-4"
+  blast_radius_notes: "Automated fix for NISTSC4-03 - Configuration Hardening for Information in Shared Resources"
+  verification_checks:
+    - "Verify NISTSC4-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NISTSC4-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for information in shared resources patterns for nist-sc-4"
+  blast_radius_notes: "Automated fix for NISTSC4-04 - Monitoring and Logging for Information in Shared Resources"
+  verification_checks:
+    - "Verify NISTSC4-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NISTSC4-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for information in shared resources patterns for nist-sc-4"
+  blast_radius_notes: "Automated fix for NISTSC4-05 - Error Handling for Information in Shared Resources"
+  verification_checks:
+    - "Verify NISTSC4-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

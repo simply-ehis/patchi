@@ -1,0 +1,60 @@
+# Playbook for: cwe-367-time-of-check-time-of-use
+# Source: CWE-367
+# Auto-generated
+
+playbooks:
+- control_id: "CWE367TI-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary time-of-check time-of-use (toctou) race condition control patterns for cwe-367-time-of-check-time-of-use"
+  blast_radius_notes: "Automated fix for CWE367TI-01 - Primary Time-of-check Time-of-use (TOCTOU) Race Condition Control"
+  verification_checks:
+    - "Verify CWE367TI-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CWE367TI-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for time-of-check time-of-use (toctou) race condition patterns for cwe-367-time-of-check-time-of-use"
+  blast_radius_notes: "Automated fix for CWE367TI-02 - Input Validation for Time-of-check Time-of-use (TOCTOU) Race Condition"
+  verification_checks:
+    - "Verify CWE367TI-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CWE367TI-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for time-of-check time-of-use (toctou) race condition patterns for cwe-367-time-of-check-time-of-use"
+  blast_radius_notes: "Automated fix for CWE367TI-03 - Configuration Hardening for Time-of-check Time-of-use (TOCTOU) Race Condition"
+  verification_checks:
+    - "Verify CWE367TI-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CWE367TI-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for time-of-check time-of-use (toctou) race condition patterns for cwe-367-time-of-check-time-of-use"
+  blast_radius_notes: "Automated fix for CWE367TI-04 - Monitoring and Logging for Time-of-check Time-of-use (TOCTOU) Race Condition"
+  verification_checks:
+    - "Verify CWE367TI-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CWE367TI-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for time-of-check time-of-use (toctou) race condition patterns for cwe-367-time-of-check-time-of-use"
+  blast_radius_notes: "Automated fix for CWE367TI-05 - Error Handling for Time-of-check Time-of-use (TOCTOU) Race Condition"
+  verification_checks:
+    - "Verify CWE367TI-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

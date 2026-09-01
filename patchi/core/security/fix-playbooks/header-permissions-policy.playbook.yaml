@@ -1,0 +1,60 @@
+# Playbook for: header-permissions-policy
+# Source: HTTP Security Headers
+# Auto-generated
+
+playbooks:
+- control_id: "HEADERPE-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary permissions policy control patterns for header-permissions-policy"
+  blast_radius_notes: "Automated fix for HEADERPE-01 - Primary Permissions Policy Control"
+  verification_checks:
+    - "Verify HEADERPE-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "HEADERPE-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for permissions policy patterns for header-permissions-policy"
+  blast_radius_notes: "Automated fix for HEADERPE-02 - Input Validation for Permissions Policy"
+  verification_checks:
+    - "Verify HEADERPE-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "HEADERPE-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for permissions policy patterns for header-permissions-policy"
+  blast_radius_notes: "Automated fix for HEADERPE-03 - Configuration Hardening for Permissions Policy"
+  verification_checks:
+    - "Verify HEADERPE-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "HEADERPE-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for permissions policy patterns for header-permissions-policy"
+  blast_radius_notes: "Automated fix for HEADERPE-04 - Monitoring and Logging for Permissions Policy"
+  verification_checks:
+    - "Verify HEADERPE-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "HEADERPE-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for permissions policy patterns for header-permissions-policy"
+  blast_radius_notes: "Automated fix for HEADERPE-05 - Error Handling for Permissions Policy"
+  verification_checks:
+    - "Verify HEADERPE-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

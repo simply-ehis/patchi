@@ -1,0 +1,62 @@
+# Patchi Security Domain: nist-au-9
+# Source: NIST SP 800-53 AU-9
+# Auto-generated — curated from NIST SP 800-53 AU-9
+
+domain_id: "nist-au-9"
+version: "1.0.0"
+display_name: "Protection of Audit Information"
+source_standard: "NIST SP 800-53 AU-9"
+component_type: "infra"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_nist_au_9_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_nist_au_9"
+
+controls:
+  - control_id: "NISTAU9-01"
+    name: "Protection of Audit Information — Primary Control"
+    description: "System protects audit information from unauthorized modification and deletion."
+    source_clause: "AU-9"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://NISTAU9-01"
+
+  - control_id: "NISTAU9-02"
+    name: "Protection of Audit Information — Input Validation"
+    description: "Validate and sanitize all inputs related to protection of audit information"
+    source_clause: "AU-9"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://NISTAU9-02"
+
+  - control_id: "NISTAU9-03"
+    name: "Protection of Audit Information — Configuration Hardening"
+    description: "Apply secure configuration defaults for protection of audit information"
+    source_clause: "AU-9"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://NISTAU9-03"
+
+  - control_id: "NISTAU9-04"
+    name: "Protection of Audit Information — Monitoring and Logging"
+    description: "Log and monitor all protection of audit information events for audit and detection"
+    source_clause: "AU-9"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://NISTAU9-04"
+
+  - control_id: "NISTAU9-05"
+    name: "Protection of Audit Information — Error Handling"
+    description: "Handle protection of audit information errors securely without information leakage"
+    source_clause: "AU-9"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://NISTAU9-05"

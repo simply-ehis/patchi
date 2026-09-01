@@ -1,0 +1,62 @@
+# Patchi Security Domain: game-memory-corruption
+# Source: Game Security
+# Auto-generated — curated from Game Security
+
+domain_id: "game-memory-corruption"
+version: "1.0.0"
+display_name: "Game Memory Corruption"
+source_standard: "Game Security"
+component_type: "native-code"
+weight: 0.9
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_game_memory_corruption_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_game_memory_corruption"
+
+controls:
+  - control_id: "GAMEMEMO-01"
+    name: "Game Memory Corruption — Primary Control"
+    description: "Buffer overflows in game networking or rendering code."
+    source_clause: "Game Memory"
+    severity: "critical"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://GAMEMEMO-01"
+
+  - control_id: "GAMEMEMO-02"
+    name: "Game Memory Corruption — Input Validation"
+    description: "Validate and sanitize all inputs related to game memory corruption"
+    source_clause: "Game Memory"
+    severity: "critical"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://GAMEMEMO-02"
+
+  - control_id: "GAMEMEMO-03"
+    name: "Game Memory Corruption — Configuration Hardening"
+    description: "Apply secure configuration defaults for game memory corruption"
+    source_clause: "Game Memory"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://GAMEMEMO-03"
+
+  - control_id: "GAMEMEMO-04"
+    name: "Game Memory Corruption — Monitoring and Logging"
+    description: "Log and monitor all game memory corruption events for audit and detection"
+    source_clause: "Game Memory"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://GAMEMEMO-04"
+
+  - control_id: "GAMEMEMO-05"
+    name: "Game Memory Corruption — Error Handling"
+    description: "Handle game memory corruption errors securely without information leakage"
+    source_clause: "Game Memory"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://GAMEMEMO-05"

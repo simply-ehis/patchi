@@ -1,0 +1,60 @@
+# Playbook for: header-cache-control
+# Source: HTTP Security Headers
+# Auto-generated
+
+playbooks:
+- control_id: "HEADERCA-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary cache control security control patterns for header-cache-control"
+  blast_radius_notes: "Automated fix for HEADERCA-01 - Primary Cache Control Security Control"
+  verification_checks:
+    - "Verify HEADERCA-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "HEADERCA-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for cache control security patterns for header-cache-control"
+  blast_radius_notes: "Automated fix for HEADERCA-02 - Input Validation for Cache Control Security"
+  verification_checks:
+    - "Verify HEADERCA-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "HEADERCA-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for cache control security patterns for header-cache-control"
+  blast_radius_notes: "Automated fix for HEADERCA-03 - Configuration Hardening for Cache Control Security"
+  verification_checks:
+    - "Verify HEADERCA-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "HEADERCA-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for cache control security patterns for header-cache-control"
+  blast_radius_notes: "Automated fix for HEADERCA-04 - Monitoring and Logging for Cache Control Security"
+  verification_checks:
+    - "Verify HEADERCA-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "HEADERCA-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for cache control security patterns for header-cache-control"
+  blast_radius_notes: "Automated fix for HEADERCA-05 - Error Handling for Cache Control Security"
+  verification_checks:
+    - "Verify HEADERCA-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

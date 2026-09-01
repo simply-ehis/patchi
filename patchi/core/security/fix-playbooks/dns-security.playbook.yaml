@@ -1,85 +1,0 @@
-playbooks:
-- blast_radius_notes: Reclaiming dangling DNS records may disrupt services that still
-    reference them; coordinate with all stakeholders before removal.
-  control_id: DNS-01
-  deterministic_tool: 'run subjack or dnsReaper to identify dangling CNAME/A/AAAA records,
-    then delete or update them'
-  fix_strategy: deterministic-autofix
-  human_review_required: true
-  llm_fix_template: null
-  playbook_version: 1.0.0
-  verification_checks:
-  - Confirm no dangling DNS records remain after remediation.
-  - Confirm legitimate services that reference these records are updated or removed.
-- blast_radius_notes: Restricting AXFR to an allowlist may break secondary DNS providers
-    that rely on zone transfers; coordinate with all secondary providers.
-  control_id: DNS-02
-  deterministic_tool: 'restrict AXFR to explicitly allowlisted secondary nameservers
-    and add TSIG authentication for transfers'
-  fix_strategy: deterministic-autofix
-  human_review_required: true
-  llm_fix_template: null
-  playbook_version: 1.0.0
-  verification_checks:
-  - Confirm AXFR is only permitted from allowlisted IPs.
-  - Confirm TSIG keys are configured and secondary DNS providers can still pull zone
-    data.
-- blast_radius_notes: Enabling DNSSEC requires submitting DS records to the parent
-    zone; misconfiguration can cause DNS resolution failures for the entire domain.
-  control_id: DNS-03
-  deterministic_tool: null
-  fix_strategy: manual-only
-  human_review_required: true
-  llm_fix_template: null
-  playbook_version: 1.0.0
-  verification_checks:
-  - A human confirms DNSSEC is enabled and DS records are correctly submitted to the
-    parent zone.
-  - Confirm DNS resolution works for the domain after DNSSEC activation.
-- blast_radius_notes: Migrating off deprecated algorithms requires re-signing the zone;
-    invalid transitions can cause validation failures for resolvers enforcing the algorithm.
-  control_id: DNS-04
-  deterministic_tool: null
-  fix_strategy: manual-only
-  human_review_required: true
-  llm_fix_template: null
-  playbook_version: 1.0.0
-  verification_checks:
-  - A human confirms the zone is signed with a current algorithm (RSA-2048+, ECDSA
-    P-256+).
-  - Confirm deprecated algorithms are no longer in use.
-- blast_radius_notes: Auditing delegated subdomains requires reviewing relationships
-    with all subdomain owners; revoking delegation without coordination can break legitimate
-    services.
-  control_id: DNS-05
-  deterministic_tool: null
-  fix_strategy: manual-only
-  human_review_required: true
-  llm_fix_template: null
-  playbook_version: 1.0.0
-  verification_checks:
-  - A human reviews all delegated subdomains and confirms each is still authorized.
-  - Confirm unauthorized or stale delegations are removed.
-- blast_radius_notes: Publishing a CAA record is purely additive and low risk; it restricts
-    which Certificate Authorities can issue certificates for the domain.
-  control_id: DNS-06
-  deterministic_tool: publish a CAA record specifying allowed Certificate Authorities
-  fix_strategy: deterministic-autofix
-  human_review_required: false
-  llm_fix_template: null
-  playbook_version: 1.0.0
-  verification_checks:
-  - Confirm the CAA record is published and resolves correctly.
-  - Confirm the listed CAs match the organization's certificate providers.
-- blast_radius_notes: Removing stale records may break legacy systems that still reference
-    them; coordinate with all stakeholders.
-  control_id: DNS-07
-  deterministic_tool: null
-  fix_strategy: manual-only
-  human_review_required: true
-  llm_fix_template: null
-  playbook_version: 1.0.0
-  verification_checks:
-  - A human exports the zone file, reviews all records, and removes stale or unauthorized
-    entries.
-  - Confirm no legitimate records were accidentally removed.

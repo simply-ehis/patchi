@@ -1,0 +1,62 @@
+# Patchi Security Domain: grpc-insecure-connection
+# Source: gRPC Security
+# Auto-generated — curated from gRPC Security
+
+domain_id: "grpc-insecure-connection"
+version: "1.0.0"
+display_name: "gRPC Insecure Connection"
+source_standard: "gRPC Security"
+component_type: "backend-api"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_grpc_insecure_connection_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_grpc_insecure_connection"
+
+controls:
+  - control_id: "GRPCINSE-01"
+    name: "gRPC Insecure Connection — Primary Control"
+    description: "gRPC without TLS or with insecure channel credentials."
+    source_clause: "gRPC TLS"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://GRPCINSE-01"
+
+  - control_id: "GRPCINSE-02"
+    name: "gRPC Insecure Connection — Input Validation"
+    description: "Validate and sanitize all inputs related to grpc insecure connection"
+    source_clause: "gRPC TLS"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://GRPCINSE-02"
+
+  - control_id: "GRPCINSE-03"
+    name: "gRPC Insecure Connection — Configuration Hardening"
+    description: "Apply secure configuration defaults for grpc insecure connection"
+    source_clause: "gRPC TLS"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://GRPCINSE-03"
+
+  - control_id: "GRPCINSE-04"
+    name: "gRPC Insecure Connection — Monitoring and Logging"
+    description: "Log and monitor all grpc insecure connection events for audit and detection"
+    source_clause: "gRPC TLS"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://GRPCINSE-04"
+
+  - control_id: "GRPCINSE-05"
+    name: "gRPC Insecure Connection — Error Handling"
+    description: "Handle grpc insecure connection errors securely without information leakage"
+    source_clause: "gRPC TLS"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://GRPCINSE-05"

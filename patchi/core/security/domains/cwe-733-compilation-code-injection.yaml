@@ -1,0 +1,62 @@
+# Patchi Security Domain: cwe-733-compilation-code-injection
+# Source: CWE-733
+# Auto-generated — curated from CWE-733
+
+domain_id: "cwe-733-compilation-code-injection"
+version: "1.0.0"
+display_name: "Compiler Optimization Removal or Modification of Security-critical Code"
+source_standard: "CWE-733"
+component_type: "native-code"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_cwe_733_compilation_code_injection_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_cwe_733_compilation_code_injection"
+
+controls:
+  - control_id: "CWE733CO-01"
+    name: "Compiler Optimization Removal or Modification of Security-critical Code — Primary Control"
+    description: "Compiler optimizations remove or modify security-critical code."
+    source_clause: "CWE-733"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CWE733CO-01"
+
+  - control_id: "CWE733CO-02"
+    name: "Compiler Optimization Removal or Modification of Security-critical Code — Input Validation"
+    description: "Validate and sanitize all inputs related to compiler optimization removal or modification of security-critical code"
+    source_clause: "CWE-733"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CWE733CO-02"
+
+  - control_id: "CWE733CO-03"
+    name: "Compiler Optimization Removal or Modification of Security-critical Code — Configuration Hardening"
+    description: "Apply secure configuration defaults for compiler optimization removal or modification of security-critical code"
+    source_clause: "CWE-733"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CWE733CO-03"
+
+  - control_id: "CWE733CO-04"
+    name: "Compiler Optimization Removal or Modification of Security-critical Code — Monitoring and Logging"
+    description: "Log and monitor all compiler optimization removal or modification of security-critical code events for audit and detection"
+    source_clause: "CWE-733"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CWE733CO-04"
+
+  - control_id: "CWE733CO-05"
+    name: "Compiler Optimization Removal or Modification of Security-critical Code — Error Handling"
+    description: "Handle compiler optimization removal or modification of security-critical code errors securely without information leakage"
+    source_clause: "CWE-733"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CWE733CO-05"

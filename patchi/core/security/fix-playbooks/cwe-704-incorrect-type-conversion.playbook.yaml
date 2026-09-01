@@ -1,0 +1,60 @@
+# Playbook for: cwe-704-incorrect-type-conversion
+# Source: CWE-704
+# Auto-generated
+
+playbooks:
+- control_id: "CWE704IN-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary incorrect type conversion or cast control patterns for cwe-704-incorrect-type-conversion"
+  blast_radius_notes: "Automated fix for CWE704IN-01 - Primary Incorrect Type Conversion or Cast Control"
+  verification_checks:
+    - "Verify CWE704IN-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CWE704IN-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for incorrect type conversion or cast patterns for cwe-704-incorrect-type-conversion"
+  blast_radius_notes: "Automated fix for CWE704IN-02 - Input Validation for Incorrect Type Conversion or Cast"
+  verification_checks:
+    - "Verify CWE704IN-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CWE704IN-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for incorrect type conversion or cast patterns for cwe-704-incorrect-type-conversion"
+  blast_radius_notes: "Automated fix for CWE704IN-03 - Configuration Hardening for Incorrect Type Conversion or Cast"
+  verification_checks:
+    - "Verify CWE704IN-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CWE704IN-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for incorrect type conversion or cast patterns for cwe-704-incorrect-type-conversion"
+  blast_radius_notes: "Automated fix for CWE704IN-04 - Monitoring and Logging for Incorrect Type Conversion or Cast"
+  verification_checks:
+    - "Verify CWE704IN-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CWE704IN-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for incorrect type conversion or cast patterns for cwe-704-incorrect-type-conversion"
+  blast_radius_notes: "Automated fix for CWE704IN-05 - Error Handling for Incorrect Type Conversion or Cast"
+  verification_checks:
+    - "Verify CWE704IN-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

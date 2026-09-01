@@ -1,0 +1,60 @@
+# Playbook for: cwe-522-insufficiently-protected
+# Source: CWE-522
+# Auto-generated
+
+playbooks:
+- control_id: "CWE522IN-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary insufficiently protected credentials control patterns for cwe-522-insufficiently-protected"
+  blast_radius_notes: "Automated fix for CWE522IN-01 - Primary Insufficiently Protected Credentials Control"
+  verification_checks:
+    - "Verify CWE522IN-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CWE522IN-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for insufficiently protected credentials patterns for cwe-522-insufficiently-protected"
+  blast_radius_notes: "Automated fix for CWE522IN-02 - Input Validation for Insufficiently Protected Credentials"
+  verification_checks:
+    - "Verify CWE522IN-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CWE522IN-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for insufficiently protected credentials patterns for cwe-522-insufficiently-protected"
+  blast_radius_notes: "Automated fix for CWE522IN-03 - Configuration Hardening for Insufficiently Protected Credentials"
+  verification_checks:
+    - "Verify CWE522IN-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CWE522IN-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for insufficiently protected credentials patterns for cwe-522-insufficiently-protected"
+  blast_radius_notes: "Automated fix for CWE522IN-04 - Monitoring and Logging for Insufficiently Protected Credentials"
+  verification_checks:
+    - "Verify CWE522IN-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CWE522IN-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for insufficiently protected credentials patterns for cwe-522-insufficiently-protected"
+  blast_radius_notes: "Automated fix for CWE522IN-05 - Error Handling for Insufficiently Protected Credentials"
+  verification_checks:
+    - "Verify CWE522IN-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

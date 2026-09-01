@@ -1,0 +1,62 @@
+# Patchi Security Domain: gdpr-lawful-processing
+# Source: GDPR Art 6
+# Auto-generated — curated from GDPR Art 6
+
+domain_id: "gdpr-lawful-processing"
+version: "1.0.0"
+display_name: "Lawful Basis for Processing"
+source_standard: "GDPR Art 6"
+component_type: "backend-api"
+weight: 0.9
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_gdpr_lawful_processing_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_gdpr_lawful_processing"
+
+controls:
+  - control_id: "GDPRLAWF-01"
+    name: "Lawful Basis for Processing — Primary Control"
+    description: "Processing personal data only with a valid lawful basis."
+    source_clause: "GDPR Art 6"
+    severity: "critical"
+    check_method: "static+manual-review"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://GDPRLAWF-01"
+
+  - control_id: "GDPRLAWF-02"
+    name: "Lawful Basis for Processing — Input Validation"
+    description: "Validate and sanitize all inputs related to lawful basis for processing"
+    source_clause: "GDPR Art 6"
+    severity: "critical"
+    check_method: "static+manual-review"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://GDPRLAWF-02"
+
+  - control_id: "GDPRLAWF-03"
+    name: "Lawful Basis for Processing — Configuration Hardening"
+    description: "Apply secure configuration defaults for lawful basis for processing"
+    source_clause: "GDPR Art 6"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://GDPRLAWF-03"
+
+  - control_id: "GDPRLAWF-04"
+    name: "Lawful Basis for Processing — Monitoring and Logging"
+    description: "Log and monitor all lawful basis for processing events for audit and detection"
+    source_clause: "GDPR Art 6"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://GDPRLAWF-04"
+
+  - control_id: "GDPRLAWF-05"
+    name: "Lawful Basis for Processing — Error Handling"
+    description: "Handle lawful basis for processing errors securely without information leakage"
+    source_clause: "GDPR Art 6"
+    severity: "medium"
+    check_method: "static+manual-review"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://GDPRLAWF-05"

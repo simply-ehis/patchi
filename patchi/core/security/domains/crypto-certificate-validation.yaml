@@ -1,0 +1,62 @@
+# Patchi Security Domain: crypto-certificate-validation
+# Source: Cryptography Implementation
+# Auto-generated — curated from Cryptography Implementation
+
+domain_id: "crypto-certificate-validation"
+version: "1.0.0"
+display_name: "Certificate Validation"
+source_standard: "Cryptography Implementation"
+component_type: "backend-api"
+weight: 0.9
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_crypto_certificate_validation_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_crypto_certificate_validation"
+
+controls:
+  - control_id: "CRYPTOCE-01"
+    name: "Certificate Validation — Primary Control"
+    description: "Missing or disabled TLS certificate validation."
+    source_clause: "Crypto Cert"
+    severity: "critical"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CRYPTOCE-01"
+
+  - control_id: "CRYPTOCE-02"
+    name: "Certificate Validation — Input Validation"
+    description: "Validate and sanitize all inputs related to certificate validation"
+    source_clause: "Crypto Cert"
+    severity: "critical"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CRYPTOCE-02"
+
+  - control_id: "CRYPTOCE-03"
+    name: "Certificate Validation — Configuration Hardening"
+    description: "Apply secure configuration defaults for certificate validation"
+    source_clause: "Crypto Cert"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CRYPTOCE-03"
+
+  - control_id: "CRYPTOCE-04"
+    name: "Certificate Validation — Monitoring and Logging"
+    description: "Log and monitor all certificate validation events for audit and detection"
+    source_clause: "Crypto Cert"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CRYPTOCE-04"
+
+  - control_id: "CRYPTOCE-05"
+    name: "Certificate Validation — Error Handling"
+    description: "Handle certificate validation errors securely without information leakage"
+    source_clause: "Crypto Cert"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CRYPTOCE-05"

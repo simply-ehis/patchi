@@ -1,0 +1,60 @@
+# Playbook for: threat-model-risk-assessment
+# Source: Threat Modeling
+# Auto-generated
+
+playbooks:
+- control_id: "THREATMO-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary risk assessment control patterns for threat-model-risk-assessment"
+  blast_radius_notes: "Automated fix for THREATMO-01 - Primary Risk Assessment Control"
+  verification_checks:
+    - "Verify THREATMO-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "THREATMO-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for risk assessment patterns for threat-model-risk-assessment"
+  blast_radius_notes: "Automated fix for THREATMO-02 - Input Validation for Risk Assessment"
+  verification_checks:
+    - "Verify THREATMO-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "THREATMO-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for risk assessment patterns for threat-model-risk-assessment"
+  blast_radius_notes: "Automated fix for THREATMO-03 - Configuration Hardening for Risk Assessment"
+  verification_checks:
+    - "Verify THREATMO-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "THREATMO-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for risk assessment patterns for threat-model-risk-assessment"
+  blast_radius_notes: "Automated fix for THREATMO-04 - Monitoring and Logging for Risk Assessment"
+  verification_checks:
+    - "Verify THREATMO-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "THREATMO-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for risk assessment patterns for threat-model-risk-assessment"
+  blast_radius_notes: "Automated fix for THREATMO-05 - Error Handling for Risk Assessment"
+  verification_checks:
+    - "Verify THREATMO-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

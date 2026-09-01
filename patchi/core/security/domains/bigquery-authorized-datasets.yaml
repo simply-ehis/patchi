@@ -1,0 +1,62 @@
+# Patchi Security Domain: bigquery-authorized-datasets
+# Source: Data Engineering Security
+# Auto-generated — curated from Data Engineering Security
+
+domain_id: "bigquery-authorized-datasets"
+version: "1.0.0"
+display_name: "BigQuery Authorized Datasets"
+source_standard: "Data Engineering Security"
+component_type: "cloud-gcp"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_bigquery_authorized_datasets_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_bigquery_authorized_datasets"
+
+controls:
+  - control_id: "BIGQUERY-01"
+    name: "BigQuery Authorized Datasets — Primary Control"
+    description: "BigQuery datasets shared via authorized views without access controls."
+    source_clause: "BQ Auth"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://BIGQUERY-01"
+
+  - control_id: "BIGQUERY-02"
+    name: "BigQuery Authorized Datasets — Input Validation"
+    description: "Validate and sanitize all inputs related to bigquery authorized datasets"
+    source_clause: "BQ Auth"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://BIGQUERY-02"
+
+  - control_id: "BIGQUERY-03"
+    name: "BigQuery Authorized Datasets — Configuration Hardening"
+    description: "Apply secure configuration defaults for bigquery authorized datasets"
+    source_clause: "BQ Auth"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://BIGQUERY-03"
+
+  - control_id: "BIGQUERY-04"
+    name: "BigQuery Authorized Datasets — Monitoring and Logging"
+    description: "Log and monitor all bigquery authorized datasets events for audit and detection"
+    source_clause: "BQ Auth"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://BIGQUERY-04"
+
+  - control_id: "BIGQUERY-05"
+    name: "BigQuery Authorized Datasets — Error Handling"
+    description: "Handle bigquery authorized datasets errors securely without information leakage"
+    source_clause: "BQ Auth"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://BIGQUERY-05"

@@ -1,0 +1,62 @@
+# Patchi Security Domain: nist-ac-20
+# Source: NIST SP 800-53 AC-20
+# Auto-generated — curated from NIST SP 800-53 AC-20
+
+domain_id: "nist-ac-20"
+version: "1.0.0"
+display_name: "Use of External Systems"
+source_standard: "NIST SP 800-53 AC-20"
+component_type: "infra"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_nist_ac_20_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_nist_ac_20"
+
+controls:
+  - control_id: "NISTAC20-01"
+    name: "Use of External Systems — Primary Control"
+    description: "Organization establishes terms for external system access."
+    source_clause: "AC-20"
+    severity: "high"
+    check_method: "manual-review"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://NISTAC20-01"
+
+  - control_id: "NISTAC20-02"
+    name: "Use of External Systems — Input Validation"
+    description: "Validate and sanitize all inputs related to use of external systems"
+    source_clause: "AC-20"
+    severity: "high"
+    check_method: "manual-review"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://NISTAC20-02"
+
+  - control_id: "NISTAC20-03"
+    name: "Use of External Systems — Configuration Hardening"
+    description: "Apply secure configuration defaults for use of external systems"
+    source_clause: "AC-20"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://NISTAC20-03"
+
+  - control_id: "NISTAC20-04"
+    name: "Use of External Systems — Monitoring and Logging"
+    description: "Log and monitor all use of external systems events for audit and detection"
+    source_clause: "AC-20"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://NISTAC20-04"
+
+  - control_id: "NISTAC20-05"
+    name: "Use of External Systems — Error Handling"
+    description: "Handle use of external systems errors securely without information leakage"
+    source_clause: "AC-20"
+    severity: "medium"
+    check_method: "manual-review"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://NISTAC20-05"

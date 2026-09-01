@@ -1,0 +1,60 @@
+# Playbook for: spark-data-exposure
+# Source: Data Engineering Security
+# Auto-generated
+
+playbooks:
+- control_id: "SPARKDAT-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary apache spark data exposure control patterns for spark-data-exposure"
+  blast_radius_notes: "Automated fix for SPARKDAT-01 - Primary Apache Spark Data Exposure Control"
+  verification_checks:
+    - "Verify SPARKDAT-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "SPARKDAT-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for apache spark data exposure patterns for spark-data-exposure"
+  blast_radius_notes: "Automated fix for SPARKDAT-02 - Input Validation for Apache Spark Data Exposure"
+  verification_checks:
+    - "Verify SPARKDAT-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "SPARKDAT-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for apache spark data exposure patterns for spark-data-exposure"
+  blast_radius_notes: "Automated fix for SPARKDAT-03 - Configuration Hardening for Apache Spark Data Exposure"
+  verification_checks:
+    - "Verify SPARKDAT-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "SPARKDAT-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for apache spark data exposure patterns for spark-data-exposure"
+  blast_radius_notes: "Automated fix for SPARKDAT-04 - Monitoring and Logging for Apache Spark Data Exposure"
+  verification_checks:
+    - "Verify SPARKDAT-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "SPARKDAT-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for apache spark data exposure patterns for spark-data-exposure"
+  blast_radius_notes: "Automated fix for SPARKDAT-05 - Error Handling for Apache Spark Data Exposure"
+  verification_checks:
+    - "Verify SPARKDAT-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

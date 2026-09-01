@@ -1,0 +1,62 @@
+# Patchi Security Domain: mitre-lateral-movement-remote-services
+# Source: MITRE ATT&CK
+# Auto-generated — curated from MITRE ATT&CK
+
+domain_id: "mitre-lateral-movement-remote-services"
+version: "1.0.0"
+display_name: "Remote Services (T1021)"
+source_standard: "MITRE ATT&CK"
+component_type: "infra"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_mitre_lateral_movement_remote_services_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_mitre_lateral_movement_remote_services"
+
+controls:
+  - control_id: "MITRELAT-01"
+    name: "Remote Services (T1021) — Primary Control"
+    description: "Using remote services (SSH, RDP, SMB) for lateral movement."
+    source_clause: "T1021"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://MITRELAT-01"
+
+  - control_id: "MITRELAT-02"
+    name: "Remote Services (T1021) — Input Validation"
+    description: "Validate and sanitize all inputs related to remote services (t1021)"
+    source_clause: "T1021"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://MITRELAT-02"
+
+  - control_id: "MITRELAT-03"
+    name: "Remote Services (T1021) — Configuration Hardening"
+    description: "Apply secure configuration defaults for remote services (t1021)"
+    source_clause: "T1021"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://MITRELAT-03"
+
+  - control_id: "MITRELAT-04"
+    name: "Remote Services (T1021) — Monitoring and Logging"
+    description: "Log and monitor all remote services (t1021) events for audit and detection"
+    source_clause: "T1021"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://MITRELAT-04"
+
+  - control_id: "MITRELAT-05"
+    name: "Remote Services (T1021) — Error Handling"
+    description: "Handle remote services (t1021) errors securely without information leakage"
+    source_clause: "T1021"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://MITRELAT-05"

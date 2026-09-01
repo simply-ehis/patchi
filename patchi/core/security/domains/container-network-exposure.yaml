@@ -1,0 +1,62 @@
+# Patchi Security Domain: container-network-exposure
+# Source: Container Security
+# Auto-generated — curated from Container Security
+
+domain_id: "container-network-exposure"
+version: "1.0.0"
+display_name: "Container Network Exposure"
+source_standard: "Container Security"
+component_type: "infra"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_container_network_exposure_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_container_network_exposure"
+
+controls:
+  - control_id: "CONTAINE-01"
+    name: "Container Network Exposure — Primary Control"
+    description: "Container ports exposed to host network or public interface."
+    source_clause: "Container Net"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CONTAINE-01"
+
+  - control_id: "CONTAINE-02"
+    name: "Container Network Exposure — Input Validation"
+    description: "Validate and sanitize all inputs related to container network exposure"
+    source_clause: "Container Net"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CONTAINE-02"
+
+  - control_id: "CONTAINE-03"
+    name: "Container Network Exposure — Configuration Hardening"
+    description: "Apply secure configuration defaults for container network exposure"
+    source_clause: "Container Net"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CONTAINE-03"
+
+  - control_id: "CONTAINE-04"
+    name: "Container Network Exposure — Monitoring and Logging"
+    description: "Log and monitor all container network exposure events for audit and detection"
+    source_clause: "Container Net"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CONTAINE-04"
+
+  - control_id: "CONTAINE-05"
+    name: "Container Network Exposure — Error Handling"
+    description: "Handle container network exposure errors securely without information leakage"
+    source_clause: "Container Net"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CONTAINE-05"

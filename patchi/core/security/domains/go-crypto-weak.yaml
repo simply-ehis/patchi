@@ -1,0 +1,62 @@
+# Patchi Security Domain: go-crypto-weak
+# Source: Go Security
+# Auto-generated — curated from Go Security
+
+domain_id: "go-crypto-weak"
+version: "1.0.0"
+display_name: "Go Cryptographic Weakness"
+source_standard: "Go Security"
+component_type: "backend-api"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_go_crypto_weak_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_go_crypto_weak"
+
+controls:
+  - control_id: "GOCRYPTO-01"
+    name: "Go Cryptographic Weakness — Primary Control"
+    description: "Use of math/rand instead of crypto/rand or weak hash functions."
+    source_clause: "Go Crypto"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://GOCRYPTO-01"
+
+  - control_id: "GOCRYPTO-02"
+    name: "Go Cryptographic Weakness — Input Validation"
+    description: "Validate and sanitize all inputs related to go cryptographic weakness"
+    source_clause: "Go Crypto"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://GOCRYPTO-02"
+
+  - control_id: "GOCRYPTO-03"
+    name: "Go Cryptographic Weakness — Configuration Hardening"
+    description: "Apply secure configuration defaults for go cryptographic weakness"
+    source_clause: "Go Crypto"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://GOCRYPTO-03"
+
+  - control_id: "GOCRYPTO-04"
+    name: "Go Cryptographic Weakness — Monitoring and Logging"
+    description: "Log and monitor all go cryptographic weakness events for audit and detection"
+    source_clause: "Go Crypto"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://GOCRYPTO-04"
+
+  - control_id: "GOCRYPTO-05"
+    name: "Go Cryptographic Weakness — Error Handling"
+    description: "Handle go cryptographic weakness errors securely without information leakage"
+    source_clause: "Go Crypto"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://GOCRYPTO-05"

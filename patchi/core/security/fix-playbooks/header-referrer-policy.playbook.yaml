@@ -1,0 +1,60 @@
+# Playbook for: header-referrer-policy
+# Source: HTTP Security Headers
+# Auto-generated
+
+playbooks:
+- control_id: "HEADERRE-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary referrer policy control patterns for header-referrer-policy"
+  blast_radius_notes: "Automated fix for HEADERRE-01 - Primary Referrer Policy Control"
+  verification_checks:
+    - "Verify HEADERRE-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "HEADERRE-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for referrer policy patterns for header-referrer-policy"
+  blast_radius_notes: "Automated fix for HEADERRE-02 - Input Validation for Referrer Policy"
+  verification_checks:
+    - "Verify HEADERRE-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "HEADERRE-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for referrer policy patterns for header-referrer-policy"
+  blast_radius_notes: "Automated fix for HEADERRE-03 - Configuration Hardening for Referrer Policy"
+  verification_checks:
+    - "Verify HEADERRE-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "HEADERRE-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for referrer policy patterns for header-referrer-policy"
+  blast_radius_notes: "Automated fix for HEADERRE-04 - Monitoring and Logging for Referrer Policy"
+  verification_checks:
+    - "Verify HEADERRE-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "HEADERRE-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for referrer policy patterns for header-referrer-policy"
+  blast_radius_notes: "Automated fix for HEADERRE-05 - Error Handling for Referrer Policy"
+  verification_checks:
+    - "Verify HEADERRE-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

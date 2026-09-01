@@ -1,0 +1,62 @@
+# Patchi Security Domain: astro-islands-security
+# Source: Astro Security
+# Auto-generated — curated from Astro Security
+
+domain_id: "astro-islands-security"
+version: "1.0.0"
+display_name: "Astro Islands Security"
+source_standard: "Astro Security"
+component_type: "frontend-web"
+weight: 0.75
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_astro_islands_security_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_astro_islands_security"
+
+controls:
+  - control_id: "ASTROISL-01"
+    name: "Astro Islands Security — Primary Control"
+    description: "Interactive islands with unsanitized data in static pages."
+    source_clause: "Astro Islands"
+    severity: "medium"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://ASTROISL-01"
+
+  - control_id: "ASTROISL-02"
+    name: "Astro Islands Security — Input Validation"
+    description: "Validate and sanitize all inputs related to astro islands security"
+    source_clause: "Astro Islands"
+    severity: "medium"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://ASTROISL-02"
+
+  - control_id: "ASTROISL-03"
+    name: "Astro Islands Security — Configuration Hardening"
+    description: "Apply secure configuration defaults for astro islands security"
+    source_clause: "Astro Islands"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://ASTROISL-03"
+
+  - control_id: "ASTROISL-04"
+    name: "Astro Islands Security — Monitoring and Logging"
+    description: "Log and monitor all astro islands security events for audit and detection"
+    source_clause: "Astro Islands"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://ASTROISL-04"
+
+  - control_id: "ASTROISL-05"
+    name: "Astro Islands Security — Error Handling"
+    description: "Handle astro islands security errors securely without information leakage"
+    source_clause: "Astro Islands"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://ASTROISL-05"

@@ -1,0 +1,60 @@
+# Playbook for: cis-wordpress
+# Source: CIS WordPress Benchmark
+# Auto-generated
+
+playbooks:
+- control_id: "CISWORDP-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary wordpress hardening control patterns for cis-wordpress"
+  blast_radius_notes: "Automated fix for CISWORDP-01 - Primary WordPress Hardening Control"
+  verification_checks:
+    - "Verify CISWORDP-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CISWORDP-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for wordpress hardening patterns for cis-wordpress"
+  blast_radius_notes: "Automated fix for CISWORDP-02 - Input Validation for WordPress Hardening"
+  verification_checks:
+    - "Verify CISWORDP-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CISWORDP-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for wordpress hardening patterns for cis-wordpress"
+  blast_radius_notes: "Automated fix for CISWORDP-03 - Configuration Hardening for WordPress Hardening"
+  verification_checks:
+    - "Verify CISWORDP-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CISWORDP-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for wordpress hardening patterns for cis-wordpress"
+  blast_radius_notes: "Automated fix for CISWORDP-04 - Monitoring and Logging for WordPress Hardening"
+  verification_checks:
+    - "Verify CISWORDP-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CISWORDP-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for wordpress hardening patterns for cis-wordpress"
+  blast_radius_notes: "Automated fix for CISWORDP-05 - Error Handling for WordPress Hardening"
+  verification_checks:
+    - "Verify CISWORDP-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

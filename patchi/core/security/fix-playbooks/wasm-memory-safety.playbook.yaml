@@ -1,0 +1,60 @@
+# Playbook for: wasm-memory-safety
+# Source: WebAssembly Security
+# Auto-generated
+
+playbooks:
+- control_id: "WASMMEMO-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary webassembly memory safety control patterns for wasm-memory-safety"
+  blast_radius_notes: "Automated fix for WASMMEMO-01 - Primary WebAssembly Memory Safety Control"
+  verification_checks:
+    - "Verify WASMMEMO-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "WASMMEMO-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for webassembly memory safety patterns for wasm-memory-safety"
+  blast_radius_notes: "Automated fix for WASMMEMO-02 - Input Validation for WebAssembly Memory Safety"
+  verification_checks:
+    - "Verify WASMMEMO-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "WASMMEMO-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for webassembly memory safety patterns for wasm-memory-safety"
+  blast_radius_notes: "Automated fix for WASMMEMO-03 - Configuration Hardening for WebAssembly Memory Safety"
+  verification_checks:
+    - "Verify WASMMEMO-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "WASMMEMO-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for webassembly memory safety patterns for wasm-memory-safety"
+  blast_radius_notes: "Automated fix for WASMMEMO-04 - Monitoring and Logging for WebAssembly Memory Safety"
+  verification_checks:
+    - "Verify WASMMEMO-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "WASMMEMO-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for webassembly memory safety patterns for wasm-memory-safety"
+  blast_radius_notes: "Automated fix for WASMMEMO-05 - Error Handling for WebAssembly Memory Safety"
+  verification_checks:
+    - "Verify WASMMEMO-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

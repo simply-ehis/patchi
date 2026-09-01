@@ -1,0 +1,60 @@
+# Playbook for: cwe-502-deserialization
+# Source: CWE Top 25 2024 CWE-502
+# Auto-generated
+
+playbooks:
+- control_id: "CWE502DE-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary deserialization of untrusted data control patterns for cwe-502-deserialization"
+  blast_radius_notes: "Automated fix for CWE502DE-01 - Primary Deserialization of Untrusted Data Control"
+  verification_checks:
+    - "Verify CWE502DE-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CWE502DE-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for deserialization of untrusted data patterns for cwe-502-deserialization"
+  blast_radius_notes: "Automated fix for CWE502DE-02 - Input Validation for Deserialization of Untrusted Data"
+  verification_checks:
+    - "Verify CWE502DE-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CWE502DE-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for deserialization of untrusted data patterns for cwe-502-deserialization"
+  blast_radius_notes: "Automated fix for CWE502DE-03 - Configuration Hardening for Deserialization of Untrusted Data"
+  verification_checks:
+    - "Verify CWE502DE-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CWE502DE-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for deserialization of untrusted data patterns for cwe-502-deserialization"
+  blast_radius_notes: "Automated fix for CWE502DE-04 - Monitoring and Logging for Deserialization of Untrusted Data"
+  verification_checks:
+    - "Verify CWE502DE-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CWE502DE-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for deserialization of untrusted data patterns for cwe-502-deserialization"
+  blast_radius_notes: "Automated fix for CWE502DE-05 - Error Handling for Deserialization of Untrusted Data"
+  verification_checks:
+    - "Verify CWE502DE-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

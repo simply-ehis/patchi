@@ -1,0 +1,60 @@
+# Playbook for: asvs-v7-error-handling
+# Source: OWASP ASVS 5.0 V7
+# Auto-generated
+
+playbooks:
+- control_id: "ASVSV7ER-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary error handling and logging control patterns for asvs-v7-error-handling"
+  blast_radius_notes: "Automated fix for ASVSV7ER-01 - Primary Error Handling and Logging Control"
+  verification_checks:
+    - "Verify ASVSV7ER-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "ASVSV7ER-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for error handling and logging patterns for asvs-v7-error-handling"
+  blast_radius_notes: "Automated fix for ASVSV7ER-02 - Input Validation for Error Handling and Logging"
+  verification_checks:
+    - "Verify ASVSV7ER-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "ASVSV7ER-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for error handling and logging patterns for asvs-v7-error-handling"
+  blast_radius_notes: "Automated fix for ASVSV7ER-03 - Configuration Hardening for Error Handling and Logging"
+  verification_checks:
+    - "Verify ASVSV7ER-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "ASVSV7ER-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for error handling and logging patterns for asvs-v7-error-handling"
+  blast_radius_notes: "Automated fix for ASVSV7ER-04 - Monitoring and Logging for Error Handling and Logging"
+  verification_checks:
+    - "Verify ASVSV7ER-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "ASVSV7ER-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for error handling and logging patterns for asvs-v7-error-handling"
+  blast_radius_notes: "Automated fix for ASVSV7ER-05 - Error Handling for Error Handling and Logging"
+  verification_checks:
+    - "Verify ASVSV7ER-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

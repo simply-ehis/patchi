@@ -1,0 +1,62 @@
+# Patchi Security Domain: go-sql-injection
+# Source: Go Security
+# Auto-generated — curated from Go Security
+
+domain_id: "go-sql-injection"
+version: "1.0.0"
+display_name: "Go SQL Injection"
+source_standard: "Go Security"
+component_type: "backend-api"
+weight: 0.9
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_go_sql_injection_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_go_sql_injection"
+
+controls:
+  - control_id: "GOSQLINJ-01"
+    name: "Go SQL Injection — Primary Control"
+    description: "String formatting in SQL queries instead of parameterized queries."
+    source_clause: "Go SQL"
+    severity: "critical"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://GOSQLINJ-01"
+
+  - control_id: "GOSQLINJ-02"
+    name: "Go SQL Injection — Input Validation"
+    description: "Validate and sanitize all inputs related to go sql injection"
+    source_clause: "Go SQL"
+    severity: "critical"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://GOSQLINJ-02"
+
+  - control_id: "GOSQLINJ-03"
+    name: "Go SQL Injection — Configuration Hardening"
+    description: "Apply secure configuration defaults for go sql injection"
+    source_clause: "Go SQL"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://GOSQLINJ-03"
+
+  - control_id: "GOSQLINJ-04"
+    name: "Go SQL Injection — Monitoring and Logging"
+    description: "Log and monitor all go sql injection events for audit and detection"
+    source_clause: "Go SQL"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://GOSQLINJ-04"
+
+  - control_id: "GOSQLINJ-05"
+    name: "Go SQL Injection — Error Handling"
+    description: "Handle go sql injection errors securely without information leakage"
+    source_clause: "Go SQL"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://GOSQLINJ-05"

@@ -1,0 +1,62 @@
+# Patchi Security Domain: asvs-v8-data-protection
+# Source: OWASP ASVS 5.0 V8
+# Auto-generated — curated from OWASP ASVS 5.0 V8
+
+domain_id: "asvs-v8-data-protection"
+version: "1.0.0"
+display_name: "Data Protection"
+source_standard: "OWASP ASVS 5.0 V8"
+component_type: "backend-api"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_asvs_v8_data_protection_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_asvs_v8_data_protection"
+
+controls:
+  - control_id: "ASVSV8DA-01"
+    name: "Data Protection — Primary Control"
+    description: "Data classification, personal data protection, data retention, and privacy controls."
+    source_clause: "ASVS V8"
+    severity: "high"
+    check_method: "static+manual-review"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://ASVSV8DA-01"
+
+  - control_id: "ASVSV8DA-02"
+    name: "Data Protection — Input Validation"
+    description: "Validate and sanitize all inputs related to data protection"
+    source_clause: "ASVS V8"
+    severity: "high"
+    check_method: "static+manual-review"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://ASVSV8DA-02"
+
+  - control_id: "ASVSV8DA-03"
+    name: "Data Protection — Configuration Hardening"
+    description: "Apply secure configuration defaults for data protection"
+    source_clause: "ASVS V8"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://ASVSV8DA-03"
+
+  - control_id: "ASVSV8DA-04"
+    name: "Data Protection — Monitoring and Logging"
+    description: "Log and monitor all data protection events for audit and detection"
+    source_clause: "ASVS V8"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://ASVSV8DA-04"
+
+  - control_id: "ASVSV8DA-05"
+    name: "Data Protection — Error Handling"
+    description: "Handle data protection errors securely without information leakage"
+    source_clause: "ASVS V8"
+    severity: "medium"
+    check_method: "static+manual-review"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://ASVSV8DA-05"

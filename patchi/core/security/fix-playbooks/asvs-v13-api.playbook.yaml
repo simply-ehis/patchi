@@ -1,0 +1,60 @@
+# Playbook for: asvs-v13-api
+# Source: OWASP ASVS 5.0 V13
+# Auto-generated
+
+playbooks:
+- control_id: "ASVSV13A-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary api and web service control patterns for asvs-v13-api"
+  blast_radius_notes: "Automated fix for ASVSV13A-01 - Primary API and Web Service Control"
+  verification_checks:
+    - "Verify ASVSV13A-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "ASVSV13A-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for api and web service patterns for asvs-v13-api"
+  blast_radius_notes: "Automated fix for ASVSV13A-02 - Input Validation for API and Web Service"
+  verification_checks:
+    - "Verify ASVSV13A-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "ASVSV13A-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for api and web service patterns for asvs-v13-api"
+  blast_radius_notes: "Automated fix for ASVSV13A-03 - Configuration Hardening for API and Web Service"
+  verification_checks:
+    - "Verify ASVSV13A-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "ASVSV13A-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for api and web service patterns for asvs-v13-api"
+  blast_radius_notes: "Automated fix for ASVSV13A-04 - Monitoring and Logging for API and Web Service"
+  verification_checks:
+    - "Verify ASVSV13A-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "ASVSV13A-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for api and web service patterns for asvs-v13-api"
+  blast_radius_notes: "Automated fix for ASVSV13A-05 - Error Handling for API and Web Service"
+  verification_checks:
+    - "Verify ASVSV13A-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

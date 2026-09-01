@@ -1,0 +1,62 @@
+# Patchi Security Domain: cis-drupal
+# Source: CIS Drupal Benchmark
+# Auto-generated — curated from CIS Drupal Benchmark
+
+domain_id: "cis-drupal"
+version: "1.0.0"
+display_name: "Drupal Hardening"
+source_standard: "CIS Drupal Benchmark"
+component_type: "backend-api"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_cis_drupal_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_cis_drupal"
+
+controls:
+  - control_id: "CISDRUPA-01"
+    name: "Drupal Hardening — Primary Control"
+    description: "Module security, file permissions, and database configuration."
+    source_clause: "CIS Drupal"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CISDRUPA-01"
+
+  - control_id: "CISDRUPA-02"
+    name: "Drupal Hardening — Input Validation"
+    description: "Validate and sanitize all inputs related to drupal hardening"
+    source_clause: "CIS Drupal"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CISDRUPA-02"
+
+  - control_id: "CISDRUPA-03"
+    name: "Drupal Hardening — Configuration Hardening"
+    description: "Apply secure configuration defaults for drupal hardening"
+    source_clause: "CIS Drupal"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CISDRUPA-03"
+
+  - control_id: "CISDRUPA-04"
+    name: "Drupal Hardening — Monitoring and Logging"
+    description: "Log and monitor all drupal hardening events for audit and detection"
+    source_clause: "CIS Drupal"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CISDRUPA-04"
+
+  - control_id: "CISDRUPA-05"
+    name: "Drupal Hardening — Error Handling"
+    description: "Handle drupal hardening errors securely without information leakage"
+    source_clause: "CIS Drupal"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CISDRUPA-05"

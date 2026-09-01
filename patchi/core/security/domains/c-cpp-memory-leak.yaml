@@ -1,0 +1,62 @@
+# Patchi Security Domain: c-cpp-memory-leak
+# Source: C/C++ Security
+# Auto-generated — curated from C/C++ Security
+
+domain_id: "c-cpp-memory-leak"
+version: "1.0.0"
+display_name: "C/C++ Memory Leak"
+source_standard: "C/C++ Security"
+component_type: "native-code"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_c_cpp_memory_leak_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_c_cpp_memory_leak"
+
+controls:
+  - control_id: "CCPPMEMO-01"
+    name: "C/C++ Memory Leak — Primary Control"
+    description: "malloc without corresponding free leading to resource exhaustion."
+    source_clause: "C/C++ Leak"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CCPPMEMO-01"
+
+  - control_id: "CCPPMEMO-02"
+    name: "C/C++ Memory Leak — Input Validation"
+    description: "Validate and sanitize all inputs related to c/c++ memory leak"
+    source_clause: "C/C++ Leak"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CCPPMEMO-02"
+
+  - control_id: "CCPPMEMO-03"
+    name: "C/C++ Memory Leak — Configuration Hardening"
+    description: "Apply secure configuration defaults for c/c++ memory leak"
+    source_clause: "C/C++ Leak"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CCPPMEMO-03"
+
+  - control_id: "CCPPMEMO-04"
+    name: "C/C++ Memory Leak — Monitoring and Logging"
+    description: "Log and monitor all c/c++ memory leak events for audit and detection"
+    source_clause: "C/C++ Leak"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CCPPMEMO-04"
+
+  - control_id: "CCPPMEMO-05"
+    name: "C/C++ Memory Leak — Error Handling"
+    description: "Handle c/c++ memory leak errors securely without information leakage"
+    source_clause: "C/C++ Leak"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CCPPMEMO-05"

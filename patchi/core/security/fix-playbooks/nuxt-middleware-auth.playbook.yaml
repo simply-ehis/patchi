@@ -1,0 +1,60 @@
+# Playbook for: nuxt-middleware-auth
+# Source: Nuxt Security
+# Auto-generated
+
+playbooks:
+- control_id: "NUXTMIDD-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary nuxt middleware authentication control patterns for nuxt-middleware-auth"
+  blast_radius_notes: "Automated fix for NUXTMIDD-01 - Primary Nuxt Middleware Authentication Control"
+  verification_checks:
+    - "Verify NUXTMIDD-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NUXTMIDD-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for nuxt middleware authentication patterns for nuxt-middleware-auth"
+  blast_radius_notes: "Automated fix for NUXTMIDD-02 - Input Validation for Nuxt Middleware Authentication"
+  verification_checks:
+    - "Verify NUXTMIDD-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NUXTMIDD-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for nuxt middleware authentication patterns for nuxt-middleware-auth"
+  blast_radius_notes: "Automated fix for NUXTMIDD-03 - Configuration Hardening for Nuxt Middleware Authentication"
+  verification_checks:
+    - "Verify NUXTMIDD-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NUXTMIDD-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for nuxt middleware authentication patterns for nuxt-middleware-auth"
+  blast_radius_notes: "Automated fix for NUXTMIDD-04 - Monitoring and Logging for Nuxt Middleware Authentication"
+  verification_checks:
+    - "Verify NUXTMIDD-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NUXTMIDD-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for nuxt middleware authentication patterns for nuxt-middleware-auth"
+  blast_radius_notes: "Automated fix for NUXTMIDD-05 - Error Handling for Nuxt Middleware Authentication"
+  verification_checks:
+    - "Verify NUXTMIDD-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

@@ -1,0 +1,60 @@
+# Playbook for: cicd-dependency-confusion
+# Source: CI/CD Security
+# Auto-generated
+
+playbooks:
+- control_id: "CICDDEPE-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary ci/cd dependency confusion control patterns for cicd-dependency-confusion"
+  blast_radius_notes: "Automated fix for CICDDEPE-01 - Primary CI/CD Dependency Confusion Control"
+  verification_checks:
+    - "Verify CICDDEPE-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CICDDEPE-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for ci/cd dependency confusion patterns for cicd-dependency-confusion"
+  blast_radius_notes: "Automated fix for CICDDEPE-02 - Input Validation for CI/CD Dependency Confusion"
+  verification_checks:
+    - "Verify CICDDEPE-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CICDDEPE-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for ci/cd dependency confusion patterns for cicd-dependency-confusion"
+  blast_radius_notes: "Automated fix for CICDDEPE-03 - Configuration Hardening for CI/CD Dependency Confusion"
+  verification_checks:
+    - "Verify CICDDEPE-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CICDDEPE-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for ci/cd dependency confusion patterns for cicd-dependency-confusion"
+  blast_radius_notes: "Automated fix for CICDDEPE-04 - Monitoring and Logging for CI/CD Dependency Confusion"
+  verification_checks:
+    - "Verify CICDDEPE-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CICDDEPE-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for ci/cd dependency confusion patterns for cicd-dependency-confusion"
+  blast_radius_notes: "Automated fix for CICDDEPE-05 - Error Handling for CI/CD Dependency Confusion"
+  verification_checks:
+    - "Verify CICDDEPE-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

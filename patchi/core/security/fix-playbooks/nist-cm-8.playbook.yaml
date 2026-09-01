@@ -1,0 +1,60 @@
+# Playbook for: nist-cm-8
+# Source: NIST SP 800-53 CM-8
+# Auto-generated
+
+playbooks:
+- control_id: "NISTCM8-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary system component inventory control patterns for nist-cm-8"
+  blast_radius_notes: "Automated fix for NISTCM8-01 - Primary System Component Inventory Control"
+  verification_checks:
+    - "Verify NISTCM8-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NISTCM8-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for system component inventory patterns for nist-cm-8"
+  blast_radius_notes: "Automated fix for NISTCM8-02 - Input Validation for System Component Inventory"
+  verification_checks:
+    - "Verify NISTCM8-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NISTCM8-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for system component inventory patterns for nist-cm-8"
+  blast_radius_notes: "Automated fix for NISTCM8-03 - Configuration Hardening for System Component Inventory"
+  verification_checks:
+    - "Verify NISTCM8-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NISTCM8-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for system component inventory patterns for nist-cm-8"
+  blast_radius_notes: "Automated fix for NISTCM8-04 - Monitoring and Logging for System Component Inventory"
+  verification_checks:
+    - "Verify NISTCM8-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NISTCM8-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for system component inventory patterns for nist-cm-8"
+  blast_radius_notes: "Automated fix for NISTCM8-05 - Error Handling for System Component Inventory"
+  verification_checks:
+    - "Verify NISTCM8-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

@@ -1,0 +1,60 @@
+# Playbook for: pwa-offline-storage
+# Source: PWA Security
+# Auto-generated
+
+playbooks:
+- control_id: "PWAOFFLI-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary pwa offline storage security control patterns for pwa-offline-storage"
+  blast_radius_notes: "Automated fix for PWAOFFLI-01 - Primary PWA Offline Storage Security Control"
+  verification_checks:
+    - "Verify PWAOFFLI-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "PWAOFFLI-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for pwa offline storage security patterns for pwa-offline-storage"
+  blast_radius_notes: "Automated fix for PWAOFFLI-02 - Input Validation for PWA Offline Storage Security"
+  verification_checks:
+    - "Verify PWAOFFLI-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "PWAOFFLI-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for pwa offline storage security patterns for pwa-offline-storage"
+  blast_radius_notes: "Automated fix for PWAOFFLI-03 - Configuration Hardening for PWA Offline Storage Security"
+  verification_checks:
+    - "Verify PWAOFFLI-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "PWAOFFLI-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for pwa offline storage security patterns for pwa-offline-storage"
+  blast_radius_notes: "Automated fix for PWAOFFLI-04 - Monitoring and Logging for PWA Offline Storage Security"
+  verification_checks:
+    - "Verify PWAOFFLI-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "PWAOFFLI-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for pwa offline storage security patterns for pwa-offline-storage"
+  blast_radius_notes: "Automated fix for PWAOFFLI-05 - Error Handling for PWA Offline Storage Security"
+  verification_checks:
+    - "Verify PWAOFFLI-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

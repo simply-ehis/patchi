@@ -1,0 +1,60 @@
+# Playbook for: cwe-862-authorization
+# Source: CWE Top 25 2024 CWE-862
+# Auto-generated
+
+playbooks:
+- control_id: "CWE862AU-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary missing authorization control patterns for cwe-862-authorization"
+  blast_radius_notes: "Automated fix for CWE862AU-01 - Primary Missing Authorization Control"
+  verification_checks:
+    - "Verify CWE862AU-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CWE862AU-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for missing authorization patterns for cwe-862-authorization"
+  blast_radius_notes: "Automated fix for CWE862AU-02 - Input Validation for Missing Authorization"
+  verification_checks:
+    - "Verify CWE862AU-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CWE862AU-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for missing authorization patterns for cwe-862-authorization"
+  blast_radius_notes: "Automated fix for CWE862AU-03 - Configuration Hardening for Missing Authorization"
+  verification_checks:
+    - "Verify CWE862AU-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CWE862AU-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for missing authorization patterns for cwe-862-authorization"
+  blast_radius_notes: "Automated fix for CWE862AU-04 - Monitoring and Logging for Missing Authorization"
+  verification_checks:
+    - "Verify CWE862AU-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CWE862AU-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for missing authorization patterns for cwe-862-authorization"
+  blast_radius_notes: "Automated fix for CWE862AU-05 - Error Handling for Missing Authorization"
+  verification_checks:
+    - "Verify CWE862AU-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

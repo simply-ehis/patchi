@@ -1,0 +1,60 @@
+# Playbook for: nist-si-2
+# Source: NIST SP 800-53 SI-2
+# Auto-generated
+
+playbooks:
+- control_id: "NISTSI2-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary flaw remediation control patterns for nist-si-2"
+  blast_radius_notes: "Automated fix for NISTSI2-01 - Primary Flaw Remediation Control"
+  verification_checks:
+    - "Verify NISTSI2-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NISTSI2-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for flaw remediation patterns for nist-si-2"
+  blast_radius_notes: "Automated fix for NISTSI2-02 - Input Validation for Flaw Remediation"
+  verification_checks:
+    - "Verify NISTSI2-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NISTSI2-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for flaw remediation patterns for nist-si-2"
+  blast_radius_notes: "Automated fix for NISTSI2-03 - Configuration Hardening for Flaw Remediation"
+  verification_checks:
+    - "Verify NISTSI2-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NISTSI2-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for flaw remediation patterns for nist-si-2"
+  blast_radius_notes: "Automated fix for NISTSI2-04 - Monitoring and Logging for Flaw Remediation"
+  verification_checks:
+    - "Verify NISTSI2-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NISTSI2-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for flaw remediation patterns for nist-si-2"
+  blast_radius_notes: "Automated fix for NISTSI2-05 - Error Handling for Flaw Remediation"
+  verification_checks:
+    - "Verify NISTSI2-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

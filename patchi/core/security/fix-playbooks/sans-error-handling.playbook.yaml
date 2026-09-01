@@ -1,0 +1,60 @@
+# Playbook for: sans-error-handling
+# Source: SANS Top 25
+# Auto-generated
+
+playbooks:
+- control_id: "SANSERRO-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary improper error handling control patterns for sans-error-handling"
+  blast_radius_notes: "Automated fix for SANSERRO-01 - Primary Improper Error Handling Control"
+  verification_checks:
+    - "Verify SANSERRO-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "SANSERRO-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for improper error handling patterns for sans-error-handling"
+  blast_radius_notes: "Automated fix for SANSERRO-02 - Input Validation for Improper Error Handling"
+  verification_checks:
+    - "Verify SANSERRO-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "SANSERRO-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for improper error handling patterns for sans-error-handling"
+  blast_radius_notes: "Automated fix for SANSERRO-03 - Configuration Hardening for Improper Error Handling"
+  verification_checks:
+    - "Verify SANSERRO-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "SANSERRO-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for improper error handling patterns for sans-error-handling"
+  blast_radius_notes: "Automated fix for SANSERRO-04 - Monitoring and Logging for Improper Error Handling"
+  verification_checks:
+    - "Verify SANSERRO-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "SANSERRO-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for improper error handling patterns for sans-error-handling"
+  blast_radius_notes: "Automated fix for SANSERRO-05 - Error Handling for Improper Error Handling"
+  verification_checks:
+    - "Verify SANSERRO-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

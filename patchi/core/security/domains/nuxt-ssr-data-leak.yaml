@@ -1,0 +1,62 @@
+# Patchi Security Domain: nuxt-ssr-data-leak
+# Source: Nuxt Security
+# Auto-generated — curated from Nuxt Security
+
+domain_id: "nuxt-ssr-data-leak"
+version: "1.0.0"
+display_name: "Nuxt SSR Data Leakage"
+source_standard: "Nuxt Security"
+component_type: "frontend-web"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_nuxt_ssr_data_leak_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_nuxt_ssr_data_leak"
+
+controls:
+  - control_id: "NUXTSSRD-01"
+    name: "Nuxt SSR Data Leakage — Primary Control"
+    description: "Sensitive data in __NUXT__ state exposed to client."
+    source_clause: "Nuxt SSR"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://NUXTSSRD-01"
+
+  - control_id: "NUXTSSRD-02"
+    name: "Nuxt SSR Data Leakage — Input Validation"
+    description: "Validate and sanitize all inputs related to nuxt ssr data leakage"
+    source_clause: "Nuxt SSR"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://NUXTSSRD-02"
+
+  - control_id: "NUXTSSRD-03"
+    name: "Nuxt SSR Data Leakage — Configuration Hardening"
+    description: "Apply secure configuration defaults for nuxt ssr data leakage"
+    source_clause: "Nuxt SSR"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://NUXTSSRD-03"
+
+  - control_id: "NUXTSSRD-04"
+    name: "Nuxt SSR Data Leakage — Monitoring and Logging"
+    description: "Log and monitor all nuxt ssr data leakage events for audit and detection"
+    source_clause: "Nuxt SSR"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://NUXTSSRD-04"
+
+  - control_id: "NUXTSSRD-05"
+    name: "Nuxt SSR Data Leakage — Error Handling"
+    description: "Handle nuxt ssr data leakage errors securely without information leakage"
+    source_clause: "Nuxt SSR"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://NUXTSSRD-05"

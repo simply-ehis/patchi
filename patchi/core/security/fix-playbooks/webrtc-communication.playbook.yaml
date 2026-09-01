@@ -1,148 +1,0 @@
-playbooks:
-- blast_radius_notes: Automated fix for WEBRTC-01
-  control_id: WEBRTC-01
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Restrict TURN server relay to non-reserved IP addresses:
-    The TURN (Traversal Using Relays around NAT) service must only allow access to
-    IP addresses that are not reserved for special purposes (internal networks, broadcast,
-    loopback), for both IPv4 and IPv6 addresses, to prevent the TURN server being
-    abused as an SSRF relay into internal infrastructure.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify WEBRTC-01 is properly addressed
-- blast_radius_notes: Automated fix for WEBRTC-02
-  control_id: WEBRTC-02
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Protect the TURN server against port-exhaustion resource
-    abuse: The TURN service must not be susceptible to resource exhaustion when legitimate
-    users attempt to open a large number of ports on the TURN server.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify WEBRTC-02 is properly addressed
-- blast_radius_notes: Automated fix for WEBRTC-03
-  control_id: WEBRTC-03
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Manage DTLS certificate keys per documented key management
-    policy: The key for the Datagram Transport Layer Security (DTLS) certificate must
-    be managed and protected based on the application''s documented policy for cryptographic
-    key management (aligning with general-cryptography''s CRYPTO-01).'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify WEBRTC-03 is properly addressed
-- blast_radius_notes: Automated fix for WEBRTC-04
-  control_id: WEBRTC-04
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Use approved DTLS cipher suites and protection profile for
-    DTLS-SRTP: The media server must be configured to use and support approved DTLS
-    cipher suites and a secure protection profile for the DTLS Extension used to establish
-    keys for Secure Real-time Transport Protocol (DTLS-SRTP).'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify WEBRTC-04 is properly addressed
-- blast_radius_notes: Automated fix for WEBRTC-05
-  control_id: WEBRTC-05
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Verify SRTP authentication to prevent RTP injection: Secure
-    Real-time Transport Protocol (SRTP) authentication must be checked at the media
-    server to prevent RTP injection attacks from causing a denial-of-service condition
-    or unauthorized audio/video insertion into media streams.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify WEBRTC-05 is properly addressed
-- blast_radius_notes: Automated fix for WEBRTC-06
-  control_id: WEBRTC-06
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Continue processing valid media traffic despite malformed
-    SRTP packets: The media server must be able to continue processing incoming media
-    traffic when encountering malformed SRTP packets, rather than the malformed packet
-    disrupting the entire stream/session.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify WEBRTC-06 is properly addressed
-- blast_radius_notes: Automated fix for WEBRTC-07
-  control_id: WEBRTC-07
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Continue processing legitimate media traffic during an SRTP
-    packet flood: The media server must be able to continue processing incoming media
-    traffic from legitimate users during a flood of SRTP packets, i.e. resist a volumetric
-    DoS attempt against the media stream itself.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify WEBRTC-07 is properly addressed
-- blast_radius_notes: Automated fix for WEBRTC-08
-  control_id: WEBRTC-08
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Verify the media server is not vulnerable to the DTLS ClientHello
-    race condition: The media server must not be susceptible to the well-known ''ClientHello''
-    race condition vulnerability in DTLS, verified either by checking whether the
-    media server is publicly known to be vulnerable or by performing the race-condition
-    test directly.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify WEBRTC-08 is properly addressed
-- blast_radius_notes: Automated fix for WEBRTC-09
-  control_id: WEBRTC-09
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Ensure recording mechanisms remain resilient during an SRTP
-    packet flood: Any audio/video recording mechanisms associated with the media server
-    must be able to continue processing incoming media traffic during a flood of SRTP
-    packets from legitimate users.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify WEBRTC-09 is properly addressed
-- blast_radius_notes: Automated fix for WEBRTC-10
-  control_id: WEBRTC-10
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Validate DTLS certificate against SDP fingerprint before
-    trusting the media stream: The DTLS certificate must be checked against the Session
-    Description Protocol (SDP) fingerprint attribute, terminating the media stream
-    if the check fails, to ensure the authenticity of the media stream and prevent
-    a man-in-the-middle substitution of the media endpoint.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify WEBRTC-10 is properly addressed
-- blast_radius_notes: Automated fix for WEBRTC-11
-  control_id: WEBRTC-11
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Rate-limit the signaling server against message flood attacks:
-    The signaling server must continue processing legitimate incoming signaling messages
-    during a flood attack, achieved by implementing rate limiting at the signaling
-    level.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify WEBRTC-11 is properly addressed
-- blast_radius_notes: Automated fix for WEBRTC-12
-  control_id: WEBRTC-12
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Harden signaling message parsing against malformed input:
-    The signaling server must be able to continue processing legitimate signaling
-    messages when encountering malformed messages that could cause a denial-of-service
-    condition  -  via input validation, safe integer-overflow handling, buffer-overflow
-    prevention, and robust error handling.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify WEBRTC-12 is properly addressed

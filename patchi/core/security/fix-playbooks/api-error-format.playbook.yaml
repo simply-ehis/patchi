@@ -1,0 +1,60 @@
+# Playbook for: api-error-format
+# Source: API Design Security
+# Auto-generated
+
+playbooks:
+- control_id: "APIERROR-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary api error format security control patterns for api-error-format"
+  blast_radius_notes: "Automated fix for APIERROR-01 - Primary API Error Format Security Control"
+  verification_checks:
+    - "Verify APIERROR-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "APIERROR-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for api error format security patterns for api-error-format"
+  blast_radius_notes: "Automated fix for APIERROR-02 - Input Validation for API Error Format Security"
+  verification_checks:
+    - "Verify APIERROR-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "APIERROR-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for api error format security patterns for api-error-format"
+  blast_radius_notes: "Automated fix for APIERROR-03 - Configuration Hardening for API Error Format Security"
+  verification_checks:
+    - "Verify APIERROR-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "APIERROR-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for api error format security patterns for api-error-format"
+  blast_radius_notes: "Automated fix for APIERROR-04 - Monitoring and Logging for API Error Format Security"
+  verification_checks:
+    - "Verify APIERROR-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "APIERROR-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for api error format security patterns for api-error-format"
+  blast_radius_notes: "Automated fix for APIERROR-05 - Error Handling for API Error Format Security"
+  verification_checks:
+    - "Verify APIERROR-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

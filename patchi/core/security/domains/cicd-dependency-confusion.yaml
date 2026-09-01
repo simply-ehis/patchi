@@ -1,0 +1,62 @@
+# Patchi Security Domain: cicd-dependency-confusion
+# Source: CI/CD Security
+# Auto-generated — curated from CI/CD Security
+
+domain_id: "cicd-dependency-confusion"
+version: "1.0.0"
+display_name: "CI/CD Dependency Confusion"
+source_standard: "CI/CD Security"
+component_type: "infra"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_cicd_dependency_confusion_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_cicd_dependency_confusion"
+
+controls:
+  - control_id: "CICDDEPE-01"
+    name: "CI/CD Dependency Confusion — Primary Control"
+    description: "Internal package names used in public registries allowing hijacking."
+    source_clause: "CI/CD Deps"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CICDDEPE-01"
+
+  - control_id: "CICDDEPE-02"
+    name: "CI/CD Dependency Confusion — Input Validation"
+    description: "Validate and sanitize all inputs related to ci/cd dependency confusion"
+    source_clause: "CI/CD Deps"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CICDDEPE-02"
+
+  - control_id: "CICDDEPE-03"
+    name: "CI/CD Dependency Confusion — Configuration Hardening"
+    description: "Apply secure configuration defaults for ci/cd dependency confusion"
+    source_clause: "CI/CD Deps"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CICDDEPE-03"
+
+  - control_id: "CICDDEPE-04"
+    name: "CI/CD Dependency Confusion — Monitoring and Logging"
+    description: "Log and monitor all ci/cd dependency confusion events for audit and detection"
+    source_clause: "CI/CD Deps"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CICDDEPE-04"
+
+  - control_id: "CICDDEPE-05"
+    name: "CI/CD Dependency Confusion — Error Handling"
+    description: "Handle ci/cd dependency confusion errors securely without information leakage"
+    source_clause: "CI/CD Deps"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CICDDEPE-05"

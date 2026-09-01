@@ -1,0 +1,62 @@
+# Patchi Security Domain: nist-cm-6
+# Source: NIST SP 800-53 CM-6
+# Auto-generated — curated from NIST SP 800-53 CM-6
+
+domain_id: "nist-cm-6"
+version: "1.0.0"
+display_name: "Configuration Settings"
+source_standard: "NIST SP 800-53 CM-6"
+component_type: "infra"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_nist_cm_6_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_nist_cm_6"
+
+controls:
+  - control_id: "NISTCM6-01"
+    name: "Configuration Settings — Primary Control"
+    description: "Organization configures system settings to the most restrictive security level."
+    source_clause: "CM-6"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://NISTCM6-01"
+
+  - control_id: "NISTCM6-02"
+    name: "Configuration Settings — Input Validation"
+    description: "Validate and sanitize all inputs related to configuration settings"
+    source_clause: "CM-6"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://NISTCM6-02"
+
+  - control_id: "NISTCM6-03"
+    name: "Configuration Settings — Configuration Hardening"
+    description: "Apply secure configuration defaults for configuration settings"
+    source_clause: "CM-6"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://NISTCM6-03"
+
+  - control_id: "NISTCM6-04"
+    name: "Configuration Settings — Monitoring and Logging"
+    description: "Log and monitor all configuration settings events for audit and detection"
+    source_clause: "CM-6"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://NISTCM6-04"
+
+  - control_id: "NISTCM6-05"
+    name: "Configuration Settings — Error Handling"
+    description: "Handle configuration settings errors securely without information leakage"
+    source_clause: "CM-6"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://NISTCM6-05"

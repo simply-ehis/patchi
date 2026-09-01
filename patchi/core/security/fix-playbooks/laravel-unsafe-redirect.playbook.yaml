@@ -1,0 +1,60 @@
+# Playbook for: laravel-unsafe-redirect
+# Source: Laravel Security
+# Auto-generated
+
+playbooks:
+- control_id: "LARAVELU-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary laravel open redirect control patterns for laravel-unsafe-redirect"
+  blast_radius_notes: "Automated fix for LARAVELU-01 - Primary Laravel Open Redirect Control"
+  verification_checks:
+    - "Verify LARAVELU-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "LARAVELU-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for laravel open redirect patterns for laravel-unsafe-redirect"
+  blast_radius_notes: "Automated fix for LARAVELU-02 - Input Validation for Laravel Open Redirect"
+  verification_checks:
+    - "Verify LARAVELU-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "LARAVELU-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for laravel open redirect patterns for laravel-unsafe-redirect"
+  blast_radius_notes: "Automated fix for LARAVELU-03 - Configuration Hardening for Laravel Open Redirect"
+  verification_checks:
+    - "Verify LARAVELU-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "LARAVELU-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for laravel open redirect patterns for laravel-unsafe-redirect"
+  blast_radius_notes: "Automated fix for LARAVELU-04 - Monitoring and Logging for Laravel Open Redirect"
+  verification_checks:
+    - "Verify LARAVELU-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "LARAVELU-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for laravel open redirect patterns for laravel-unsafe-redirect"
+  blast_radius_notes: "Automated fix for LARAVELU-05 - Error Handling for Laravel Open Redirect"
+  verification_checks:
+    - "Verify LARAVELU-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

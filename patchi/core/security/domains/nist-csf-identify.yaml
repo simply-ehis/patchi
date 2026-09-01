@@ -1,0 +1,62 @@
+# Patchi Security Domain: nist-csf-identify
+# Source: NIST CSF 2.0
+# Auto-generated — curated from NIST CSF 2.0
+
+domain_id: "nist-csf-identify"
+version: "1.0.0"
+display_name: "Identify Function"
+source_standard: "NIST CSF 2.0"
+component_type: "infra"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_nist_csf_identify_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_nist_csf_identify"
+
+controls:
+  - control_id: "NISTCSFI-01"
+    name: "Identify Function — Primary Control"
+    description: "Asset management, risk assessment, and improvement planning."
+    source_clause: "CSF 2.0 ID"
+    severity: "high"
+    check_method: "static+manual-review"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://NISTCSFI-01"
+
+  - control_id: "NISTCSFI-02"
+    name: "Identify Function — Input Validation"
+    description: "Validate and sanitize all inputs related to identify function"
+    source_clause: "CSF 2.0 ID"
+    severity: "high"
+    check_method: "static+manual-review"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://NISTCSFI-02"
+
+  - control_id: "NISTCSFI-03"
+    name: "Identify Function — Configuration Hardening"
+    description: "Apply secure configuration defaults for identify function"
+    source_clause: "CSF 2.0 ID"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://NISTCSFI-03"
+
+  - control_id: "NISTCSFI-04"
+    name: "Identify Function — Monitoring and Logging"
+    description: "Log and monitor all identify function events for audit and detection"
+    source_clause: "CSF 2.0 ID"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://NISTCSFI-04"
+
+  - control_id: "NISTCSFI-05"
+    name: "Identify Function — Error Handling"
+    description: "Handle identify function errors securely without information leakage"
+    source_clause: "CSF 2.0 ID"
+    severity: "medium"
+    check_method: "static+manual-review"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://NISTCSFI-05"

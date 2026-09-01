@@ -1,0 +1,62 @@
+# Patchi Security Domain: mitre-initial-access-trusted-relationship
+# Source: MITRE ATT&CK
+# Auto-generated — curated from MITRE ATT&CK
+
+domain_id: "mitre-initial-access-trusted-relationship"
+version: "1.0.0"
+display_name: "Trusted Relationship (T1199)"
+source_standard: "MITRE ATT&CK"
+component_type: "infra"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_mitre_initial_access_trusted_relationship_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_mitre_initial_access_trusted_relationship"
+
+controls:
+  - control_id: "MITREINI-01"
+    name: "Trusted Relationship (T1199) — Primary Control"
+    description: "Exploiting trust relationships between organizations."
+    source_clause: "T1199"
+    severity: "high"
+    check_method: "manual-review"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://MITREINI-01"
+
+  - control_id: "MITREINI-02"
+    name: "Trusted Relationship (T1199) — Input Validation"
+    description: "Validate and sanitize all inputs related to trusted relationship (t1199)"
+    source_clause: "T1199"
+    severity: "high"
+    check_method: "manual-review"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://MITREINI-02"
+
+  - control_id: "MITREINI-03"
+    name: "Trusted Relationship (T1199) — Configuration Hardening"
+    description: "Apply secure configuration defaults for trusted relationship (t1199)"
+    source_clause: "T1199"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://MITREINI-03"
+
+  - control_id: "MITREINI-04"
+    name: "Trusted Relationship (T1199) — Monitoring and Logging"
+    description: "Log and monitor all trusted relationship (t1199) events for audit and detection"
+    source_clause: "T1199"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://MITREINI-04"
+
+  - control_id: "MITREINI-05"
+    name: "Trusted Relationship (T1199) — Error Handling"
+    description: "Handle trusted relationship (t1199) errors securely without information leakage"
+    source_clause: "T1199"
+    severity: "medium"
+    check_method: "manual-review"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://MITREINI-05"

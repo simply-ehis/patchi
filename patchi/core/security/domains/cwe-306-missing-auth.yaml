@@ -1,0 +1,62 @@
+# Patchi Security Domain: cwe-306-missing-auth
+# Source: CWE Top 25 2024 CWE-306
+# Auto-generated — curated from CWE Top 25 2024 CWE-306
+
+domain_id: "cwe-306-missing-auth"
+version: "1.0.0"
+display_name: "Missing Authentication for Critical Function"
+source_standard: "CWE Top 25 2024 CWE-306"
+component_type: "backend-api"
+weight: 0.9
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_cwe_306_missing_auth_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_cwe_306_missing_auth"
+
+controls:
+  - control_id: "CWE306MI-01"
+    name: "Missing Authentication for Critical Function — Primary Control"
+    description: "Critical function does not require authentication before allowing access."
+    source_clause: "CWE-306"
+    severity: "critical"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CWE306MI-01"
+
+  - control_id: "CWE306MI-02"
+    name: "Missing Authentication for Critical Function — Input Validation"
+    description: "Validate and sanitize all inputs related to missing authentication for critical function"
+    source_clause: "CWE-306"
+    severity: "critical"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CWE306MI-02"
+
+  - control_id: "CWE306MI-03"
+    name: "Missing Authentication for Critical Function — Configuration Hardening"
+    description: "Apply secure configuration defaults for missing authentication for critical function"
+    source_clause: "CWE-306"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CWE306MI-03"
+
+  - control_id: "CWE306MI-04"
+    name: "Missing Authentication for Critical Function — Monitoring and Logging"
+    description: "Log and monitor all missing authentication for critical function events for audit and detection"
+    source_clause: "CWE-306"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CWE306MI-04"
+
+  - control_id: "CWE306MI-05"
+    name: "Missing Authentication for Critical Function — Error Handling"
+    description: "Handle missing authentication for critical function errors securely without information leakage"
+    source_clause: "CWE-306"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CWE306MI-05"

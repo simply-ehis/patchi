@@ -1,0 +1,62 @@
+# Patchi Security Domain: email-phishing
+# Source: Email Security
+# Auto-generated — curated from Email Security
+
+domain_id: "email-phishing"
+version: "1.0.0"
+display_name: "Phishing Protection"
+source_standard: "Email Security"
+component_type: "infra"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_email_phishing_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_email_phishing"
+
+controls:
+  - control_id: "EMAILPHI-01"
+    name: "Phishing Protection — Primary Control"
+    description: "Missing anti-phishing controls or user awareness training."
+    source_clause: "Email Phish"
+    severity: "high"
+    check_method: "manual-review"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://EMAILPHI-01"
+
+  - control_id: "EMAILPHI-02"
+    name: "Phishing Protection — Input Validation"
+    description: "Validate and sanitize all inputs related to phishing protection"
+    source_clause: "Email Phish"
+    severity: "high"
+    check_method: "manual-review"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://EMAILPHI-02"
+
+  - control_id: "EMAILPHI-03"
+    name: "Phishing Protection — Configuration Hardening"
+    description: "Apply secure configuration defaults for phishing protection"
+    source_clause: "Email Phish"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://EMAILPHI-03"
+
+  - control_id: "EMAILPHI-04"
+    name: "Phishing Protection — Monitoring and Logging"
+    description: "Log and monitor all phishing protection events for audit and detection"
+    source_clause: "Email Phish"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://EMAILPHI-04"
+
+  - control_id: "EMAILPHI-05"
+    name: "Phishing Protection — Error Handling"
+    description: "Handle phishing protection errors securely without information leakage"
+    source_clause: "Email Phish"
+    severity: "medium"
+    check_method: "manual-review"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://EMAILPHI-05"

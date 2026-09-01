@@ -1,0 +1,62 @@
+# Patchi Security Domain: nist-au-3
+# Source: NIST SP 800-53 AU-3
+# Auto-generated — curated from NIST SP 800-53 AU-3
+
+domain_id: "nist-au-3"
+version: "1.0.0"
+display_name: "Content of Audit Records"
+source_standard: "NIST SP 800-53 AU-3"
+component_type: "infra"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_nist_au_3_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_nist_au_3"
+
+controls:
+  - control_id: "NISTAU3-01"
+    name: "Content of Audit Records — Primary Control"
+    description: "Audit records contain sufficient information to establish what happened, when, and by whom."
+    source_clause: "AU-3"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://NISTAU3-01"
+
+  - control_id: "NISTAU3-02"
+    name: "Content of Audit Records — Input Validation"
+    description: "Validate and sanitize all inputs related to content of audit records"
+    source_clause: "AU-3"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://NISTAU3-02"
+
+  - control_id: "NISTAU3-03"
+    name: "Content of Audit Records — Configuration Hardening"
+    description: "Apply secure configuration defaults for content of audit records"
+    source_clause: "AU-3"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://NISTAU3-03"
+
+  - control_id: "NISTAU3-04"
+    name: "Content of Audit Records — Monitoring and Logging"
+    description: "Log and monitor all content of audit records events for audit and detection"
+    source_clause: "AU-3"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://NISTAU3-04"
+
+  - control_id: "NISTAU3-05"
+    name: "Content of Audit Records — Error Handling"
+    description: "Handle content of audit records errors securely without information leakage"
+    source_clause: "AU-3"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://NISTAU3-05"

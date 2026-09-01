@@ -1,0 +1,60 @@
+# Playbook for: cwe-190-overflow
+# Source: CWE Top 25 2024 CWE-190
+# Auto-generated
+
+playbooks:
+- control_id: "CWE190OV-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary integer overflow or wraparound control patterns for cwe-190-overflow"
+  blast_radius_notes: "Automated fix for CWE190OV-01 - Primary Integer Overflow or Wraparound Control"
+  verification_checks:
+    - "Verify CWE190OV-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CWE190OV-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for integer overflow or wraparound patterns for cwe-190-overflow"
+  blast_radius_notes: "Automated fix for CWE190OV-02 - Input Validation for Integer Overflow or Wraparound"
+  verification_checks:
+    - "Verify CWE190OV-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CWE190OV-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for integer overflow or wraparound patterns for cwe-190-overflow"
+  blast_radius_notes: "Automated fix for CWE190OV-03 - Configuration Hardening for Integer Overflow or Wraparound"
+  verification_checks:
+    - "Verify CWE190OV-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CWE190OV-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for integer overflow or wraparound patterns for cwe-190-overflow"
+  blast_radius_notes: "Automated fix for CWE190OV-04 - Monitoring and Logging for Integer Overflow or Wraparound"
+  verification_checks:
+    - "Verify CWE190OV-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CWE190OV-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for integer overflow or wraparound patterns for cwe-190-overflow"
+  blast_radius_notes: "Automated fix for CWE190OV-05 - Error Handling for Integer Overflow or Wraparound"
+  verification_checks:
+    - "Verify CWE190OV-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

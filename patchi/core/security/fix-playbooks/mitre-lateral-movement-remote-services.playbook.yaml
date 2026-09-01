@@ -1,0 +1,60 @@
+# Playbook for: mitre-lateral-movement-remote-services
+# Source: MITRE ATT&CK
+# Auto-generated
+
+playbooks:
+- control_id: "MITRELAT-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary remote services (t1021) control patterns for mitre-lateral-movement-remote-services"
+  blast_radius_notes: "Automated fix for MITRELAT-01 - Primary Remote Services (T1021) Control"
+  verification_checks:
+    - "Verify MITRELAT-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "MITRELAT-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for remote services (t1021) patterns for mitre-lateral-movement-remote-services"
+  blast_radius_notes: "Automated fix for MITRELAT-02 - Input Validation for Remote Services (T1021)"
+  verification_checks:
+    - "Verify MITRELAT-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "MITRELAT-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for remote services (t1021) patterns for mitre-lateral-movement-remote-services"
+  blast_radius_notes: "Automated fix for MITRELAT-03 - Configuration Hardening for Remote Services (T1021)"
+  verification_checks:
+    - "Verify MITRELAT-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "MITRELAT-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for remote services (t1021) patterns for mitre-lateral-movement-remote-services"
+  blast_radius_notes: "Automated fix for MITRELAT-04 - Monitoring and Logging for Remote Services (T1021)"
+  verification_checks:
+    - "Verify MITRELAT-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "MITRELAT-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for remote services (t1021) patterns for mitre-lateral-movement-remote-services"
+  blast_radius_notes: "Automated fix for MITRELAT-05 - Error Handling for Remote Services (T1021)"
+  verification_checks:
+    - "Verify MITRELAT-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

@@ -1,0 +1,62 @@
+# Patchi Security Domain: gdpr-data-breach-notification
+# Source: GDPR Art 33-34
+# Auto-generated — curated from GDPR Art 33-34
+
+domain_id: "gdpr-data-breach-notification"
+version: "1.0.0"
+display_name: "Breach Notification"
+source_standard: "GDPR Art 33-34"
+component_type: "infra"
+weight: 0.9
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_gdpr_data_breach_notification_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_gdpr_data_breach_notification"
+
+controls:
+  - control_id: "GDPRDATA-01"
+    name: "Breach Notification — Primary Control"
+    description: "Notification to supervisory authority within 72 hours and to affected individuals."
+    source_clause: "GDPR Art 33-34"
+    severity: "critical"
+    check_method: "manual-review"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://GDPRDATA-01"
+
+  - control_id: "GDPRDATA-02"
+    name: "Breach Notification — Input Validation"
+    description: "Validate and sanitize all inputs related to breach notification"
+    source_clause: "GDPR Art 33-34"
+    severity: "critical"
+    check_method: "manual-review"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://GDPRDATA-02"
+
+  - control_id: "GDPRDATA-03"
+    name: "Breach Notification — Configuration Hardening"
+    description: "Apply secure configuration defaults for breach notification"
+    source_clause: "GDPR Art 33-34"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://GDPRDATA-03"
+
+  - control_id: "GDPRDATA-04"
+    name: "Breach Notification — Monitoring and Logging"
+    description: "Log and monitor all breach notification events for audit and detection"
+    source_clause: "GDPR Art 33-34"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://GDPRDATA-04"
+
+  - control_id: "GDPRDATA-05"
+    name: "Breach Notification — Error Handling"
+    description: "Handle breach notification errors securely without information leakage"
+    source_clause: "GDPR Art 33-34"
+    severity: "medium"
+    check_method: "manual-review"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://GDPRDATA-05"

@@ -1,0 +1,62 @@
+# Patchi Security Domain: owasp-nodejs-injection
+# Source: OWASP Node.js Top 10
+# Auto-generated — curated from OWASP Node.js Top 10
+
+domain_id: "owasp-nodejs-injection"
+version: "1.0.0"
+display_name: "Injection"
+source_standard: "OWASP Node.js Top 10"
+component_type: "backend-api"
+weight: 0.9
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_owasp_nodejs_injection_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_owasp_nodejs_injection"
+
+controls:
+  - control_id: "OWASPNOD-01"
+    name: "Injection — Primary Control"
+    description: "NoSQL injection, command injection, and template injection in Node.js applications."
+    source_clause: "OWASP Node.js"
+    severity: "critical"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://OWASPNOD-01"
+
+  - control_id: "OWASPNOD-02"
+    name: "Injection — Input Validation"
+    description: "Validate and sanitize all inputs related to injection"
+    source_clause: "OWASP Node.js"
+    severity: "critical"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://OWASPNOD-02"
+
+  - control_id: "OWASPNOD-03"
+    name: "Injection — Configuration Hardening"
+    description: "Apply secure configuration defaults for injection"
+    source_clause: "OWASP Node.js"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://OWASPNOD-03"
+
+  - control_id: "OWASPNOD-04"
+    name: "Injection — Monitoring and Logging"
+    description: "Log and monitor all injection events for audit and detection"
+    source_clause: "OWASP Node.js"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://OWASPNOD-04"
+
+  - control_id: "OWASPNOD-05"
+    name: "Injection — Error Handling"
+    description: "Handle injection errors securely without information leakage"
+    source_clause: "OWASP Node.js"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://OWASPNOD-05"

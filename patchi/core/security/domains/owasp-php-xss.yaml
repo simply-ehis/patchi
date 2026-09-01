@@ -1,0 +1,62 @@
+# Patchi Security Domain: owasp-php-xss
+# Source: OWASP PHP Top 10
+# Auto-generated — curated from OWASP PHP Top 10
+
+domain_id: "owasp-php-xss"
+version: "1.0.0"
+display_name: "Cross-Site Scripting"
+source_standard: "OWASP PHP Top 10"
+component_type: "frontend-web"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_owasp_php_xss_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_owasp_php_xss"
+
+controls:
+  - control_id: "OWASPPHP-01"
+    name: "Cross-Site Scripting — Primary Control"
+    description: "Reflected, stored, or DOM-based XSS due to missing output encoding."
+    source_clause: "OWASP PHP"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://OWASPPHP-01"
+
+  - control_id: "OWASPPHP-02"
+    name: "Cross-Site Scripting — Input Validation"
+    description: "Validate and sanitize all inputs related to cross-site scripting"
+    source_clause: "OWASP PHP"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://OWASPPHP-02"
+
+  - control_id: "OWASPPHP-03"
+    name: "Cross-Site Scripting — Configuration Hardening"
+    description: "Apply secure configuration defaults for cross-site scripting"
+    source_clause: "OWASP PHP"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://OWASPPHP-03"
+
+  - control_id: "OWASPPHP-04"
+    name: "Cross-Site Scripting — Monitoring and Logging"
+    description: "Log and monitor all cross-site scripting events for audit and detection"
+    source_clause: "OWASP PHP"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://OWASPPHP-04"
+
+  - control_id: "OWASPPHP-05"
+    name: "Cross-Site Scripting — Error Handling"
+    description: "Handle cross-site scripting errors securely without information leakage"
+    source_clause: "OWASP PHP"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://OWASPPHP-05"

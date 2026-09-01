@@ -1,0 +1,62 @@
+# Patchi Security Domain: owasp-php-deserialization
+# Source: OWASP PHP Top 10
+# Auto-generated — curated from OWASP PHP Top 10
+
+domain_id: "owasp-php-deserialization"
+version: "1.0.0"
+display_name: "Insecure Deserialization"
+source_standard: "OWASP PHP Top 10"
+component_type: "backend-api"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_owasp_php_deserialization_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_owasp_php_deserialization"
+
+controls:
+  - control_id: "OWASPPHP-01"
+    name: "Insecure Deserialization — Primary Control"
+    description: "Unsafe unserialize() calls leading to object injection and RCE."
+    source_clause: "OWASP PHP"
+    severity: "critical"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://OWASPPHP-01"
+
+  - control_id: "OWASPPHP-02"
+    name: "Insecure Deserialization — Input Validation"
+    description: "Validate and sanitize all inputs related to insecure deserialization"
+    source_clause: "OWASP PHP"
+    severity: "critical"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://OWASPPHP-02"
+
+  - control_id: "OWASPPHP-03"
+    name: "Insecure Deserialization — Configuration Hardening"
+    description: "Apply secure configuration defaults for insecure deserialization"
+    source_clause: "OWASP PHP"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://OWASPPHP-03"
+
+  - control_id: "OWASPPHP-04"
+    name: "Insecure Deserialization — Monitoring and Logging"
+    description: "Log and monitor all insecure deserialization events for audit and detection"
+    source_clause: "OWASP PHP"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://OWASPPHP-04"
+
+  - control_id: "OWASPPHP-05"
+    name: "Insecure Deserialization — Error Handling"
+    description: "Handle insecure deserialization errors securely without information leakage"
+    source_clause: "OWASP PHP"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://OWASPPHP-05"

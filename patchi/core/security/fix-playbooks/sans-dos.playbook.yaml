@@ -1,0 +1,60 @@
+# Playbook for: sans-dos
+# Source: SANS Top 25
+# Auto-generated
+
+playbooks:
+- control_id: "SANSDOS-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary denial of service control patterns for sans-dos"
+  blast_radius_notes: "Automated fix for SANSDOS-01 - Primary Denial of Service Control"
+  verification_checks:
+    - "Verify SANSDOS-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "SANSDOS-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for denial of service patterns for sans-dos"
+  blast_radius_notes: "Automated fix for SANSDOS-02 - Input Validation for Denial of Service"
+  verification_checks:
+    - "Verify SANSDOS-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "SANSDOS-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for denial of service patterns for sans-dos"
+  blast_radius_notes: "Automated fix for SANSDOS-03 - Configuration Hardening for Denial of Service"
+  verification_checks:
+    - "Verify SANSDOS-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "SANSDOS-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for denial of service patterns for sans-dos"
+  blast_radius_notes: "Automated fix for SANSDOS-04 - Monitoring and Logging for Denial of Service"
+  verification_checks:
+    - "Verify SANSDOS-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "SANSDOS-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for denial of service patterns for sans-dos"
+  blast_radius_notes: "Automated fix for SANSDOS-05 - Error Handling for Denial of Service"
+  verification_checks:
+    - "Verify SANSDOS-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

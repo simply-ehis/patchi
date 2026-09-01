@@ -1,0 +1,62 @@
+# Patchi Security Domain: extension-content-script-injection
+# Source: Browser Extension Security
+# Auto-generated — curated from Browser Extension Security
+
+domain_id: "extension-content-script-injection"
+version: "1.0.0"
+display_name: "Extension Content Script Injection"
+source_standard: "Browser Extension Security"
+component_type: "frontend-web"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_extension_content_script_injection_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_extension_content_script_injection"
+
+controls:
+  - control_id: "EXTENSIO-01"
+    name: "Extension Content Script Injection — Primary Control"
+    description: "Content scripts accessing page DOM without validation."
+    source_clause: "Ext Content"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://EXTENSIO-01"
+
+  - control_id: "EXTENSIO-02"
+    name: "Extension Content Script Injection — Input Validation"
+    description: "Validate and sanitize all inputs related to extension content script injection"
+    source_clause: "Ext Content"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://EXTENSIO-02"
+
+  - control_id: "EXTENSIO-03"
+    name: "Extension Content Script Injection — Configuration Hardening"
+    description: "Apply secure configuration defaults for extension content script injection"
+    source_clause: "Ext Content"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://EXTENSIO-03"
+
+  - control_id: "EXTENSIO-04"
+    name: "Extension Content Script Injection — Monitoring and Logging"
+    description: "Log and monitor all extension content script injection events for audit and detection"
+    source_clause: "Ext Content"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://EXTENSIO-04"
+
+  - control_id: "EXTENSIO-05"
+    name: "Extension Content Script Injection — Error Handling"
+    description: "Handle extension content script injection errors securely without information leakage"
+    source_clause: "Ext Content"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://EXTENSIO-05"

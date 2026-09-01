@@ -1,0 +1,62 @@
+# Patchi Security Domain: owasp-llm-supply-chain
+# Source: OWASP LLM 2025 LLM03
+# Auto-generated — curated from OWASP LLM 2025 LLM03
+
+domain_id: "owasp-llm-supply-chain"
+version: "1.0.0"
+display_name: "Supply Chain Vulnerabilities"
+source_standard: "OWASP LLM 2025 LLM03"
+component_type: "ai-ml"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_owasp_llm_supply_chain_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_owasp_llm_supply_chain"
+
+controls:
+  - control_id: "OWASPLLM-01"
+    name: "Supply Chain Vulnerabilities — Primary Control"
+    description: "Vulnerable pre-trained models, poisoned training data, or compromised ML libraries."
+    source_clause: "LLM03"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://OWASPLLM-01"
+
+  - control_id: "OWASPLLM-02"
+    name: "Supply Chain Vulnerabilities — Input Validation"
+    description: "Validate and sanitize all inputs related to supply chain vulnerabilities"
+    source_clause: "LLM03"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://OWASPLLM-02"
+
+  - control_id: "OWASPLLM-03"
+    name: "Supply Chain Vulnerabilities — Configuration Hardening"
+    description: "Apply secure configuration defaults for supply chain vulnerabilities"
+    source_clause: "LLM03"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://OWASPLLM-03"
+
+  - control_id: "OWASPLLM-04"
+    name: "Supply Chain Vulnerabilities — Monitoring and Logging"
+    description: "Log and monitor all supply chain vulnerabilities events for audit and detection"
+    source_clause: "LLM03"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://OWASPLLM-04"
+
+  - control_id: "OWASPLLM-05"
+    name: "Supply Chain Vulnerabilities — Error Handling"
+    description: "Handle supply chain vulnerabilities errors securely without information leakage"
+    source_clause: "LLM03"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://OWASPLLM-05"

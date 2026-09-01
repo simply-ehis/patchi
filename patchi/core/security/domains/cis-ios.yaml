@@ -1,0 +1,62 @@
+# Patchi Security Domain: cis-ios
+# Source: CIS iOS Benchmark
+# Auto-generated — curated from CIS iOS Benchmark
+
+domain_id: "cis-ios"
+version: "1.0.0"
+display_name: "iOS Device Hardening"
+source_standard: "CIS iOS Benchmark"
+component_type: "mobile-native"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_cis_ios_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_cis_ios"
+
+controls:
+  - control_id: "CISIOS-01"
+    name: "iOS Device Hardening — Primary Control"
+    description: "Passcode, encryption, app restrictions, and privacy settings."
+    source_clause: "CIS iOS"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CISIOS-01"
+
+  - control_id: "CISIOS-02"
+    name: "iOS Device Hardening — Input Validation"
+    description: "Validate and sanitize all inputs related to ios device hardening"
+    source_clause: "CIS iOS"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CISIOS-02"
+
+  - control_id: "CISIOS-03"
+    name: "iOS Device Hardening — Configuration Hardening"
+    description: "Apply secure configuration defaults for ios device hardening"
+    source_clause: "CIS iOS"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CISIOS-03"
+
+  - control_id: "CISIOS-04"
+    name: "iOS Device Hardening — Monitoring and Logging"
+    description: "Log and monitor all ios device hardening events for audit and detection"
+    source_clause: "CIS iOS"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CISIOS-04"
+
+  - control_id: "CISIOS-05"
+    name: "iOS Device Hardening — Error Handling"
+    description: "Handle ios device hardening errors securely without information leakage"
+    source_clause: "CIS iOS"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CISIOS-05"

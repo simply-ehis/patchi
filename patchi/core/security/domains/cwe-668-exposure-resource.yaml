@@ -1,0 +1,62 @@
+# Patchi Security Domain: cwe-668-exposure-resource
+# Source: CWE-668
+# Auto-generated — curated from CWE-668
+
+domain_id: "cwe-668-exposure-resource"
+version: "1.0.0"
+display_name: "Exposure of Resource to Wrong Sphere"
+source_standard: "CWE-668"
+component_type: "backend-api"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_cwe_668_exposure_resource_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_cwe_668_exposure_resource"
+
+controls:
+  - control_id: "CWE668EX-01"
+    name: "Exposure of Resource to Wrong Sphere — Primary Control"
+    description: "Application exposes a resource to the wrong control sphere."
+    source_clause: "CWE-668"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CWE668EX-01"
+
+  - control_id: "CWE668EX-02"
+    name: "Exposure of Resource to Wrong Sphere — Input Validation"
+    description: "Validate and sanitize all inputs related to exposure of resource to wrong sphere"
+    source_clause: "CWE-668"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CWE668EX-02"
+
+  - control_id: "CWE668EX-03"
+    name: "Exposure of Resource to Wrong Sphere — Configuration Hardening"
+    description: "Apply secure configuration defaults for exposure of resource to wrong sphere"
+    source_clause: "CWE-668"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CWE668EX-03"
+
+  - control_id: "CWE668EX-04"
+    name: "Exposure of Resource to Wrong Sphere — Monitoring and Logging"
+    description: "Log and monitor all exposure of resource to wrong sphere events for audit and detection"
+    source_clause: "CWE-668"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CWE668EX-04"
+
+  - control_id: "CWE668EX-05"
+    name: "Exposure of Resource to Wrong Sphere — Error Handling"
+    description: "Handle exposure of resource to wrong sphere errors securely without information leakage"
+    source_clause: "CWE-668"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CWE668EX-05"

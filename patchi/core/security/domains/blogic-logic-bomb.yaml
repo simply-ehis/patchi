@@ -1,0 +1,62 @@
+# Patchi Security Domain: blogic-logic-bomb
+# Source: Business Logic
+# Auto-generated — curated from Business Logic
+
+domain_id: "blogic-logic-bomb"
+version: "1.0.0"
+display_name: "Logic Bomb"
+source_standard: "Business Logic"
+component_type: "backend-api"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_blogic_logic_bomb_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_blogic_logic_bomb"
+
+controls:
+  - control_id: "BLOGICLO-01"
+    name: "Logic Bomb — Primary Control"
+    description: "Hidden conditions that trigger malicious behavior under specific circumstances."
+    source_clause: "BLogic Bomb"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://BLOGICLO-01"
+
+  - control_id: "BLOGICLO-02"
+    name: "Logic Bomb — Input Validation"
+    description: "Validate and sanitize all inputs related to logic bomb"
+    source_clause: "BLogic Bomb"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://BLOGICLO-02"
+
+  - control_id: "BLOGICLO-03"
+    name: "Logic Bomb — Configuration Hardening"
+    description: "Apply secure configuration defaults for logic bomb"
+    source_clause: "BLogic Bomb"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://BLOGICLO-03"
+
+  - control_id: "BLOGICLO-04"
+    name: "Logic Bomb — Monitoring and Logging"
+    description: "Log and monitor all logic bomb events for audit and detection"
+    source_clause: "BLogic Bomb"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://BLOGICLO-04"
+
+  - control_id: "BLOGICLO-05"
+    name: "Logic Bomb — Error Handling"
+    description: "Handle logic bomb errors securely without information leakage"
+    source_clause: "BLogic Bomb"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://BLOGICLO-05"

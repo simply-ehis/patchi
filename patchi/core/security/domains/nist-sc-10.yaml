@@ -1,0 +1,62 @@
+# Patchi Security Domain: nist-sc-10
+# Source: NIST SP 800-53 SC-10
+# Auto-generated — curated from NIST SP 800-53 SC-10
+
+domain_id: "nist-sc-10"
+version: "1.0.0"
+display_name: "Network Disconnect"
+source_standard: "NIST SP 800-53 SC-10"
+component_type: "infra"
+weight: 0.75
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_nist_sc_10_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_nist_sc_10"
+
+controls:
+  - control_id: "NISTSC10-01"
+    name: "Network Disconnect — Primary Control"
+    description: "System terminates the network connection after defined period of inactivity."
+    source_clause: "SC-10"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://NISTSC10-01"
+
+  - control_id: "NISTSC10-02"
+    name: "Network Disconnect — Input Validation"
+    description: "Validate and sanitize all inputs related to network disconnect"
+    source_clause: "SC-10"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://NISTSC10-02"
+
+  - control_id: "NISTSC10-03"
+    name: "Network Disconnect — Configuration Hardening"
+    description: "Apply secure configuration defaults for network disconnect"
+    source_clause: "SC-10"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://NISTSC10-03"
+
+  - control_id: "NISTSC10-04"
+    name: "Network Disconnect — Monitoring and Logging"
+    description: "Log and monitor all network disconnect events for audit and detection"
+    source_clause: "SC-10"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://NISTSC10-04"
+
+  - control_id: "NISTSC10-05"
+    name: "Network Disconnect — Error Handling"
+    description: "Handle network disconnect errors securely without information leakage"
+    source_clause: "SC-10"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://NISTSC10-05"

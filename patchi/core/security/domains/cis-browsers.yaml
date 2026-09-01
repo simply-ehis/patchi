@@ -1,0 +1,62 @@
+# Patchi Security Domain: cis-browsers
+# Source: CIS Browser Benchmark
+# Auto-generated — curated from CIS Browser Benchmark
+
+domain_id: "cis-browsers"
+version: "1.0.0"
+display_name: "Web Browser Hardening"
+source_standard: "CIS Browser Benchmark"
+component_type: "frontend-web"
+weight: 0.75
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_cis_browsers_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_cis_browsers"
+
+controls:
+  - control_id: "CISBROWS-01"
+    name: "Web Browser Hardening — Primary Control"
+    description: "Browser security settings, plugin management, and privacy controls."
+    source_clause: "CIS Browsers"
+    severity: "medium"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CISBROWS-01"
+
+  - control_id: "CISBROWS-02"
+    name: "Web Browser Hardening — Input Validation"
+    description: "Validate and sanitize all inputs related to web browser hardening"
+    source_clause: "CIS Browsers"
+    severity: "medium"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CISBROWS-02"
+
+  - control_id: "CISBROWS-03"
+    name: "Web Browser Hardening — Configuration Hardening"
+    description: "Apply secure configuration defaults for web browser hardening"
+    source_clause: "CIS Browsers"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CISBROWS-03"
+
+  - control_id: "CISBROWS-04"
+    name: "Web Browser Hardening — Monitoring and Logging"
+    description: "Log and monitor all web browser hardening events for audit and detection"
+    source_clause: "CIS Browsers"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CISBROWS-04"
+
+  - control_id: "CISBROWS-05"
+    name: "Web Browser Hardening — Error Handling"
+    description: "Handle web browser hardening errors securely without information leakage"
+    source_clause: "CIS Browsers"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CISBROWS-05"

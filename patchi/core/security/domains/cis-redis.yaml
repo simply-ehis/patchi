@@ -1,0 +1,62 @@
+# Patchi Security Domain: cis-redis
+# Source: CIS Redis Benchmark
+# Auto-generated — curated from CIS Redis Benchmark
+
+domain_id: "cis-redis"
+version: "1.0.0"
+display_name: "Redis Hardening"
+source_standard: "CIS Redis Benchmark"
+component_type: "infra"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_cis_redis_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_cis_redis"
+
+controls:
+  - control_id: "CISREDIS-01"
+    name: "Redis Hardening — Primary Control"
+    description: "Authentication, binding, command renaming, and persistence configuration."
+    source_clause: "CIS Redis"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CISREDIS-01"
+
+  - control_id: "CISREDIS-02"
+    name: "Redis Hardening — Input Validation"
+    description: "Validate and sanitize all inputs related to redis hardening"
+    source_clause: "CIS Redis"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CISREDIS-02"
+
+  - control_id: "CISREDIS-03"
+    name: "Redis Hardening — Configuration Hardening"
+    description: "Apply secure configuration defaults for redis hardening"
+    source_clause: "CIS Redis"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CISREDIS-03"
+
+  - control_id: "CISREDIS-04"
+    name: "Redis Hardening — Monitoring and Logging"
+    description: "Log and monitor all redis hardening events for audit and detection"
+    source_clause: "CIS Redis"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CISREDIS-04"
+
+  - control_id: "CISREDIS-05"
+    name: "Redis Hardening — Error Handling"
+    description: "Handle redis hardening errors securely without information leakage"
+    source_clause: "CIS Redis"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CISREDIS-05"

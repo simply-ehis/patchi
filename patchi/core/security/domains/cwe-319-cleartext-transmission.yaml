@@ -1,0 +1,62 @@
+# Patchi Security Domain: cwe-319-cleartext-transmission
+# Source: CWE-319
+# Auto-generated — curated from CWE-319
+
+domain_id: "cwe-319-cleartext-transmission"
+version: "1.0.0"
+display_name: "Cleartext Transmission of Sensitive Information"
+source_standard: "CWE-319"
+component_type: "backend-api"
+weight: 0.9
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_cwe_319_cleartext_transmission_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_cwe_319_cleartext_transmission"
+
+controls:
+  - control_id: "CWE319CL-01"
+    name: "Cleartext Transmission of Sensitive Information — Primary Control"
+    description: "Sensitive data transmitted in cleartext over a network."
+    source_clause: "CWE-319"
+    severity: "critical"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CWE319CL-01"
+
+  - control_id: "CWE319CL-02"
+    name: "Cleartext Transmission of Sensitive Information — Input Validation"
+    description: "Validate and sanitize all inputs related to cleartext transmission of sensitive information"
+    source_clause: "CWE-319"
+    severity: "critical"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CWE319CL-02"
+
+  - control_id: "CWE319CL-03"
+    name: "Cleartext Transmission of Sensitive Information — Configuration Hardening"
+    description: "Apply secure configuration defaults for cleartext transmission of sensitive information"
+    source_clause: "CWE-319"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CWE319CL-03"
+
+  - control_id: "CWE319CL-04"
+    name: "Cleartext Transmission of Sensitive Information — Monitoring and Logging"
+    description: "Log and monitor all cleartext transmission of sensitive information events for audit and detection"
+    source_clause: "CWE-319"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CWE319CL-04"
+
+  - control_id: "CWE319CL-05"
+    name: "Cleartext Transmission of Sensitive Information — Error Handling"
+    description: "Handle cleartext transmission of sensitive information errors securely without information leakage"
+    source_clause: "CWE-319"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CWE319CL-05"

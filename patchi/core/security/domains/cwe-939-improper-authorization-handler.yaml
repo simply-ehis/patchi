@@ -1,0 +1,62 @@
+# Patchi Security Domain: cwe-939-improper-authorization-handler
+# Source: CWE-939
+# Auto-generated — curated from CWE-939
+
+domain_id: "cwe-939-improper-authorization-handler"
+version: "1.0.0"
+display_name: "Improper Authorization in Handler for Custom URL Scheme"
+source_standard: "CWE-939"
+component_type: "mobile-native"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_cwe_939_improper_authorization_handler_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_cwe_939_improper_authorization_handler"
+
+controls:
+  - control_id: "CWE939IM-01"
+    name: "Improper Authorization in Handler for Custom URL Scheme — Primary Control"
+    description: "Application does not properly authorize access to resources via custom URL schemes."
+    source_clause: "CWE-939"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CWE939IM-01"
+
+  - control_id: "CWE939IM-02"
+    name: "Improper Authorization in Handler for Custom URL Scheme — Input Validation"
+    description: "Validate and sanitize all inputs related to improper authorization in handler for custom url scheme"
+    source_clause: "CWE-939"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CWE939IM-02"
+
+  - control_id: "CWE939IM-03"
+    name: "Improper Authorization in Handler for Custom URL Scheme — Configuration Hardening"
+    description: "Apply secure configuration defaults for improper authorization in handler for custom url scheme"
+    source_clause: "CWE-939"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CWE939IM-03"
+
+  - control_id: "CWE939IM-04"
+    name: "Improper Authorization in Handler for Custom URL Scheme — Monitoring and Logging"
+    description: "Log and monitor all improper authorization in handler for custom url scheme events for audit and detection"
+    source_clause: "CWE-939"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CWE939IM-04"
+
+  - control_id: "CWE939IM-05"
+    name: "Improper Authorization in Handler for Custom URL Scheme — Error Handling"
+    description: "Handle improper authorization in handler for custom url scheme errors securely without information leakage"
+    source_clause: "CWE-939"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CWE939IM-05"

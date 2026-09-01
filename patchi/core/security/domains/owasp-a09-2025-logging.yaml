@@ -1,0 +1,62 @@
+# Patchi Security Domain: owasp-a09-2025-logging
+# Source: OWASP Top 10 2025 A09
+# Auto-generated — curated from OWASP Top 10 2025 A09
+
+domain_id: "owasp-a09-2025-logging"
+version: "1.0.0"
+display_name: "Security Logging & Monitoring Failures"
+source_standard: "OWASP Top 10 2025 A09"
+component_type: "backend-api"
+weight: 0.75
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_owasp_a09_2025_logging_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_owasp_a09_2025_logging"
+
+controls:
+  - control_id: "OWASPA09-01"
+    name: "Security Logging & Monitoring Failures — Primary Control"
+    description: "Insufficient logging, missing audit trails, and lack of real-time alerting on security events."
+    source_clause: "OWASP A09:2025"
+    severity: "medium"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://OWASPA09-01"
+
+  - control_id: "OWASPA09-02"
+    name: "Security Logging & Monitoring Failures — Input Validation"
+    description: "Validate and sanitize all inputs related to security logging & monitoring failures"
+    source_clause: "OWASP A09:2025"
+    severity: "medium"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://OWASPA09-02"
+
+  - control_id: "OWASPA09-03"
+    name: "Security Logging & Monitoring Failures — Configuration Hardening"
+    description: "Apply secure configuration defaults for security logging & monitoring failures"
+    source_clause: "OWASP A09:2025"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://OWASPA09-03"
+
+  - control_id: "OWASPA09-04"
+    name: "Security Logging & Monitoring Failures — Monitoring and Logging"
+    description: "Log and monitor all security logging & monitoring failures events for audit and detection"
+    source_clause: "OWASP A09:2025"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://OWASPA09-04"
+
+  - control_id: "OWASPA09-05"
+    name: "Security Logging & Monitoring Failures — Error Handling"
+    description: "Handle security logging & monitoring failures errors securely without information leakage"
+    source_clause: "OWASP A09:2025"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://OWASPA09-05"

@@ -1,0 +1,60 @@
+# Playbook for: api-rate-limiting
+# Source: API Design Security
+# Auto-generated
+
+playbooks:
+- control_id: "APIRATEL-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary api rate limiting architecture control patterns for api-rate-limiting"
+  blast_radius_notes: "Automated fix for APIRATEL-01 - Primary API Rate Limiting Architecture Control"
+  verification_checks:
+    - "Verify APIRATEL-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "APIRATEL-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for api rate limiting architecture patterns for api-rate-limiting"
+  blast_radius_notes: "Automated fix for APIRATEL-02 - Input Validation for API Rate Limiting Architecture"
+  verification_checks:
+    - "Verify APIRATEL-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "APIRATEL-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for api rate limiting architecture patterns for api-rate-limiting"
+  blast_radius_notes: "Automated fix for APIRATEL-03 - Configuration Hardening for API Rate Limiting Architecture"
+  verification_checks:
+    - "Verify APIRATEL-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "APIRATEL-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for api rate limiting architecture patterns for api-rate-limiting"
+  blast_radius_notes: "Automated fix for APIRATEL-04 - Monitoring and Logging for API Rate Limiting Architecture"
+  verification_checks:
+    - "Verify APIRATEL-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "APIRATEL-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for api rate limiting architecture patterns for api-rate-limiting"
+  blast_radius_notes: "Automated fix for APIRATEL-05 - Error Handling for API Rate Limiting Architecture"
+  verification_checks:
+    - "Verify APIRATEL-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

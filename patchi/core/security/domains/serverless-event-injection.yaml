@@ -1,0 +1,62 @@
+# Patchi Security Domain: serverless-event-injection
+# Source: Serverless Security
+# Auto-generated — curated from Serverless Security
+
+domain_id: "serverless-event-injection"
+version: "1.0.0"
+display_name: "Serverless Event Injection"
+source_standard: "Serverless Security"
+component_type: "backend-api"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_serverless_event_injection_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_serverless_event_injection"
+
+controls:
+  - control_id: "SERVERLE-01"
+    name: "Serverless Event Injection — Primary Control"
+    description: "Unvalidated event data triggering code execution in Lambda/Functions."
+    source_clause: "Serverless Inject"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://SERVERLE-01"
+
+  - control_id: "SERVERLE-02"
+    name: "Serverless Event Injection — Input Validation"
+    description: "Validate and sanitize all inputs related to serverless event injection"
+    source_clause: "Serverless Inject"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://SERVERLE-02"
+
+  - control_id: "SERVERLE-03"
+    name: "Serverless Event Injection — Configuration Hardening"
+    description: "Apply secure configuration defaults for serverless event injection"
+    source_clause: "Serverless Inject"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://SERVERLE-03"
+
+  - control_id: "SERVERLE-04"
+    name: "Serverless Event Injection — Monitoring and Logging"
+    description: "Log and monitor all serverless event injection events for audit and detection"
+    source_clause: "Serverless Inject"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://SERVERLE-04"
+
+  - control_id: "SERVERLE-05"
+    name: "Serverless Event Injection — Error Handling"
+    description: "Handle serverless event injection errors securely without information leakage"
+    source_clause: "Serverless Inject"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://SERVERLE-05"

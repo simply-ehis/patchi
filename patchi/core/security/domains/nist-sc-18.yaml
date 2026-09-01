@@ -1,0 +1,62 @@
+# Patchi Security Domain: nist-sc-18
+# Source: NIST SP 800-53 SC-18
+# Auto-generated — curated from NIST SP 800-53 SC-18
+
+domain_id: "nist-sc-18"
+version: "1.0.0"
+display_name: "Mobile Code"
+source_standard: "NIST SP 800-53 SC-18"
+component_type: "backend-api"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_nist_sc_18_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_nist_sc_18"
+
+controls:
+  - control_id: "NISTSC18-01"
+    name: "Mobile Code — Primary Control"
+    description: "System controls the use of mobile code (Java, JavaScript, ActiveX)."
+    source_clause: "SC-18"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://NISTSC18-01"
+
+  - control_id: "NISTSC18-02"
+    name: "Mobile Code — Input Validation"
+    description: "Validate and sanitize all inputs related to mobile code"
+    source_clause: "SC-18"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://NISTSC18-02"
+
+  - control_id: "NISTSC18-03"
+    name: "Mobile Code — Configuration Hardening"
+    description: "Apply secure configuration defaults for mobile code"
+    source_clause: "SC-18"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://NISTSC18-03"
+
+  - control_id: "NISTSC18-04"
+    name: "Mobile Code — Monitoring and Logging"
+    description: "Log and monitor all mobile code events for audit and detection"
+    source_clause: "SC-18"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://NISTSC18-04"
+
+  - control_id: "NISTSC18-05"
+    name: "Mobile Code — Error Handling"
+    description: "Handle mobile code errors securely without information leakage"
+    source_clause: "SC-18"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://NISTSC18-05"

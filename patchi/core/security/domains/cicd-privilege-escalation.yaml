@@ -1,0 +1,62 @@
+# Patchi Security Domain: cicd-privilege-escalation
+# Source: CI/CD Security
+# Auto-generated — curated from CI/CD Security
+
+domain_id: "cicd-privilege-escalation"
+version: "1.0.0"
+display_name: "CI/CD Privilege Escalation"
+source_standard: "CI/CD Security"
+component_type: "infra"
+weight: 0.9
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_cicd_privilege_escalation_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_cicd_privilege_escalation"
+
+controls:
+  - control_id: "CICDPRIV-01"
+    name: "CI/CD Privilege Escalation — Primary Control"
+    description: "Pipeline running with elevated privileges beyond what's needed."
+    source_clause: "CI/CD Priv"
+    severity: "critical"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CICDPRIV-01"
+
+  - control_id: "CICDPRIV-02"
+    name: "CI/CD Privilege Escalation — Input Validation"
+    description: "Validate and sanitize all inputs related to ci/cd privilege escalation"
+    source_clause: "CI/CD Priv"
+    severity: "critical"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CICDPRIV-02"
+
+  - control_id: "CICDPRIV-03"
+    name: "CI/CD Privilege Escalation — Configuration Hardening"
+    description: "Apply secure configuration defaults for ci/cd privilege escalation"
+    source_clause: "CI/CD Priv"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CICDPRIV-03"
+
+  - control_id: "CICDPRIV-04"
+    name: "CI/CD Privilege Escalation — Monitoring and Logging"
+    description: "Log and monitor all ci/cd privilege escalation events for audit and detection"
+    source_clause: "CI/CD Priv"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CICDPRIV-04"
+
+  - control_id: "CICDPRIV-05"
+    name: "CI/CD Privilege Escalation — Error Handling"
+    description: "Handle ci/cd privilege escalation errors securely without information leakage"
+    source_clause: "CI/CD Priv"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CICDPRIV-05"

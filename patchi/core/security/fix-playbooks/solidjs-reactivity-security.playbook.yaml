@@ -1,0 +1,60 @@
+# Playbook for: solidjs-reactivity-security
+# Source: SolidJS Security
+# Auto-generated
+
+playbooks:
+- control_id: "SOLIDJSR-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary solidjs reactive data security control patterns for solidjs-reactivity-security"
+  blast_radius_notes: "Automated fix for SOLIDJSR-01 - Primary SolidJS Reactive Data Security Control"
+  verification_checks:
+    - "Verify SOLIDJSR-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "SOLIDJSR-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for solidjs reactive data security patterns for solidjs-reactivity-security"
+  blast_radius_notes: "Automated fix for SOLIDJSR-02 - Input Validation for SolidJS Reactive Data Security"
+  verification_checks:
+    - "Verify SOLIDJSR-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "SOLIDJSR-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for solidjs reactive data security patterns for solidjs-reactivity-security"
+  blast_radius_notes: "Automated fix for SOLIDJSR-03 - Configuration Hardening for SolidJS Reactive Data Security"
+  verification_checks:
+    - "Verify SOLIDJSR-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "SOLIDJSR-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for solidjs reactive data security patterns for solidjs-reactivity-security"
+  blast_radius_notes: "Automated fix for SOLIDJSR-04 - Monitoring and Logging for SolidJS Reactive Data Security"
+  verification_checks:
+    - "Verify SOLIDJSR-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "SOLIDJSR-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for solidjs reactive data security patterns for solidjs-reactivity-security"
+  blast_radius_notes: "Automated fix for SOLIDJSR-05 - Error Handling for SolidJS Reactive Data Security"
+  verification_checks:
+    - "Verify SOLIDJSR-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

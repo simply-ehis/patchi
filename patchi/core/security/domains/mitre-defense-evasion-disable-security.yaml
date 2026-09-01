@@ -1,0 +1,62 @@
+# Patchi Security Domain: mitre-defense-evasion-disable-security
+# Source: MITRE ATT&CK
+# Auto-generated — curated from MITRE ATT&CK
+
+domain_id: "mitre-defense-evasion-disable-security"
+version: "1.0.0"
+display_name: "Disable or Modify Tools (T1562)"
+source_standard: "MITRE ATT&CK"
+component_type: "infra"
+weight: 0.9
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_mitre_defense_evasion_disable_security_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_mitre_defense_evasion_disable_security"
+
+controls:
+  - control_id: "MITREDEF-01"
+    name: "Disable or Modify Tools (T1562) — Primary Control"
+    description: "Disabling security tools, logging, or alerting mechanisms."
+    source_clause: "T1562"
+    severity: "critical"
+    check_method: "dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://MITREDEF-01"
+
+  - control_id: "MITREDEF-02"
+    name: "Disable or Modify Tools (T1562) — Input Validation"
+    description: "Validate and sanitize all inputs related to disable or modify tools (t1562)"
+    source_clause: "T1562"
+    severity: "critical"
+    check_method: "dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://MITREDEF-02"
+
+  - control_id: "MITREDEF-03"
+    name: "Disable or Modify Tools (T1562) — Configuration Hardening"
+    description: "Apply secure configuration defaults for disable or modify tools (t1562)"
+    source_clause: "T1562"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://MITREDEF-03"
+
+  - control_id: "MITREDEF-04"
+    name: "Disable or Modify Tools (T1562) — Monitoring and Logging"
+    description: "Log and monitor all disable or modify tools (t1562) events for audit and detection"
+    source_clause: "T1562"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://MITREDEF-04"
+
+  - control_id: "MITREDEF-05"
+    name: "Disable or Modify Tools (T1562) — Error Handling"
+    description: "Handle disable or modify tools (t1562) errors securely without information leakage"
+    source_clause: "T1562"
+    severity: "medium"
+    check_method: "dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://MITREDEF-05"

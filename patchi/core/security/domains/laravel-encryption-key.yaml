@@ -1,0 +1,62 @@
+# Patchi Security Domain: laravel-encryption-key
+# Source: Laravel Security
+# Auto-generated — curated from Laravel Security
+
+domain_id: "laravel-encryption-key"
+version: "1.0.0"
+display_name: "Laravel Encryption Key Exposure"
+source_standard: "Laravel Security"
+component_type: "backend-api"
+weight: 0.9
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_laravel_encryption_key_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_laravel_encryption_key"
+
+controls:
+  - control_id: "LARAVELE-01"
+    name: "Laravel Encryption Key Exposure — Primary Control"
+    description: "APP_KEY in version control or weak encryption key."
+    source_clause: "Laravel Key"
+    severity: "critical"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://LARAVELE-01"
+
+  - control_id: "LARAVELE-02"
+    name: "Laravel Encryption Key Exposure — Input Validation"
+    description: "Validate and sanitize all inputs related to laravel encryption key exposure"
+    source_clause: "Laravel Key"
+    severity: "critical"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://LARAVELE-02"
+
+  - control_id: "LARAVELE-03"
+    name: "Laravel Encryption Key Exposure — Configuration Hardening"
+    description: "Apply secure configuration defaults for laravel encryption key exposure"
+    source_clause: "Laravel Key"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://LARAVELE-03"
+
+  - control_id: "LARAVELE-04"
+    name: "Laravel Encryption Key Exposure — Monitoring and Logging"
+    description: "Log and monitor all laravel encryption key exposure events for audit and detection"
+    source_clause: "Laravel Key"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://LARAVELE-04"
+
+  - control_id: "LARAVELE-05"
+    name: "Laravel Encryption Key Exposure — Error Handling"
+    description: "Handle laravel encryption key exposure errors securely without information leakage"
+    source_clause: "Laravel Key"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://LARAVELE-05"

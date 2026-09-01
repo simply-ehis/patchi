@@ -1,0 +1,62 @@
+# Patchi Security Domain: vue-template-injection
+# Source: Vue.js Security
+# Auto-generated — curated from Vue.js Security
+
+domain_id: "vue-template-injection"
+version: "1.0.0"
+display_name: "Template Injection in Vue"
+source_standard: "Vue.js Security"
+component_type: "frontend-web"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_vue_template_injection_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_vue_template_injection"
+
+controls:
+  - control_id: "VUETEMPL-01"
+    name: "Template Injection in Vue — Primary Control"
+    description: "User input inserted into Vue templates or render functions."
+    source_clause: "Vue Template"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://VUETEMPL-01"
+
+  - control_id: "VUETEMPL-02"
+    name: "Template Injection in Vue — Input Validation"
+    description: "Validate and sanitize all inputs related to template injection in vue"
+    source_clause: "Vue Template"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://VUETEMPL-02"
+
+  - control_id: "VUETEMPL-03"
+    name: "Template Injection in Vue — Configuration Hardening"
+    description: "Apply secure configuration defaults for template injection in vue"
+    source_clause: "Vue Template"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://VUETEMPL-03"
+
+  - control_id: "VUETEMPL-04"
+    name: "Template Injection in Vue — Monitoring and Logging"
+    description: "Log and monitor all template injection in vue events for audit and detection"
+    source_clause: "Vue Template"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://VUETEMPL-04"
+
+  - control_id: "VUETEMPL-05"
+    name: "Template Injection in Vue — Error Handling"
+    description: "Handle template injection in vue errors securely without information leakage"
+    source_clause: "Vue Template"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://VUETEMPL-05"

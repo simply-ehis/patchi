@@ -1,0 +1,62 @@
+# Patchi Security Domain: cis-ssh
+# Source: CIS SSH Benchmark
+# Auto-generated — curated from CIS SSH Benchmark
+
+domain_id: "cis-ssh"
+version: "1.0.0"
+display_name: "SSH Server Hardening"
+source_standard: "CIS SSH Benchmark"
+component_type: "infra"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_cis_ssh_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_cis_ssh"
+
+controls:
+  - control_id: "CISSSH-01"
+    name: "SSH Server Hardening — Primary Control"
+    description: "Key exchange, ciphers, MACs, authentication methods, and access controls."
+    source_clause: "CIS SSH"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CISSSH-01"
+
+  - control_id: "CISSSH-02"
+    name: "SSH Server Hardening — Input Validation"
+    description: "Validate and sanitize all inputs related to ssh server hardening"
+    source_clause: "CIS SSH"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CISSSH-02"
+
+  - control_id: "CISSSH-03"
+    name: "SSH Server Hardening — Configuration Hardening"
+    description: "Apply secure configuration defaults for ssh server hardening"
+    source_clause: "CIS SSH"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CISSSH-03"
+
+  - control_id: "CISSSH-04"
+    name: "SSH Server Hardening — Monitoring and Logging"
+    description: "Log and monitor all ssh server hardening events for audit and detection"
+    source_clause: "CIS SSH"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CISSSH-04"
+
+  - control_id: "CISSSH-05"
+    name: "SSH Server Hardening — Error Handling"
+    description: "Handle ssh server hardening errors securely without information leakage"
+    source_clause: "CIS SSH"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CISSSH-05"

@@ -1,0 +1,62 @@
+# Patchi Security Domain: cwe-400-uncontrolled-resource
+# Source: CWE-400
+# Auto-generated — curated from CWE-400
+
+domain_id: "cwe-400-uncontrolled-resource"
+version: "1.0.0"
+display_name: "Uncontrolled Resource Consumption"
+source_standard: "CWE-400"
+component_type: "backend-api"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_cwe_400_uncontrolled_resource_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_cwe_400_uncontrolled_resource"
+
+controls:
+  - control_id: "CWE400UN-01"
+    name: "Uncontrolled Resource Consumption — Primary Control"
+    description: "Application does not properly control the consumption of resources."
+    source_clause: "CWE-400"
+    severity: "high"
+    check_method: "dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CWE400UN-01"
+
+  - control_id: "CWE400UN-02"
+    name: "Uncontrolled Resource Consumption — Input Validation"
+    description: "Validate and sanitize all inputs related to uncontrolled resource consumption"
+    source_clause: "CWE-400"
+    severity: "high"
+    check_method: "dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CWE400UN-02"
+
+  - control_id: "CWE400UN-03"
+    name: "Uncontrolled Resource Consumption — Configuration Hardening"
+    description: "Apply secure configuration defaults for uncontrolled resource consumption"
+    source_clause: "CWE-400"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CWE400UN-03"
+
+  - control_id: "CWE400UN-04"
+    name: "Uncontrolled Resource Consumption — Monitoring and Logging"
+    description: "Log and monitor all uncontrolled resource consumption events for audit and detection"
+    source_clause: "CWE-400"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CWE400UN-04"
+
+  - control_id: "CWE400UN-05"
+    name: "Uncontrolled Resource Consumption — Error Handling"
+    description: "Handle uncontrolled resource consumption errors securely without information leakage"
+    source_clause: "CWE-400"
+    severity: "medium"
+    check_method: "dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CWE400UN-05"

@@ -1,0 +1,60 @@
+# Playbook for: graphql-cost-analysis
+# Source: GraphQL Security
+# Auto-generated
+
+playbooks:
+- control_id: "GRAPHQLC-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary graphql cost analysis control patterns for graphql-cost-analysis"
+  blast_radius_notes: "Automated fix for GRAPHQLC-01 - Primary GraphQL Cost Analysis Control"
+  verification_checks:
+    - "Verify GRAPHQLC-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "GRAPHQLC-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for graphql cost analysis patterns for graphql-cost-analysis"
+  blast_radius_notes: "Automated fix for GRAPHQLC-02 - Input Validation for GraphQL Cost Analysis"
+  verification_checks:
+    - "Verify GRAPHQLC-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "GRAPHQLC-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for graphql cost analysis patterns for graphql-cost-analysis"
+  blast_radius_notes: "Automated fix for GRAPHQLC-03 - Configuration Hardening for GraphQL Cost Analysis"
+  verification_checks:
+    - "Verify GRAPHQLC-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "GRAPHQLC-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for graphql cost analysis patterns for graphql-cost-analysis"
+  blast_radius_notes: "Automated fix for GRAPHQLC-04 - Monitoring and Logging for GraphQL Cost Analysis"
+  verification_checks:
+    - "Verify GRAPHQLC-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "GRAPHQLC-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for graphql cost analysis patterns for graphql-cost-analysis"
+  blast_radius_notes: "Automated fix for GRAPHQLC-05 - Error Handling for GraphQL Cost Analysis"
+  verification_checks:
+    - "Verify GRAPHQLC-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

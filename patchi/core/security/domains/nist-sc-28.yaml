@@ -1,0 +1,62 @@
+# Patchi Security Domain: nist-sc-28
+# Source: NIST SP 800-53 SC-28
+# Auto-generated — curated from NIST SP 800-53 SC-28
+
+domain_id: "nist-sc-28"
+version: "1.0.0"
+display_name: "Protection of Information at Rest"
+source_standard: "NIST SP 800-53 SC-28"
+component_type: "backend-api"
+weight: 0.9
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_nist_sc_28_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_nist_sc_28"
+
+controls:
+  - control_id: "NISTSC28-01"
+    name: "Protection of Information at Rest — Primary Control"
+    description: "System protects information at rest using encryption."
+    source_clause: "SC-28"
+    severity: "critical"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://NISTSC28-01"
+
+  - control_id: "NISTSC28-02"
+    name: "Protection of Information at Rest — Input Validation"
+    description: "Validate and sanitize all inputs related to protection of information at rest"
+    source_clause: "SC-28"
+    severity: "critical"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://NISTSC28-02"
+
+  - control_id: "NISTSC28-03"
+    name: "Protection of Information at Rest — Configuration Hardening"
+    description: "Apply secure configuration defaults for protection of information at rest"
+    source_clause: "SC-28"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://NISTSC28-03"
+
+  - control_id: "NISTSC28-04"
+    name: "Protection of Information at Rest — Monitoring and Logging"
+    description: "Log and monitor all protection of information at rest events for audit and detection"
+    source_clause: "SC-28"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://NISTSC28-04"
+
+  - control_id: "NISTSC28-05"
+    name: "Protection of Information at Rest — Error Handling"
+    description: "Handle protection of information at rest errors securely without information leakage"
+    source_clause: "SC-28"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://NISTSC28-05"

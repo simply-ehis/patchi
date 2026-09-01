@@ -1,0 +1,60 @@
+# Playbook for: nist-ia-2
+# Source: NIST SP 800-53 IA-2
+# Auto-generated
+
+playbooks:
+- control_id: "NISTIA2-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary identification and authentication (organizational users) control patterns for nist-ia-2"
+  blast_radius_notes: "Automated fix for NISTIA2-01 - Primary Identification and Authentication (Organizational Users) Control"
+  verification_checks:
+    - "Verify NISTIA2-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NISTIA2-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for identification and authentication (organizational users) patterns for nist-ia-2"
+  blast_radius_notes: "Automated fix for NISTIA2-02 - Input Validation for Identification and Authentication (Organizational Users)"
+  verification_checks:
+    - "Verify NISTIA2-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NISTIA2-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for identification and authentication (organizational users) patterns for nist-ia-2"
+  blast_radius_notes: "Automated fix for NISTIA2-03 - Configuration Hardening for Identification and Authentication (Organizational Users)"
+  verification_checks:
+    - "Verify NISTIA2-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NISTIA2-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for identification and authentication (organizational users) patterns for nist-ia-2"
+  blast_radius_notes: "Automated fix for NISTIA2-04 - Monitoring and Logging for Identification and Authentication (Organizational Users)"
+  verification_checks:
+    - "Verify NISTIA2-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NISTIA2-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for identification and authentication (organizational users) patterns for nist-ia-2"
+  blast_radius_notes: "Automated fix for NISTIA2-05 - Error Handling for Identification and Authentication (Organizational Users)"
+  verification_checks:
+    - "Verify NISTIA2-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

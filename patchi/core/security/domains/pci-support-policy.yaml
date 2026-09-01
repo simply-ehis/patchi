@@ -1,0 +1,62 @@
+# Patchi Security Domain: pci-support-policy
+# Source: PCI DSS 4.0 Req 12
+# Auto-generated — curated from PCI DSS 4.0 Req 12
+
+domain_id: "pci-support-policy"
+version: "1.0.0"
+display_name: "Maintain Information Security Policy"
+source_standard: "PCI DSS 4.0 Req 12"
+component_type: "infra"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_pci_support_policy_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_pci_support_policy"
+
+controls:
+  - control_id: "PCISUPPO-01"
+    name: "Maintain Information Security Policy — Primary Control"
+    description: "Maintain an information security policy for all personnel."
+    source_clause: "PCI DSS 12"
+    severity: "high"
+    check_method: "manual-review"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://PCISUPPO-01"
+
+  - control_id: "PCISUPPO-02"
+    name: "Maintain Information Security Policy — Input Validation"
+    description: "Validate and sanitize all inputs related to maintain information security policy"
+    source_clause: "PCI DSS 12"
+    severity: "high"
+    check_method: "manual-review"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://PCISUPPO-02"
+
+  - control_id: "PCISUPPO-03"
+    name: "Maintain Information Security Policy — Configuration Hardening"
+    description: "Apply secure configuration defaults for maintain information security policy"
+    source_clause: "PCI DSS 12"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://PCISUPPO-03"
+
+  - control_id: "PCISUPPO-04"
+    name: "Maintain Information Security Policy — Monitoring and Logging"
+    description: "Log and monitor all maintain information security policy events for audit and detection"
+    source_clause: "PCI DSS 12"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://PCISUPPO-04"
+
+  - control_id: "PCISUPPO-05"
+    name: "Maintain Information Security Policy — Error Handling"
+    description: "Handle maintain information security policy errors securely without information leakage"
+    source_clause: "PCI DSS 12"
+    severity: "medium"
+    check_method: "manual-review"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://PCISUPPO-05"

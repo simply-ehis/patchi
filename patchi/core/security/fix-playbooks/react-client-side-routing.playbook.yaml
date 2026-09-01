@@ -1,0 +1,60 @@
+# Playbook for: react-client-side-routing
+# Source: React Security
+# Auto-generated
+
+playbooks:
+- control_id: "REACTCLI-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary client-side route security control patterns for react-client-side-routing"
+  blast_radius_notes: "Automated fix for REACTCLI-01 - Primary Client-Side Route Security Control"
+  verification_checks:
+    - "Verify REACTCLI-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "REACTCLI-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for client-side route security patterns for react-client-side-routing"
+  blast_radius_notes: "Automated fix for REACTCLI-02 - Input Validation for Client-Side Route Security"
+  verification_checks:
+    - "Verify REACTCLI-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "REACTCLI-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for client-side route security patterns for react-client-side-routing"
+  blast_radius_notes: "Automated fix for REACTCLI-03 - Configuration Hardening for Client-Side Route Security"
+  verification_checks:
+    - "Verify REACTCLI-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "REACTCLI-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for client-side route security patterns for react-client-side-routing"
+  blast_radius_notes: "Automated fix for REACTCLI-04 - Monitoring and Logging for Client-Side Route Security"
+  verification_checks:
+    - "Verify REACTCLI-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "REACTCLI-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for client-side route security patterns for react-client-side-routing"
+  blast_radius_notes: "Automated fix for REACTCLI-05 - Error Handling for Client-Side Route Security"
+  verification_checks:
+    - "Verify REACTCLI-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

@@ -1,0 +1,60 @@
+# Playbook for: quantum-safe-crypto
+# Source: Post-Quantum Security
+# Auto-generated
+
+playbooks:
+- control_id: "QUANTUMS-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary quantum-safe cryptography control patterns for quantum-safe-crypto"
+  blast_radius_notes: "Automated fix for QUANTUMS-01 - Primary Quantum-Safe Cryptography Control"
+  verification_checks:
+    - "Verify QUANTUMS-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "QUANTUMS-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for quantum-safe cryptography patterns for quantum-safe-crypto"
+  blast_radius_notes: "Automated fix for QUANTUMS-02 - Input Validation for Quantum-Safe Cryptography"
+  verification_checks:
+    - "Verify QUANTUMS-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "QUANTUMS-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for quantum-safe cryptography patterns for quantum-safe-crypto"
+  blast_radius_notes: "Automated fix for QUANTUMS-03 - Configuration Hardening for Quantum-Safe Cryptography"
+  verification_checks:
+    - "Verify QUANTUMS-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "QUANTUMS-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for quantum-safe cryptography patterns for quantum-safe-crypto"
+  blast_radius_notes: "Automated fix for QUANTUMS-04 - Monitoring and Logging for Quantum-Safe Cryptography"
+  verification_checks:
+    - "Verify QUANTUMS-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "QUANTUMS-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for quantum-safe cryptography patterns for quantum-safe-crypto"
+  blast_radius_notes: "Automated fix for QUANTUMS-05 - Error Handling for Quantum-Safe Cryptography"
+  verification_checks:
+    - "Verify QUANTUMS-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

@@ -1,0 +1,62 @@
+# Patchi Security Domain: svelte-reactive-leak
+# Source: Svelte Security
+# Auto-generated — curated from Svelte Security
+
+domain_id: "svelte-reactive-leak"
+version: "1.0.0"
+display_name: "Svelte Reactive Data Leak"
+source_standard: "Svelte Security"
+component_type: "frontend-web"
+weight: 0.75
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_svelte_reactive_leak_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_svelte_reactive_leak"
+
+controls:
+  - control_id: "SVELTERE-01"
+    name: "Svelte Reactive Data Leak — Primary Control"
+    description: "Sensitive data exposed through reactive bindings in browser."
+    source_clause: "Svelte Reactive"
+    severity: "medium"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://SVELTERE-01"
+
+  - control_id: "SVELTERE-02"
+    name: "Svelte Reactive Data Leak — Input Validation"
+    description: "Validate and sanitize all inputs related to svelte reactive data leak"
+    source_clause: "Svelte Reactive"
+    severity: "medium"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://SVELTERE-02"
+
+  - control_id: "SVELTERE-03"
+    name: "Svelte Reactive Data Leak — Configuration Hardening"
+    description: "Apply secure configuration defaults for svelte reactive data leak"
+    source_clause: "Svelte Reactive"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://SVELTERE-03"
+
+  - control_id: "SVELTERE-04"
+    name: "Svelte Reactive Data Leak — Monitoring and Logging"
+    description: "Log and monitor all svelte reactive data leak events for audit and detection"
+    source_clause: "Svelte Reactive"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://SVELTERE-04"
+
+  - control_id: "SVELTERE-05"
+    name: "Svelte Reactive Data Leak — Error Handling"
+    description: "Handle svelte reactive data leak errors securely without information leakage"
+    source_clause: "Svelte Reactive"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://SVELTERE-05"

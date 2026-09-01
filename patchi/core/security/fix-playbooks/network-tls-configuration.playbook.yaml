@@ -1,0 +1,60 @@
+# Playbook for: network-tls-configuration
+# Source: Network Security
+# Auto-generated
+
+playbooks:
+- control_id: "NETWORKT-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary tls configuration control patterns for network-tls-configuration"
+  blast_radius_notes: "Automated fix for NETWORKT-01 - Primary TLS Configuration Control"
+  verification_checks:
+    - "Verify NETWORKT-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NETWORKT-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for tls configuration patterns for network-tls-configuration"
+  blast_radius_notes: "Automated fix for NETWORKT-02 - Input Validation for TLS Configuration"
+  verification_checks:
+    - "Verify NETWORKT-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NETWORKT-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for tls configuration patterns for network-tls-configuration"
+  blast_radius_notes: "Automated fix for NETWORKT-03 - Configuration Hardening for TLS Configuration"
+  verification_checks:
+    - "Verify NETWORKT-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NETWORKT-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for tls configuration patterns for network-tls-configuration"
+  blast_radius_notes: "Automated fix for NETWORKT-04 - Monitoring and Logging for TLS Configuration"
+  verification_checks:
+    - "Verify NETWORKT-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NETWORKT-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for tls configuration patterns for network-tls-configuration"
+  blast_radius_notes: "Automated fix for NETWORKT-05 - Error Handling for TLS Configuration"
+  verification_checks:
+    - "Verify NETWORKT-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

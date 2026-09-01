@@ -1,0 +1,60 @@
+# Playbook for: nist-ac-11
+# Source: NIST SP 800-53 AC-11
+# Auto-generated
+
+playbooks:
+- control_id: "NISTAC11-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary session lock control patterns for nist-ac-11"
+  blast_radius_notes: "Automated fix for NISTAC11-01 - Primary Session Lock Control"
+  verification_checks:
+    - "Verify NISTAC11-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NISTAC11-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for session lock patterns for nist-ac-11"
+  blast_radius_notes: "Automated fix for NISTAC11-02 - Input Validation for Session Lock"
+  verification_checks:
+    - "Verify NISTAC11-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NISTAC11-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for session lock patterns for nist-ac-11"
+  blast_radius_notes: "Automated fix for NISTAC11-03 - Configuration Hardening for Session Lock"
+  verification_checks:
+    - "Verify NISTAC11-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NISTAC11-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for session lock patterns for nist-ac-11"
+  blast_radius_notes: "Automated fix for NISTAC11-04 - Monitoring and Logging for Session Lock"
+  verification_checks:
+    - "Verify NISTAC11-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NISTAC11-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for session lock patterns for nist-ac-11"
+  blast_radius_notes: "Automated fix for NISTAC11-05 - Error Handling for Session Lock"
+  verification_checks:
+    - "Verify NISTAC11-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

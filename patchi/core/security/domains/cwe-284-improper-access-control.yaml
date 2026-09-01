@@ -1,0 +1,62 @@
+# Patchi Security Domain: cwe-284-improper-access-control
+# Source: CWE-284
+# Auto-generated — curated from CWE-284
+
+domain_id: "cwe-284-improper-access-control"
+version: "1.0.0"
+display_name: "Improper Access Control"
+source_standard: "CWE-284"
+component_type: "backend-api"
+weight: 0.9
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_cwe_284_improper_access_control_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_cwe_284_improper_access_control"
+
+controls:
+  - control_id: "CWE284IM-01"
+    name: "Improper Access Control — Primary Control"
+    description: "Application does not properly restrict access to resources."
+    source_clause: "CWE-284"
+    severity: "critical"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CWE284IM-01"
+
+  - control_id: "CWE284IM-02"
+    name: "Improper Access Control — Input Validation"
+    description: "Validate and sanitize all inputs related to improper access control"
+    source_clause: "CWE-284"
+    severity: "critical"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CWE284IM-02"
+
+  - control_id: "CWE284IM-03"
+    name: "Improper Access Control — Configuration Hardening"
+    description: "Apply secure configuration defaults for improper access control"
+    source_clause: "CWE-284"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CWE284IM-03"
+
+  - control_id: "CWE284IM-04"
+    name: "Improper Access Control — Monitoring and Logging"
+    description: "Log and monitor all improper access control events for audit and detection"
+    source_clause: "CWE-284"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CWE284IM-04"
+
+  - control_id: "CWE284IM-05"
+    name: "Improper Access Control — Error Handling"
+    description: "Handle improper access control errors securely without information leakage"
+    source_clause: "CWE-284"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CWE284IM-05"

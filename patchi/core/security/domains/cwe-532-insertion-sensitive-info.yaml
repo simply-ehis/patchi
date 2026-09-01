@@ -1,0 +1,62 @@
+# Patchi Security Domain: cwe-532-insertion-sensitive-info
+# Source: CWE-532
+# Auto-generated — curated from CWE-532
+
+domain_id: "cwe-532-insertion-sensitive-info"
+version: "1.0.0"
+display_name: "Insertion of Sensitive Information into Log File"
+source_standard: "CWE-532"
+component_type: "backend-api"
+weight: 0.75
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_cwe_532_insertion_sensitive_info_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_cwe_532_insertion_sensitive_info"
+
+controls:
+  - control_id: "CWE532IN-01"
+    name: "Insertion of Sensitive Information into Log File — Primary Control"
+    description: "Application writes sensitive information (passwords, tokens, PII) to log files."
+    source_clause: "CWE-532"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CWE532IN-01"
+
+  - control_id: "CWE532IN-02"
+    name: "Insertion of Sensitive Information into Log File — Input Validation"
+    description: "Validate and sanitize all inputs related to insertion of sensitive information into log file"
+    source_clause: "CWE-532"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CWE532IN-02"
+
+  - control_id: "CWE532IN-03"
+    name: "Insertion of Sensitive Information into Log File — Configuration Hardening"
+    description: "Apply secure configuration defaults for insertion of sensitive information into log file"
+    source_clause: "CWE-532"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CWE532IN-03"
+
+  - control_id: "CWE532IN-04"
+    name: "Insertion of Sensitive Information into Log File — Monitoring and Logging"
+    description: "Log and monitor all insertion of sensitive information into log file events for audit and detection"
+    source_clause: "CWE-532"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CWE532IN-04"
+
+  - control_id: "CWE532IN-05"
+    name: "Insertion of Sensitive Information into Log File — Error Handling"
+    description: "Handle insertion of sensitive information into log file errors securely without information leakage"
+    source_clause: "CWE-532"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CWE532IN-05"

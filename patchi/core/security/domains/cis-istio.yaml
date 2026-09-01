@@ -1,0 +1,62 @@
+# Patchi Security Domain: cis-istio
+# Source: CIS Istio Benchmark
+# Auto-generated — curated from CIS Istio Benchmark
+
+domain_id: "cis-istio"
+version: "1.0.0"
+display_name: "Istio Service Mesh Hardening"
+source_standard: "CIS Istio Benchmark"
+component_type: "infra"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_cis_istio_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_cis_istio"
+
+controls:
+  - control_id: "CISISTIO-01"
+    name: "Istio Service Mesh Hardening — Primary Control"
+    description: "mTLS, authorization policies, telemetry, and gateway configuration."
+    source_clause: "CIS Istio"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CISISTIO-01"
+
+  - control_id: "CISISTIO-02"
+    name: "Istio Service Mesh Hardening — Input Validation"
+    description: "Validate and sanitize all inputs related to istio service mesh hardening"
+    source_clause: "CIS Istio"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CISISTIO-02"
+
+  - control_id: "CISISTIO-03"
+    name: "Istio Service Mesh Hardening — Configuration Hardening"
+    description: "Apply secure configuration defaults for istio service mesh hardening"
+    source_clause: "CIS Istio"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CISISTIO-03"
+
+  - control_id: "CISISTIO-04"
+    name: "Istio Service Mesh Hardening — Monitoring and Logging"
+    description: "Log and monitor all istio service mesh hardening events for audit and detection"
+    source_clause: "CIS Istio"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CISISTIO-04"
+
+  - control_id: "CISISTIO-05"
+    name: "Istio Service Mesh Hardening — Error Handling"
+    description: "Handle istio service mesh hardening errors securely without information leakage"
+    source_clause: "CIS Istio"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CISISTIO-05"

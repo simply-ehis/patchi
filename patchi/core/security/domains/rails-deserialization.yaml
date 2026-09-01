@@ -1,0 +1,62 @@
+# Patchi Security Domain: rails-deserialization
+# Source: Ruby on Rails Security
+# Auto-generated — curated from Ruby on Rails Security
+
+domain_id: "rails-deserialization"
+version: "1.0.0"
+display_name: "Rails Deserialization Vulnerability"
+source_standard: "Ruby on Rails Security"
+component_type: "backend-api"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_rails_deserialization_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_rails_deserialization"
+
+controls:
+  - control_id: "RAILSDES-01"
+    name: "Rails Deserialization Vulnerability — Primary Control"
+    description: "YAML or Marshal deserialization of untrusted data."
+    source_clause: "Rails Deser"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://RAILSDES-01"
+
+  - control_id: "RAILSDES-02"
+    name: "Rails Deserialization Vulnerability — Input Validation"
+    description: "Validate and sanitize all inputs related to rails deserialization vulnerability"
+    source_clause: "Rails Deser"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://RAILSDES-02"
+
+  - control_id: "RAILSDES-03"
+    name: "Rails Deserialization Vulnerability — Configuration Hardening"
+    description: "Apply secure configuration defaults for rails deserialization vulnerability"
+    source_clause: "Rails Deser"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://RAILSDES-03"
+
+  - control_id: "RAILSDES-04"
+    name: "Rails Deserialization Vulnerability — Monitoring and Logging"
+    description: "Log and monitor all rails deserialization vulnerability events for audit and detection"
+    source_clause: "Rails Deser"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://RAILSDES-04"
+
+  - control_id: "RAILSDES-05"
+    name: "Rails Deserialization Vulnerability — Error Handling"
+    description: "Handle rails deserialization vulnerability errors securely without information leakage"
+    source_clause: "Rails Deser"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://RAILSDES-05"

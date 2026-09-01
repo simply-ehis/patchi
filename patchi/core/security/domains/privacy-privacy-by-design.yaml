@@ -1,0 +1,62 @@
+# Patchi Security Domain: privacy-privacy-by-design
+# Source: Privacy Engineering
+# Auto-generated — curated from Privacy Engineering
+
+domain_id: "privacy-privacy-by-design"
+version: "1.0.0"
+display_name: "Privacy by Design"
+source_standard: "Privacy Engineering"
+component_type: "backend-api"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_privacy_privacy_by_design_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_privacy_privacy_by_design"
+
+controls:
+  - control_id: "PRIVACYP-01"
+    name: "Privacy by Design — Primary Control"
+    description: "Privacy considerations not embedded in system design."
+    source_clause: "Privacy Design"
+    severity: "high"
+    check_method: "manual-review"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://PRIVACYP-01"
+
+  - control_id: "PRIVACYP-02"
+    name: "Privacy by Design — Input Validation"
+    description: "Validate and sanitize all inputs related to privacy by design"
+    source_clause: "Privacy Design"
+    severity: "high"
+    check_method: "manual-review"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://PRIVACYP-02"
+
+  - control_id: "PRIVACYP-03"
+    name: "Privacy by Design — Configuration Hardening"
+    description: "Apply secure configuration defaults for privacy by design"
+    source_clause: "Privacy Design"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://PRIVACYP-03"
+
+  - control_id: "PRIVACYP-04"
+    name: "Privacy by Design — Monitoring and Logging"
+    description: "Log and monitor all privacy by design events for audit and detection"
+    source_clause: "Privacy Design"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://PRIVACYP-04"
+
+  - control_id: "PRIVACYP-05"
+    name: "Privacy by Design — Error Handling"
+    description: "Handle privacy by design errors securely without information leakage"
+    source_clause: "Privacy Design"
+    severity: "medium"
+    check_method: "manual-review"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://PRIVACYP-05"

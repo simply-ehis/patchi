@@ -1,0 +1,62 @@
+# Patchi Security Domain: owasp-nodejs-auth
+# Source: OWASP Node.js Top 10
+# Auto-generated — curated from OWASP Node.js Top 10
+
+domain_id: "owasp-nodejs-auth"
+version: "1.0.0"
+display_name: "Broken Authentication"
+source_standard: "OWASP Node.js Top 10"
+component_type: "backend-api"
+weight: 0.9
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_owasp_nodejs_auth_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_owasp_nodejs_auth"
+
+controls:
+  - control_id: "OWASPNOD-01"
+    name: "Broken Authentication — Primary Control"
+    description: "Weak session management, credential stuffing, and improper password handling in Express/Node apps."
+    source_clause: "OWASP Node.js"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://OWASPNOD-01"
+
+  - control_id: "OWASPNOD-02"
+    name: "Broken Authentication — Input Validation"
+    description: "Validate and sanitize all inputs related to broken authentication"
+    source_clause: "OWASP Node.js"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://OWASPNOD-02"
+
+  - control_id: "OWASPNOD-03"
+    name: "Broken Authentication — Configuration Hardening"
+    description: "Apply secure configuration defaults for broken authentication"
+    source_clause: "OWASP Node.js"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://OWASPNOD-03"
+
+  - control_id: "OWASPNOD-04"
+    name: "Broken Authentication — Monitoring and Logging"
+    description: "Log and monitor all broken authentication events for audit and detection"
+    source_clause: "OWASP Node.js"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://OWASPNOD-04"
+
+  - control_id: "OWASPNOD-05"
+    name: "Broken Authentication — Error Handling"
+    description: "Handle broken authentication errors securely without information leakage"
+    source_clause: "OWASP Node.js"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://OWASPNOD-05"

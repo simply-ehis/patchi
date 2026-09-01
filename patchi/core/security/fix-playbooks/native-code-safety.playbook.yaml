@@ -1,109 +1,0 @@
-playbooks:
-- blast_radius_notes: Automated fix for NCS-001
-  control_id: NCS-001
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Buffer overflow via unsafe string functions: Detect use of
-    unbounded buffer operations in C/C++ such as strcpy, strcat, sprintf, gets, scanf
-    without width specifiers. These functions do not perform bounds checking and are
-    the canonical cause of CWE-119 buffer overflow vulnerabilities. The check should
-    flag any direct call to these functions in non-test source files and should additionally
-    flag roll-your-own bounded variants that silently truncate without error reporting.
-    In Rust, flag manual reimplementations of these patterns via raw pointer arithmetic
-    on Vec<&[u8]> buffers.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify NCS-001 is properly addressed
-- blast_radius_notes: Automated fix for NCS-002
-  control_id: NCS-002
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Use-after-free via dangling pointers: Detect C/C++ patterns
-    where a pointer is dereferenced after the underlying memory has been freed (free()
-    followed by use) or where a Rust raw pointer is dereferenced after the owning
-    Box/Rc/Arc has been dropped. In Rust, all uses of unsafe blocks that dereference
-    raw pointers derived from Box::into_raw or Box::from_raw should be reviewed. The
-    check should also flag manual linked-list or tree implementations that do not
-    null out pointers after free.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify NCS-002 is properly addressed
-- blast_radius_notes: Automated fix for NCS-003
-  control_id: NCS-003
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix NULL pointer dereference: Detect dereference of pointers
-    that may be NULL without a prior NULL check. Flag patterns such as malloc/calloc
-    return values used without NULL checks, function parameters annotated _Nullable
-    that are dereferenced, and Rust unwrap() on Option::None from external FFI calls.
-    In Rust code, flag unsafe blocks that dereference ptr::null() or ptr::null_mut()
-    unconditionally.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify NCS-003 is properly addressed
-- blast_radius_notes: Automated fix for NCS-004
-  control_id: NCS-004
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Format string vulnerability: Detect printf-family calls (printf,
-    fprintf, sprintf, snprintf, syslog) where the format string argument is not a
-    string literal but rather a user-controlled or variable string. The check should
-    flag any call where the first argument is not a compile-time constant string,
-    and additionally flag calls where the format string comes from gettext or similar
-    localization wrappers without an explicit format-string check. Note: Rust''s format!
-    / println! / eprintln! macros require a compile-time literal format string and
-    are SAFE by design (the compiler rejects format!(dynamic_string, args...)); the
-    Rust concern is limited to C FFI calls to printf via libc::printf or extern "C"
-    blocks - flag those.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify NCS-004 is properly addressed
-- blast_radius_notes: Automated fix for NCS-005
-  control_id: NCS-005
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Integer overflow / underflow: Detect arithmetic on signed
-    integers that may overflow without checked wrappers. In C/C++, flag signed integer
-    arithmetic where the result is used as an array index, allocation size, or loop
-    counter without prior range validation. In Rust, flag integer arithmetic in release
-    builds (where overflow wraps) on values derived from external input, and flag
-    uses of wrapping_add/wrapping_mul on attacker-controlled inputs without explicit
-    justification comments.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify NCS-005 is properly addressed
-- blast_radius_notes: Automated fix for NCS-006
-  control_id: NCS-006
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Rust unsafe block abuse: Detect unsafe blocks in Rust code
-    that are larger than necessary, contain non-trivial logic, or are annotated with
-    #[allow(unsafe_code)] to suppress lint warnings. Flag any unsafe block spanning
-    more than 5 lines, any use of std::mem::transmute, any use of std::ptr::read/write
-    on pointers derived from as *mut conversions, and any #[allow(unsafe_code)] attribute
-    at module or crate level. Each unsafe block should have a SAFETY: comment justifying
-    why the invariants hold.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify NCS-006 is properly addressed
-- blast_radius_notes: Automated fix for NCS-007
-  control_id: NCS-007
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Manual memory management bypass: Detect C/C++ code that uses
-    manual malloc/free instead of RAII wrappers, custom smart pointers, or stack allocation.
-    Flag raw malloc/free pairs that are not encapsulated in a destructor, realloc
-    calls without checking the return value, and Rust code that uses Box::into_raw
-    without a matching Box::from_raw in the same scope or in a Drop impl. The goal
-    is to surface any code path where memory lifecycle is not enforced by an automated
-    mechanism.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify NCS-007 is properly addressed

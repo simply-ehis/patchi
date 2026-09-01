@@ -1,0 +1,62 @@
+# Patchi Security Domain: nist-cm-5
+# Source: NIST SP 800-53 CM-5
+# Auto-generated — curated from NIST SP 800-53 CM-5
+
+domain_id: "nist-cm-5"
+version: "1.0.0"
+display_name: "Access Restrictions for Changes"
+source_standard: "NIST SP 800-53 CM-5"
+component_type: "infra"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_nist_cm_5_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_nist_cm_5"
+
+controls:
+  - control_id: "NISTCM5-01"
+    name: "Access Restrictions for Changes — Primary Control"
+    description: "Organization defines, documents, and implements access restrictions for changes to the system."
+    source_clause: "CM-5"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://NISTCM5-01"
+
+  - control_id: "NISTCM5-02"
+    name: "Access Restrictions for Changes — Input Validation"
+    description: "Validate and sanitize all inputs related to access restrictions for changes"
+    source_clause: "CM-5"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://NISTCM5-02"
+
+  - control_id: "NISTCM5-03"
+    name: "Access Restrictions for Changes — Configuration Hardening"
+    description: "Apply secure configuration defaults for access restrictions for changes"
+    source_clause: "CM-5"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://NISTCM5-03"
+
+  - control_id: "NISTCM5-04"
+    name: "Access Restrictions for Changes — Monitoring and Logging"
+    description: "Log and monitor all access restrictions for changes events for audit and detection"
+    source_clause: "CM-5"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://NISTCM5-04"
+
+  - control_id: "NISTCM5-05"
+    name: "Access Restrictions for Changes — Error Handling"
+    description: "Handle access restrictions for changes errors securely without information leakage"
+    source_clause: "CM-5"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://NISTCM5-05"

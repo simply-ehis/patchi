@@ -1,0 +1,62 @@
+# Patchi Security Domain: api-content-negotiation
+# Source: API Design Security
+# Auto-generated — curated from API Design Security
+
+domain_id: "api-content-negotiation"
+version: "1.0.0"
+display_name: "API Content Negotiation"
+source_standard: "API Design Security"
+component_type: "backend-api"
+weight: 0.75
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_api_content_negotiation_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_api_content_negotiation"
+
+controls:
+  - control_id: "APICONTE-01"
+    name: "API Content Negotiation — Primary Control"
+    description: "Content-type validation missing, allowing MIME confusion attacks."
+    source_clause: "API Content"
+    severity: "medium"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://APICONTE-01"
+
+  - control_id: "APICONTE-02"
+    name: "API Content Negotiation — Input Validation"
+    description: "Validate and sanitize all inputs related to api content negotiation"
+    source_clause: "API Content"
+    severity: "medium"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://APICONTE-02"
+
+  - control_id: "APICONTE-03"
+    name: "API Content Negotiation — Configuration Hardening"
+    description: "Apply secure configuration defaults for api content negotiation"
+    source_clause: "API Content"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://APICONTE-03"
+
+  - control_id: "APICONTE-04"
+    name: "API Content Negotiation — Monitoring and Logging"
+    description: "Log and monitor all api content negotiation events for audit and detection"
+    source_clause: "API Content"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://APICONTE-04"
+
+  - control_id: "APICONTE-05"
+    name: "API Content Negotiation — Error Handling"
+    description: "Handle api content negotiation errors securely without information leakage"
+    source_clause: "API Content"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://APICONTE-05"

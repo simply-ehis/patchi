@@ -1,0 +1,60 @@
+# Playbook for: crypto-seed-entropy
+# Source: Cryptography Implementation
+# Auto-generated
+
+playbooks:
+- control_id: "CRYPTOSE-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary insufficient seed entropy control patterns for crypto-seed-entropy"
+  blast_radius_notes: "Automated fix for CRYPTOSE-01 - Primary Insufficient Seed Entropy Control"
+  verification_checks:
+    - "Verify CRYPTOSE-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CRYPTOSE-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for insufficient seed entropy patterns for crypto-seed-entropy"
+  blast_radius_notes: "Automated fix for CRYPTOSE-02 - Input Validation for Insufficient Seed Entropy"
+  verification_checks:
+    - "Verify CRYPTOSE-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CRYPTOSE-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for insufficient seed entropy patterns for crypto-seed-entropy"
+  blast_radius_notes: "Automated fix for CRYPTOSE-03 - Configuration Hardening for Insufficient Seed Entropy"
+  verification_checks:
+    - "Verify CRYPTOSE-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CRYPTOSE-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for insufficient seed entropy patterns for crypto-seed-entropy"
+  blast_radius_notes: "Automated fix for CRYPTOSE-04 - Monitoring and Logging for Insufficient Seed Entropy"
+  verification_checks:
+    - "Verify CRYPTOSE-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CRYPTOSE-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for insufficient seed entropy patterns for crypto-seed-entropy"
+  blast_radius_notes: "Automated fix for CRYPTOSE-05 - Error Handling for Insufficient Seed Entropy"
+  verification_checks:
+    - "Verify CRYPTOSE-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

@@ -1,0 +1,62 @@
+# Patchi Security Domain: cis-consul
+# Source: CIS HashiCorp Consul Benchmark
+# Auto-generated — curated from CIS HashiCorp Consul Benchmark
+
+domain_id: "cis-consul"
+version: "1.0.0"
+display_name: "Consul Hardening"
+source_standard: "CIS HashiCorp Consul Benchmark"
+component_type: "infra"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_cis_consul_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_cis_consul"
+
+controls:
+  - control_id: "CISCONSU-01"
+    name: "Consul Hardening — Primary Control"
+    description: "ACL system, encryption, TLS, and service mesh security."
+    source_clause: "CIS Consul"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CISCONSU-01"
+
+  - control_id: "CISCONSU-02"
+    name: "Consul Hardening — Input Validation"
+    description: "Validate and sanitize all inputs related to consul hardening"
+    source_clause: "CIS Consul"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CISCONSU-02"
+
+  - control_id: "CISCONSU-03"
+    name: "Consul Hardening — Configuration Hardening"
+    description: "Apply secure configuration defaults for consul hardening"
+    source_clause: "CIS Consul"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CISCONSU-03"
+
+  - control_id: "CISCONSU-04"
+    name: "Consul Hardening — Monitoring and Logging"
+    description: "Log and monitor all consul hardening events for audit and detection"
+    source_clause: "CIS Consul"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CISCONSU-04"
+
+  - control_id: "CISCONSU-05"
+    name: "Consul Hardening — Error Handling"
+    description: "Handle consul hardening errors securely without information leakage"
+    source_clause: "CIS Consul"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CISCONSU-05"

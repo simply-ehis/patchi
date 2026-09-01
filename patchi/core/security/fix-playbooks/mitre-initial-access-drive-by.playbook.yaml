@@ -1,0 +1,60 @@
+# Playbook for: mitre-initial-access-drive-by
+# Source: MITRE ATT&CK
+# Auto-generated
+
+playbooks:
+- control_id: "MITREINI-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary drive-by compromise (t1189) control patterns for mitre-initial-access-drive-by"
+  blast_radius_notes: "Automated fix for MITREINI-01 - Primary Drive-By Compromise (T1189) Control"
+  verification_checks:
+    - "Verify MITREINI-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "MITREINI-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for drive-by compromise (t1189) patterns for mitre-initial-access-drive-by"
+  blast_radius_notes: "Automated fix for MITREINI-02 - Input Validation for Drive-By Compromise (T1189)"
+  verification_checks:
+    - "Verify MITREINI-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "MITREINI-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for drive-by compromise (t1189) patterns for mitre-initial-access-drive-by"
+  blast_radius_notes: "Automated fix for MITREINI-03 - Configuration Hardening for Drive-By Compromise (T1189)"
+  verification_checks:
+    - "Verify MITREINI-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "MITREINI-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for drive-by compromise (t1189) patterns for mitre-initial-access-drive-by"
+  blast_radius_notes: "Automated fix for MITREINI-04 - Monitoring and Logging for Drive-By Compromise (T1189)"
+  verification_checks:
+    - "Verify MITREINI-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "MITREINI-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for drive-by compromise (t1189) patterns for mitre-initial-access-drive-by"
+  blast_radius_notes: "Automated fix for MITREINI-05 - Error Handling for Drive-By Compromise (T1189)"
+  verification_checks:
+    - "Verify MITREINI-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

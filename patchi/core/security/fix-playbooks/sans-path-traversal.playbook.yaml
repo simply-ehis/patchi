@@ -1,0 +1,60 @@
+# Playbook for: sans-path-traversal
+# Source: SANS Top 25
+# Auto-generated
+
+playbooks:
+- control_id: "SANSPATH-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary path traversal control patterns for sans-path-traversal"
+  blast_radius_notes: "Automated fix for SANSPATH-01 - Primary Path Traversal Control"
+  verification_checks:
+    - "Verify SANSPATH-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "SANSPATH-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for path traversal patterns for sans-path-traversal"
+  blast_radius_notes: "Automated fix for SANSPATH-02 - Input Validation for Path Traversal"
+  verification_checks:
+    - "Verify SANSPATH-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "SANSPATH-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for path traversal patterns for sans-path-traversal"
+  blast_radius_notes: "Automated fix for SANSPATH-03 - Configuration Hardening for Path Traversal"
+  verification_checks:
+    - "Verify SANSPATH-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "SANSPATH-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for path traversal patterns for sans-path-traversal"
+  blast_radius_notes: "Automated fix for SANSPATH-04 - Monitoring and Logging for Path Traversal"
+  verification_checks:
+    - "Verify SANSPATH-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "SANSPATH-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for path traversal patterns for sans-path-traversal"
+  blast_radius_notes: "Automated fix for SANSPATH-05 - Error Handling for Path Traversal"
+  verification_checks:
+    - "Verify SANSPATH-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

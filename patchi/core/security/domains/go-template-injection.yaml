@@ -1,0 +1,62 @@
+# Patchi Security Domain: go-template-injection
+# Source: Go Security
+# Auto-generated — curated from Go Security
+
+domain_id: "go-template-injection"
+version: "1.0.0"
+display_name: "Go Template Injection"
+source_standard: "Go Security"
+component_type: "backend-api"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_go_template_injection_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_go_template_injection"
+
+controls:
+  - control_id: "GOTEMPLA-01"
+    name: "Go Template Injection — Primary Control"
+    description: "User input in Go text/template or html/template execution."
+    source_clause: "Go Template"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://GOTEMPLA-01"
+
+  - control_id: "GOTEMPLA-02"
+    name: "Go Template Injection — Input Validation"
+    description: "Validate and sanitize all inputs related to go template injection"
+    source_clause: "Go Template"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://GOTEMPLA-02"
+
+  - control_id: "GOTEMPLA-03"
+    name: "Go Template Injection — Configuration Hardening"
+    description: "Apply secure configuration defaults for go template injection"
+    source_clause: "Go Template"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://GOTEMPLA-03"
+
+  - control_id: "GOTEMPLA-04"
+    name: "Go Template Injection — Monitoring and Logging"
+    description: "Log and monitor all go template injection events for audit and detection"
+    source_clause: "Go Template"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://GOTEMPLA-04"
+
+  - control_id: "GOTEMPLA-05"
+    name: "Go Template Injection — Error Handling"
+    description: "Handle go template injection errors securely without information leakage"
+    source_clause: "Go Template"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://GOTEMPLA-05"

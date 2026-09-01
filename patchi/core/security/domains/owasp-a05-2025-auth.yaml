@@ -1,0 +1,62 @@
+# Patchi Security Domain: owasp-a05-2025-auth
+# Source: OWASP Top 10 2025 A05
+# Auto-generated — curated from OWASP Top 10 2025 A05
+
+domain_id: "owasp-a05-2025-auth"
+version: "1.0.0"
+display_name: "Broken Authentication & Session Management"
+source_standard: "OWASP Top 10 2025 A05"
+component_type: "backend-api"
+weight: 0.9
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_owasp_a05_2025_auth_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_owasp_a05_2025_auth"
+
+controls:
+  - control_id: "OWASPA05-01"
+    name: "Broken Authentication & Session Management — Primary Control"
+    description: "Credential stuffing, brute force, session fixation, and inadequate MFA implementation."
+    source_clause: "OWASP A05:2025"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://OWASPA05-01"
+
+  - control_id: "OWASPA05-02"
+    name: "Broken Authentication & Session Management — Input Validation"
+    description: "Validate and sanitize all inputs related to broken authentication & session management"
+    source_clause: "OWASP A05:2025"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://OWASPA05-02"
+
+  - control_id: "OWASPA05-03"
+    name: "Broken Authentication & Session Management — Configuration Hardening"
+    description: "Apply secure configuration defaults for broken authentication & session management"
+    source_clause: "OWASP A05:2025"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://OWASPA05-03"
+
+  - control_id: "OWASPA05-04"
+    name: "Broken Authentication & Session Management — Monitoring and Logging"
+    description: "Log and monitor all broken authentication & session management events for audit and detection"
+    source_clause: "OWASP A05:2025"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://OWASPA05-04"
+
+  - control_id: "OWASPA05-05"
+    name: "Broken Authentication & Session Management — Error Handling"
+    description: "Handle broken authentication & session management errors securely without information leakage"
+    source_clause: "OWASP A05:2025"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://OWASPA05-05"

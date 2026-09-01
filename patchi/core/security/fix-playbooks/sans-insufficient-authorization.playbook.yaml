@@ -1,0 +1,60 @@
+# Playbook for: sans-insufficient-authorization
+# Source: SANS Top 25
+# Auto-generated
+
+playbooks:
+- control_id: "SANSINSU-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary insufficient authorization control patterns for sans-insufficient-authorization"
+  blast_radius_notes: "Automated fix for SANSINSU-01 - Primary Insufficient Authorization Control"
+  verification_checks:
+    - "Verify SANSINSU-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "SANSINSU-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for insufficient authorization patterns for sans-insufficient-authorization"
+  blast_radius_notes: "Automated fix for SANSINSU-02 - Input Validation for Insufficient Authorization"
+  verification_checks:
+    - "Verify SANSINSU-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "SANSINSU-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for insufficient authorization patterns for sans-insufficient-authorization"
+  blast_radius_notes: "Automated fix for SANSINSU-03 - Configuration Hardening for Insufficient Authorization"
+  verification_checks:
+    - "Verify SANSINSU-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "SANSINSU-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for insufficient authorization patterns for sans-insufficient-authorization"
+  blast_radius_notes: "Automated fix for SANSINSU-04 - Monitoring and Logging for Insufficient Authorization"
+  verification_checks:
+    - "Verify SANSINSU-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "SANSINSU-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for insufficient authorization patterns for sans-insufficient-authorization"
+  blast_radius_notes: "Automated fix for SANSINSU-05 - Error Handling for Insufficient Authorization"
+  verification_checks:
+    - "Verify SANSINSU-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

@@ -1,0 +1,60 @@
+# Playbook for: fraud-coupon-abuse
+# Source: Fraud Prevention
+# Auto-generated
+
+playbooks:
+- control_id: "FRAUDCOU-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary coupon/promo abuse control patterns for fraud-coupon-abuse"
+  blast_radius_notes: "Automated fix for FRAUDCOU-01 - Primary Coupon/Promo Abuse Control"
+  verification_checks:
+    - "Verify FRAUDCOU-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "FRAUDCOU-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for coupon/promo abuse patterns for fraud-coupon-abuse"
+  blast_radius_notes: "Automated fix for FRAUDCOU-02 - Input Validation for Coupon/Promo Abuse"
+  verification_checks:
+    - "Verify FRAUDCOU-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "FRAUDCOU-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for coupon/promo abuse patterns for fraud-coupon-abuse"
+  blast_radius_notes: "Automated fix for FRAUDCOU-03 - Configuration Hardening for Coupon/Promo Abuse"
+  verification_checks:
+    - "Verify FRAUDCOU-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "FRAUDCOU-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for coupon/promo abuse patterns for fraud-coupon-abuse"
+  blast_radius_notes: "Automated fix for FRAUDCOU-04 - Monitoring and Logging for Coupon/Promo Abuse"
+  verification_checks:
+    - "Verify FRAUDCOU-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "FRAUDCOU-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for coupon/promo abuse patterns for fraud-coupon-abuse"
+  blast_radius_notes: "Automated fix for FRAUDCOU-05 - Error Handling for Coupon/Promo Abuse"
+  verification_checks:
+    - "Verify FRAUDCOU-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

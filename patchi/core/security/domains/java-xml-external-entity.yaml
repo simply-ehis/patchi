@@ -1,0 +1,62 @@
+# Patchi Security Domain: java-xml-external-entity
+# Source: Java Security
+# Auto-generated — curated from Java Security
+
+domain_id: "java-xml-external-entity"
+version: "1.0.0"
+display_name: "Java XXE"
+source_standard: "Java Security"
+component_type: "backend-api"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_java_xml_external_entity_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_java_xml_external_entity"
+
+controls:
+  - control_id: "JAVAXMLE-01"
+    name: "Java XXE — Primary Control"
+    description: "XML parser processing external entities."
+    source_clause: "Java XXE"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://JAVAXMLE-01"
+
+  - control_id: "JAVAXMLE-02"
+    name: "Java XXE — Input Validation"
+    description: "Validate and sanitize all inputs related to java xxe"
+    source_clause: "Java XXE"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://JAVAXMLE-02"
+
+  - control_id: "JAVAXMLE-03"
+    name: "Java XXE — Configuration Hardening"
+    description: "Apply secure configuration defaults for java xxe"
+    source_clause: "Java XXE"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://JAVAXMLE-03"
+
+  - control_id: "JAVAXMLE-04"
+    name: "Java XXE — Monitoring and Logging"
+    description: "Log and monitor all java xxe events for audit and detection"
+    source_clause: "Java XXE"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://JAVAXMLE-04"
+
+  - control_id: "JAVAXMLE-05"
+    name: "Java XXE — Error Handling"
+    description: "Handle java xxe errors securely without information leakage"
+    source_clause: "Java XXE"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://JAVAXMLE-05"

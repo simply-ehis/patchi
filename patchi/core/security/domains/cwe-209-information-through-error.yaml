@@ -1,0 +1,62 @@
+# Patchi Security Domain: cwe-209-information-through-error
+# Source: CWE-209
+# Auto-generated — curated from CWE-209
+
+domain_id: "cwe-209-information-through-error"
+version: "1.0.0"
+display_name: "Generation of Error Message Containing Sensitive Information"
+source_standard: "CWE-209"
+component_type: "backend-api"
+weight: 0.7
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_cwe_209_information_through_error_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_cwe_209_information_through_error"
+
+controls:
+  - control_id: "CWE209IN-01"
+    name: "Generation of Error Message Containing Sensitive Information — Primary Control"
+    description: "Error messages reveal sensitive system information to users."
+    source_clause: "CWE-209"
+    severity: "medium"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CWE209IN-01"
+
+  - control_id: "CWE209IN-02"
+    name: "Generation of Error Message Containing Sensitive Information — Input Validation"
+    description: "Validate and sanitize all inputs related to generation of error message containing sensitive information"
+    source_clause: "CWE-209"
+    severity: "medium"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CWE209IN-02"
+
+  - control_id: "CWE209IN-03"
+    name: "Generation of Error Message Containing Sensitive Information — Configuration Hardening"
+    description: "Apply secure configuration defaults for generation of error message containing sensitive information"
+    source_clause: "CWE-209"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CWE209IN-03"
+
+  - control_id: "CWE209IN-04"
+    name: "Generation of Error Message Containing Sensitive Information — Monitoring and Logging"
+    description: "Log and monitor all generation of error message containing sensitive information events for audit and detection"
+    source_clause: "CWE-209"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CWE209IN-04"
+
+  - control_id: "CWE209IN-05"
+    name: "Generation of Error Message Containing Sensitive Information — Error Handling"
+    description: "Handle generation of error message containing sensitive information errors securely without information leakage"
+    source_clause: "CWE-209"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CWE209IN-05"

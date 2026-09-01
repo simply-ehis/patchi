@@ -1,0 +1,60 @@
+# Playbook for: crypto-ecb-mode
+# Source: Cryptography Implementation
+# Auto-generated
+
+playbooks:
+- control_id: "CRYPTOEC-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary ecb mode usage control patterns for crypto-ecb-mode"
+  blast_radius_notes: "Automated fix for CRYPTOEC-01 - Primary ECB Mode Usage Control"
+  verification_checks:
+    - "Verify CRYPTOEC-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CRYPTOEC-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for ecb mode usage patterns for crypto-ecb-mode"
+  blast_radius_notes: "Automated fix for CRYPTOEC-02 - Input Validation for ECB Mode Usage"
+  verification_checks:
+    - "Verify CRYPTOEC-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CRYPTOEC-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for ecb mode usage patterns for crypto-ecb-mode"
+  blast_radius_notes: "Automated fix for CRYPTOEC-03 - Configuration Hardening for ECB Mode Usage"
+  verification_checks:
+    - "Verify CRYPTOEC-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CRYPTOEC-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for ecb mode usage patterns for crypto-ecb-mode"
+  blast_radius_notes: "Automated fix for CRYPTOEC-04 - Monitoring and Logging for ECB Mode Usage"
+  verification_checks:
+    - "Verify CRYPTOEC-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CRYPTOEC-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for ecb mode usage patterns for crypto-ecb-mode"
+  blast_radius_notes: "Automated fix for CRYPTOEC-05 - Error Handling for ECB Mode Usage"
+  verification_checks:
+    - "Verify CRYPTOEC-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

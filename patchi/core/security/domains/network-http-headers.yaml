@@ -1,0 +1,62 @@
+# Patchi Security Domain: network-http-headers
+# Source: Network Security
+# Auto-generated — curated from Network Security
+
+domain_id: "network-http-headers"
+version: "1.0.0"
+display_name: "HTTP Security Headers"
+source_standard: "Network Security"
+component_type: "infra"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_network_http_headers_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_network_http_headers"
+
+controls:
+  - control_id: "NETWORKH-01"
+    name: "HTTP Security Headers — Primary Control"
+    description: "Missing CSP, HSTS, X-Frame-Options, X-Content-Type-Options headers."
+    source_clause: "Net Headers"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://NETWORKH-01"
+
+  - control_id: "NETWORKH-02"
+    name: "HTTP Security Headers — Input Validation"
+    description: "Validate and sanitize all inputs related to http security headers"
+    source_clause: "Net Headers"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://NETWORKH-02"
+
+  - control_id: "NETWORKH-03"
+    name: "HTTP Security Headers — Configuration Hardening"
+    description: "Apply secure configuration defaults for http security headers"
+    source_clause: "Net Headers"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://NETWORKH-03"
+
+  - control_id: "NETWORKH-04"
+    name: "HTTP Security Headers — Monitoring and Logging"
+    description: "Log and monitor all http security headers events for audit and detection"
+    source_clause: "Net Headers"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://NETWORKH-04"
+
+  - control_id: "NETWORKH-05"
+    name: "HTTP Security Headers — Error Handling"
+    description: "Handle http security headers errors securely without information leakage"
+    source_clause: "Net Headers"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://NETWORKH-05"

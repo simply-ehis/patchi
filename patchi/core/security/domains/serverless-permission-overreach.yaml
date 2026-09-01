@@ -1,0 +1,62 @@
+# Patchi Security Domain: serverless-permission-overreach
+# Source: Serverless Security
+# Auto-generated — curated from Serverless Security
+
+domain_id: "serverless-permission-overreach"
+version: "1.0.0"
+display_name: "Serverless Over-Permissive IAM"
+source_standard: "Serverless Security"
+component_type: "infra"
+weight: 0.9
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_serverless_permission_overreach_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_serverless_permission_overreach"
+
+controls:
+  - control_id: "SERVERLE-01"
+    name: "Serverless Over-Permissive IAM — Primary Control"
+    description: "Lambda/Function IAM roles with excessive permissions."
+    source_clause: "Serverless IAM"
+    severity: "critical"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://SERVERLE-01"
+
+  - control_id: "SERVERLE-02"
+    name: "Serverless Over-Permissive IAM — Input Validation"
+    description: "Validate and sanitize all inputs related to serverless over-permissive iam"
+    source_clause: "Serverless IAM"
+    severity: "critical"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://SERVERLE-02"
+
+  - control_id: "SERVERLE-03"
+    name: "Serverless Over-Permissive IAM — Configuration Hardening"
+    description: "Apply secure configuration defaults for serverless over-permissive iam"
+    source_clause: "Serverless IAM"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://SERVERLE-03"
+
+  - control_id: "SERVERLE-04"
+    name: "Serverless Over-Permissive IAM — Monitoring and Logging"
+    description: "Log and monitor all serverless over-permissive iam events for audit and detection"
+    source_clause: "Serverless IAM"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://SERVERLE-04"
+
+  - control_id: "SERVERLE-05"
+    name: "Serverless Over-Permissive IAM — Error Handling"
+    description: "Handle serverless over-permissive iam errors securely without information leakage"
+    source_clause: "Serverless IAM"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://SERVERLE-05"

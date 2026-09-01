@@ -1,0 +1,62 @@
+# Patchi Security Domain: cis-ubuntu-server
+# Source: CIS Ubuntu Linux Benchmark
+# Auto-generated — curated from CIS Ubuntu Linux Benchmark
+
+domain_id: "cis-ubuntu-server"
+version: "1.0.0"
+display_name: "Ubuntu Server Hardening"
+source_standard: "CIS Ubuntu Linux Benchmark"
+component_type: "infra"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_cis_ubuntu_server_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_cis_ubuntu_server"
+
+controls:
+  - control_id: "CISUBUNT-01"
+    name: "Ubuntu Server Hardening — Primary Control"
+    description: "System configuration, file permissions, SSH hardening, and service management for Ubuntu."
+    source_clause: "CIS Ubuntu"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CISUBUNT-01"
+
+  - control_id: "CISUBUNT-02"
+    name: "Ubuntu Server Hardening — Input Validation"
+    description: "Validate and sanitize all inputs related to ubuntu server hardening"
+    source_clause: "CIS Ubuntu"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CISUBUNT-02"
+
+  - control_id: "CISUBUNT-03"
+    name: "Ubuntu Server Hardening — Configuration Hardening"
+    description: "Apply secure configuration defaults for ubuntu server hardening"
+    source_clause: "CIS Ubuntu"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CISUBUNT-03"
+
+  - control_id: "CISUBUNT-04"
+    name: "Ubuntu Server Hardening — Monitoring and Logging"
+    description: "Log and monitor all ubuntu server hardening events for audit and detection"
+    source_clause: "CIS Ubuntu"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CISUBUNT-04"
+
+  - control_id: "CISUBUNT-05"
+    name: "Ubuntu Server Hardening — Error Handling"
+    description: "Handle ubuntu server hardening errors securely without information leakage"
+    source_clause: "CIS Ubuntu"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CISUBUNT-05"

@@ -1,0 +1,62 @@
+# Patchi Security Domain: sans-path-traversal
+# Source: SANS Top 25
+# Auto-generated — curated from SANS Top 25
+
+domain_id: "sans-path-traversal"
+version: "1.0.0"
+display_name: "Path Traversal"
+source_standard: "SANS Top 25"
+component_type: "backend-api"
+weight: 0.9
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_sans_path_traversal_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_sans_path_traversal"
+
+controls:
+  - control_id: "SANSPATH-01"
+    name: "Path Traversal — Primary Control"
+    description: "Access files outside intended directory via crafted paths."
+    source_clause: "SANS"
+    severity: "critical"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://SANSPATH-01"
+
+  - control_id: "SANSPATH-02"
+    name: "Path Traversal — Input Validation"
+    description: "Validate and sanitize all inputs related to path traversal"
+    source_clause: "SANS"
+    severity: "critical"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://SANSPATH-02"
+
+  - control_id: "SANSPATH-03"
+    name: "Path Traversal — Configuration Hardening"
+    description: "Apply secure configuration defaults for path traversal"
+    source_clause: "SANS"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://SANSPATH-03"
+
+  - control_id: "SANSPATH-04"
+    name: "Path Traversal — Monitoring and Logging"
+    description: "Log and monitor all path traversal events for audit and detection"
+    source_clause: "SANS"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://SANSPATH-04"
+
+  - control_id: "SANSPATH-05"
+    name: "Path Traversal — Error Handling"
+    description: "Handle path traversal errors securely without information leakage"
+    source_clause: "SANS"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://SANSPATH-05"

@@ -1,0 +1,62 @@
+# Patchi Security Domain: fraud-referral-abuse
+# Source: Fraud Prevention
+# Auto-generated — curated from Fraud Prevention
+
+domain_id: "fraud-referral-abuse"
+version: "1.0.0"
+display_name: "Referral Program Abuse"
+source_standard: "Fraud Prevention"
+component_type: "backend-api"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_fraud_referral_abuse_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_fraud_referral_abuse"
+
+controls:
+  - control_id: "FRAUDREF-01"
+    name: "Referral Program Abuse — Primary Control"
+    description: "Self-referral, multi-accounting, or automated referral farming."
+    source_clause: "Fraud Referral"
+    severity: "high"
+    check_method: "dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://FRAUDREF-01"
+
+  - control_id: "FRAUDREF-02"
+    name: "Referral Program Abuse — Input Validation"
+    description: "Validate and sanitize all inputs related to referral program abuse"
+    source_clause: "Fraud Referral"
+    severity: "high"
+    check_method: "dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://FRAUDREF-02"
+
+  - control_id: "FRAUDREF-03"
+    name: "Referral Program Abuse — Configuration Hardening"
+    description: "Apply secure configuration defaults for referral program abuse"
+    source_clause: "Fraud Referral"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://FRAUDREF-03"
+
+  - control_id: "FRAUDREF-04"
+    name: "Referral Program Abuse — Monitoring and Logging"
+    description: "Log and monitor all referral program abuse events for audit and detection"
+    source_clause: "Fraud Referral"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://FRAUDREF-04"
+
+  - control_id: "FRAUDREF-05"
+    name: "Referral Program Abuse — Error Handling"
+    description: "Handle referral program abuse errors securely without information leakage"
+    source_clause: "Fraud Referral"
+    severity: "medium"
+    check_method: "dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://FRAUDREF-05"

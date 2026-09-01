@@ -1,0 +1,60 @@
+# Playbook for: hipaa-integrity-controls
+# Source: HIPAA Security Rule
+# Auto-generated
+
+playbooks:
+- control_id: "HIPAAINT-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary data integrity controls control patterns for hipaa-integrity-controls"
+  blast_radius_notes: "Automated fix for HIPAAINT-01 - Primary Data Integrity Controls Control"
+  verification_checks:
+    - "Verify HIPAAINT-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "HIPAAINT-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for data integrity controls patterns for hipaa-integrity-controls"
+  blast_radius_notes: "Automated fix for HIPAAINT-02 - Input Validation for Data Integrity Controls"
+  verification_checks:
+    - "Verify HIPAAINT-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "HIPAAINT-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for data integrity controls patterns for hipaa-integrity-controls"
+  blast_radius_notes: "Automated fix for HIPAAINT-03 - Configuration Hardening for Data Integrity Controls"
+  verification_checks:
+    - "Verify HIPAAINT-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "HIPAAINT-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for data integrity controls patterns for hipaa-integrity-controls"
+  blast_radius_notes: "Automated fix for HIPAAINT-04 - Monitoring and Logging for Data Integrity Controls"
+  verification_checks:
+    - "Verify HIPAAINT-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "HIPAAINT-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for data integrity controls patterns for hipaa-integrity-controls"
+  blast_radius_notes: "Automated fix for HIPAAINT-05 - Error Handling for Data Integrity Controls"
+  verification_checks:
+    - "Verify HIPAAINT-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

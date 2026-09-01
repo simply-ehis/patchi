@@ -1,0 +1,60 @@
+# Playbook for: mitre-discovery-system-info
+# Source: MITRE ATT&CK
+# Auto-generated
+
+playbooks:
+- control_id: "MITREDIS-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary system information discovery (t1082) control patterns for mitre-discovery-system-info"
+  blast_radius_notes: "Automated fix for MITREDIS-01 - Primary System Information Discovery (T1082) Control"
+  verification_checks:
+    - "Verify MITREDIS-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "MITREDIS-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for system information discovery (t1082) patterns for mitre-discovery-system-info"
+  blast_radius_notes: "Automated fix for MITREDIS-02 - Input Validation for System Information Discovery (T1082)"
+  verification_checks:
+    - "Verify MITREDIS-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "MITREDIS-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for system information discovery (t1082) patterns for mitre-discovery-system-info"
+  blast_radius_notes: "Automated fix for MITREDIS-03 - Configuration Hardening for System Information Discovery (T1082)"
+  verification_checks:
+    - "Verify MITREDIS-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "MITREDIS-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for system information discovery (t1082) patterns for mitre-discovery-system-info"
+  blast_radius_notes: "Automated fix for MITREDIS-04 - Monitoring and Logging for System Information Discovery (T1082)"
+  verification_checks:
+    - "Verify MITREDIS-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "MITREDIS-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for system information discovery (t1082) patterns for mitre-discovery-system-info"
+  blast_radius_notes: "Automated fix for MITREDIS-05 - Error Handling for System Information Discovery (T1082)"
+  verification_checks:
+    - "Verify MITREDIS-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

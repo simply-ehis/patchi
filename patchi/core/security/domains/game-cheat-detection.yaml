@@ -1,0 +1,62 @@
+# Patchi Security Domain: game-cheat-detection
+# Source: Game Security
+# Auto-generated — curated from Game Security
+
+domain_id: "game-cheat-detection"
+version: "1.0.0"
+display_name: "Game Cheat Detection"
+source_standard: "Game Security"
+component_type: "frontend-web"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_game_cheat_detection_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_game_cheat_detection"
+
+controls:
+  - control_id: "GAMECHEA-01"
+    name: "Game Cheat Detection — Primary Control"
+    description: "Missing server-side validation of game state changes."
+    source_clause: "Game Cheat"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://GAMECHEA-01"
+
+  - control_id: "GAMECHEA-02"
+    name: "Game Cheat Detection — Input Validation"
+    description: "Validate and sanitize all inputs related to game cheat detection"
+    source_clause: "Game Cheat"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://GAMECHEA-02"
+
+  - control_id: "GAMECHEA-03"
+    name: "Game Cheat Detection — Configuration Hardening"
+    description: "Apply secure configuration defaults for game cheat detection"
+    source_clause: "Game Cheat"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://GAMECHEA-03"
+
+  - control_id: "GAMECHEA-04"
+    name: "Game Cheat Detection — Monitoring and Logging"
+    description: "Log and monitor all game cheat detection events for audit and detection"
+    source_clause: "Game Cheat"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://GAMECHEA-04"
+
+  - control_id: "GAMECHEA-05"
+    name: "Game Cheat Detection — Error Handling"
+    description: "Handle game cheat detection errors securely without information leakage"
+    source_clause: "Game Cheat"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://GAMECHEA-05"

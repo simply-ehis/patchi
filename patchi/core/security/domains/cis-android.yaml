@@ -1,0 +1,62 @@
+# Patchi Security Domain: cis-android
+# Source: CIS Android Benchmark
+# Auto-generated — curated from CIS Android Benchmark
+
+domain_id: "cis-android"
+version: "1.0.0"
+display_name: "Android Device Hardening"
+source_standard: "CIS Android Benchmark"
+component_type: "mobile-native"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_cis_android_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_cis_android"
+
+controls:
+  - control_id: "CISANDRO-01"
+    name: "Android Device Hardening — Primary Control"
+    description: "Lock screen, encryption, app permissions, and developer options."
+    source_clause: "CIS Android"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CISANDRO-01"
+
+  - control_id: "CISANDRO-02"
+    name: "Android Device Hardening — Input Validation"
+    description: "Validate and sanitize all inputs related to android device hardening"
+    source_clause: "CIS Android"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CISANDRO-02"
+
+  - control_id: "CISANDRO-03"
+    name: "Android Device Hardening — Configuration Hardening"
+    description: "Apply secure configuration defaults for android device hardening"
+    source_clause: "CIS Android"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CISANDRO-03"
+
+  - control_id: "CISANDRO-04"
+    name: "Android Device Hardening — Monitoring and Logging"
+    description: "Log and monitor all android device hardening events for audit and detection"
+    source_clause: "CIS Android"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CISANDRO-04"
+
+  - control_id: "CISANDRO-05"
+    name: "Android Device Hardening — Error Handling"
+    description: "Handle android device hardening errors securely without information leakage"
+    source_clause: "CIS Android"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CISANDRO-05"

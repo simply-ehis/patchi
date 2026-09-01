@@ -1,428 +1,0 @@
-playbooks:
-- blast_radius_notes: Automated fix for OAUTH-01
-  control_id: OAUTH-01
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Send tokens only to components that strictly need them: Tokens
-    must only be sent to components that strictly need them  -  for example, in a backend-for-frontend
-    (BFF) pattern for browser-based JavaScript apps, access and refresh tokens must
-    only be accessible to the backend, never exposed to frontend JS.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify OAUTH-01 is properly addressed
-- blast_radius_notes: Automated fix for OAUTH-02
-  control_id: OAUTH-02
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Bind authorization flow values to the initiating session
-    (anti-CSRF/replay): The client must only accept values from the authorization
-    server (authorization code, ID Token) if they result from a flow initiated by
-    the same user agent session and transaction  -  requiring PKCE ''code_verifier'',
-    ''state'', or OIDC ''nonce'' values that are unguessable, transaction-specific,
-    and securely bound to both client and session.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify OAUTH-02 is properly addressed
-- blast_radius_notes: Automated fix for OAUTH-03
-  control_id: OAUTH-03
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Protect against CSRF-triggered token requests in the code
-    flow: If using the code flow, the OAuth client must protect against CSRF attacks
-    that trigger token requests, via PKCE or by checking the ''state'' parameter sent
-    in the authorization request.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify OAUTH-03 is properly addressed
-- blast_radius_notes: Automated fix for OAUTH-04
-  control_id: OAUTH-04
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Defend against mix-up attacks with multiple authorization
-    servers: If the OAuth client interacts with more than one authorization server,
-    it must defend against mix-up attacks, e.g. by requiring the authorization server
-    to return and validating the ''iss'' parameter in both the authorization response
-    and the token response.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify OAUTH-04 is properly addressed
-- blast_radius_notes: Automated fix for OAUTH-05
-  control_id: OAUTH-05
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Request only the required scopes: The OAuth client must only
-    request the scopes (or other authorization parameters) it actually requires from
-    the authorization server, following least-privilege.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify OAUTH-05 is properly addressed
-- blast_radius_notes: Automated fix for OAUTH-06
-  control_id: OAUTH-06
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Validate access token audience before accepting: The resource
-    server must only accept access tokens intended for use with that specific service
-    (audience validation), via the ''aud'' claim (JWT) or a token introspection endpoint
-    check.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify OAUTH-06 is properly addressed
-- blast_radius_notes: Automated fix for OAUTH-07
-  control_id: OAUTH-07
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Enforce authorization decisions from delegated-authorization
-    claims: The resource server must enforce authorization decisions based on claims
-    from the access token that define delegated authorization (''sub'', ''scope'',
-    ''authorization_details'' where present), not merely on the token''s validity.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify OAUTH-07 is properly addressed
-- blast_radius_notes: Automated fix for OAUTH-08
-  control_id: OAUTH-08
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Identify users from non-reassignable claim combinations:
-    If an access control decision requires identifying a unique user from an access
-    token, the resource server must use claims that cannot be reassigned to other
-    users  -  typically a combination of ''iss'' and ''sub'', not ''sub'' alone.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify OAUTH-08 is properly addressed
-- blast_radius_notes: Automated fix for OAUTH-09
-  control_id: OAUTH-09
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Verify authentication strength/recency claims when required:
-    If the resource server requires specific authentication strength, method, or recency,
-    it must verify the presented access token satisfies these constraints via the
-    OIDC ''acr'', ''amr'', and ''auth_time'' claims where present.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify OAUTH-09 is properly addressed
-- blast_radius_notes: Automated fix for OAUTH-10
-  control_id: OAUTH-10
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Use sender-constrained access tokens to prevent replay: The
-    resource server must prevent use of stolen or replayed access tokens by requiring
-    sender-constrained tokens  -  Mutual TLS for OAuth 2 or OAuth 2 DPoP.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify OAUTH-10 is properly addressed
-- blast_radius_notes: Automated fix for OAUTH-11
-  control_id: OAUTH-11
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Validate redirect URIs against an exact-match allowlist:
-    The authorization server must validate redirect URIs based on a client-specific
-    allowlist of pre-registered URIs using exact string comparison, not prefix/substring/pattern
-    matching.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify OAUTH-11 is properly addressed
-- blast_radius_notes: Automated fix for OAUTH-12
-  control_id: OAUTH-12
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Enforce single-use authorization codes: If the authorization
-    code is returned in the authorization response, it must be usable only once for
-    a token request; a second request with an already-used code must be rejected and
-    any tokens already issued from that code must be revoked.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify OAUTH-12 is properly addressed
-- blast_radius_notes: Automated fix for OAUTH-13
-  control_id: OAUTH-13
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Keep authorization codes short-lived: The authorization code
-    must be short-lived  -  maximum 10 minutes for L1/L2 applications, maximum 1 minute
-    for L3 applications.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify OAUTH-13 is properly addressed
-- blast_radius_notes: Automated fix for OAUTH-14
-  control_id: OAUTH-14
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Restrict clients to only the grant types they need; ban Implicit
-    and ROPC flows: The authorization server must only allow a given client to use
-    the grant types it actually needs. The Implicit flow (''token'') and Resource
-    Owner Password Credentials flow (''password'') must no longer be used at all.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify OAUTH-14 is properly addressed
-- blast_radius_notes: Automated fix for OAUTH-15
-  control_id: OAUTH-15
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Mitigate refresh token replay for public clients: The authorization
-    server must mitigate refresh token replay attacks for public clients, preferably
-    via sender-constrained refresh tokens (DPoP or mTLS-bound), or via refresh token
-    rotation with invalidation and full-family revocation for L1/L2.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify OAUTH-15 is properly addressed
-- blast_radius_notes: Automated fix for OAUTH-16
-  control_id: OAUTH-16
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Require PKCE for the code grant: If the code grant is used,
-    the authorization server must mitigate authorization code interception attacks
-    by requiring PKCE  -  a valid ''code_challenge'' at the authorization request (rejecting
-    ''plain'' as the method), and validation of the ''code_verifier'' at the token
-    request.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify OAUTH-16 is properly addressed
-- blast_radius_notes: Automated fix for OAUTH-17
-  control_id: OAUTH-17
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Mitigate malicious client risk in unauthenticated dynamic
-    client registration: If the authorization server supports unauthenticated dynamic
-    client registration, it must mitigate malicious-client risk by validating client
-    metadata, ensuring user consent, and warning the user before processing an authorization
-    request with an untrusted client.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify OAUTH-17 is properly addressed
-- blast_radius_notes: Automated fix for OAUTH-18
-  control_id: OAUTH-18
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Enforce absolute expiration on refresh tokens: Refresh tokens
-    must have an absolute expiration, even when sliding refresh token expiration is
-    applied, to prevent indefinite token lifetime.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify OAUTH-18 is properly addressed
-- blast_radius_notes: Automated fix for OAUTH-19
-  control_id: OAUTH-19
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Allow authorized users to revoke refresh/reference tokens:
-    Refresh tokens and reference access tokens must be revocable by an authorized
-    user via the authorization server''s user interface.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify OAUTH-19 is properly addressed
-- blast_radius_notes: Automated fix for OAUTH-20
-  control_id: OAUTH-20
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Authenticate confidential clients on backchannel requests:
-    Confidential clients must be authenticated for client-to-authorization-server
-    backchannel requests, including token requests, pushed authorization requests
-    (PAR), and token revocation requests.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify OAUTH-20 is properly addressed
-- blast_radius_notes: Automated fix for OAUTH-21
-  control_id: OAUTH-21
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Assign only required scopes at the authorization-server configuration
-    level: The authorization server configuration must only assign the scopes actually
-    required to each OAuth client, complementing OAUTH-05''s client-side request restriction.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify OAUTH-21 is properly addressed
-- blast_radius_notes: Automated fix for OAUTH-22
-  control_id: OAUTH-22
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Restrict clients to only the response_mode values they need:
-    For a given client, the authorization server must only allow the ''response_mode''
-    value that client actually needs, e.g. via validation against expected values
-    or PAR/JAR.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify OAUTH-22 is properly addressed
-- blast_radius_notes: Automated fix for OAUTH-23
-  control_id: OAUTH-23
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Require PAR alongside the code grant: Grant type ''code''
-    must always be used together with pushed authorization requests (PAR).'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify OAUTH-23 is properly addressed
-- blast_radius_notes: Automated fix for OAUTH-24
-  control_id: OAUTH-24
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Issue only sender-constrained access tokens: The authorization
-    server must issue only sender-constrained (Proof-of-Possession) access tokens,
-    via mTLS certificate-bound tokens or DPoP-bound tokens.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify OAUTH-24 is properly addressed
-- blast_radius_notes: Automated fix for OAUTH-25
-  control_id: OAUTH-25
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Protect authorization_details from tampering for server-side
-    clients: For a server-side client, the authorization server must ensure the ''authorization_details''
-    parameter value originates from the client backend and has not been tampered with
-    by the user, e.g. via PAR or JAR.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify OAUTH-25 is properly addressed
-- blast_radius_notes: Automated fix for OAUTH-26
-  control_id: OAUTH-26
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Require strong, replay-resistant client authentication for
-    confidential clients: For confidential clients, the authorization server must
-    require strong client authentication methods based on public-key cryptography
-    and resistant to replay  -  mutual TLS or private_key_jwt  -  rather than a shared
-    client secret alone.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify OAUTH-26 is properly addressed
-- blast_radius_notes: Automated fix for OAUTH-27
-  control_id: OAUTH-27
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Mitigate ID Token replay via nonce validation: The client
-    (relying party) must mitigate ID Token replay attacks, e.g. by ensuring the ID
-    Token''s ''nonce'' claim matches the ''nonce'' value sent in the original authentication
-    request.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify OAUTH-27 is properly addressed
-- blast_radius_notes: Automated fix for OAUTH-28
-  control_id: OAUTH-28
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Identify users from non-reassignable ID Token claims: The
-    client must uniquely identify the user from ID Token claims (usually ''sub'')
-    which cannot be reassigned to other users within the scope of that identity provider.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify OAUTH-28 is properly addressed
-- blast_radius_notes: Automated fix for OAUTH-29
-  control_id: OAUTH-29
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Reject authorization server metadata with a mismatched issuer:
-    The client must reject attempts by a malicious authorization server to impersonate
-    another via metadata  -  rejecting metadata where the issuer URL does not exactly
-    match the pre-configured expected issuer URL.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify OAUTH-29 is properly addressed
-- blast_radius_notes: Automated fix for OAUTH-30
-  control_id: OAUTH-30
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Validate ID Token audience matches the client''s own client_id:
-    The client must validate that the ID Token is intended for that client by checking
-    the ''aud'' claim equals the client''s own ''client_id''.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify OAUTH-30 is properly addressed
-- blast_radius_notes: Automated fix for OAUTH-31
-  control_id: OAUTH-31
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Secure OIDC back-channel logout against DoS and cross-JWT
-    confusion: When using OIDC back-channel logout, the relying party must mitigate
-    forced-logout DoS and cross-JWT confusion by verifying the logout token''s type
-    is ''logout+jwt'', contains the ''event'' claim with the correct member name,
-    and does not contain a ''nonce'' claim.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify OAUTH-31 is properly addressed
-- blast_radius_notes: Automated fix for OAUTH-32
-  control_id: OAUTH-32
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Restrict OpenID Provider response modes; ban Implicit: The
-    OpenID Provider must only allow ''code'', ''ciba'', ''id_token'', or ''id_token
-    code'' as response mode values; ''code'' is preferred over the Hybrid flow, and
-    any Implicit flow must not be used.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify OAUTH-32 is properly addressed
-- blast_radius_notes: Automated fix for OAUTH-33
-  control_id: OAUTH-33
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Mitigate forced-logout denial of service at the OpenID Provider:
-    The OpenID Provider must mitigate denial of service through forced logout, by
-    obtaining explicit end-user confirmation or validating relying-party-initiated
-    logout request parameters such as ''id_token_hint''.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify OAUTH-33 is properly addressed
-- blast_radius_notes: Automated fix for OAUTH-34
-  control_id: OAUTH-34
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Require explicit user consent for each authorization request:
-    The authorization server must ensure the user consents to each authorization request;
-    if the client''s identity cannot be assured, the server must always explicitly
-    prompt for consent.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify OAUTH-34 is properly addressed
-- blast_radius_notes: Automated fix for OAUTH-35
-  control_id: OAUTH-35
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Present clear, sufficient information at the consent prompt:
-    The consent prompt must present sufficient and clear information about what is
-    being consented to  -  the nature of requested authorizations, the identity of the
-    authorized application, and the authorization lifetime, where applicable.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify OAUTH-35 is properly addressed
-- blast_radius_notes: Automated fix for OAUTH-36
-  control_id: OAUTH-36
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Allow users to review, modify, and revoke granted consents:
-    Users must be able to review, modify, and revoke consents they have granted through
-    the authorization server.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify OAUTH-36 is properly addressed

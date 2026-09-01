@@ -1,0 +1,62 @@
+# Patchi Security Domain: edge-function-injection
+# Source: Edge Computing Security
+# Auto-generated — curated from Edge Computing Security
+
+domain_id: "edge-function-injection"
+version: "1.0.0"
+display_name: "Edge Function Injection"
+source_standard: "Edge Computing Security"
+component_type: "backend-api"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_edge_function_injection_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_edge_function_injection"
+
+controls:
+  - control_id: "EDGEFUNC-01"
+    name: "Edge Function Injection — Primary Control"
+    description: "User input in Edge/CDN worker functions without validation."
+    source_clause: "Edge Inject"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://EDGEFUNC-01"
+
+  - control_id: "EDGEFUNC-02"
+    name: "Edge Function Injection — Input Validation"
+    description: "Validate and sanitize all inputs related to edge function injection"
+    source_clause: "Edge Inject"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://EDGEFUNC-02"
+
+  - control_id: "EDGEFUNC-03"
+    name: "Edge Function Injection — Configuration Hardening"
+    description: "Apply secure configuration defaults for edge function injection"
+    source_clause: "Edge Inject"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://EDGEFUNC-03"
+
+  - control_id: "EDGEFUNC-04"
+    name: "Edge Function Injection — Monitoring and Logging"
+    description: "Log and monitor all edge function injection events for audit and detection"
+    source_clause: "Edge Inject"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://EDGEFUNC-04"
+
+  - control_id: "EDGEFUNC-05"
+    name: "Edge Function Injection — Error Handling"
+    description: "Handle edge function injection errors securely without information leakage"
+    source_clause: "Edge Inject"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://EDGEFUNC-05"

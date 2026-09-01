@@ -1,250 +1,0 @@
-playbooks:
-- blast_radius_notes: Automated fix for DESKTOP-01
-  control_id: DESKTOP-01
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Only load secure content: All remote resources (scripts,
-    stylesheets, iframes, navigations) must be loaded over HTTPS/WSS/FTPS, never plain
-    HTTP/WS/FTP, to preserve data integrity and prevent eavesdropping/tampering in
-    transit.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify DESKTOP-01 is properly addressed
-- blast_radius_notes: Automated fix for DESKTOP-02
-  control_id: DESKTOP-02
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Disable Node.js integration for remote content: Any BrowserWindow,
-    WebContentsView, or <webview> that loads remote (non-local) content must not have
-    nodeIntegration enabled, since this is what allows an XSS in that remote content
-    to escalate into full native code execution.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify DESKTOP-02 is properly addressed
-- blast_radius_notes: Automated fix for DESKTOP-03
-  control_id: DESKTOP-03
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Enable context isolation in all renderers: contextIsolation
-    must be enabled so that preload scripts and Electron internals run in a separate
-    JS context from loaded web content, preventing that content from tampering with
-    or accessing privileged APIs. Disabling it also silently disables process sandboxing
-    (see DESKTOP-04).'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify DESKTOP-03 is properly addressed
-- blast_radius_notes: Automated fix for DESKTOP-04
-  control_id: DESKTOP-04
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Enable process sandboxing: Renderer processes should run
-    with the OS-level sandbox enabled, significantly limiting what a compromised renderer
-    can access. Untrusted content should never be loaded, read, or processed in an
-    unsandboxed process, including the main process.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify DESKTOP-04 is properly addressed
-- blast_radius_notes: Automated fix for DESKTOP-05
-  control_id: DESKTOP-05
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Handle session permission requests from remote content explicitly:
-    Rather than relying on Electron''s default of auto-approving all permission requests
-    (camera, notifications, geolocation, etc.), a custom ses.setPermissionRequestHandler
-    should explicitly validate the requesting origin and permission type before approving.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify DESKTOP-05 is properly addressed
-- blast_radius_notes: Automated fix for DESKTOP-06
-  control_id: DESKTOP-06
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Do not disable webSecurity: The webSecurity property must
-    not be set to false, since doing so disables the same-origin policy and implicitly
-    enables allowRunningInsecureContent, permitting cross-domain code execution.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify DESKTOP-06 is properly addressed
-- blast_radius_notes: Automated fix for DESKTOP-07
-  control_id: DESKTOP-07
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Define a Content Security Policy: A restrictive Content-Security-Policy
-    should be set (via HTTP header or meta tag) for any loaded web content, limiting
-    which origins scripts/styles/resources may be loaded from, as an additional layer
-    of XSS/injection protection beyond nodeIntegration/contextIsolation settings.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify DESKTOP-07 is properly addressed
-- blast_radius_notes: Automated fix for DESKTOP-08
-  control_id: DESKTOP-08
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Do not enable allowRunningInsecureContent: This property
-    must remain disabled (Electron''s default)  -  enabling it permits an HTTPS-loaded
-    page to load subsequent scripts/CSS/plugins over insecure HTTP (''mixed content''),
-    undermining HTTPS''s integrity guarantees.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify DESKTOP-08 is properly addressed
-- blast_radius_notes: Automated fix for DESKTOP-09
-  control_id: DESKTOP-09
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Do not enable experimental Chromium features: The experimentalFeatures
-    webPreferences property should remain disabled unless there is a specific, well-understood
-    reason to enable it  -  experimental features are untested at Electron''s scale
-    and their security impact is not well characterized.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify DESKTOP-09 is properly addressed
-- blast_radius_notes: Automated fix for DESKTOP-10
-  control_id: DESKTOP-10
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Do not use enableBlinkFeatures: Blink rendering-engine features
-    disabled by default should not be force-enabled via enableBlinkFeatures without
-    a specific, understood justification, since disabled-by-default generally means
-    a deliberate security or stability decision upstream.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify DESKTOP-10 is properly addressed
-- blast_radius_notes: Automated fix for DESKTOP-11
-  control_id: DESKTOP-11
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Do not use allowpopups for WebViews: The allowpopups attribute
-    on <webview> tags should not be set unless popup creation is genuinely required,
-    following least-privilege  -  a webview that can spawn arbitrary new BrowserWindows
-    is a larger attack surface than one that cannot.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify DESKTOP-11 is properly addressed
-- blast_radius_notes: Automated fix for DESKTOP-12
-  control_id: DESKTOP-12
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Verify WebView options before creation: New <webview> tag
-    creation should be intercepted via the will-attach-webview event on the hosting
-    webContents, stripping unexpected preload scripts and verifying the requested
-    URL against an allowlist before permitting attachment, since a script running
-    in the page can otherwise create webviews with attacker-chosen webPreferences.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify DESKTOP-12 is properly addressed
-- blast_radius_notes: Automated fix for DESKTOP-13
-  control_id: DESKTOP-13
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Disable or limit navigation: Apps with no legitimate need
-    to navigate away from their initial page(s) should intercept the will-navigate
-    event and reject navigation to any URL outside an explicit allowlist, using a
-    proper URL parser rather than naive string prefix matching (which can be bypassed,
-    e.g. a startsWith check on a legitimate domain can be defeated by a lookalike
-    subdomain).'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify DESKTOP-13 is properly addressed
-- blast_radius_notes: Automated fix for DESKTOP-14
-  control_id: DESKTOP-14
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Disable or limit creation of new windows: Apps with a known,
-    fixed set of windows should register a setWindowOpenHandler that denies unexpected
-    new-window creation requests by default, since uncontrolled new-window creation
-    is a common vector for escalating a compromised renderer''s privileges.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify DESKTOP-14 is properly addressed
-- blast_radius_notes: Automated fix for DESKTOP-15
-  control_id: DESKTOP-15
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Do not use shell.openExternal with untrusted content: shell.openExternal
-    must never be called with a URL/argument derived from untrusted or user-controlled
-    input without validation, since it hands the string to OS-level native utilities
-    and can be abused to execute arbitrary commands depending on protocol handler
-    behavior.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify DESKTOP-15 is properly addressed
-- blast_radius_notes: Automated fix for DESKTOP-16
-  control_id: DESKTOP-16
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Use a current version of Electron: The bundled Electron version
-    (and by extension its Chromium and Node.js versions) should be kept current, since
-    older versions accumulate publicly known, exploitable vulnerabilities that are
-    patched in later releases.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify DESKTOP-16 is properly addressed
-- blast_radius_notes: Automated fix for DESKTOP-17
-  control_id: DESKTOP-17
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Validate the sender of all IPC messages: Every ipcMain handler
-    that returns sensitive data or performs a privileged action must validate the
-    sender frame''s origin/URL against an allowlist before proceeding, since any web
-    frame (including iframes and, in some cases, child windows) can in principle dispatch
-    IPC messages to the main process.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify DESKTOP-17 is properly addressed
-- blast_radius_notes: Automated fix for DESKTOP-18
-  control_id: DESKTOP-18
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Avoid the file:// protocol; prefer custom protocols: Local
-    content should be served via a registered custom protocol rather than file://,
-    since pages loaded over file:// receive elevated, unilateral filesystem access
-    in Electron  -  meaning an XSS on a file:// page can read arbitrary files from the
-    user''s machine, a risk a custom protocol can scope down.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify DESKTOP-18 is properly addressed
-- blast_radius_notes: Automated fix for DESKTOP-19
-  control_id: DESKTOP-19
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Review and configure Electron fuses appropriately: Electron
-    ''fuses'' (e.g. runAsNode, nodeCliInspect) that allow the packaged app to behave
-    differently under specific environment variables or CLI flags should be explicitly
-    reviewed and disabled if not needed, since an enabled fuse can let an external
-    script invoke functionality/commands the app would not otherwise expose.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify DESKTOP-19 is properly addressed
-- blast_radius_notes: Automated fix for DESKTOP-20
-  control_id: DESKTOP-20
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Do not expose raw Electron APIs to untrusted web content:
-    Preload scripts must not directly expose raw IPC primitives (e.g. ipcRenderer.on)
-    via contextBridge, since this grants the renderer unrestricted access to the entire
-    IPC event system rather than only the specific messages intended for it. Preload
-    scripts should wrap each exposed capability in a narrow, purpose-specific function
-    instead.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify DESKTOP-20 is properly addressed

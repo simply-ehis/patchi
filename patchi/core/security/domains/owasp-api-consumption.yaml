@@ -1,0 +1,62 @@
+# Patchi Security Domain: owasp-api-consumption
+# Source: OWASP API Security 2023 API10
+# Auto-generated — curated from OWASP API Security 2023 API10
+
+domain_id: "owasp-api-consumption"
+version: "1.0.0"
+display_name: "Unsafe Consumption of APIs"
+source_standard: "OWASP API Security 2023 API10"
+component_type: "backend-api"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_owasp_api_consumption_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_owasp_api_consumption"
+
+controls:
+  - control_id: "OWASPAPI-01"
+    name: "Unsafe Consumption of APIs — Primary Control"
+    description: "Calling third-party APIs over untrusted channels without validating responses."
+    source_clause: "API Top 10 API10"
+    severity: "medium"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://OWASPAPI-01"
+
+  - control_id: "OWASPAPI-02"
+    name: "Unsafe Consumption of APIs — Input Validation"
+    description: "Validate and sanitize all inputs related to unsafe consumption of apis"
+    source_clause: "API Top 10 API10"
+    severity: "medium"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://OWASPAPI-02"
+
+  - control_id: "OWASPAPI-03"
+    name: "Unsafe Consumption of APIs — Configuration Hardening"
+    description: "Apply secure configuration defaults for unsafe consumption of apis"
+    source_clause: "API Top 10 API10"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://OWASPAPI-03"
+
+  - control_id: "OWASPAPI-04"
+    name: "Unsafe Consumption of APIs — Monitoring and Logging"
+    description: "Log and monitor all unsafe consumption of apis events for audit and detection"
+    source_clause: "API Top 10 API10"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://OWASPAPI-04"
+
+  - control_id: "OWASPAPI-05"
+    name: "Unsafe Consumption of APIs — Error Handling"
+    description: "Handle unsafe consumption of apis errors securely without information leakage"
+    source_clause: "API Top 10 API10"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://OWASPAPI-05"

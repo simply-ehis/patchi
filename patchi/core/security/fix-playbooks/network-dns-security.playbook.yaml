@@ -1,0 +1,60 @@
+# Playbook for: network-dns-security
+# Source: Network Security
+# Auto-generated
+
+playbooks:
+- control_id: "NETWORKD-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary dns security control patterns for network-dns-security"
+  blast_radius_notes: "Automated fix for NETWORKD-01 - Primary DNS Security Control"
+  verification_checks:
+    - "Verify NETWORKD-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NETWORKD-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for dns security patterns for network-dns-security"
+  blast_radius_notes: "Automated fix for NETWORKD-02 - Input Validation for DNS Security"
+  verification_checks:
+    - "Verify NETWORKD-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NETWORKD-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for dns security patterns for network-dns-security"
+  blast_radius_notes: "Automated fix for NETWORKD-03 - Configuration Hardening for DNS Security"
+  verification_checks:
+    - "Verify NETWORKD-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NETWORKD-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for dns security patterns for network-dns-security"
+  blast_radius_notes: "Automated fix for NETWORKD-04 - Monitoring and Logging for DNS Security"
+  verification_checks:
+    - "Verify NETWORKD-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NETWORKD-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for dns security patterns for network-dns-security"
+  blast_radius_notes: "Automated fix for NETWORKD-05 - Error Handling for DNS Security"
+  verification_checks:
+    - "Verify NETWORKD-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

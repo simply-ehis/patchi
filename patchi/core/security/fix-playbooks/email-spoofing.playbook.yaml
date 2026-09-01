@@ -1,0 +1,60 @@
+# Playbook for: email-spoofing
+# Source: Email Security
+# Auto-generated
+
+playbooks:
+- control_id: "EMAILSPO-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary email spoofing control patterns for email-spoofing"
+  blast_radius_notes: "Automated fix for EMAILSPO-01 - Primary Email Spoofing Control"
+  verification_checks:
+    - "Verify EMAILSPO-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "EMAILSPO-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for email spoofing patterns for email-spoofing"
+  blast_radius_notes: "Automated fix for EMAILSPO-02 - Input Validation for Email Spoofing"
+  verification_checks:
+    - "Verify EMAILSPO-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "EMAILSPO-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for email spoofing patterns for email-spoofing"
+  blast_radius_notes: "Automated fix for EMAILSPO-03 - Configuration Hardening for Email Spoofing"
+  verification_checks:
+    - "Verify EMAILSPO-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "EMAILSPO-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for email spoofing patterns for email-spoofing"
+  blast_radius_notes: "Automated fix for EMAILSPO-04 - Monitoring and Logging for Email Spoofing"
+  verification_checks:
+    - "Verify EMAILSPO-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "EMAILSPO-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for email spoofing patterns for email-spoofing"
+  blast_radius_notes: "Automated fix for EMAILSPO-05 - Error Handling for Email Spoofing"
+  verification_checks:
+    - "Verify EMAILSPO-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

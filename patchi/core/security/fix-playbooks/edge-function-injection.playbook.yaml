@@ -1,0 +1,60 @@
+# Playbook for: edge-function-injection
+# Source: Edge Computing Security
+# Auto-generated
+
+playbooks:
+- control_id: "EDGEFUNC-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary edge function injection control patterns for edge-function-injection"
+  blast_radius_notes: "Automated fix for EDGEFUNC-01 - Primary Edge Function Injection Control"
+  verification_checks:
+    - "Verify EDGEFUNC-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "EDGEFUNC-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for edge function injection patterns for edge-function-injection"
+  blast_radius_notes: "Automated fix for EDGEFUNC-02 - Input Validation for Edge Function Injection"
+  verification_checks:
+    - "Verify EDGEFUNC-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "EDGEFUNC-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for edge function injection patterns for edge-function-injection"
+  blast_radius_notes: "Automated fix for EDGEFUNC-03 - Configuration Hardening for Edge Function Injection"
+  verification_checks:
+    - "Verify EDGEFUNC-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "EDGEFUNC-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for edge function injection patterns for edge-function-injection"
+  blast_radius_notes: "Automated fix for EDGEFUNC-04 - Monitoring and Logging for Edge Function Injection"
+  verification_checks:
+    - "Verify EDGEFUNC-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "EDGEFUNC-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for edge function injection patterns for edge-function-injection"
+  blast_radius_notes: "Automated fix for EDGEFUNC-05 - Error Handling for Edge Function Injection"
+  verification_checks:
+    - "Verify EDGEFUNC-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

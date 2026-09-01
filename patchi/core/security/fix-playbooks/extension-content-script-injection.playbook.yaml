@@ -1,0 +1,60 @@
+# Playbook for: extension-content-script-injection
+# Source: Browser Extension Security
+# Auto-generated
+
+playbooks:
+- control_id: "EXTENSIO-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary extension content script injection control patterns for extension-content-script-injection"
+  blast_radius_notes: "Automated fix for EXTENSIO-01 - Primary Extension Content Script Injection Control"
+  verification_checks:
+    - "Verify EXTENSIO-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "EXTENSIO-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for extension content script injection patterns for extension-content-script-injection"
+  blast_radius_notes: "Automated fix for EXTENSIO-02 - Input Validation for Extension Content Script Injection"
+  verification_checks:
+    - "Verify EXTENSIO-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "EXTENSIO-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for extension content script injection patterns for extension-content-script-injection"
+  blast_radius_notes: "Automated fix for EXTENSIO-03 - Configuration Hardening for Extension Content Script Injection"
+  verification_checks:
+    - "Verify EXTENSIO-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "EXTENSIO-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for extension content script injection patterns for extension-content-script-injection"
+  blast_radius_notes: "Automated fix for EXTENSIO-04 - Monitoring and Logging for Extension Content Script Injection"
+  verification_checks:
+    - "Verify EXTENSIO-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "EXTENSIO-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for extension content script injection patterns for extension-content-script-injection"
+  blast_radius_notes: "Automated fix for EXTENSIO-05 - Error Handling for Extension Content Script Injection"
+  verification_checks:
+    - "Verify EXTENSIO-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

@@ -1,0 +1,62 @@
+# Patchi Security Domain: fraud-account-takeover
+# Source: Fraud Prevention
+# Auto-generated — curated from Fraud Prevention
+
+domain_id: "fraud-account-takeover"
+version: "1.0.0"
+display_name: "Account Takeover"
+source_standard: "Fraud Prevention"
+component_type: "backend-api"
+weight: 0.9
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_fraud_account_takeover_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_fraud_account_takeover"
+
+controls:
+  - control_id: "FRAUDACC-01"
+    name: "Account Takeover — Primary Control"
+    description: "Credential stuffing, brute force, or session hijacking leading to account compromise."
+    source_clause: "Fraud ATO"
+    severity: "critical"
+    check_method: "dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://FRAUDACC-01"
+
+  - control_id: "FRAUDACC-02"
+    name: "Account Takeover — Input Validation"
+    description: "Validate and sanitize all inputs related to account takeover"
+    source_clause: "Fraud ATO"
+    severity: "critical"
+    check_method: "dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://FRAUDACC-02"
+
+  - control_id: "FRAUDACC-03"
+    name: "Account Takeover — Configuration Hardening"
+    description: "Apply secure configuration defaults for account takeover"
+    source_clause: "Fraud ATO"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://FRAUDACC-03"
+
+  - control_id: "FRAUDACC-04"
+    name: "Account Takeover — Monitoring and Logging"
+    description: "Log and monitor all account takeover events for audit and detection"
+    source_clause: "Fraud ATO"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://FRAUDACC-04"
+
+  - control_id: "FRAUDACC-05"
+    name: "Account Takeover — Error Handling"
+    description: "Handle account takeover errors securely without information leakage"
+    source_clause: "Fraud ATO"
+    severity: "medium"
+    check_method: "dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://FRAUDACC-05"

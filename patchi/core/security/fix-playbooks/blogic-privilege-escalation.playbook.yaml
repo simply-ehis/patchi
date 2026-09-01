@@ -1,0 +1,60 @@
+# Playbook for: blogic-privilege-escalation
+# Source: Business Logic
+# Auto-generated
+
+playbooks:
+- control_id: "BLOGICPR-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary business logic privilege escalation control patterns for blogic-privilege-escalation"
+  blast_radius_notes: "Automated fix for BLOGICPR-01 - Primary Business Logic Privilege Escalation Control"
+  verification_checks:
+    - "Verify BLOGICPR-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "BLOGICPR-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for business logic privilege escalation patterns for blogic-privilege-escalation"
+  blast_radius_notes: "Automated fix for BLOGICPR-02 - Input Validation for Business Logic Privilege Escalation"
+  verification_checks:
+    - "Verify BLOGICPR-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "BLOGICPR-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for business logic privilege escalation patterns for blogic-privilege-escalation"
+  blast_radius_notes: "Automated fix for BLOGICPR-03 - Configuration Hardening for Business Logic Privilege Escalation"
+  verification_checks:
+    - "Verify BLOGICPR-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "BLOGICPR-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for business logic privilege escalation patterns for blogic-privilege-escalation"
+  blast_radius_notes: "Automated fix for BLOGICPR-04 - Monitoring and Logging for Business Logic Privilege Escalation"
+  verification_checks:
+    - "Verify BLOGICPR-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "BLOGICPR-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for business logic privilege escalation patterns for blogic-privilege-escalation"
+  blast_radius_notes: "Automated fix for BLOGICPR-05 - Error Handling for Business Logic Privilege Escalation"
+  verification_checks:
+    - "Verify BLOGICPR-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

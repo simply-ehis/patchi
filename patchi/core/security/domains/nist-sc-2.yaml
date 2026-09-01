@@ -1,0 +1,62 @@
+# Patchi Security Domain: nist-sc-2
+# Source: NIST SP 800-53 SC-2
+# Auto-generated — curated from NIST SP 800-53 SC-2
+
+domain_id: "nist-sc-2"
+version: "1.0.0"
+display_name: "Application Partitioning"
+source_standard: "NIST SP 800-53 SC-2"
+component_type: "infra"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_nist_sc_2_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_nist_sc_2"
+
+controls:
+  - control_id: "NISTSC2-01"
+    name: "Application Partitioning — Primary Control"
+    description: "System separates user functionality from system management functionality."
+    source_clause: "SC-2"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://NISTSC2-01"
+
+  - control_id: "NISTSC2-02"
+    name: "Application Partitioning — Input Validation"
+    description: "Validate and sanitize all inputs related to application partitioning"
+    source_clause: "SC-2"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://NISTSC2-02"
+
+  - control_id: "NISTSC2-03"
+    name: "Application Partitioning — Configuration Hardening"
+    description: "Apply secure configuration defaults for application partitioning"
+    source_clause: "SC-2"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://NISTSC2-03"
+
+  - control_id: "NISTSC2-04"
+    name: "Application Partitioning — Monitoring and Logging"
+    description: "Log and monitor all application partitioning events for audit and detection"
+    source_clause: "SC-2"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://NISTSC2-04"
+
+  - control_id: "NISTSC2-05"
+    name: "Application Partitioning — Error Handling"
+    description: "Handle application partitioning errors securely without information leakage"
+    source_clause: "SC-2"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://NISTSC2-05"

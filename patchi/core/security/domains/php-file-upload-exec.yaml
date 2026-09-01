@@ -1,0 +1,62 @@
+# Patchi Security Domain: php-file-upload-exec
+# Source: PHP Security
+# Auto-generated — curated from PHP Security
+
+domain_id: "php-file-upload-exec"
+version: "1.0.0"
+display_name: "PHP File Upload to RCE"
+source_standard: "PHP Security"
+component_type: "backend-api"
+weight: 0.9
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_php_file_upload_exec_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_php_file_upload_exec"
+
+controls:
+  - control_id: "PHPFILEU-01"
+    name: "PHP File Upload to RCE — Primary Control"
+    description: "Uploaded files executable from web directory."
+    source_clause: "PHP Upload"
+    severity: "critical"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://PHPFILEU-01"
+
+  - control_id: "PHPFILEU-02"
+    name: "PHP File Upload to RCE — Input Validation"
+    description: "Validate and sanitize all inputs related to php file upload to rce"
+    source_clause: "PHP Upload"
+    severity: "critical"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://PHPFILEU-02"
+
+  - control_id: "PHPFILEU-03"
+    name: "PHP File Upload to RCE — Configuration Hardening"
+    description: "Apply secure configuration defaults for php file upload to rce"
+    source_clause: "PHP Upload"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://PHPFILEU-03"
+
+  - control_id: "PHPFILEU-04"
+    name: "PHP File Upload to RCE — Monitoring and Logging"
+    description: "Log and monitor all php file upload to rce events for audit and detection"
+    source_clause: "PHP Upload"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://PHPFILEU-04"
+
+  - control_id: "PHPFILEU-05"
+    name: "PHP File Upload to RCE — Error Handling"
+    description: "Handle php file upload to rce errors securely without information leakage"
+    source_clause: "PHP Upload"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://PHPFILEU-05"

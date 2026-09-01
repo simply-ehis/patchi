@@ -1,0 +1,62 @@
+# Patchi Security Domain: cwe-460-improper-cleanup
+# Source: CWE-460
+# Auto-generated — curated from CWE-460
+
+domain_id: "cwe-460-improper-cleanup"
+version: "1.0.0"
+display_name: "Improper Cleanup on Thrown Exception"
+source_standard: "CWE-460"
+component_type: "backend-api"
+weight: 0.7
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_cwe_460_improper_cleanup_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_cwe_460_improper_cleanup"
+
+controls:
+  - control_id: "CWE460IM-01"
+    name: "Improper Cleanup on Thrown Exception — Primary Control"
+    description: "Resources not properly cleaned up when an exception is thrown."
+    source_clause: "CWE-460"
+    severity: "medium"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CWE460IM-01"
+
+  - control_id: "CWE460IM-02"
+    name: "Improper Cleanup on Thrown Exception — Input Validation"
+    description: "Validate and sanitize all inputs related to improper cleanup on thrown exception"
+    source_clause: "CWE-460"
+    severity: "medium"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CWE460IM-02"
+
+  - control_id: "CWE460IM-03"
+    name: "Improper Cleanup on Thrown Exception — Configuration Hardening"
+    description: "Apply secure configuration defaults for improper cleanup on thrown exception"
+    source_clause: "CWE-460"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CWE460IM-03"
+
+  - control_id: "CWE460IM-04"
+    name: "Improper Cleanup on Thrown Exception — Monitoring and Logging"
+    description: "Log and monitor all improper cleanup on thrown exception events for audit and detection"
+    source_clause: "CWE-460"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CWE460IM-04"
+
+  - control_id: "CWE460IM-05"
+    name: "Improper Cleanup on Thrown Exception — Error Handling"
+    description: "Handle improper cleanup on thrown exception errors securely without information leakage"
+    source_clause: "CWE-460"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CWE460IM-05"

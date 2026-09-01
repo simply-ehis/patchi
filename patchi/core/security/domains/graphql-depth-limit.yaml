@@ -1,0 +1,62 @@
+# Patchi Security Domain: graphql-depth-limit
+# Source: GraphQL Security
+# Auto-generated — curated from GraphQL Security
+
+domain_id: "graphql-depth-limit"
+version: "1.0.0"
+display_name: "GraphQL Query Depth"
+source_standard: "GraphQL Security"
+component_type: "backend-api"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_graphql_depth_limit_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_graphql_depth_limit"
+
+controls:
+  - control_id: "GRAPHQLD-01"
+    name: "GraphQL Query Depth — Primary Control"
+    description: "Missing query depth limit allowing resource exhaustion."
+    source_clause: "GraphQL Depth"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://GRAPHQLD-01"
+
+  - control_id: "GRAPHQLD-02"
+    name: "GraphQL Query Depth — Input Validation"
+    description: "Validate and sanitize all inputs related to graphql query depth"
+    source_clause: "GraphQL Depth"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://GRAPHQLD-02"
+
+  - control_id: "GRAPHQLD-03"
+    name: "GraphQL Query Depth — Configuration Hardening"
+    description: "Apply secure configuration defaults for graphql query depth"
+    source_clause: "GraphQL Depth"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://GRAPHQLD-03"
+
+  - control_id: "GRAPHQLD-04"
+    name: "GraphQL Query Depth — Monitoring and Logging"
+    description: "Log and monitor all graphql query depth events for audit and detection"
+    source_clause: "GraphQL Depth"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://GRAPHQLD-04"
+
+  - control_id: "GRAPHQLD-05"
+    name: "GraphQL Query Depth — Error Handling"
+    description: "Handle graphql query depth errors securely without information leakage"
+    source_clause: "GraphQL Depth"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://GRAPHQLD-05"

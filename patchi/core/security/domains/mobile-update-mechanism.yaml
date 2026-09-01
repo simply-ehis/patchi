@@ -1,0 +1,62 @@
+# Patchi Security Domain: mobile-update-mechanism
+# Source: Mobile Security
+# Auto-generated — curated from Mobile Security
+
+domain_id: "mobile-update-mechanism"
+version: "1.0.0"
+display_name: "App Update Mechanism"
+source_standard: "Mobile Security"
+component_type: "mobile-native"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_mobile_update_mechanism_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_mobile_update_mechanism"
+
+controls:
+  - control_id: "MOBILEUP-01"
+    name: "App Update Mechanism — Primary Control"
+    description: "Insecure update mechanism allowing code injection or tampering."
+    source_clause: "Mobile Update"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://MOBILEUP-01"
+
+  - control_id: "MOBILEUP-02"
+    name: "App Update Mechanism — Input Validation"
+    description: "Validate and sanitize all inputs related to app update mechanism"
+    source_clause: "Mobile Update"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://MOBILEUP-02"
+
+  - control_id: "MOBILEUP-03"
+    name: "App Update Mechanism — Configuration Hardening"
+    description: "Apply secure configuration defaults for app update mechanism"
+    source_clause: "Mobile Update"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://MOBILEUP-03"
+
+  - control_id: "MOBILEUP-04"
+    name: "App Update Mechanism — Monitoring and Logging"
+    description: "Log and monitor all app update mechanism events for audit and detection"
+    source_clause: "Mobile Update"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://MOBILEUP-04"
+
+  - control_id: "MOBILEUP-05"
+    name: "App Update Mechanism — Error Handling"
+    description: "Handle app update mechanism errors securely without information leakage"
+    source_clause: "Mobile Update"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://MOBILEUP-05"

@@ -1,0 +1,62 @@
+# Patchi Security Domain: owasp-a10-ssrf
+# Source: OWASP Top 10 2021 A10
+# Auto-generated — curated from OWASP Top 10 2021 A10
+
+domain_id: "owasp-a10-ssrf"
+version: "1.0.0"
+display_name: "Server-Side Request Forgery"
+source_standard: "OWASP Top 10 2021 A10"
+component_type: "backend-api"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_owasp_a10_ssrf_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_owasp_a10_ssrf"
+
+controls:
+  - control_id: "OWASPA10-01"
+    name: "Server-Side Request Forgery — Primary Control"
+    description: "SSRF flaws occur when a web application fetches a remote resource without validating the user-supplied URL."
+    source_clause: "OWASP A10:2021"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://OWASPA10-01"
+
+  - control_id: "OWASPA10-02"
+    name: "Server-Side Request Forgery — Input Validation"
+    description: "Validate and sanitize all inputs related to server-side request forgery"
+    source_clause: "OWASP A10:2021"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://OWASPA10-02"
+
+  - control_id: "OWASPA10-03"
+    name: "Server-Side Request Forgery — Configuration Hardening"
+    description: "Apply secure configuration defaults for server-side request forgery"
+    source_clause: "OWASP A10:2021"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://OWASPA10-03"
+
+  - control_id: "OWASPA10-04"
+    name: "Server-Side Request Forgery — Monitoring and Logging"
+    description: "Log and monitor all server-side request forgery events for audit and detection"
+    source_clause: "OWASP A10:2021"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://OWASPA10-04"
+
+  - control_id: "OWASPA10-05"
+    name: "Server-Side Request Forgery — Error Handling"
+    description: "Handle server-side request forgery errors securely without information leakage"
+    source_clause: "OWASP A10:2021"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://OWASPA10-05"

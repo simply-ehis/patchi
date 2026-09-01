@@ -1,0 +1,62 @@
+# Patchi Security Domain: owasp-api-unrestricted-access
+# Source: OWASP API Security 2023 API6
+# Auto-generated — curated from OWASP API Security 2023 API6
+
+domain_id: "owasp-api-unrestricted-access"
+version: "1.0.0"
+display_name: "Unrestricted Access to Sensitive Business Flows"
+source_standard: "OWASP API Security 2023 API6"
+component_type: "backend-api"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_owasp_api_unrestricted_access_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_owasp_api_unrestricted_access"
+
+controls:
+  - control_id: "OWASPAPI-01"
+    name: "Unrestricted Access to Sensitive Business Flows — Primary Control"
+    description: "Attackers can abuse business flows (e.g., purchasing, referral) by automating API requests."
+    source_clause: "API Top 10 API6"
+    severity: "medium"
+    check_method: "dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://OWASPAPI-01"
+
+  - control_id: "OWASPAPI-02"
+    name: "Unrestricted Access to Sensitive Business Flows — Input Validation"
+    description: "Validate and sanitize all inputs related to unrestricted access to sensitive business flows"
+    source_clause: "API Top 10 API6"
+    severity: "medium"
+    check_method: "dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://OWASPAPI-02"
+
+  - control_id: "OWASPAPI-03"
+    name: "Unrestricted Access to Sensitive Business Flows — Configuration Hardening"
+    description: "Apply secure configuration defaults for unrestricted access to sensitive business flows"
+    source_clause: "API Top 10 API6"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://OWASPAPI-03"
+
+  - control_id: "OWASPAPI-04"
+    name: "Unrestricted Access to Sensitive Business Flows — Monitoring and Logging"
+    description: "Log and monitor all unrestricted access to sensitive business flows events for audit and detection"
+    source_clause: "API Top 10 API6"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://OWASPAPI-04"
+
+  - control_id: "OWASPAPI-05"
+    name: "Unrestricted Access to Sensitive Business Flows — Error Handling"
+    description: "Handle unrestricted access to sensitive business flows errors securely without information leakage"
+    source_clause: "API Top 10 API6"
+    severity: "medium"
+    check_method: "dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://OWASPAPI-05"

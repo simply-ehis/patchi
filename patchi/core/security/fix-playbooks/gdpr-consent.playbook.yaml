@@ -1,0 +1,60 @@
+# Playbook for: gdpr-consent
+# Source: GDPR Art 7
+# Auto-generated
+
+playbooks:
+- control_id: "GDPRCONS-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary consent management control patterns for gdpr-consent"
+  blast_radius_notes: "Automated fix for GDPRCONS-01 - Primary Consent Management Control"
+  verification_checks:
+    - "Verify GDPRCONS-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "GDPRCONS-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for consent management patterns for gdpr-consent"
+  blast_radius_notes: "Automated fix for GDPRCONS-02 - Input Validation for Consent Management"
+  verification_checks:
+    - "Verify GDPRCONS-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "GDPRCONS-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for consent management patterns for gdpr-consent"
+  blast_radius_notes: "Automated fix for GDPRCONS-03 - Configuration Hardening for Consent Management"
+  verification_checks:
+    - "Verify GDPRCONS-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "GDPRCONS-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for consent management patterns for gdpr-consent"
+  blast_radius_notes: "Automated fix for GDPRCONS-04 - Monitoring and Logging for Consent Management"
+  verification_checks:
+    - "Verify GDPRCONS-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "GDPRCONS-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for consent management patterns for gdpr-consent"
+  blast_radius_notes: "Automated fix for GDPRCONS-05 - Error Handling for Consent Management"
+  verification_checks:
+    - "Verify GDPRCONS-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

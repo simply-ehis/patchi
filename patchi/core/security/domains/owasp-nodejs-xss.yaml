@@ -1,0 +1,62 @@
+# Patchi Security Domain: owasp-nodejs-xss
+# Source: OWASP Node.js Top 10
+# Auto-generated — curated from OWASP Node.js Top 10
+
+domain_id: "owasp-nodejs-xss"
+version: "1.0.0"
+display_name: "Cross-Site Scripting (XSS)"
+source_standard: "OWASP Node.js Top 10"
+component_type: "frontend-web"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_owasp_nodejs_xss_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_owasp_nodejs_xss"
+
+controls:
+  - control_id: "OWASPNOD-01"
+    name: "Cross-Site Scripting (XSS) — Primary Control"
+    description: "Reflected, stored, or DOM-based XSS in EJS, Pug, Handlebars, or React templates."
+    source_clause: "OWASP Node.js"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://OWASPNOD-01"
+
+  - control_id: "OWASPNOD-02"
+    name: "Cross-Site Scripting (XSS) — Input Validation"
+    description: "Validate and sanitize all inputs related to cross-site scripting (xss)"
+    source_clause: "OWASP Node.js"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://OWASPNOD-02"
+
+  - control_id: "OWASPNOD-03"
+    name: "Cross-Site Scripting (XSS) — Configuration Hardening"
+    description: "Apply secure configuration defaults for cross-site scripting (xss)"
+    source_clause: "OWASP Node.js"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://OWASPNOD-03"
+
+  - control_id: "OWASPNOD-04"
+    name: "Cross-Site Scripting (XSS) — Monitoring and Logging"
+    description: "Log and monitor all cross-site scripting (xss) events for audit and detection"
+    source_clause: "OWASP Node.js"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://OWASPNOD-04"
+
+  - control_id: "OWASPNOD-05"
+    name: "Cross-Site Scripting (XSS) — Error Handling"
+    description: "Handle cross-site scripting (xss) errors securely without information leakage"
+    source_clause: "OWASP Node.js"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://OWASPNOD-05"

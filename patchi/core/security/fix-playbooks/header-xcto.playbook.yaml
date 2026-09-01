@@ -1,0 +1,60 @@
+# Playbook for: header-xcto
+# Source: HTTP Security Headers
+# Auto-generated
+
+playbooks:
+- control_id: "HEADERXC-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary x-content-type-options control patterns for header-xcto"
+  blast_radius_notes: "Automated fix for HEADERXC-01 - Primary X-Content-Type-Options Control"
+  verification_checks:
+    - "Verify HEADERXC-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "HEADERXC-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for x-content-type-options patterns for header-xcto"
+  blast_radius_notes: "Automated fix for HEADERXC-02 - Input Validation for X-Content-Type-Options"
+  verification_checks:
+    - "Verify HEADERXC-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "HEADERXC-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for x-content-type-options patterns for header-xcto"
+  blast_radius_notes: "Automated fix for HEADERXC-03 - Configuration Hardening for X-Content-Type-Options"
+  verification_checks:
+    - "Verify HEADERXC-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "HEADERXC-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for x-content-type-options patterns for header-xcto"
+  blast_radius_notes: "Automated fix for HEADERXC-04 - Monitoring and Logging for X-Content-Type-Options"
+  verification_checks:
+    - "Verify HEADERXC-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "HEADERXC-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for x-content-type-options patterns for header-xcto"
+  blast_radius_notes: "Automated fix for HEADERXC-05 - Error Handling for X-Content-Type-Options"
+  verification_checks:
+    - "Verify HEADERXC-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

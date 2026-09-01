@@ -1,0 +1,62 @@
+# Patchi Security Domain: cis-aws
+# Source: CIS AWS Benchmark
+# Auto-generated — curated from CIS AWS Benchmark
+
+domain_id: "cis-aws"
+version: "1.0.0"
+display_name: "AWS Cloud Hardening"
+source_standard: "CIS AWS Benchmark"
+component_type: "cloud-aws"
+weight: 0.9
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_cis_aws_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_cis_aws"
+
+controls:
+  - control_id: "CISAWS-01"
+    name: "AWS Cloud Hardening — Primary Control"
+    description: "IAM, S3, VPC, CloudTrail, and EC2 configuration security."
+    source_clause: "CIS AWS"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CISAWS-01"
+
+  - control_id: "CISAWS-02"
+    name: "AWS Cloud Hardening — Input Validation"
+    description: "Validate and sanitize all inputs related to aws cloud hardening"
+    source_clause: "CIS AWS"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CISAWS-02"
+
+  - control_id: "CISAWS-03"
+    name: "AWS Cloud Hardening — Configuration Hardening"
+    description: "Apply secure configuration defaults for aws cloud hardening"
+    source_clause: "CIS AWS"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CISAWS-03"
+
+  - control_id: "CISAWS-04"
+    name: "AWS Cloud Hardening — Monitoring and Logging"
+    description: "Log and monitor all aws cloud hardening events for audit and detection"
+    source_clause: "CIS AWS"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CISAWS-04"
+
+  - control_id: "CISAWS-05"
+    name: "AWS Cloud Hardening — Error Handling"
+    description: "Handle aws cloud hardening errors securely without information leakage"
+    source_clause: "CIS AWS"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CISAWS-05"

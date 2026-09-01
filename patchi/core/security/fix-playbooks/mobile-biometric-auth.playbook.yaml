@@ -1,0 +1,60 @@
+# Playbook for: mobile-biometric-auth
+# Source: Mobile Security
+# Auto-generated
+
+playbooks:
+- control_id: "MOBILEBI-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary biometric authentication bypass control patterns for mobile-biometric-auth"
+  blast_radius_notes: "Automated fix for MOBILEBI-01 - Primary Biometric Authentication Bypass Control"
+  verification_checks:
+    - "Verify MOBILEBI-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "MOBILEBI-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for biometric authentication bypass patterns for mobile-biometric-auth"
+  blast_radius_notes: "Automated fix for MOBILEBI-02 - Input Validation for Biometric Authentication Bypass"
+  verification_checks:
+    - "Verify MOBILEBI-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "MOBILEBI-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for biometric authentication bypass patterns for mobile-biometric-auth"
+  blast_radius_notes: "Automated fix for MOBILEBI-03 - Configuration Hardening for Biometric Authentication Bypass"
+  verification_checks:
+    - "Verify MOBILEBI-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "MOBILEBI-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for biometric authentication bypass patterns for mobile-biometric-auth"
+  blast_radius_notes: "Automated fix for MOBILEBI-04 - Monitoring and Logging for Biometric Authentication Bypass"
+  verification_checks:
+    - "Verify MOBILEBI-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "MOBILEBI-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for biometric authentication bypass patterns for mobile-biometric-auth"
+  blast_radius_notes: "Automated fix for MOBILEBI-05 - Error Handling for Biometric Authentication Bypass"
+  verification_checks:
+    - "Verify MOBILEBI-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

@@ -1,0 +1,62 @@
+# Patchi Security Domain: network-port-exposure
+# Source: Network Security
+# Auto-generated — curated from Network Security
+
+domain_id: "network-port-exposure"
+version: "1.0.0"
+display_name: "Port Exposure"
+source_standard: "Network Security"
+component_type: "infra"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_network_port_exposure_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_network_port_exposure"
+
+controls:
+  - control_id: "NETWORKP-01"
+    name: "Port Exposure — Primary Control"
+    description: "Unnecessary ports open to the network."
+    source_clause: "Net Ports"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://NETWORKP-01"
+
+  - control_id: "NETWORKP-02"
+    name: "Port Exposure — Input Validation"
+    description: "Validate and sanitize all inputs related to port exposure"
+    source_clause: "Net Ports"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://NETWORKP-02"
+
+  - control_id: "NETWORKP-03"
+    name: "Port Exposure — Configuration Hardening"
+    description: "Apply secure configuration defaults for port exposure"
+    source_clause: "Net Ports"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://NETWORKP-03"
+
+  - control_id: "NETWORKP-04"
+    name: "Port Exposure — Monitoring and Logging"
+    description: "Log and monitor all port exposure events for audit and detection"
+    source_clause: "Net Ports"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://NETWORKP-04"
+
+  - control_id: "NETWORKP-05"
+    name: "Port Exposure — Error Handling"
+    description: "Handle port exposure errors securely without information leakage"
+    source_clause: "Net Ports"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://NETWORKP-05"

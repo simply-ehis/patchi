@@ -1,0 +1,62 @@
+# Patchi Security Domain: cloud-aws-lambda-env
+# Source: Cloud Security AWS
+# Auto-generated — curated from Cloud Security AWS
+
+domain_id: "cloud-aws-lambda-env"
+version: "1.0.0"
+display_name: "AWS Lambda Environment Secrets"
+source_standard: "Cloud Security AWS"
+component_type: "cloud-aws"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_cloud_aws_lambda_env_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_cloud_aws_lambda_env"
+
+controls:
+  - control_id: "CLOUDAWS-01"
+    name: "AWS Lambda Environment Secrets — Primary Control"
+    description: "Secrets stored in Lambda environment variables visible in console."
+    source_clause: "AWS Lambda"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CLOUDAWS-01"
+
+  - control_id: "CLOUDAWS-02"
+    name: "AWS Lambda Environment Secrets — Input Validation"
+    description: "Validate and sanitize all inputs related to aws lambda environment secrets"
+    source_clause: "AWS Lambda"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CLOUDAWS-02"
+
+  - control_id: "CLOUDAWS-03"
+    name: "AWS Lambda Environment Secrets — Configuration Hardening"
+    description: "Apply secure configuration defaults for aws lambda environment secrets"
+    source_clause: "AWS Lambda"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CLOUDAWS-03"
+
+  - control_id: "CLOUDAWS-04"
+    name: "AWS Lambda Environment Secrets — Monitoring and Logging"
+    description: "Log and monitor all aws lambda environment secrets events for audit and detection"
+    source_clause: "AWS Lambda"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CLOUDAWS-04"
+
+  - control_id: "CLOUDAWS-05"
+    name: "AWS Lambda Environment Secrets — Error Handling"
+    description: "Handle aws lambda environment secrets errors securely without information leakage"
+    source_clause: "AWS Lambda"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CLOUDAWS-05"

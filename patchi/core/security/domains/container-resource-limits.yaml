@@ -1,0 +1,62 @@
+# Patchi Security Domain: container-resource-limits
+# Source: Container Security
+# Auto-generated — curated from Container Security
+
+domain_id: "container-resource-limits"
+version: "1.0.0"
+display_name: "Container Resource Limits"
+source_standard: "Container Security"
+component_type: "infra"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_container_resource_limits_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_container_resource_limits"
+
+controls:
+  - control_id: "CONTAINE-01"
+    name: "Container Resource Limits — Primary Control"
+    description: "Missing CPU/memory limits allowing resource exhaustion."
+    source_clause: "Container Resource"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CONTAINE-01"
+
+  - control_id: "CONTAINE-02"
+    name: "Container Resource Limits — Input Validation"
+    description: "Validate and sanitize all inputs related to container resource limits"
+    source_clause: "Container Resource"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CONTAINE-02"
+
+  - control_id: "CONTAINE-03"
+    name: "Container Resource Limits — Configuration Hardening"
+    description: "Apply secure configuration defaults for container resource limits"
+    source_clause: "Container Resource"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CONTAINE-03"
+
+  - control_id: "CONTAINE-04"
+    name: "Container Resource Limits — Monitoring and Logging"
+    description: "Log and monitor all container resource limits events for audit and detection"
+    source_clause: "Container Resource"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CONTAINE-04"
+
+  - control_id: "CONTAINE-05"
+    name: "Container Resource Limits — Error Handling"
+    description: "Handle container resource limits errors securely without information leakage"
+    source_clause: "Container Resource"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CONTAINE-05"

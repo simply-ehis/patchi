@@ -1,0 +1,62 @@
+# Patchi Security Domain: nist-cm-11
+# Source: NIST SP 800-53 CM-11
+# Auto-generated — curated from NIST SP 800-53 CM-11
+
+domain_id: "nist-cm-11"
+version: "1.0.0"
+display_name: "User-Installed Software"
+source_standard: "NIST SP 800-53 CM-11"
+component_type: "infra"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_nist_cm_11_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_nist_cm_11"
+
+controls:
+  - control_id: "NISTCM11-01"
+    name: "User-Installed Software — Primary Control"
+    description: "Organization restricts installation of software to authorized personnel."
+    source_clause: "CM-11"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://NISTCM11-01"
+
+  - control_id: "NISTCM11-02"
+    name: "User-Installed Software — Input Validation"
+    description: "Validate and sanitize all inputs related to user-installed software"
+    source_clause: "CM-11"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://NISTCM11-02"
+
+  - control_id: "NISTCM11-03"
+    name: "User-Installed Software — Configuration Hardening"
+    description: "Apply secure configuration defaults for user-installed software"
+    source_clause: "CM-11"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://NISTCM11-03"
+
+  - control_id: "NISTCM11-04"
+    name: "User-Installed Software — Monitoring and Logging"
+    description: "Log and monitor all user-installed software events for audit and detection"
+    source_clause: "CM-11"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://NISTCM11-04"
+
+  - control_id: "NISTCM11-05"
+    name: "User-Installed Software — Error Handling"
+    description: "Handle user-installed software errors securely without information leakage"
+    source_clause: "CM-11"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://NISTCM11-05"

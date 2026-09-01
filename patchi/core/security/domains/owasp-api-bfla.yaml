@@ -1,0 +1,62 @@
+# Patchi Security Domain: owasp-api-bfla
+# Source: OWASP API Security 2023 API1
+# Auto-generated — curated from OWASP API Security 2023 API1
+
+domain_id: "owasp-api-bfla"
+version: "1.0.0"
+display_name: "Broken Function Level Authorization"
+source_standard: "OWASP API Security 2023 API1"
+component_type: "backend-api"
+weight: 0.9
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_owasp_api_bfla_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_owasp_api_bfla"
+
+controls:
+  - control_id: "OWASPAPI-01"
+    name: "Broken Function Level Authorization — Primary Control"
+    description: "Attackers can exploit API endpoints by modifying the request to access unauthorized functions."
+    source_clause: "API Top 10 API1"
+    severity: "critical"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://OWASPAPI-01"
+
+  - control_id: "OWASPAPI-02"
+    name: "Broken Function Level Authorization — Input Validation"
+    description: "Validate and sanitize all inputs related to broken function level authorization"
+    source_clause: "API Top 10 API1"
+    severity: "critical"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://OWASPAPI-02"
+
+  - control_id: "OWASPAPI-03"
+    name: "Broken Function Level Authorization — Configuration Hardening"
+    description: "Apply secure configuration defaults for broken function level authorization"
+    source_clause: "API Top 10 API1"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://OWASPAPI-03"
+
+  - control_id: "OWASPAPI-04"
+    name: "Broken Function Level Authorization — Monitoring and Logging"
+    description: "Log and monitor all broken function level authorization events for audit and detection"
+    source_clause: "API Top 10 API1"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://OWASPAPI-04"
+
+  - control_id: "OWASPAPI-05"
+    name: "Broken Function Level Authorization — Error Handling"
+    description: "Handle broken function level authorization errors securely without information leakage"
+    source_clause: "API Top 10 API1"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://OWASPAPI-05"

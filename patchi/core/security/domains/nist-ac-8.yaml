@@ -1,0 +1,62 @@
+# Patchi Security Domain: nist-ac-8
+# Source: NIST SP 800-53 AC-8
+# Auto-generated — curated from NIST SP 800-53 AC-8
+
+domain_id: "nist-ac-8"
+version: "1.0.0"
+display_name: "System Use Notification"
+source_standard: "NIST SP 800-53 AC-8"
+component_type: "frontend-web"
+weight: 0.65
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_nist_ac_8_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_nist_ac_8"
+
+controls:
+  - control_id: "NISTAC8-01"
+    name: "System Use Notification — Primary Control"
+    description: "System displays a system use notification message before login."
+    source_clause: "AC-8"
+    severity: "medium"
+    check_method: "manual-review"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://NISTAC8-01"
+
+  - control_id: "NISTAC8-02"
+    name: "System Use Notification — Input Validation"
+    description: "Validate and sanitize all inputs related to system use notification"
+    source_clause: "AC-8"
+    severity: "medium"
+    check_method: "manual-review"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://NISTAC8-02"
+
+  - control_id: "NISTAC8-03"
+    name: "System Use Notification — Configuration Hardening"
+    description: "Apply secure configuration defaults for system use notification"
+    source_clause: "AC-8"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://NISTAC8-03"
+
+  - control_id: "NISTAC8-04"
+    name: "System Use Notification — Monitoring and Logging"
+    description: "Log and monitor all system use notification events for audit and detection"
+    source_clause: "AC-8"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://NISTAC8-04"
+
+  - control_id: "NISTAC8-05"
+    name: "System Use Notification — Error Handling"
+    description: "Handle system use notification errors securely without information leakage"
+    source_clause: "AC-8"
+    severity: "medium"
+    check_method: "manual-review"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://NISTAC8-05"

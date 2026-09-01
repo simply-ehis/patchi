@@ -1,0 +1,62 @@
+# Patchi Security Domain: cwe-472-external-control
+# Source: CWE-472
+# Auto-generated — curated from CWE-472
+
+domain_id: "cwe-472-external-control"
+version: "1.0.0"
+display_name: "External Control of Assumed-Immutable Web Parameter"
+source_standard: "CWE-472"
+component_type: "frontend-web"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_cwe_472_external_control_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_cwe_472_external_control"
+
+controls:
+  - control_id: "CWE472EX-01"
+    name: "External Control of Assumed-Immutable Web Parameter — Primary Control"
+    description: "Web application assumes parameters are immutable but attackers can modify them."
+    source_clause: "CWE-472"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CWE472EX-01"
+
+  - control_id: "CWE472EX-02"
+    name: "External Control of Assumed-Immutable Web Parameter — Input Validation"
+    description: "Validate and sanitize all inputs related to external control of assumed-immutable web parameter"
+    source_clause: "CWE-472"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CWE472EX-02"
+
+  - control_id: "CWE472EX-03"
+    name: "External Control of Assumed-Immutable Web Parameter — Configuration Hardening"
+    description: "Apply secure configuration defaults for external control of assumed-immutable web parameter"
+    source_clause: "CWE-472"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CWE472EX-03"
+
+  - control_id: "CWE472EX-04"
+    name: "External Control of Assumed-Immutable Web Parameter — Monitoring and Logging"
+    description: "Log and monitor all external control of assumed-immutable web parameter events for audit and detection"
+    source_clause: "CWE-472"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CWE472EX-04"
+
+  - control_id: "CWE472EX-05"
+    name: "External Control of Assumed-Immutable Web Parameter — Error Handling"
+    description: "Handle external control of assumed-immutable web parameter errors securely without information leakage"
+    source_clause: "CWE-472"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CWE472EX-05"

@@ -1,0 +1,62 @@
+# Patchi Security Domain: soc2-availability
+# Source: SOC 2 TSC
+# Auto-generated — curated from SOC 2 TSC
+
+domain_id: "soc2-availability"
+version: "1.0.0"
+display_name: "Availability"
+source_standard: "SOC 2 TSC"
+component_type: "infra"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_soc2_availability_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_soc2_availability"
+
+controls:
+  - control_id: "SOC2AVAI-01"
+    name: "Availability — Primary Control"
+    description: "System availability commitments including uptime, disaster recovery, and incident handling."
+    source_clause: "SOC 2 A"
+    severity: "high"
+    check_method: "static+manual-review"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://SOC2AVAI-01"
+
+  - control_id: "SOC2AVAI-02"
+    name: "Availability — Input Validation"
+    description: "Validate and sanitize all inputs related to availability"
+    source_clause: "SOC 2 A"
+    severity: "high"
+    check_method: "static+manual-review"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://SOC2AVAI-02"
+
+  - control_id: "SOC2AVAI-03"
+    name: "Availability — Configuration Hardening"
+    description: "Apply secure configuration defaults for availability"
+    source_clause: "SOC 2 A"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://SOC2AVAI-03"
+
+  - control_id: "SOC2AVAI-04"
+    name: "Availability — Monitoring and Logging"
+    description: "Log and monitor all availability events for audit and detection"
+    source_clause: "SOC 2 A"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://SOC2AVAI-04"
+
+  - control_id: "SOC2AVAI-05"
+    name: "Availability — Error Handling"
+    description: "Handle availability errors securely without information leakage"
+    source_clause: "SOC 2 A"
+    severity: "medium"
+    check_method: "static+manual-review"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://SOC2AVAI-05"

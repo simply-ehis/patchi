@@ -1,0 +1,62 @@
+# Patchi Security Domain: cis-iis
+# Source: CIS IIS Benchmark
+# Auto-generated — curated from CIS IIS Benchmark
+
+domain_id: "cis-iis"
+version: "1.0.0"
+display_name: "IIS Web Server Hardening"
+source_standard: "CIS IIS Benchmark"
+component_type: "infra"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_cis_iis_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_cis_iis"
+
+controls:
+  - control_id: "CISIIS-01"
+    name: "IIS Web Server Hardening — Primary Control"
+    description: "Application pool identity, TLS, authentication, and directory browsing."
+    source_clause: "CIS IIS"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CISIIS-01"
+
+  - control_id: "CISIIS-02"
+    name: "IIS Web Server Hardening — Input Validation"
+    description: "Validate and sanitize all inputs related to iis web server hardening"
+    source_clause: "CIS IIS"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CISIIS-02"
+
+  - control_id: "CISIIS-03"
+    name: "IIS Web Server Hardening — Configuration Hardening"
+    description: "Apply secure configuration defaults for iis web server hardening"
+    source_clause: "CIS IIS"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CISIIS-03"
+
+  - control_id: "CISIIS-04"
+    name: "IIS Web Server Hardening — Monitoring and Logging"
+    description: "Log and monitor all iis web server hardening events for audit and detection"
+    source_clause: "CIS IIS"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CISIIS-04"
+
+  - control_id: "CISIIS-05"
+    name: "IIS Web Server Hardening — Error Handling"
+    description: "Handle iis web server hardening errors securely without information leakage"
+    source_clause: "CIS IIS"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CISIIS-05"

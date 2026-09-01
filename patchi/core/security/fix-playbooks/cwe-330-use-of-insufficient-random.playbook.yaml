@@ -1,0 +1,60 @@
+# Playbook for: cwe-330-use-of-insufficient-random
+# Source: CWE-330
+# Auto-generated
+
+playbooks:
+- control_id: "CWE330US-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary use of insufficiently random values control patterns for cwe-330-use-of-insufficient-random"
+  blast_radius_notes: "Automated fix for CWE330US-01 - Primary Use of Insufficiently Random Values Control"
+  verification_checks:
+    - "Verify CWE330US-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CWE330US-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for use of insufficiently random values patterns for cwe-330-use-of-insufficient-random"
+  blast_radius_notes: "Automated fix for CWE330US-02 - Input Validation for Use of Insufficiently Random Values"
+  verification_checks:
+    - "Verify CWE330US-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CWE330US-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for use of insufficiently random values patterns for cwe-330-use-of-insufficient-random"
+  blast_radius_notes: "Automated fix for CWE330US-03 - Configuration Hardening for Use of Insufficiently Random Values"
+  verification_checks:
+    - "Verify CWE330US-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CWE330US-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for use of insufficiently random values patterns for cwe-330-use-of-insufficient-random"
+  blast_radius_notes: "Automated fix for CWE330US-04 - Monitoring and Logging for Use of Insufficiently Random Values"
+  verification_checks:
+    - "Verify CWE330US-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CWE330US-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for use of insufficiently random values patterns for cwe-330-use-of-insufficient-random"
+  blast_radius_notes: "Automated fix for CWE330US-05 - Error Handling for Use of Insufficiently Random Values"
+  verification_checks:
+    - "Verify CWE330US-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

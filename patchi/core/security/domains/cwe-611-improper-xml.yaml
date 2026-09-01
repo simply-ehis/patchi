@@ -1,0 +1,62 @@
+# Patchi Security Domain: cwe-611-improper-xml
+# Source: CWE Top 25 2024 CWE-611
+# Auto-generated — curated from CWE Top 25 2024 CWE-611
+
+domain_id: "cwe-611-improper-xml"
+version: "1.0.0"
+display_name: "Improper Restriction of XML External Entity Reference"
+source_standard: "CWE Top 25 2024 CWE-611"
+component_type: "backend-api"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_cwe_611_improper_xml_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_cwe_611_improper_xml"
+
+controls:
+  - control_id: "CWE611IM-01"
+    name: "Improper Restriction of XML External Entity Reference — Primary Control"
+    description: "XML parser processes external entities, leading to SSRF or file disclosure."
+    source_clause: "CWE-611"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CWE611IM-01"
+
+  - control_id: "CWE611IM-02"
+    name: "Improper Restriction of XML External Entity Reference — Input Validation"
+    description: "Validate and sanitize all inputs related to improper restriction of xml external entity reference"
+    source_clause: "CWE-611"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CWE611IM-02"
+
+  - control_id: "CWE611IM-03"
+    name: "Improper Restriction of XML External Entity Reference — Configuration Hardening"
+    description: "Apply secure configuration defaults for improper restriction of xml external entity reference"
+    source_clause: "CWE-611"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CWE611IM-03"
+
+  - control_id: "CWE611IM-04"
+    name: "Improper Restriction of XML External Entity Reference — Monitoring and Logging"
+    description: "Log and monitor all improper restriction of xml external entity reference events for audit and detection"
+    source_clause: "CWE-611"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CWE611IM-04"
+
+  - control_id: "CWE611IM-05"
+    name: "Improper Restriction of XML External Entity Reference — Error Handling"
+    description: "Handle improper restriction of xml external entity reference errors securely without information leakage"
+    source_clause: "CWE-611"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CWE611IM-05"

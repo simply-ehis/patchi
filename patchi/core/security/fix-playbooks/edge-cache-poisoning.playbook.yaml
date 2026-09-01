@@ -1,0 +1,60 @@
+# Playbook for: edge-cache-poisoning
+# Source: Edge Computing Security
+# Auto-generated
+
+playbooks:
+- control_id: "EDGECACH-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary edge cache poisoning control patterns for edge-cache-poisoning"
+  blast_radius_notes: "Automated fix for EDGECACH-01 - Primary Edge Cache Poisoning Control"
+  verification_checks:
+    - "Verify EDGECACH-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "EDGECACH-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for edge cache poisoning patterns for edge-cache-poisoning"
+  blast_radius_notes: "Automated fix for EDGECACH-02 - Input Validation for Edge Cache Poisoning"
+  verification_checks:
+    - "Verify EDGECACH-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "EDGECACH-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for edge cache poisoning patterns for edge-cache-poisoning"
+  blast_radius_notes: "Automated fix for EDGECACH-03 - Configuration Hardening for Edge Cache Poisoning"
+  verification_checks:
+    - "Verify EDGECACH-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "EDGECACH-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for edge cache poisoning patterns for edge-cache-poisoning"
+  blast_radius_notes: "Automated fix for EDGECACH-04 - Monitoring and Logging for Edge Cache Poisoning"
+  verification_checks:
+    - "Verify EDGECACH-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "EDGECACH-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for edge cache poisoning patterns for edge-cache-poisoning"
+  blast_radius_notes: "Automated fix for EDGECACH-05 - Error Handling for Edge Cache Poisoning"
+  verification_checks:
+    - "Verify EDGECACH-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

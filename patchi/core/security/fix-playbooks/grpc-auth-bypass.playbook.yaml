@@ -1,0 +1,60 @@
+# Playbook for: grpc-auth-bypass
+# Source: gRPC Security
+# Auto-generated
+
+playbooks:
+- control_id: "GRPCAUTH-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary grpc authentication bypass control patterns for grpc-auth-bypass"
+  blast_radius_notes: "Automated fix for GRPCAUTH-01 - Primary gRPC Authentication Bypass Control"
+  verification_checks:
+    - "Verify GRPCAUTH-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "GRPCAUTH-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for grpc authentication bypass patterns for grpc-auth-bypass"
+  blast_radius_notes: "Automated fix for GRPCAUTH-02 - Input Validation for gRPC Authentication Bypass"
+  verification_checks:
+    - "Verify GRPCAUTH-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "GRPCAUTH-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for grpc authentication bypass patterns for grpc-auth-bypass"
+  blast_radius_notes: "Automated fix for GRPCAUTH-03 - Configuration Hardening for gRPC Authentication Bypass"
+  verification_checks:
+    - "Verify GRPCAUTH-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "GRPCAUTH-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for grpc authentication bypass patterns for grpc-auth-bypass"
+  blast_radius_notes: "Automated fix for GRPCAUTH-04 - Monitoring and Logging for gRPC Authentication Bypass"
+  verification_checks:
+    - "Verify GRPCAUTH-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "GRPCAUTH-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for grpc authentication bypass patterns for grpc-auth-bypass"
+  blast_radius_notes: "Automated fix for GRPCAUTH-05 - Error Handling for gRPC Authentication Bypass"
+  verification_checks:
+    - "Verify GRPCAUTH-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

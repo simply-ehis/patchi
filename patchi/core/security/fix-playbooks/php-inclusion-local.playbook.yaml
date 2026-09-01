@@ -1,0 +1,60 @@
+# Playbook for: php-inclusion-local
+# Source: PHP Security
+# Auto-generated
+
+playbooks:
+- control_id: "PHPINCLU-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary php local file inclusion control patterns for php-inclusion-local"
+  blast_radius_notes: "Automated fix for PHPINCLU-01 - Primary PHP Local File Inclusion Control"
+  verification_checks:
+    - "Verify PHPINCLU-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "PHPINCLU-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for php local file inclusion patterns for php-inclusion-local"
+  blast_radius_notes: "Automated fix for PHPINCLU-02 - Input Validation for PHP Local File Inclusion"
+  verification_checks:
+    - "Verify PHPINCLU-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "PHPINCLU-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for php local file inclusion patterns for php-inclusion-local"
+  blast_radius_notes: "Automated fix for PHPINCLU-03 - Configuration Hardening for PHP Local File Inclusion"
+  verification_checks:
+    - "Verify PHPINCLU-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "PHPINCLU-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for php local file inclusion patterns for php-inclusion-local"
+  blast_radius_notes: "Automated fix for PHPINCLU-04 - Monitoring and Logging for PHP Local File Inclusion"
+  verification_checks:
+    - "Verify PHPINCLU-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "PHPINCLU-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for php local file inclusion patterns for php-inclusion-local"
+  blast_radius_notes: "Automated fix for PHPINCLU-05 - Error Handling for PHP Local File Inclusion"
+  verification_checks:
+    - "Verify PHPINCLU-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

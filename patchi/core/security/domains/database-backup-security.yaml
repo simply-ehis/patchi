@@ -1,0 +1,62 @@
+# Patchi Security Domain: database-backup-security
+# Source: Database Security
+# Auto-generated — curated from Database Security
+
+domain_id: "database-backup-security"
+version: "1.0.0"
+display_name: "Database Backup Security"
+source_standard: "Database Security"
+component_type: "infra"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_database_backup_security_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_database_backup_security"
+
+controls:
+  - control_id: "DATABASE-01"
+    name: "Database Backup Security — Primary Control"
+    description: "Database backups stored unencrypted or without access controls."
+    source_clause: "DB Backup"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://DATABASE-01"
+
+  - control_id: "DATABASE-02"
+    name: "Database Backup Security — Input Validation"
+    description: "Validate and sanitize all inputs related to database backup security"
+    source_clause: "DB Backup"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://DATABASE-02"
+
+  - control_id: "DATABASE-03"
+    name: "Database Backup Security — Configuration Hardening"
+    description: "Apply secure configuration defaults for database backup security"
+    source_clause: "DB Backup"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://DATABASE-03"
+
+  - control_id: "DATABASE-04"
+    name: "Database Backup Security — Monitoring and Logging"
+    description: "Log and monitor all database backup security events for audit and detection"
+    source_clause: "DB Backup"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://DATABASE-04"
+
+  - control_id: "DATABASE-05"
+    name: "Database Backup Security — Error Handling"
+    description: "Handle database backup security errors securely without information leakage"
+    source_clause: "DB Backup"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://DATABASE-05"

@@ -1,0 +1,62 @@
+# Patchi Security Domain: email-bounce-security
+# Source: Email Security
+# Auto-generated — curated from Email Security
+
+domain_id: "email-bounce-security"
+version: "1.0.0"
+display_name: "Email Bounce Handling"
+source_standard: "Email Security"
+component_type: "infra"
+weight: 0.7
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_email_bounce_security_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_email_bounce_security"
+
+controls:
+  - control_id: "EMAILBOU-01"
+    name: "Email Bounce Handling — Primary Control"
+    description: "Email bounce messages leaking user existence or internal information."
+    source_clause: "Email Bounce"
+    severity: "medium"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://EMAILBOU-01"
+
+  - control_id: "EMAILBOU-02"
+    name: "Email Bounce Handling — Input Validation"
+    description: "Validate and sanitize all inputs related to email bounce handling"
+    source_clause: "Email Bounce"
+    severity: "medium"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://EMAILBOU-02"
+
+  - control_id: "EMAILBOU-03"
+    name: "Email Bounce Handling — Configuration Hardening"
+    description: "Apply secure configuration defaults for email bounce handling"
+    source_clause: "Email Bounce"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://EMAILBOU-03"
+
+  - control_id: "EMAILBOU-04"
+    name: "Email Bounce Handling — Monitoring and Logging"
+    description: "Log and monitor all email bounce handling events for audit and detection"
+    source_clause: "Email Bounce"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://EMAILBOU-04"
+
+  - control_id: "EMAILBOU-05"
+    name: "Email Bounce Handling — Error Handling"
+    description: "Handle email bounce handling errors securely without information leakage"
+    source_clause: "Email Bounce"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://EMAILBOU-05"

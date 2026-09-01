@@ -1,0 +1,62 @@
+# Patchi Security Domain: spring-actuator-exposure
+# Source: Spring Security
+# Auto-generated — curated from Spring Security
+
+domain_id: "spring-actuator-exposure"
+version: "1.0.0"
+display_name: "Spring Actuator Exposure"
+source_standard: "Spring Security"
+component_type: "infra"
+weight: 0.9
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_spring_actuator_exposure_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_spring_actuator_exposure"
+
+controls:
+  - control_id: "SPRINGAC-01"
+    name: "Spring Actuator Exposure — Primary Control"
+    description: "Exposed actuator endpoints leaking system information."
+    source_clause: "Spring Actuator"
+    severity: "critical"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://SPRINGAC-01"
+
+  - control_id: "SPRINGAC-02"
+    name: "Spring Actuator Exposure — Input Validation"
+    description: "Validate and sanitize all inputs related to spring actuator exposure"
+    source_clause: "Spring Actuator"
+    severity: "critical"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://SPRINGAC-02"
+
+  - control_id: "SPRINGAC-03"
+    name: "Spring Actuator Exposure — Configuration Hardening"
+    description: "Apply secure configuration defaults for spring actuator exposure"
+    source_clause: "Spring Actuator"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://SPRINGAC-03"
+
+  - control_id: "SPRINGAC-04"
+    name: "Spring Actuator Exposure — Monitoring and Logging"
+    description: "Log and monitor all spring actuator exposure events for audit and detection"
+    source_clause: "Spring Actuator"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://SPRINGAC-04"
+
+  - control_id: "SPRINGAC-05"
+    name: "Spring Actuator Exposure — Error Handling"
+    description: "Handle spring actuator exposure errors securely without information leakage"
+    source_clause: "Spring Actuator"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://SPRINGAC-05"

@@ -1,0 +1,60 @@
+# Playbook for: dotnet-auth-bypass
+# Source: .NET Security
+# Auto-generated
+
+playbooks:
+- control_id: "DOTNETAU-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary .net authentication bypass control patterns for dotnet-auth-bypass"
+  blast_radius_notes: "Automated fix for DOTNETAU-01 - Primary .NET Authentication Bypass Control"
+  verification_checks:
+    - "Verify DOTNETAU-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "DOTNETAU-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for .net authentication bypass patterns for dotnet-auth-bypass"
+  blast_radius_notes: "Automated fix for DOTNETAU-02 - Input Validation for .NET Authentication Bypass"
+  verification_checks:
+    - "Verify DOTNETAU-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "DOTNETAU-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for .net authentication bypass patterns for dotnet-auth-bypass"
+  blast_radius_notes: "Automated fix for DOTNETAU-03 - Configuration Hardening for .NET Authentication Bypass"
+  verification_checks:
+    - "Verify DOTNETAU-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "DOTNETAU-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for .net authentication bypass patterns for dotnet-auth-bypass"
+  blast_radius_notes: "Automated fix for DOTNETAU-04 - Monitoring and Logging for .NET Authentication Bypass"
+  verification_checks:
+    - "Verify DOTNETAU-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "DOTNETAU-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for .net authentication bypass patterns for dotnet-auth-bypass"
+  blast_radius_notes: "Automated fix for DOTNETAU-05 - Error Handling for .NET Authentication Bypass"
+  verification_checks:
+    - "Verify DOTNETAU-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

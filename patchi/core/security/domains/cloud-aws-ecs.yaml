@@ -1,0 +1,62 @@
+# Patchi Security Domain: cloud-aws-ecs
+# Source: Cloud Security AWS
+# Auto-generated — curated from Cloud Security AWS
+
+domain_id: "cloud-aws-ecs"
+version: "1.0.0"
+display_name: "AWS ECS/Fargate Security"
+source_standard: "Cloud Security AWS"
+component_type: "cloud-aws"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_cloud_aws_ecs_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_cloud_aws_ecs"
+
+controls:
+  - control_id: "CLOUDAWS-01"
+    name: "AWS ECS/Fargate Security — Primary Control"
+    description: "Container with privileged mode or excessive capabilities."
+    source_clause: "AWS ECS"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CLOUDAWS-01"
+
+  - control_id: "CLOUDAWS-02"
+    name: "AWS ECS/Fargate Security — Input Validation"
+    description: "Validate and sanitize all inputs related to aws ecs/fargate security"
+    source_clause: "AWS ECS"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CLOUDAWS-02"
+
+  - control_id: "CLOUDAWS-03"
+    name: "AWS ECS/Fargate Security — Configuration Hardening"
+    description: "Apply secure configuration defaults for aws ecs/fargate security"
+    source_clause: "AWS ECS"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CLOUDAWS-03"
+
+  - control_id: "CLOUDAWS-04"
+    name: "AWS ECS/Fargate Security — Monitoring and Logging"
+    description: "Log and monitor all aws ecs/fargate security events for audit and detection"
+    source_clause: "AWS ECS"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CLOUDAWS-04"
+
+  - control_id: "CLOUDAWS-05"
+    name: "AWS ECS/Fargate Security — Error Handling"
+    description: "Handle aws ecs/fargate security errors securely without information leakage"
+    source_clause: "AWS ECS"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CLOUDAWS-05"

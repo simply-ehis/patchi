@@ -1,0 +1,62 @@
+# Patchi Security Domain: laravel-debug-mode
+# Source: Laravel Security
+# Auto-generated — curated from Laravel Security
+
+domain_id: "laravel-debug-mode"
+version: "1.0.0"
+display_name: "Laravel Debug Mode"
+source_standard: "Laravel Security"
+component_type: "infra"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_laravel_debug_mode_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_laravel_debug_mode"
+
+controls:
+  - control_id: "LARAVELD-01"
+    name: "Laravel Debug Mode — Primary Control"
+    description: "APP_DEBUG=true in production exposing stack traces."
+    source_clause: "Laravel Debug"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://LARAVELD-01"
+
+  - control_id: "LARAVELD-02"
+    name: "Laravel Debug Mode — Input Validation"
+    description: "Validate and sanitize all inputs related to laravel debug mode"
+    source_clause: "Laravel Debug"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://LARAVELD-02"
+
+  - control_id: "LARAVELD-03"
+    name: "Laravel Debug Mode — Configuration Hardening"
+    description: "Apply secure configuration defaults for laravel debug mode"
+    source_clause: "Laravel Debug"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://LARAVELD-03"
+
+  - control_id: "LARAVELD-04"
+    name: "Laravel Debug Mode — Monitoring and Logging"
+    description: "Log and monitor all laravel debug mode events for audit and detection"
+    source_clause: "Laravel Debug"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://LARAVELD-04"
+
+  - control_id: "LARAVELD-05"
+    name: "Laravel Debug Mode — Error Handling"
+    description: "Handle laravel debug mode errors securely without information leakage"
+    source_clause: "Laravel Debug"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://LARAVELD-05"

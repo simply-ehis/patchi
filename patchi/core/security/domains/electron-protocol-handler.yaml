@@ -1,0 +1,62 @@
+# Patchi Security Domain: electron-protocol-handler
+# Source: Desktop App Security
+# Auto-generated — curated from Desktop App Security
+
+domain_id: "electron-protocol-handler"
+version: "1.0.0"
+display_name: "Electron Protocol Handler"
+source_standard: "Desktop App Security"
+component_type: "desktop-app"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_electron_protocol_handler_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_electron_protocol_handler"
+
+controls:
+  - control_id: "ELECTRON-01"
+    name: "Electron Protocol Handler — Primary Control"
+    description: "Custom protocol handler with insufficient validation."
+    source_clause: "Electron Proto"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://ELECTRON-01"
+
+  - control_id: "ELECTRON-02"
+    name: "Electron Protocol Handler — Input Validation"
+    description: "Validate and sanitize all inputs related to electron protocol handler"
+    source_clause: "Electron Proto"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://ELECTRON-02"
+
+  - control_id: "ELECTRON-03"
+    name: "Electron Protocol Handler — Configuration Hardening"
+    description: "Apply secure configuration defaults for electron protocol handler"
+    source_clause: "Electron Proto"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://ELECTRON-03"
+
+  - control_id: "ELECTRON-04"
+    name: "Electron Protocol Handler — Monitoring and Logging"
+    description: "Log and monitor all electron protocol handler events for audit and detection"
+    source_clause: "Electron Proto"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://ELECTRON-04"
+
+  - control_id: "ELECTRON-05"
+    name: "Electron Protocol Handler — Error Handling"
+    description: "Handle electron protocol handler errors securely without information leakage"
+    source_clause: "Electron Proto"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://ELECTRON-05"

@@ -1,0 +1,60 @@
+# Playbook for: iso27001-secure-development
+# Source: ISO 27001:2022
+# Auto-generated
+
+playbooks:
+- control_id: "ISO27001-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary secure development (a.8.25-a.8.34) control patterns for iso27001-secure-development"
+  blast_radius_notes: "Automated fix for ISO27001-01 - Primary Secure Development (A.8.25-A.8.34) Control"
+  verification_checks:
+    - "Verify ISO27001-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "ISO27001-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for secure development (a.8.25-a.8.34) patterns for iso27001-secure-development"
+  blast_radius_notes: "Automated fix for ISO27001-02 - Input Validation for Secure Development (A.8.25-A.8.34)"
+  verification_checks:
+    - "Verify ISO27001-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "ISO27001-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for secure development (a.8.25-a.8.34) patterns for iso27001-secure-development"
+  blast_radius_notes: "Automated fix for ISO27001-03 - Configuration Hardening for Secure Development (A.8.25-A.8.34)"
+  verification_checks:
+    - "Verify ISO27001-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "ISO27001-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for secure development (a.8.25-a.8.34) patterns for iso27001-secure-development"
+  blast_radius_notes: "Automated fix for ISO27001-04 - Monitoring and Logging for Secure Development (A.8.25-A.8.34)"
+  verification_checks:
+    - "Verify ISO27001-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "ISO27001-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for secure development (a.8.25-a.8.34) patterns for iso27001-secure-development"
+  blast_radius_notes: "Automated fix for ISO27001-05 - Error Handling for Secure Development (A.8.25-A.8.34)"
+  verification_checks:
+    - "Verify ISO27001-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

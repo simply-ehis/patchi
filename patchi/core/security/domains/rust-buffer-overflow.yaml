@@ -1,0 +1,62 @@
+# Patchi Security Domain: rust-buffer-overflow
+# Source: Rust Security
+# Auto-generated — curated from Rust Security
+
+domain_id: "rust-buffer-overflow"
+version: "1.0.0"
+display_name: "Rust Buffer Overflow via Unsafe"
+source_standard: "Rust Security"
+component_type: "native-code"
+weight: 0.9
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_rust_buffer_overflow_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_rust_buffer_overflow"
+
+controls:
+  - control_id: "RUSTBUFF-01"
+    name: "Rust Buffer Overflow via Unsafe — Primary Control"
+    description: "unsafe code bypassing Rust's memory safety guarantees."
+    source_clause: "Rust Buffer"
+    severity: "critical"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://RUSTBUFF-01"
+
+  - control_id: "RUSTBUFF-02"
+    name: "Rust Buffer Overflow via Unsafe — Input Validation"
+    description: "Validate and sanitize all inputs related to rust buffer overflow via unsafe"
+    source_clause: "Rust Buffer"
+    severity: "critical"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://RUSTBUFF-02"
+
+  - control_id: "RUSTBUFF-03"
+    name: "Rust Buffer Overflow via Unsafe — Configuration Hardening"
+    description: "Apply secure configuration defaults for rust buffer overflow via unsafe"
+    source_clause: "Rust Buffer"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://RUSTBUFF-03"
+
+  - control_id: "RUSTBUFF-04"
+    name: "Rust Buffer Overflow via Unsafe — Monitoring and Logging"
+    description: "Log and monitor all rust buffer overflow via unsafe events for audit and detection"
+    source_clause: "Rust Buffer"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://RUSTBUFF-04"
+
+  - control_id: "RUSTBUFF-05"
+    name: "Rust Buffer Overflow via Unsafe — Error Handling"
+    description: "Handle rust buffer overflow via unsafe errors securely without information leakage"
+    source_clause: "Rust Buffer"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://RUSTBUFF-05"

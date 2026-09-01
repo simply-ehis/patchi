@@ -1,0 +1,60 @@
+# Playbook for: cwe-939-improper-authorization-handler
+# Source: CWE-939
+# Auto-generated
+
+playbooks:
+- control_id: "CWE939IM-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary improper authorization in handler for custom url scheme control patterns for cwe-939-improper-authorization-handler"
+  blast_radius_notes: "Automated fix for CWE939IM-01 - Primary Improper Authorization in Handler for Custom URL Scheme Control"
+  verification_checks:
+    - "Verify CWE939IM-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CWE939IM-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for improper authorization in handler for custom url scheme patterns for cwe-939-improper-authorization-handler"
+  blast_radius_notes: "Automated fix for CWE939IM-02 - Input Validation for Improper Authorization in Handler for Custom URL Scheme"
+  verification_checks:
+    - "Verify CWE939IM-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CWE939IM-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for improper authorization in handler for custom url scheme patterns for cwe-939-improper-authorization-handler"
+  blast_radius_notes: "Automated fix for CWE939IM-03 - Configuration Hardening for Improper Authorization in Handler for Custom URL Scheme"
+  verification_checks:
+    - "Verify CWE939IM-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CWE939IM-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for improper authorization in handler for custom url scheme patterns for cwe-939-improper-authorization-handler"
+  blast_radius_notes: "Automated fix for CWE939IM-04 - Monitoring and Logging for Improper Authorization in Handler for Custom URL Scheme"
+  verification_checks:
+    - "Verify CWE939IM-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CWE939IM-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for improper authorization in handler for custom url scheme patterns for cwe-939-improper-authorization-handler"
+  blast_radius_notes: "Automated fix for CWE939IM-05 - Error Handling for Improper Authorization in Handler for Custom URL Scheme"
+  verification_checks:
+    - "Verify CWE939IM-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

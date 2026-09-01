@@ -1,0 +1,60 @@
+# Playbook for: cis-macos
+# Source: CIS macOS Benchmark
+# Auto-generated
+
+playbooks:
+- control_id: "CISMACOS-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary macos workstation hardening control patterns for cis-macos"
+  blast_radius_notes: "Automated fix for CISMACOS-01 - Primary macOS Workstation Hardening Control"
+  verification_checks:
+    - "Verify CISMACOS-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CISMACOS-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for macos workstation hardening patterns for cis-macos"
+  blast_radius_notes: "Automated fix for CISMACOS-02 - Input Validation for macOS Workstation Hardening"
+  verification_checks:
+    - "Verify CISMACOS-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CISMACOS-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for macos workstation hardening patterns for cis-macos"
+  blast_radius_notes: "Automated fix for CISMACOS-03 - Configuration Hardening for macOS Workstation Hardening"
+  verification_checks:
+    - "Verify CISMACOS-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CISMACOS-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for macos workstation hardening patterns for cis-macos"
+  blast_radius_notes: "Automated fix for CISMACOS-04 - Monitoring and Logging for macOS Workstation Hardening"
+  verification_checks:
+    - "Verify CISMACOS-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CISMACOS-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for macos workstation hardening patterns for cis-macos"
+  blast_radius_notes: "Automated fix for CISMACOS-05 - Error Handling for macOS Workstation Hardening"
+  verification_checks:
+    - "Verify CISMACOS-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

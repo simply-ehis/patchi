@@ -1,0 +1,60 @@
+# Playbook for: electron-remote-module
+# Source: Desktop App Security
+# Auto-generated
+
+playbooks:
+- control_id: "ELECTRON-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary electron remote module control patterns for electron-remote-module"
+  blast_radius_notes: "Automated fix for ELECTRON-01 - Primary Electron Remote Module Control"
+  verification_checks:
+    - "Verify ELECTRON-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "ELECTRON-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for electron remote module patterns for electron-remote-module"
+  blast_radius_notes: "Automated fix for ELECTRON-02 - Input Validation for Electron Remote Module"
+  verification_checks:
+    - "Verify ELECTRON-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "ELECTRON-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for electron remote module patterns for electron-remote-module"
+  blast_radius_notes: "Automated fix for ELECTRON-03 - Configuration Hardening for Electron Remote Module"
+  verification_checks:
+    - "Verify ELECTRON-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "ELECTRON-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for electron remote module patterns for electron-remote-module"
+  blast_radius_notes: "Automated fix for ELECTRON-04 - Monitoring and Logging for Electron Remote Module"
+  verification_checks:
+    - "Verify ELECTRON-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "ELECTRON-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for electron remote module patterns for electron-remote-module"
+  blast_radius_notes: "Automated fix for ELECTRON-05 - Error Handling for Electron Remote Module"
+  verification_checks:
+    - "Verify ELECTRON-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

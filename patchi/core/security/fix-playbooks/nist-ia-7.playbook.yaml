@@ -1,0 +1,60 @@
+# Playbook for: nist-ia-7
+# Source: NIST SP 800-53 IA-7
+# Auto-generated
+
+playbooks:
+- control_id: "NISTIA7-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary cryptographic module authentication control patterns for nist-ia-7"
+  blast_radius_notes: "Automated fix for NISTIA7-01 - Primary Cryptographic Module Authentication Control"
+  verification_checks:
+    - "Verify NISTIA7-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NISTIA7-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for cryptographic module authentication patterns for nist-ia-7"
+  blast_radius_notes: "Automated fix for NISTIA7-02 - Input Validation for Cryptographic Module Authentication"
+  verification_checks:
+    - "Verify NISTIA7-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NISTIA7-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for cryptographic module authentication patterns for nist-ia-7"
+  blast_radius_notes: "Automated fix for NISTIA7-03 - Configuration Hardening for Cryptographic Module Authentication"
+  verification_checks:
+    - "Verify NISTIA7-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NISTIA7-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for cryptographic module authentication patterns for nist-ia-7"
+  blast_radius_notes: "Automated fix for NISTIA7-04 - Monitoring and Logging for Cryptographic Module Authentication"
+  verification_checks:
+    - "Verify NISTIA7-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NISTIA7-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for cryptographic module authentication patterns for nist-ia-7"
+  blast_radius_notes: "Automated fix for NISTIA7-05 - Error Handling for Cryptographic Module Authentication"
+  verification_checks:
+    - "Verify NISTIA7-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

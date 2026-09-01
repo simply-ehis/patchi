@@ -1,0 +1,62 @@
+# Patchi Security Domain: nist-sc-12
+# Source: NIST SP 800-53 SC-12
+# Auto-generated — curated from NIST SP 800-53 SC-12
+
+domain_id: "nist-sc-12"
+version: "1.0.0"
+display_name: "Establishment and Management of Cryptographic Keys"
+source_standard: "NIST SP 800-53 SC-12"
+component_type: "backend-api"
+weight: 0.9
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_nist_sc_12_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_nist_sc_12"
+
+controls:
+  - control_id: "NISTSC12-01"
+    name: "Establishment and Management of Cryptographic Keys — Primary Control"
+    description: "System establishes and manages cryptographic keys for encryption."
+    source_clause: "SC-12"
+    severity: "critical"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://NISTSC12-01"
+
+  - control_id: "NISTSC12-02"
+    name: "Establishment and Management of Cryptographic Keys — Input Validation"
+    description: "Validate and sanitize all inputs related to establishment and management of cryptographic keys"
+    source_clause: "SC-12"
+    severity: "critical"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://NISTSC12-02"
+
+  - control_id: "NISTSC12-03"
+    name: "Establishment and Management of Cryptographic Keys — Configuration Hardening"
+    description: "Apply secure configuration defaults for establishment and management of cryptographic keys"
+    source_clause: "SC-12"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://NISTSC12-03"
+
+  - control_id: "NISTSC12-04"
+    name: "Establishment and Management of Cryptographic Keys — Monitoring and Logging"
+    description: "Log and monitor all establishment and management of cryptographic keys events for audit and detection"
+    source_clause: "SC-12"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://NISTSC12-04"
+
+  - control_id: "NISTSC12-05"
+    name: "Establishment and Management of Cryptographic Keys — Error Handling"
+    description: "Handle establishment and management of cryptographic keys errors securely without information leakage"
+    source_clause: "SC-12"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://NISTSC12-05"

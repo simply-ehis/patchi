@@ -1,0 +1,62 @@
+# Patchi Security Domain: email-list-security
+# Source: Email Security
+# Auto-generated — curated from Email Security
+
+domain_id: "email-list-security"
+version: "1.0.0"
+display_name: "Mailing List Security"
+source_standard: "Email Security"
+component_type: "infra"
+weight: 0.75
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_email_list_security_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_email_list_security"
+
+controls:
+  - control_id: "EMAILLIS-01"
+    name: "Mailing List Security — Primary Control"
+    description: "Mailing lists exposing subscriber addresses or allowing unauthorized posting."
+    source_clause: "Email List"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://EMAILLIS-01"
+
+  - control_id: "EMAILLIS-02"
+    name: "Mailing List Security — Input Validation"
+    description: "Validate and sanitize all inputs related to mailing list security"
+    source_clause: "Email List"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://EMAILLIS-02"
+
+  - control_id: "EMAILLIS-03"
+    name: "Mailing List Security — Configuration Hardening"
+    description: "Apply secure configuration defaults for mailing list security"
+    source_clause: "Email List"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://EMAILLIS-03"
+
+  - control_id: "EMAILLIS-04"
+    name: "Mailing List Security — Monitoring and Logging"
+    description: "Log and monitor all mailing list security events for audit and detection"
+    source_clause: "Email List"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://EMAILLIS-04"
+
+  - control_id: "EMAILLIS-05"
+    name: "Mailing List Security — Error Handling"
+    description: "Handle mailing list security errors securely without information leakage"
+    source_clause: "Email List"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://EMAILLIS-05"

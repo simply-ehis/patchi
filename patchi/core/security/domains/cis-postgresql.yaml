@@ -1,0 +1,62 @@
+# Patchi Security Domain: cis-postgresql
+# Source: CIS PostgreSQL Benchmark
+# Auto-generated — curated from CIS PostgreSQL Benchmark
+
+domain_id: "cis-postgresql"
+version: "1.0.0"
+display_name: "PostgreSQL Hardening"
+source_standard: "CIS PostgreSQL Benchmark"
+component_type: "infra"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_cis_postgresql_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_cis_postgresql"
+
+controls:
+  - control_id: "CISPOSTG-01"
+    name: "PostgreSQL Hardening — Primary Control"
+    description: "Authentication, privilege management, logging, and SSL configuration."
+    source_clause: "CIS PostgreSQL"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CISPOSTG-01"
+
+  - control_id: "CISPOSTG-02"
+    name: "PostgreSQL Hardening — Input Validation"
+    description: "Validate and sanitize all inputs related to postgresql hardening"
+    source_clause: "CIS PostgreSQL"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CISPOSTG-02"
+
+  - control_id: "CISPOSTG-03"
+    name: "PostgreSQL Hardening — Configuration Hardening"
+    description: "Apply secure configuration defaults for postgresql hardening"
+    source_clause: "CIS PostgreSQL"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CISPOSTG-03"
+
+  - control_id: "CISPOSTG-04"
+    name: "PostgreSQL Hardening — Monitoring and Logging"
+    description: "Log and monitor all postgresql hardening events for audit and detection"
+    source_clause: "CIS PostgreSQL"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CISPOSTG-04"
+
+  - control_id: "CISPOSTG-05"
+    name: "PostgreSQL Hardening — Error Handling"
+    description: "Handle postgresql hardening errors securely without information leakage"
+    source_clause: "CIS PostgreSQL"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CISPOSTG-05"

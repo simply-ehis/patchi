@@ -1,0 +1,60 @@
+# Playbook for: vue-xss-v-html
+# Source: Vue.js Security
+# Auto-generated
+
+playbooks:
+- control_id: "VUEXSSVH-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary xss via v-html directive control patterns for vue-xss-v-html"
+  blast_radius_notes: "Automated fix for VUEXSSVH-01 - Primary XSS via v-html Directive Control"
+  verification_checks:
+    - "Verify VUEXSSVH-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "VUEXSSVH-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for xss via v-html directive patterns for vue-xss-v-html"
+  blast_radius_notes: "Automated fix for VUEXSSVH-02 - Input Validation for XSS via v-html Directive"
+  verification_checks:
+    - "Verify VUEXSSVH-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "VUEXSSVH-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for xss via v-html directive patterns for vue-xss-v-html"
+  blast_radius_notes: "Automated fix for VUEXSSVH-03 - Configuration Hardening for XSS via v-html Directive"
+  verification_checks:
+    - "Verify VUEXSSVH-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "VUEXSSVH-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for xss via v-html directive patterns for vue-xss-v-html"
+  blast_radius_notes: "Automated fix for VUEXSSVH-04 - Monitoring and Logging for XSS via v-html Directive"
+  verification_checks:
+    - "Verify VUEXSSVH-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "VUEXSSVH-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for xss via v-html directive patterns for vue-xss-v-html"
+  blast_radius_notes: "Automated fix for VUEXSSVH-05 - Error Handling for XSS via v-html Directive"
+  verification_checks:
+    - "Verify VUEXSSVH-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

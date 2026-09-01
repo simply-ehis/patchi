@@ -1,0 +1,60 @@
+# Playbook for: sans-file-inclusion
+# Source: SANS Top 25
+# Auto-generated
+
+playbooks:
+- control_id: "SANSFILE-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary file inclusion control patterns for sans-file-inclusion"
+  blast_radius_notes: "Automated fix for SANSFILE-01 - Primary File Inclusion Control"
+  verification_checks:
+    - "Verify SANSFILE-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "SANSFILE-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for file inclusion patterns for sans-file-inclusion"
+  blast_radius_notes: "Automated fix for SANSFILE-02 - Input Validation for File Inclusion"
+  verification_checks:
+    - "Verify SANSFILE-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "SANSFILE-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for file inclusion patterns for sans-file-inclusion"
+  blast_radius_notes: "Automated fix for SANSFILE-03 - Configuration Hardening for File Inclusion"
+  verification_checks:
+    - "Verify SANSFILE-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "SANSFILE-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for file inclusion patterns for sans-file-inclusion"
+  blast_radius_notes: "Automated fix for SANSFILE-04 - Monitoring and Logging for File Inclusion"
+  verification_checks:
+    - "Verify SANSFILE-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "SANSFILE-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for file inclusion patterns for sans-file-inclusion"
+  blast_radius_notes: "Automated fix for SANSFILE-05 - Error Handling for File Inclusion"
+  verification_checks:
+    - "Verify SANSFILE-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

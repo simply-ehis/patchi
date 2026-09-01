@@ -1,0 +1,62 @@
+# Patchi Security Domain: owasp-a08-integrity-failures
+# Source: OWASP Top 10 2021 A08
+# Auto-generated — curated from OWASP Top 10 2021 A08
+
+domain_id: "owasp-a08-integrity-failures"
+version: "1.0.0"
+display_name: "Software and Data Integrity Failures"
+source_standard: "OWASP Top 10 2021 A08"
+component_type: "backend-api"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_owasp_a08_integrity_failures_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_owasp_a08_integrity_failures"
+
+controls:
+  - control_id: "OWASPA08-01"
+    name: "Software and Data Integrity Failures — Primary Control"
+    description: "Code and infrastructure that does not protect against integrity violations. Includes insecure CI/CD pipelines and auto-update without verification."
+    source_clause: "OWASP A08:2021"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://OWASPA08-01"
+
+  - control_id: "OWASPA08-02"
+    name: "Software and Data Integrity Failures — Input Validation"
+    description: "Validate and sanitize all inputs related to software and data integrity failures"
+    source_clause: "OWASP A08:2021"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://OWASPA08-02"
+
+  - control_id: "OWASPA08-03"
+    name: "Software and Data Integrity Failures — Configuration Hardening"
+    description: "Apply secure configuration defaults for software and data integrity failures"
+    source_clause: "OWASP A08:2021"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://OWASPA08-03"
+
+  - control_id: "OWASPA08-04"
+    name: "Software and Data Integrity Failures — Monitoring and Logging"
+    description: "Log and monitor all software and data integrity failures events for audit and detection"
+    source_clause: "OWASP A08:2021"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://OWASPA08-04"
+
+  - control_id: "OWASPA08-05"
+    name: "Software and Data Integrity Failures — Error Handling"
+    description: "Handle software and data integrity failures errors securely without information leakage"
+    source_clause: "OWASP A08:2021"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://OWASPA08-05"

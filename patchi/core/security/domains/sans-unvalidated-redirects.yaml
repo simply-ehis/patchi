@@ -1,0 +1,62 @@
+# Patchi Security Domain: sans-unvalidated-redirects
+# Source: SANS Top 25
+# Auto-generated — curated from SANS Top 25
+
+domain_id: "sans-unvalidated-redirects"
+version: "1.0.0"
+display_name: "Unvalidated Redirects and Forwards"
+source_standard: "SANS Top 25"
+component_type: "backend-api"
+weight: 0.75
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_sans_unvalidated_redirects_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_sans_unvalidated_redirects"
+
+controls:
+  - control_id: "SANSUNVA-01"
+    name: "Unvalidated Redirects and Forwards — Primary Control"
+    description: "Redirects to malicious sites via unvalidated URL parameters."
+    source_clause: "SANS"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://SANSUNVA-01"
+
+  - control_id: "SANSUNVA-02"
+    name: "Unvalidated Redirects and Forwards — Input Validation"
+    description: "Validate and sanitize all inputs related to unvalidated redirects and forwards"
+    source_clause: "SANS"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://SANSUNVA-02"
+
+  - control_id: "SANSUNVA-03"
+    name: "Unvalidated Redirects and Forwards — Configuration Hardening"
+    description: "Apply secure configuration defaults for unvalidated redirects and forwards"
+    source_clause: "SANS"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://SANSUNVA-03"
+
+  - control_id: "SANSUNVA-04"
+    name: "Unvalidated Redirects and Forwards — Monitoring and Logging"
+    description: "Log and monitor all unvalidated redirects and forwards events for audit and detection"
+    source_clause: "SANS"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://SANSUNVA-04"
+
+  - control_id: "SANSUNVA-05"
+    name: "Unvalidated Redirects and Forwards — Error Handling"
+    description: "Handle unvalidated redirects and forwards errors securely without information leakage"
+    source_clause: "SANS"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://SANSUNVA-05"

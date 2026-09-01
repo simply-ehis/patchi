@@ -1,0 +1,62 @@
+# Patchi Security Domain: cwe-287-improper-auth
+# Source: CWE Top 25 2024 CWE-287
+# Auto-generated — curated from CWE Top 25 2024 CWE-287
+
+domain_id: "cwe-287-improper-auth"
+version: "1.0.0"
+display_name: "Improper Authentication"
+source_standard: "CWE Top 25 2024 CWE-287"
+component_type: "backend-api"
+weight: 0.9
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_cwe_287_improper_auth_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_cwe_287_improper_auth"
+
+controls:
+  - control_id: "CWE287IM-01"
+    name: "Improper Authentication — Primary Control"
+    description: "When an actor claims identity, the application does not verify the claim."
+    source_clause: "CWE-287"
+    severity: "critical"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CWE287IM-01"
+
+  - control_id: "CWE287IM-02"
+    name: "Improper Authentication — Input Validation"
+    description: "Validate and sanitize all inputs related to improper authentication"
+    source_clause: "CWE-287"
+    severity: "critical"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CWE287IM-02"
+
+  - control_id: "CWE287IM-03"
+    name: "Improper Authentication — Configuration Hardening"
+    description: "Apply secure configuration defaults for improper authentication"
+    source_clause: "CWE-287"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CWE287IM-03"
+
+  - control_id: "CWE287IM-04"
+    name: "Improper Authentication — Monitoring and Logging"
+    description: "Log and monitor all improper authentication events for audit and detection"
+    source_clause: "CWE-287"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CWE287IM-04"
+
+  - control_id: "CWE287IM-05"
+    name: "Improper Authentication — Error Handling"
+    description: "Handle improper authentication errors securely without information leakage"
+    source_clause: "CWE-287"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CWE287IM-05"

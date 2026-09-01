@@ -1,0 +1,62 @@
+# Patchi Security Domain: dotnet-viewstate-tampering
+# Source: .NET Security
+# Auto-generated — curated from .NET Security
+
+domain_id: "dotnet-viewstate-tampering"
+version: "1.0.0"
+display_name: ".NET ViewState Tampering"
+source_standard: ".NET Security"
+component_type: "frontend-web"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_dotnet_viewstate_tampering_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_dotnet_viewstate_tampering"
+
+controls:
+  - control_id: "DOTNETVI-01"
+    name: ".NET ViewState Tampering — Primary Control"
+    description: "ViewState not signed or encrypted, allowing tampering."
+    source_clause: ".NET ViewState"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://DOTNETVI-01"
+
+  - control_id: "DOTNETVI-02"
+    name: ".NET ViewState Tampering — Input Validation"
+    description: "Validate and sanitize all inputs related to .net viewstate tampering"
+    source_clause: ".NET ViewState"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://DOTNETVI-02"
+
+  - control_id: "DOTNETVI-03"
+    name: ".NET ViewState Tampering — Configuration Hardening"
+    description: "Apply secure configuration defaults for .net viewstate tampering"
+    source_clause: ".NET ViewState"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://DOTNETVI-03"
+
+  - control_id: "DOTNETVI-04"
+    name: ".NET ViewState Tampering — Monitoring and Logging"
+    description: "Log and monitor all .net viewstate tampering events for audit and detection"
+    source_clause: ".NET ViewState"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://DOTNETVI-04"
+
+  - control_id: "DOTNETVI-05"
+    name: ".NET ViewState Tampering — Error Handling"
+    description: "Handle .net viewstate tampering errors securely without information leakage"
+    source_clause: ".NET ViewState"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://DOTNETVI-05"

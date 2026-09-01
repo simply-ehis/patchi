@@ -1,0 +1,62 @@
+# Patchi Security Domain: fastapi-openapi-exposure
+# Source: FastAPI Security
+# Auto-generated — curated from FastAPI Security
+
+domain_id: "fastapi-openapi-exposure"
+version: "1.0.0"
+display_name: "FastAPI OpenAPI Exposure"
+source_standard: "FastAPI Security"
+component_type: "infra"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_fastapi_openapi_exposure_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_fastapi_openapi_exposure"
+
+controls:
+  - control_id: "FASTAPIO-01"
+    name: "FastAPI OpenAPI Exposure — Primary Control"
+    description: "OpenAPI docs exposed without authentication in production."
+    source_clause: "FastAPI OpenAPI"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://FASTAPIO-01"
+
+  - control_id: "FASTAPIO-02"
+    name: "FastAPI OpenAPI Exposure — Input Validation"
+    description: "Validate and sanitize all inputs related to fastapi openapi exposure"
+    source_clause: "FastAPI OpenAPI"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://FASTAPIO-02"
+
+  - control_id: "FASTAPIO-03"
+    name: "FastAPI OpenAPI Exposure — Configuration Hardening"
+    description: "Apply secure configuration defaults for fastapi openapi exposure"
+    source_clause: "FastAPI OpenAPI"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://FASTAPIO-03"
+
+  - control_id: "FASTAPIO-04"
+    name: "FastAPI OpenAPI Exposure — Monitoring and Logging"
+    description: "Log and monitor all fastapi openapi exposure events for audit and detection"
+    source_clause: "FastAPI OpenAPI"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://FASTAPIO-04"
+
+  - control_id: "FASTAPIO-05"
+    name: "FastAPI OpenAPI Exposure — Error Handling"
+    description: "Handle fastapi openapi exposure errors securely without information leakage"
+    source_clause: "FastAPI OpenAPI"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://FASTAPIO-05"

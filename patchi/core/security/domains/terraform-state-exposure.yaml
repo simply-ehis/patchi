@@ -1,0 +1,62 @@
+# Patchi Security Domain: terraform-state-exposure
+# Source: IaC Security
+# Auto-generated — curated from IaC Security
+
+domain_id: "terraform-state-exposure"
+version: "1.0.0"
+display_name: "Terraform State File Exposure"
+source_standard: "IaC Security"
+component_type: "infra"
+weight: 0.9
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_terraform_state_exposure_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_terraform_state_exposure"
+
+controls:
+  - control_id: "TERRAFOR-01"
+    name: "Terraform State File Exposure — Primary Control"
+    description: "Terraform state files with secrets stored unencrypted or in public buckets."
+    source_clause: "TF State"
+    severity: "critical"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://TERRAFOR-01"
+
+  - control_id: "TERRAFOR-02"
+    name: "Terraform State File Exposure — Input Validation"
+    description: "Validate and sanitize all inputs related to terraform state file exposure"
+    source_clause: "TF State"
+    severity: "critical"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://TERRAFOR-02"
+
+  - control_id: "TERRAFOR-03"
+    name: "Terraform State File Exposure — Configuration Hardening"
+    description: "Apply secure configuration defaults for terraform state file exposure"
+    source_clause: "TF State"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://TERRAFOR-03"
+
+  - control_id: "TERRAFOR-04"
+    name: "Terraform State File Exposure — Monitoring and Logging"
+    description: "Log and monitor all terraform state file exposure events for audit and detection"
+    source_clause: "TF State"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://TERRAFOR-04"
+
+  - control_id: "TERRAFOR-05"
+    name: "Terraform State File Exposure — Error Handling"
+    description: "Handle terraform state file exposure errors securely without information leakage"
+    source_clause: "TF State"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://TERRAFOR-05"

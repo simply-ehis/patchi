@@ -1,0 +1,62 @@
+# Patchi Security Domain: owasp-mobile-extraneous-functionality
+# Source: OWASP Mobile 2024 M10
+# Auto-generated — curated from OWASP Mobile 2024 M10
+
+domain_id: "owasp-mobile-extraneous-functionality"
+version: "1.0.0"
+display_name: "Extraneous Functionality"
+source_standard: "OWASP Mobile 2024 M10"
+component_type: "mobile-native"
+weight: 0.7
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_owasp_mobile_extraneous_functionality_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_owasp_mobile_extraneous_functionality"
+
+controls:
+  - control_id: "OWASPMOB-01"
+    name: "Extraneous Functionality — Primary Control"
+    description: "Debug flags, test endpoints, or hidden functionality left in production builds."
+    source_clause: "Mobile M10"
+    severity: "medium"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://OWASPMOB-01"
+
+  - control_id: "OWASPMOB-02"
+    name: "Extraneous Functionality — Input Validation"
+    description: "Validate and sanitize all inputs related to extraneous functionality"
+    source_clause: "Mobile M10"
+    severity: "medium"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://OWASPMOB-02"
+
+  - control_id: "OWASPMOB-03"
+    name: "Extraneous Functionality — Configuration Hardening"
+    description: "Apply secure configuration defaults for extraneous functionality"
+    source_clause: "Mobile M10"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://OWASPMOB-03"
+
+  - control_id: "OWASPMOB-04"
+    name: "Extraneous Functionality — Monitoring and Logging"
+    description: "Log and monitor all extraneous functionality events for audit and detection"
+    source_clause: "Mobile M10"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://OWASPMOB-04"
+
+  - control_id: "OWASPMOB-05"
+    name: "Extraneous Functionality — Error Handling"
+    description: "Handle extraneous functionality errors securely without information leakage"
+    source_clause: "Mobile M10"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://OWASPMOB-05"

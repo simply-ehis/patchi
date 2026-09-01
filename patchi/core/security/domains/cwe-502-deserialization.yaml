@@ -1,0 +1,62 @@
+# Patchi Security Domain: cwe-502-deserialization
+# Source: CWE Top 25 2024 CWE-502
+# Auto-generated — curated from CWE Top 25 2024 CWE-502
+
+domain_id: "cwe-502-deserialization"
+version: "1.0.0"
+display_name: "Deserialization of Untrusted Data"
+source_standard: "CWE Top 25 2024 CWE-502"
+component_type: "backend-api"
+weight: 0.9
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_cwe_502_deserialization_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_cwe_502_deserialization"
+
+controls:
+  - control_id: "CWE502DE-01"
+    name: "Deserialization of Untrusted Data — Primary Control"
+    description: "Deserializing untrusted data without adequate verification, leading to RCE."
+    source_clause: "CWE-502"
+    severity: "critical"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CWE502DE-01"
+
+  - control_id: "CWE502DE-02"
+    name: "Deserialization of Untrusted Data — Input Validation"
+    description: "Validate and sanitize all inputs related to deserialization of untrusted data"
+    source_clause: "CWE-502"
+    severity: "critical"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CWE502DE-02"
+
+  - control_id: "CWE502DE-03"
+    name: "Deserialization of Untrusted Data — Configuration Hardening"
+    description: "Apply secure configuration defaults for deserialization of untrusted data"
+    source_clause: "CWE-502"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CWE502DE-03"
+
+  - control_id: "CWE502DE-04"
+    name: "Deserialization of Untrusted Data — Monitoring and Logging"
+    description: "Log and monitor all deserialization of untrusted data events for audit and detection"
+    source_clause: "CWE-502"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CWE502DE-04"
+
+  - control_id: "CWE502DE-05"
+    name: "Deserialization of Untrusted Data — Error Handling"
+    description: "Handle deserialization of untrusted data errors securely without information leakage"
+    source_clause: "CWE-502"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CWE502DE-05"

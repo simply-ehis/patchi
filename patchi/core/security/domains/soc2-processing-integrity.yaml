@@ -1,0 +1,62 @@
+# Patchi Security Domain: soc2-processing-integrity
+# Source: SOC 2 TSC
+# Auto-generated — curated from SOC 2 TSC
+
+domain_id: "soc2-processing-integrity"
+version: "1.0.0"
+display_name: "Processing Integrity"
+source_standard: "SOC 2 TSC"
+component_type: "backend-api"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_soc2_processing_integrity_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_soc2_processing_integrity"
+
+controls:
+  - control_id: "SOC2PROC-01"
+    name: "Processing Integrity — Primary Control"
+    description: "System processing is complete, valid, accurate, timely, and authorized."
+    source_clause: "SOC 2 PI"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://SOC2PROC-01"
+
+  - control_id: "SOC2PROC-02"
+    name: "Processing Integrity — Input Validation"
+    description: "Validate and sanitize all inputs related to processing integrity"
+    source_clause: "SOC 2 PI"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://SOC2PROC-02"
+
+  - control_id: "SOC2PROC-03"
+    name: "Processing Integrity — Configuration Hardening"
+    description: "Apply secure configuration defaults for processing integrity"
+    source_clause: "SOC 2 PI"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://SOC2PROC-03"
+
+  - control_id: "SOC2PROC-04"
+    name: "Processing Integrity — Monitoring and Logging"
+    description: "Log and monitor all processing integrity events for audit and detection"
+    source_clause: "SOC 2 PI"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://SOC2PROC-04"
+
+  - control_id: "SOC2PROC-05"
+    name: "Processing Integrity — Error Handling"
+    description: "Handle processing integrity errors securely without information leakage"
+    source_clause: "SOC 2 PI"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://SOC2PROC-05"

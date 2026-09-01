@@ -1,0 +1,60 @@
+# Playbook for: privacy-fingerprinting
+# Source: Privacy Engineering
+# Auto-generated
+
+playbooks:
+- control_id: "PRIVACYF-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary browser fingerprinting control patterns for privacy-fingerprinting"
+  blast_radius_notes: "Automated fix for PRIVACYF-01 - Primary Browser Fingerprinting Control"
+  verification_checks:
+    - "Verify PRIVACYF-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "PRIVACYF-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for browser fingerprinting patterns for privacy-fingerprinting"
+  blast_radius_notes: "Automated fix for PRIVACYF-02 - Input Validation for Browser Fingerprinting"
+  verification_checks:
+    - "Verify PRIVACYF-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "PRIVACYF-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for browser fingerprinting patterns for privacy-fingerprinting"
+  blast_radius_notes: "Automated fix for PRIVACYF-03 - Configuration Hardening for Browser Fingerprinting"
+  verification_checks:
+    - "Verify PRIVACYF-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "PRIVACYF-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for browser fingerprinting patterns for privacy-fingerprinting"
+  blast_radius_notes: "Automated fix for PRIVACYF-04 - Monitoring and Logging for Browser Fingerprinting"
+  verification_checks:
+    - "Verify PRIVACYF-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "PRIVACYF-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for browser fingerprinting patterns for privacy-fingerprinting"
+  blast_radius_notes: "Automated fix for PRIVACYF-05 - Error Handling for Browser Fingerprinting"
+  verification_checks:
+    - "Verify PRIVACYF-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

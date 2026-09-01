@@ -1,0 +1,62 @@
+# Patchi Security Domain: mobile-backup-security
+# Source: Mobile Security
+# Auto-generated — curated from Mobile Security
+
+domain_id: "mobile-backup-security"
+version: "1.0.0"
+display_name: "Mobile Backup Security"
+source_standard: "Mobile Security"
+component_type: "mobile-native"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_mobile_backup_security_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_mobile_backup_security"
+
+controls:
+  - control_id: "MOBILEBA-01"
+    name: "Mobile Backup Security — Primary Control"
+    description: "App data included in cloud backups without user awareness."
+    source_clause: "Mobile Backup"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://MOBILEBA-01"
+
+  - control_id: "MOBILEBA-02"
+    name: "Mobile Backup Security — Input Validation"
+    description: "Validate and sanitize all inputs related to mobile backup security"
+    source_clause: "Mobile Backup"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://MOBILEBA-02"
+
+  - control_id: "MOBILEBA-03"
+    name: "Mobile Backup Security — Configuration Hardening"
+    description: "Apply secure configuration defaults for mobile backup security"
+    source_clause: "Mobile Backup"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://MOBILEBA-03"
+
+  - control_id: "MOBILEBA-04"
+    name: "Mobile Backup Security — Monitoring and Logging"
+    description: "Log and monitor all mobile backup security events for audit and detection"
+    source_clause: "Mobile Backup"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://MOBILEBA-04"
+
+  - control_id: "MOBILEBA-05"
+    name: "Mobile Backup Security — Error Handling"
+    description: "Handle mobile backup security errors securely without information leakage"
+    source_clause: "Mobile Backup"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://MOBILEBA-05"

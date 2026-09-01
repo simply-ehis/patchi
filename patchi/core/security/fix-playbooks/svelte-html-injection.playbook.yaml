@@ -1,0 +1,60 @@
+# Playbook for: svelte-html-injection
+# Source: Svelte Security
+# Auto-generated
+
+playbooks:
+- control_id: "SVELTEHT-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary svelte html injection control patterns for svelte-html-injection"
+  blast_radius_notes: "Automated fix for SVELTEHT-01 - Primary Svelte HTML Injection Control"
+  verification_checks:
+    - "Verify SVELTEHT-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "SVELTEHT-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for svelte html injection patterns for svelte-html-injection"
+  blast_radius_notes: "Automated fix for SVELTEHT-02 - Input Validation for Svelte HTML Injection"
+  verification_checks:
+    - "Verify SVELTEHT-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "SVELTEHT-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for svelte html injection patterns for svelte-html-injection"
+  blast_radius_notes: "Automated fix for SVELTEHT-03 - Configuration Hardening for Svelte HTML Injection"
+  verification_checks:
+    - "Verify SVELTEHT-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "SVELTEHT-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for svelte html injection patterns for svelte-html-injection"
+  blast_radius_notes: "Automated fix for SVELTEHT-04 - Monitoring and Logging for Svelte HTML Injection"
+  verification_checks:
+    - "Verify SVELTEHT-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "SVELTEHT-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for svelte html injection patterns for svelte-html-injection"
+  blast_radius_notes: "Automated fix for SVELTEHT-05 - Error Handling for Svelte HTML Injection"
+  verification_checks:
+    - "Verify SVELTEHT-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

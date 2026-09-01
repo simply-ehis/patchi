@@ -1,0 +1,60 @@
+# Playbook for: java-unsafe-reflection
+# Source: Java Security
+# Auto-generated
+
+playbooks:
+- control_id: "JAVAUNSA-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary java unsafe reflection control patterns for java-unsafe-reflection"
+  blast_radius_notes: "Automated fix for JAVAUNSA-01 - Primary Java Unsafe Reflection Control"
+  verification_checks:
+    - "Verify JAVAUNSA-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "JAVAUNSA-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for java unsafe reflection patterns for java-unsafe-reflection"
+  blast_radius_notes: "Automated fix for JAVAUNSA-02 - Input Validation for Java Unsafe Reflection"
+  verification_checks:
+    - "Verify JAVAUNSA-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "JAVAUNSA-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for java unsafe reflection patterns for java-unsafe-reflection"
+  blast_radius_notes: "Automated fix for JAVAUNSA-03 - Configuration Hardening for Java Unsafe Reflection"
+  verification_checks:
+    - "Verify JAVAUNSA-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "JAVAUNSA-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for java unsafe reflection patterns for java-unsafe-reflection"
+  blast_radius_notes: "Automated fix for JAVAUNSA-04 - Monitoring and Logging for Java Unsafe Reflection"
+  verification_checks:
+    - "Verify JAVAUNSA-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "JAVAUNSA-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for java unsafe reflection patterns for java-unsafe-reflection"
+  blast_radius_notes: "Automated fix for JAVAUNSA-05 - Error Handling for Java Unsafe Reflection"
+  verification_checks:
+    - "Verify JAVAUNSA-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

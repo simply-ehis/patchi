@@ -1,0 +1,60 @@
+# Playbook for: cis-rabbitmq
+# Source: CIS RabbitMQ Benchmark
+# Auto-generated
+
+playbooks:
+- control_id: "CISRABBI-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary rabbitmq hardening control patterns for cis-rabbitmq"
+  blast_radius_notes: "Automated fix for CISRABBI-01 - Primary RabbitMQ Hardening Control"
+  verification_checks:
+    - "Verify CISRABBI-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CISRABBI-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for rabbitmq hardening patterns for cis-rabbitmq"
+  blast_radius_notes: "Automated fix for CISRABBI-02 - Input Validation for RabbitMQ Hardening"
+  verification_checks:
+    - "Verify CISRABBI-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CISRABBI-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for rabbitmq hardening patterns for cis-rabbitmq"
+  blast_radius_notes: "Automated fix for CISRABBI-03 - Configuration Hardening for RabbitMQ Hardening"
+  verification_checks:
+    - "Verify CISRABBI-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CISRABBI-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for rabbitmq hardening patterns for cis-rabbitmq"
+  blast_radius_notes: "Automated fix for CISRABBI-04 - Monitoring and Logging for RabbitMQ Hardening"
+  verification_checks:
+    - "Verify CISRABBI-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CISRABBI-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for rabbitmq hardening patterns for cis-rabbitmq"
+  blast_radius_notes: "Automated fix for CISRABBI-05 - Error Handling for RabbitMQ Hardening"
+  verification_checks:
+    - "Verify CISRABBI-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

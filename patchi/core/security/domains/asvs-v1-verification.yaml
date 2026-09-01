@@ -1,0 +1,62 @@
+# Patchi Security Domain: asvs-v1-verification
+# Source: OWASP ASVS 5.0 V1
+# Auto-generated — curated from OWASP ASVS 5.0 V1
+
+domain_id: "asvs-v1-verification"
+version: "1.0.0"
+display_name: "Verification Requirements"
+source_standard: "OWASP ASVS 5.0 V1"
+component_type: "backend-api"
+weight: 0.7
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_asvs_v1_verification_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_asvs_v1_verification"
+
+controls:
+  - control_id: "ASVSV1VE-01"
+    name: "Verification Requirements — Primary Control"
+    description: "Application security requirements documentation, secure development lifecycle, and security architecture documentation."
+    source_clause: "ASVS V1"
+    severity: "medium"
+    check_method: "manual-review"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://ASVSV1VE-01"
+
+  - control_id: "ASVSV1VE-02"
+    name: "Verification Requirements — Input Validation"
+    description: "Validate and sanitize all inputs related to verification requirements"
+    source_clause: "ASVS V1"
+    severity: "medium"
+    check_method: "manual-review"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://ASVSV1VE-02"
+
+  - control_id: "ASVSV1VE-03"
+    name: "Verification Requirements — Configuration Hardening"
+    description: "Apply secure configuration defaults for verification requirements"
+    source_clause: "ASVS V1"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://ASVSV1VE-03"
+
+  - control_id: "ASVSV1VE-04"
+    name: "Verification Requirements — Monitoring and Logging"
+    description: "Log and monitor all verification requirements events for audit and detection"
+    source_clause: "ASVS V1"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://ASVSV1VE-04"
+
+  - control_id: "ASVSV1VE-05"
+    name: "Verification Requirements — Error Handling"
+    description: "Handle verification requirements errors securely without information leakage"
+    source_clause: "ASVS V1"
+    severity: "medium"
+    check_method: "manual-review"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://ASVSV1VE-05"

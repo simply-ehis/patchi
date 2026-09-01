@@ -1,0 +1,62 @@
+# Patchi Security Domain: incident-response-plan
+# Source: Incident Response
+# Auto-generated — curated from Incident Response
+
+domain_id: "incident-response-plan"
+version: "1.0.0"
+display_name: "Incident Response Plan"
+source_standard: "Incident Response"
+component_type: "infra"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_incident_response_plan_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_incident_response_plan"
+
+controls:
+  - control_id: "INCIDENT-01"
+    name: "Incident Response Plan — Primary Control"
+    description: "Documented incident response procedures and escalation paths."
+    source_clause: "IR Plan"
+    severity: "high"
+    check_method: "manual-review"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://INCIDENT-01"
+
+  - control_id: "INCIDENT-02"
+    name: "Incident Response Plan — Input Validation"
+    description: "Validate and sanitize all inputs related to incident response plan"
+    source_clause: "IR Plan"
+    severity: "high"
+    check_method: "manual-review"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://INCIDENT-02"
+
+  - control_id: "INCIDENT-03"
+    name: "Incident Response Plan — Configuration Hardening"
+    description: "Apply secure configuration defaults for incident response plan"
+    source_clause: "IR Plan"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://INCIDENT-03"
+
+  - control_id: "INCIDENT-04"
+    name: "Incident Response Plan — Monitoring and Logging"
+    description: "Log and monitor all incident response plan events for audit and detection"
+    source_clause: "IR Plan"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://INCIDENT-04"
+
+  - control_id: "INCIDENT-05"
+    name: "Incident Response Plan — Error Handling"
+    description: "Handle incident response plan errors securely without information leakage"
+    source_clause: "IR Plan"
+    severity: "medium"
+    check_method: "manual-review"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://INCIDENT-05"

@@ -1,0 +1,62 @@
+# Patchi Security Domain: cwe-367-time-of-check-time-of-use
+# Source: CWE-367
+# Auto-generated — curated from CWE-367
+
+domain_id: "cwe-367-time-of-check-time-of-use"
+version: "1.0.0"
+display_name: "Time-of-check Time-of-use (TOCTOU) Race Condition"
+source_standard: "CWE-367"
+component_type: "backend-api"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_cwe_367_time_of_check_time_of_use_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_cwe_367_time_of_check_time_of_use"
+
+controls:
+  - control_id: "CWE367TI-01"
+    name: "Time-of-check Time-of-use (TOCTOU) Race Condition — Primary Control"
+    description: "TOCTOU race condition between checking a condition and using the resource."
+    source_clause: "CWE-367"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CWE367TI-01"
+
+  - control_id: "CWE367TI-02"
+    name: "Time-of-check Time-of-use (TOCTOU) Race Condition — Input Validation"
+    description: "Validate and sanitize all inputs related to time-of-check time-of-use (toctou) race condition"
+    source_clause: "CWE-367"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CWE367TI-02"
+
+  - control_id: "CWE367TI-03"
+    name: "Time-of-check Time-of-use (TOCTOU) Race Condition — Configuration Hardening"
+    description: "Apply secure configuration defaults for time-of-check time-of-use (toctou) race condition"
+    source_clause: "CWE-367"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CWE367TI-03"
+
+  - control_id: "CWE367TI-04"
+    name: "Time-of-check Time-of-use (TOCTOU) Race Condition — Monitoring and Logging"
+    description: "Log and monitor all time-of-check time-of-use (toctou) race condition events for audit and detection"
+    source_clause: "CWE-367"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CWE367TI-04"
+
+  - control_id: "CWE367TI-05"
+    name: "Time-of-check Time-of-use (TOCTOU) Race Condition — Error Handling"
+    description: "Handle time-of-check time-of-use (toctou) race condition errors securely without information leakage"
+    source_clause: "CWE-367"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CWE367TI-05"

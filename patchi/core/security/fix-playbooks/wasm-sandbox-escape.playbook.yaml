@@ -1,0 +1,60 @@
+# Playbook for: wasm-sandbox-escape
+# Source: WASM Security
+# Auto-generated
+
+playbooks:
+- control_id: "WASMSAND-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary wasm sandbox escape control patterns for wasm-sandbox-escape"
+  blast_radius_notes: "Automated fix for WASMSAND-01 - Primary WASM Sandbox Escape Control"
+  verification_checks:
+    - "Verify WASMSAND-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "WASMSAND-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for wasm sandbox escape patterns for wasm-sandbox-escape"
+  blast_radius_notes: "Automated fix for WASMSAND-02 - Input Validation for WASM Sandbox Escape"
+  verification_checks:
+    - "Verify WASMSAND-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "WASMSAND-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for wasm sandbox escape patterns for wasm-sandbox-escape"
+  blast_radius_notes: "Automated fix for WASMSAND-03 - Configuration Hardening for WASM Sandbox Escape"
+  verification_checks:
+    - "Verify WASMSAND-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "WASMSAND-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for wasm sandbox escape patterns for wasm-sandbox-escape"
+  blast_radius_notes: "Automated fix for WASMSAND-04 - Monitoring and Logging for WASM Sandbox Escape"
+  verification_checks:
+    - "Verify WASMSAND-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "WASMSAND-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for wasm sandbox escape patterns for wasm-sandbox-escape"
+  blast_radius_notes: "Automated fix for WASMSAND-05 - Error Handling for WASM Sandbox Escape"
+  verification_checks:
+    - "Verify WASMSAND-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

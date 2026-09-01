@@ -1,0 +1,60 @@
+# Playbook for: nist-ac-14
+# Source: NIST SP 800-53 AC-14
+# Auto-generated
+
+playbooks:
+- control_id: "NISTAC14-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary permitted actions without identification control patterns for nist-ac-14"
+  blast_radius_notes: "Automated fix for NISTAC14-01 - Primary Permitted Actions without Identification Control"
+  verification_checks:
+    - "Verify NISTAC14-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NISTAC14-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for permitted actions without identification patterns for nist-ac-14"
+  blast_radius_notes: "Automated fix for NISTAC14-02 - Input Validation for Permitted Actions without Identification"
+  verification_checks:
+    - "Verify NISTAC14-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NISTAC14-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for permitted actions without identification patterns for nist-ac-14"
+  blast_radius_notes: "Automated fix for NISTAC14-03 - Configuration Hardening for Permitted Actions without Identification"
+  verification_checks:
+    - "Verify NISTAC14-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NISTAC14-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for permitted actions without identification patterns for nist-ac-14"
+  blast_radius_notes: "Automated fix for NISTAC14-04 - Monitoring and Logging for Permitted Actions without Identification"
+  verification_checks:
+    - "Verify NISTAC14-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NISTAC14-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for permitted actions without identification patterns for nist-ac-14"
+  blast_radius_notes: "Automated fix for NISTAC14-05 - Error Handling for Permitted Actions without Identification"
+  verification_checks:
+    - "Verify NISTAC14-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

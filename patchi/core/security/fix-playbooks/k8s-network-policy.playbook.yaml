@@ -1,0 +1,60 @@
+# Playbook for: k8s-network-policy
+# Source: Kubernetes Security
+# Auto-generated
+
+playbooks:
+- control_id: "K8SNETWO-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary kubernetes network policies control patterns for k8s-network-policy"
+  blast_radius_notes: "Automated fix for K8SNETWO-01 - Primary Kubernetes Network Policies Control"
+  verification_checks:
+    - "Verify K8SNETWO-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "K8SNETWO-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for kubernetes network policies patterns for k8s-network-policy"
+  blast_radius_notes: "Automated fix for K8SNETWO-02 - Input Validation for Kubernetes Network Policies"
+  verification_checks:
+    - "Verify K8SNETWO-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "K8SNETWO-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for kubernetes network policies patterns for k8s-network-policy"
+  blast_radius_notes: "Automated fix for K8SNETWO-03 - Configuration Hardening for Kubernetes Network Policies"
+  verification_checks:
+    - "Verify K8SNETWO-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "K8SNETWO-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for kubernetes network policies patterns for k8s-network-policy"
+  blast_radius_notes: "Automated fix for K8SNETWO-04 - Monitoring and Logging for Kubernetes Network Policies"
+  verification_checks:
+    - "Verify K8SNETWO-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "K8SNETWO-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for kubernetes network policies patterns for k8s-network-policy"
+  blast_radius_notes: "Automated fix for K8SNETWO-05 - Error Handling for Kubernetes Network Policies"
+  verification_checks:
+    - "Verify K8SNETWO-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

@@ -1,0 +1,62 @@
+# Patchi Security Domain: wasm-untrusted-code
+# Source: WASM Security
+# Auto-generated — curated from WASM Security
+
+domain_id: "wasm-untrusted-code"
+version: "1.0.0"
+display_name: "WASM Untrusted Code Execution"
+source_standard: "WASM Security"
+component_type: "frontend-web"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_wasm_untrusted_code_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_wasm_untrusted_code"
+
+controls:
+  - control_id: "WASMUNTR-01"
+    name: "WASM Untrusted Code Execution — Primary Control"
+    description: "Loading and executing untrusted WASM modules without validation."
+    source_clause: "WASM Untrusted"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://WASMUNTR-01"
+
+  - control_id: "WASMUNTR-02"
+    name: "WASM Untrusted Code Execution — Input Validation"
+    description: "Validate and sanitize all inputs related to wasm untrusted code execution"
+    source_clause: "WASM Untrusted"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://WASMUNTR-02"
+
+  - control_id: "WASMUNTR-03"
+    name: "WASM Untrusted Code Execution — Configuration Hardening"
+    description: "Apply secure configuration defaults for wasm untrusted code execution"
+    source_clause: "WASM Untrusted"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://WASMUNTR-03"
+
+  - control_id: "WASMUNTR-04"
+    name: "WASM Untrusted Code Execution — Monitoring and Logging"
+    description: "Log and monitor all wasm untrusted code execution events for audit and detection"
+    source_clause: "WASM Untrusted"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://WASMUNTR-04"
+
+  - control_id: "WASMUNTR-05"
+    name: "WASM Untrusted Code Execution — Error Handling"
+    description: "Handle wasm untrusted code execution errors securely without information leakage"
+    source_clause: "WASM Untrusted"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://WASMUNTR-05"

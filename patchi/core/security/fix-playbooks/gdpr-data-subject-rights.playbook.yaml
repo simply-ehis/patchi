@@ -1,0 +1,60 @@
+# Playbook for: gdpr-data-subject-rights
+# Source: GDPR Art 15-22
+# Auto-generated
+
+playbooks:
+- control_id: "GDPRDATA-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary data subject rights control patterns for gdpr-data-subject-rights"
+  blast_radius_notes: "Automated fix for GDPRDATA-01 - Primary Data Subject Rights Control"
+  verification_checks:
+    - "Verify GDPRDATA-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "GDPRDATA-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for data subject rights patterns for gdpr-data-subject-rights"
+  blast_radius_notes: "Automated fix for GDPRDATA-02 - Input Validation for Data Subject Rights"
+  verification_checks:
+    - "Verify GDPRDATA-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "GDPRDATA-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for data subject rights patterns for gdpr-data-subject-rights"
+  blast_radius_notes: "Automated fix for GDPRDATA-03 - Configuration Hardening for Data Subject Rights"
+  verification_checks:
+    - "Verify GDPRDATA-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "GDPRDATA-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for data subject rights patterns for gdpr-data-subject-rights"
+  blast_radius_notes: "Automated fix for GDPRDATA-04 - Monitoring and Logging for Data Subject Rights"
+  verification_checks:
+    - "Verify GDPRDATA-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "GDPRDATA-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for data subject rights patterns for gdpr-data-subject-rights"
+  blast_radius_notes: "Automated fix for GDPRDATA-05 - Error Handling for Data Subject Rights"
+  verification_checks:
+    - "Verify GDPRDATA-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

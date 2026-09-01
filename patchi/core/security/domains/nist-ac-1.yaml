@@ -1,0 +1,62 @@
+# Patchi Security Domain: nist-ac-1
+# Source: NIST SP 800-53 AC-1
+# Auto-generated — curated from NIST SP 800-53 AC-1
+
+domain_id: "nist-ac-1"
+version: "1.0.0"
+display_name: "Access Control Policy and Procedures"
+source_standard: "NIST SP 800-53 AC-1"
+component_type: "infra"
+weight: 0.7
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_nist_ac_1_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_nist_ac_1"
+
+controls:
+  - control_id: "NISTAC1-01"
+    name: "Access Control Policy and Procedures — Primary Control"
+    description: "Organization develops, documents, and disseminates access control policy."
+    source_clause: "AC-1"
+    severity: "medium"
+    check_method: "manual-review"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://NISTAC1-01"
+
+  - control_id: "NISTAC1-02"
+    name: "Access Control Policy and Procedures — Input Validation"
+    description: "Validate and sanitize all inputs related to access control policy and procedures"
+    source_clause: "AC-1"
+    severity: "medium"
+    check_method: "manual-review"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://NISTAC1-02"
+
+  - control_id: "NISTAC1-03"
+    name: "Access Control Policy and Procedures — Configuration Hardening"
+    description: "Apply secure configuration defaults for access control policy and procedures"
+    source_clause: "AC-1"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://NISTAC1-03"
+
+  - control_id: "NISTAC1-04"
+    name: "Access Control Policy and Procedures — Monitoring and Logging"
+    description: "Log and monitor all access control policy and procedures events for audit and detection"
+    source_clause: "AC-1"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://NISTAC1-04"
+
+  - control_id: "NISTAC1-05"
+    name: "Access Control Policy and Procedures — Error Handling"
+    description: "Handle access control policy and procedures errors securely without information leakage"
+    source_clause: "AC-1"
+    severity: "medium"
+    check_method: "manual-review"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://NISTAC1-05"

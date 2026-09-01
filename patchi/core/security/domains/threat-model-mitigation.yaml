@@ -1,0 +1,62 @@
+# Patchi Security Domain: threat-model-mitigation
+# Source: Threat Modeling
+# Auto-generated — curated from Threat Modeling
+
+domain_id: "threat-model-mitigation"
+version: "1.0.0"
+display_name: "Threat Mitigation Tracking"
+source_standard: "Threat Modeling"
+component_type: "infra"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_threat_model_mitigation_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_threat_model_mitigation"
+
+controls:
+  - control_id: "THREATMO-01"
+    name: "Threat Mitigation Tracking — Primary Control"
+    description: "Tracking and verification of threat mitigations through implementation."
+    source_clause: "Threat Mitigate"
+    severity: "high"
+    check_method: "manual-review"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://THREATMO-01"
+
+  - control_id: "THREATMO-02"
+    name: "Threat Mitigation Tracking — Input Validation"
+    description: "Validate and sanitize all inputs related to threat mitigation tracking"
+    source_clause: "Threat Mitigate"
+    severity: "high"
+    check_method: "manual-review"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://THREATMO-02"
+
+  - control_id: "THREATMO-03"
+    name: "Threat Mitigation Tracking — Configuration Hardening"
+    description: "Apply secure configuration defaults for threat mitigation tracking"
+    source_clause: "Threat Mitigate"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://THREATMO-03"
+
+  - control_id: "THREATMO-04"
+    name: "Threat Mitigation Tracking — Monitoring and Logging"
+    description: "Log and monitor all threat mitigation tracking events for audit and detection"
+    source_clause: "Threat Mitigate"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://THREATMO-04"
+
+  - control_id: "THREATMO-05"
+    name: "Threat Mitigation Tracking — Error Handling"
+    description: "Handle threat mitigation tracking errors securely without information leakage"
+    source_clause: "Threat Mitigate"
+    severity: "medium"
+    check_method: "manual-review"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://THREATMO-05"

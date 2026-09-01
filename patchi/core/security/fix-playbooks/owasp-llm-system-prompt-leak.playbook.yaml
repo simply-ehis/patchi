@@ -1,0 +1,60 @@
+# Playbook for: owasp-llm-system-prompt-leak
+# Source: OWASP LLM 2025 LLM07
+# Auto-generated
+
+playbooks:
+- control_id: "OWASPLLM-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary system prompt leakage control patterns for owasp-llm-system-prompt-leak"
+  blast_radius_notes: "Automated fix for OWASPLLM-01 - Primary System Prompt Leakage Control"
+  verification_checks:
+    - "Verify OWASPLLM-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "OWASPLLM-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for system prompt leakage patterns for owasp-llm-system-prompt-leak"
+  blast_radius_notes: "Automated fix for OWASPLLM-02 - Input Validation for System Prompt Leakage"
+  verification_checks:
+    - "Verify OWASPLLM-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "OWASPLLM-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for system prompt leakage patterns for owasp-llm-system-prompt-leak"
+  blast_radius_notes: "Automated fix for OWASPLLM-03 - Configuration Hardening for System Prompt Leakage"
+  verification_checks:
+    - "Verify OWASPLLM-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "OWASPLLM-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for system prompt leakage patterns for owasp-llm-system-prompt-leak"
+  blast_radius_notes: "Automated fix for OWASPLLM-04 - Monitoring and Logging for System Prompt Leakage"
+  verification_checks:
+    - "Verify OWASPLLM-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "OWASPLLM-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for system prompt leakage patterns for owasp-llm-system-prompt-leak"
+  blast_radius_notes: "Automated fix for OWASPLLM-05 - Error Handling for System Prompt Leakage"
+  verification_checks:
+    - "Verify OWASPLLM-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

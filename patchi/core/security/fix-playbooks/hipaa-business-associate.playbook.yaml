@@ -1,0 +1,60 @@
+# Playbook for: hipaa-business-associate
+# Source: HIPAA Security Rule
+# Auto-generated
+
+playbooks:
+- control_id: "HIPAABUS-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary business associate contracts control patterns for hipaa-business-associate"
+  blast_radius_notes: "Automated fix for HIPAABUS-01 - Primary Business Associate Contracts Control"
+  verification_checks:
+    - "Verify HIPAABUS-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "HIPAABUS-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for business associate contracts patterns for hipaa-business-associate"
+  blast_radius_notes: "Automated fix for HIPAABUS-02 - Input Validation for Business Associate Contracts"
+  verification_checks:
+    - "Verify HIPAABUS-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "HIPAABUS-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for business associate contracts patterns for hipaa-business-associate"
+  blast_radius_notes: "Automated fix for HIPAABUS-03 - Configuration Hardening for Business Associate Contracts"
+  verification_checks:
+    - "Verify HIPAABUS-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "HIPAABUS-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for business associate contracts patterns for hipaa-business-associate"
+  blast_radius_notes: "Automated fix for HIPAABUS-04 - Monitoring and Logging for Business Associate Contracts"
+  verification_checks:
+    - "Verify HIPAABUS-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "HIPAABUS-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for business associate contracts patterns for hipaa-business-associate"
+  blast_radius_notes: "Automated fix for HIPAABUS-05 - Error Handling for Business Associate Contracts"
+  verification_checks:
+    - "Verify HIPAABUS-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

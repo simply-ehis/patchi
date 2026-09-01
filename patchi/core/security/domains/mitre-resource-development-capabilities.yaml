@@ -1,0 +1,62 @@
+# Patchi Security Domain: mitre-resource-development-capabilities
+# Source: MITRE ATT&CK
+# Auto-generated — curated from MITRE ATT&CK
+
+domain_id: "mitre-resource-development-capabilities"
+version: "1.0.0"
+display_name: "Develop Capabilities (T1587)"
+source_standard: "MITRE ATT&CK"
+component_type: "infra"
+weight: 0.75
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_mitre_resource_development_capabilities_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_mitre_resource_development_capabilities"
+
+controls:
+  - control_id: "MITRERES-01"
+    name: "Develop Capabilities (T1587) — Primary Control"
+    description: "Developing tools, exploits, or infrastructure for operations."
+    source_clause: "T1587"
+    severity: "medium"
+    check_method: "manual-review"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://MITRERES-01"
+
+  - control_id: "MITRERES-02"
+    name: "Develop Capabilities (T1587) — Input Validation"
+    description: "Validate and sanitize all inputs related to develop capabilities (t1587)"
+    source_clause: "T1587"
+    severity: "medium"
+    check_method: "manual-review"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://MITRERES-02"
+
+  - control_id: "MITRERES-03"
+    name: "Develop Capabilities (T1587) — Configuration Hardening"
+    description: "Apply secure configuration defaults for develop capabilities (t1587)"
+    source_clause: "T1587"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://MITRERES-03"
+
+  - control_id: "MITRERES-04"
+    name: "Develop Capabilities (T1587) — Monitoring and Logging"
+    description: "Log and monitor all develop capabilities (t1587) events for audit and detection"
+    source_clause: "T1587"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://MITRERES-04"
+
+  - control_id: "MITRERES-05"
+    name: "Develop Capabilities (T1587) — Error Handling"
+    description: "Handle develop capabilities (t1587) errors securely without information leakage"
+    source_clause: "T1587"
+    severity: "medium"
+    check_method: "manual-review"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://MITRERES-05"

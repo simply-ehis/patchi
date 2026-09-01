@@ -1,0 +1,62 @@
+# Patchi Security Domain: sans-sensitive-data-exposure
+# Source: SANS Top 25
+# Auto-generated — curated from SANS Top 25
+
+domain_id: "sans-sensitive-data-exposure"
+version: "1.0.0"
+display_name: "Sensitive Data Exposure"
+source_standard: "SANS Top 25"
+component_type: "backend-api"
+weight: 0.9
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_sans_sensitive_data_exposure_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_sans_sensitive_data_exposure"
+
+controls:
+  - control_id: "SANSSENS-01"
+    name: "Sensitive Data Exposure — Primary Control"
+    description: "Inadequate protection of sensitive data at rest or in transit."
+    source_clause: "SANS"
+    severity: "critical"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://SANSSENS-01"
+
+  - control_id: "SANSSENS-02"
+    name: "Sensitive Data Exposure — Input Validation"
+    description: "Validate and sanitize all inputs related to sensitive data exposure"
+    source_clause: "SANS"
+    severity: "critical"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://SANSSENS-02"
+
+  - control_id: "SANSSENS-03"
+    name: "Sensitive Data Exposure — Configuration Hardening"
+    description: "Apply secure configuration defaults for sensitive data exposure"
+    source_clause: "SANS"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://SANSSENS-03"
+
+  - control_id: "SANSSENS-04"
+    name: "Sensitive Data Exposure — Monitoring and Logging"
+    description: "Log and monitor all sensitive data exposure events for audit and detection"
+    source_clause: "SANS"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://SANSSENS-04"
+
+  - control_id: "SANSSENS-05"
+    name: "Sensitive Data Exposure — Error Handling"
+    description: "Handle sensitive data exposure errors securely without information leakage"
+    source_clause: "SANS"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://SANSSENS-05"

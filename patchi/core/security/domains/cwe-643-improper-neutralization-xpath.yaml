@@ -1,0 +1,62 @@
+# Patchi Security Domain: cwe-643-improper-neutralization-xpath
+# Source: CWE-643
+# Auto-generated — curated from CWE-643
+
+domain_id: "cwe-643-improper-neutralization-xpath"
+version: "1.0.0"
+display_name: "Improper Neutralization of Data within XPath Expressions"
+source_standard: "CWE-643"
+component_type: "backend-api"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_cwe_643_improper_neutralization_xpath_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_cwe_643_improper_neutralization_xpath"
+
+controls:
+  - control_id: "CWE643IM-01"
+    name: "Improper Neutralization of Data within XPath Expressions — Primary Control"
+    description: "User input is included in XPath queries without proper escaping."
+    source_clause: "CWE-643"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CWE643IM-01"
+
+  - control_id: "CWE643IM-02"
+    name: "Improper Neutralization of Data within XPath Expressions — Input Validation"
+    description: "Validate and sanitize all inputs related to improper neutralization of data within xpath expressions"
+    source_clause: "CWE-643"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CWE643IM-02"
+
+  - control_id: "CWE643IM-03"
+    name: "Improper Neutralization of Data within XPath Expressions — Configuration Hardening"
+    description: "Apply secure configuration defaults for improper neutralization of data within xpath expressions"
+    source_clause: "CWE-643"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CWE643IM-03"
+
+  - control_id: "CWE643IM-04"
+    name: "Improper Neutralization of Data within XPath Expressions — Monitoring and Logging"
+    description: "Log and monitor all improper neutralization of data within xpath expressions events for audit and detection"
+    source_clause: "CWE-643"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CWE643IM-04"
+
+  - control_id: "CWE643IM-05"
+    name: "Improper Neutralization of Data within XPath Expressions — Error Handling"
+    description: "Handle improper neutralization of data within xpath expressions errors securely without information leakage"
+    source_clause: "CWE-643"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CWE643IM-05"

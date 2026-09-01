@@ -1,0 +1,62 @@
+# Patchi Security Domain: mitre-command-control-encrypted-channel
+# Source: MITRE ATT&CK
+# Auto-generated — curated from MITRE ATT&CK
+
+domain_id: "mitre-command-control-encrypted-channel"
+version: "1.0.0"
+display_name: "Encrypted Channel (T1573)"
+source_standard: "MITRE ATT&CK"
+component_type: "infra"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_mitre_command_control_encrypted_channel_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_mitre_command_control_encrypted_channel"
+
+controls:
+  - control_id: "MITRECOM-01"
+    name: "Encrypted Channel (T1573) — Primary Control"
+    description: "Using encrypted channels for command and control."
+    source_clause: "T1573"
+    severity: "high"
+    check_method: "dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://MITRECOM-01"
+
+  - control_id: "MITRECOM-02"
+    name: "Encrypted Channel (T1573) — Input Validation"
+    description: "Validate and sanitize all inputs related to encrypted channel (t1573)"
+    source_clause: "T1573"
+    severity: "high"
+    check_method: "dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://MITRECOM-02"
+
+  - control_id: "MITRECOM-03"
+    name: "Encrypted Channel (T1573) — Configuration Hardening"
+    description: "Apply secure configuration defaults for encrypted channel (t1573)"
+    source_clause: "T1573"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://MITRECOM-03"
+
+  - control_id: "MITRECOM-04"
+    name: "Encrypted Channel (T1573) — Monitoring and Logging"
+    description: "Log and monitor all encrypted channel (t1573) events for audit and detection"
+    source_clause: "T1573"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://MITRECOM-04"
+
+  - control_id: "MITRECOM-05"
+    name: "Encrypted Channel (T1573) — Error Handling"
+    description: "Handle encrypted channel (t1573) errors securely without information leakage"
+    source_clause: "T1573"
+    severity: "medium"
+    check_method: "dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://MITRECOM-05"

@@ -1,0 +1,60 @@
+# Playbook for: django-csrf-protection
+# Source: Django Security
+# Auto-generated
+
+playbooks:
+- control_id: "DJANGOCS-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary django csrf protection bypass control patterns for django-csrf-protection"
+  blast_radius_notes: "Automated fix for DJANGOCS-01 - Primary Django CSRF Protection Bypass Control"
+  verification_checks:
+    - "Verify DJANGOCS-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "DJANGOCS-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for django csrf protection bypass patterns for django-csrf-protection"
+  blast_radius_notes: "Automated fix for DJANGOCS-02 - Input Validation for Django CSRF Protection Bypass"
+  verification_checks:
+    - "Verify DJANGOCS-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "DJANGOCS-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for django csrf protection bypass patterns for django-csrf-protection"
+  blast_radius_notes: "Automated fix for DJANGOCS-03 - Configuration Hardening for Django CSRF Protection Bypass"
+  verification_checks:
+    - "Verify DJANGOCS-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "DJANGOCS-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for django csrf protection bypass patterns for django-csrf-protection"
+  blast_radius_notes: "Automated fix for DJANGOCS-04 - Monitoring and Logging for Django CSRF Protection Bypass"
+  verification_checks:
+    - "Verify DJANGOCS-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "DJANGOCS-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for django csrf protection bypass patterns for django-csrf-protection"
+  blast_radius_notes: "Automated fix for DJANGOCS-05 - Error Handling for Django CSRF Protection Bypass"
+  verification_checks:
+    - "Verify DJANGOCS-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

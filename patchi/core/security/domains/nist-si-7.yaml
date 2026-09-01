@@ -1,0 +1,62 @@
+# Patchi Security Domain: nist-si-7
+# Source: NIST SP 800-53 SI-7
+# Auto-generated — curated from NIST SP 800-53 SI-7
+
+domain_id: "nist-si-7"
+version: "1.0.0"
+display_name: "Software Firmware and Information Integrity"
+source_standard: "NIST SP 800-53 SI-7"
+component_type: "backend-api"
+weight: 0.9
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_nist_si_7_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_nist_si_7"
+
+controls:
+  - control_id: "NISTSI7-01"
+    name: "Software Firmware and Information Integrity — Primary Control"
+    description: "System verifies integrity of software, firmware, and information."
+    source_clause: "SI-7"
+    severity: "critical"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://NISTSI7-01"
+
+  - control_id: "NISTSI7-02"
+    name: "Software Firmware and Information Integrity — Input Validation"
+    description: "Validate and sanitize all inputs related to software firmware and information integrity"
+    source_clause: "SI-7"
+    severity: "critical"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://NISTSI7-02"
+
+  - control_id: "NISTSI7-03"
+    name: "Software Firmware and Information Integrity — Configuration Hardening"
+    description: "Apply secure configuration defaults for software firmware and information integrity"
+    source_clause: "SI-7"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://NISTSI7-03"
+
+  - control_id: "NISTSI7-04"
+    name: "Software Firmware and Information Integrity — Monitoring and Logging"
+    description: "Log and monitor all software firmware and information integrity events for audit and detection"
+    source_clause: "SI-7"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://NISTSI7-04"
+
+  - control_id: "NISTSI7-05"
+    name: "Software Firmware and Information Integrity — Error Handling"
+    description: "Handle software firmware and information integrity errors securely without information leakage"
+    source_clause: "SI-7"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://NISTSI7-05"

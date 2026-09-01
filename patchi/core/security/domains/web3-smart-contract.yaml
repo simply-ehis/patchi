@@ -1,0 +1,62 @@
+# Patchi Security Domain: web3-smart-contract
+# Source: Web3 Security
+# Auto-generated — curated from Web3 Security
+
+domain_id: "web3-smart-contract"
+version: "1.0.0"
+display_name: "Smart Contract Vulnerability"
+source_standard: "Web3 Security"
+component_type: "backend-api"
+weight: 0.9
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_web3_smart_contract_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_web3_smart_contract"
+
+controls:
+  - control_id: "WEB3SMAR-01"
+    name: "Smart Contract Vulnerability — Primary Control"
+    description: "Reentrancy, overflow, or access control bugs in smart contracts."
+    source_clause: "Web3 Contract"
+    severity: "critical"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://WEB3SMAR-01"
+
+  - control_id: "WEB3SMAR-02"
+    name: "Smart Contract Vulnerability — Input Validation"
+    description: "Validate and sanitize all inputs related to smart contract vulnerability"
+    source_clause: "Web3 Contract"
+    severity: "critical"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://WEB3SMAR-02"
+
+  - control_id: "WEB3SMAR-03"
+    name: "Smart Contract Vulnerability — Configuration Hardening"
+    description: "Apply secure configuration defaults for smart contract vulnerability"
+    source_clause: "Web3 Contract"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://WEB3SMAR-03"
+
+  - control_id: "WEB3SMAR-04"
+    name: "Smart Contract Vulnerability — Monitoring and Logging"
+    description: "Log and monitor all smart contract vulnerability events for audit and detection"
+    source_clause: "Web3 Contract"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://WEB3SMAR-04"
+
+  - control_id: "WEB3SMAR-05"
+    name: "Smart Contract Vulnerability — Error Handling"
+    description: "Handle smart contract vulnerability errors securely without information leakage"
+    source_clause: "Web3 Contract"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://WEB3SMAR-05"

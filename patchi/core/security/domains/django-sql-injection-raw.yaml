@@ -1,0 +1,62 @@
+# Patchi Security Domain: django-sql-injection-raw
+# Source: Django Security
+# Auto-generated — curated from Django Security
+
+domain_id: "django-sql-injection-raw"
+version: "1.0.0"
+display_name: "Django Raw SQL Injection"
+source_standard: "Django Security"
+component_type: "backend-api"
+weight: 0.95
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_django_sql_injection_raw_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_django_sql_injection_raw"
+
+controls:
+  - control_id: "DJANGOSQ-01"
+    name: "Django Raw SQL Injection — Primary Control"
+    description: "Using cursor.execute with string interpolation instead of parameterized queries."
+    source_clause: "Django Raw SQL"
+    severity: "critical"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://DJANGOSQ-01"
+
+  - control_id: "DJANGOSQ-02"
+    name: "Django Raw SQL Injection — Input Validation"
+    description: "Validate and sanitize all inputs related to django raw sql injection"
+    source_clause: "Django Raw SQL"
+    severity: "critical"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://DJANGOSQ-02"
+
+  - control_id: "DJANGOSQ-03"
+    name: "Django Raw SQL Injection — Configuration Hardening"
+    description: "Apply secure configuration defaults for django raw sql injection"
+    source_clause: "Django Raw SQL"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://DJANGOSQ-03"
+
+  - control_id: "DJANGOSQ-04"
+    name: "Django Raw SQL Injection — Monitoring and Logging"
+    description: "Log and monitor all django raw sql injection events for audit and detection"
+    source_clause: "Django Raw SQL"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://DJANGOSQ-04"
+
+  - control_id: "DJANGOSQ-05"
+    name: "Django Raw SQL Injection — Error Handling"
+    description: "Handle django raw sql injection errors securely without information leakage"
+    source_clause: "Django Raw SQL"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://DJANGOSQ-05"

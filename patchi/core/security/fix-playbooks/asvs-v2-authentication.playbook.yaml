@@ -1,0 +1,60 @@
+# Playbook for: asvs-v2-authentication
+# Source: OWASP ASVS 5.0 V2
+# Auto-generated
+
+playbooks:
+- control_id: "ASVSV2AU-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary authentication verification control patterns for asvs-v2-authentication"
+  blast_radius_notes: "Automated fix for ASVSV2AU-01 - Primary Authentication Verification Control"
+  verification_checks:
+    - "Verify ASVSV2AU-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "ASVSV2AU-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for authentication verification patterns for asvs-v2-authentication"
+  blast_radius_notes: "Automated fix for ASVSV2AU-02 - Input Validation for Authentication Verification"
+  verification_checks:
+    - "Verify ASVSV2AU-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "ASVSV2AU-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for authentication verification patterns for asvs-v2-authentication"
+  blast_radius_notes: "Automated fix for ASVSV2AU-03 - Configuration Hardening for Authentication Verification"
+  verification_checks:
+    - "Verify ASVSV2AU-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "ASVSV2AU-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for authentication verification patterns for asvs-v2-authentication"
+  blast_radius_notes: "Automated fix for ASVSV2AU-04 - Monitoring and Logging for Authentication Verification"
+  verification_checks:
+    - "Verify ASVSV2AU-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "ASVSV2AU-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for authentication verification patterns for asvs-v2-authentication"
+  blast_radius_notes: "Automated fix for ASVSV2AU-05 - Error Handling for Authentication Verification"
+  verification_checks:
+    - "Verify ASVSV2AU-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

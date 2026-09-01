@@ -1,0 +1,60 @@
+# Playbook for: zero-trust-architecture
+# Source: Network Security
+# Auto-generated
+
+playbooks:
+- control_id: "ZEROTRUS-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary zero trust architecture control patterns for zero-trust-architecture"
+  blast_radius_notes: "Automated fix for ZEROTRUS-01 - Primary Zero Trust Architecture Control"
+  verification_checks:
+    - "Verify ZEROTRUS-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "ZEROTRUS-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for zero trust architecture patterns for zero-trust-architecture"
+  blast_radius_notes: "Automated fix for ZEROTRUS-02 - Input Validation for Zero Trust Architecture"
+  verification_checks:
+    - "Verify ZEROTRUS-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "ZEROTRUS-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for zero trust architecture patterns for zero-trust-architecture"
+  blast_radius_notes: "Automated fix for ZEROTRUS-03 - Configuration Hardening for Zero Trust Architecture"
+  verification_checks:
+    - "Verify ZEROTRUS-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "ZEROTRUS-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for zero trust architecture patterns for zero-trust-architecture"
+  blast_radius_notes: "Automated fix for ZEROTRUS-04 - Monitoring and Logging for Zero Trust Architecture"
+  verification_checks:
+    - "Verify ZEROTRUS-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "ZEROTRUS-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for zero trust architecture patterns for zero-trust-architecture"
+  blast_radius_notes: "Automated fix for ZEROTRUS-05 - Error Handling for Zero Trust Architecture"
+  verification_checks:
+    - "Verify ZEROTRUS-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

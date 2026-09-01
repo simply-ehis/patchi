@@ -1,0 +1,62 @@
+# Patchi Security Domain: nist-cm-2
+# Source: NIST SP 800-53 CM-2
+# Auto-generated — curated from NIST SP 800-53 CM-2
+
+domain_id: "nist-cm-2"
+version: "1.0.0"
+display_name: "Baseline Configuration"
+source_standard: "NIST SP 800-53 CM-2"
+component_type: "infra"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_nist_cm_2_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_nist_cm_2"
+
+controls:
+  - control_id: "NISTCM2-01"
+    name: "Baseline Configuration — Primary Control"
+    description: "Organization develops and maintains a current baseline configuration of the system."
+    source_clause: "CM-2"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://NISTCM2-01"
+
+  - control_id: "NISTCM2-02"
+    name: "Baseline Configuration — Input Validation"
+    description: "Validate and sanitize all inputs related to baseline configuration"
+    source_clause: "CM-2"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://NISTCM2-02"
+
+  - control_id: "NISTCM2-03"
+    name: "Baseline Configuration — Configuration Hardening"
+    description: "Apply secure configuration defaults for baseline configuration"
+    source_clause: "CM-2"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://NISTCM2-03"
+
+  - control_id: "NISTCM2-04"
+    name: "Baseline Configuration — Monitoring and Logging"
+    description: "Log and monitor all baseline configuration events for audit and detection"
+    source_clause: "CM-2"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://NISTCM2-04"
+
+  - control_id: "NISTCM2-05"
+    name: "Baseline Configuration — Error Handling"
+    description: "Handle baseline configuration errors securely without information leakage"
+    source_clause: "CM-2"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://NISTCM2-05"

@@ -1,0 +1,62 @@
+# Patchi Security Domain: mobile-screen-capture
+# Source: Mobile Security
+# Auto-generated — curated from Mobile Security
+
+domain_id: "mobile-screen-capture"
+version: "1.0.0"
+display_name: "Screen Capture Prevention"
+source_standard: "Mobile Security"
+component_type: "mobile-native"
+weight: 0.75
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_mobile_screen_capture_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_mobile_screen_capture"
+
+controls:
+  - control_id: "MOBILESC-01"
+    name: "Screen Capture Prevention — Primary Control"
+    description: "Screen recording or screenshot capturing sensitive content."
+    source_clause: "Mobile Screen"
+    severity: "medium"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://MOBILESC-01"
+
+  - control_id: "MOBILESC-02"
+    name: "Screen Capture Prevention — Input Validation"
+    description: "Validate and sanitize all inputs related to screen capture prevention"
+    source_clause: "Mobile Screen"
+    severity: "medium"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://MOBILESC-02"
+
+  - control_id: "MOBILESC-03"
+    name: "Screen Capture Prevention — Configuration Hardening"
+    description: "Apply secure configuration defaults for screen capture prevention"
+    source_clause: "Mobile Screen"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://MOBILESC-03"
+
+  - control_id: "MOBILESC-04"
+    name: "Screen Capture Prevention — Monitoring and Logging"
+    description: "Log and monitor all screen capture prevention events for audit and detection"
+    source_clause: "Mobile Screen"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://MOBILESC-04"
+
+  - control_id: "MOBILESC-05"
+    name: "Screen Capture Prevention — Error Handling"
+    description: "Handle screen capture prevention errors securely without information leakage"
+    source_clause: "Mobile Screen"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://MOBILESC-05"

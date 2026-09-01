@@ -1,0 +1,62 @@
+# Patchi Security Domain: rails-devise-security
+# Source: Ruby on Rails Security
+# Auto-generated — curated from Ruby on Rails Security
+
+domain_id: "rails-devise-security"
+version: "1.0.0"
+display_name: "Rails Devise Configuration"
+source_standard: "Ruby on Rails Security"
+component_type: "backend-api"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_rails_devise_security_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_rails_devise_security"
+
+controls:
+  - control_id: "RAILSDEV-01"
+    name: "Rails Devise Configuration — Primary Control"
+    description: "Insecure Devise configuration or missing confirmable/lockable modules."
+    source_clause: "Rails Devise"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://RAILSDEV-01"
+
+  - control_id: "RAILSDEV-02"
+    name: "Rails Devise Configuration — Input Validation"
+    description: "Validate and sanitize all inputs related to rails devise configuration"
+    source_clause: "Rails Devise"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://RAILSDEV-02"
+
+  - control_id: "RAILSDEV-03"
+    name: "Rails Devise Configuration — Configuration Hardening"
+    description: "Apply secure configuration defaults for rails devise configuration"
+    source_clause: "Rails Devise"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://RAILSDEV-03"
+
+  - control_id: "RAILSDEV-04"
+    name: "Rails Devise Configuration — Monitoring and Logging"
+    description: "Log and monitor all rails devise configuration events for audit and detection"
+    source_clause: "Rails Devise"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://RAILSDEV-04"
+
+  - control_id: "RAILSDEV-05"
+    name: "Rails Devise Configuration — Error Handling"
+    description: "Handle rails devise configuration errors securely without information leakage"
+    source_clause: "Rails Devise"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://RAILSDEV-05"

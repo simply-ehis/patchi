@@ -1,0 +1,60 @@
+# Playbook for: cwe-200-information-exposure
+# Source: CWE-200
+# Auto-generated
+
+playbooks:
+- control_id: "CWE200IN-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary exposure of sensitive information control patterns for cwe-200-information-exposure"
+  blast_radius_notes: "Automated fix for CWE200IN-01 - Primary Exposure of Sensitive Information Control"
+  verification_checks:
+    - "Verify CWE200IN-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CWE200IN-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for exposure of sensitive information patterns for cwe-200-information-exposure"
+  blast_radius_notes: "Automated fix for CWE200IN-02 - Input Validation for Exposure of Sensitive Information"
+  verification_checks:
+    - "Verify CWE200IN-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CWE200IN-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for exposure of sensitive information patterns for cwe-200-information-exposure"
+  blast_radius_notes: "Automated fix for CWE200IN-03 - Configuration Hardening for Exposure of Sensitive Information"
+  verification_checks:
+    - "Verify CWE200IN-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CWE200IN-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for exposure of sensitive information patterns for cwe-200-information-exposure"
+  blast_radius_notes: "Automated fix for CWE200IN-04 - Monitoring and Logging for Exposure of Sensitive Information"
+  verification_checks:
+    - "Verify CWE200IN-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CWE200IN-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for exposure of sensitive information patterns for cwe-200-information-exposure"
+  blast_radius_notes: "Automated fix for CWE200IN-05 - Error Handling for Exposure of Sensitive Information"
+  verification_checks:
+    - "Verify CWE200IN-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

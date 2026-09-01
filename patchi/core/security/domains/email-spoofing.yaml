@@ -1,0 +1,62 @@
+# Patchi Security Domain: email-spoofing
+# Source: Email Security
+# Auto-generated — curated from Email Security
+
+domain_id: "email-spoofing"
+version: "1.0.0"
+display_name: "Email Spoofing"
+source_standard: "Email Security"
+component_type: "infra"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_email_spoofing_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_email_spoofing"
+
+controls:
+  - control_id: "EMAILSPO-01"
+    name: "Email Spoofing — Primary Control"
+    description: "Missing SPF, DKIM, or DMARC records allowing email spoofing."
+    source_clause: "Email Spoof"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://EMAILSPO-01"
+
+  - control_id: "EMAILSPO-02"
+    name: "Email Spoofing — Input Validation"
+    description: "Validate and sanitize all inputs related to email spoofing"
+    source_clause: "Email Spoof"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://EMAILSPO-02"
+
+  - control_id: "EMAILSPO-03"
+    name: "Email Spoofing — Configuration Hardening"
+    description: "Apply secure configuration defaults for email spoofing"
+    source_clause: "Email Spoof"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://EMAILSPO-03"
+
+  - control_id: "EMAILSPO-04"
+    name: "Email Spoofing — Monitoring and Logging"
+    description: "Log and monitor all email spoofing events for audit and detection"
+    source_clause: "Email Spoof"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://EMAILSPO-04"
+
+  - control_id: "EMAILSPO-05"
+    name: "Email Spoofing — Error Handling"
+    description: "Handle email spoofing errors securely without information leakage"
+    source_clause: "Email Spoof"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://EMAILSPO-05"

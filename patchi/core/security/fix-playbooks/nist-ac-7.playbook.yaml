@@ -1,0 +1,60 @@
+# Playbook for: nist-ac-7
+# Source: NIST SP 800-53 AC-7
+# Auto-generated
+
+playbooks:
+- control_id: "NISTAC7-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary unsuccessful login attempts control patterns for nist-ac-7"
+  blast_radius_notes: "Automated fix for NISTAC7-01 - Primary Unsuccessful Login Attempts Control"
+  verification_checks:
+    - "Verify NISTAC7-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NISTAC7-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for unsuccessful login attempts patterns for nist-ac-7"
+  blast_radius_notes: "Automated fix for NISTAC7-02 - Input Validation for Unsuccessful Login Attempts"
+  verification_checks:
+    - "Verify NISTAC7-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NISTAC7-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for unsuccessful login attempts patterns for nist-ac-7"
+  blast_radius_notes: "Automated fix for NISTAC7-03 - Configuration Hardening for Unsuccessful Login Attempts"
+  verification_checks:
+    - "Verify NISTAC7-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NISTAC7-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for unsuccessful login attempts patterns for nist-ac-7"
+  blast_radius_notes: "Automated fix for NISTAC7-04 - Monitoring and Logging for Unsuccessful Login Attempts"
+  verification_checks:
+    - "Verify NISTAC7-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NISTAC7-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for unsuccessful login attempts patterns for nist-ac-7"
+  blast_radius_notes: "Automated fix for NISTAC7-05 - Error Handling for Unsuccessful Login Attempts"
+  verification_checks:
+    - "Verify NISTAC7-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

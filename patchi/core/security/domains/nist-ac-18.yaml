@@ -1,0 +1,62 @@
+# Patchi Security Domain: nist-ac-18
+# Source: NIST SP 800-53 AC-18
+# Auto-generated — curated from NIST SP 800-53 AC-18
+
+domain_id: "nist-ac-18"
+version: "1.0.0"
+display_name: "Wireless Access"
+source_standard: "NIST SP 800-53 AC-18"
+component_type: "infra"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_nist_ac_18_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_nist_ac_18"
+
+controls:
+  - control_id: "NISTAC18-01"
+    name: "Wireless Access — Primary Control"
+    description: "Organization establishes and manages wireless access to the system."
+    source_clause: "AC-18"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://NISTAC18-01"
+
+  - control_id: "NISTAC18-02"
+    name: "Wireless Access — Input Validation"
+    description: "Validate and sanitize all inputs related to wireless access"
+    source_clause: "AC-18"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://NISTAC18-02"
+
+  - control_id: "NISTAC18-03"
+    name: "Wireless Access — Configuration Hardening"
+    description: "Apply secure configuration defaults for wireless access"
+    source_clause: "AC-18"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://NISTAC18-03"
+
+  - control_id: "NISTAC18-04"
+    name: "Wireless Access — Monitoring and Logging"
+    description: "Log and monitor all wireless access events for audit and detection"
+    source_clause: "AC-18"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://NISTAC18-04"
+
+  - control_id: "NISTAC18-05"
+    name: "Wireless Access — Error Handling"
+    description: "Handle wireless access errors securely without information leakage"
+    source_clause: "AC-18"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://NISTAC18-05"

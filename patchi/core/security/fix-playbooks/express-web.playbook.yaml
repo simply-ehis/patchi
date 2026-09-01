@@ -1,127 +1,0 @@
-playbooks:
-- blast_radius_notes: Automated fix for EXP-001
-  control_id: EXP-001
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix CSRF protection missing for cookie-authenticated routes:
-    Detect Express applications that read session cookies (cookie-parser + express-session
-    or similar) but do not mount the csurf middleware (or csrf-csrf, or a custom Origin-check
-    middleware) for state-changing routes (POST/PUT/PATCH/DELETE). Cookie-authenticated
-    endpoints are vulnerable to cross-site form POST CSRF: an attacker page can submit
-    a form to /api/delete-account and the browser will include the user''s session
-    cookie. The check should flag any app.post / app.put / app.patch / app.delete
-    that comes after cookie-parser is mounted but before csurf is mounted. Note: csurf
-    is deprecated since 2020 but still widely used; the modern replacement is csrf-csrf
-    (double-submit cookie pattern). Bearer-token-authenticated APIs (Authorization
-    header, no cookies) are NOT vulnerable to CSRF.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify EXP-001 is properly addressed
-- blast_radius_notes: Automated fix for EXP-002
-  control_id: EXP-002
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Security headers missing (helmet not mounted): Detect Express
-    applications that do not mount the helmet middleware (or equivalent manual headers)
-    to set security headers: X-Content-Type-Options: nosniff, X-Frame-Options: DENY
-    or SAMEORIGIN (clickjacking), Strict-Transport-Security (HSTS), Content-Security-Policy,
-    X-DNS-Prefetch-Control, Referrer-Policy, X-Permitted-Cross-Domain-Policies. Without
-    these headers, the app is vulnerable to MIME-type sniffing attacks (IE/Edge executing
-    JSON as HTML), clickjacking (embedding the app in an iframe), and protocol downgrade
-    attacks. The check should flag app.listen() or module.exports = app without app.use(helmet())
-    appearing earlier in the file or in a co-required file.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify EXP-002 is properly addressed
-- blast_radius_notes: Automated fix for EXP-003
-  control_id: EXP-003
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Body parser DoS via unbounded payload size: Detect express.json,
-    express.urlencoded, express.raw, express.text, or body-parser usage without an
-    explicit limit option, or with a limit set higher than 1MB for typical APIs. Without
-    a limit, an attacker can POST a multi-gigabyte JSON payload that Express will
-    attempt to parse, exhausting memory and CPU (JSON.parse on a 1GB string takes
-    ~30s and 5GB+ RAM). The default limit for express.json is 100kb which is safe,
-    but many tutorials override it to ''10mb'' or higher. Flag any parser with limit
-    > 1mb unless the route is specifically for file uploads (which should use multipart/form-data
-    with multer, not JSON). Also flag express.urlencoded with extended=true and no
-    limit (qs library can be slow on deeply nested objects).'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify EXP-003 is properly addressed
-- blast_radius_notes: Automated fix for EXP-004
-  control_id: EXP-004
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix CORS wildcard with credentials: Detect cors middleware configured
-    with origin: ''*'' (or origin: true) combined with credentials: true. The CORS
-    spec forbids this combination - browsers reject Access-Control-Allow-Origin: *
-    when Access-Control-Allow-Credentials: true is set, so the request fails. To work
-    around it, some code reflects the request Origin header back (origin: (origin)
-    => origin) which is functionally equivalent to ''*'' but evades the spec check,
-    allowing any site to make authenticated cross-origin requests. This is a critical
-    CSRF-adjacent vuln: any malicious site can read the response of authenticated
-    cross-origin requests. The fix is to set origin to an allow-list of trusted domains
-    and credentials: true only for those.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify EXP-004 is properly addressed
-- blast_radius_notes: Automated fix for EXP-005
-  control_id: EXP-005
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Insecure session cookies missing Secure / HttpOnly / SameSite:
-    Detect express-session, cookie-session, cookie-parser, or res.cookie() calls that
-    do not set secure: true (cookie only sent over HTTPS), httpOnly: true (cookie
-    not accessible via document.cookie), and sameSite: ''lax'' or ''strict'' (CSRF
-    mitigation). Flag: express-session with no cookie.secure option (defaults to false),
-    res.cookie(''session'', value) with no options object, cookie-session with no
-    secure flag, and sameSite: ''none'' without secure: true (browsers reject it).
-    In production behind a TLS-terminating proxy, also set cookie.secure = true and
-    trust proxy so X-Forwarded-Proto is honored. The default express-session cookie
-    is not HttpOnly and not Secure - both must be set explicitly.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify EXP-005 is properly addressed
-- blast_radius_notes: Automated fix for EXP-006
-  control_id: EXP-006
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Template injection via render with user input: Detect res.render,
-    app.render, or template engine calls (ejs.render, pug.render, nunjucks.renderString,
-    handlebars.compile) where the template string or a partial template path is derived
-    from user input. Server-Side Template Injection (SSTI) allows RCE in most template
-    engines: EJS via <%- code %>, Pug via #{code} with unescaped output, Nunjucks
-    via {{ code }} with autoescape off, Handlebars via vulnerable helpers. The most
-    common pattern is res.render(req.params.template) or ejs.render(req.body.html).
-    Also flag res.render with a layout option derived from user input (layout injection).
-    The fix is to use a static template name and pass user input as data, never as
-    the template itself.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify EXP-006 is properly addressed
-- blast_radius_notes: Automated fix for EXP-007
-  control_id: EXP-007
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Error stack traces leaked to client: Detect Express error
-    handlers (app.use((err, req, res, next) => ...)) that send err.stack, err.message,
-    or the raw err object to the client in production. The default Express error handler
-    in development mode sends a full stack trace; in production (NODE_ENV=production)
-    it sends a minimal response, but custom error handlers often re-introduce the
-    leak by doing res.status(500).json({ error: err.message, stack: err.stack }).
-    Stack traces reveal internal file paths, library versions, and sometimes secrets
-    in error messages (e.g. database connection strings in Sequelize errors). The
-    fix is to log the full error server-side and send only a generic message + correlation
-    ID to the client.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify EXP-007 is properly addressed

@@ -1,0 +1,62 @@
+# Patchi Security Domain: k8s-dashboard-exposure
+# Source: Kubernetes Security
+# Auto-generated — curated from Kubernetes Security
+
+domain_id: "k8s-dashboard-exposure"
+version: "1.0.0"
+display_name: "Kubernetes Dashboard Exposure"
+source_standard: "Kubernetes Security"
+component_type: "infra"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_k8s_dashboard_exposure_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_k8s_dashboard_exposure"
+
+controls:
+  - control_id: "K8SDASHB-01"
+    name: "Kubernetes Dashboard Exposure — Primary Control"
+    description: "Kubernetes dashboard exposed without authentication or with admin privileges."
+    source_clause: "K8s Dashboard"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://K8SDASHB-01"
+
+  - control_id: "K8SDASHB-02"
+    name: "Kubernetes Dashboard Exposure — Input Validation"
+    description: "Validate and sanitize all inputs related to kubernetes dashboard exposure"
+    source_clause: "K8s Dashboard"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://K8SDASHB-02"
+
+  - control_id: "K8SDASHB-03"
+    name: "Kubernetes Dashboard Exposure — Configuration Hardening"
+    description: "Apply secure configuration defaults for kubernetes dashboard exposure"
+    source_clause: "K8s Dashboard"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://K8SDASHB-03"
+
+  - control_id: "K8SDASHB-04"
+    name: "Kubernetes Dashboard Exposure — Monitoring and Logging"
+    description: "Log and monitor all kubernetes dashboard exposure events for audit and detection"
+    source_clause: "K8s Dashboard"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://K8SDASHB-04"
+
+  - control_id: "K8SDASHB-05"
+    name: "Kubernetes Dashboard Exposure — Error Handling"
+    description: "Handle kubernetes dashboard exposure errors securely without information leakage"
+    source_clause: "K8s Dashboard"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://K8SDASHB-05"

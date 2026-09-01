@@ -1,0 +1,62 @@
+# Patchi Security Domain: cwe-770-allocation-without-limits
+# Source: CWE-770
+# Auto-generated — curated from CWE-770
+
+domain_id: "cwe-770-allocation-without-limits"
+version: "1.0.0"
+display_name: "Allocation of Resources Without Limits or Throttling"
+source_standard: "CWE-770"
+component_type: "backend-api"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_cwe_770_allocation_without_limits_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_cwe_770_allocation_without_limits"
+
+controls:
+  - control_id: "CWE770AL-01"
+    name: "Allocation of Resources Without Limits or Throttling — Primary Control"
+    description: "Application allocates resources without imposing size or number limits."
+    source_clause: "CWE-770"
+    severity: "high"
+    check_method: "dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CWE770AL-01"
+
+  - control_id: "CWE770AL-02"
+    name: "Allocation of Resources Without Limits or Throttling — Input Validation"
+    description: "Validate and sanitize all inputs related to allocation of resources without limits or throttling"
+    source_clause: "CWE-770"
+    severity: "high"
+    check_method: "dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CWE770AL-02"
+
+  - control_id: "CWE770AL-03"
+    name: "Allocation of Resources Without Limits or Throttling — Configuration Hardening"
+    description: "Apply secure configuration defaults for allocation of resources without limits or throttling"
+    source_clause: "CWE-770"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CWE770AL-03"
+
+  - control_id: "CWE770AL-04"
+    name: "Allocation of Resources Without Limits or Throttling — Monitoring and Logging"
+    description: "Log and monitor all allocation of resources without limits or throttling events for audit and detection"
+    source_clause: "CWE-770"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CWE770AL-04"
+
+  - control_id: "CWE770AL-05"
+    name: "Allocation of Resources Without Limits or Throttling — Error Handling"
+    description: "Handle allocation of resources without limits or throttling errors securely without information leakage"
+    source_clause: "CWE-770"
+    severity: "medium"
+    check_method: "dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CWE770AL-05"

@@ -1,0 +1,62 @@
+# Patchi Security Domain: mitre-privilege-escalation-access-token
+# Source: MITRE ATT&CK
+# Auto-generated — curated from MITRE ATT&CK
+
+domain_id: "mitre-privilege-escalation-access-token"
+version: "1.0.0"
+display_name: "Access Token Manipulation (T1134)"
+source_standard: "MITRE ATT&CK"
+component_type: "infra"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_mitre_privilege_escalation_access_token_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_mitre_privilege_escalation_access_token"
+
+controls:
+  - control_id: "MITREPRI-01"
+    name: "Access Token Manipulation (T1134) — Primary Control"
+    description: "Modifying access tokens to elevate privileges."
+    source_clause: "T1134"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://MITREPRI-01"
+
+  - control_id: "MITREPRI-02"
+    name: "Access Token Manipulation (T1134) — Input Validation"
+    description: "Validate and sanitize all inputs related to access token manipulation (t1134)"
+    source_clause: "T1134"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://MITREPRI-02"
+
+  - control_id: "MITREPRI-03"
+    name: "Access Token Manipulation (T1134) — Configuration Hardening"
+    description: "Apply secure configuration defaults for access token manipulation (t1134)"
+    source_clause: "T1134"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://MITREPRI-03"
+
+  - control_id: "MITREPRI-04"
+    name: "Access Token Manipulation (T1134) — Monitoring and Logging"
+    description: "Log and monitor all access token manipulation (t1134) events for audit and detection"
+    source_clause: "T1134"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://MITREPRI-04"
+
+  - control_id: "MITREPRI-05"
+    name: "Access Token Manipulation (T1134) — Error Handling"
+    description: "Handle access token manipulation (t1134) errors securely without information leakage"
+    source_clause: "T1134"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://MITREPRI-05"

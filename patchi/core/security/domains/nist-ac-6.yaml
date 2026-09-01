@@ -1,0 +1,62 @@
+# Patchi Security Domain: nist-ac-6
+# Source: NIST SP 800-53 AC-6
+# Auto-generated — curated from NIST SP 800-53 AC-6
+
+domain_id: "nist-ac-6"
+version: "1.0.0"
+display_name: "Least Privilege"
+source_standard: "NIST SP 800-53 AC-6"
+component_type: "infra"
+weight: 0.9
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_nist_ac_6_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_nist_ac_6"
+
+controls:
+  - control_id: "NISTAC6-01"
+    name: "Least Privilege — Primary Control"
+    description: "Organization employs the principle of least privilege for system accounts."
+    source_clause: "AC-6"
+    severity: "critical"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://NISTAC6-01"
+
+  - control_id: "NISTAC6-02"
+    name: "Least Privilege — Input Validation"
+    description: "Validate and sanitize all inputs related to least privilege"
+    source_clause: "AC-6"
+    severity: "critical"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://NISTAC6-02"
+
+  - control_id: "NISTAC6-03"
+    name: "Least Privilege — Configuration Hardening"
+    description: "Apply secure configuration defaults for least privilege"
+    source_clause: "AC-6"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://NISTAC6-03"
+
+  - control_id: "NISTAC6-04"
+    name: "Least Privilege — Monitoring and Logging"
+    description: "Log and monitor all least privilege events for audit and detection"
+    source_clause: "AC-6"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://NISTAC6-04"
+
+  - control_id: "NISTAC6-05"
+    name: "Least Privilege — Error Handling"
+    description: "Handle least privilege errors securely without information leakage"
+    source_clause: "AC-6"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://NISTAC6-05"

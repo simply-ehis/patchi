@@ -1,0 +1,60 @@
+# Playbook for: privacy-analytics-consent
+# Source: Privacy Engineering
+# Auto-generated
+
+playbooks:
+- control_id: "PRIVACYA-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary analytics consent control patterns for privacy-analytics-consent"
+  blast_radius_notes: "Automated fix for PRIVACYA-01 - Primary Analytics Consent Control"
+  verification_checks:
+    - "Verify PRIVACYA-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "PRIVACYA-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for analytics consent patterns for privacy-analytics-consent"
+  blast_radius_notes: "Automated fix for PRIVACYA-02 - Input Validation for Analytics Consent"
+  verification_checks:
+    - "Verify PRIVACYA-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "PRIVACYA-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for analytics consent patterns for privacy-analytics-consent"
+  blast_radius_notes: "Automated fix for PRIVACYA-03 - Configuration Hardening for Analytics Consent"
+  verification_checks:
+    - "Verify PRIVACYA-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "PRIVACYA-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for analytics consent patterns for privacy-analytics-consent"
+  blast_radius_notes: "Automated fix for PRIVACYA-04 - Monitoring and Logging for Analytics Consent"
+  verification_checks:
+    - "Verify PRIVACYA-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "PRIVACYA-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for analytics consent patterns for privacy-analytics-consent"
+  blast_radius_notes: "Automated fix for PRIVACYA-05 - Error Handling for Analytics Consent"
+  verification_checks:
+    - "Verify PRIVACYA-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

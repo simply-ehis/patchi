@@ -1,0 +1,62 @@
+# Patchi Security Domain: owasp-llm-unbounded-consumption
+# Source: OWASP LLM 2025 LLM10
+# Auto-generated — curated from OWASP LLM 2025 LLM10
+
+domain_id: "owasp-llm-unbounded-consumption"
+version: "1.0.0"
+display_name: "Unbounded Consumption"
+source_standard: "OWASP LLM 2025 LLM10"
+component_type: "ai-ml"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_owasp_llm_unbounded_consumption_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_owasp_llm_unbounded_consumption"
+
+controls:
+  - control_id: "OWASPLLM-01"
+    name: "Unbounded Consumption — Primary Control"
+    description: "Lack of rate limits or resource controls allows denial-of-wallet or resource exhaustion attacks."
+    source_clause: "LLM10"
+    severity: "high"
+    check_method: "dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://OWASPLLM-01"
+
+  - control_id: "OWASPLLM-02"
+    name: "Unbounded Consumption — Input Validation"
+    description: "Validate and sanitize all inputs related to unbounded consumption"
+    source_clause: "LLM10"
+    severity: "high"
+    check_method: "dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://OWASPLLM-02"
+
+  - control_id: "OWASPLLM-03"
+    name: "Unbounded Consumption — Configuration Hardening"
+    description: "Apply secure configuration defaults for unbounded consumption"
+    source_clause: "LLM10"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://OWASPLLM-03"
+
+  - control_id: "OWASPLLM-04"
+    name: "Unbounded Consumption — Monitoring and Logging"
+    description: "Log and monitor all unbounded consumption events for audit and detection"
+    source_clause: "LLM10"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://OWASPLLM-04"
+
+  - control_id: "OWASPLLM-05"
+    name: "Unbounded Consumption — Error Handling"
+    description: "Handle unbounded consumption errors securely without information leakage"
+    source_clause: "LLM10"
+    severity: "medium"
+    check_method: "dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://OWASPLLM-05"

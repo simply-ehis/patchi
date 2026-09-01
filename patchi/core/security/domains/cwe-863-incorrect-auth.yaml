@@ -1,0 +1,62 @@
+# Patchi Security Domain: cwe-863-incorrect-auth
+# Source: CWE Top 25 2024 CWE-863
+# Auto-generated — curated from CWE Top 25 2024 CWE-863
+
+domain_id: "cwe-863-incorrect-auth"
+version: "1.0.0"
+display_name: "Incorrect Authorization"
+source_standard: "CWE Top 25 2024 CWE-863"
+component_type: "backend-api"
+weight: 0.9
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_cwe_863_incorrect_auth_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_cwe_863_incorrect_auth"
+
+controls:
+  - control_id: "CWE863IN-01"
+    name: "Incorrect Authorization — Primary Control"
+    description: "Authorization check is performed but is incorrect, allowing unintended access."
+    source_clause: "CWE-863"
+    severity: "critical"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CWE863IN-01"
+
+  - control_id: "CWE863IN-02"
+    name: "Incorrect Authorization — Input Validation"
+    description: "Validate and sanitize all inputs related to incorrect authorization"
+    source_clause: "CWE-863"
+    severity: "critical"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CWE863IN-02"
+
+  - control_id: "CWE863IN-03"
+    name: "Incorrect Authorization — Configuration Hardening"
+    description: "Apply secure configuration defaults for incorrect authorization"
+    source_clause: "CWE-863"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CWE863IN-03"
+
+  - control_id: "CWE863IN-04"
+    name: "Incorrect Authorization — Monitoring and Logging"
+    description: "Log and monitor all incorrect authorization events for audit and detection"
+    source_clause: "CWE-863"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CWE863IN-04"
+
+  - control_id: "CWE863IN-05"
+    name: "Incorrect Authorization — Error Handling"
+    description: "Handle incorrect authorization errors securely without information leakage"
+    source_clause: "CWE-863"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CWE863IN-05"

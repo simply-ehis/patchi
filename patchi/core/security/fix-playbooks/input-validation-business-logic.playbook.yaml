@@ -1,153 +1,0 @@
-playbooks:
-- blast_radius_notes: Automated fix for BIZLOGIC-01
-  control_id: BIZLOGIC-01
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Document input validation rules for structured data formats:
-    Documentation must define input validation rules for checking the validity of
-    data items against an expected structure, whether a common format (credit card,
-    email, phone number) or an internal data format.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify BIZLOGIC-01 is properly addressed
-- blast_radius_notes: Automated fix for BIZLOGIC-02
-  control_id: BIZLOGIC-02
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Document cross-field logical consistency validation rules:
-    Documentation must define how to validate the logical and contextual consistency
-    of combined data items (e.g. confirming a suburb and postal code actually match).'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify BIZLOGIC-02 is properly addressed
-- blast_radius_notes: Automated fix for BIZLOGIC-03
-  control_id: BIZLOGIC-03
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Document business logic limits, per-user and global: Documentation
-    must define expectations for business logic limits and validations, including
-    both per-user and application-wide limits.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify BIZLOGIC-03 is properly addressed
-- blast_radius_notes: Automated fix for BIZLOGIC-04
-  control_id: BIZLOGIC-04
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Enforce positive input validation against business/functional
-    expectations: Input must be validated to enforce business or functional expectations,
-    using positive validation (allowlist of values/patterns/ranges) or comparison
-    against expected structure and logical limits, rather than only rejecting known-bad
-    patterns.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify BIZLOGIC-04 is properly addressed
-- blast_radius_notes: Automated fix for BIZLOGIC-05
-  control_id: BIZLOGIC-05
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Enforce input validation at a trusted service layer, not
-    client-side only: The application must enforce input validation at a trusted service
-    layer; client-side validation improves usability but must never be relied upon
-    as the actual security control.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify BIZLOGIC-05 is properly addressed
-- blast_radius_notes: Automated fix for BIZLOGIC-06
-  control_id: BIZLOGIC-06
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Validate combinations of related data items for reasonableness:
-    The application must ensure combinations of related data items are reasonable
-    according to pre-defined rules (e.g. a shipping date isn''t before an order date).'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify BIZLOGIC-06 is properly addressed
-- blast_radius_notes: Automated fix for BIZLOGIC-07
-  control_id: BIZLOGIC-07
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Enforce sequential step order in multi-step business flows:
-    The application must only process business logic flows for a given user in the
-    expected sequential step order, without allowing steps to be skipped.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify BIZLOGIC-07 is properly addressed
-- blast_radius_notes: Automated fix for BIZLOGIC-08
-  control_id: BIZLOGIC-08
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Implement documented business logic limits: Business logic
-    limits must be implemented per the application''s documentation to avoid business
-    logic flaws being exploited (e.g. quantity limits, transaction size limits).'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify BIZLOGIC-08 is properly addressed
-- blast_radius_notes: Automated fix for BIZLOGIC-09
-  control_id: BIZLOGIC-09
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Use atomic transactions for business logic operations: Transactions
-    must be used at the business logic level such that an operation either succeeds
-    in its entirety or is rolled back to the previous correct state, preventing partial-completion
-    states that could be exploited or cause data corruption.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify BIZLOGIC-09 is properly addressed
-- blast_radius_notes: Automated fix for BIZLOGIC-10
-  control_id: BIZLOGIC-10
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Use locking mechanisms to prevent double-booking of limited
-    resources: Business logic level locking must be used to ensure limited-quantity
-    resources (theater seats, delivery slots, inventory) cannot be double-booked through
-    concurrent requests manipulating application logic.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify BIZLOGIC-10 is properly addressed
-- blast_radius_notes: Automated fix for BIZLOGIC-11
-  control_id: BIZLOGIC-11
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Require multi-user approval for high-value business logic
-    flows: High-value business logic flows (large monetary transfers, contract approvals,
-    access to classified information, safety overrides) must require multi-user approval
-    to prevent unauthorized or accidental actions.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify BIZLOGIC-11 is properly addressed
-- blast_radius_notes: Automated fix for BIZLOGIC-12
-  control_id: BIZLOGIC-12
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Implement anti-automation controls against excessive function
-    calls: Anti-automation controls must be in place to protect against excessive
-    calls to application functions that could lead to data exfiltration, garbage-data
-    creation, quota exhaustion, rate-limit breaches, denial-of-service, or overuse
-    of costly resources.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify BIZLOGIC-12 is properly addressed
-- blast_radius_notes: Automated fix for BIZLOGIC-13
-  control_id: BIZLOGIC-13
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Require realistic human timing for business logic flows:
-    Business logic flows must require realistic human timing, preventing excessively
-    rapid transaction submissions that indicate automated abuse.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify BIZLOGIC-13 is properly addressed

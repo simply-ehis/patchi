@@ -1,0 +1,62 @@
+# Patchi Security Domain: cis-suse
+# Source: CIS SUSE Linux Benchmark
+# Auto-generated — curated from CIS SUSE Linux Benchmark
+
+domain_id: "cis-suse"
+version: "1.0.0"
+display_name: "SUSE Linux Hardening"
+source_standard: "CIS SUSE Linux Benchmark"
+component_type: "infra"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_cis_suse_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_cis_suse"
+
+controls:
+  - control_id: "CISSUSE-01"
+    name: "SUSE Linux Hardening — Primary Control"
+    description: "System configuration, file permissions, and service management."
+    source_clause: "CIS SUSE"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CISSUSE-01"
+
+  - control_id: "CISSUSE-02"
+    name: "SUSE Linux Hardening — Input Validation"
+    description: "Validate and sanitize all inputs related to suse linux hardening"
+    source_clause: "CIS SUSE"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CISSUSE-02"
+
+  - control_id: "CISSUSE-03"
+    name: "SUSE Linux Hardening — Configuration Hardening"
+    description: "Apply secure configuration defaults for suse linux hardening"
+    source_clause: "CIS SUSE"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CISSUSE-03"
+
+  - control_id: "CISSUSE-04"
+    name: "SUSE Linux Hardening — Monitoring and Logging"
+    description: "Log and monitor all suse linux hardening events for audit and detection"
+    source_clause: "CIS SUSE"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CISSUSE-04"
+
+  - control_id: "CISSUSE-05"
+    name: "SUSE Linux Hardening — Error Handling"
+    description: "Handle suse linux hardening errors securely without information leakage"
+    source_clause: "CIS SUSE"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CISSUSE-05"

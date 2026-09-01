@@ -1,145 +1,0 @@
-playbooks:
-- blast_radius_notes: Automated fix for TLS-01
-  control_id: TLS-01
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Enable only current TLS protocol versions: Only the latest
-    recommended versions of the TLS protocol must be enabled  -  TLS 1.2 and TLS 1.3
-     -  with the latest version set as the preferred option; older protocol versions
-    (TLS 1.0, TLS 1.1, all SSL versions) must be disabled.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify TLS-01 is properly addressed
-- blast_radius_notes: Automated fix for TLS-02
-  control_id: TLS-02
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Enable only recommended cipher suites; require forward secrecy
-    at L3: Only recommended cipher suites may be enabled, with the strongest suites
-    set as preferred; L3 applications must only support cipher suites providing forward
-    secrecy (ECDHE/DHE-based suites, not static RSA key exchange).'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify TLS-02 is properly addressed
-- blast_radius_notes: Automated fix for TLS-03
-  control_id: TLS-03
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Validate mTLS client certificates as trusted before using
-    their identity: If mutual TLS is used, the application must validate that client
-    certificates are trusted before using the certificate''s identity for authentication
-    or authorization decisions.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify TLS-03 is properly addressed
-- blast_radius_notes: Automated fix for TLS-04
-  control_id: TLS-04
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Enable certificate revocation checking (OCSP stapling): Proper
-    certificate revocation checking, such as OCSP Stapling, must be enabled and configured,
-    so a revoked certificate is not silently trusted.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify TLS-04 is properly addressed
-- blast_radius_notes: Automated fix for TLS-05
-  control_id: TLS-05
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Enable Encrypted Client Hello (ECH): Encrypted Client Hello
-    must be enabled in the application''s TLS settings to prevent exposure of sensitive
-    metadata, such as the Server Name Indication (SNI), during the TLS handshake.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify TLS-05 is properly addressed
-- blast_radius_notes: Automated fix for TLS-06
-  control_id: TLS-06
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Enforce TLS for all external client connectivity, no insecure
-    fallback: TLS must be used for all connectivity between a client and external-facing,
-    HTTP-based services, with no fallback to insecure or unencrypted communication.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify TLS-06 is properly addressed
-- blast_radius_notes: Automated fix for TLS-07
-  control_id: TLS-07
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Use publicly trusted TLS certificates for external-facing
-    services: External-facing services must use TLS certificates issued by a publicly
-    trusted certificate authority, not self-signed or internally-issued certificates
-    that a public client''s browser/HTTP client would not trust by default.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify TLS-07 is properly addressed
-- blast_radius_notes: Automated fix for TLS-08
-  control_id: TLS-08
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Encrypt all inbound/outbound connections including non-HTTP
-    protocols: An encrypted protocol such as TLS must be used for all inbound and
-    outbound connections to and from the application  -  monitoring systems, management
-    tools, remote access/SSH, middleware, databases, mainframes, partner systems,
-    or external APIs  -  with no fallback to insecure/unencrypted protocols.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify TLS-08 is properly addressed
-- blast_radius_notes: Automated fix for TLS-09
-  control_id: TLS-09
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Validate TLS server certificates on outbound client connections:
-    TLS clients (the application acting as a client to another service) must validate
-    the certificate received from the server before communicating with it, rather
-    than disabling certificate validation.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify TLS-09 is properly addressed
-- blast_radius_notes: Automated fix for TLS-10
-  control_id: TLS-10
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Encrypt internal HTTP-based service-to-service communication:
-    TLS or another appropriate transport encryption mechanism must be used for all
-    connectivity between internal, HTTP-based services within the application, with
-    no fallback to insecure or unencrypted communication.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify TLS-10 is properly addressed
-- blast_radius_notes: Automated fix for TLS-11
-  control_id: TLS-11
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Use trusted certificates for internal TLS connections: TLS
-    connections between internal services must use trusted certificates; where internally-generated
-    or self-signed certificates are used, the consuming service must be configured
-    to trust only specific internal CAs and specific self-signed certificates, not
-    blanket-trust any certificate.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify TLS-11 is properly addressed
-- blast_radius_notes: Automated fix for TLS-12
-  control_id: TLS-12
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Use strong mutual authentication between internal services:
-    Services communicating internally must use strong authentication to verify each
-    endpoint''s identity  -  TLS client authentication using public-key infrastructure,
-    resistant to replay attacks; for microservice architectures, a service mesh should
-    be considered to simplify certificate management.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify TLS-12 is properly addressed

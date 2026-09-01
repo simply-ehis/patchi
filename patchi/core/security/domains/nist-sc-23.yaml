@@ -1,0 +1,62 @@
+# Patchi Security Domain: nist-sc-23
+# Source: NIST SP 800-53 SC-23
+# Auto-generated — curated from NIST SP 800-53 SC-23
+
+domain_id: "nist-sc-23"
+version: "1.0.0"
+display_name: "Operated System Security"
+source_standard: "NIST SP 800-53 SC-23"
+component_type: "infra"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_nist_sc_23_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_nist_sc_23"
+
+controls:
+  - control_id: "NISTSC23-01"
+    name: "Operated System Security — Primary Control"
+    description: "System ensures authenticity of mobile device connections."
+    source_clause: "SC-23"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://NISTSC23-01"
+
+  - control_id: "NISTSC23-02"
+    name: "Operated System Security — Input Validation"
+    description: "Validate and sanitize all inputs related to operated system security"
+    source_clause: "SC-23"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://NISTSC23-02"
+
+  - control_id: "NISTSC23-03"
+    name: "Operated System Security — Configuration Hardening"
+    description: "Apply secure configuration defaults for operated system security"
+    source_clause: "SC-23"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://NISTSC23-03"
+
+  - control_id: "NISTSC23-04"
+    name: "Operated System Security — Monitoring and Logging"
+    description: "Log and monitor all operated system security events for audit and detection"
+    source_clause: "SC-23"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://NISTSC23-04"
+
+  - control_id: "NISTSC23-05"
+    name: "Operated System Security — Error Handling"
+    description: "Handle operated system security errors securely without information leakage"
+    source_clause: "SC-23"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://NISTSC23-05"

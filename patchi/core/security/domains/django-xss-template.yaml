@@ -1,0 +1,62 @@
+# Patchi Security Domain: django-xss-template
+# Source: Django Security
+# Auto-generated — curated from Django Security
+
+domain_id: "django-xss-template"
+version: "1.0.0"
+display_name: "Django Template XSS"
+source_standard: "Django Security"
+component_type: "frontend-web"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_django_xss_template_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_django_xss_template"
+
+controls:
+  - control_id: "DJANGOXS-01"
+    name: "Django Template XSS — Primary Control"
+    description: "Use of |safe filter or autoescape off with user content."
+    source_clause: "Django XSS"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://DJANGOXS-01"
+
+  - control_id: "DJANGOXS-02"
+    name: "Django Template XSS — Input Validation"
+    description: "Validate and sanitize all inputs related to django template xss"
+    source_clause: "Django XSS"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://DJANGOXS-02"
+
+  - control_id: "DJANGOXS-03"
+    name: "Django Template XSS — Configuration Hardening"
+    description: "Apply secure configuration defaults for django template xss"
+    source_clause: "Django XSS"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://DJANGOXS-03"
+
+  - control_id: "DJANGOXS-04"
+    name: "Django Template XSS — Monitoring and Logging"
+    description: "Log and monitor all django template xss events for audit and detection"
+    source_clause: "Django XSS"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://DJANGOXS-04"
+
+  - control_id: "DJANGOXS-05"
+    name: "Django Template XSS — Error Handling"
+    description: "Handle django template xss errors securely without information leakage"
+    source_clause: "Django XSS"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://DJANGOXS-05"

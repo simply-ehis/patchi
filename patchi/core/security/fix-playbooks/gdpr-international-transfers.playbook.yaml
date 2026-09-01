@@ -1,0 +1,60 @@
+# Playbook for: gdpr-international-transfers
+# Source: GDPR Art 44-49
+# Auto-generated
+
+playbooks:
+- control_id: "GDPRINTE-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary international data transfers control patterns for gdpr-international-transfers"
+  blast_radius_notes: "Automated fix for GDPRINTE-01 - Primary International Data Transfers Control"
+  verification_checks:
+    - "Verify GDPRINTE-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "GDPRINTE-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for international data transfers patterns for gdpr-international-transfers"
+  blast_radius_notes: "Automated fix for GDPRINTE-02 - Input Validation for International Data Transfers"
+  verification_checks:
+    - "Verify GDPRINTE-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "GDPRINTE-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for international data transfers patterns for gdpr-international-transfers"
+  blast_radius_notes: "Automated fix for GDPRINTE-03 - Configuration Hardening for International Data Transfers"
+  verification_checks:
+    - "Verify GDPRINTE-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "GDPRINTE-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for international data transfers patterns for gdpr-international-transfers"
+  blast_radius_notes: "Automated fix for GDPRINTE-04 - Monitoring and Logging for International Data Transfers"
+  verification_checks:
+    - "Verify GDPRINTE-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "GDPRINTE-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for international data transfers patterns for gdpr-international-transfers"
+  blast_radius_notes: "Automated fix for GDPRINTE-05 - Error Handling for International Data Transfers"
+  verification_checks:
+    - "Verify GDPRINTE-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

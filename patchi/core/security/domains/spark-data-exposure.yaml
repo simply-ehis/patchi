@@ -1,0 +1,62 @@
+# Patchi Security Domain: spark-data-exposure
+# Source: Data Engineering Security
+# Auto-generated — curated from Data Engineering Security
+
+domain_id: "spark-data-exposure"
+version: "1.0.0"
+display_name: "Apache Spark Data Exposure"
+source_standard: "Data Engineering Security"
+component_type: "infra"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_spark_data_exposure_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_spark_data_exposure"
+
+controls:
+  - control_id: "SPARKDAT-01"
+    name: "Apache Spark Data Exposure — Primary Control"
+    description: "Spark UI or data frames exposed without authentication."
+    source_clause: "Spark Data"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://SPARKDAT-01"
+
+  - control_id: "SPARKDAT-02"
+    name: "Apache Spark Data Exposure — Input Validation"
+    description: "Validate and sanitize all inputs related to apache spark data exposure"
+    source_clause: "Spark Data"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://SPARKDAT-02"
+
+  - control_id: "SPARKDAT-03"
+    name: "Apache Spark Data Exposure — Configuration Hardening"
+    description: "Apply secure configuration defaults for apache spark data exposure"
+    source_clause: "Spark Data"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://SPARKDAT-03"
+
+  - control_id: "SPARKDAT-04"
+    name: "Apache Spark Data Exposure — Monitoring and Logging"
+    description: "Log and monitor all apache spark data exposure events for audit and detection"
+    source_clause: "Spark Data"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://SPARKDAT-04"
+
+  - control_id: "SPARKDAT-05"
+    name: "Apache Spark Data Exposure — Error Handling"
+    description: "Handle apache spark data exposure errors securely without information leakage"
+    source_clause: "Spark Data"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://SPARKDAT-05"

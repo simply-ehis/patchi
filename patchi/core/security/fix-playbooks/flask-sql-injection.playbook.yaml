@@ -1,0 +1,60 @@
+# Playbook for: flask-sql-injection
+# Source: Flask Security
+# Auto-generated
+
+playbooks:
+- control_id: "FLASKSQL-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary flask sqlalchemy injection control patterns for flask-sql-injection"
+  blast_radius_notes: "Automated fix for FLASKSQL-01 - Primary Flask SQLAlchemy Injection Control"
+  verification_checks:
+    - "Verify FLASKSQL-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "FLASKSQL-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for flask sqlalchemy injection patterns for flask-sql-injection"
+  blast_radius_notes: "Automated fix for FLASKSQL-02 - Input Validation for Flask SQLAlchemy Injection"
+  verification_checks:
+    - "Verify FLASKSQL-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "FLASKSQL-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for flask sqlalchemy injection patterns for flask-sql-injection"
+  blast_radius_notes: "Automated fix for FLASKSQL-03 - Configuration Hardening for Flask SQLAlchemy Injection"
+  verification_checks:
+    - "Verify FLASKSQL-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "FLASKSQL-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for flask sqlalchemy injection patterns for flask-sql-injection"
+  blast_radius_notes: "Automated fix for FLASKSQL-04 - Monitoring and Logging for Flask SQLAlchemy Injection"
+  verification_checks:
+    - "Verify FLASKSQL-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "FLASKSQL-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for flask sqlalchemy injection patterns for flask-sql-injection"
+  blast_radius_notes: "Automated fix for FLASKSQL-05 - Error Handling for Flask SQLAlchemy Injection"
+  verification_checks:
+    - "Verify FLASKSQL-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

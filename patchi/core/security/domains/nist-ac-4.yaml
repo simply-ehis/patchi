@@ -1,0 +1,62 @@
+# Patchi Security Domain: nist-ac-4
+# Source: NIST SP 800-53 AC-4
+# Auto-generated — curated from NIST SP 800-53 AC-4
+
+domain_id: "nist-ac-4"
+version: "1.0.0"
+display_name: "Information Flow Enforcement"
+source_standard: "NIST SP 800-53 AC-4"
+component_type: "backend-api"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_nist_ac_4_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_nist_ac_4"
+
+controls:
+  - control_id: "NISTAC4-01"
+    name: "Information Flow Enforcement — Primary Control"
+    description: "System enforces approved authorizations for controlling the flow of information."
+    source_clause: "AC-4"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://NISTAC4-01"
+
+  - control_id: "NISTAC4-02"
+    name: "Information Flow Enforcement — Input Validation"
+    description: "Validate and sanitize all inputs related to information flow enforcement"
+    source_clause: "AC-4"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://NISTAC4-02"
+
+  - control_id: "NISTAC4-03"
+    name: "Information Flow Enforcement — Configuration Hardening"
+    description: "Apply secure configuration defaults for information flow enforcement"
+    source_clause: "AC-4"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://NISTAC4-03"
+
+  - control_id: "NISTAC4-04"
+    name: "Information Flow Enforcement — Monitoring and Logging"
+    description: "Log and monitor all information flow enforcement events for audit and detection"
+    source_clause: "AC-4"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://NISTAC4-04"
+
+  - control_id: "NISTAC4-05"
+    name: "Information Flow Enforcement — Error Handling"
+    description: "Handle information flow enforcement errors securely without information leakage"
+    source_clause: "AC-4"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://NISTAC4-05"

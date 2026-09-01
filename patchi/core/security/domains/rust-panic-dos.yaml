@@ -1,0 +1,62 @@
+# Patchi Security Domain: rust-panic-dos
+# Source: Rust Security
+# Auto-generated — curated from Rust Security
+
+domain_id: "rust-panic-dos"
+version: "1.0.0"
+display_name: "Rust Panic DoS"
+source_standard: "Rust Security"
+component_type: "backend-api"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_rust_panic_dos_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_rust_panic_dos"
+
+controls:
+  - control_id: "RUSTPANI-01"
+    name: "Rust Panic DoS — Primary Control"
+    description: "unwrap() or expect() on untrusted data causing panics."
+    source_clause: "Rust Panic"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://RUSTPANI-01"
+
+  - control_id: "RUSTPANI-02"
+    name: "Rust Panic DoS — Input Validation"
+    description: "Validate and sanitize all inputs related to rust panic dos"
+    source_clause: "Rust Panic"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://RUSTPANI-02"
+
+  - control_id: "RUSTPANI-03"
+    name: "Rust Panic DoS — Configuration Hardening"
+    description: "Apply secure configuration defaults for rust panic dos"
+    source_clause: "Rust Panic"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://RUSTPANI-03"
+
+  - control_id: "RUSTPANI-04"
+    name: "Rust Panic DoS — Monitoring and Logging"
+    description: "Log and monitor all rust panic dos events for audit and detection"
+    source_clause: "Rust Panic"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://RUSTPANI-04"
+
+  - control_id: "RUSTPANI-05"
+    name: "Rust Panic DoS — Error Handling"
+    description: "Handle rust panic dos errors securely without information leakage"
+    source_clause: "Rust Panic"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://RUSTPANI-05"

@@ -1,0 +1,62 @@
+# Patchi Security Domain: mobile-logging-security
+# Source: Mobile Security
+# Auto-generated — curated from Mobile Security
+
+domain_id: "mobile-logging-security"
+version: "1.0.0"
+display_name: "Mobile Logging Security"
+source_standard: "Mobile Security"
+component_type: "mobile-native"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_mobile_logging_security_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_mobile_logging_security"
+
+controls:
+  - control_id: "MOBILELO-01"
+    name: "Mobile Logging Security — Primary Control"
+    description: "Sensitive data in iOS NSLog, Android Logcat, or crash reports."
+    source_clause: "Mobile Log"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://MOBILELO-01"
+
+  - control_id: "MOBILELO-02"
+    name: "Mobile Logging Security — Input Validation"
+    description: "Validate and sanitize all inputs related to mobile logging security"
+    source_clause: "Mobile Log"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://MOBILELO-02"
+
+  - control_id: "MOBILELO-03"
+    name: "Mobile Logging Security — Configuration Hardening"
+    description: "Apply secure configuration defaults for mobile logging security"
+    source_clause: "Mobile Log"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://MOBILELO-03"
+
+  - control_id: "MOBILELO-04"
+    name: "Mobile Logging Security — Monitoring and Logging"
+    description: "Log and monitor all mobile logging security events for audit and detection"
+    source_clause: "Mobile Log"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://MOBILELO-04"
+
+  - control_id: "MOBILELO-05"
+    name: "Mobile Logging Security — Error Handling"
+    description: "Handle mobile logging security errors securely without information leakage"
+    source_clause: "Mobile Log"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://MOBILELO-05"

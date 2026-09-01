@@ -1,0 +1,60 @@
+# Playbook for: react-state-tainting
+# Source: React Security
+# Auto-generated
+
+playbooks:
+- control_id: "REACTSTA-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary state tainting for injection control patterns for react-state-tainting"
+  blast_radius_notes: "Automated fix for REACTSTA-01 - Primary State Tainting for Injection Control"
+  verification_checks:
+    - "Verify REACTSTA-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "REACTSTA-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for state tainting for injection patterns for react-state-tainting"
+  blast_radius_notes: "Automated fix for REACTSTA-02 - Input Validation for State Tainting for Injection"
+  verification_checks:
+    - "Verify REACTSTA-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "REACTSTA-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for state tainting for injection patterns for react-state-tainting"
+  blast_radius_notes: "Automated fix for REACTSTA-03 - Configuration Hardening for State Tainting for Injection"
+  verification_checks:
+    - "Verify REACTSTA-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "REACTSTA-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for state tainting for injection patterns for react-state-tainting"
+  blast_radius_notes: "Automated fix for REACTSTA-04 - Monitoring and Logging for State Tainting for Injection"
+  verification_checks:
+    - "Verify REACTSTA-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "REACTSTA-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for state tainting for injection patterns for react-state-tainting"
+  blast_radius_notes: "Automated fix for REACTSTA-05 - Error Handling for State Tainting for Injection"
+  verification_checks:
+    - "Verify REACTSTA-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

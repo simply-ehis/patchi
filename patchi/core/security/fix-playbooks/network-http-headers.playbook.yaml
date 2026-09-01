@@ -1,0 +1,60 @@
+# Playbook for: network-http-headers
+# Source: Network Security
+# Auto-generated
+
+playbooks:
+- control_id: "NETWORKH-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary http security headers control patterns for network-http-headers"
+  blast_radius_notes: "Automated fix for NETWORKH-01 - Primary HTTP Security Headers Control"
+  verification_checks:
+    - "Verify NETWORKH-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NETWORKH-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for http security headers patterns for network-http-headers"
+  blast_radius_notes: "Automated fix for NETWORKH-02 - Input Validation for HTTP Security Headers"
+  verification_checks:
+    - "Verify NETWORKH-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NETWORKH-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for http security headers patterns for network-http-headers"
+  blast_radius_notes: "Automated fix for NETWORKH-03 - Configuration Hardening for HTTP Security Headers"
+  verification_checks:
+    - "Verify NETWORKH-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NETWORKH-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for http security headers patterns for network-http-headers"
+  blast_radius_notes: "Automated fix for NETWORKH-04 - Monitoring and Logging for HTTP Security Headers"
+  verification_checks:
+    - "Verify NETWORKH-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NETWORKH-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for http security headers patterns for network-http-headers"
+  blast_radius_notes: "Automated fix for NETWORKH-05 - Error Handling for HTTP Security Headers"
+  verification_checks:
+    - "Verify NETWORKH-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

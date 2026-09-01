@@ -1,0 +1,60 @@
+# Playbook for: blogic-resource-exhaustion
+# Source: Business Logic
+# Auto-generated
+
+playbooks:
+- control_id: "BLOGICRE-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary resource exhaustion control patterns for blogic-resource-exhaustion"
+  blast_radius_notes: "Automated fix for BLOGICRE-01 - Primary Resource Exhaustion Control"
+  verification_checks:
+    - "Verify BLOGICRE-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "BLOGICRE-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for resource exhaustion patterns for blogic-resource-exhaustion"
+  blast_radius_notes: "Automated fix for BLOGICRE-02 - Input Validation for Resource Exhaustion"
+  verification_checks:
+    - "Verify BLOGICRE-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "BLOGICRE-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for resource exhaustion patterns for blogic-resource-exhaustion"
+  blast_radius_notes: "Automated fix for BLOGICRE-03 - Configuration Hardening for Resource Exhaustion"
+  verification_checks:
+    - "Verify BLOGICRE-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "BLOGICRE-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for resource exhaustion patterns for blogic-resource-exhaustion"
+  blast_radius_notes: "Automated fix for BLOGICRE-04 - Monitoring and Logging for Resource Exhaustion"
+  verification_checks:
+    - "Verify BLOGICRE-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "BLOGICRE-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for resource exhaustion patterns for blogic-resource-exhaustion"
+  blast_radius_notes: "Automated fix for BLOGICRE-05 - Error Handling for Resource Exhaustion"
+  verification_checks:
+    - "Verify BLOGICRE-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

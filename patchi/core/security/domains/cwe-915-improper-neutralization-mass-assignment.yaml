@@ -1,0 +1,62 @@
+# Patchi Security Domain: cwe-915-improper-neutralization-mass-assignment
+# Source: CWE-915
+# Auto-generated — curated from CWE-915
+
+domain_id: "cwe-915-improper-neutralization-mass-assignment"
+version: "1.0.0"
+display_name: "Improperly Controlled Modification of Dynamically-Determined Object Attributes (Mass Assignment)"
+source_standard: "CWE-915"
+component_type: "backend-api"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_cwe_915_improper_neutralization_mass_assignment_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_cwe_915_improper_neutralization_mass_assignment"
+
+controls:
+  - control_id: "CWE915IM-01"
+    name: "Improperly Controlled Modification of Dynamically-Determined Object Attributes (Mass Assignment) — Primary Control"
+    description: "Application automatically assigns object attributes from user input without restriction."
+    source_clause: "CWE-915"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CWE915IM-01"
+
+  - control_id: "CWE915IM-02"
+    name: "Improperly Controlled Modification of Dynamically-Determined Object Attributes (Mass Assignment) — Input Validation"
+    description: "Validate and sanitize all inputs related to improperly controlled modification of dynamically-determined object attributes (mass assignment)"
+    source_clause: "CWE-915"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CWE915IM-02"
+
+  - control_id: "CWE915IM-03"
+    name: "Improperly Controlled Modification of Dynamically-Determined Object Attributes (Mass Assignment) — Configuration Hardening"
+    description: "Apply secure configuration defaults for improperly controlled modification of dynamically-determined object attributes (mass assignment)"
+    source_clause: "CWE-915"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CWE915IM-03"
+
+  - control_id: "CWE915IM-04"
+    name: "Improperly Controlled Modification of Dynamically-Determined Object Attributes (Mass Assignment) — Monitoring and Logging"
+    description: "Log and monitor all improperly controlled modification of dynamically-determined object attributes (mass assignment) events for audit and detection"
+    source_clause: "CWE-915"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CWE915IM-04"
+
+  - control_id: "CWE915IM-05"
+    name: "Improperly Controlled Modification of Dynamically-Determined Object Attributes (Mass Assignment) — Error Handling"
+    description: "Handle improperly controlled modification of dynamically-determined object attributes (mass assignment) errors securely without information leakage"
+    source_clause: "CWE-915"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CWE915IM-05"

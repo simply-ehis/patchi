@@ -1,0 +1,60 @@
+# Playbook for: crypto-hardcoded-key
+# Source: Cryptography Implementation
+# Auto-generated
+
+playbooks:
+- control_id: "CRYPTOHA-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary hardcoded cryptographic keys control patterns for crypto-hardcoded-key"
+  blast_radius_notes: "Automated fix for CRYPTOHA-01 - Primary Hardcoded Cryptographic Keys Control"
+  verification_checks:
+    - "Verify CRYPTOHA-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CRYPTOHA-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for hardcoded cryptographic keys patterns for crypto-hardcoded-key"
+  blast_radius_notes: "Automated fix for CRYPTOHA-02 - Input Validation for Hardcoded Cryptographic Keys"
+  verification_checks:
+    - "Verify CRYPTOHA-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CRYPTOHA-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for hardcoded cryptographic keys patterns for crypto-hardcoded-key"
+  blast_radius_notes: "Automated fix for CRYPTOHA-03 - Configuration Hardening for Hardcoded Cryptographic Keys"
+  verification_checks:
+    - "Verify CRYPTOHA-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CRYPTOHA-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for hardcoded cryptographic keys patterns for crypto-hardcoded-key"
+  blast_radius_notes: "Automated fix for CRYPTOHA-04 - Monitoring and Logging for Hardcoded Cryptographic Keys"
+  verification_checks:
+    - "Verify CRYPTOHA-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CRYPTOHA-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for hardcoded cryptographic keys patterns for crypto-hardcoded-key"
+  blast_radius_notes: "Automated fix for CRYPTOHA-05 - Error Handling for Hardcoded Cryptographic Keys"
+  verification_checks:
+    - "Verify CRYPTOHA-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

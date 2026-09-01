@@ -1,0 +1,62 @@
+# Patchi Security Domain: spring-bean-injection
+# Source: Spring Security
+# Auto-generated — curated from Spring Security
+
+domain_id: "spring-bean-injection"
+version: "1.0.0"
+display_name: "Spring Bean Injection Vulnerability"
+source_standard: "Spring Security"
+component_type: "backend-api"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_spring_bean_injection_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_spring_bean_injection"
+
+controls:
+  - control_id: "SPRINGBE-01"
+    name: "Spring Bean Injection Vulnerability — Primary Control"
+    description: "Unvalidated bean properties allowing injection attacks."
+    source_clause: "Spring Bean"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://SPRINGBE-01"
+
+  - control_id: "SPRINGBE-02"
+    name: "Spring Bean Injection Vulnerability — Input Validation"
+    description: "Validate and sanitize all inputs related to spring bean injection vulnerability"
+    source_clause: "Spring Bean"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://SPRINGBE-02"
+
+  - control_id: "SPRINGBE-03"
+    name: "Spring Bean Injection Vulnerability — Configuration Hardening"
+    description: "Apply secure configuration defaults for spring bean injection vulnerability"
+    source_clause: "Spring Bean"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://SPRINGBE-03"
+
+  - control_id: "SPRINGBE-04"
+    name: "Spring Bean Injection Vulnerability — Monitoring and Logging"
+    description: "Log and monitor all spring bean injection vulnerability events for audit and detection"
+    source_clause: "Spring Bean"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://SPRINGBE-04"
+
+  - control_id: "SPRINGBE-05"
+    name: "Spring Bean Injection Vulnerability — Error Handling"
+    description: "Handle spring bean injection vulnerability errors securely without information leakage"
+    source_clause: "Spring Bean"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://SPRINGBE-05"

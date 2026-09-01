@@ -1,0 +1,60 @@
+# Playbook for: vue-reactivity-security
+# Source: Vue.js Security
+# Auto-generated
+
+playbooks:
+- control_id: "VUEREACT-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary reactivity data exposure control patterns for vue-reactivity-security"
+  blast_radius_notes: "Automated fix for VUEREACT-01 - Primary Reactivity Data Exposure Control"
+  verification_checks:
+    - "Verify VUEREACT-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "VUEREACT-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for reactivity data exposure patterns for vue-reactivity-security"
+  blast_radius_notes: "Automated fix for VUEREACT-02 - Input Validation for Reactivity Data Exposure"
+  verification_checks:
+    - "Verify VUEREACT-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "VUEREACT-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for reactivity data exposure patterns for vue-reactivity-security"
+  blast_radius_notes: "Automated fix for VUEREACT-03 - Configuration Hardening for Reactivity Data Exposure"
+  verification_checks:
+    - "Verify VUEREACT-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "VUEREACT-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for reactivity data exposure patterns for vue-reactivity-security"
+  blast_radius_notes: "Automated fix for VUEREACT-04 - Monitoring and Logging for Reactivity Data Exposure"
+  verification_checks:
+    - "Verify VUEREACT-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "VUEREACT-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for reactivity data exposure patterns for vue-reactivity-security"
+  blast_radius_notes: "Automated fix for VUEREACT-05 - Error Handling for Reactivity Data Exposure"
+  verification_checks:
+    - "Verify VUEREACT-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

@@ -1,0 +1,60 @@
+# Playbook for: nist-csf-identify
+# Source: NIST CSF 2.0
+# Auto-generated
+
+playbooks:
+- control_id: "NISTCSFI-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary identify function control patterns for nist-csf-identify"
+  blast_radius_notes: "Automated fix for NISTCSFI-01 - Primary Identify Function Control"
+  verification_checks:
+    - "Verify NISTCSFI-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NISTCSFI-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for identify function patterns for nist-csf-identify"
+  blast_radius_notes: "Automated fix for NISTCSFI-02 - Input Validation for Identify Function"
+  verification_checks:
+    - "Verify NISTCSFI-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NISTCSFI-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for identify function patterns for nist-csf-identify"
+  blast_radius_notes: "Automated fix for NISTCSFI-03 - Configuration Hardening for Identify Function"
+  verification_checks:
+    - "Verify NISTCSFI-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NISTCSFI-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for identify function patterns for nist-csf-identify"
+  blast_radius_notes: "Automated fix for NISTCSFI-04 - Monitoring and Logging for Identify Function"
+  verification_checks:
+    - "Verify NISTCSFI-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NISTCSFI-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for identify function patterns for nist-csf-identify"
+  blast_radius_notes: "Automated fix for NISTCSFI-05 - Error Handling for Identify Function"
+  verification_checks:
+    - "Verify NISTCSFI-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

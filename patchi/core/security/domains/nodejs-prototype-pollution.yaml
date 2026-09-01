@@ -1,0 +1,62 @@
+# Patchi Security Domain: nodejs-prototype-pollution
+# Source: Node.js Security
+# Auto-generated — curated from Node.js Security
+
+domain_id: "nodejs-prototype-pollution"
+version: "1.0.0"
+display_name: "Prototype Pollution"
+source_standard: "Node.js Security"
+component_type: "backend-api"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_nodejs_prototype_pollution_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_nodejs_prototype_pollution"
+
+controls:
+  - control_id: "NODEJSPR-01"
+    name: "Prototype Pollution — Primary Control"
+    description: "Modifying Object.prototype through user-controlled property paths."
+    source_clause: "Node.js Prototype"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://NODEJSPR-01"
+
+  - control_id: "NODEJSPR-02"
+    name: "Prototype Pollution — Input Validation"
+    description: "Validate and sanitize all inputs related to prototype pollution"
+    source_clause: "Node.js Prototype"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://NODEJSPR-02"
+
+  - control_id: "NODEJSPR-03"
+    name: "Prototype Pollution — Configuration Hardening"
+    description: "Apply secure configuration defaults for prototype pollution"
+    source_clause: "Node.js Prototype"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://NODEJSPR-03"
+
+  - control_id: "NODEJSPR-04"
+    name: "Prototype Pollution — Monitoring and Logging"
+    description: "Log and monitor all prototype pollution events for audit and detection"
+    source_clause: "Node.js Prototype"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://NODEJSPR-04"
+
+  - control_id: "NODEJSPR-05"
+    name: "Prototype Pollution — Error Handling"
+    description: "Handle prototype pollution errors securely without information leakage"
+    source_clause: "Node.js Prototype"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://NODEJSPR-05"

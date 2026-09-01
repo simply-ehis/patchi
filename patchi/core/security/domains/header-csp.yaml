@@ -1,0 +1,62 @@
+# Patchi Security Domain: header-csp
+# Source: HTTP Security Headers
+# Auto-generated — curated from HTTP Security Headers
+
+domain_id: "header-csp"
+version: "1.0.0"
+display_name: "Content Security Policy"
+source_standard: "HTTP Security Headers"
+component_type: "infra"
+weight: 0.9
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_header_csp_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_header_csp"
+
+controls:
+  - control_id: "HEADERCS-01"
+    name: "Content Security Policy — Primary Control"
+    description: "Missing or weak Content-Security-Policy header allowing XSS."
+    source_clause: "Header CSP"
+    severity: "critical"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://HEADERCS-01"
+
+  - control_id: "HEADERCS-02"
+    name: "Content Security Policy — Input Validation"
+    description: "Validate and sanitize all inputs related to content security policy"
+    source_clause: "Header CSP"
+    severity: "critical"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://HEADERCS-02"
+
+  - control_id: "HEADERCS-03"
+    name: "Content Security Policy — Configuration Hardening"
+    description: "Apply secure configuration defaults for content security policy"
+    source_clause: "Header CSP"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://HEADERCS-03"
+
+  - control_id: "HEADERCS-04"
+    name: "Content Security Policy — Monitoring and Logging"
+    description: "Log and monitor all content security policy events for audit and detection"
+    source_clause: "Header CSP"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://HEADERCS-04"
+
+  - control_id: "HEADERCS-05"
+    name: "Content Security Policy — Error Handling"
+    description: "Handle content security policy errors securely without information leakage"
+    source_clause: "Header CSP"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://HEADERCS-05"

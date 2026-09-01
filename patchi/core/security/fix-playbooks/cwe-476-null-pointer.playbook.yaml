@@ -1,0 +1,60 @@
+# Playbook for: cwe-476-null-pointer
+# Source: CWE Top 25 2024 CWE-476
+# Auto-generated
+
+playbooks:
+- control_id: "CWE476NU-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary null pointer dereference control patterns for cwe-476-null-pointer"
+  blast_radius_notes: "Automated fix for CWE476NU-01 - Primary NULL Pointer Dereference Control"
+  verification_checks:
+    - "Verify CWE476NU-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CWE476NU-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for null pointer dereference patterns for cwe-476-null-pointer"
+  blast_radius_notes: "Automated fix for CWE476NU-02 - Input Validation for NULL Pointer Dereference"
+  verification_checks:
+    - "Verify CWE476NU-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CWE476NU-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for null pointer dereference patterns for cwe-476-null-pointer"
+  blast_radius_notes: "Automated fix for CWE476NU-03 - Configuration Hardening for NULL Pointer Dereference"
+  verification_checks:
+    - "Verify CWE476NU-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CWE476NU-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for null pointer dereference patterns for cwe-476-null-pointer"
+  blast_radius_notes: "Automated fix for CWE476NU-04 - Monitoring and Logging for NULL Pointer Dereference"
+  verification_checks:
+    - "Verify CWE476NU-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CWE476NU-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for null pointer dereference patterns for cwe-476-null-pointer"
+  blast_radius_notes: "Automated fix for CWE476NU-05 - Error Handling for NULL Pointer Dereference"
+  verification_checks:
+    - "Verify CWE476NU-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

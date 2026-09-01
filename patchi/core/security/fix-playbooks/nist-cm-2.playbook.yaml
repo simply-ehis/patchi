@@ -1,0 +1,60 @@
+# Playbook for: nist-cm-2
+# Source: NIST SP 800-53 CM-2
+# Auto-generated
+
+playbooks:
+- control_id: "NISTCM2-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary baseline configuration control patterns for nist-cm-2"
+  blast_radius_notes: "Automated fix for NISTCM2-01 - Primary Baseline Configuration Control"
+  verification_checks:
+    - "Verify NISTCM2-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NISTCM2-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for baseline configuration patterns for nist-cm-2"
+  blast_radius_notes: "Automated fix for NISTCM2-02 - Input Validation for Baseline Configuration"
+  verification_checks:
+    - "Verify NISTCM2-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NISTCM2-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for baseline configuration patterns for nist-cm-2"
+  blast_radius_notes: "Automated fix for NISTCM2-03 - Configuration Hardening for Baseline Configuration"
+  verification_checks:
+    - "Verify NISTCM2-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NISTCM2-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for baseline configuration patterns for nist-cm-2"
+  blast_radius_notes: "Automated fix for NISTCM2-04 - Monitoring and Logging for Baseline Configuration"
+  verification_checks:
+    - "Verify NISTCM2-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NISTCM2-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for baseline configuration patterns for nist-cm-2"
+  blast_radius_notes: "Automated fix for NISTCM2-05 - Error Handling for Baseline Configuration"
+  verification_checks:
+    - "Verify NISTCM2-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

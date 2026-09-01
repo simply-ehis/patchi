@@ -1,0 +1,60 @@
+# Playbook for: cwe-327-broken-crypto
+# Source: CWE-327
+# Auto-generated
+
+playbooks:
+- control_id: "CWE327BR-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary use of a broken or risky cryptographic algorithm control patterns for cwe-327-broken-crypto"
+  blast_radius_notes: "Automated fix for CWE327BR-01 - Primary Use of a Broken or Risky Cryptographic Algorithm Control"
+  verification_checks:
+    - "Verify CWE327BR-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CWE327BR-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for use of a broken or risky cryptographic algorithm patterns for cwe-327-broken-crypto"
+  blast_radius_notes: "Automated fix for CWE327BR-02 - Input Validation for Use of a Broken or Risky Cryptographic Algorithm"
+  verification_checks:
+    - "Verify CWE327BR-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CWE327BR-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for use of a broken or risky cryptographic algorithm patterns for cwe-327-broken-crypto"
+  blast_radius_notes: "Automated fix for CWE327BR-03 - Configuration Hardening for Use of a Broken or Risky Cryptographic Algorithm"
+  verification_checks:
+    - "Verify CWE327BR-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CWE327BR-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for use of a broken or risky cryptographic algorithm patterns for cwe-327-broken-crypto"
+  blast_radius_notes: "Automated fix for CWE327BR-04 - Monitoring and Logging for Use of a Broken or Risky Cryptographic Algorithm"
+  verification_checks:
+    - "Verify CWE327BR-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CWE327BR-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for use of a broken or risky cryptographic algorithm patterns for cwe-327-broken-crypto"
+  blast_radius_notes: "Automated fix for CWE327BR-05 - Error Handling for Use of a Broken or Risky Cryptographic Algorithm"
+  verification_checks:
+    - "Verify CWE327BR-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

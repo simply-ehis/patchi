@@ -1,0 +1,62 @@
+# Patchi Security Domain: cicd-insufficient-isolation
+# Source: CI/CD Security
+# Auto-generated — curated from CI/CD Security
+
+domain_id: "cicd-insufficient-isolation"
+version: "1.0.0"
+display_name: "CI/CD Insufficient Isolation"
+source_standard: "CI/CD Security"
+component_type: "infra"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_cicd_insufficient_isolation_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_cicd_insufficient_isolation"
+
+controls:
+  - control_id: "CICDINSU-01"
+    name: "CI/CD Insufficient Isolation — Primary Control"
+    description: "Shared runners or insufficient job isolation allowing cross-project contamination."
+    source_clause: "CI/CD Iso"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CICDINSU-01"
+
+  - control_id: "CICDINSU-02"
+    name: "CI/CD Insufficient Isolation — Input Validation"
+    description: "Validate and sanitize all inputs related to ci/cd insufficient isolation"
+    source_clause: "CI/CD Iso"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CICDINSU-02"
+
+  - control_id: "CICDINSU-03"
+    name: "CI/CD Insufficient Isolation — Configuration Hardening"
+    description: "Apply secure configuration defaults for ci/cd insufficient isolation"
+    source_clause: "CI/CD Iso"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CICDINSU-03"
+
+  - control_id: "CICDINSU-04"
+    name: "CI/CD Insufficient Isolation — Monitoring and Logging"
+    description: "Log and monitor all ci/cd insufficient isolation events for audit and detection"
+    source_clause: "CI/CD Iso"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CICDINSU-04"
+
+  - control_id: "CICDINSU-05"
+    name: "CI/CD Insufficient Isolation — Error Handling"
+    description: "Handle ci/cd insufficient isolation errors securely without information leakage"
+    source_clause: "CI/CD Iso"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CICDINSU-05"

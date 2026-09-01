@@ -1,0 +1,62 @@
+# Patchi Security Domain: dotnet-auth-bypass
+# Source: .NET Security
+# Auto-generated — curated from .NET Security
+
+domain_id: "dotnet-auth-bypass"
+version: "1.0.0"
+display_name: ".NET Authentication Bypass"
+source_standard: ".NET Security"
+component_type: "backend-api"
+weight: 0.9
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_dotnet_auth_bypass_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_dotnet_auth_bypass"
+
+controls:
+  - control_id: "DOTNETAU-01"
+    name: ".NET Authentication Bypass — Primary Control"
+    description: "Missing [Authorize] attributes or permissive authorization."
+    source_clause: ".NET Auth"
+    severity: "critical"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://DOTNETAU-01"
+
+  - control_id: "DOTNETAU-02"
+    name: ".NET Authentication Bypass — Input Validation"
+    description: "Validate and sanitize all inputs related to .net authentication bypass"
+    source_clause: ".NET Auth"
+    severity: "critical"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://DOTNETAU-02"
+
+  - control_id: "DOTNETAU-03"
+    name: ".NET Authentication Bypass — Configuration Hardening"
+    description: "Apply secure configuration defaults for .net authentication bypass"
+    source_clause: ".NET Auth"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://DOTNETAU-03"
+
+  - control_id: "DOTNETAU-04"
+    name: ".NET Authentication Bypass — Monitoring and Logging"
+    description: "Log and monitor all .net authentication bypass events for audit and detection"
+    source_clause: ".NET Auth"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://DOTNETAU-04"
+
+  - control_id: "DOTNETAU-05"
+    name: ".NET Authentication Bypass — Error Handling"
+    description: "Handle .net authentication bypass errors securely without information leakage"
+    source_clause: ".NET Auth"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://DOTNETAU-05"

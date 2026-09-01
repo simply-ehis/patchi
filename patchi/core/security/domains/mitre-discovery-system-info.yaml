@@ -1,0 +1,62 @@
+# Patchi Security Domain: mitre-discovery-system-info
+# Source: MITRE ATT&CK
+# Auto-generated — curated from MITRE ATT&CK
+
+domain_id: "mitre-discovery-system-info"
+version: "1.0.0"
+display_name: "System Information Discovery (T1082)"
+source_standard: "MITRE ATT&CK"
+component_type: "infra"
+weight: 0.75
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_mitre_discovery_system_info_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_mitre_discovery_system_info"
+
+controls:
+  - control_id: "MITREDIS-01"
+    name: "System Information Discovery (T1082) — Primary Control"
+    description: "Gathering system information for reconnaissance."
+    source_clause: "T1082"
+    severity: "medium"
+    check_method: "dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://MITREDIS-01"
+
+  - control_id: "MITREDIS-02"
+    name: "System Information Discovery (T1082) — Input Validation"
+    description: "Validate and sanitize all inputs related to system information discovery (t1082)"
+    source_clause: "T1082"
+    severity: "medium"
+    check_method: "dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://MITREDIS-02"
+
+  - control_id: "MITREDIS-03"
+    name: "System Information Discovery (T1082) — Configuration Hardening"
+    description: "Apply secure configuration defaults for system information discovery (t1082)"
+    source_clause: "T1082"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://MITREDIS-03"
+
+  - control_id: "MITREDIS-04"
+    name: "System Information Discovery (T1082) — Monitoring and Logging"
+    description: "Log and monitor all system information discovery (t1082) events for audit and detection"
+    source_clause: "T1082"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://MITREDIS-04"
+
+  - control_id: "MITREDIS-05"
+    name: "System Information Discovery (T1082) — Error Handling"
+    description: "Handle system information discovery (t1082) errors securely without information leakage"
+    source_clause: "T1082"
+    severity: "medium"
+    check_method: "dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://MITREDIS-05"

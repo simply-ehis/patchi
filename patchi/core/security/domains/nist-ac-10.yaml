@@ -1,0 +1,62 @@
+# Patchi Security Domain: nist-ac-10
+# Source: NIST SP 800-53 AC-10
+# Auto-generated — curated from NIST SP 800-53 AC-10
+
+domain_id: "nist-ac-10"
+version: "1.0.0"
+display_name: "Concurrent Session Control"
+source_standard: "NIST SP 800-53 AC-10"
+component_type: "backend-api"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_nist_ac_10_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_nist_ac_10"
+
+controls:
+  - control_id: "NISTAC10-01"
+    name: "Concurrent Session Control — Primary Control"
+    description: "System limits the number of concurrent sessions per user."
+    source_clause: "AC-10"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://NISTAC10-01"
+
+  - control_id: "NISTAC10-02"
+    name: "Concurrent Session Control — Input Validation"
+    description: "Validate and sanitize all inputs related to concurrent session control"
+    source_clause: "AC-10"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://NISTAC10-02"
+
+  - control_id: "NISTAC10-03"
+    name: "Concurrent Session Control — Configuration Hardening"
+    description: "Apply secure configuration defaults for concurrent session control"
+    source_clause: "AC-10"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://NISTAC10-03"
+
+  - control_id: "NISTAC10-04"
+    name: "Concurrent Session Control — Monitoring and Logging"
+    description: "Log and monitor all concurrent session control events for audit and detection"
+    source_clause: "AC-10"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://NISTAC10-04"
+
+  - control_id: "NISTAC10-05"
+    name: "Concurrent Session Control — Error Handling"
+    description: "Handle concurrent session control errors securely without information leakage"
+    source_clause: "AC-10"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://NISTAC10-05"

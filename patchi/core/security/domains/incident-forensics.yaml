@@ -1,0 +1,62 @@
+# Patchi Security Domain: incident-forensics
+# Source: Incident Response
+# Auto-generated — curated from Incident Response
+
+domain_id: "incident-forensics"
+version: "1.0.0"
+display_name: "Incident Forensics"
+source_standard: "Incident Response"
+component_type: "infra"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_incident_forensics_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_incident_forensics"
+
+controls:
+  - control_id: "INCIDENT-01"
+    name: "Incident Forensics — Primary Control"
+    description: "Forensic evidence collection and preservation procedures."
+    source_clause: "IR Forensics"
+    severity: "high"
+    check_method: "manual-review"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://INCIDENT-01"
+
+  - control_id: "INCIDENT-02"
+    name: "Incident Forensics — Input Validation"
+    description: "Validate and sanitize all inputs related to incident forensics"
+    source_clause: "IR Forensics"
+    severity: "high"
+    check_method: "manual-review"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://INCIDENT-02"
+
+  - control_id: "INCIDENT-03"
+    name: "Incident Forensics — Configuration Hardening"
+    description: "Apply secure configuration defaults for incident forensics"
+    source_clause: "IR Forensics"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://INCIDENT-03"
+
+  - control_id: "INCIDENT-04"
+    name: "Incident Forensics — Monitoring and Logging"
+    description: "Log and monitor all incident forensics events for audit and detection"
+    source_clause: "IR Forensics"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://INCIDENT-04"
+
+  - control_id: "INCIDENT-05"
+    name: "Incident Forensics — Error Handling"
+    description: "Handle incident forensics errors securely without information leakage"
+    source_clause: "IR Forensics"
+    severity: "medium"
+    check_method: "manual-review"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://INCIDENT-05"

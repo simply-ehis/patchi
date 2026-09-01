@@ -1,0 +1,60 @@
+# Playbook for: fastapi-cors-misconfig
+# Source: FastAPI Security
+# Auto-generated
+
+playbooks:
+- control_id: "FASTAPIC-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary fastapi cors misconfiguration control patterns for fastapi-cors-misconfig"
+  blast_radius_notes: "Automated fix for FASTAPIC-01 - Primary FastAPI CORS Misconfiguration Control"
+  verification_checks:
+    - "Verify FASTAPIC-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "FASTAPIC-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for fastapi cors misconfiguration patterns for fastapi-cors-misconfig"
+  blast_radius_notes: "Automated fix for FASTAPIC-02 - Input Validation for FastAPI CORS Misconfiguration"
+  verification_checks:
+    - "Verify FASTAPIC-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "FASTAPIC-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for fastapi cors misconfiguration patterns for fastapi-cors-misconfig"
+  blast_radius_notes: "Automated fix for FASTAPIC-03 - Configuration Hardening for FastAPI CORS Misconfiguration"
+  verification_checks:
+    - "Verify FASTAPIC-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "FASTAPIC-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for fastapi cors misconfiguration patterns for fastapi-cors-misconfig"
+  blast_radius_notes: "Automated fix for FASTAPIC-04 - Monitoring and Logging for FastAPI CORS Misconfiguration"
+  verification_checks:
+    - "Verify FASTAPIC-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "FASTAPIC-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for fastapi cors misconfiguration patterns for fastapi-cors-misconfig"
+  blast_radius_notes: "Automated fix for FASTAPIC-05 - Error Handling for FastAPI CORS Misconfiguration"
+  verification_checks:
+    - "Verify FASTAPIC-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

@@ -1,0 +1,60 @@
+# Playbook for: cwe-287-improper-auth
+# Source: CWE Top 25 2024 CWE-287
+# Auto-generated
+
+playbooks:
+- control_id: "CWE287IM-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary improper authentication control patterns for cwe-287-improper-auth"
+  blast_radius_notes: "Automated fix for CWE287IM-01 - Primary Improper Authentication Control"
+  verification_checks:
+    - "Verify CWE287IM-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CWE287IM-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for improper authentication patterns for cwe-287-improper-auth"
+  blast_radius_notes: "Automated fix for CWE287IM-02 - Input Validation for Improper Authentication"
+  verification_checks:
+    - "Verify CWE287IM-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CWE287IM-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for improper authentication patterns for cwe-287-improper-auth"
+  blast_radius_notes: "Automated fix for CWE287IM-03 - Configuration Hardening for Improper Authentication"
+  verification_checks:
+    - "Verify CWE287IM-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CWE287IM-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for improper authentication patterns for cwe-287-improper-auth"
+  blast_radius_notes: "Automated fix for CWE287IM-04 - Monitoring and Logging for Improper Authentication"
+  verification_checks:
+    - "Verify CWE287IM-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CWE287IM-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for improper authentication patterns for cwe-287-improper-auth"
+  blast_radius_notes: "Automated fix for CWE287IM-05 - Error Handling for Improper Authentication"
+  verification_checks:
+    - "Verify CWE287IM-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

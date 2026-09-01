@@ -1,0 +1,60 @@
+# Playbook for: owasp-a06-2025-components
+# Source: OWASP Top 10 2025 A06
+# Auto-generated
+
+playbooks:
+- control_id: "OWASPA06-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary vulnerable and outdated components control patterns for owasp-a06-2025-components"
+  blast_radius_notes: "Automated fix for OWASPA06-01 - Primary Vulnerable and Outdated Components Control"
+  verification_checks:
+    - "Verify OWASPA06-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "OWASPA06-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for vulnerable and outdated components patterns for owasp-a06-2025-components"
+  blast_radius_notes: "Automated fix for OWASPA06-02 - Input Validation for Vulnerable and Outdated Components"
+  verification_checks:
+    - "Verify OWASPA06-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "OWASPA06-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for vulnerable and outdated components patterns for owasp-a06-2025-components"
+  blast_radius_notes: "Automated fix for OWASPA06-03 - Configuration Hardening for Vulnerable and Outdated Components"
+  verification_checks:
+    - "Verify OWASPA06-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "OWASPA06-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for vulnerable and outdated components patterns for owasp-a06-2025-components"
+  blast_radius_notes: "Automated fix for OWASPA06-04 - Monitoring and Logging for Vulnerable and Outdated Components"
+  verification_checks:
+    - "Verify OWASPA06-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "OWASPA06-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for vulnerable and outdated components patterns for owasp-a06-2025-components"
+  blast_radius_notes: "Automated fix for OWASPA06-05 - Error Handling for Vulnerable and Outdated Components"
+  verification_checks:
+    - "Verify OWASPA06-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

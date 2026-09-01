@@ -1,0 +1,62 @@
+# Patchi Security Domain: spring-el-injection
+# Source: Spring Security
+# Auto-generated — curated from Spring Security
+
+domain_id: "spring-el-injection"
+version: "1.0.0"
+display_name: "Spring Expression Language Injection"
+source_standard: "Spring Security"
+component_type: "backend-api"
+weight: 0.9
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_spring_el_injection_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_spring_el_injection"
+
+controls:
+  - control_id: "SPRINGEL-01"
+    name: "Spring Expression Language Injection — Primary Control"
+    description: "User input in SpEL expressions leading to code execution."
+    source_clause: "Spring EL"
+    severity: "critical"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://SPRINGEL-01"
+
+  - control_id: "SPRINGEL-02"
+    name: "Spring Expression Language Injection — Input Validation"
+    description: "Validate and sanitize all inputs related to spring expression language injection"
+    source_clause: "Spring EL"
+    severity: "critical"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://SPRINGEL-02"
+
+  - control_id: "SPRINGEL-03"
+    name: "Spring Expression Language Injection — Configuration Hardening"
+    description: "Apply secure configuration defaults for spring expression language injection"
+    source_clause: "Spring EL"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://SPRINGEL-03"
+
+  - control_id: "SPRINGEL-04"
+    name: "Spring Expression Language Injection — Monitoring and Logging"
+    description: "Log and monitor all spring expression language injection events for audit and detection"
+    source_clause: "Spring EL"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://SPRINGEL-04"
+
+  - control_id: "SPRINGEL-05"
+    name: "Spring Expression Language Injection — Error Handling"
+    description: "Handle spring expression language injection errors securely without information leakage"
+    source_clause: "Spring EL"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://SPRINGEL-05"

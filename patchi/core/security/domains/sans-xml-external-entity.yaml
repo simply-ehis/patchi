@@ -1,0 +1,62 @@
+# Patchi Security Domain: sans-xml-external-entity
+# Source: SANS Top 25
+# Auto-generated — curated from SANS Top 25
+
+domain_id: "sans-xml-external-entity"
+version: "1.0.0"
+display_name: "XML External Entity (XXE)"
+source_standard: "SANS Top 25"
+component_type: "backend-api"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_sans_xml_external_entity_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_sans_xml_external_entity"
+
+controls:
+  - control_id: "SANSXMLE-01"
+    name: "XML External Entity (XXE) — Primary Control"
+    description: "XML parser processes external entities, causing SSRF or file disclosure."
+    source_clause: "SANS"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://SANSXMLE-01"
+
+  - control_id: "SANSXMLE-02"
+    name: "XML External Entity (XXE) — Input Validation"
+    description: "Validate and sanitize all inputs related to xml external entity (xxe)"
+    source_clause: "SANS"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://SANSXMLE-02"
+
+  - control_id: "SANSXMLE-03"
+    name: "XML External Entity (XXE) — Configuration Hardening"
+    description: "Apply secure configuration defaults for xml external entity (xxe)"
+    source_clause: "SANS"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://SANSXMLE-03"
+
+  - control_id: "SANSXMLE-04"
+    name: "XML External Entity (XXE) — Monitoring and Logging"
+    description: "Log and monitor all xml external entity (xxe) events for audit and detection"
+    source_clause: "SANS"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://SANSXMLE-04"
+
+  - control_id: "SANSXMLE-05"
+    name: "XML External Entity (XXE) — Error Handling"
+    description: "Handle xml external entity (xxe) errors securely without information leakage"
+    source_clause: "SANS"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://SANSXMLE-05"

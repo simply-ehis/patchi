@@ -1,0 +1,62 @@
+# Patchi Security Domain: cwe-79-xss
+# Source: CWE Top 25 2024 CWE-79
+# Auto-generated — curated from CWE Top 25 2024 CWE-79
+
+domain_id: "cwe-79-xss"
+version: "1.0.0"
+display_name: "Improper Neutralization of Input During Web Page Generation (XSS)"
+source_standard: "CWE Top 25 2024 CWE-79"
+component_type: "frontend-web"
+weight: 0.9
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_cwe_79_xss_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_cwe_79_xss"
+
+controls:
+  - control_id: "CWE79XSS-01"
+    name: "Improper Neutralization of Input During Web Page Generation (XSS) — Primary Control"
+    description: "User-controlled input included in web output without proper encoding."
+    source_clause: "CWE-79"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CWE79XSS-01"
+
+  - control_id: "CWE79XSS-02"
+    name: "Improper Neutralization of Input During Web Page Generation (XSS) — Input Validation"
+    description: "Validate and sanitize all inputs related to improper neutralization of input during web page generation (xss)"
+    source_clause: "CWE-79"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CWE79XSS-02"
+
+  - control_id: "CWE79XSS-03"
+    name: "Improper Neutralization of Input During Web Page Generation (XSS) — Configuration Hardening"
+    description: "Apply secure configuration defaults for improper neutralization of input during web page generation (xss)"
+    source_clause: "CWE-79"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CWE79XSS-03"
+
+  - control_id: "CWE79XSS-04"
+    name: "Improper Neutralization of Input During Web Page Generation (XSS) — Monitoring and Logging"
+    description: "Log and monitor all improper neutralization of input during web page generation (xss) events for audit and detection"
+    source_clause: "CWE-79"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CWE79XSS-04"
+
+  - control_id: "CWE79XSS-05"
+    name: "Improper Neutralization of Input During Web Page Generation (XSS) — Error Handling"
+    description: "Handle improper neutralization of input during web page generation (xss) errors securely without information leakage"
+    source_clause: "CWE-79"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CWE79XSS-05"

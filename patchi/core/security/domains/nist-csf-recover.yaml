@@ -1,0 +1,62 @@
+# Patchi Security Domain: nist-csf-recover
+# Source: NIST CSF 2.0
+# Auto-generated — curated from NIST CSF 2.0
+
+domain_id: "nist-csf-recover"
+version: "1.0.0"
+display_name: "Recover Function"
+source_standard: "NIST CSF 2.0"
+component_type: "infra"
+weight: 0.75
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_nist_csf_recover_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_nist_csf_recover"
+
+controls:
+  - control_id: "NISTCSFR-01"
+    name: "Recover Function — Primary Control"
+    description: "Recovery planning, communications, and execution."
+    source_clause: "CSF 2.0 RC"
+    severity: "medium"
+    check_method: "manual-review"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://NISTCSFR-01"
+
+  - control_id: "NISTCSFR-02"
+    name: "Recover Function — Input Validation"
+    description: "Validate and sanitize all inputs related to recover function"
+    source_clause: "CSF 2.0 RC"
+    severity: "medium"
+    check_method: "manual-review"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://NISTCSFR-02"
+
+  - control_id: "NISTCSFR-03"
+    name: "Recover Function — Configuration Hardening"
+    description: "Apply secure configuration defaults for recover function"
+    source_clause: "CSF 2.0 RC"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://NISTCSFR-03"
+
+  - control_id: "NISTCSFR-04"
+    name: "Recover Function — Monitoring and Logging"
+    description: "Log and monitor all recover function events for audit and detection"
+    source_clause: "CSF 2.0 RC"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://NISTCSFR-04"
+
+  - control_id: "NISTCSFR-05"
+    name: "Recover Function — Error Handling"
+    description: "Handle recover function errors securely without information leakage"
+    source_clause: "CSF 2.0 RC"
+    severity: "medium"
+    check_method: "manual-review"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://NISTCSFR-05"

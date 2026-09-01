@@ -1,0 +1,62 @@
+# Patchi Security Domain: mitre-collection-exfil-over-c2
+# Source: MITRE ATT&CK
+# Auto-generated — curated from MITRE ATT&CK
+
+domain_id: "mitre-collection-exfil-over-c2"
+version: "1.0.0"
+display_name: "Exfiltration Over C2 Channel (T1041)"
+source_standard: "MITRE ATT&CK"
+component_type: "infra"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_mitre_collection_exfil_over_c2_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_mitre_collection_exfil_over_c2"
+
+controls:
+  - control_id: "MITRECOL-01"
+    name: "Exfiltration Over C2 Channel (T1041) — Primary Control"
+    description: "Exfiltrating data through command-and-control channels."
+    source_clause: "T1041"
+    severity: "high"
+    check_method: "dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://MITRECOL-01"
+
+  - control_id: "MITRECOL-02"
+    name: "Exfiltration Over C2 Channel (T1041) — Input Validation"
+    description: "Validate and sanitize all inputs related to exfiltration over c2 channel (t1041)"
+    source_clause: "T1041"
+    severity: "high"
+    check_method: "dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://MITRECOL-02"
+
+  - control_id: "MITRECOL-03"
+    name: "Exfiltration Over C2 Channel (T1041) — Configuration Hardening"
+    description: "Apply secure configuration defaults for exfiltration over c2 channel (t1041)"
+    source_clause: "T1041"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://MITRECOL-03"
+
+  - control_id: "MITRECOL-04"
+    name: "Exfiltration Over C2 Channel (T1041) — Monitoring and Logging"
+    description: "Log and monitor all exfiltration over c2 channel (t1041) events for audit and detection"
+    source_clause: "T1041"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://MITRECOL-04"
+
+  - control_id: "MITRECOL-05"
+    name: "Exfiltration Over C2 Channel (T1041) — Error Handling"
+    description: "Handle exfiltration over c2 channel (t1041) errors securely without information leakage"
+    source_clause: "T1041"
+    severity: "medium"
+    check_method: "dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://MITRECOL-05"

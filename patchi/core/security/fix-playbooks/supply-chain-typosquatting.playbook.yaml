@@ -1,0 +1,60 @@
+# Playbook for: supply-chain-typosquatting
+# Source: Supply Chain Security
+# Auto-generated
+
+playbooks:
+- control_id: "SUPPLYCH-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary typosquatting control patterns for supply-chain-typosquatting"
+  blast_radius_notes: "Automated fix for SUPPLYCH-01 - Primary Typosquatting Control"
+  verification_checks:
+    - "Verify SUPPLYCH-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "SUPPLYCH-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for typosquatting patterns for supply-chain-typosquatting"
+  blast_radius_notes: "Automated fix for SUPPLYCH-02 - Input Validation for Typosquatting"
+  verification_checks:
+    - "Verify SUPPLYCH-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "SUPPLYCH-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for typosquatting patterns for supply-chain-typosquatting"
+  blast_radius_notes: "Automated fix for SUPPLYCH-03 - Configuration Hardening for Typosquatting"
+  verification_checks:
+    - "Verify SUPPLYCH-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "SUPPLYCH-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for typosquatting patterns for supply-chain-typosquatting"
+  blast_radius_notes: "Automated fix for SUPPLYCH-04 - Monitoring and Logging for Typosquatting"
+  verification_checks:
+    - "Verify SUPPLYCH-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "SUPPLYCH-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for typosquatting patterns for supply-chain-typosquatting"
+  blast_radius_notes: "Automated fix for SUPPLYCH-05 - Error Handling for Typosquatting"
+  verification_checks:
+    - "Verify SUPPLYCH-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

@@ -1,0 +1,62 @@
+# Patchi Security Domain: zero-trust-architecture
+# Source: Network Security
+# Auto-generated — curated from Network Security
+
+domain_id: "zero-trust-architecture"
+version: "1.0.0"
+display_name: "Zero Trust Architecture"
+source_standard: "Network Security"
+component_type: "infra"
+weight: 0.9
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_zero_trust_architecture_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_zero_trust_architecture"
+
+controls:
+  - control_id: "ZEROTRUS-01"
+    name: "Zero Trust Architecture — Primary Control"
+    description: "Implicit trust in network location instead of verifying every request."
+    source_clause: "ZTA"
+    severity: "critical"
+    check_method: "static+manual-review"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://ZEROTRUS-01"
+
+  - control_id: "ZEROTRUS-02"
+    name: "Zero Trust Architecture — Input Validation"
+    description: "Validate and sanitize all inputs related to zero trust architecture"
+    source_clause: "ZTA"
+    severity: "critical"
+    check_method: "static+manual-review"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://ZEROTRUS-02"
+
+  - control_id: "ZEROTRUS-03"
+    name: "Zero Trust Architecture — Configuration Hardening"
+    description: "Apply secure configuration defaults for zero trust architecture"
+    source_clause: "ZTA"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://ZEROTRUS-03"
+
+  - control_id: "ZEROTRUS-04"
+    name: "Zero Trust Architecture — Monitoring and Logging"
+    description: "Log and monitor all zero trust architecture events for audit and detection"
+    source_clause: "ZTA"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://ZEROTRUS-04"
+
+  - control_id: "ZEROTRUS-05"
+    name: "Zero Trust Architecture — Error Handling"
+    description: "Handle zero trust architecture errors securely without information leakage"
+    source_clause: "ZTA"
+    severity: "medium"
+    check_method: "static+manual-review"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://ZEROTRUS-05"

@@ -1,0 +1,60 @@
+# Playbook for: network-load-balancer
+# Source: Network Security
+# Auto-generated
+
+playbooks:
+- control_id: "NETWORKL-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary load balancer security control patterns for network-load-balancer"
+  blast_radius_notes: "Automated fix for NETWORKL-01 - Primary Load Balancer Security Control"
+  verification_checks:
+    - "Verify NETWORKL-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NETWORKL-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for load balancer security patterns for network-load-balancer"
+  blast_radius_notes: "Automated fix for NETWORKL-02 - Input Validation for Load Balancer Security"
+  verification_checks:
+    - "Verify NETWORKL-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NETWORKL-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for load balancer security patterns for network-load-balancer"
+  blast_radius_notes: "Automated fix for NETWORKL-03 - Configuration Hardening for Load Balancer Security"
+  verification_checks:
+    - "Verify NETWORKL-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NETWORKL-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for load balancer security patterns for network-load-balancer"
+  blast_radius_notes: "Automated fix for NETWORKL-04 - Monitoring and Logging for Load Balancer Security"
+  verification_checks:
+    - "Verify NETWORKL-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NETWORKL-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for load balancer security patterns for network-load-balancer"
+  blast_radius_notes: "Automated fix for NETWORKL-05 - Error Handling for Load Balancer Security"
+  verification_checks:
+    - "Verify NETWORKL-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

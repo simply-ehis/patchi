@@ -1,0 +1,62 @@
+# Patchi Security Domain: supply-chain-malicious-package
+# Source: Supply Chain Security
+# Auto-generated — curated from Supply Chain Security
+
+domain_id: "supply-chain-malicious-package"
+version: "1.0.0"
+display_name: "Malicious Package Injection"
+source_standard: "Supply Chain Security"
+component_type: "backend-api"
+weight: 0.95
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_supply_chain_malicious_package_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_supply_chain_malicious_package"
+
+controls:
+  - control_id: "SUPPLYCH-01"
+    name: "Malicious Package Injection — Primary Control"
+    description: "Typosquatting or dependency confusion attacks via package registries."
+    source_clause: "Supply Chain"
+    severity: "critical"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://SUPPLYCH-01"
+
+  - control_id: "SUPPLYCH-02"
+    name: "Malicious Package Injection — Input Validation"
+    description: "Validate and sanitize all inputs related to malicious package injection"
+    source_clause: "Supply Chain"
+    severity: "critical"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://SUPPLYCH-02"
+
+  - control_id: "SUPPLYCH-03"
+    name: "Malicious Package Injection — Configuration Hardening"
+    description: "Apply secure configuration defaults for malicious package injection"
+    source_clause: "Supply Chain"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://SUPPLYCH-03"
+
+  - control_id: "SUPPLYCH-04"
+    name: "Malicious Package Injection — Monitoring and Logging"
+    description: "Log and monitor all malicious package injection events for audit and detection"
+    source_clause: "Supply Chain"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://SUPPLYCH-04"
+
+  - control_id: "SUPPLYCH-05"
+    name: "Malicious Package Injection — Error Handling"
+    description: "Handle malicious package injection errors securely without information leakage"
+    source_clause: "Supply Chain"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://SUPPLYCH-05"

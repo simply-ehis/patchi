@@ -1,0 +1,62 @@
+# Patchi Security Domain: nist-sc-24
+# Source: NIST SP 800-53 SC-24
+# Auto-generated — curated from NIST SP 800-53 SC-24
+
+domain_id: "nist-sc-24"
+version: "1.0.0"
+display_name: "Fail in Known State"
+source_standard: "NIST SP 800-53 SC-24"
+component_type: "backend-api"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_nist_sc_24_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_nist_sc_24"
+
+controls:
+  - control_id: "NISTSC24-01"
+    name: "Fail in Known State — Primary Control"
+    description: "System fails in a known secure state when defined failure conditions occur."
+    source_clause: "SC-24"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://NISTSC24-01"
+
+  - control_id: "NISTSC24-02"
+    name: "Fail in Known State — Input Validation"
+    description: "Validate and sanitize all inputs related to fail in known state"
+    source_clause: "SC-24"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://NISTSC24-02"
+
+  - control_id: "NISTSC24-03"
+    name: "Fail in Known State — Configuration Hardening"
+    description: "Apply secure configuration defaults for fail in known state"
+    source_clause: "SC-24"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://NISTSC24-03"
+
+  - control_id: "NISTSC24-04"
+    name: "Fail in Known State — Monitoring and Logging"
+    description: "Log and monitor all fail in known state events for audit and detection"
+    source_clause: "SC-24"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://NISTSC24-04"
+
+  - control_id: "NISTSC24-05"
+    name: "Fail in Known State — Error Handling"
+    description: "Handle fail in known state errors securely without information leakage"
+    source_clause: "SC-24"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://NISTSC24-05"

@@ -1,0 +1,62 @@
+# Patchi Security Domain: iso27001-incident-management
+# Source: ISO 27001:2022
+# Auto-generated — curated from ISO 27001:2022
+
+domain_id: "iso27001-incident-management"
+version: "1.0.0"
+display_name: "Incident Management (A.5.24-A.5.28)"
+source_standard: "ISO 27001:2022"
+component_type: "infra"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_iso27001_incident_management_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_iso27001_incident_management"
+
+controls:
+  - control_id: "ISO27001-01"
+    name: "Incident Management (A.5.24-A.5.28) — Primary Control"
+    description: "Incident response planning, detection, assessment, and learning."
+    source_clause: "ISO A.5.24-A.5.28"
+    severity: "high"
+    check_method: "manual-review"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://ISO27001-01"
+
+  - control_id: "ISO27001-02"
+    name: "Incident Management (A.5.24-A.5.28) — Input Validation"
+    description: "Validate and sanitize all inputs related to incident management (a.5.24-a.5.28)"
+    source_clause: "ISO A.5.24-A.5.28"
+    severity: "high"
+    check_method: "manual-review"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://ISO27001-02"
+
+  - control_id: "ISO27001-03"
+    name: "Incident Management (A.5.24-A.5.28) — Configuration Hardening"
+    description: "Apply secure configuration defaults for incident management (a.5.24-a.5.28)"
+    source_clause: "ISO A.5.24-A.5.28"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://ISO27001-03"
+
+  - control_id: "ISO27001-04"
+    name: "Incident Management (A.5.24-A.5.28) — Monitoring and Logging"
+    description: "Log and monitor all incident management (a.5.24-a.5.28) events for audit and detection"
+    source_clause: "ISO A.5.24-A.5.28"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://ISO27001-04"
+
+  - control_id: "ISO27001-05"
+    name: "Incident Management (A.5.24-A.5.28) — Error Handling"
+    description: "Handle incident management (a.5.24-a.5.28) errors securely without information leakage"
+    source_clause: "ISO A.5.24-A.5.28"
+    severity: "medium"
+    check_method: "manual-review"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://ISO27001-05"

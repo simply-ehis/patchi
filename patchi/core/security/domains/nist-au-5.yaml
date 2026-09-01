@@ -1,0 +1,62 @@
+# Patchi Security Domain: nist-au-5
+# Source: NIST SP 800-53 AU-5
+# Auto-generated — curated from NIST SP 800-53 AU-5
+
+domain_id: "nist-au-5"
+version: "1.0.0"
+display_name: "Response to Audit Processing Failures"
+source_standard: "NIST SP 800-53 AU-5"
+component_type: "infra"
+weight: 0.75
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_nist_au_5_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_nist_au_5"
+
+controls:
+  - control_id: "NISTAU5-01"
+    name: "Response to Audit Processing Failures — Primary Control"
+    description: "System alerts appropriate personnel when audit log storage capacity is reached."
+    source_clause: "AU-5"
+    severity: "medium"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://NISTAU5-01"
+
+  - control_id: "NISTAU5-02"
+    name: "Response to Audit Processing Failures — Input Validation"
+    description: "Validate and sanitize all inputs related to response to audit processing failures"
+    source_clause: "AU-5"
+    severity: "medium"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://NISTAU5-02"
+
+  - control_id: "NISTAU5-03"
+    name: "Response to Audit Processing Failures — Configuration Hardening"
+    description: "Apply secure configuration defaults for response to audit processing failures"
+    source_clause: "AU-5"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://NISTAU5-03"
+
+  - control_id: "NISTAU5-04"
+    name: "Response to Audit Processing Failures — Monitoring and Logging"
+    description: "Log and monitor all response to audit processing failures events for audit and detection"
+    source_clause: "AU-5"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://NISTAU5-04"
+
+  - control_id: "NISTAU5-05"
+    name: "Response to Audit Processing Failures — Error Handling"
+    description: "Handle response to audit processing failures errors securely without information leakage"
+    source_clause: "AU-5"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://NISTAU5-05"

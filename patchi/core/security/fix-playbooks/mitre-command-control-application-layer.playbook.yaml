@@ -1,0 +1,60 @@
+# Playbook for: mitre-command-control-application-layer
+# Source: MITRE ATT&CK
+# Auto-generated
+
+playbooks:
+- control_id: "MITRECOM-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary application layer protocol (t1071) control patterns for mitre-command-control-application-layer"
+  blast_radius_notes: "Automated fix for MITRECOM-01 - Primary Application Layer Protocol (T1071) Control"
+  verification_checks:
+    - "Verify MITRECOM-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "MITRECOM-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for application layer protocol (t1071) patterns for mitre-command-control-application-layer"
+  blast_radius_notes: "Automated fix for MITRECOM-02 - Input Validation for Application Layer Protocol (T1071)"
+  verification_checks:
+    - "Verify MITRECOM-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "MITRECOM-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for application layer protocol (t1071) patterns for mitre-command-control-application-layer"
+  blast_radius_notes: "Automated fix for MITRECOM-03 - Configuration Hardening for Application Layer Protocol (T1071)"
+  verification_checks:
+    - "Verify MITRECOM-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "MITRECOM-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for application layer protocol (t1071) patterns for mitre-command-control-application-layer"
+  blast_radius_notes: "Automated fix for MITRECOM-04 - Monitoring and Logging for Application Layer Protocol (T1071)"
+  verification_checks:
+    - "Verify MITRECOM-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "MITRECOM-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for application layer protocol (t1071) patterns for mitre-command-control-application-layer"
+  blast_radius_notes: "Automated fix for MITRECOM-05 - Error Handling for Application Layer Protocol (T1071)"
+  verification_checks:
+    - "Verify MITRECOM-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

@@ -1,0 +1,62 @@
+# Patchi Security Domain: cwe-378-creation-temp-file-with-privileged
+# Source: CWE-378
+# Auto-generated — curated from CWE-378
+
+domain_id: "cwe-378-creation-temp-file-with-privileged"
+version: "1.0.0"
+display_name: "Creation of Temporary File With Insecure Permissions"
+source_standard: "CWE-378"
+component_type: "backend-api"
+weight: 0.7
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_cwe_378_creation_temp_file_with_privileged_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_cwe_378_creation_temp_file_with_privileged"
+
+controls:
+  - control_id: "CWE378CR-01"
+    name: "Creation of Temporary File With Insecure Permissions — Primary Control"
+    description: "Temporary files created with overly permissive file system permissions."
+    source_clause: "CWE-378"
+    severity: "medium"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CWE378CR-01"
+
+  - control_id: "CWE378CR-02"
+    name: "Creation of Temporary File With Insecure Permissions — Input Validation"
+    description: "Validate and sanitize all inputs related to creation of temporary file with insecure permissions"
+    source_clause: "CWE-378"
+    severity: "medium"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CWE378CR-02"
+
+  - control_id: "CWE378CR-03"
+    name: "Creation of Temporary File With Insecure Permissions — Configuration Hardening"
+    description: "Apply secure configuration defaults for creation of temporary file with insecure permissions"
+    source_clause: "CWE-378"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CWE378CR-03"
+
+  - control_id: "CWE378CR-04"
+    name: "Creation of Temporary File With Insecure Permissions — Monitoring and Logging"
+    description: "Log and monitor all creation of temporary file with insecure permissions events for audit and detection"
+    source_clause: "CWE-378"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CWE378CR-04"
+
+  - control_id: "CWE378CR-05"
+    name: "Creation of Temporary File With Insecure Permissions — Error Handling"
+    description: "Handle creation of temporary file with insecure permissions errors securely without information leakage"
+    source_clause: "CWE-378"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CWE378CR-05"

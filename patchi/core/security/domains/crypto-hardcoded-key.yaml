@@ -1,0 +1,62 @@
+# Patchi Security Domain: crypto-hardcoded-key
+# Source: Cryptography Implementation
+# Auto-generated — curated from Cryptography Implementation
+
+domain_id: "crypto-hardcoded-key"
+version: "1.0.0"
+display_name: "Hardcoded Cryptographic Keys"
+source_standard: "Cryptography Implementation"
+component_type: "backend-api"
+weight: 0.95
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_crypto_hardcoded_key_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_crypto_hardcoded_key"
+
+controls:
+  - control_id: "CRYPTOHA-01"
+    name: "Hardcoded Cryptographic Keys — Primary Control"
+    description: "Encryption keys or secrets hardcoded in source code."
+    source_clause: "Crypto Key"
+    severity: "critical"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CRYPTOHA-01"
+
+  - control_id: "CRYPTOHA-02"
+    name: "Hardcoded Cryptographic Keys — Input Validation"
+    description: "Validate and sanitize all inputs related to hardcoded cryptographic keys"
+    source_clause: "Crypto Key"
+    severity: "critical"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CRYPTOHA-02"
+
+  - control_id: "CRYPTOHA-03"
+    name: "Hardcoded Cryptographic Keys — Configuration Hardening"
+    description: "Apply secure configuration defaults for hardcoded cryptographic keys"
+    source_clause: "Crypto Key"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CRYPTOHA-03"
+
+  - control_id: "CRYPTOHA-04"
+    name: "Hardcoded Cryptographic Keys — Monitoring and Logging"
+    description: "Log and monitor all hardcoded cryptographic keys events for audit and detection"
+    source_clause: "Crypto Key"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CRYPTOHA-04"
+
+  - control_id: "CRYPTOHA-05"
+    name: "Hardcoded Cryptographic Keys — Error Handling"
+    description: "Handle hardcoded cryptographic keys errors securely without information leakage"
+    source_clause: "Crypto Key"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CRYPTOHA-05"

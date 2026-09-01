@@ -1,0 +1,60 @@
+# Playbook for: nist-sc-24
+# Source: NIST SP 800-53 SC-24
+# Auto-generated
+
+playbooks:
+- control_id: "NISTSC24-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary fail in known state control patterns for nist-sc-24"
+  blast_radius_notes: "Automated fix for NISTSC24-01 - Primary Fail in Known State Control"
+  verification_checks:
+    - "Verify NISTSC24-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NISTSC24-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for fail in known state patterns for nist-sc-24"
+  blast_radius_notes: "Automated fix for NISTSC24-02 - Input Validation for Fail in Known State"
+  verification_checks:
+    - "Verify NISTSC24-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NISTSC24-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for fail in known state patterns for nist-sc-24"
+  blast_radius_notes: "Automated fix for NISTSC24-03 - Configuration Hardening for Fail in Known State"
+  verification_checks:
+    - "Verify NISTSC24-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NISTSC24-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for fail in known state patterns for nist-sc-24"
+  blast_radius_notes: "Automated fix for NISTSC24-04 - Monitoring and Logging for Fail in Known State"
+  verification_checks:
+    - "Verify NISTSC24-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NISTSC24-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for fail in known state patterns for nist-sc-24"
+  blast_radius_notes: "Automated fix for NISTSC24-05 - Error Handling for Fail in Known State"
+  verification_checks:
+    - "Verify NISTSC24-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

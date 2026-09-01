@@ -1,0 +1,62 @@
+# Patchi Security Domain: c-cpp-buffer-overflow
+# Source: C/C++ Security
+# Auto-generated — curated from C/C++ Security
+
+domain_id: "c-cpp-buffer-overflow"
+version: "1.0.0"
+display_name: "C/C++ Buffer Overflow"
+source_standard: "C/C++ Security"
+component_type: "native-code"
+weight: 0.95
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_c_cpp_buffer_overflow_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_c_cpp_buffer_overflow"
+
+controls:
+  - control_id: "CCPPBUFF-01"
+    name: "C/C++ Buffer Overflow — Primary Control"
+    description: "strcpy, sprintf, gets without bounds checking."
+    source_clause: "C/C++ Buffer"
+    severity: "critical"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CCPPBUFF-01"
+
+  - control_id: "CCPPBUFF-02"
+    name: "C/C++ Buffer Overflow — Input Validation"
+    description: "Validate and sanitize all inputs related to c/c++ buffer overflow"
+    source_clause: "C/C++ Buffer"
+    severity: "critical"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CCPPBUFF-02"
+
+  - control_id: "CCPPBUFF-03"
+    name: "C/C++ Buffer Overflow — Configuration Hardening"
+    description: "Apply secure configuration defaults for c/c++ buffer overflow"
+    source_clause: "C/C++ Buffer"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CCPPBUFF-03"
+
+  - control_id: "CCPPBUFF-04"
+    name: "C/C++ Buffer Overflow — Monitoring and Logging"
+    description: "Log and monitor all c/c++ buffer overflow events for audit and detection"
+    source_clause: "C/C++ Buffer"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CCPPBUFF-04"
+
+  - control_id: "CCPPBUFF-05"
+    name: "C/C++ Buffer Overflow — Error Handling"
+    description: "Handle c/c++ buffer overflow errors securely without information leakage"
+    source_clause: "C/C++ Buffer"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CCPPBUFF-05"

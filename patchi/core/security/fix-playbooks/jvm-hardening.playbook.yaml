@@ -1,106 +1,0 @@
-playbooks:
-- blast_radius_notes: Automated fix for JVM-001
-  control_id: JVM-001
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Insecure deserialization via ObjectInputStream: Detect use
-    of java.io.ObjectInputStream.readObject() on untrusted data. This is the canonical
-    CWE-502 pattern exploited by ysoserial payloads against WebLogic, JBoss, and Jenkins.
-    The check should flag any new ObjectInputStream() wrapped around user-controlled
-    InputStreams (HTTP request body, JMS message, Redis value, file from upload).
-    Also flag Spring @RequestBody on POJOs that contain Object-typed fields, and XStream,
-    Jackson with default typing, and Fastjson pre-1.2.83 with autotype enabled. Prefer
-    JSON, Protobuf, or explicit allow-listing of classes via ObjectInputFilter.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify JVM-001 is properly addressed
-- blast_radius_notes: Automated fix for JVM-002
-  control_id: JVM-002
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Active debug code in production: Detect debug-only code paths
-    that may execute in production. Flag: (1) System.out.println() and e.printStackTrace()
-    calls in non-test code, (2) Spring @Profile("dev") or @ConditionalOnProperty beans
-    that are accidentally activated, (3) JVM -agentlib:jdwp flags in Dockerfile ENTRYPOINT
-    or shell scripts, (4) Spring DevTools dependency in compile scope (should be runtime
-    + optional), (5)@EnableWebMvc debug=true or logging.level.root=DEBUG in application.yml
-    not guarded by Spring profile.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify JVM-002 is properly addressed
-- blast_radius_notes: Automated fix for JVM-003
-  control_id: JVM-003
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Environment information exposure via Actuator: Detect Spring
-    Boot Actuator endpoints exposed without authentication. By default Spring Boot
-    2.x+ exposes only /health, but misconfigurations frequently expose /env, /heapdump,
-    /threaddump, /configprops, /mappings, /beans which leak secrets, classpath data,
-    internal architecture, and can be used for RCE via /env + /restart. The check
-    should flag management.endpoints.web.exposure.include=* in application.yml, management.security.enabled=false
-    (Spring Boot 1.x), and missing spring.security user/password config when actuator
-    is on classpath.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify JVM-003 is properly addressed
-- blast_radius_notes: Automated fix for JVM-004
-  control_id: JVM-004
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Verbose error pages leak stack traces: Detect configurations
-    that return stack traces, SQL errors, or Spring framework internals to clients.
-    Flag Spring Boot server.error.include-stacktrace=always or =on-trace-param without
-    an equivalent GlobalExceptionHandler @ControllerAdvice. Also flag servlet containers
-    (Tomcat, Jetty) without custom error pages defined in web.xml or via ErrorPageRegistrar,
-    and JSP files that dump <%= exception %> directly into the response body.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify JVM-004 is properly addressed
-- blast_radius_notes: Automated fix for JVM-005
-  control_id: JVM-005
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Reflection abuse with user-controlled input: Detect use of
-    java.lang.reflect with user-controlled class names or method names. Flag Class.forName(userInput),
-    Method.invoke(obj, userInputArgs), and Spring BeanWrapperImpl on user-controlled
-    property paths (CVE-2022-22965 Spring4Shell pattern). Also flag ScriptEngineManager().getEngineByName("nashorn").eval(userInput)
-    and javax.script invocations. The fix is to use an allow-list of permitted class/method
-    names and reject any input not on the list.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify JVM-005 is properly addressed
-- blast_radius_notes: Automated fix for JVM-006
-  control_id: JVM-006
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Runtime.exec / ProcessBuilder with user input: Detect Runtime.getRuntime().exec()
-    or ProcessBuilder().command() calls where any argument is derived from user input.
-    This is CWE-78 OS command injection. Even when arguments are passed as an array
-    (not a single shell string), argument injection may still be possible (e.g., --help
-    or -exec flags passed to find/ffmpeg). The check should flag all Runtime.exec
-    and ProcessBuilder patterns in non-test code and require a manual review to confirm
-    the command and arguments are from a static allow-list.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify JVM-006 is properly addressed
-- blast_radius_notes: Automated fix for JVM-007
-  control_id: JVM-007
-  deterministic_tool: null
-  fix_strategy: llm-template
-  human_review_required: false
-  llm_fix_template: 'Fix Hardcoded credentials and secrets: Detect hardcoded passwords,
-    API keys, JWT secrets, AWS credentials, database connection strings, and private
-    keys in Java/Kotlin/Scala source files. Flag string literals assigned to fields
-    named password, secret, apiKey, token, accessKey, privateKey, jdbcUrl. Also flag
-    JKS/PKCS12 keystore files committed to source control, and Spring @Value annotations
-    that read from a hardcoded default rather than environment variable. Use the truffleHog-style
-    entropy check on string literals above 16 chars in config-like classes.'
-  playbook_version: 1.0.0
-  verification_checks:
-  - Verify JVM-007 is properly addressed

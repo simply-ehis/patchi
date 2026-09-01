@@ -1,0 +1,62 @@
+# Patchi Security Domain: asvs-v6-crypto
+# Source: OWASP ASVS 5.0 V6
+# Auto-generated — curated from OWASP ASVS 5.0 V6
+
+domain_id: "asvs-v6-crypto"
+version: "1.0.0"
+display_name: "Cryptography at Rest"
+source_standard: "OWASP ASVS 5.0 V6"
+component_type: "backend-api"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_asvs_v6_crypto_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_asvs_v6_crypto"
+
+controls:
+  - control_id: "ASVSV6CR-01"
+    name: "Cryptography at Rest — Primary Control"
+    description: "Data encryption at rest, key management, password storage, and random number generation."
+    source_clause: "ASVS V6"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://ASVSV6CR-01"
+
+  - control_id: "ASVSV6CR-02"
+    name: "Cryptography at Rest — Input Validation"
+    description: "Validate and sanitize all inputs related to cryptography at rest"
+    source_clause: "ASVS V6"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://ASVSV6CR-02"
+
+  - control_id: "ASVSV6CR-03"
+    name: "Cryptography at Rest — Configuration Hardening"
+    description: "Apply secure configuration defaults for cryptography at rest"
+    source_clause: "ASVS V6"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://ASVSV6CR-03"
+
+  - control_id: "ASVSV6CR-04"
+    name: "Cryptography at Rest — Monitoring and Logging"
+    description: "Log and monitor all cryptography at rest events for audit and detection"
+    source_clause: "ASVS V6"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://ASVSV6CR-04"
+
+  - control_id: "ASVSV6CR-05"
+    name: "Cryptography at Rest — Error Handling"
+    description: "Handle cryptography at rest errors securely without information leakage"
+    source_clause: "ASVS V6"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://ASVSV6CR-05"

@@ -1,0 +1,60 @@
+# Playbook for: serverless-event-injection
+# Source: Serverless Security
+# Auto-generated
+
+playbooks:
+- control_id: "SERVERLE-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary serverless event injection control patterns for serverless-event-injection"
+  blast_radius_notes: "Automated fix for SERVERLE-01 - Primary Serverless Event Injection Control"
+  verification_checks:
+    - "Verify SERVERLE-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "SERVERLE-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for serverless event injection patterns for serverless-event-injection"
+  blast_radius_notes: "Automated fix for SERVERLE-02 - Input Validation for Serverless Event Injection"
+  verification_checks:
+    - "Verify SERVERLE-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "SERVERLE-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for serverless event injection patterns for serverless-event-injection"
+  blast_radius_notes: "Automated fix for SERVERLE-03 - Configuration Hardening for Serverless Event Injection"
+  verification_checks:
+    - "Verify SERVERLE-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "SERVERLE-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for serverless event injection patterns for serverless-event-injection"
+  blast_radius_notes: "Automated fix for SERVERLE-04 - Monitoring and Logging for Serverless Event Injection"
+  verification_checks:
+    - "Verify SERVERLE-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "SERVERLE-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for serverless event injection patterns for serverless-event-injection"
+  blast_radius_notes: "Automated fix for SERVERLE-05 - Error Handling for Serverless Event Injection"
+  verification_checks:
+    - "Verify SERVERLE-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

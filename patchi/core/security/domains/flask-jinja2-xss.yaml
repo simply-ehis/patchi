@@ -1,0 +1,62 @@
+# Patchi Security Domain: flask-jinja2-xss
+# Source: Flask Security
+# Auto-generated — curated from Flask Security
+
+domain_id: "flask-jinja2-xss"
+version: "1.0.0"
+display_name: "Flask Jinja2 XSS"
+source_standard: "Flask Security"
+component_type: "frontend-web"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_flask_jinja2_xss_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_flask_jinja2_xss"
+
+controls:
+  - control_id: "FLASKJIN-01"
+    name: "Flask Jinja2 XSS — Primary Control"
+    description: "Use of |safe filter or Markup() with user input."
+    source_clause: "Flask XSS"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://FLASKJIN-01"
+
+  - control_id: "FLASKJIN-02"
+    name: "Flask Jinja2 XSS — Input Validation"
+    description: "Validate and sanitize all inputs related to flask jinja2 xss"
+    source_clause: "Flask XSS"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://FLASKJIN-02"
+
+  - control_id: "FLASKJIN-03"
+    name: "Flask Jinja2 XSS — Configuration Hardening"
+    description: "Apply secure configuration defaults for flask jinja2 xss"
+    source_clause: "Flask XSS"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://FLASKJIN-03"
+
+  - control_id: "FLASKJIN-04"
+    name: "Flask Jinja2 XSS — Monitoring and Logging"
+    description: "Log and monitor all flask jinja2 xss events for audit and detection"
+    source_clause: "Flask XSS"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://FLASKJIN-04"
+
+  - control_id: "FLASKJIN-05"
+    name: "Flask Jinja2 XSS — Error Handling"
+    description: "Handle flask jinja2 xss errors securely without information leakage"
+    source_clause: "Flask XSS"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://FLASKJIN-05"

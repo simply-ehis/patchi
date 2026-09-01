@@ -1,0 +1,62 @@
+# Patchi Security Domain: hipaa-physical-safeguards
+# Source: HIPAA Security Rule
+# Auto-generated — curated from HIPAA Security Rule
+
+domain_id: "hipaa-physical-safeguards"
+version: "1.0.0"
+display_name: "Physical Safeguards"
+source_standard: "HIPAA Security Rule"
+component_type: "infra"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_hipaa_physical_safeguards_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_hipaa_physical_safeguards"
+
+controls:
+  - control_id: "HIPAAPHY-01"
+    name: "Physical Safeguards — Primary Control"
+    description: "Facility access controls, workstation use, and device media controls."
+    source_clause: "HIPAA"
+    severity: "high"
+    check_method: "manual-review"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://HIPAAPHY-01"
+
+  - control_id: "HIPAAPHY-02"
+    name: "Physical Safeguards — Input Validation"
+    description: "Validate and sanitize all inputs related to physical safeguards"
+    source_clause: "HIPAA"
+    severity: "high"
+    check_method: "manual-review"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://HIPAAPHY-02"
+
+  - control_id: "HIPAAPHY-03"
+    name: "Physical Safeguards — Configuration Hardening"
+    description: "Apply secure configuration defaults for physical safeguards"
+    source_clause: "HIPAA"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://HIPAAPHY-03"
+
+  - control_id: "HIPAAPHY-04"
+    name: "Physical Safeguards — Monitoring and Logging"
+    description: "Log and monitor all physical safeguards events for audit and detection"
+    source_clause: "HIPAA"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://HIPAAPHY-04"
+
+  - control_id: "HIPAAPHY-05"
+    name: "Physical Safeguards — Error Handling"
+    description: "Handle physical safeguards errors securely without information leakage"
+    source_clause: "HIPAA"
+    severity: "medium"
+    check_method: "manual-review"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://HIPAAPHY-05"

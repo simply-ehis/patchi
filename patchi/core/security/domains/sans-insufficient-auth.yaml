@@ -1,0 +1,62 @@
+# Patchi Security Domain: sans-insufficient-auth
+# Source: SANS Top 25
+# Auto-generated — curated from SANS Top 25
+
+domain_id: "sans-insufficient-auth"
+version: "1.0.0"
+display_name: "Insufficient Authentication"
+source_standard: "SANS Top 25"
+component_type: "backend-api"
+weight: 0.9
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_sans_insufficient_auth_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_sans_insufficient_auth"
+
+controls:
+  - control_id: "SANSINSU-01"
+    name: "Insufficient Authentication — Primary Control"
+    description: "Weak or missing authentication mechanisms."
+    source_clause: "SANS"
+    severity: "critical"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://SANSINSU-01"
+
+  - control_id: "SANSINSU-02"
+    name: "Insufficient Authentication — Input Validation"
+    description: "Validate and sanitize all inputs related to insufficient authentication"
+    source_clause: "SANS"
+    severity: "critical"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://SANSINSU-02"
+
+  - control_id: "SANSINSU-03"
+    name: "Insufficient Authentication — Configuration Hardening"
+    description: "Apply secure configuration defaults for insufficient authentication"
+    source_clause: "SANS"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://SANSINSU-03"
+
+  - control_id: "SANSINSU-04"
+    name: "Insufficient Authentication — Monitoring and Logging"
+    description: "Log and monitor all insufficient authentication events for audit and detection"
+    source_clause: "SANS"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://SANSINSU-04"
+
+  - control_id: "SANSINSU-05"
+    name: "Insufficient Authentication — Error Handling"
+    description: "Handle insufficient authentication errors securely without information leakage"
+    source_clause: "SANS"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://SANSINSU-05"

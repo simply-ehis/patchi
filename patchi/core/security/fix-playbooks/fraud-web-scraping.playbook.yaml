@@ -1,0 +1,60 @@
+# Playbook for: fraud-web-scraping
+# Source: Fraud Prevention
+# Auto-generated
+
+playbooks:
+- control_id: "FRAUDWEB-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary web scraping control patterns for fraud-web-scraping"
+  blast_radius_notes: "Automated fix for FRAUDWEB-01 - Primary Web Scraping Control"
+  verification_checks:
+    - "Verify FRAUDWEB-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "FRAUDWEB-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for web scraping patterns for fraud-web-scraping"
+  blast_radius_notes: "Automated fix for FRAUDWEB-02 - Input Validation for Web Scraping"
+  verification_checks:
+    - "Verify FRAUDWEB-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "FRAUDWEB-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for web scraping patterns for fraud-web-scraping"
+  blast_radius_notes: "Automated fix for FRAUDWEB-03 - Configuration Hardening for Web Scraping"
+  verification_checks:
+    - "Verify FRAUDWEB-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "FRAUDWEB-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for web scraping patterns for fraud-web-scraping"
+  blast_radius_notes: "Automated fix for FRAUDWEB-04 - Monitoring and Logging for Web Scraping"
+  verification_checks:
+    - "Verify FRAUDWEB-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "FRAUDWEB-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for web scraping patterns for fraud-web-scraping"
+  blast_radius_notes: "Automated fix for FRAUDWEB-05 - Error Handling for Web Scraping"
+  verification_checks:
+    - "Verify FRAUDWEB-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

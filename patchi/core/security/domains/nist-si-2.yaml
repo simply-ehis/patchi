@@ -1,0 +1,62 @@
+# Patchi Security Domain: nist-si-2
+# Source: NIST SP 800-53 SI-2
+# Auto-generated — curated from NIST SP 800-53 SI-2
+
+domain_id: "nist-si-2"
+version: "1.0.0"
+display_name: "Flaw Remediation"
+source_standard: "NIST SP 800-53 SI-2"
+component_type: "infra"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_nist_si_2_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_nist_si_2"
+
+controls:
+  - control_id: "NISTSI2-01"
+    name: "Flaw Remediation — Primary Control"
+    description: "Organization identifies, reports, and corrects information system flaws."
+    source_clause: "SI-2"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://NISTSI2-01"
+
+  - control_id: "NISTSI2-02"
+    name: "Flaw Remediation — Input Validation"
+    description: "Validate and sanitize all inputs related to flaw remediation"
+    source_clause: "SI-2"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://NISTSI2-02"
+
+  - control_id: "NISTSI2-03"
+    name: "Flaw Remediation — Configuration Hardening"
+    description: "Apply secure configuration defaults for flaw remediation"
+    source_clause: "SI-2"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://NISTSI2-03"
+
+  - control_id: "NISTSI2-04"
+    name: "Flaw Remediation — Monitoring and Logging"
+    description: "Log and monitor all flaw remediation events for audit and detection"
+    source_clause: "SI-2"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://NISTSI2-04"
+
+  - control_id: "NISTSI2-05"
+    name: "Flaw Remediation — Error Handling"
+    description: "Handle flaw remediation errors securely without information leakage"
+    source_clause: "SI-2"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://NISTSI2-05"

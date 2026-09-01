@@ -1,0 +1,60 @@
+# Playbook for: nist-sc-9
+# Source: NIST SP 800-53 SC-9
+# Auto-generated
+
+playbooks:
+- control_id: "NISTSC9-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary transmission confidentiality control patterns for nist-sc-9"
+  blast_radius_notes: "Automated fix for NISTSC9-01 - Primary Transmission Confidentiality Control"
+  verification_checks:
+    - "Verify NISTSC9-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NISTSC9-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for transmission confidentiality patterns for nist-sc-9"
+  blast_radius_notes: "Automated fix for NISTSC9-02 - Input Validation for Transmission Confidentiality"
+  verification_checks:
+    - "Verify NISTSC9-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NISTSC9-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for transmission confidentiality patterns for nist-sc-9"
+  blast_radius_notes: "Automated fix for NISTSC9-03 - Configuration Hardening for Transmission Confidentiality"
+  verification_checks:
+    - "Verify NISTSC9-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NISTSC9-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for transmission confidentiality patterns for nist-sc-9"
+  blast_radius_notes: "Automated fix for NISTSC9-04 - Monitoring and Logging for Transmission Confidentiality"
+  verification_checks:
+    - "Verify NISTSC9-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "NISTSC9-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for transmission confidentiality patterns for nist-sc-9"
+  blast_radius_notes: "Automated fix for NISTSC9-05 - Error Handling for Transmission Confidentiality"
+  verification_checks:
+    - "Verify NISTSC9-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

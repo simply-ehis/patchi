@@ -1,0 +1,60 @@
+# Playbook for: owasp-a07-auth-failures
+# Source: OWASP Top 10 2021 A07
+# Auto-generated
+
+playbooks:
+- control_id: "OWASPA07-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary identification and authentication failures control patterns for owasp-a07-auth-failures"
+  blast_radius_notes: "Automated fix for OWASPA07-01 - Primary Identification and Authentication Failures Control"
+  verification_checks:
+    - "Verify OWASPA07-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "OWASPA07-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for identification and authentication failures patterns for owasp-a07-auth-failures"
+  blast_radius_notes: "Automated fix for OWASPA07-02 - Input Validation for Identification and Authentication Failures"
+  verification_checks:
+    - "Verify OWASPA07-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "OWASPA07-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for identification and authentication failures patterns for owasp-a07-auth-failures"
+  blast_radius_notes: "Automated fix for OWASPA07-03 - Configuration Hardening for Identification and Authentication Failures"
+  verification_checks:
+    - "Verify OWASPA07-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "OWASPA07-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for identification and authentication failures patterns for owasp-a07-auth-failures"
+  blast_radius_notes: "Automated fix for OWASPA07-04 - Monitoring and Logging for Identification and Authentication Failures"
+  verification_checks:
+    - "Verify OWASPA07-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "OWASPA07-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for identification and authentication failures patterns for owasp-a07-auth-failures"
+  blast_radius_notes: "Automated fix for OWASPA07-05 - Error Handling for Identification and Authentication Failures"
+  verification_checks:
+    - "Verify OWASPA07-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

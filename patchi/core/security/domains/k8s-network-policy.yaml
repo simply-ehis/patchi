@@ -1,0 +1,62 @@
+# Patchi Security Domain: k8s-network-policy
+# Source: Kubernetes Security
+# Auto-generated — curated from Kubernetes Security
+
+domain_id: "k8s-network-policy"
+version: "1.0.0"
+display_name: "Kubernetes Network Policies"
+source_standard: "Kubernetes Security"
+component_type: "infra"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_k8s_network_policy_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_k8s_network_policy"
+
+controls:
+  - control_id: "K8SNETWO-01"
+    name: "Kubernetes Network Policies — Primary Control"
+    description: "Missing network policies allowing unrestricted pod-to-pod communication."
+    source_clause: "K8s Network"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://K8SNETWO-01"
+
+  - control_id: "K8SNETWO-02"
+    name: "Kubernetes Network Policies — Input Validation"
+    description: "Validate and sanitize all inputs related to kubernetes network policies"
+    source_clause: "K8s Network"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://K8SNETWO-02"
+
+  - control_id: "K8SNETWO-03"
+    name: "Kubernetes Network Policies — Configuration Hardening"
+    description: "Apply secure configuration defaults for kubernetes network policies"
+    source_clause: "K8s Network"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://K8SNETWO-03"
+
+  - control_id: "K8SNETWO-04"
+    name: "Kubernetes Network Policies — Monitoring and Logging"
+    description: "Log and monitor all kubernetes network policies events for audit and detection"
+    source_clause: "K8s Network"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://K8SNETWO-04"
+
+  - control_id: "K8SNETWO-05"
+    name: "Kubernetes Network Policies — Error Handling"
+    description: "Handle kubernetes network policies errors securely without information leakage"
+    source_clause: "K8s Network"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://K8SNETWO-05"

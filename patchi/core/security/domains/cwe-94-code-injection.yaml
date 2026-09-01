@@ -1,0 +1,62 @@
+# Patchi Security Domain: cwe-94-code-injection
+# Source: CWE Top 25 2024 CWE-94
+# Auto-generated — curated from CWE Top 25 2024 CWE-94
+
+domain_id: "cwe-94-code-injection"
+version: "1.0.0"
+display_name: "Improper Control of Generation of Code (Code Injection)"
+source_standard: "CWE Top 25 2024 CWE-94"
+component_type: "backend-api"
+weight: 0.95
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_cwe_94_code_injection_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_cwe_94_code_injection"
+
+controls:
+  - control_id: "CWE94COD-01"
+    name: "Improper Control of Generation of Code (Code Injection) — Primary Control"
+    description: "Application constructs code from untrusted input without proper validation."
+    source_clause: "CWE-94"
+    severity: "critical"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CWE94COD-01"
+
+  - control_id: "CWE94COD-02"
+    name: "Improper Control of Generation of Code (Code Injection) — Input Validation"
+    description: "Validate and sanitize all inputs related to improper control of generation of code (code injection)"
+    source_clause: "CWE-94"
+    severity: "critical"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CWE94COD-02"
+
+  - control_id: "CWE94COD-03"
+    name: "Improper Control of Generation of Code (Code Injection) — Configuration Hardening"
+    description: "Apply secure configuration defaults for improper control of generation of code (code injection)"
+    source_clause: "CWE-94"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CWE94COD-03"
+
+  - control_id: "CWE94COD-04"
+    name: "Improper Control of Generation of Code (Code Injection) — Monitoring and Logging"
+    description: "Log and monitor all improper control of generation of code (code injection) events for audit and detection"
+    source_clause: "CWE-94"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CWE94COD-04"
+
+  - control_id: "CWE94COD-05"
+    name: "Improper Control of Generation of Code (Code Injection) — Error Handling"
+    description: "Handle improper control of generation of code (code injection) errors securely without information leakage"
+    source_clause: "CWE-94"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CWE94COD-05"

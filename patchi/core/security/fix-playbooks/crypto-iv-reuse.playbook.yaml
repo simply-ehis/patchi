@@ -1,0 +1,60 @@
+# Playbook for: crypto-iv-reuse
+# Source: Cryptography Implementation
+# Auto-generated
+
+playbooks:
+- control_id: "CRYPTOIV-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary iv/nonce reuse control patterns for crypto-iv-reuse"
+  blast_radius_notes: "Automated fix for CRYPTOIV-01 - Primary IV/Nonce Reuse Control"
+  verification_checks:
+    - "Verify CRYPTOIV-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CRYPTOIV-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for iv/nonce reuse patterns for crypto-iv-reuse"
+  blast_radius_notes: "Automated fix for CRYPTOIV-02 - Input Validation for IV/Nonce Reuse"
+  verification_checks:
+    - "Verify CRYPTOIV-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CRYPTOIV-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for iv/nonce reuse patterns for crypto-iv-reuse"
+  blast_radius_notes: "Automated fix for CRYPTOIV-03 - Configuration Hardening for IV/Nonce Reuse"
+  verification_checks:
+    - "Verify CRYPTOIV-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CRYPTOIV-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for iv/nonce reuse patterns for crypto-iv-reuse"
+  blast_radius_notes: "Automated fix for CRYPTOIV-04 - Monitoring and Logging for IV/Nonce Reuse"
+  verification_checks:
+    - "Verify CRYPTOIV-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "CRYPTOIV-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for iv/nonce reuse patterns for crypto-iv-reuse"
+  blast_radius_notes: "Automated fix for CRYPTOIV-05 - Error Handling for IV/Nonce Reuse"
+  verification_checks:
+    - "Verify CRYPTOIV-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

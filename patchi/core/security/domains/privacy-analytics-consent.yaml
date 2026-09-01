@@ -1,0 +1,62 @@
+# Patchi Security Domain: privacy-analytics-consent
+# Source: Privacy Engineering
+# Auto-generated — curated from Privacy Engineering
+
+domain_id: "privacy-analytics-consent"
+version: "1.0.0"
+display_name: "Analytics Consent"
+source_standard: "Privacy Engineering"
+component_type: "frontend-web"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_privacy_analytics_consent_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_privacy_analytics_consent"
+
+controls:
+  - control_id: "PRIVACYA-01"
+    name: "Analytics Consent — Primary Control"
+    description: "Analytics scripts loading without user consent."
+    source_clause: "Privacy Analytics"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://PRIVACYA-01"
+
+  - control_id: "PRIVACYA-02"
+    name: "Analytics Consent — Input Validation"
+    description: "Validate and sanitize all inputs related to analytics consent"
+    source_clause: "Privacy Analytics"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://PRIVACYA-02"
+
+  - control_id: "PRIVACYA-03"
+    name: "Analytics Consent — Configuration Hardening"
+    description: "Apply secure configuration defaults for analytics consent"
+    source_clause: "Privacy Analytics"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://PRIVACYA-03"
+
+  - control_id: "PRIVACYA-04"
+    name: "Analytics Consent — Monitoring and Logging"
+    description: "Log and monitor all analytics consent events for audit and detection"
+    source_clause: "Privacy Analytics"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://PRIVACYA-04"
+
+  - control_id: "PRIVACYA-05"
+    name: "Analytics Consent — Error Handling"
+    description: "Handle analytics consent errors securely without information leakage"
+    source_clause: "Privacy Analytics"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://PRIVACYA-05"

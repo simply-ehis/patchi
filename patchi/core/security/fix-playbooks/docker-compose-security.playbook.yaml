@@ -1,0 +1,60 @@
+# Playbook for: docker-compose-security
+# Source: Container Security
+# Auto-generated
+
+playbooks:
+- control_id: "DOCKERCO-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary docker compose security control patterns for docker-compose-security"
+  blast_radius_notes: "Automated fix for DOCKERCO-01 - Primary Docker Compose Security Control"
+  verification_checks:
+    - "Verify DOCKERCO-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "DOCKERCO-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for docker compose security patterns for docker-compose-security"
+  blast_radius_notes: "Automated fix for DOCKERCO-02 - Input Validation for Docker Compose Security"
+  verification_checks:
+    - "Verify DOCKERCO-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "DOCKERCO-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for docker compose security patterns for docker-compose-security"
+  blast_radius_notes: "Automated fix for DOCKERCO-03 - Configuration Hardening for Docker Compose Security"
+  verification_checks:
+    - "Verify DOCKERCO-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "DOCKERCO-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for docker compose security patterns for docker-compose-security"
+  blast_radius_notes: "Automated fix for DOCKERCO-04 - Monitoring and Logging for Docker Compose Security"
+  verification_checks:
+    - "Verify DOCKERCO-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "DOCKERCO-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for docker compose security patterns for docker-compose-security"
+  blast_radius_notes: "Automated fix for DOCKERCO-05 - Error Handling for Docker Compose Security"
+  verification_checks:
+    - "Verify DOCKERCO-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

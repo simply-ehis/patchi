@@ -1,0 +1,62 @@
+# Patchi Security Domain: cwe-22-path-traversal
+# Source: CWE Top 25 2024 CWE-22
+# Auto-generated — curated from CWE Top 25 2024 CWE-22
+
+domain_id: "cwe-22-path-traversal"
+version: "1.0.0"
+display_name: "Improper Limitation of a Pathname to a Restricted Directory (Path Traversal)"
+source_standard: "CWE Top 25 2024 CWE-22"
+component_type: "backend-api"
+weight: 0.9
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_cwe_22_path_traversal_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_cwe_22_path_traversal"
+
+controls:
+  - control_id: "CWE22PAT-01"
+    name: "Improper Limitation of a Pathname to a Restricted Directory (Path Traversal) — Primary Control"
+    description: "External input used to construct pathname that references a file outside restricted directory."
+    source_clause: "CWE-22"
+    severity: "critical"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CWE22PAT-01"
+
+  - control_id: "CWE22PAT-02"
+    name: "Improper Limitation of a Pathname to a Restricted Directory (Path Traversal) — Input Validation"
+    description: "Validate and sanitize all inputs related to improper limitation of a pathname to a restricted directory (path traversal)"
+    source_clause: "CWE-22"
+    severity: "critical"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CWE22PAT-02"
+
+  - control_id: "CWE22PAT-03"
+    name: "Improper Limitation of a Pathname to a Restricted Directory (Path Traversal) — Configuration Hardening"
+    description: "Apply secure configuration defaults for improper limitation of a pathname to a restricted directory (path traversal)"
+    source_clause: "CWE-22"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CWE22PAT-03"
+
+  - control_id: "CWE22PAT-04"
+    name: "Improper Limitation of a Pathname to a Restricted Directory (Path Traversal) — Monitoring and Logging"
+    description: "Log and monitor all improper limitation of a pathname to a restricted directory (path traversal) events for audit and detection"
+    source_clause: "CWE-22"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CWE22PAT-04"
+
+  - control_id: "CWE22PAT-05"
+    name: "Improper Limitation of a Pathname to a Restricted Directory (Path Traversal) — Error Handling"
+    description: "Handle improper limitation of a pathname to a restricted directory (path traversal) errors securely without information leakage"
+    source_clause: "CWE-22"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CWE22PAT-05"

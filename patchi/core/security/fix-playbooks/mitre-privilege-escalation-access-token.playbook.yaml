@@ -1,0 +1,60 @@
+# Playbook for: mitre-privilege-escalation-access-token
+# Source: MITRE ATT&CK
+# Auto-generated
+
+playbooks:
+- control_id: "MITREPRI-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary access token manipulation (t1134) control patterns for mitre-privilege-escalation-access-token"
+  blast_radius_notes: "Automated fix for MITREPRI-01 - Primary Access Token Manipulation (T1134) Control"
+  verification_checks:
+    - "Verify MITREPRI-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "MITREPRI-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for access token manipulation (t1134) patterns for mitre-privilege-escalation-access-token"
+  blast_radius_notes: "Automated fix for MITREPRI-02 - Input Validation for Access Token Manipulation (T1134)"
+  verification_checks:
+    - "Verify MITREPRI-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "MITREPRI-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for access token manipulation (t1134) patterns for mitre-privilege-escalation-access-token"
+  blast_radius_notes: "Automated fix for MITREPRI-03 - Configuration Hardening for Access Token Manipulation (T1134)"
+  verification_checks:
+    - "Verify MITREPRI-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "MITREPRI-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for access token manipulation (t1134) patterns for mitre-privilege-escalation-access-token"
+  blast_radius_notes: "Automated fix for MITREPRI-04 - Monitoring and Logging for Access Token Manipulation (T1134)"
+  verification_checks:
+    - "Verify MITREPRI-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "MITREPRI-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for access token manipulation (t1134) patterns for mitre-privilege-escalation-access-token"
+  blast_radius_notes: "Automated fix for MITREPRI-05 - Error Handling for Access Token Manipulation (T1134)"
+  verification_checks:
+    - "Verify MITREPRI-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

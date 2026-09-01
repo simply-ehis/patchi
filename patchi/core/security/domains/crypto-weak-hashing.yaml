@@ -1,0 +1,62 @@
+# Patchi Security Domain: crypto-weak-hashing
+# Source: Cryptography Implementation
+# Auto-generated — curated from Cryptography Implementation
+
+domain_id: "crypto-weak-hashing"
+version: "1.0.0"
+display_name: "Weak Hashing Algorithms"
+source_standard: "Cryptography Implementation"
+component_type: "backend-api"
+weight: 0.9
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_crypto_weak_hashing_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_crypto_weak_hashing"
+
+controls:
+  - control_id: "CRYPTOWE-01"
+    name: "Weak Hashing Algorithms — Primary Control"
+    description: "Use of MD5, SHA1, or other broken hash algorithms for security purposes."
+    source_clause: "Crypto Hash"
+    severity: "critical"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CRYPTOWE-01"
+
+  - control_id: "CRYPTOWE-02"
+    name: "Weak Hashing Algorithms — Input Validation"
+    description: "Validate and sanitize all inputs related to weak hashing algorithms"
+    source_clause: "Crypto Hash"
+    severity: "critical"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CRYPTOWE-02"
+
+  - control_id: "CRYPTOWE-03"
+    name: "Weak Hashing Algorithms — Configuration Hardening"
+    description: "Apply secure configuration defaults for weak hashing algorithms"
+    source_clause: "Crypto Hash"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CRYPTOWE-03"
+
+  - control_id: "CRYPTOWE-04"
+    name: "Weak Hashing Algorithms — Monitoring and Logging"
+    description: "Log and monitor all weak hashing algorithms events for audit and detection"
+    source_clause: "Crypto Hash"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CRYPTOWE-04"
+
+  - control_id: "CRYPTOWE-05"
+    name: "Weak Hashing Algorithms — Error Handling"
+    description: "Handle weak hashing algorithms errors securely without information leakage"
+    source_clause: "Crypto Hash"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CRYPTOWE-05"

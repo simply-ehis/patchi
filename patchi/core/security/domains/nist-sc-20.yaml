@@ -1,0 +1,62 @@
+# Patchi Security Domain: nist-sc-20
+# Source: NIST SP 800-53 SC-20
+# Auto-generated — curated from NIST SP 800-53 SC-20
+
+domain_id: "nist-sc-20"
+version: "1.0.0"
+display_name: "Secure Name Resolution"
+source_standard: "NIST SP 800-53 SC-20"
+component_type: "infra"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_nist_sc_20_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_nist_sc_20"
+
+controls:
+  - control_id: "NISTSC20-01"
+    name: "Secure Name Resolution — Primary Control"
+    description: "System prevents DNS spoofing and ensures secure name resolution."
+    source_clause: "SC-20"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://NISTSC20-01"
+
+  - control_id: "NISTSC20-02"
+    name: "Secure Name Resolution — Input Validation"
+    description: "Validate and sanitize all inputs related to secure name resolution"
+    source_clause: "SC-20"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://NISTSC20-02"
+
+  - control_id: "NISTSC20-03"
+    name: "Secure Name Resolution — Configuration Hardening"
+    description: "Apply secure configuration defaults for secure name resolution"
+    source_clause: "SC-20"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://NISTSC20-03"
+
+  - control_id: "NISTSC20-04"
+    name: "Secure Name Resolution — Monitoring and Logging"
+    description: "Log and monitor all secure name resolution events for audit and detection"
+    source_clause: "SC-20"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://NISTSC20-04"
+
+  - control_id: "NISTSC20-05"
+    name: "Secure Name Resolution — Error Handling"
+    description: "Handle secure name resolution errors securely without information leakage"
+    source_clause: "SC-20"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://NISTSC20-05"

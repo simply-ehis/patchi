@@ -1,0 +1,62 @@
+# Patchi Security Domain: cwe-476-null-pointer
+# Source: CWE Top 25 2024 CWE-476
+# Auto-generated — curated from CWE Top 25 2024 CWE-476
+
+domain_id: "cwe-476-null-pointer"
+version: "1.0.0"
+display_name: "NULL Pointer Dereference"
+source_standard: "CWE Top 25 2024 CWE-476"
+component_type: "native-code"
+weight: 0.8
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_cwe_476_null_pointer_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_cwe_476_null_pointer"
+
+controls:
+  - control_id: "CWE476NU-01"
+    name: "NULL Pointer Dereference — Primary Control"
+    description: "Dereferencing a NULL pointer leads to application crash or unexpected behavior."
+    source_clause: "CWE-476"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://CWE476NU-01"
+
+  - control_id: "CWE476NU-02"
+    name: "NULL Pointer Dereference — Input Validation"
+    description: "Validate and sanitize all inputs related to null pointer dereference"
+    source_clause: "CWE-476"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://CWE476NU-02"
+
+  - control_id: "CWE476NU-03"
+    name: "NULL Pointer Dereference — Configuration Hardening"
+    description: "Apply secure configuration defaults for null pointer dereference"
+    source_clause: "CWE-476"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://CWE476NU-03"
+
+  - control_id: "CWE476NU-04"
+    name: "NULL Pointer Dereference — Monitoring and Logging"
+    description: "Log and monitor all null pointer dereference events for audit and detection"
+    source_clause: "CWE-476"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://CWE476NU-04"
+
+  - control_id: "CWE476NU-05"
+    name: "NULL Pointer Dereference — Error Handling"
+    description: "Handle null pointer dereference errors securely without information leakage"
+    source_clause: "CWE-476"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://CWE476NU-05"

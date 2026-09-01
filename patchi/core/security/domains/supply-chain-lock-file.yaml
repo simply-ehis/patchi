@@ -1,0 +1,62 @@
+# Patchi Security Domain: supply-chain-lock-file
+# Source: Supply Chain Security
+# Auto-generated — curated from Supply Chain Security
+
+domain_id: "supply-chain-lock-file"
+version: "1.0.0"
+display_name: "Lock File Manipulation"
+source_standard: "Supply Chain Security"
+component_type: "backend-api"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_supply_chain_lock_file_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_supply_chain_lock_file"
+
+controls:
+  - control_id: "SUPPLYCH-01"
+    name: "Lock File Manipulation — Primary Control"
+    description: "Tampered lock files (package-lock.json, go.sum) resolving to malicious versions."
+    source_clause: "Supply Chain"
+    severity: "high"
+    check_method: "static"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://SUPPLYCH-01"
+
+  - control_id: "SUPPLYCH-02"
+    name: "Lock File Manipulation — Input Validation"
+    description: "Validate and sanitize all inputs related to lock file manipulation"
+    source_clause: "Supply Chain"
+    severity: "high"
+    check_method: "static"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://SUPPLYCH-02"
+
+  - control_id: "SUPPLYCH-03"
+    name: "Lock File Manipulation — Configuration Hardening"
+    description: "Apply secure configuration defaults for lock file manipulation"
+    source_clause: "Supply Chain"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://SUPPLYCH-03"
+
+  - control_id: "SUPPLYCH-04"
+    name: "Lock File Manipulation — Monitoring and Logging"
+    description: "Log and monitor all lock file manipulation events for audit and detection"
+    source_clause: "Supply Chain"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://SUPPLYCH-04"
+
+  - control_id: "SUPPLYCH-05"
+    name: "Lock File Manipulation — Error Handling"
+    description: "Handle lock file manipulation errors securely without information leakage"
+    source_clause: "Supply Chain"
+    severity: "medium"
+    check_method: "static"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://SUPPLYCH-05"

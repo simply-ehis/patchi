@@ -1,0 +1,62 @@
+# Patchi Security Domain: nist-si-3
+# Source: NIST SP 800-53 SI-3
+# Auto-generated — curated from NIST SP 800-53 SI-3
+
+domain_id: "nist-si-3"
+version: "1.0.0"
+display_name: "Malicious Code Protection"
+source_standard: "NIST SP 800-53 SI-3"
+component_type: "infra"
+weight: 0.85
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_nist_si_3_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_nist_si_3"
+
+controls:
+  - control_id: "NISTSI3-01"
+    name: "Malicious Code Protection — Primary Control"
+    description: "System implements malicious code protection mechanisms."
+    source_clause: "SI-3"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://NISTSI3-01"
+
+  - control_id: "NISTSI3-02"
+    name: "Malicious Code Protection — Input Validation"
+    description: "Validate and sanitize all inputs related to malicious code protection"
+    source_clause: "SI-3"
+    severity: "high"
+    check_method: "static+dynamic"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://NISTSI3-02"
+
+  - control_id: "NISTSI3-03"
+    name: "Malicious Code Protection — Configuration Hardening"
+    description: "Apply secure configuration defaults for malicious code protection"
+    source_clause: "SI-3"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://NISTSI3-03"
+
+  - control_id: "NISTSI3-04"
+    name: "Malicious Code Protection — Monitoring and Logging"
+    description: "Log and monitor all malicious code protection events for audit and detection"
+    source_clause: "SI-3"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://NISTSI3-04"
+
+  - control_id: "NISTSI3-05"
+    name: "Malicious Code Protection — Error Handling"
+    description: "Handle malicious code protection errors securely without information leakage"
+    source_clause: "SI-3"
+    severity: "medium"
+    check_method: "static+dynamic"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://NISTSI3-05"

@@ -1,0 +1,60 @@
+# Playbook for: bigquery-authorized-datasets
+# Source: Data Engineering Security
+# Auto-generated
+
+playbooks:
+- control_id: "BIGQUERY-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary bigquery authorized datasets control patterns for bigquery-authorized-datasets"
+  blast_radius_notes: "Automated fix for BIGQUERY-01 - Primary BigQuery Authorized Datasets Control"
+  verification_checks:
+    - "Verify BIGQUERY-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "BIGQUERY-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for bigquery authorized datasets patterns for bigquery-authorized-datasets"
+  blast_radius_notes: "Automated fix for BIGQUERY-02 - Input Validation for BigQuery Authorized Datasets"
+  verification_checks:
+    - "Verify BIGQUERY-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "BIGQUERY-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for bigquery authorized datasets patterns for bigquery-authorized-datasets"
+  blast_radius_notes: "Automated fix for BIGQUERY-03 - Configuration Hardening for BigQuery Authorized Datasets"
+  verification_checks:
+    - "Verify BIGQUERY-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "BIGQUERY-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for bigquery authorized datasets patterns for bigquery-authorized-datasets"
+  blast_radius_notes: "Automated fix for BIGQUERY-04 - Monitoring and Logging for BigQuery Authorized Datasets"
+  verification_checks:
+    - "Verify BIGQUERY-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "BIGQUERY-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for bigquery authorized datasets patterns for bigquery-authorized-datasets"
+  blast_radius_notes: "Automated fix for BIGQUERY-05 - Error Handling for BigQuery Authorized Datasets"
+  verification_checks:
+    - "Verify BIGQUERY-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

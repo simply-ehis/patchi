@@ -1,0 +1,60 @@
+# Playbook for: sans-ssrf
+# Source: SANS Top 25
+# Auto-generated
+
+playbooks:
+- control_id: "SANSSSRF-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary server-side request forgery control patterns for sans-ssrf"
+  blast_radius_notes: "Automated fix for SANSSSRF-01 - Primary Server-Side Request Forgery Control"
+  verification_checks:
+    - "Verify SANSSSRF-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "SANSSSRF-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for server-side request forgery patterns for sans-ssrf"
+  blast_radius_notes: "Automated fix for SANSSSRF-02 - Input Validation for Server-Side Request Forgery"
+  verification_checks:
+    - "Verify SANSSSRF-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "SANSSSRF-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for server-side request forgery patterns for sans-ssrf"
+  blast_radius_notes: "Automated fix for SANSSSRF-03 - Configuration Hardening for Server-Side Request Forgery"
+  verification_checks:
+    - "Verify SANSSSRF-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "SANSSSRF-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for server-side request forgery patterns for sans-ssrf"
+  blast_radius_notes: "Automated fix for SANSSSRF-04 - Monitoring and Logging for Server-Side Request Forgery"
+  verification_checks:
+    - "Verify SANSSSRF-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "SANSSSRF-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for server-side request forgery patterns for sans-ssrf"
+  blast_radius_notes: "Automated fix for SANSSSRF-05 - Error Handling for Server-Side Request Forgery"
+  verification_checks:
+    - "Verify SANSSSRF-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

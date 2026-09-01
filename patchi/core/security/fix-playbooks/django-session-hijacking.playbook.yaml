@@ -1,0 +1,60 @@
+# Playbook for: django-session-hijacking
+# Source: Django Security
+# Auto-generated
+
+playbooks:
+- control_id: "DJANGOSE-01"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure primary django session security control patterns for django-session-hijacking"
+  blast_radius_notes: "Automated fix for DJANGOSE-01 - Primary Django Session Security Control"
+  verification_checks:
+    - "Verify DJANGOSE-01 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "DJANGOSE-02"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "bandit"
+  human_review_required: false
+  llm_fix_template: "Apply secure input validation for django session security patterns for django-session-hijacking"
+  blast_radius_notes: "Automated fix for DJANGOSE-02 - Input Validation for Django Session Security"
+  verification_checks:
+    - "Verify DJANGOSE-02 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "DJANGOSE-03"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "ruff"
+  human_review_required: false
+  llm_fix_template: "Apply secure configuration hardening for django session security patterns for django-session-hijacking"
+  blast_radius_notes: "Automated fix for DJANGOSE-03 - Configuration Hardening for Django Session Security"
+  verification_checks:
+    - "Verify DJANGOSE-03 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "DJANGOSE-04"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure monitoring and logging for django session security patterns for django-session-hijacking"
+  blast_radius_notes: "Automated fix for DJANGOSE-04 - Monitoring and Logging for Django Session Security"
+  verification_checks:
+    - "Verify DJANGOSE-04 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"
+- control_id: "DJANGOSE-05"
+  playbook_version: "1.0.0"
+  fix_strategy: "deterministic"
+  deterministic_tool: "semgrep"
+  human_review_required: false
+  llm_fix_template: "Apply secure error handling for django session security patterns for django-session-hijacking"
+  blast_radius_notes: "Automated fix for DJANGOSE-05 - Error Handling for Django Session Security"
+  verification_checks:
+    - "Verify DJANGOSE-05 is addressed"
+    - "Run tests to confirm no regression"
+    - "Scan with security linter to confirm fix"

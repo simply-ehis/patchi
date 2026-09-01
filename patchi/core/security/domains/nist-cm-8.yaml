@@ -1,0 +1,62 @@
+# Patchi Security Domain: nist-cm-8
+# Source: NIST SP 800-53 CM-8
+# Auto-generated — curated from NIST SP 800-53 CM-8
+
+domain_id: "nist-cm-8"
+version: "1.0.0"
+display_name: "System Component Inventory"
+source_standard: "NIST SP 800-53 CM-8"
+component_type: "infra"
+weight: 0.75
+
+activation_signals:
+  required_any:
+    - signal: "code_in_project_matches_nist_cm_8_pattern"
+  excluded_if:
+    - signal: "no_relevant_code_for_nist_cm_8"
+
+controls:
+  - control_id: "NISTCM8-01"
+    name: "System Component Inventory — Primary Control"
+    description: "Organization develops and maintains an inventory of system components."
+    source_clause: "CM-8"
+    severity: "medium"
+    check_method: "static+manual-review"
+    detector: "static analysis + semantic pattern matching"
+    remediation_ref: "fix-playbook://NISTCM8-01"
+
+  - control_id: "NISTCM8-02"
+    name: "System Component Inventory — Input Validation"
+    description: "Validate and sanitize all inputs related to system component inventory"
+    source_clause: "CM-8"
+    severity: "medium"
+    check_method: "static+manual-review"
+    detector: "input validation pattern analysis"
+    remediation_ref: "fix-playbook://NISTCM8-02"
+
+  - control_id: "NISTCM8-03"
+    name: "System Component Inventory — Configuration Hardening"
+    description: "Apply secure configuration defaults for system component inventory"
+    source_clause: "CM-8"
+    severity: "medium"
+    check_method: "static"
+    detector: "configuration analysis"
+    remediation_ref: "fix-playbook://NISTCM8-03"
+
+  - control_id: "NISTCM8-04"
+    name: "System Component Inventory — Monitoring and Logging"
+    description: "Log and monitor all system component inventory events for audit and detection"
+    source_clause: "CM-8"
+    severity: "medium"
+    check_method: "static"
+    detector: "logging pattern analysis"
+    remediation_ref: "fix-playbook://NISTCM8-04"
+
+  - control_id: "NISTCM8-05"
+    name: "System Component Inventory — Error Handling"
+    description: "Handle system component inventory errors securely without information leakage"
+    source_clause: "CM-8"
+    severity: "medium"
+    check_method: "static+manual-review"
+    detector: "error handling pattern analysis"
+    remediation_ref: "fix-playbook://NISTCM8-05"
