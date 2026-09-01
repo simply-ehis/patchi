@@ -218,14 +218,18 @@
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
         <span id="scan-progress-label" style="font-size:13px;color:var(--text-secondary)">Initializing scan…</span>
         <div style="display:flex;align-items:center;gap:8px">
-          <span id="scan-progress-count" style="font-size:13px;color:var(--accent);font-weight:600">0/0</span>
+          <span id="scan-progress-pct" style="font-size:18px;font-weight:800;color:var(--accent);font-family:var(--font-mono);min-width:48px;text-align:right">0%</span>
+          <span id="scan-progress-count" style="font-size:13px;color:var(--text-secondary)">0/0</span>
           <button id="btn-cancel-scan" onclick="cancelScan()" style="display:none;padding:3px 10px;border:1px solid var(--danger);border-radius:6px;background:transparent;color:var(--danger);font-size:11px;font-weight:600;cursor:pointer;transition:all 0.15s" onmouseenter="this.style.background='var(--danger)';this.style.color='#fff'" onmouseleave="this.style.background='transparent';this.style.color='var(--danger)'">Cancel</button>
         </div>
       </div>
-      <div style="height:6px;background:var(--bg-tertiary);border-radius:3px;overflow:hidden">
-        <div id="scan-progress-bar" style="height:100%;width:0%;background:var(--accent);border-radius:3px;transition:width 0.3s ease"></div>
+      <div style="height:8px;background:var(--bg-tertiary);border-radius:4px;overflow:hidden;margin-bottom:4px">
+        <div id="scan-progress-bar" style="height:100%;width:0%;background:linear-gradient(90deg,var(--accent),#4ade80);border-radius:4px;transition:width 0.3s ease"></div>
       </div>
-      <div id="scan-progress-agent" style="font-size:11px;color:var(--text-tertiary);margin-top:4px"></div>
+      <div id="scan-progress-agent" style="font-size:12px;color:var(--text-secondary);display:flex;align-items:center;gap:6px">
+        <span id="scan-progress-agent-icon" style="display:none;animation:spin 1s linear infinite">⚙️</span>
+        <span id="scan-progress-agent-name"></span>
+      </div>
     </div>
     <!-- Gate Timing Chart -->
     <div style="margin-top:12px;border-top:1px solid var(--border);padding-top:12px">
@@ -698,6 +702,18 @@
           _startAgentFastPoll();
         }
         if (msg.event === 'scan.progress') {
+          // Update progress percentage
+          var pct = msg.data && msg.data.current && msg.data.total ? Math.round(msg.data.current / msg.data.total * 100) : 0;
+          var pctEl = document.getElementById('scan-progress-pct');
+          if (pctEl) { pctEl.textContent = pct + '%'; pctEl.style.color = pct >= 100 ? 'var(--success)' : 'var(--accent)'; }
+          // Update current agent name
+          var agentName = (msg.data && msg.data.agent) || '';
+          var agentNameEl = document.getElementById('scan-progress-agent-name');
+          var agentIcon = document.getElementById('scan-progress-agent-icon');
+          if (agentNameEl) agentNameEl.textContent = agentName ? 'Running: ' + agentName : '';
+          if (agentIcon) agentIcon.style.display = agentName ? 'inline-block' : 'none';
+          // Highlight current agent row in the grid
+          _highlightCurrentAgent(agentName);
           // Refresh agents on each agent completion during scan
           window.refreshAgents();
         }
@@ -707,6 +723,14 @@
           if (btnCancel2) { btnCancel2.style.display = 'none'; }
           if (typeof _unregisterOp === 'function') _unregisterOp('scan');
           _stopAgentFastPoll();
+          // Clear progress display
+          var pctDone = document.getElementById('scan-progress-pct');
+          if (pctDone) { pctDone.textContent = '100%'; pctDone.style.color = 'var(--success)'; }
+          var agentDone = document.getElementById('scan-progress-agent-name');
+          if (agentDone) agentDone.textContent = '';
+          var agentIconDone = document.getElementById('scan-progress-agent-icon');
+          if (agentIconDone) agentIconDone.style.display = 'none';
+          _highlightCurrentAgent('');
           setTimeout(function() {
             window.refreshFindings();
             window.refreshAgents();
@@ -789,6 +813,23 @@
   }, 3000);
 
   // ── Cancel Scan ────────────────────────────────────────────
+  // ── Agent progress highlighting ──────────────────────────
+  function _highlightCurrentAgent(agentName) {
+    var grid = document.getElementById('agent-grid');
+    if (!grid) return;
+    var rows = grid.querySelectorAll('tr');
+    for (var i = 0; i < rows.length; i++) {
+      var nameCell = rows[i].querySelector('td');
+      if (nameCell && nameCell.textContent.trim() === agentName) {
+        rows[i].style.background = 'rgba(88,166,255,0.12)';
+        rows[i].style.borderLeft = '3px solid var(--accent)';
+      } else {
+        rows[i].style.background = '';
+        rows[i].style.borderLeft = '';
+      }
+    }
+  }
+
   window.cancelScan = function() {
     var btn = document.getElementById('btn-cancel-scan');
     if (btn) { btn.textContent = 'Cancelling…'; btn.disabled = true; btn.style.opacity = '0.5'; }
