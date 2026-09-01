@@ -261,6 +261,29 @@ body {
     border: 1px solid var(--border);
 }
 
+.gt-filter {
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    cursor: pointer;
+    color: var(--text-tertiary);
+    background: var(--bg-primary);
+    border: 1px solid var(--border);
+    transition: all 0.15s ease;
+    user-select: none;
+}
+
+.gt-filter:hover {
+    color: var(--text-primary);
+    background: var(--bg-secondary);
+}
+
+.gt-filter.active {
+    color: var(--accent);
+    background: var(--accent-bg);
+    border-color: var(--accent);
+}
+
 /* ── Status Bar ────────────────────────────────────────────────── */
 .status-bar {
     display: flex;

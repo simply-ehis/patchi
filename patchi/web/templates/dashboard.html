@@ -235,7 +235,12 @@
     <div style="margin-top:12px;border-top:1px solid var(--border);padding-top:12px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
         <span style="font-size:12px;font-weight:600;color:var(--text-secondary)">&#x1F4CA; Gate Timing (last 20 runs)</span>
-        <button class="btn btn-sm" onclick="loadGateTimingChart()" style="font-size:10px;padding:2px 8px">Refresh</button>
+        <div style="display:flex;align-items:center;gap:4px">
+          <div id="gt-filter-all" class="gt-filter active" onclick="_setGtFilter('all')">All</div>
+          <div id="gt-filter-fast" class="gt-filter" onclick="_setGtFilter('fast')">Fast</div>
+          <div id="gt-filter-full" class="gt-filter" onclick="_setGtFilter('full')">Full</div>
+          <button class="btn btn-sm" onclick="loadGateTimingChart()" style="font-size:10px;padding:2px 8px">Refresh</button>
+        </div>
       </div>
       <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:12px;position:relative">
         <canvas id="gate-timing-canvas" width="600" height="160" style="width:100%;height:160px"></canvas>
@@ -508,6 +513,17 @@
   // Listen for scan.complete via WS to auto-refresh findings
   // ── Gate Timing Chart ────────────────────────────────────
   var _gateTimingData = null;
+  var _gateTimingFilter = 'all'; // 'all' | 'fast' | 'full'
+
+  function _setGtFilter(mode) {
+    _gateTimingFilter = mode;
+    // Update button active states
+    ['all','fast','full'].forEach(function(m) {
+      var el = document.getElementById('gt-filter-' + m);
+      if (el) el.classList.toggle('active', m === mode);
+    });
+    _drawGateTimingChart();
+  }
 
   async function loadGateTimingChart() {
     try {
@@ -515,6 +531,7 @@
       var data = await resp.json();
       if (!data.ok || !data.runs || data.runs.length === 0) {
         document.getElementById('gate-timing-empty').style.display = 'block';
+        document.getElementById('gate-timing-empty').textContent = 'No dev check runs yet. Click Dev Check to start tracking.';
         document.getElementById('gate-timing-canvas').style.display = 'none';
         return;
       }
@@ -541,7 +558,21 @@
     canvas.style.height = H + 'px';
     ctx.scale(dpr, dpr);
 
+    // Apply filter
     var runs = _gateTimingData;
+    if (_gateTimingFilter === 'fast') {
+      runs = runs.filter(function(r) { return r.fast === true; });
+    } else if (_gateTimingFilter === 'full') {
+      runs = runs.filter(function(r) { return r.fast === false; });
+    }
+    if (runs.length === 0) {
+      document.getElementById('gate-timing-empty').style.display = 'block';
+      document.getElementById('gate-timing-empty').textContent = 'No ' + (_gateTimingFilter === 'all' ? '' : _gateTimingFilter) + ' runs yet.';
+      document.getElementById('gate-timing-canvas').style.display = 'none';
+      return;
+    }
+    document.getElementById('gate-timing-empty').style.display = 'none';
+    document.getElementById('gate-timing-canvas').style.display = 'block';
     var pad = { top: 16, right: 16, bottom: 28, left: 40 };
     var cW = W - pad.left - pad.right;
     var cH = H - pad.top - pad.bottom;
