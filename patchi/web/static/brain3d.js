@@ -26,6 +26,7 @@ var BrainMap3D = (() => {
   let _momentum = { vx: 0, vy: 0, active: false };
   let _lastMouse = null;
   let _isMouseDown = false;
+  let _lastTap = null; // {x, y, time} for double-tap detection
 
   // Colors matching 2D palette
   const COLORS = {
@@ -188,6 +189,23 @@ var BrainMap3D = (() => {
 
   function _setupTouchRotate(el) {
     el.addEventListener('touchstart', function(e) {
+      // Double-tap: reset camera
+      if (e.touches.length === 1) {
+        var t = e.touches[0];
+        var now = Date.now();
+        if (_lastTap && (now - _lastTap.time) < 300) {
+          var dist = Math.hypot(t.clientX - _lastTap.x, t.clientY - _lastTap.y);
+          if (dist < 30) {
+            // Double-tap detected — reset camera with animation
+            _lastTap = null;
+            _animateCamera([0, 0, 800], [0, 1, 0], 400);
+            if (controls) controls.reset();
+            _showPresetIndicator('reset');
+            return;
+          }
+        }
+        _lastTap = { x: t.clientX, y: t.clientY, time: now };
+      }
       // Three-finger swipe: track start position
       if (e.touches.length === 3) {
         var cx = (e.touches[0].clientX + e.touches[1].clientX + e.touches[2].clientX) / 3;
