@@ -694,6 +694,48 @@
         ctx.arc(maPoints[di2].x, maPoints[di2].y, 2.5, 0, Math.PI * 2);
         ctx.fill();
       }
+
+      // ── Linear regression slope indicator ──────────────────────
+      var n = runs.length;
+      if (n >= 3) {
+        var sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
+        for (var ri2 = 0; ri2 < n; ri2++) {
+          sumX += ri2;
+          sumY += runs[ri2].total_time;
+          sumXY += ri2 * runs[ri2].total_time;
+          sumX2 += ri2 * ri2;
+        }
+        var slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+        var avgTime = sumY / n;
+        var pctChange = avgTime > 0 ? (slope / avgTime * 100) : 0;
+        // Determine direction
+        var arrow, label, color;
+        if (slope < -0.3) {
+          arrow = '\u2193'; label = 'Faster'; color = '#4ADE80';
+        } else if (slope > 0.3) {
+          arrow = '\u2191'; label = 'Slower'; color = '#FF4D6D';
+        } else {
+          arrow = '\u2192'; label = 'Stable'; color = '#94a3b8';
+        }
+        // Draw slope badge (top-right)
+        var slopeText = arrow + ' ' + Math.abs(slope).toFixed(1) + 's/run (' + Math.abs(pctChange).toFixed(1) + '%)';
+        ctx.font = 'bold 10px JetBrains Mono, monospace';
+        var slopeW = ctx.measureText(slopeText).width + 16;
+        var slopeX = W - pad.right - slopeW;
+        var slopeY = pad.top + 2;
+        ctx.fillStyle = color + '18';
+        ctx.beginPath();
+        ctx.roundRect(slopeX, slopeY, slopeW, 18, 4);
+        ctx.fill();
+        ctx.strokeStyle = color + '60';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.roundRect(slopeX, slopeY, slopeW, 18, 4);
+        ctx.stroke();
+        ctx.fillStyle = color;
+        ctx.textAlign = 'left';
+        ctx.fillText(slopeText, slopeX + 8, slopeY + 12);
+      }
     }
 
     // Legend
