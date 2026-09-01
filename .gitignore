@@ -1,5 +1,6 @@
 # Patchi local config
 .patchi/
+.freebuff/
 .patchi/.env
 .patchi/keys.json
 
