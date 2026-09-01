@@ -505,3 +505,33 @@ async def serve_dast_video(filename: str, request: Request):
             return FileResponse(file_path, media_type=media_type)
 
     return JSONResponse({"error": "Video not found"}, status_code=404)
+
+
+@router.get("/api/assurance/trend")
+async def assurance_trend(request: Request) -> JSONResponse:
+    """Return coverage history for the trend line chart."""
+    root = request.app.state.root
+    from patchi.core.assurance.graph import AssuranceGraph
+
+    history = AssuranceGraph.load_coverage_history(root)
+
+    # Compute per-domain trend lines
+    domain_trends: dict[str, list[dict]] = {}
+    for snap in history:
+        ts = snap.get("timestamp", "")
+        for dom, dom_data in snap.get("by_domain", {}).items():
+            if dom not in domain_trends:
+                domain_trends[dom] = []
+            domain_trends[dom].append({
+                "t": ts,
+                "pct": dom_data.get("pct", 0),
+                "proved": dom_data.get("proved", 0),
+                "total": dom_data.get("total", 0),
+            })
+
+    return JSONResponse({
+        "ok": True,
+        "snapshots": history,
+        "count": len(history),
+        "domain_trends": domain_trends,
+    })

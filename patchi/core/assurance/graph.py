@@ -26,6 +26,7 @@ from typing import Any
 _log = logging.getLogger("patchi.core.assurance.graph")
 
 ASSURANCE_FILE = ".patchi/assurance.json"
+COVERAGE_HISTORY_FILE = ".patchi/coverage_history.json"
 
 
 class Verdict(StrEnum):
@@ -242,6 +243,8 @@ class AssuranceGraph:
         tmp = path.with_suffix(".json.tmp")
         tmp.write_text(json_dumps(payload), encoding="utf-8")
         tmp.replace(path)
+        # Record coverage snapshot for trend line
+        self._record_coverage_snapshot(root)
         return path
 
     @classmethod
@@ -263,6 +266,74 @@ class AssuranceGraph:
         except Exception as e:  # noqa: BLE001 — corrupt file = fresh graph
             _log.warning("failed to load assurance graph: %s", e)
         return g
+
+
+    def _record_coverage_snapshot(self, root: Path) -> None:
+        """Append a coverage snapshot to the history file for trend analysis."""
+        try:
+            import json
+
+            history_path = root / COVERAGE_HISTORY_FILE
+            history_path.parent.mkdir(parents=True, exist_ok=True)
+
+            # Load existing history
+            history: list[dict] = []
+            if history_path.is_file():
+                try:
+                    history = json.loads(history_path.read_text(encoding="utf-8"))
+                except Exception:
+                    history = []
+
+            # Compute current snapshot
+            cov = self.coverage()
+            snapshot = {
+                "timestamp": datetime.now(UTC).isoformat(),
+                "overall_pct": round(
+                    cov["by_verdict"].get("proved", 0) / cov["claims_total"] * 100
+                    if cov["claims_total"]
+                    else 0
+                ),
+                "claims_total": cov["claims_total"],
+                "proved": cov["by_verdict"].get("proved", 0),
+                "disproved": cov["by_verdict"].get("disproved", 0),
+                "unproven": cov["by_verdict"].get("unproven", 0),
+                "not_proved": cov["by_verdict"].get("not_proved", 0),
+                "by_domain": {},
+            }
+            # Per-domain breakdown
+            for dom, counts in cov.get("by_domain", {}).items():
+                dom_total = counts.get("total", 0)
+                dom_proved = counts.get("proved", 0)
+                snapshot["by_domain"][dom] = {
+                    "proved": dom_proved,
+                    "total": dom_total,
+                    "pct": round(dom_proved / dom_total * 100) if dom_total else 0,
+                }
+
+            history.append(snapshot)
+
+            # Keep last 500 snapshots to avoid unbounded growth
+            if len(history) > 500:
+                history = history[-500:]
+
+            tmp = history_path.with_suffix(".json.tmp")
+            tmp.write_text(json_dumps(history), encoding="utf-8")
+            tmp.replace(history_path)
+        except Exception as e:  # noqa: BLE001 — best-effort
+            _log.debug("coverage snapshot failed: %s", e)
+
+    @staticmethod
+    def load_coverage_history(root: Path) -> list[dict]:
+        """Load the coverage history for trend analysis."""
+        import json
+
+        history_path = root / COVERAGE_HISTORY_FILE
+        if not history_path.is_file():
+            return []
+        try:
+            return json.loads(history_path.read_text(encoding="utf-8"))
+        except Exception:
+            return []
 
 
 def json_dumps(payload: Any) -> str:

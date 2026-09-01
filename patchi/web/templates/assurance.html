@@ -313,6 +313,26 @@
     <!-- Domain grid -->
     <div id="hm-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px"></div>
 
+    <!-- Coverage Trend Line -->
+    <div id="hm-trend-section" style="margin-top:24px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <h3 style="margin:0;font-size:15px;font-weight:700;color:var(--text-primary)">&#x1F4C8; Coverage Trend</h3>
+        <div style="display:flex;align-items:center;gap:8px">
+          <select id="hm-trend-domain" onchange="loadTrendChart()" style="padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);font-size:12px">
+            <option value="__overall__">Overall Coverage</option>
+          </select>
+          <span id="hm-trend-count" style="font-size:11px;color:var(--text-tertiary)"></span>
+        </div>
+      </div>
+      <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:16px;position:relative">
+        <canvas id="hm-trend-canvas" width="800" height="220" style="width:100%;height:220px"></canvas>
+        <div id="hm-trend-empty" style="display:none;text-align:center;padding:32px;color:var(--text-tertiary);font-size:13px">
+          Run a scan to start tracking coverage over time. Snapshots are saved automatically with each assurance graph update.
+        </div>
+        <div id="hm-trend-tooltip" style="display:none;position:absolute;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:12px;pointer-events:none;z-index:10"></div>
+      </div>
+    </div>
+
     <!-- Domain detail modal -->
     <div id="hm-detail" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,0.7);align-items:center;justify-content:center" onclick="if(event.target===this)this.style.display='none'">
       <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:24px;max-width:500px;width:90%;max-height:80vh;overflow-y:auto">
@@ -492,6 +512,218 @@
       }
 
       grid.innerHTML = html;
+      // Load trend chart after grid renders
+      loadTrendChart();
+    }
+
+    // ── Coverage Trend Chart ──────────────────────────────────────
+    let _trendData = null;
+    let _trendHover = null;
+
+    async function loadTrendChart() {
+      try {
+        const resp = await fetch('/api/assurance/trend');
+        const data = await resp.json();
+        if (!data.ok || !data.snapshots || data.snapshots.length === 0) {
+          document.getElementById('hm-trend-empty').style.display = 'block';
+          document.getElementById('hm-trend-canvas').style.display = 'none';
+          return;
+        }
+        _trendData = data;
+        document.getElementById('hm-trend-empty').style.display = 'none';
+        document.getElementById('hm-trend-canvas').style.display = 'block';
+        document.getElementById('hm-trend-count').textContent = data.count + ' snapshots';
+
+        // Populate domain dropdown
+        var sel = document.getElementById('hm-trend-domain');
+        var current = sel.value;
+        sel.innerHTML = '<option value="__overall__">Overall Coverage</option>';
+        var domains = Object.keys(data.domain_trends || {}).sort();
+        for (var i = 0; i < domains.length; i++) {
+          var opt = document.createElement('option');
+          opt.value = domains[i];
+          opt.textContent = domains[i];
+          sel.appendChild(opt);
+        }
+        sel.value = (current && domains.indexOf(current) >= 0) ? current : '__overall__';
+        _drawTrendChart();
+      } catch (e) {
+        document.getElementById('hm-trend-empty').style.display = 'block';
+      }
+    }
+
+    function _drawTrendChart() {
+      var canvas = document.getElementById('hm-trend-canvas');
+      if (!canvas || !_trendData) return;
+      var ctx = canvas.getContext('2d');
+      var dpr = window.devicePixelRatio || 1;
+      var rect = canvas.parentElement.getBoundingClientRect();
+      var W = rect.width - 32;
+      var H = 220;
+      canvas.width = W * dpr;
+      canvas.height = H * dpr;
+      canvas.style.width = W + 'px';
+      canvas.style.height = H + 'px';
+      ctx.scale(dpr, dpr);
+
+      var domain = document.getElementById('hm-trend-domain').value;
+      var snaps = _trendData.snapshots;
+      var points = [];
+      if (domain === '__overall__') {
+        for (var i = 0; i < snaps.length; i++) {
+          points.push({ t: snaps[i].timestamp, pct: snaps[i].overall_pct || 0 });
+        }
+      } else {
+        var domTrend = (_trendData.domain_trends || {})[domain] || [];
+        for (var i = 0; i < domTrend.length; i++) {
+          points.push({ t: domTrend[i].t, pct: domTrend[i].pct || 0 });
+        }
+      }
+
+      // Clear
+      ctx.clearRect(0, 0, W, H);
+
+      if (points.length < 2) {
+        ctx.fillStyle = '#64748b';
+        ctx.font = '13px Inter, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('Need at least 2 snapshots for a trend line', W / 2, H / 2);
+        return;
+      }
+
+      var pad = { top: 20, right: 20, bottom: 36, left: 44 };
+      var cW = W - pad.left - pad.right;
+      var cH = H - pad.top - pad.bottom;
+
+      // Axes
+      ctx.strokeStyle = 'rgba(100,116,139,0.3)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(pad.left, pad.top);
+      ctx.lineTo(pad.left, H - pad.bottom);
+      ctx.lineTo(W - pad.right, H - pad.bottom);
+      ctx.stroke();
+
+      // Y-axis labels (0%, 25%, 50%, 75%, 100%)
+      ctx.fillStyle = '#64748b';
+      ctx.font = '10px JetBrains Mono, monospace';
+      ctx.textAlign = 'right';
+      for (var p = 0; p <= 100; p += 25) {
+        var y = H - pad.bottom - (p / 100) * cH;
+        ctx.fillText(p + '%', pad.left - 6, y + 3);
+        if (p > 0 && p < 100) {
+          ctx.beginPath();
+          ctx.strokeStyle = 'rgba(100,116,139,0.15)';
+          ctx.setLineDash([4, 4]);
+          ctx.moveTo(pad.left, y);
+          ctx.lineTo(W - pad.right, y);
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
+      }
+
+      // Map points to canvas coordinates
+      var coords = [];
+      for (var i = 0; i < points.length; i++) {
+        var x = pad.left + (i / (points.length - 1)) * cW;
+        var y = H - pad.bottom - (points[i].pct / 100) * cH;
+        coords.push({ x: x, y: y, pct: points[i].pct, t: points[i].t });
+      }
+
+      // Gradient fill under linen      var grad = ctx.createLinearGradient(0, pad.top, 0, H - pad.bottom);
+      grad.addColorStop(0, 'rgba(74,222,128,0.25)');
+      grad.addColorStop(1, 'rgba(74,222,128,0.02)');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.moveTo(coords[0].x, H - pad.bottom);
+      for (var i = 0; i < coords.length; i++) {
+        if (i === 0) ctx.lineTo(coords[i].x, coords[i].y);
+        else {
+          // Smooth curve using quadratic bezier
+          var prev = coords[i - 1];
+          var cpx = (prev.x + coords[i].x) / 2;
+          ctx.quadraticCurveTo(prev.x + (coords[i].x - prev.x) * 0.5, prev.y, coords[i].x, coords[i].y);
+        }
+      }
+      ctx.lineTo(coords[coords.length - 1].x, H - pad.bottom);
+      ctx.closePath();
+      ctx.fill();
+
+      // Trend line
+      ctx.strokeStyle = '#4ADE80';
+      ctx.lineWidth = 2.5;
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      for (var i = 0; i < coords.length; i++) {
+        if (i === 0) ctx.moveTo(coords[i].x, coords[i].y);
+        else {
+          var prev = coords[i - 1];
+          ctx.quadraticCurveTo(prev.x + (coords[i].x - prev.x) * 0.5, prev.y, coords[i].x, coords[i].y);
+        }
+      }
+      ctx.stroke();
+
+      // Data points
+      for (var i = 0; i < coords.length; i++) {
+        ctx.beginPath();
+        ctx.arc(coords[i].x, coords[i].y, 4, 0, Math.PI * 2);
+        ctx.fillStyle = coords[i].pct >= 80 ? '#4ADE80' : coords[i].pct >= 50 ? '#FACC15' : '#FF4D6D';
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(0,0,0,0.3)';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      }
+
+      // X-axis labels (show up to 5 evenly spaced)
+      ctx.fillStyle = '#64748b';
+      ctx.font = '10px JetBrains Mono, monospace';
+      ctx.textAlign = 'center';
+      var maxLabels = Math.min(5, points.length);
+      for (var i = 0; i < maxLabels; i++) {
+        var idx = Math.round(i * (points.length - 1) / (maxLabels - 1));
+        var ts = points[idx].t;
+        var label = '';
+        try {
+          var d = new Date(ts);
+          label = (d.getMonth() + 1) + '/' + d.getDate() + ' ' + d.getHours() + ':' + String(d.getMinutes()).padStart(2, '0');
+        } catch (e) { label = idx.toString(); }
+        ctx.fillText(label, coords[idx].x, H - pad.bottom + 16);
+      }
+
+      // Hover interactionr
+      canvas.onmousemove = function(e) {
+        var r = canvas.getBoundingClientRect();
+        var mx = e.clientX - r.left;
+        var my = e.clientY - r.top;
+        var tooltip = document.getElementById('hm-trend-tooltip');
+        var found = false;
+        for (var i = 0; i < coords.length; i++) {
+          var dx = mx - coords[i].x;
+          var dy = my - coords[i].y;
+          if (dx * dx + dy * dy < 200) {
+            tooltip.style.display = 'block';
+            tooltip.style.left = (coords[i].x + 10) + 'px';
+            tooltip.style.top = (coords[i].y - 30) + 'px';
+            var ts = '';
+            try { var d = new Date(coords[i].t); ts = d.toLocaleString(); } catch (e) {}
+            tooltip.innerHTML = '<div style="font-weight:700;color:' + (coords[i].pct >= 80 ? '#4ADE80' : coords[i].pct >= 50 ? '#FACC15' : '#FF4D6D') + '">' + coords[i].pct + '%</div>' +
+              '<div style="color:var(--text-secondary);font-size:11px">' + ts + '</div>';
+            // Redraw highlight circle
+            _drawTrendChart();
+            ctx.beginPath();
+            ctx.arc(coords[i].x, coords[i].y, 7, 0, Math.PI * 2);
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            found = true;
+            break;
+          }
+        }
+        if (!found) tooltip.style.display = 'none';
+      };
+      canvas.onmouseleave = function() {
+        document.getElementById('hm-trend-tooltip').style.display = 'none';
+      };
     }
 
     function _showDomainDetail(domain) {
@@ -878,6 +1110,15 @@
         loadScreenshots();
         loadVideos();
       }
+    });
+
+    // Redraw trend chart on window resize
+    var _trendResizeTimer = null;
+    window.addEventListener('resize', function() {
+      clearTimeout(_trendResizeTimer);
+      _trendResizeTimer = setTimeout(function() {
+        if (_trendData) _drawTrendChart();
+      }, 200);
     });
   </script>
 </div>
