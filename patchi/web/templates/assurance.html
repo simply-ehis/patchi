@@ -503,39 +503,128 @@
       const tile = _hmTiles.find(function(t) { return t.domain === domain; });
       if (!tile) return;
 
-      title.textContent = domain;
-      let html = '';
+      // Get claims for this domain
+      var claims = window._assuranceClaims || [];
+      var domainClaims = claims.filter(function(c) { return c.domain === domain; });
+
+      title.innerHTML = '<span style="color:var(--text-primary)">' + domain + '</span>' +
+        '<button onclick="document.getElementById('hm-detail').style.display='none'" ' +
+        'style="background:none;border:none;color:var(--text-secondary);cursor:pointer;font-size:18px;float:right" title="Close">&times;</button>';
+
+      var color = tile.coverage_pct >= 80 ? '#4ADE80' : tile.coverage_pct >= 50 ? '#FACC15' : '#FF4D6D';
+      var html = '';
+
+      // ── Stats row ──
       html += '<div style="display:flex;gap:16px;margin-bottom:16px;flex-wrap:wrap">';
-      html += '<div style="text-align:center;flex:1;min-width:80px"><div style="font-size:32px;font-weight:800;color:' + (tile.coverage_pct >= 80 ? '#4ADE80' : tile.coverage_pct >= 50 ? '#FACC15' : '#FF4D6D') + '">' + tile.coverage_pct + '%</div><div style="font-size:11px;color:var(--text-secondary)">Coverage</div></div>';
-      html += '<div style="text-align:center;flex:1;min-width:80px"><div style="font-size:32px;font-weight:800;color:#4ADE80">' + tile.proved + '</div><div style="font-size:11px;color:var(--text-secondary)">Proved</div></div>';
-      html += '<div style="text-align:center;flex:1;min-width:80px"><div style="font-size:32px;font-weight:800;color:#FF4D6D">' + (tile.total - tile.proved) + '</div><div style="font-size:11px;color:var(--text-secondary)">Unproved</div></div>';
+      html += '<div style="text-align:center;flex:1;min-width:80px"><div style="font-size:36px;font-weight:800;color:' + color + '">' + tile.coverage_pct + '%</div><div style="font-size:11px;color:var(--text-secondary)">Coverage</div></div>';
+      html += '<div style="text-align:center;flex:1;min-width:80px"><div style="font-size:36px;font-weight:800;color:#4ADE80">' + tile.proved + '</div><div style="font-size:11px;color:var(--text-secondary)">Proved</div></div>';
+      html += '<div style="text-align:center;flex:1;min-width:80px"><div style="font-size:36px;font-weight:800;color:#FF4D6D">' + (tile.total - tile.proved) + '</div><div style="font-size:11px;color:var(--text-secondary)">Unproved</div></div>';
       html += '</div>';
 
-      // Coverage bar
-      html += '<div style="margin-bottom:16px"><div style="height:12px;background:var(--bg-tertiary);border-radius:6px;overflow:hidden"><div style="height:100%;width:' + tile.coverage_pct + '%;background:' + (tile.coverage_pct >= 80 ? '#4ADE80' : tile.coverage_pct >= 50 ? '#FACC15' : '#FF4D6D') + ';border-radius:6px"></div></div></div>';
+      // ── Coverage bar ──
+      html += '<div style="margin-bottom:16px"><div style="height:14px;background:var(--bg-tertiary);border-radius:7px;overflow:hidden">';
+      html += '<div style="height:100%;width:' + tile.coverage_pct + '%;background:' + color + ';border-radius:7px;transition:width 0.5s ease"></div></div></div>';
 
-      // Claims list
-      html += '<h4 style="font-size:13px;color:var(--text-secondary);margin-bottom:8px">Claims in this domain</h4>';
-      html += '<div style="display:flex;flex-direction:column;gap:6px;max-height:300px;overflow-y:auto">';
+      // ── Verdict breakdown ──
+      var proved = domainClaims.filter(function(c) { return c.verdict === 'proved'; }).length;
+      var disproved = domainClaims.filter(function(c) { return c.verdict === 'disproved'; }).length;
+      var unproven = domainClaims.filter(function(c) { return c.verdict === 'unproven'; }).length;
+      var pending = domainClaims.filter(function(c) { return c.verdict === 'pending'; }).length;
+      html += '<div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">';
+      if (proved > 0) html += '<span style="padding:4px 10px;border-radius:12px;background:rgba(74,222,128,0.15);color:#4ADE80;font-size:12px;font-weight:600">' + proved + ' Proved</span>';
+      if (disproved > 0) html += '<span style="padding:4px 10px;border-radius:12px;background:rgba(255,77,109,0.15);color:#FF4D6D;font-size:12px;font-weight:600">' + disproved + ' Disproved</span>';
+      if (unproven > 0) html += '<span style="padding:4px 10px;border-radius:12px;background:rgba(250,204,21,0.15);color:#FACC15;font-size:12px;font-weight:600">' + unproven + ' Unproven</span>';
+      if (pending > 0) html += '<span style="padding:4px 10px;border-radius:12px;background:rgba(148,163,184,0.15);color:#94a3b8;font-size:12px;font-weight:600">' + pending + ' Pending</span>';
+      html += '</div>';
 
-      // Find claims for this domain from the assurance page data (if available)
-      const claims = window._assuranceClaims || [];
-      const domainClaims = claims.filter(function(c) { return c.domain === domain; });
+      // ── Filter bar ──
       if (domainClaims.length > 0) {
-        for (const c of domainClaims) {
-          const vColor = c.verdict === 'proved' ? '#4ADE80' : c.verdict === 'disproved' ? '#FF4D6D' : '#FACC15';
-          html += '<div style="padding:8px 12px;border-radius:6px;border:1px solid var(--border);background:var(--bg-secondary)">';
-          html += '<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:11px;font-weight:600;color:' + vColor + '">' + c.verdict.toUpperCase() + '</span><span style="font-size:10px;color:var(--text-tertiary)">' + c.evidence_count + ' evidence</span></div>';
-          html += '<div style="font-size:12px;color:var(--text-primary);margin-top:2px">' + c.statement.substring(0, 120) + (c.statement.length > 120 ? '...' : '') + '</div>';
+        html += '<div style="display:flex;gap:8px;margin-bottom:12px;align-items:center">';
+        html += '<input id="hm-claim-filter" type="text" placeholder="Filter claims..." ' +
+          'oninput="_filterDomainClaims()" ' +
+          'style="flex:1;padding:6px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg-primary);color:var(--text-primary);font-size:12px">';
+        html += '<select id="hm-claim-verdict-filter" onchange="_filterDomainClaims()" ' +
+          'style="padding:6px 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg-primary);color:var(--text-primary);font-size:12px">';
+        html += '<option value="">All verdicts</option><option value="proved">Proved</option><option value="disproved">Disproved</option><option value="unproven">Unproven</option><option value="pending">Pending</option></select>';
+        html += '</div>';
+      }
+
+      // ── Claims list ──
+      html += '<h4 style="font-size:13px;color:var(--text-secondary);margin-bottom:8px">' + domainClaims.length + ' Claims</h4>';
+      html += '<div id="hm-claims-list" style="display:flex;flex-direction:column;gap:6px;max-height:400px;overflow-y:auto">';
+
+      if (domainClaims.length > 0) {
+        for (var ci = 0; ci < domainClaims.length; ci++) {
+          var c = domainClaims[ci];
+          var vColor = c.verdict === 'proved' ? '#4ADE80' : c.verdict === 'disproved' ? '#FF4D6D' : c.verdict === 'unproven' ? '#FACC15' : '#94a3b8';
+          var vBg = c.verdict === 'proved' ? 'rgba(74,222,128,0.08)' : c.verdict === 'disproved' ? 'rgba(255,77,109,0.08)' : c.verdict === 'unproven' ? 'rgba(250,204,21,0.08)' : 'rgba(148,163,184,0.08)';
+          html += '<div class="hm-claim-item" data-verdict="' + c.verdict + '" data-statement="' + (c.statement || '').toLowerCase() + '" ' +
+            'style="padding:10px 14px;border-radius:8px;border:1px solid var(--border);background:' + vBg + ';cursor:pointer;transition:all 0.15s ease" ' +
+            'onmouseenter="this.style.borderColor='' + vColor + ''" onmouseleave="this.style.borderColor='var(--border)'" ' +
+            'onclick="_toggleClaimDetail(this)">';
+          // Header row
+          html += '<div style="display:flex;justify-content:space-between;align-items:center">';
+          html += '<div style="display:flex;align-items:center;gap:8px">';
+          html += '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:' + vColor + '"></span>';
+          html += '<span style="font-size:11px;font-weight:700;color:' + vColor + ';text-transform:uppercase;letter-spacing:0.5px">' + c.verdict + '</span>';
+          html += '<span style="font-size:10px;color:var(--text-tertiary)">&#x1f4cb; ' + (c.evidence_count || 0) + ' evidence</span>';
+          html += '</div>';
+          html += '<span style="font-size:10px;color:var(--text-tertiary)">&#x25B6;</span>';
+          html += '</div>';
+          // Statement (full, not truncated)
+          html += '<div style="font-size:13px;color:var(--text-primary);margin-top:6px;line-height:1.4">' + (c.statement || 'No statement') + '</div>';
+          // Hidden detail section
+          html += '<div class="hm-claim-detail" style="display:none;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">';
+          if (c.evidence_count > 0) {
+            html += '<div style="font-size:11px;color:var(--text-secondary);margin-bottom:4px">&#x1F50D; Evidence (' + c.evidence_count + ' items)</div>';
+            // Show evidence items if available
+            var evidence = c.evidence || [];
+            for (var ei = 0; ei < Math.min(evidence.length, 5); ei++) {
+              html += '<div style="padding:4px 8px;margin:2px 0;border-radius:4px;background:rgba(255,255,255,0.03);font-size:11px;color:var(--text-secondary);font-family:monospace">';
+              html += evidence[ei];
+              html += '</div>';
+            }
+            if (evidence.length > 5) {
+              html += '<div style="font-size:10px;color:var(--text-tertiary);margin-top:4px">... and ' + (evidence.length - 5) + ' more items</div>';
+            }
+          } else {
+            html += '<div style="font-size:11px;color:var(--text-tertiary)">No evidence recorded</div>';
+          }
+          if (c.confidence !== undefined) {
+            html += '<div style="font-size:11px;color:var(--text-secondary);margin-top:6px">Confidence: <strong>' + Math.round(c.confidence * 100) + '%</strong></div>';
+          }
+          html += '</div>';
           html += '</div>';
         }
       } else {
-        html += '<div style="padding:12px;text-align:center;color:var(--text-tertiary);font-size:12px">No individual claim details available for this domain.</div>';
+        html += '<div style="padding:16px;text-align:center;color:var(--text-tertiary);font-size:12px">No individual claim details available for this domain.</div>';
       }
       html += '</div>';
 
       body.innerHTML = html;
       modal.style.display = 'flex';
+    }
+
+    function _toggleClaimDetail(el) {
+      var detail = el.querySelector('.hm-claim-detail');
+      if (!detail) return;
+      var isOpen = detail.style.display !== 'none';
+      detail.style.display = isOpen ? 'none' : 'block';
+      // Update arrow
+      var arrow = el.querySelector('span:last-child');
+      if (arrow) arrow.innerHTML = isOpen ? '&#x25B6;' : '&#x25BC;';
+    }
+
+    function _filterDomainClaims() {
+      var text = (document.getElementById('hm-claim-filter').value || '').toLowerCase();
+      var verdict = document.getElementById('hm-claim-verdict-filter').value;
+      var items = document.querySelectorAll('.hm-claim-item');
+      for (var i = 0; i < items.length; i++) {
+        var item = items[i];
+        var matchText = !text || item.getAttribute('data-statement').indexOf(text) !== -1;
+        var matchVerdict = !verdict || item.getAttribute('data-verdict') === verdict;
+        item.style.display = (matchText && matchVerdict) ? '' : 'none';
+      }
     }
 
     // Expose claims for the detail modal
