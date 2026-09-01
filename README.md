@@ -1,4 +1,4 @@
-# Patchi 0.6.0 — Smart Code Security & Quality Orchestrator
+# Patchi 0.7.0 — Smart Code Security & Quality Orchestrator
 
 > **⚠️ Pre-1.0.0 Development Preview** — Functional and usable, but still in active development.  
 > **Peak stable release is planned for `v1.0.0`** — ~0.4.0 of feature work remains. APIs, agent lists and hosted behavior may still evolve.  
@@ -6,6 +6,8 @@
 
 A CLI agent colony + unified web UI that scans, secures, tests and fixes your codebase using static analysis and optional AI.  
 **1:1 CLI ↔ Web** — the web is a fancy wrapper; every screen maps to a command. Cross-platform (Windows, Linux, macOS).
+
+> **🚧 This project is in active development.** The current version is a preview — APIs, agents, and hosted behavior may evolve. Feedback and contributions are appreciated!
 
 ```bash
 pip install .                # local dev
@@ -19,9 +21,9 @@ pip install ".[web]"
 
 ---
 
-## ✨ What’s New in 0.6.0
+## ✨ What's New in 0.7.0
 
-- **Unified Web UI** — one `p web` command serves everything: Mission Control, Brain Map, Council deliberation, Red Team timeline, Live Tests, Hosted control plane. See [Web ↔ CLI Parity](docs/web-cli-parity.md).
+- **Unified Web UI** — one `p web` command serves everything: Dashboard, Brain Map (2D/3D), Findings, Assurance Heatmap, Live Tests, Hosted control plane. See [Web ↔ CLI Parity](docs/web-cli-parity.md).
 - **1:1 Project Selection** — `p web` serves the project your terminal is standing in (same walk-up as every `p <command>`). Switch projects live from the header dropdown (`GET /api/tenant/*`).
 - **License Noise Trimmed** — `p scan` is now focused by default. Heavy/compliance findings (license for every dep) are hidden unless you opt in: `p scan --with-license` or `p scan --with-extended`.
 - **Hosted → Experimental** — live log monitoring works but is flagged as preview (banner in CLI + UI).
@@ -196,14 +198,21 @@ python tools/e2e_web_v2.py       # live server boot + all pages + APIs + WS
 
 - **Free:** Personal use, education, research, open-source, and teams of **fewer than 3 users** (any purpose) — no contact required.
 - **Enterprise / teams ≥3:** Please contact **idemudiaehis6@gmail.com** for a license. Trial up to 30 days before contacting is fine.
-- **Donations & contributions appreciated** — they directly accelerate the road to **v1.0.0** (peak release). ~0.4.0 of feature work remains.
-- Hosted mode is experimental in this preview.
+- **Donations & contributions appreciated** — they directly accelerate the road to **v1.0.0** (peak release).
+- Hosted mode is **EXPERIMENTAL** in this preview — not recommended for production use yet.
 
 ---
 
 ## Feedback
 
-Patchi is in active development. If something is noisy, missing, or broken — please open an issue or email **idemudiaehis6@gmail.com**. Your reports directly shape the next 0.4.0 → 1.0.0.
+Patchi is in active development. If something is noisy, missing, or broken — please open an issue or email **idemudiaehis6@gmail.com**. Your reports directly shape the road to v1.0.0.
 
 > **Road to 1.0.0:** Peak stable release will lock APIs, ship the full domain taxonomy, and promote hosted out of experimental. Until then, pin `.patchi/` memory formats as best-effort forward-compatible.
+
+## Contributing
+
+Donations and contributions are appreciated and help accelerate development:
+- **GitHub Sponsors** — [link in repo](https://github.com/sponsors)
+- **Pull requests** — welcome and credited
+- **Bug reports** — open an issue or email **idemudiaehis6@gmail.com**
 

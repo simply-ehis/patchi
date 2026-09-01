@@ -2,8 +2,8 @@
 
 Copyright (c) 2026 Ehis Idemudia — idemudiaehis6@gmail.com
 
-> **Status:** Patchi is in active development (current: **v0.6.0**).  
-> Peak stable release is planned for **v1.0.0** — ~0.4.0 of feature-work remains.  
+> **Status:** Patchi is in active development (current: **v0.7.0**).  
+> Peak stable release is planned for **v1.0.0**.  
 > Feedback, bug reports, and contributions are highly appreciated.
 
 ## Permissions
@@ -32,6 +32,7 @@ Enterprise licensing is flexible — reach out to discuss terms that fit your or
 - You must retain the `LICENSE` file and copyright notice in all copies or substantial portions.
 - You must not remove or alter the Patchi attribution (`patchi.dev` / `github.com/...` where applicable).
 - Hosted mode is marked **EXPERIMENTAL** in this preview; do not rely on it for production traffic without review.
+- This project is in active development — APIs, agents, and features may change between releases.
 
 ## Donations & Contributions
 
@@ -50,7 +51,7 @@ arising from, out of or in connection with the software or the use or other deal
 
 ## Peak Notice
 
-Patchi **will be at its peak at v1.0.0**. This preview (0.6.0) is functional and usable, but APIs, agent lists,
+Patchi **will be at its peak at v1.0.0**. This preview (0.7.0) is functional and usable, but APIs, agent lists,
 and hosted behavior may still evolve before 1.0.0. Lockfiles and `.patchi/` memory formats are forward-compatible on a
 best-effort basis.
 
