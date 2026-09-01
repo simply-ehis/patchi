@@ -197,6 +197,11 @@
       <button class="btn" onclick="runQuickAction('dast')">DAST Scan</button>
       <a class="btn" href="/chat">Chat</a>
       <a class="btn" href="/review">Review Fixes</a>
+      <!-- Bulk cancel (visible when operations are running) -->
+      <div id="bulk-cancel-wrap" style="display:none;align-items:center;gap:8px;margin-left:auto">
+        <span id="bulk-op-count" style="font-size:11px;color:var(--text-secondary)"></span>
+        <button id="btn-bulk-cancel" onclick="bulkCancelAll()" style="padding:4px 12px;border:1px solid var(--danger);border-radius:6px;background:transparent;color:var(--danger);font-size:11px;font-weight:600;cursor:pointer;transition:all 0.15s;white-space:nowrap" onmouseenter="this.style.background='var(--danger)';this.style.color='#fff'" onmouseleave="this.style.background='transparent';this.style.color='var(--danger)'">&#x2716; Cancel All</button>
+      </div>
     </div>
     <!-- Live scan progress -->
     <div id="scan-progress" style="display:none;margin-top:12px">
@@ -465,9 +470,10 @@
           if (btnCancel) { btnCancel.style.display = 'inline-block'; btnCancel.textContent = 'Cancel'; btnCancel.disabled = false; btnCancel.style.opacity = '1'; }
         }
         if (msg.event === 'scan.complete' || msg.event === 'scan.cancelled') {
-          // Hide cancel button
+          // Hide cancel button and unregister
           var btnCancel2 = document.getElementById('btn-cancel-scan');
           if (btnCancel2) { btnCancel2.style.display = 'none'; }
+          if (typeof _unregisterOp === 'function') _unregisterOp('scan');
           setTimeout(function() {
             window.refreshFindings();
             window.refreshAgents();
@@ -479,6 +485,75 @@
     });
   }
   _setupWSListener();
+
+  // ── Global Operation Registry ──────────────────────────────
+  window._activeOps = {};  // {type: {label, cancelUrl, startedAt}}
+
+  function _registerOp(type, label, cancelUrl) {
+    window._activeOps[type] = { label: label, cancelUrl: cancelUrl, startedAt: Date.now() };
+    _updateBulkCancelUI();
+  }
+  function _unregisterOp(type) {
+    delete window._activeOps[type];
+    _updateBulkCancelUI();
+  }
+  function _updateBulkCancelUI() {
+    var wrap = document.getElementById('bulk-cancel-wrap');
+    var count = document.getElementById('bulk-op-count');
+    var keys = Object.keys(window._activeOps);
+    if (keys.length > 0) {
+      wrap.style.display = 'flex';
+      var names = keys.map(function(k) { return window._activeOps[k].label; });
+      count.textContent = keys.length + ' running: ' + names.join(', ');
+    } else {
+      wrap.style.display = 'none';
+      count.textContent = '';
+    }
+  }
+  window.bulkCancelAll = function() {
+    var keys = Object.keys(window._activeOps);
+    if (keys.length === 0) return toast('No operations running', 'info');
+    var promises = keys.map(function(type) {
+      var op = window._activeOps[type];
+      if (!op.cancelUrl) return Promise.resolve({ok: true, message: 'No cancel endpoint'});
+      return fetch(op.cancelUrl, { method: 'POST' })
+        .then(function(r) { return r.json(); })
+        .catch(function(e) { return {ok: false, error: e.message}; });
+    });
+    Promise.all(promises).then(function(results) {
+      var succeeded = results.filter(function(r) { return r.ok; }).length;
+      var failed = results.length - succeeded;
+      if (failed > 0) {
+        toast('Cancelled ' + succeeded + ' ops, ' + failed + ' failed', 'high');
+      } else {
+        toast('Cancelled ' + succeeded + ' operation' + (succeeded !== 1 ? 's' : ''), 'success');
+      }
+      // Clear all ops
+      window._activeOps = {};
+      _updateBulkCancelUI();
+      // Also hide scan-specific UI
+      var sp = document.getElementById('scan-progress'); if (sp) sp.style.display = 'none';
+      var sb = document.getElementById('scan-progress-bar'); if (sb) sb.style.width = '0%';
+    });
+  };
+  // Poll running operations every 3s
+  setInterval(function() {
+    fetch('/api/live-testing/operations').then(function(r) { return r.json(); }).then(function(d) {
+      if (!d.ok) return;
+      var serverOps = {};
+      (d.operations || []).forEach(function(op) { serverOps[op.type] = op; });
+      // Register any server-reported ops we don't know about
+      Object.keys(serverOps).forEach(function(type) {
+        if (!window._activeOps[type]) {
+          _registerOp(type, serverOps[type].label, serverOps[type].cancel_url);
+        }
+      });
+      // Unregister ops that are no longer running
+      Object.keys(window._activeOps).forEach(function(type) {
+        if (!serverOps[type]) _unregisterOp(type);
+      });
+    }).catch(function() {});
+  }, 3000);
 
   // ── Cancel Scan ────────────────────────────────────────────
   window.cancelScan = function() {
@@ -507,6 +582,7 @@
       var sb=document.getElementById('scan-progress-bar');if(sb){sb.style.width='5%';sb.style.background='var(--accent)';}
       fetch(url,{method:'POST'}).then(function(r){return r.json();}).then(function(d){
         toast(d.ok?(action==='scan_fix'?'Scan + Fix started':'Scan started'):'Scan failed: '+(d.error||'?'),d.ok?'success':'high');
+        if(d.ok){_registerOp('scan', 'Security Scan', '/api/scan/cancel');}
         if(!d.ok){if(sp)sp.style.display='none';var c=document.getElementById('btn-cancel-scan');if(c)c.style.display='none';}
       }).catch(function(e){toast('Scan error: '+e.message,'high');if(sp)sp.style.display='none';var c2=document.getElementById('btn-cancel-scan');if(c2)c2.style.display='none';});
     } else if(action==='devcheck'){
@@ -527,6 +603,7 @@
       toast('Starting DAST scan…','info');
       fetch('/api/scan/dast',{method:'POST'}).then(function(r){return r.json();}).then(function(d){
         if(d.ok){
+          _registerOp('dast', 'DAST Scan', '/api/live-testing/dast-cancel');
           toast('DAST scan running — results will appear in findings','success');
         } else {
           toast('DAST failed: '+(d.error||'?'),'high');

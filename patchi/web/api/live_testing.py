@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 from datetime import UTC, datetime
 from pathlib import Path
@@ -26,12 +27,14 @@ class SmokeTestRequest(BaseModel):
 
 # ── State ────────────────────────────────────────────────────────────────────
 
-_stress_state = {"running": False, "last_result": None}
+_stress_state = {"running": False, "last_result": None, "task": None, "cancelled": False}
 _audit_state = {
     "running": False,
     "progress": {"current": 0, "total": 0, "route": ""},
     "last_result": None,
 }
+_dast_state = {"running": False, "task": None, "cancelled": False}
+_smoke_state = {"running": False, "task": None, "cancelled": False}
 
 
 def _run_audit_sync(base_url: str, root: Path, routes: list[str] | None = None) -> dict:
@@ -265,6 +268,7 @@ async def stress_test(req: StressTestRequest, request: Request):
         )
 
     _stress_state["running"] = True
+    _stress_state["cancelled"] = False
 
     try:
         from patchi.core.testing.live_v2.stress_orchestrator import (
@@ -280,18 +284,87 @@ async def stress_test(req: StressTestRequest, request: Request):
         )
         orchestrator = StressOrchestrator(config)
         report = await orchestrator.run()
+        if _stress_state["cancelled"]:
+            return JSONResponse({"ok": False, "message": "Stress test was cancelled"})
         _stress_state["last_result"] = report.to_dict()
         return report.to_dict()
+    except asyncio.CancelledError:
+        return JSONResponse({"ok": False, "message": "Stress test was cancelled"})
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
     finally:
         _stress_state["running"] = False
+        _stress_state["task"] = None
 
 
 @router.get("/stress-result")
 async def stress_result():
     """Get the last stress test result."""
     return _stress_state["last_result"] or {"message": "No stress test results yet"}
+
+
+@router.post("/stress-cancel")
+async def cancel_stress() -> JSONResponse:
+    """Cancel a running stress test."""
+    if not _stress_state["running"]:
+        return JSONResponse({"ok": True, "message": "No stress test running"})
+    _stress_state["cancelled"] = True
+    task = _stress_state.get("task")
+    if task and not task.done():
+        task.cancel()
+    return JSONResponse({"ok": True, "message": "Stress test cancellation requested"})
+
+
+@router.post("/dast-cancel")
+async def cancel_dast() -> JSONResponse:
+    """Cancel a running DAST scan."""
+    if not _dast_state["running"]:
+        return JSONResponse({"ok": True, "message": "No DAST scan running"})
+    _dast_state["cancelled"] = True
+    task = _dast_state.get("task")
+    if task and not task.done():
+        task.cancel()
+    return JSONResponse({"ok": True, "message": "DAST scan cancellation requested"})
+
+
+@router.post("/smoke-cancel")
+async def cancel_smoke() -> JSONResponse:
+    """Cancel a running smoke test."""
+    if not _smoke_state["running"]:
+        return JSONResponse({"ok": True, "message": "No smoke test running"})
+    _smoke_state["cancelled"] = True
+    task = _smoke_state.get("task")
+    if task and not task.done():
+        task.cancel()
+    return JSONResponse({"ok": True, "message": "Smoke test cancellation requested"})
+
+
+@router.get("/operations")
+async def list_operations():
+    """List all currently running operations across the system."""
+    ops = []
+    # Check scan state
+    try:
+        from patchi.web.api.scan import _scan_state
+        if _scan_state.get("running"):
+            ops.append({"type": "scan", "label": "Security Scan", "cancel_url": "/api/scan/cancel"})
+    except Exception:
+        pass
+    if _stress_state["running"]:
+        ops.append({"type": "stress", "label": "Stress Test", "cancel_url": "/api/live-testing/stress-cancel"})
+    if _dast_state["running"]:
+        ops.append({"type": "dast", "label": "DAST Scan", "cancel_url": "/api/live-testing/dast-cancel"})
+    if _smoke_state["running"]:
+        ops.append({"type": "smoke", "label": "Smoke Test", "cancel_url": "/api/live-testing/smoke-cancel"})
+    if _audit_state["running"]:
+        ops.append({"type": "audit", "label": "Browser Audit", "cancel_url": ""})
+    try:
+        from patchi.web.api.smart import _current_task
+        if _current_task and not _current_task.done():
+            ops.append({"type": "smart", "label": "Smart Agent", "cancel_url": "/api/smart/cancel"})
+    except Exception:
+        pass
+    return JSONResponse({"ok": True, "operations": ops, "count": len(ops)})
 
 
 @router.post("/screenshot")
