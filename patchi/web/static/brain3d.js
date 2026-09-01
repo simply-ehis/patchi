@@ -54,18 +54,70 @@ var BrainMap3D = (() => {
     return COLORS[type] || COLORS.default;
   }
 
-  // ── Two-finger rotate gesture ─────────────────────────────
+  // ── Touch gestures ────────────────────────────────────────
   let _rotateState = null; // {startAngle, startAzimuth, startPolar}
+  let _threeFingerState = null; // {startX, startY, startTime}
+  let _viewPresets = ['top', 'front', 'side'];
+  let _currentPreset = -1; // index into _viewPresets, -1 = custom
+
+  const VIEW_PRESET_POSITIONS = {
+    top:  { pos: [0, 900, 0.1],   up: [0, 0, -1] },   // Bird's eye
+    front: { pos: [0, 0, 800],    up: [0, 1, 0] },    // Head-on
+    side:  { pos: [800, 100, 0],  up: [0, 1, 0] },    // Profile
+  };
 
   function _touchAngle(t1, t2) {
     return Math.atan2(t2.clientY - t1.clientY, t2.clientX - t1.clientX);
   }
 
+  function _animateCamera(targetPos, targetUp, duration) {
+    if (!camera || !controls) return;
+    var startPos = camera.position.clone();
+    var startUp = camera.up.clone();
+    var endPos = new THREE.Vector3(targetPos[0], targetPos[1], targetPos[2]);
+    var endUp = new THREE.Vector3(targetUp[0], targetUp[1], targetUp[2]);
+    var startTime = performance.now();
+
+    function _step(now) {
+      var t = Math.min((now - startTime) / duration, 1);
+      // Ease out cubic
+      var ease = 1 - Math.pow(1 - t, 3);
+      camera.position.lerpVectors(startPos, endPos, ease);
+      camera.up.lerpVectors(startUp, endUp, ease);
+      camera.lookAt(controls.target);
+      controls.update();
+      if (t < 1) requestAnimationFrame(_step);
+    }
+    requestAnimationFrame(_step);
+  }
+
+  function _showPresetIndicator(name) {
+    // Flash a brief indicator on the 3D canvas
+    var container = document.getElementById('brain-map-3d');
+    if (!container) return;
+    var existing = container.querySelector('.preset-indicator');
+    if (existing) existing.remove();
+    var el = document.createElement('div');
+    el.className = 'preset-indicator';
+    el.textContent = name.charAt(0).toUpperCase() + name.slice(1) + ' View';
+    el.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.7);color:#fff;padding:8px 20px;border-radius:8px;font-size:14px;font-weight:600;pointer-events:none;z-index:10;transition:opacity 0.5s';
+    container.appendChild(el);
+    setTimeout(function() { el.style.opacity = '0'; }, 800);
+    setTimeout(function() { el.remove(); }, 1300);
+  }
+
   function _setupTouchRotate(el) {
     el.addEventListener('touchstart', function(e) {
+      // Three-finger swipe: track start position
+      if (e.touches.length === 3) {
+        var cx = (e.touches[0].clientX + e.touches[1].clientX + e.touches[2].clientX) / 3;
+        var cy = (e.touches[0].clientY + e.touches[1].clientY + e.touches[2].clientY) / 3;
+        _threeFingerState = { startX: cx, startY: cy, startTime: Date.now() };
+        return;
+      }
+      // Two-finger rotate
       if (e.touches.length === 2 && controls) {
         var angle = _touchAngle(e.touches[0], e.touches[1]);
-        // Store camera orbit state
         var offset = new THREE.Vector3().copy(camera.position).sub(controls.target);
         var spherical = new THREE.Spherical().setFromVector3(offset);
         _rotateState = {
@@ -73,20 +125,18 @@ var BrainMap3D = (() => {
           startAzimuth: spherical.theta,
           startPolar: spherical.phi,
         };
-        // Switch to DOLLY_ROTATE so two fingers can also zoom
         controls.touches.TWO = THREE.TOUCH.DOLLY_ROTATE;
       }
     }, { passive: true });
 
     el.addEventListener('touchmove', function(e) {
+      // Two-finger rotate
       if (e.touches.length === 2 && _rotateState && controls) {
         var angle = _touchAngle(e.touches[0], e.touches[1]);
         var delta = angle - _rotateState.startAngle;
-        // Apply azimuthal rotation
         var offset = new THREE.Vector3().copy(camera.position).sub(controls.target);
         var spherical = new THREE.Spherical().setFromVector3(offset);
         spherical.theta = _rotateState.startAzimuth + delta * 1.5;
-        // Clamp polar angle to prevent flipping
         spherical.phi = Math.max(0.1, Math.min(Math.PI - 0.1, spherical.phi));
         offset.setFromSpherical(spherical);
         camera.position.copy(controls.target).add(offset);
@@ -95,9 +145,29 @@ var BrainMap3D = (() => {
     }, { passive: true });
 
     el.addEventListener('touchend', function(e) {
+      // Three-finger swipe: detect horizontal direction
+      if (_threeFingerState && e.touches.length === 0) {
+        var cx = (e.changedTouches[0].clientX);
+        var dx = cx - _threeFingerState.startX;
+        var dt = Date.now() - _threeFingerState.startTime;
+        _threeFingerState = null;
+        // Quick horizontal swipe (> 50px in < 500ms)
+        if (Math.abs(dx) > 50 && dt < 500) {
+          // Cycle through presets: swipe left = next, swipe right = prev
+          if (dx < 0) {
+            _currentPreset = (_currentPreset + 1) % _viewPresets.length;
+          } else {
+            _currentPreset = (_currentPreset - 1 + _viewPresets.length) % _viewPresets.length;
+          }
+          var presetName = _viewPresets[_currentPreset];
+          var preset = VIEW_PRESET_POSITIONS[presetName];
+          _animateCamera(preset.pos, preset.up, 600);
+          _showPresetIndicator(presetName);
+        }
+      }
+      // Two-finger rotate cleanup
       if (e.touches.length < 2 && _rotateState) {
         _rotateState = null;
-        // Restore DOLLY_PAN for two fingers
         if (controls) controls.touches.TWO = THREE.TOUCH.DOLLY_PAN;
       }
     }, { passive: true });
