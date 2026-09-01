@@ -68,7 +68,10 @@ package-lock.json
 .*.swp
 .*.swo
 
-# Scratch / debug files
+# Scratch / debug files (root-level temp scripts and output)
+*.log
+*.txt
+*.out
 _out.txt
 _rt.txt
 fix_dns_agent.py
@@ -80,4 +83,25 @@ patch_scan_license.py
 scan_err.txt
 scan_out.txt
 scan_output.txt
-*.log
+
+# Root-level temp scripts
+check_*.py
+find_*.py
+fix_*.py
+show_*.py
+search_*.py
+scan_*.py
+begin.txt
+ctx.txt
+help_out.txt
+rules_out.txt
+charter_out.txt
+charter_set_out.txt
+readme_check.txt
+
+# Server logs
+srv*.log
+server_run.log
+web_server.log
+commit.log
+verify_out.log
