@@ -658,6 +658,7 @@
     }
 
     // ── Trend line: average gate time ───────────────────────────
+    var maPoints = [];
     if (runs.length >= 2) {
       var trendPoints = [];
       for (var ti = 0; ti < runs.length; ti++) {
@@ -666,7 +667,7 @@
         trendPoints.push({ x: tx, y: ty });
       }
       // Moving average (window=3)
-      var maPoints = [];
+      maPoints = [];
       var windowSize = Math.min(3, trendPoints.length);
       for (var wi = 0; wi < trendPoints.length; wi++) {
         var start = Math.max(0, wi - Math.floor(windowSize / 2));
@@ -775,8 +776,10 @@
     canvas.onmousemove = function(e) {
       var r = canvas.getBoundingClientRect();
       var mx = e.clientX - r.left;
+      var my = e.clientY - r.top;
       var tooltip = document.getElementById('gate-timing-tooltip');
       var found = false;
+      // Check bar hover first
       for (var ci = 0; ci < coords.length; ci++) {
         var c = coords[ci];
         if (mx >= c.x && mx <= c.x + c.w) {
@@ -792,6 +795,31 @@
           tooltip.innerHTML = html;
           found = true;
           break;
+        }
+      }
+      // Check trend dot hover (within 10px radius)
+      if (!found && typeof maPoints !== 'undefined') {
+        for (var ti = 0; ti < maPoints.length; ti++) {
+          var dx = mx - maPoints[ti].x;
+          var dy = my - maPoints[ti].y;
+          if (dx * dx + dy * dy < 100) {
+            var avgTime = 0;
+            var wSize = Math.min(3, maPoints.length);
+            var start = Math.max(0, ti - Math.floor(wSize / 2));
+            var end = Math.min(runs.length, start + wSize);
+            for (var wj = start; wj < end; wj++) avgTime += runs[wj].total_time;
+            avgTime /= (end - start);
+            var runDate = new Date(runs[ti].timestamp * 1000);
+            var dateStr = (runDate.getMonth()+1) + '/' + runDate.getDate() + ' ' + runDate.getHours() + ':' + String(runDate.getMinutes()).padStart(2,'0');
+            tooltip.style.display = 'block';
+            tooltip.style.left = Math.min(mx + 8, W - 200) + 'px';
+            tooltip.style.top = Math.min(my - 10, H - 50) + 'px';
+            tooltip.innerHTML = '<div style="font-weight:600;color:#FACC15;margin-bottom:4px">📈 Trend (moving avg)</div>'
+              + '<div style="display:flex;justify-content:space-between;gap:12px"><span>Avg time</span><span style="font-family:monospace;font-weight:600">' + avgTime.toFixed(1) + 's</span></div>'
+              + '<div style="display:flex;justify-content:space-between;gap:12px;color:var(--text-tertiary)"><span>Run ' + (ti+1) + ' of ' + runs.length + '</span><span>' + dateStr + '</span></div>';
+            found = true;
+            break;
+          }
         }
       }
       if (!found) tooltip.style.display = 'none';
