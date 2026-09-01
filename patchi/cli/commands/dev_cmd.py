@@ -359,7 +359,7 @@ def _show_cli_reference(con: Console) -> None:
         ("p web", "Launch web dashboard", "web_cmd.py (102 lines)"),
         ("p explain", "Explain a finding", "explain_cmd.py (330 lines)"),
         ("p blast", "Blast radius analysis", "blast_cmd.py (318 lines)"),
-        ("p brain", "Generate BRAIN.md knowledge file", "brain_cmd.py (305 lines)"),
+        ("p scan", "Scan project and auto-generate BRAIN.md", "scan_cmd.py"),
         ("p trend", "Health quality trends", "trend_cmd.py (298 lines)"),
         ("p blame", "Git blame for a file", "blame_cmd.py (52 lines)"),
         ("p log", "Git changelog", "log_cmd.py (59 lines)"),

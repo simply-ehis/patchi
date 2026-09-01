@@ -960,9 +960,11 @@ def _run_scan_inner(
 
     # ── Auto-update BRAIN.md ──────────────────────────────────────────────────
     try:
-        from patchi.cli.commands.brain_cmd import run as brain_run
-
-        brain_run(root=r, force=True)
+        _brain_path = r / ".patchi" / "BRAIN.md"
+        if _brain_path.exists():
+            import time as _t
+            if _t.time() - _brain_path.stat().st_mtime > 300:
+                con.print("[dim]BRAIN.md is stale. Run p scan to regenerate.[/dim]")
     except Exception as e:
         con.print(f"[dim]BRAIN.md auto-update failed: {e}[/dim]")
 
