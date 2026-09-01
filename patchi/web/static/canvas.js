@@ -1168,7 +1168,7 @@ var BrainMap = (() => {
   }
 
   // ── Search ──────────────────────────────────────────────────
-  var _searchQuery = '', _searchMatches = [], _searchOrigColors = {};
+  var _searchQuery = '', _searchMatches = [], _searchOrigColors = {}, _searchIndex = -1;
 
   function searchNodes(query) {
     _searchQuery = (query || '').trim().toLowerCase();
@@ -1239,14 +1239,61 @@ var BrainMap = (() => {
     }
     nodeLayer.batchDraw();
 
+    // Auto-zoom to first match when exactly 1 result
+    _searchIndex = _searchMatches.length > 0 ? 0 : -1;
     if (_searchMatches.length === 1) {
-      var mn = nodes[_searchMatches[0]];
-      if (mn && mn.group) {
-        stage.position({ x: stage.width()/2 - mn.group.x()*stage.scaleX(), y: stage.height()/2 - mn.group.y()*stage.scaleY() });
-        stage.batchDraw();
-        _debounceMiniMap();
-      }
+      _zoomToSearchMatch(0);
     }
+    _updateSearchCount();
+  }
+
+  function _zoomToSearchMatch(idx) {
+    if (idx < 0 || idx >= _searchMatches.length) return;
+    _searchIndex = idx;
+    var mn = nodes[_searchMatches[idx]];
+    if (mn && mn.group) {
+      // Smooth zoom: scale to 1.5x centered on node
+      var targetScale = 1.5;
+      var targetX = stage.width() / 2 - mn.group.x() * targetScale;
+      var targetY = stage.height() / 2 - mn.group.y() * targetScale;
+      // Animate via Konva.Tween if available, else instant
+      stage.to({ x: targetX, y: targetY, scaleX: targetScale, scaleY: targetScale, duration: 0.3 });
+      // Pulse highlight the selected node
+      for (var si = 0; si < _searchMatches.length; si++) {
+        var sn = nodes[_searchMatches[si]];
+        if (sn && sn.shape) {
+          if (si === idx) {
+            sn.shape.shadowColor('#fff'); sn.shape.shadowBlur(20); sn.shape.shadowOpacity(1);
+          } else {
+            sn.shape.shadowColor('#E8920A'); sn.shape.shadowBlur(12); sn.shape.shadowOpacity(0.8);
+          }
+        }
+      }
+      nodeLayer.batchDraw();
+      _debounceMiniMap();
+    }
+    _updateSearchCount();
+  }
+
+  function _updateSearchCount() {
+    var countEl = document.getElementById('brain-search-count');
+    if (!countEl || _searchMatches.length === 0) return;
+    if (_searchIndex >= 0 && _searchMatches.length > 1) {
+      countEl.textContent = (_searchIndex + 1) + '/' + _searchMatches.length + ' found';
+    } else {
+      countEl.textContent = _searchMatches.length + ' found';
+    }
+    countEl.style.color = 'var(--accent)';
+  }
+
+  function _searchNext() {
+    if (_searchMatches.length === 0) return;
+    _zoomToSearchMatch((_searchIndex + 1) % _searchMatches.length);
+  }
+
+  function _searchPrev() {
+    if (_searchMatches.length === 0) return;
+    _zoomToSearchMatch((_searchIndex - 1 + _searchMatches.length) % _searchMatches.length);
   }
 
   // ── Handle events (scan) ────────────────────────────────────
@@ -1301,5 +1348,7 @@ var BrainMap = (() => {
     exportPNG: exportPNG,
     exportJSON: exportJSON,
     searchNodes: searchNodes,
+    searchNext: function() { _searchNext(); },
+    searchPrev: function() { _searchPrev(); },
   };
 })();
