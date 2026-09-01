@@ -1171,6 +1171,67 @@ var BrainMap = (() => {
   var _searchQuery = '', _searchMatches = [], _searchOrigColors = {}, _searchIndex = -1;
   var _selectedNodes = []; // multi-select for Ctrl+Click comparison
 
+  // ── Search History ─────────────────────────────────────────
+  var _searchHistory = [];
+  var _MAX_HISTORY = 10;
+  try {
+    var stored = localStorage.getItem('patchi_search_history');
+    if (stored) _searchHistory = JSON.parse(stored);
+  } catch(e) { _searchHistory = []; }
+
+  function _saveToHistory(query) {
+    if (!query || query.length < 2) return;
+    // Remove duplicate if exists
+    _searchHistory = _searchHistory.filter(function(h) { return h.query !== query; });
+    _searchHistory.unshift({ query: query, time: Date.now() });
+    if (_searchHistory.length > _MAX_HISTORY) _searchHistory = _searchHistory.slice(0, _MAX_HISTORY);
+    try { localStorage.setItem('patchi_search_history', JSON.stringify(_searchHistory)); } catch(e) {}
+  }
+
+  function _renderSearchHistory() {
+    var dd = document.getElementById('brain-search-dropdown');
+    if (!dd) return;
+    if (_searchHistory.length === 0) { dd.style.display = 'none'; return; }
+    var html = '<div style="padding:4px 10px;font-size:10px;color:var(--text-tertiary);font-weight:600;display:flex;justify-content:space-between;align-items:center">Recent searches<span onclick="BrainMap.clearHistory()" style="cursor:pointer;color:var(--danger);font-weight:400">Clear</span></div>';
+    for (var hi = 0; hi < _searchHistory.length; hi++) {
+      var h = _searchHistory[hi];
+      var ago = _timeAgo(h.time);
+      html += '<div class="sr-history-item" style="padding:5px 10px;cursor:pointer;display:flex;align-items:center;gap:8px;border-bottom:1px solid rgba(255,255,255,0.05);font-size:12px;color:var(--text-primary)" onmouseenter="this.style.background=\'var(--bg-tertiary)\'" onmouseleave="this.style.background=\'\'" onclick="document.getElementById(\'brain-search\').value=\'' + h.query.replace(/'/g, "\\'") + '\';BrainMap.searchNodes(\'' + h.query.replace(/'/g, "\\'") + '\')">';
+      html += '<span style="color:var(--text-tertiary);font-size:11px">🕐</span>';
+      html += '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + _escapeHtml(h.query) + '</span>';
+      html += '<span style="font-size:9px;color:var(--text-tertiary);flex-shrink:0">' + ago + '</span>';
+      html += '</div>';
+    }
+    dd.innerHTML = html;
+    dd.style.display = 'block';
+  }
+
+  function _timeAgo(ts) {
+    var diff = Date.now() - ts;
+    if (diff < 60000) return 'just now';
+    if (diff < 3600000) return Math.floor(diff / 60000) + 'm ago';
+    if (diff < 86400000) return Math.floor(diff / 3600000) + 'h ago';
+    return Math.floor(diff / 86400000) + 'd ago';
+  }
+
+  function _escapeHtml(str) {
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  function clearHistory() {
+    _searchHistory = [];
+    try { localStorage.removeItem('patchi_search_history'); } catch(e) {}
+    var dd = document.getElementById('brain-search-dropdown');
+    if (dd) dd.style.display = 'none';
+  }
+
+  function _showHistoryOnFocus() {
+    var inp = document.getElementById('brain-search');
+    if (inp && !inp.value.trim()) {
+      _renderSearchHistory();
+    }
+  }
+
   // ── Fuzzy scoring ─────────────────────────────────────────
   function _fuzzyScore(query, full, short, tokens) {
     if (!query) return 0;
@@ -1232,6 +1293,8 @@ var BrainMap = (() => {
     var countEl = document.getElementById('brain-search-count');
 
     if (!_searchQuery) {
+      // Show history when input is cleared
+      _renderSearchHistory();
       for (var id in nodes) {
         var n = nodes[id];
         if (_searchOrigColors[id] !== undefined) {
@@ -1358,6 +1421,13 @@ var BrainMap = (() => {
       if (hi !== _searchIndex && _selectedNodes.indexOf(items[hi].getAttribute('data-id')) < 0) {
         items[hi].style.background = '';
       }
+    }
+  }
+
+  function commitSearch() {
+    // Called on Enter to save the current query to history
+    if (_searchQuery && _searchQuery.length >= 2) {
+      _saveToHistory(_searchQuery);
     }
   }
 
@@ -1561,6 +1631,9 @@ var BrainMap = (() => {
     toggleSelect: function(id) { toggleSelect(id); },
     clearSelection: function() { clearSelection(); },
     removeSelected: function(id) { toggleSelect(id); },
+    commitSearch: function() { commitSearch(); },
+    clearHistory: function() { clearHistory(); },
+    showHistoryOnFocus: function() { _showHistoryOnFocus(); },
   };
 
   // Close search dropdown when clicking outside
