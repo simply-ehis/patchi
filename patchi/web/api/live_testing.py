@@ -407,13 +407,23 @@ async def browser_pool_stats():
 async def list_videos(request: Request):
     """List all recorded video evidence files."""
     root: Path = request.app.state.root
-    video_dir = root / ".patchi" / "evidence" / "video"
+    video_dirs = [
+        root / ".patchi" / "evidence" / "video",
+        root / ".patchi" / "evidence" / "browser_tests" / "video",
+    ]
 
     videos = []
-    if video_dir.is_dir():
+    seen_names: set[str] = set()
+    for video_dir in video_dirs:
+        if not video_dir.is_dir():
+            continue
         for f in sorted(video_dir.glob("*.webm"), key=lambda x: x.stat().st_mtime, reverse=True):
             try:
                 stat = f.stat()
+                # Deduplicate by filename across directories
+                if f.name in seen_names:
+                    continue
+                seen_names.add(f.name)
                 videos.append({
                     "name": f.stem,
                     "filename": f.name,
@@ -424,6 +434,8 @@ async def list_videos(request: Request):
                 })
             except Exception:
                 pass
+    # Sort all videos by mtime descending
+    videos.sort(key=lambda v: v["timestamp"], reverse=True)
 
     return JSONResponse({
         "ok": True,
@@ -437,22 +449,28 @@ async def list_videos(request: Request):
 async def serve_video(filename: str, request: Request):
     """Serve a video recording file for playback."""
     root: Path = request.app.state.root
-    video_dir = root / ".patchi" / "evidence" / "video"
-    file_path = video_dir / filename
+    # Check multiple video directories
+    video_dirs = [
+        root / ".patchi" / "evidence" / "video",
+        root / ".patchi" / "evidence" / "browser_tests" / "video",
+    ]
 
-    # Security: only allow .webm files from the video directory
-    if not file_path.suffix == ".webm":
-        return JSONResponse({"error": "Only .webm files allowed"}, status_code=403)
-    try:
-        file_path.resolve().relative_to(video_dir.resolve())
-    except ValueError:
-        return JSONResponse({"error": "Access denied"}, status_code=403)
+    # Security: only allow .webm files
+    import re as _re
+    if not _re.match(r'^[a-zA-Z0-9_@.\-]+\.webm$', filename):
+        return JSONResponse({"error": "Invalid filename"}, status_code=403)
 
-    if not file_path.exists():
-        return JSONResponse({"error": "Video not found"}, status_code=404)
+    for video_dir in video_dirs:
+        file_path = video_dir / filename
+        if file_path.exists() and file_path.is_file():
+            try:
+                file_path.resolve().relative_to(root.resolve())
+            except ValueError:
+                return JSONResponse({"error": "Access denied"}, status_code=403)
+            from starlette.responses import FileResponse
+            return FileResponse(file_path, media_type="video/webm")
 
-    from starlette.responses import FileResponse
-    return FileResponse(file_path, media_type="video/webm")
+    return JSONResponse({"error": "Video not found"}, status_code=404)
 
 
 @router.post("/visual-regression")
