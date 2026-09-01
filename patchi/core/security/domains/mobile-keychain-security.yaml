@@ -11,9 +11,11 @@ weight: 0.9
 
 activation_signals:
   required_any:
-    - signal: "code_in_project_matches_mobile_keychain_security_pattern"
+    - signal: "mobile_project_detected"
+    - signal: "ios_swift_detected"
+    - signal: "android_kotlin_detected"
   excluded_if:
-    - signal: "no_relevant_code_for_mobile_keychain_security"
+    - signal: "no_relevant_code_for_mobile-native"
 
 controls:
   - control_id: "MOBILEKE-01"

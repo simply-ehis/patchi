@@ -11,9 +11,11 @@ weight: 0.8
 
 activation_signals:
   required_any:
-    - signal: "code_in_project_matches_koa_middleware_skip_pattern"
+    - signal: "route_handler_detected"
+    - signal: "api_endpoint_present"
+    - signal: "server_side_code_detected"
   excluded_if:
-    - signal: "no_relevant_code_for_koa_middleware_skip"
+    - signal: "no_relevant_code_for_backend-api"
 
 controls:
   - control_id: "KOAMIDDL-01"

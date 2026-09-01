@@ -11,9 +11,12 @@ weight: 0.9
 
 activation_signals:
   required_any:
-    - signal: "code_in_project_matches_cloud_azure_keyvault_pattern"
+    - signal: "azure_sdk_detected"
+    - signal: "terraform_azure_detected"
+    - signal: "arm_template_detected"
+    - signal: "azure_resource_detected"
   excluded_if:
-    - signal: "no_relevant_code_for_cloud_azure_keyvault"
+    - signal: "no_relevant_code_for_cloud-azure"
 
 controls:
   - control_id: "CLOUDAZU-01"

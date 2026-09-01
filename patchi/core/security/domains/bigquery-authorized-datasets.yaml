@@ -11,9 +11,11 @@ weight: 0.8
 
 activation_signals:
   required_any:
-    - signal: "code_in_project_matches_bigquery_authorized_datasets_pattern"
+    - signal: "gcp_sdk_detected"
+    - signal: "terraform_gcp_detected"
+    - signal: "gcloud_config_detected"
   excluded_if:
-    - signal: "no_relevant_code_for_bigquery_authorized_datasets"
+    - signal: "no_relevant_code_for_cloud-gcp"
 
 controls:
   - control_id: "BIGQUERY-01"

@@ -11,9 +11,12 @@ weight: 0.85
 
 activation_signals:
   required_any:
-    - signal: "code_in_project_matches_cwe_652_improper_neutralization_data_within_code_generation_pattern"
+    - signal: "route_handler_detected"
+    - signal: "api_endpoint_present"
+    - signal: "server_side_code_detected"
+    - signal: "code_vulnerability_pattern_present"
   excluded_if:
-    - signal: "no_relevant_code_for_cwe_652_improper_neutralization_data_within_code_generation"
+    - signal: "no_relevant_code_for_backend-api"
 
 controls:
   - control_id: "CWE652IM-01"

@@ -4,16 +4,19 @@
 
 domain_id: "owasp-a07-2025-integrity"
 version: "1.0.0"
-display_name: "Software and Data Integrity Failures"
+display_name: "Software and Data Integrity Failures (OWASP Top 10 2025 A0)"
 source_standard: "OWASP Top 10 2025 A07"
 component_type: "backend-api"
 weight: 0.85
 
 activation_signals:
   required_any:
-    - signal: "code_in_project_matches_owasp_a07_2025_integrity_pattern"
+    - signal: "route_handler_detected"
+    - signal: "api_endpoint_present"
+    - signal: "server_side_code_detected"
+    - signal: "web_application_detected"
   excluded_if:
-    - signal: "no_relevant_code_for_owasp_a07_2025_integrity"
+    - signal: "no_relevant_code_for_backend-api"
 
 controls:
   - control_id: "OWASPA07-01"

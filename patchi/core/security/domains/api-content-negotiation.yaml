@@ -11,9 +11,12 @@ weight: 0.75
 
 activation_signals:
   required_any:
-    - signal: "code_in_project_matches_api_content_negotiation_pattern"
+    - signal: "route_handler_detected"
+    - signal: "api_endpoint_present"
+    - signal: "server_side_code_detected"
+    - signal: "go_source_detected"
   excluded_if:
-    - signal: "no_relevant_code_for_api_content_negotiation"
+    - signal: "no_relevant_code_for_backend-api"
 
 controls:
   - control_id: "APICONTE-01"

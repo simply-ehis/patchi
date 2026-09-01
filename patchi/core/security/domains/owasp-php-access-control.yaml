@@ -4,16 +4,20 @@
 
 domain_id: "owasp-php-access-control"
 version: "1.0.0"
-display_name: "Broken Access Control"
+display_name: "Broken Access Control (OWASP PHP Top 10)"
 source_standard: "OWASP PHP Top 10"
 component_type: "backend-api"
 weight: 0.9
 
 activation_signals:
   required_any:
-    - signal: "code_in_project_matches_owasp_php_access_control_pattern"
+    - signal: "route_handler_detected"
+    - signal: "api_endpoint_present"
+    - signal: "server_side_code_detected"
+    - signal: "php_source_detected"
+    - signal: "web_application_detected"
   excluded_if:
-    - signal: "no_relevant_code_for_owasp_php_access_control"
+    - signal: "no_relevant_code_for_backend-api"
 
 controls:
   - control_id: "OWASPPHP-01"

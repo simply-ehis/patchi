@@ -11,9 +11,11 @@ weight: 0.85
 
 activation_signals:
   required_any:
-    - signal: "code_in_project_matches_snowflake_security_pattern"
+    - signal: "aws_sdk_detected"
+    - signal: "terraform_aws_detected"
+    - signal: "cloudformation_detected"
   excluded_if:
-    - signal: "no_relevant_code_for_snowflake_security"
+    - signal: "no_relevant_code_for_cloud-aws"
 
 controls:
   - control_id: "SNOWFLAK-01"

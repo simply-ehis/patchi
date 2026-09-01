@@ -11,9 +11,12 @@ weight: 0.8
 
 activation_signals:
   required_any:
-    - signal: "code_in_project_matches_mitre_execution_user_execution_pattern"
+    - signal: "javascript_file_detected"
+    - signal: "html_template_detected"
+    - signal: "css_file_detected"
+    - signal: "attack_technique_relevant"
   excluded_if:
-    - signal: "no_relevant_code_for_mitre_execution_user_execution"
+    - signal: "no_relevant_code_for_frontend-web"
 
 controls:
   - control_id: "MITREEXE-01"

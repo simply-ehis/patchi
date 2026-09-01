@@ -11,9 +11,12 @@ weight: 0.8
 
 activation_signals:
   required_any:
-    - signal: "code_in_project_matches_mitre_discovery_network_service_pattern"
+    - signal: "config_file_detected"
+    - signal: "docker_file_detected"
+    - signal: "yaml_manifest_detected"
+    - signal: "attack_technique_relevant"
   excluded_if:
-    - signal: "no_relevant_code_for_mitre_discovery_network_service"
+    - signal: "no_relevant_code_for_infra"
 
 controls:
   - control_id: "MITREDIS-01"

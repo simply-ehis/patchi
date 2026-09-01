@@ -11,9 +11,12 @@ weight: 0.85
 
 activation_signals:
   required_any:
-    - signal: "code_in_project_matches_owasp_llm_excessive_agency_pattern"
+    - signal: "ml_framework_detected"
+    - signal: "model_file_detected"
+    - signal: "training_code_detected"
+    - signal: "web_application_detected"
   excluded_if:
-    - signal: "no_relevant_code_for_owasp_llm_excessive_agency"
+    - signal: "no_relevant_code_for_ai-ml"
 
 controls:
   - control_id: "OWASPLLM-01"

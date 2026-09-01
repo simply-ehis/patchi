@@ -11,9 +11,11 @@ weight: 0.8
 
 activation_signals:
   required_any:
-    - signal: "code_in_project_matches_network_packet_filtering_pattern"
+    - signal: "config_file_detected"
+    - signal: "docker_file_detected"
+    - signal: "yaml_manifest_detected"
   excluded_if:
-    - signal: "no_relevant_code_for_network_packet_filtering"
+    - signal: "no_relevant_code_for_infra"
 
 controls:
   - control_id: "NETWORKP-01"

@@ -11,9 +11,12 @@ weight: 0.8
 
 activation_signals:
   required_any:
-    - signal: "code_in_project_matches_vue_xss_v_bind_pattern"
+    - signal: "javascript_file_detected"
+    - signal: "html_template_detected"
+    - signal: "css_file_detected"
+    - signal: "vue_component_detected"
   excluded_if:
-    - signal: "no_relevant_code_for_vue_xss_v_bind"
+    - signal: "no_relevant_code_for_frontend-web"
 
 controls:
   - control_id: "VUEXSSVB-01"

@@ -11,9 +11,13 @@ weight: 0.9
 
 activation_signals:
   required_any:
-    - signal: "code_in_project_matches_cis_gcp_pattern"
+    - signal: "gcp_sdk_detected"
+    - signal: "terraform_gcp_detected"
+    - signal: "gcloud_config_detected"
+    - signal: "gcp_resource_detected"
+    - signal: "system_configuration_present"
   excluded_if:
-    - signal: "no_relevant_code_for_cis_gcp"
+    - signal: "no_relevant_code_for_cloud-gcp"
 
 controls:
   - control_id: "CISGCP-01"

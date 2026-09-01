@@ -4,16 +4,18 @@
 
 domain_id: "sans-csrf"
 version: "1.0.0"
-display_name: "Cross-Site Request Forgery"
+display_name: "Cross-Site Request Forgery (SANS Top 25)"
 source_standard: "SANS Top 25"
 component_type: "frontend-web"
 weight: 0.8
 
 activation_signals:
   required_any:
-    - signal: "code_in_project_matches_sans_csrf_pattern"
+    - signal: "javascript_file_detected"
+    - signal: "html_template_detected"
+    - signal: "css_file_detected"
   excluded_if:
-    - signal: "no_relevant_code_for_sans_csrf"
+    - signal: "no_relevant_code_for_frontend-web"
 
 controls:
   - control_id: "SANSCSRF-01"

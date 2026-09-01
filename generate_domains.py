@@ -938,24 +938,141 @@ d("devsecops-secret-scanning", "Pre-Commit Secret Scanning", "DevSecOps", "infra
 # YAML GENERATION
 # ══════════════════════════════════════════════════════════════════════════════
 
+def _gen_activation_signals(did, ctype, source, name):
+    """Generate meaningful activation signals based on domain characteristics."""
+    signals = []
+    excluded = []
+    
+    # Component-type based signals
+    ctype_map = {
+        'backend-api': ['route_handler_detected', 'api_endpoint_present', 'server_side_code_detected'],
+        'frontend-web': ['javascript_file_detected', 'html_template_detected', 'css_file_detected'],
+        'infra': ['config_file_detected', 'docker_file_detected', 'yaml_manifest_detected'],
+        'mobile-native': ['mobile_project_detected', 'ios_swift_detected', 'android_kotlin_detected'],
+        'native-code': ['c_cpp_source_detected', 'rust_source_detected', 'memory_management_detected'],
+        'cloud-aws': ['aws_sdk_detected', 'terraform_aws_detected', 'cloudformation_detected'],
+        'cloud-azure': ['azure_sdk_detected', 'terraform_azure_detected', 'arm_template_detected'],
+        'cloud-gcp': ['gcp_sdk_detected', 'terraform_gcp_detected', 'gcloud_config_detected'],
+        'iot-device': ['iot_protocol_detected', 'mqtt_handler_detected', 'embedded_code_detected'],
+        'ai-ml': ['ml_framework_detected', 'model_file_detected', 'training_code_detected'],
+        'desktop-app': ['electron_detected', 'tauri_detected', 'desktop_framework_detected'],
+    }
+    base_signals = ctype_map.get(ctype.split(',')[0].strip(), ['code_detected'])
+    signals.extend(base_signals)
+    
+    # Technology-specific signals from domain_id
+    tech_patterns = {
+        'django': ['django_project_detected'], 'flask': ['flask_app_detected'],
+        'express': ['express_app_detected'], 'spring': ['spring_project_detected'],
+        'rails': ['rails_project_detected'], 'laravel': ['laravel_project_detected'],
+        'nextjs': ['nextjs_project_detected'], 'nuxt': ['nuxt_project_detected'],
+        'react': ['react_component_detected'], 'vue': ['vue_component_detected'],
+        'angular': ['angular_component_detected'], 'svelte': ['svelte_component_detected'],
+        'graphql': ['graphql_schema_detected'], 'grpc': ['grpc_proto_detected'],
+        'docker': ['dockerfile_detected'], 'kubernetes': ['k8s_manifest_detected'],
+        'terraform': ['terraform_file_detected'], 'ansible': ['ansible_playbook_detected'],
+        'helm': ['helm_chart_detected'], 'aws': ['aws_resource_detected'],
+        'azure': ['azure_resource_detected'], 'gcp': ['gcp_resource_detected'],
+        'kafka': ['kafka_config_detected'], 'redis': ['redis_config_detected'],
+        'mysql': ['mysql_config_detected'], 'postgresql': ['postgres_config_detected'],
+        'mongodb': ['mongodb_config_detected'], 'elasticsearch': ['elastic_config_detected'],
+        'rabbitmq': ['rabbitmq_config_detected'], 'consul': ['consul_config_detected'],
+        'vault': ['vault_config_detected'], 'nginx': ['nginx_config_detected'],
+        'apache': ['apache_config_detected'], 'tomcat': ['tomcat_config_detected'],
+        'iis': ['iis_config_detected'], 'haproxy': ['haproxy_config_detected'],
+        'wordpress': ['wordpress_detected'], 'drupal': ['drupal_detected'],
+        'electron': ['electron_main_detected'], 'tauri': ['tauri_config_detected'],
+        'webassembly': ['wasm_module_detected'], 'remix': ['remix_route_detected'],
+        'astro': ['astro_component_detected'], 'qwik': ['qwik_component_detected'],
+        'fastapi': ['fastapi_app_detected'], 'go': ['go_source_detected'],
+        'rust': ['rust_source_detected'], 'java': ['java_source_detected'],
+        'php': ['php_source_detected'], 'ruby': ['ruby_source_detected'],
+        'c_cpp': ['c_cpp_source_detected'], 'typescript': ['typescript_source_detected'],
+    }
+    for key, pats in tech_patterns.items():
+        if key in did.lower():
+            signals.extend(pats)
+            break
+    
+    # OWASP/framework-specific signals
+    if 'owasp' in did or 'asvs' in did:
+        signals.append('web_application_detected')
+    if 'cwe' in did:
+        signals.append('code_vulnerability_pattern_present')
+    if 'nist' in did:
+        signals.append('enterprise_system_detected')
+    if 'mitre' in did:
+        signals.append('attack_technique_relevant')
+    if 'cis' in did:
+        signals.append('system_configuration_present')
+    if 'pci' in did:
+        signals.append('payment_data_processed')
+    if 'hipaa' in did:
+        signals.append('health_data_processed')
+    if 'gdpr' in did:
+        signals.append('personal_data_processed')
+    if 'soc2' in did:
+        signals.append('enterprise_compliance_required')
+    if 'iso27001' in did:
+        signals.append('isms_framework_active')
+    if 'supply-chain' in did or 'supply' in did:
+        signals.append('dependency_management_detected')
+    if 'secrets' in did:
+        signals.append('secret_management_present')
+    if 'incident' in did:
+        signals.append('security_monitoring_active')
+    if 'threat' in did:
+        signals.append('threat_modeling_active')
+    
+    # Ensure at least 3 signals
+    if len(signals) < 3:
+        signals.append('code_in_scope')
+    
+    # Deduplicate while preserving order
+    seen = set()
+    unique = []
+    for s in signals:
+        if s not in seen:
+            seen.add(s)
+            unique.append(s)
+    
+    excluded.append(f'no_relevant_code_for_{ctype.split(",")[0].strip()}')
+    
+    return unique[:5], excluded  # max 5 signals per domain
+
+
+_seen_names = set()
+
 def generate_domain_yaml(did, name, source, ctype, weight, clause, desc, sev, check):
     prefix = did.upper().replace("-", "")[:8]
+    # Auto-prefix source context to make display names unique
+    if name in _seen_names:
+        short_src = source.split('(')[0].split(':')[0].strip()
+        if len(short_src) > 20:
+            short_src = short_src[:20]
+        display = f"{name} ({short_src})"
+    else:
+        display = name
+    _seen_names.add(name)
+    req_sigs, excl_sigs = _gen_activation_signals(did, ctype, source, name)
+    req_yaml = '\n'.join(f'    - signal: "{s}"' for s in req_sigs)
+    excl_yaml = '\n'.join(f'    - signal: "{s}"' for s in excl_sigs)
     return f"""# Patchi Security Domain: {did}
 # Source: {source}
 # Auto-generated — curated from {source}
 
 domain_id: "{did}"
 version: "1.0.0"
-display_name: "{name}"
+display_name: "{display}"
 source_standard: "{source}"
 component_type: "{ctype}"
 weight: {weight}
 
 activation_signals:
   required_any:
-    - signal: "code_in_project_matches_{did.replace('-', '_')}_pattern"
+{req_yaml}
   excluded_if:
-    - signal: "no_relevant_code_for_{did.replace('-', '_')}"
+{excl_yaml}
 
 controls:
   - control_id: "{prefix}-01"

@@ -11,9 +11,12 @@ weight: 0.95
 
 activation_signals:
   required_any:
-    - signal: "code_in_project_matches_owasp_a02_2025_crypto_pattern"
+    - signal: "route_handler_detected"
+    - signal: "api_endpoint_present"
+    - signal: "server_side_code_detected"
+    - signal: "web_application_detected"
   excluded_if:
-    - signal: "no_relevant_code_for_owasp_a02_2025_crypto"
+    - signal: "no_relevant_code_for_backend-api"
 
 controls:
   - control_id: "OWASPA02-01"

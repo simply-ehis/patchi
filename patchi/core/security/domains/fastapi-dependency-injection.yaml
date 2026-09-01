@@ -11,9 +11,12 @@ weight: 0.85
 
 activation_signals:
   required_any:
-    - signal: "code_in_project_matches_fastapi_dependency_injection_pattern"
+    - signal: "route_handler_detected"
+    - signal: "api_endpoint_present"
+    - signal: "server_side_code_detected"
+    - signal: "fastapi_app_detected"
   excluded_if:
-    - signal: "no_relevant_code_for_fastapi_dependency_injection"
+    - signal: "no_relevant_code_for_backend-api"
 
 controls:
   - control_id: "FASTAPID-01"

@@ -11,9 +11,12 @@ weight: 0.65
 
 activation_signals:
   required_any:
-    - signal: "code_in_project_matches_nist_ac_8_pattern"
+    - signal: "javascript_file_detected"
+    - signal: "html_template_detected"
+    - signal: "css_file_detected"
+    - signal: "enterprise_system_detected"
   excluded_if:
-    - signal: "no_relevant_code_for_nist_ac_8"
+    - signal: "no_relevant_code_for_frontend-web"
 
 controls:
   - control_id: "NISTAC8-01"

@@ -11,9 +11,12 @@ weight: 0.85
 
 activation_signals:
   required_any:
-    - signal: "code_in_project_matches_asvs_v8_data_protection_pattern"
+    - signal: "route_handler_detected"
+    - signal: "api_endpoint_present"
+    - signal: "server_side_code_detected"
+    - signal: "web_application_detected"
   excluded_if:
-    - signal: "no_relevant_code_for_asvs_v8_data_protection"
+    - signal: "no_relevant_code_for_backend-api"
 
 controls:
   - control_id: "ASVSV8DA-01"

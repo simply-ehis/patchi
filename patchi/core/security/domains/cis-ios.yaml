@@ -11,9 +11,12 @@ weight: 0.8
 
 activation_signals:
   required_any:
-    - signal: "code_in_project_matches_cis_ios_pattern"
+    - signal: "mobile_project_detected"
+    - signal: "ios_swift_detected"
+    - signal: "android_kotlin_detected"
+    - signal: "system_configuration_present"
   excluded_if:
-    - signal: "no_relevant_code_for_cis_ios"
+    - signal: "no_relevant_code_for_mobile-native"
 
 controls:
   - control_id: "CISIOS-01"

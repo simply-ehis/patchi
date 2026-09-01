@@ -11,9 +11,12 @@ weight: 0.75
 
 activation_signals:
   required_any:
-    - signal: "code_in_project_matches_owasp_iot_lack_of_hardening_pattern"
+    - signal: "iot_protocol_detected"
+    - signal: "mqtt_handler_detected"
+    - signal: "embedded_code_detected"
+    - signal: "web_application_detected"
   excluded_if:
-    - signal: "no_relevant_code_for_owasp_iot_lack_of_hardening"
+    - signal: "no_relevant_code_for_iot-device"
 
 controls:
   - control_id: "OWASPIOT-01"

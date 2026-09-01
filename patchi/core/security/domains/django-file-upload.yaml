@@ -11,9 +11,12 @@ weight: 0.85
 
 activation_signals:
   required_any:
-    - signal: "code_in_project_matches_django_file_upload_pattern"
+    - signal: "route_handler_detected"
+    - signal: "api_endpoint_present"
+    - signal: "server_side_code_detected"
+    - signal: "django_project_detected"
   excluded_if:
-    - signal: "no_relevant_code_for_django_file_upload"
+    - signal: "no_relevant_code_for_backend-api"
 
 controls:
   - control_id: "DJANGOFI-01"

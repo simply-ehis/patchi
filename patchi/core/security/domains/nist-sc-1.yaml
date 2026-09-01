@@ -11,9 +11,12 @@ weight: 0.7
 
 activation_signals:
   required_any:
-    - signal: "code_in_project_matches_nist_sc_1_pattern"
+    - signal: "config_file_detected"
+    - signal: "docker_file_detected"
+    - signal: "yaml_manifest_detected"
+    - signal: "enterprise_system_detected"
   excluded_if:
-    - signal: "no_relevant_code_for_nist_sc_1"
+    - signal: "no_relevant_code_for_infra"
 
 controls:
   - control_id: "NISTSC1-01"

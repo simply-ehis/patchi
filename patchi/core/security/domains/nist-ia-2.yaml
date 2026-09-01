@@ -11,9 +11,12 @@ weight: 0.9
 
 activation_signals:
   required_any:
-    - signal: "code_in_project_matches_nist_ia_2_pattern"
+    - signal: "route_handler_detected"
+    - signal: "api_endpoint_present"
+    - signal: "server_side_code_detected"
+    - signal: "enterprise_system_detected"
   excluded_if:
-    - signal: "no_relevant_code_for_nist_ia_2"
+    - signal: "no_relevant_code_for_backend-api"
 
 controls:
   - control_id: "NISTIA2-01"
