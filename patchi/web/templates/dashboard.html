@@ -485,16 +485,24 @@
     }
   };
 
-  // ── Fast agent refresh during active scans (5s) ──────────────
+  // ── Fast refresh during active scans (5s) ─────────────────
   var _agentFastPoll = null;
+  var _findingsFastPoll = null;
   function _startAgentFastPoll() {
     if (_agentFastPoll) return;
     _agentFastPoll = setInterval(function() {
       window.refreshAgents();
     }, 5000);
+    // Also fast-refresh findings
+    if (!_findingsFastPoll) {
+      _findingsFastPoll = setInterval(function() {
+        window.refreshFindings();
+      }, 5000);
+    }
   }
   function _stopAgentFastPoll() {
     if (_agentFastPoll) { clearInterval(_agentFastPoll); _agentFastPoll = null; }
+    if (_findingsFastPoll) { clearInterval(_findingsFastPoll); _findingsFastPoll = null; }
   }
 
   // Listen for scan.complete via WS to auto-refresh findings
