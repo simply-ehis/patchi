@@ -964,7 +964,7 @@ var BrainMap = (() => {
 
     // Store color for minimap
     var fillColor = hc || color;
-    nodes[id] = { group: group, shape: shape, x: x, y: y, type: type, _color: fillColor };
+    nodes[id] = { group: group, shape: shape, x: x, y: y, type: type, _color: fillColor, _severity: sev, _findings: fc, _label: label };
   }
 
   // ── Ant animation ───────────────────────────────────────────
@@ -1186,6 +1186,8 @@ var BrainMap = (() => {
       }
       _searchMatches = [];
       if (countEl) countEl.textContent = '';
+      var dd = document.getElementById('brain-search-dropdown');
+      if (dd) dd.style.display = 'none';
       nodeLayer.batchDraw();
       return;
     }
@@ -1245,6 +1247,40 @@ var BrainMap = (() => {
       _zoomToSearchMatch(0);
     }
     _updateSearchCount();
+    _renderSearchDropdown();
+  }
+
+  function _renderSearchDropdown() {
+    var dd = document.getElementById('brain-search-dropdown');
+    if (!dd) return;
+    if (_searchMatches.length === 0) { dd.style.display = 'none'; return; }
+    var html = '';
+    for (var di = 0; di < _searchMatches.length; di++) {
+      var did = _searchMatches[di];
+      var dn = nodes[did];
+      var shortName = did.split('/').pop();
+      var sev = (dn && dn._severity) || 'info';
+      var fc = (dn && dn._findings) || 0;
+      var sevColor = sev === 'critical' ? '#FF4D6D' : sev === 'high' ? '#F97316' : sev === 'medium' ? '#FACC15' : '#4ADE80';
+      var isActive = di === _searchIndex;
+      html += '<div class="sr-item" data-idx="' + di + '" style="padding:6px 10px;cursor:pointer;display:flex;align-items:center;gap:8px;border-bottom:1px solid rgba(255,255,255,0.05);transition:background 0.1s" onmouseenter="this.style.background=\'var(--bg-tertiary)\'" onmouseleave="this.style.background=\'\'" onclick="BrainMap.searchSelect(' + di + ')">';
+      html += '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:' + sevColor + ';flex-shrink:0"></span>';
+      html += '<span style="flex:1;font-size:12px;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + did + '">' + shortName + '</span>';
+      if (fc > 0) html += '<span style="font-size:10px;color:' + sevColor + ';font-weight:600;flex-shrink:0">' + fc + '</span>';
+      html += '<span style="font-size:9px;color:var(--text-tertiary);flex-shrink:0;text-transform:uppercase">' + sev + '</span>';
+      html += '</div>';
+    }
+    dd.innerHTML = html;
+    dd.style.display = 'block';
+    // Highlight active item
+    var items = dd.querySelectorAll('.sr-item');
+    for (var hi = 0; hi < items.length; hi++) {
+      items[hi].style.background = hi === _searchIndex ? 'rgba(88,166,255,0.15)' : '';
+    }
+  }
+
+  function searchSelect(idx) {
+    _zoomToSearchMatch(idx);
   }
 
   function _zoomToSearchMatch(idx) {
@@ -1273,6 +1309,7 @@ var BrainMap = (() => {
       _debounceMiniMap();
     }
     _updateSearchCount();
+    _renderSearchDropdown();
   }
 
   function _updateSearchCount() {
@@ -1350,5 +1387,15 @@ var BrainMap = (() => {
     searchNodes: searchNodes,
     searchNext: function() { _searchNext(); },
     searchPrev: function() { _searchPrev(); },
+    searchSelect: function(idx) { searchSelect(idx); },
   };
+
+  // Close search dropdown when clicking outside
+  document.addEventListener('mousedown', function(e) {
+    var dd = document.getElementById('brain-search-dropdown');
+    var inp = document.getElementById('brain-search');
+    if (dd && dd.style.display !== 'none' && inp && !inp.contains(e.target) && !dd.contains(e.target)) {
+      dd.style.display = 'none';
+    }
+  });
 })();
