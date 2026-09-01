@@ -254,6 +254,22 @@ def run(
             "replacement": "p chat",
             "reason": "Alias — chat is the unified interface",
         },
+        "chain": {
+            "replacement": "p chains",
+            "reason": "Merged into chains command (plural)",
+        },
+        "mode": {
+            "replacement": "p settings mode",
+            "reason": "Merged into settings command",
+        },
+        "reason": {
+            "replacement": "p chat 'reason about <topic>'",
+            "reason": "Merged into chat command",
+        },
+        "blast": {
+            "replacement": "p impact",
+            "reason": "Renamed to impact command",
+        },
     }
 
     try:

@@ -52,38 +52,55 @@ p web --project ../other-repo --port 8000
 
 ---
 
-## CLI Commands
+## CLI Commands
 
-43 commands in `patchi/cli/commands/`. Major ones:
+50 registered commands. Major ones:
 
-| Command | Purpose |
-|---------|---------|
-| `p scan` | Scan for issues (supports `--json`, `--deep`, `--force`, `--offline`, `--with-license`, `--with-extended`) |
-| `p fix` | Apply AI-generated fixes |
-| `p security` | Run security agents (`--json`, or filter by type) |
-| `p test` | Run tests (unit, browser, stress, regression, api, e2e, etc.) |
-| `p deps` | Supply chain scan (`--licenses` for full license audit separately) |
-| `p audit` | Full project audit (scan + security + test + report) |
-| `p plan` | Prioritized fix list ranked by importance |
-| `p explain` | Plain-English explanation of findings |
-| `p chat` | Chat with Patchi about your project |
-| `p watch` | Auto-scan on file saves |
-| `p notify` | Manage notification channels |
-| `p hosted` | **(Experimental)** Live monitoring daemon |
-| `p web` | Unified web UI — dashboard, council, red team, tests, hosted |
-| `p brain` | View project purpose, domain, contract flows |
-| `p memory` | View or clear scan memory |
-| `p patch` | Manage individual patches |
-| `p undo` / `p redo` | Undo/redo applied fixes |
-| `p doctor` | Validate setup and config |
-| `p report` | Export scan reports |
-| `p mode` | View/change scan mode (confirm/auto/autopilot) |
-| `p agents` | List registered agents |
-| `p blast` | Blast radius analysis |
-| `p trend` | Quality trend over time |
+| Command | Purpose |
+|---------|---------|
+| `p init` | Initialize Patchi in the current project |
+| `p scan` | Scan for issues (`--json`, `--deep`, `--force`, `--offline`, `--with-license`) |
+| `p fix` | Apply AI-generated fixes (`--dry-run` to preview) |
+| `p test` | Run tests (unit, browser, stress, regression, api, e2e, visual) |
+| `p chat` | Interactive AI chat with Patchi (`--stream` for streaming) |
+| `p agents` | List/inspect registered agents (`list`, `status`, `reset`) |
+| `p deps` | Supply chain security scan |
+| `p audit` | Full project audit (scan + security + test + report) |
+| `p plan` | Prioritized fix list ranked by importance |
+| `p watch` | Auto-scan on file saves |
+| `p chains` | Show exploit chains and intent gaps |
+| `p findings` | View and manage security findings |
+| `p assure` | Assurance campaigns -- prove properties, record evidence |
+| `p charter` | Manage project charter and rules |
+| `p vr` | Visual regression baseline management |
+| `p notify` | Manage notification channels |
+| `p hosted` | **(Experimental)** Live monitoring daemon |
+| `p web` | Unified web UI -- dashboard, brain map, findings, assurance |
+| `p memory` | View or clear scan memory |
+| `p patch` | Manage individual patches (`list`, `show`, `apply`, `reject`) |
+| `p undo` / `p redo` | Undo/redo applied fixes |
+| `p doctor` | System health check -- stale commands, dependencies, config |
+| `p cleanup` | Clean stale `.patchi/` artifacts |
+| `p report` | Export scan reports |
+| `p settings` | View or modify configuration (`show`, `set`, `mode`) |
+| `p trend` | Health and quality trend over time |
+| `p blame` | Show git blame for a file |
+| `p log` | Show git changelog |
+| `p update` | Check for and apply updates |
+| `p verify` | Independently re-run tests+scan |
+| `p auto` | Propose/apply safe fixes for changed files |
+| `p impact` | Show change-impact / blast radius |
+| `p why` | Explain why a file matters |
+| `p restrict` | Manage file restrictions |
+| `p key` | Manage API keys |
+| `p ai` | AI configuration and status |
+| `p model` | Manage local Ollama model |
+| `p learn` | Learn project conventions |
+| `p agent-stats` | Agent profiling stats and learning state |
+| `p goal` | Autonomous mode -- loop until health target |
+| `p cross-repo` | Cross-repository dependency intelligence |
 
 Run `p <command> --help` for flags.
-
 ---
 
 ## AI Setup (Optional)
