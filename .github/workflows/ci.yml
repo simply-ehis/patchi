@@ -82,6 +82,25 @@ jobs:
               print(f'{agent.name}: {len(result.findings)} findings')
           "
 
+  dev-check:
+    # Run the same p dev check gate the pre-commit hook uses.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Run p dev check gate
+        run: python -m patchi dev check
+
   audit:
     # Full audit gate: CLI/agent-linking audit + dynamic agent smoke sweep +
     # full test suite. Every future change is checked for the bug classes found
