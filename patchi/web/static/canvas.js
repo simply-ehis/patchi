@@ -1170,6 +1170,62 @@ var BrainMap = (() => {
   // ── Search ──────────────────────────────────────────────────
   var _searchQuery = '', _searchMatches = [], _searchOrigColors = {}, _searchIndex = -1;
 
+  // ── Fuzzy scoring ─────────────────────────────────────────
+  function _fuzzyScore(query, full, short, tokens) {
+    if (!query) return 0;
+    var q = query.toLowerCase();
+    // Exact full path match — best
+    if (full.indexOf(q) >= 0) return 1000 - full.indexOf(q);
+    // Exact short name match
+    if (short.indexOf(q) >= 0) return 900 - short.indexOf(q);
+    // Token exact match (e.g. 'scan' matches 'security_scanner')
+    for (var ti = 0; ti < tokens.length; ti++) {
+      if (tokens[ti] === q) return 800;
+      if (tokens[ti].indexOf(q) >= 0) return 700 - ti;
+    }
+    // Token prefix match (e.g. 'sec' matches 'security')
+    for (var ti2 = 0; ti2 < tokens.length; ti2++) {
+      if (tokens[ti2].indexOf(q) === 0) return 600 - ti2;
+    }
+    // Subsequence match on short name (characters in order)
+    if (_isSubsequence(q, short)) return 400;
+    // Subsequence match on full path
+    if (_isSubsequence(q, full)) return 300;
+    // Token subsequence (query chars spread across tokens)
+    var tokenStr = tokens.join('');
+    if (_isSubsequence(q, tokenStr)) return 200;
+    // Levenshtein-like: short edit distance on short name
+    var dist = _editDistance(q, short);
+    if (dist <= Math.max(2, Math.floor(q.length * 0.4))) return 100 - dist;
+    return 0;
+  }
+
+  function _isSubsequence(needle, haystack) {
+    var ni = 0;
+    for (var hi = 0; hi < haystack.length && ni < needle.length; hi++) {
+      if (haystack[hi] === needle[ni]) ni++;
+    }
+    return ni === needle.length;
+  }
+
+  function _editDistance(a, b) {
+    var m = a.length, n = b.length;
+    if (m === 0) return n;
+    if (n === 0) return m;
+    // Optimized: only keep two rows
+    var prev = [];
+    for (var i = 0; i <= n; i++) prev[i] = i;
+    for (var i2 = 1; i2 <= m; i2++) {
+      var curr = [i2];
+      for (var j = 1; j <= n; j++) {
+        var cost = a[i2 - 1] === b[j - 1] ? 0 : 1;
+        curr[j] = Math.min(prev[j] + 1, curr[j - 1] + 1, prev[j - 1] + cost);
+      }
+      prev = curr;
+    }
+    return prev[n];
+  }
+
   function searchNodes(query) {
     _searchQuery = (query || '').trim().toLowerCase();
     var countEl = document.getElementById('brain-search-count');
@@ -1193,15 +1249,22 @@ var BrainMap = (() => {
     }
 
     _searchMatches = [];
+    var _searchScored = [];
     for (var id2 in nodes) {
       var n2 = nodes[id2];
       if (!n2.group) continue;
-      var label = id2.toLowerCase();
-      var shortName = label.split('/').pop();
-      if (id2.toLowerCase().indexOf(_searchQuery) >= 0 || label.indexOf(_searchQuery) >= 0 || shortName.indexOf(_searchQuery) >= 0) {
-        _searchMatches.push(id2);
+      var full = id2.toLowerCase();
+      var shortName = full.split('/').pop();
+      // Also split name on common separators for token matching
+      var tokens = shortName.replace(/[._\-\\/]/g, ' ').split(/\s+/).filter(Boolean);
+      var score = _fuzzyScore(_searchQuery, full, shortName, tokens);
+      if (score > 0) {
+        _searchScored.push({ id: id2, score: score });
       }
     }
+    // Sort by score descending (best matches first)
+    _searchScored.sort(function(a, b) { return b.score - a.score; });
+    _searchMatches = _searchScored.map(function(s) { return s.id; });
 
     for (var id3 in nodes) {
       var n3 = nodes[id3];
