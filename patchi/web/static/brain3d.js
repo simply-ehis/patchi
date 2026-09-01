@@ -22,6 +22,10 @@ var BrainMap3D = (() => {
   let _animDuration = 0;     // ms
   let _animStart = 0;        // timestamp
   let _animActive = false;
+  // Momentum / inertia state
+  let _momentum = { vx: 0, vy: 0, active: false };
+  let _lastMouse = null;
+  let _isMouseDown = false;
 
   // Colors matching 2D palette
   const COLORS = {
@@ -104,6 +108,82 @@ var BrainMap3D = (() => {
     container.appendChild(el);
     setTimeout(function() { el.style.opacity = '0'; }, 800);
     setTimeout(function() { el.remove(); }, 1300);
+  }
+
+  // ── Momentum / inertia ───────────────────────────────────
+  function _setupMomentum(el) {
+    el.addEventListener('mousedown', function(e) {
+      _isMouseDown = true;
+      _lastMouse = { x: e.clientX, y: e.clientY, t: performance.now() };
+      _momentum.active = false;
+    });
+    el.addEventListener('mousemove', function(e) {
+      if (!_isMouseDown || !_lastMouse) return;
+      var now = performance.now();
+      var dt = now - _lastMouse.t;
+      if (dt > 0) {
+        _momentum.vx = (e.clientX - _lastMouse.x) / dt * 16; // normalize to ~60fps
+        _momentum.vy = (e.clientY - _lastMouse.y) / dt * 16;
+      }
+      _lastMouse = { x: e.clientX, y: e.clientY, t: now };
+    });
+    el.addEventListener('mouseup', function() {
+      _isMouseDown = false;
+      _lastMouse = null;
+      // Activate momentum if velocity is significant
+      if (Math.abs(_momentum.vx) > 0.5 || Math.abs(_momentum.vy) > 0.5) {
+        _momentum.active = true;
+      }
+    });
+    el.addEventListener('mouseleave', function() {
+      _isMouseDown = false;
+      _lastMouse = null;
+    });
+    // Touch momentum
+    el.addEventListener('touchstart', function(e) {
+      if (e.touches.length === 1) {
+        _lastMouse = { x: e.touches[0].clientX, y: e.touches[0].clientY, t: performance.now() };
+        _momentum.active = false;
+      }
+    }, { passive: true });
+    el.addEventListener('touchmove', function(e) {
+      if (e.touches.length !== 1 || !_lastMouse) return;
+      var now = performance.now();
+      var dt = now - _lastMouse.t;
+      if (dt > 0) {
+        _momentum.vx = (e.touches[0].clientX - _lastMouse.x) / dt * 16;
+        _momentum.vy = (e.touches[0].clientY - _lastMouse.y) / dt * 16;
+      }
+      _lastMouse = { x: e.touches[0].clientX, y: e.touches[0].clientY, t: now };
+    }, { passive: true });
+    el.addEventListener('touchend', function(e) {
+      if (e.touches.length === 0) {
+        _lastMouse = null;
+        if (Math.abs(_momentum.vx) > 0.5 || Math.abs(_momentum.vy) > 0.5) {
+          _momentum.active = true;
+        }
+      }
+    }, { passive: true });
+  }
+
+  function _applyMomentum() {
+    if (!_momentum.active || !camera || !controls) return;
+    // Convert screen-space velocity to orbit rotation
+    var factor = 0.003;
+    var offset = new THREE.Vector3().copy(camera.position).sub(controls.target);
+    var spherical = new THREE.Spherical().setFromVector3(offset);
+    spherical.theta -= _momentum.vx * factor;
+    spherical.phi = Math.max(0.1, Math.min(Math.PI - 0.1, spherical.phi + _momentum.vy * factor));
+    offset.setFromSpherical(spherical);
+    camera.position.copy(controls.target).add(offset);
+    camera.lookAt(controls.target);
+    // Decay velocity
+    _momentum.vx *= 0.95;
+    _momentum.vy *= 0.95;
+    // Stop when velocity is negligible
+    if (Math.abs(_momentum.vx) < 0.01 && Math.abs(_momentum.vy) < 0.01) {
+      _momentum.active = false;
+    }
   }
 
   function _setupTouchRotate(el) {
@@ -202,16 +282,18 @@ var BrainMap3D = (() => {
       container.appendChild(renderer.domElement);
     }
 
-    // OrbitControls — full touch support
+    // OrbitControls — full touch support with momentum
     if (typeof THREE.OrbitControls !== 'undefined') {
       controls = new THREE.OrbitControls(camera, renderer.domElement);
       controls.enableDamping = true;
-      controls.dampingFactor = 0.08;
+      controls.dampingFactor = 0.05; // lower = more momentum
       controls.rotateSpeed = 0.8;
       controls.zoomSpeed = 1.2;
       controls.panSpeed = 0.8;
       controls.minDistance = 50;
       controls.maxDistance = 3000;
+      // Custom angular velocity tracking for extra spin
+      _setupMomentum(renderer.domElement);
       // Explicit touch configuration
       controls.touches = {
         ONE: THREE.TOUCH.ROTATE,
@@ -271,6 +353,7 @@ var BrainMap3D = (() => {
   function _animate() {
     _animFrame = requestAnimationFrame(_animate);
     _tickTransition();
+    _applyMomentum();
     if (controls) controls.update();
     renderer.render(scene, camera);
   }
