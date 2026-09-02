@@ -339,6 +339,57 @@ def _run_scan_inner(
                         "(run [cyan]p scan --with-license[/cyan] for full audit)[/dim]"
                     )
 
+                # ── Noise filter: discard low-value findings from tests/fixtures/locks/generated/docs
+                # This is the user-reported "1000s when 74 are real" fix — NoiseFilter was defined
+                # but never wired into the scan pipeline. We apply it here before any reporting.
+                try:
+                    from patchi.core.security.noise_filter import NoiseFilter
+
+                    nf = NoiseFilter(root=r, config={"noise_filter": {"enabled": True, "mode": "discard", "skip_tests": True, "skip_locks": True, "skip_generated": True, "skip_docs": True}})
+                    _noise_before = sum(len(getattr(ar, "findings", [])) for ar in agent_results)
+                    _noise_by_cat: dict[str, int] = {}
+                    for ar in agent_results:
+                        kept, rep = nf.apply(getattr(ar, "findings", []))
+                        ar.findings = kept  # type: ignore
+                        for cat, cnt in rep.by_category.items():
+                            _noise_by_cat[cat] = _noise_by_cat.get(cat, 0) + cnt
+                    _noise_after = sum(len(getattr(ar, "findings", [])) for ar in agent_results)
+                    _noise_discarded = _noise_before - _noise_after
+                    if _noise_discarded and not quiet:
+                        cats = ", ".join(f"{k}={v}" for k, v in sorted(_noise_by_cat.items()))
+                        con.print(f"[dim] noise filtered: {_noise_discarded} discarded ({cats}) — real findings kept[/dim]")
+                except Exception as _exc:
+                    _log.debug("noise filter failed: %s", _exc)
+
+                # ── Confidence gate: demote low-confidence medium/low (trust fix)
+                try:
+                    from patchi.core.agents.base import Severity as _Sev
+                    from patchi.core.security.confidence_gate import ConfidenceGate
+                    from patchi.core.security.orchestrator import CorrelatedFinding, SecurityReport
+
+                    # Build a pseudo report for gating — we reuse the gate's scoring without re-running AI
+                    _gate = ConfidenceGate(root=r, config={"confidence_gate": {"ai_weight": 0.0, "min_agents_for_defend": 1, "fp_auto_discard": False}})
+                    _gate_before = sum(len(getattr(ar, "findings", [])) for ar in agent_results)
+                    for ar in agent_results:
+                        new_findings = []
+                        for f in getattr(ar, "findings", []):
+                            # Build minimal CorrelatedFinding for scoring
+                            cf = CorrelatedFinding(finding=f, confirmed_by=[f.agent], composite_score=0.0)
+                            score = _gate._compute_score(cf)  # type: ignore
+                            tier = _gate._assign_tier(score)
+                            routing = _gate._assign_routing(tier, cf)
+                            # Trust fix: keep critical/high always; medium/low only if high confidence
+                            if routing == "discard" or (tier == "low" and f.severity in (_Sev.MEDIUM, _Sev.LOW, _Sev.INFO)):
+                                continue
+                            new_findings.append(f)
+                        ar.findings = new_findings  # type: ignore
+                    _gate_after = sum(len(getattr(ar, "findings", [])) for ar in agent_results)
+                    _gate_discarded = _gate_before - _gate_after
+                    if _gate_discarded and not quiet:
+                        con.print(f"[dim] confidence gate: {_gate_discarded} low-trust medium/low discarded[/dim]")
+                except Exception as _exc:
+                    _log.debug("confidence gate skipped: %s", _exc)
+
                 # ── Self-profiling: record per-agent latency/cost ──────────
                 try:
                     from patchi.core.agents.coordinator import merge_results as _pmr
