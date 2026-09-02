@@ -154,6 +154,21 @@ class ImportGraph:
             lines.append("  (no import relationships found)")
         return "\n".join(lines)
 
+    def to_dot(self, max_nodes: int = 200) -> str:
+        """DOT/Graphviz export for visualization (§1.3.3)."""
+        lines = ["digraph G {", "  rankdir=LR;", '  node [shape=box, style=rounded];']
+        nodes = sorted(self.nodes)[:max_nodes]
+        node_set = set(nodes)
+        for n in nodes:
+            safe = n.replace('"', '\\"')
+            lines.append(f'  "{safe}";')
+        for src in nodes:
+            for tgt in sorted(self.edges.get(src, [])):
+                if tgt in node_set:
+                    lines.append(f'  "{src.replace(chr(34), chr(92)+chr(34))}" -> "{tgt.replace(chr(34), chr(92)+chr(34))}";')
+        lines.append("}")
+        return "\n".join(lines)
+
 
 # ── Builder ────────────────────────────────────────────────────────────────────
 
@@ -316,6 +331,8 @@ def _resolve_dotted(imp: str, source_dir: Path, local_files: set[str]) -> str | 
     return None
 
 
+_JAVA_SRC_PREFIXES = ("src/main/java/", "src/test/java/", "src/main/kotlin/", "src/")
+
 def _try_extensions(base_path: str, local_files: set[str]) -> str | None:
     """Try appending each known extension and check if the file exists in local_files."""
     base = base_path.lstrip("/")
@@ -328,11 +345,18 @@ def _try_extensions(base_path: str, local_files: set[str]) -> str | None:
     if any(base.endswith(ext) for ext in KNOWN_EXTENSIONS):
         if base in local_files:
             return base
+        # Also try under Java/Kotlin src prefixes for dotted com.example.Foo
+        for pref in _JAVA_SRC_PREFIXES:
+            if (pref + base) in local_files:
+                return pref + base
 
     for ext in KNOWN_EXTENSIONS:
         candidate = base + ext
         if candidate in local_files:
             return candidate
+        for pref in _JAVA_SRC_PREFIXES:
+            if (pref + candidate) in local_files:
+                return pref + candidate
         init_candidate = base + "/__init__" + ext
         if init_candidate in local_files:
             return init_candidate
