@@ -18,6 +18,7 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
+import logging
 from fastapi.staticfiles import StaticFiles
 _log = logging.getLogger("patchi.web.app")
 
@@ -272,4 +273,34 @@ def create_app(root: Path) -> FastAPI:
     async def favicon():
         return HTMLResponse("")
 
+    # Fast health endpoint — always responds in <10ms
+    @app.get("/health")
+    async def health():
+        from fastapi.responses import JSONResponse
+        return JSONResponse({"status": "ok"})
+
+    # Warm caches at startup so first dashboard request is fast
+    @app.on_event("startup")
+    async def _warm_caches():
+        import asyncio
+        _r = root
+        def _do():
+            try:
+                from patchi.core.security.domain_loader import DomainLoader
+                dl = DomainLoader()
+                dl.load_all()
+                _log.info("Domain cache warmed: %d domains", len(dl._domains))
+            except Exception as exc:
+                _log.debug("Domain cache warm-up skipped: %s", exc)
+            try:
+                from patchi.core.health import compute as ch
+                ch(_r)
+            except Exception:
+                pass
+        await asyncio.to_thread(_do)
+
     return app
+
+# Module-level app for uvicorn discovery
+import os as _os
+app = create_app(Path(_os.getcwd()))

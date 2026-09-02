@@ -334,9 +334,9 @@ def check_tenant_cost_alert(root: Path, config: dict | None = None) -> dict | No
       cost_warn_pct       — percentage of limit that triggers warning (default 80)
     """
     cfg = config or {}
-    ai_cfg = cfg.get("ai", {})
-    limit = float(ai_cfg.get("cost_limit", 10.0))
-    warn_pct = float(ai_cfg.get("cost_warn_pct", 80))
+    ai_cfg = cfg.get("ai") or {}
+    limit = float(ai_cfg.get("cost_limit") or 10.0)
+    warn_pct = float(ai_cfg.get("cost_warn_pct") or 80)
 
     if limit <= 0:
         return None
