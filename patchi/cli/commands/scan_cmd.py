@@ -749,7 +749,7 @@ def _run_scan_inner(
                 _ctypes.append("frontend-web")
             if any((_root / f).exists() for f in ("requirements.txt", "pyproject.toml", "setup.py")):
                 _ctypes.append("backend-api")
-            if any((_root / d).exists() for d in ("docker", "k8s", "kubernetes", ".github")):
+            if any((_root / d).exists() for d in ("docker", "k8s", "kubernetes", ".github")) or (_root / "Dockerfile").exists():
                 _ctypes.append("infra")
         except Exception as _exc:
             _log.debug("component type detect skipped: %s", _exc)

@@ -698,7 +698,6 @@ class DomainLoader:
         """
         if hasattr(self, "_kw_index") and self._kw_index is not None:
             return self._kw_index
-        kws = self._domain_keywords()
         index: dict[str, list[tuple[str, DomainControl, Domain]]] = {}
         for domain in self._domains.values():
             for ctrl in domain.controls:
@@ -955,27 +954,49 @@ class DomainLoader:
         if not finding_domains:
             return []
 
+        # Collect candidate controls from the inverted index
         candidates = {}
         for kw_set in finding_domains:
-            for domain_id, ctrl, domain in idx.get(kw_set, []):
+            for _domain_id, ctrl, domain in idx.get(kw_set, []):
                 key = ctrl.control_id
                 if key not in candidates:
-                    candidates[key] = [0, ctrl, domain]
+                    candidates[key] = [0, set(), ctrl, domain]
                 candidates[key][0] += 1
+                candidates[key][1].add(kw_set)
 
+        # Score and filter — require message-specific relevance
         scored = []
-        for key, entry in candidates.items():
-            overlap_count, ctrl, domain = entry
-            score = overlap_count * 2
-            if message and ctrl.name:
-                ctrl_words = [w for w in ctrl.name.lower().split() if len(w) > 3]
-                if ctrl_words and any(w in message.lower() for w in ctrl_words):
-                    score += 3
+        msg_lower = (message or "").lower()
+        for _key, entry in candidates.items():
+            overlap_count, kw_sets, ctrl, domain = entry
+
+            # Base score from keyword overlap
+            score = overlap_count
+
+            # Strong boost when finding message words appear in the control name
+            if ctrl.name:
+                ctrl_name_words = {w for w in ctrl.name.lower().split() if len(w) > 3}
+                msg_words = {w for w in msg_lower.split() if len(w) > 3}
+                name_overlap = ctrl_name_words & msg_words
+                score += len(name_overlap) * 3
+
+            # Boost for exact phrase matches in the message
+            if ctrl.name and ctrl.name.lower() in msg_lower:
+                score += 5
+            elif ctrl.description and ctrl.description.lower()[:40] in msg_lower:
+                score += 3
+
+            # Boost when file path context matches
             if file_path:
-                dw = domain.domain_id.replace("-", " ").split()
-                if any(w in file_path.lower() for w in dw if len(w) > 3):
+                domain_words = domain.domain_id.replace("-", " ").split()
+                if any(w in file_path.lower() for w in domain_words if len(w) > 3):
                     score += 2
-            if score >= 4:
+
+            # Require at least some message-specific signal
+            # (prevents "technical debt" from matching "secrets in code")
+            has_msg_signal = bool(name_overlap) or score >= 5
+
+            if score >= 3 and has_msg_signal:
                 scored.append((score, ctrl))
 
         scored.sort(key=lambda x: (-x[0], x[1].severity != "critical"))
