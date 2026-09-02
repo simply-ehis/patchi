@@ -99,7 +99,13 @@ jobs:
           pip install -e ".[dev]"
 
       - name: Run p dev check gate
-        run: python -m patchi dev check
+        run: |
+          # Use fast mode on PRs for quick feedback, full mode on main
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+            python -m patchi dev check --fast
+          else
+            python -m patchi dev check
+          fi
 
   audit:
     # Full audit gate: CLI/agent-linking audit + dynamic agent smoke sweep +

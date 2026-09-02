@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
+from datetime import UTC
 from pathlib import Path
 
 _log = logging.getLogger("patchi.brain.context")
@@ -354,8 +355,8 @@ def build_brain_context(root: Path, config: dict | None = None) -> BrainContext:
     except Exception:
         pass
 
-    from datetime import datetime as _dt
-    ctx.built_at = _dt.now(_dt.UTC).isoformat()
+    from datetime import datetime as _dtnow
+    ctx.built_at = _dtnow.now(UTC).isoformat()
     ctx.build_duration_ms = int((_time.monotonic() - t0) * 1000)
 
     _log.info(
