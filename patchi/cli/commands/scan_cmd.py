@@ -751,8 +751,8 @@ def _run_scan_inner(
                 _ctypes.append("backend-api")
             if any((_root / d).exists() for d in ("docker", "k8s", "kubernetes", ".github")):
                 _ctypes.append("infra")
-        except Exception:
-            pass
+        except Exception as _exc:
+            _log.debug("component type detect skipped: %s", _exc)
         _dl = DomainLoader(r, component_types=_ctypes if _ctypes else None)
         for _ar in (agent_results or []):
             for _f in getattr(_ar, "findings", []):
@@ -761,14 +761,14 @@ def _run_scan_inner(
                 _type = getattr(_f, "type", "") or getattr(_f, "agent", "") or ""
                 _ctrls = _dl.match_finding_to_controls(_type, _file, _msg)
                 if _ctrls:
-                    setattr(_f, "domain_controls", [
+                    _f.extra["domain_controls"] = [
                         {"control_id": c.control_id, "name": c.name, "severity": c.severity}
                         for c in _ctrls[:5]
-                    ])
+                    ]
                     _pb = _dl.get_playbook(_ctrls[0].control_id)
                     if _pb:
-                        setattr(_f, "playbook_ref", _pb.control_id)
-                        setattr(_f, "fix_strategy", _pb.fix_strategy)
+                        _f.extra["playbook_ref"] = _pb.control_id
+                        _f.extra["fix_strategy"] = _pb.fix_strategy
     except Exception as _e:
         import logging
         logging.getLogger("patchi.scan").debug("Domain enrichment skipped: %s", _e)

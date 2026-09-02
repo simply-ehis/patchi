@@ -247,8 +247,8 @@ class ReasoningEngine:
                     ans = call_ai(cfgd, "You are Patchi understander. Answer from layered brain context.", f"Question: {question}\n\nContext:\n{ctx}", max_tokens=400)
                     if ans:
                         return ans
-            except Exception:
-                pass
+            except Exception as _exc:
+                _log.debug("reasoning AI synthesis fallback: %s", _exc)
         lines = [f"Based on the layered brain, here's what I know about '{question.strip()}':", ""]
         for _, name, layer in top:
             lines.append(f"[bold]{name}[/bold] ({_level_name(layer.level)}): {layer.summary}")
