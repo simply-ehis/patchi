@@ -754,11 +754,21 @@ def _run_scan_inner(
         except Exception as _exc:
             _log.debug("component type detect skipped: %s", _exc)
         _dl = DomainLoader(r, component_types=_ctypes if _ctypes else None)
+        _SEC_AGENTS = {
+            "EnvScanner", "SideFileScanner", "CoreScanner",
+            "DependencyScanner", "RouteGraphScanner", "SBOMGeneratorAgent",
+            "CommentScanner", "DeadCodeScanner", "DeadCodeHygieneAgent",
+        }
         for _ar in (agent_results or []):
+            _aname = getattr(_ar, "agent_name", "") or ""
             for _f in getattr(_ar, "findings", []):
+                # Skip enrichment for agents that never produce security findings
+                _fagent = getattr(_f, "agent", "") or _aname
+                if _fagent not in _SEC_AGENTS:
+                    continue
                 _msg = getattr(_f, "message", "") or ""
                 _file = getattr(_f, "file", "") or ""
-                _type = getattr(_f, "type", "") or getattr(_f, "agent", "") or ""
+                _type = getattr(_f, "type", "") or _fagent
                 _ctrls = _dl.match_finding_to_controls(_type, _file, _msg)
                 if _ctrls:
                     _f.extra["domain_controls"] = [
