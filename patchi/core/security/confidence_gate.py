@@ -203,12 +203,12 @@ class ConfidenceGate:
         report: SecurityReport,
         route_context: dict | None = None,
     ) -> GatedReport:
-        """Full harness pipeline: score → route → AI-validate medium tier.
+        """Full harness: score → route → AIConfidenceGate second pass (L2).
 
-        For findings routed to ``ai_analyze``, runs the AIValidator with full
-        file context and chain-of-reasoning.  High-confidence false positives
-        are promoted to ``discard``; confirmed true positives are promoted to
-        ``defend``.
+        L2 spec: keep deterministic scanners, add AI as second pass ONLY for
+        confidence==low AND severity in {high,critical} OR type in {secret, injection, auth}.
+        Schema-validated JSON {verdict: confirmed|fp, reason, exploitability 0-1}
+        via call_ai_structured:212. Offline → unverified.
         """
         from patchi.core.security.ai_validator import AIValidator
 
@@ -218,37 +218,42 @@ class ConfidenceGate:
         # Step 1: Initial gating
         gated = [self.gate(cf) for cf in report.findings]
 
-        # Step 2: AI-validate the ai_analyze tier
-        ai_analyze = [g for g in gated if g.routing == "ai_analyze"]
-        if ai_analyze:
-            _log.info("AI validating %d medium-confidence findings...", len(ai_analyze))
-            for gf in ai_analyze:
-                result = self._ai_validator.validate(
-                    gf.finding,
-                    route_context=route_context,
-                )
-                # Promote or demote based on AI verdict
+        # L2 targeted second pass: low confidence + high/critical OR sensitive types
+        import os as _os
+
+        if _os.environ.get("PATCHI_OFFLINE"):
+            # Offline honors contract — no AI calls, mark as unverified
+            for gf in gated:
+                if gf.confidence_score < 0.4 or gf.routing == "ai_analyze":
+                    gf.routing_reason += " [offline unverified]"
+            return self._build_report(gated)
+
+        sensitive_types = ("secret", "injection", "auth", "cred", "token", "password")
+        l2_targets: list = []
+        for gf in gated:
+            is_low = gf.confidence_score < 0.4 or gf.routing in ("ai_analyze", "human_review")
+            sev = getattr(gf.finding.severity, "value", str(gf.finding.severity)).lower()
+            is_high = sev in ("high", "critical")
+            is_sensitive = any(t in (gf.finding.type or "").lower() for t in sensitive_types)
+            if (is_low and is_high) or (is_low and is_sensitive) or gf.routing == "ai_analyze":
+                # limit tokens: high/critical low OR sensitive types, plus all ai_analyze
+                l2_targets.append(gf)
+        # cap to bound cost ~10 Findings
+        l2_targets = l2_targets[:10]
+        if l2_targets:
+            _log.info("L2 AIConfidenceGate validating %d findings (low/high+secret/injection/auth) ...", len(l2_targets))
+            for gf in l2_targets:
+                result = self._ai_validator.validate(gf.finding, route_context=route_context)
+                # Schema: is_true_positive + confidence + explanation already
                 if result.confidence >= 0.7 and not result.is_true_positive:
-                    # High-confidence FP → discard
                     gf.routing = "discard"
-                    gf.routing_reason = (
-                        f"AI-validated false positive ({result.confidence:.0%}): "
-                        f"{result.explanation}"
-                    )
+                    gf.routing_reason = f"L2 fp ({result.confidence:.0%}): {result.explanation} [verdict=fp exploitability~{1-result.confidence:.1f}]"
                 elif result.confidence >= 0.6 and result.is_true_positive:
-                    # Confirmed true positive → defend
                     gf.routing = "defend"
-                    gf.routing_reason = (
-                        f"AI-confirmed true positive ({result.confidence:.0%}): "
-                        f"{result.explanation}"
-                    )
+                    gf.routing_reason = f"L2 confirmed ({result.confidence:.0%}): {result.explanation} [exploitability={result.confidence:.1f}]"
                 else:
-                    # Ambiguous — keep as human_review
                     gf.routing = "human_review"
-                    gf.routing_reason = (
-                        f"AI uncertain ({result.confidence:.0%}): {result.explanation}"
-                    )
-                # Blend AI confidence into score
+                    gf.routing_reason = f"L2 unverified ({result.confidence:.0%}): {result.explanation}"
                 ai_w = min(self.ai_weight, 0.5)
                 gf.confidence_score = (1.0 - ai_w) * gf.confidence_score + ai_w * (
                     1.0 - result.confidence if not result.is_true_positive else result.confidence
@@ -258,6 +263,10 @@ class ConfidenceGate:
         self.learn_from_dismissed(self._build_report(gated))
 
         return self._build_report(gated)
+
+    def l2_second_pass(self, report: SecurityReport, route_context: dict | None = None) -> GatedReport:
+        """Alias for L2 spec naming — explicit entry point."""
+        return self.gate_with_ai_validation(report, route_context=route_context)
 
     def _build_report(self, gated_list: list[GatedFinding]) -> GatedReport:
         stats = {

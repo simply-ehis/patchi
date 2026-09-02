@@ -89,8 +89,11 @@ def _build_prompt(
     active_domains: list[str],
     extra_context: dict[str, Any] | None = None,
 ) -> str:
+    # StackInfo
     fws = [f.name for f in (stack.frameworks if stack and getattr(stack, "frameworks", None) else [])]
     fw_str = ", ".join(fws) if fws else "Unknown"
+    runtime = getattr(stack, "runtime", "") if stack else ""
+    has_ts = getattr(stack, "has_typescript", False) if stack else False
     langs = {}
     for fi in file_infos:
         try:
@@ -102,11 +105,27 @@ def _build_prompt(
     route_sample = [getattr(r, "path", str(r)) for r in routes[:12]]
     infra = context.get("infrastructure_files", []) if isinstance(context, dict) else []
     deps = context.get("dependencies", []) if isinstance(context, dict) else []
+    # ProjectInsight
+    insight_block = ""
+    try:
+        pi = extra_context.get("project_insight") if extra_context else None
+        if isinstance(pi, dict) and pi:
+            insight_block = f"\nPROJECT_INSIGHT: {pi.get('name','')} — {pi.get('description','')[:200]} | type={pi.get('project_type','')} fw={pi.get('framework','')} lang={pi.get('language','')} tech={pi.get('tech_stack',[])[:6]} entry={pi.get('entry_points',[])[:3]} readme={pi.get('readme_summary','')[:300]}\n"
+    except Exception:
+        insight_block = ""
+    # Layer summaries (up to 10)
+    layer_block = ""
+    try:
+        lb = extra_context.get("layer_summaries") if extra_context else None
+        if isinstance(lb, list) and lb:
+            layer_block = "\nLAYER_SUMMARIES:\n" + "\n".join(f"- {l.get('name','')} ({l.get('level','')}): {l.get('summary','')[:180]}" for l in lb[:10]) + "\n"
+    except Exception:
+        layer_block = ""
     core_block = ""
     if extra_context and extra_context.get("core_files_block"):
         core_block = f"\nCORE_FILES (understander-ranked):\n{extra_context['core_files_block']}\n"
     return (
-        f"FRAMEWORKS: {fw_str}\n"
+        f"FRAMEWORKS: {fw_str} runtime={runtime} ts={has_ts}\n"
         f"LANGUAGES: {lang_str}\n"
         f"FILE_COUNT: {len(file_infos)}\n"
         f"ROUTES ({len(routes)}): {route_sample}\n"
@@ -115,6 +134,8 @@ def _build_prompt(
         f"INFRA_SAMPLE: {infra[:10]}\n"
         f"DEPS_SAMPLE: {deps[:15]}\n"
         f"CONTEXT_KEYS: {list(context.keys())[:14] if isinstance(context, dict) else []}\n"
+        + insight_block
+        + layer_block
         + core_block
         + "\nTask: synthesize. 1 sentence purpose, pick single domain label, confirm tech stack from signals, "
         + "name 2-4 critical dirs with why, list top 3 risks mapped to active domains, and one-line scan focus."

@@ -339,12 +339,96 @@ class Council:
 
         return selected[:5]
 
+    def _council_cache_key(self, issue: str, context: dict | None) -> str:
+        import hashlib as _hl
+        import json as _js
+
+        ctx_str = _js.dumps(context or {}, sort_keys=True, default=str)
+        raw = f"{issue}\n{ctx_str}"
+        return _hl.sha256(raw.encode()).hexdigest()[:16]
+
+    def _council_cache_path(self) -> Path:
+        return self.root / ".patchi" / "memory" / "council_cache.json"
+
+    def _council_cache_get(self, key: str) -> dict | None:
+        p = self._council_cache_path()
+        if not p.exists():
+            return None
+        try:
+            import json as _js
+            import time as _tm
+
+            data = _js.loads(p.read_text(encoding="utf-8"))
+            entry = data.get(key)
+            if not entry:
+                return None
+            # 7-day TTL
+            age = _tm.time() - entry.get("cached_at", 0)
+            if age > 7 * 24 * 3600:
+                return None
+            return entry.get("value")
+        except Exception:
+            return None
+
+    def _council_cache_set(self, key: str, value: dict) -> None:
+        p = self._council_cache_path()
+        try:
+            import json as _js
+            import time as _tm
+
+            data: dict = {}
+            if p.exists():
+                try:
+                    data = _js.loads(p.read_text(encoding="utf-8"))
+                except Exception:
+                    data = {}
+            data[key] = {"cached_at": _tm.time(), "value": value}
+            # keep top-5 recurring + prune to 50 entries
+            if len(data) > 50:
+                # drop oldest
+                sorted_keys = sorted(data, key=lambda k: data[k].get("cached_at", 0))
+                for k in sorted_keys[:-50]:
+                    data.pop(k, None)
+            p.parent.mkdir(parents=True, exist_ok=True)
+            tmp = p.with_suffix(".tmp")
+            tmp.write_text(_js.dumps(data, indent=2))
+            if tmp.exists():
+                import sys as _sys
+
+                if _sys.platform == "win32" and p.exists():
+                    p.unlink()
+                tmp.replace(p)
+        except Exception as exc:  # noqa: BLE001
+            _log.debug("council cache set failed: %s", exc)
+
     async def deliberate(self, issue: str, context: dict = None) -> CouncilSession:
         """
         Run a full council deliberation on an issue.
 
+        L4: Cached by SHA256(issue+context_hash) in .patchi/memory/council_cache.json 7-day TTL.
         Returns a CouncilSession with decisions, synthesis, and action plan.
         """
+        # L4 cache check
+        cache_key = self._council_cache_key(issue, context)
+        cached = self._council_cache_get(cache_key)
+        if cached:
+            self.on_progress(f"♻️ Council cache hit ({cache_key}) — 7d TTL")
+            # Rehydrate minimal session from cache
+            try:
+                sess = CouncilSession(
+                    issue=issue,
+                    context=context or {},
+                    synthesis=cached.get("synthesis", ""),
+                    action_plan=cached.get("action_plan", []),
+                    consensus_reached=bool(cached.get("consensus_reached", False)),
+                    completed_at=cached.get("completed_at", ""),
+                    duration_ms=int(cached.get("duration_ms", 0)),
+                )
+                # persona_decisions are not fully rehydrated (lightweight cache)
+                self.session_history.append(sess)
+                return sess
+            except Exception:
+                pass
         start_time = time.monotonic()
         context = context or {}
 
@@ -390,6 +474,20 @@ class Council:
             f"✅ Council complete in {session.duration_ms}ms. Consensus: {session.consensus_reached}"
         )
 
+        # L4 cache set
+        try:
+            self._council_cache_set(
+                cache_key,
+                {
+                    "synthesis": session.synthesis,
+                    "action_plan": session.action_plan,
+                    "consensus_reached": session.consensus_reached,
+                    "completed_at": session.completed_at,
+                    "duration_ms": session.duration_ms,
+                },
+            )
+        except Exception:
+            pass
         return session
 
     async def _run_persona_analysis(

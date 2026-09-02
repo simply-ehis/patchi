@@ -490,15 +490,32 @@ class Brain:
                     cfg_for_ai = {}
             except Exception:
                 cfg_for_ai = {}
-            # If understander exists, enrich with core_files context
-            _u_block = ""
-            _core_hint = {}
+            # L1 spec: ProjectInsight + StackInfo + layer summaries (1 call, 1s timeout honoured)
+            _core_hint: dict = {}
             if getattr(report, "_understander", None) is not None:
                 try:
                     _u_block = report._understander.as_prompt_block(limit=8)  # type: ignore[attr-defined]
-                    _core_hint = {"core_files_block": _u_block}
+                    _core_hint["core_files_block"] = _u_block
                 except Exception:
-                    _core_hint = {}
+                    pass
+            # ProjectInsight
+            try:
+                from patchi.core.brain.project_reader import read_project_insight
+
+                _pi = read_project_insight(self.root)
+                _core_hint["project_insight"] = _pi.to_dict()
+            except Exception:
+                pass
+            # Layer summaries (up to 10)
+            try:
+                _layer_summ = []
+                for lname, lyr in getattr(report, "layers", {}).items():
+                    _layer_summ.append({"name": lname, "level": getattr(lyr, "level", 0), "summary": getattr(lyr, "summary", "")[:220]})
+                    if len(_layer_summ) >= 10:
+                        break
+                _core_hint["layer_summaries"] = _layer_summ
+            except Exception:
+                pass
             report.enriched_context = enrich_project_context(
                 self.root,
                 cfg_for_ai,
@@ -613,11 +630,28 @@ class Brain:
 
         # Persist the layered brain (Pillar 1) as a separate memory file, plus the
         # file-content snapshot that powers incremental (no-op) rebuilds.
+        # L3: build RAG index at scan time (cached layer[].summary embeddings)
         try:
             if report.layers:
                 _layers_data = layers_to_dict(report.layers)
                 if _new_snap:
                     _layers_data["file_snapshot"] = _new_snap
+                # L3 RAG index: term frequencies per layer, stored for cosine query
+                try:
+                    import re as _re
+
+                    _rag_index: dict[str, dict] = {}
+                    for _lname, _lyr in report.layers.items():
+                        txt = f"{_lname} {getattr(_lyr,'summary','')} {getattr(_lyr,'purpose','')}".lower()
+                        toks = [t for t in _re.findall(r"[a-z0-9_]+", txt) if len(t) > 2]
+                        tf: dict[str, int] = {}
+                        for t in toks:
+                            tf[t] = tf.get(t, 0) + 1
+                        _rag_index[_lname] = {"tf": tf, "summary": getattr(_lyr, "summary", "")[:500]}
+                    _layers_data["rag_index"] = _rag_index
+                    _layers_data["rag_index_version"] = 1
+                except Exception:
+                    pass
                 mem.save_layers(_layers_data, self.root)
         except Exception as e:
             logger.warning("Brain.scan failed: %s", e)

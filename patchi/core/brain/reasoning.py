@@ -176,8 +176,14 @@ class ReasoningEngine:
 
     # ── Natural-language问答 (TF-IDF over layers + body_tags, LLM optional) ─
 
-    def ask(self, question: str, use_ai: bool = False) -> str:
-        """Answer a question from layer summaries. TF-IDF ranked, optionally LLM-synthesized."""
+    def ask(self, question: str, use_ai: bool = False, ask_ai: bool | None = None, **_) -> str:
+        """Answer a question from layer summaries. TF-IDF ranked, optionally LLM-synthesized.
+
+        Spec L3: RAG over cached layers[].summary built at scan time (layers.json rag_index),
+        query via cosine, ask_ai=True wraps RAG context + call_ai. use_ai is alias for backward compat.
+        """
+        if ask_ai is not None:
+            use_ai = bool(ask_ai)
         if not self.layers:
             return (
                 "I don't have a brain-map of this project yet. "
