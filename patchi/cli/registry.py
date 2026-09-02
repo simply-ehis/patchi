@@ -1096,4 +1096,13 @@ COMMANDS: list[Command] = [
             Arg("--json", dest="json_output", action="store_true", help="Output as JSON"),
         ),
     ),
+    Command(
+        "plugins",
+        "Manage analyzer plugins (list, run, info)",
+        "patchi.cli.commands.plugins_cmd:cmd_plugins",
+        namespace_handler=True,
+        args=(
+            Arg("args", nargs="*", help="Plugin subcommand and arguments"),
+        ),
+    ),
 ]
