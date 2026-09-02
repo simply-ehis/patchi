@@ -170,7 +170,57 @@ class SBOMGeneratorAgent(BaseAgent):
     name = "SBOMGeneratorAgent"
     description = "Generate CycloneDX SBOM from package.json, requirements.txt, Cargo.toml, go.mod, Gemfile, etc."
 
+    def _try_external(self, inp: AgentInput) -> dict | None:
+        """Try cdxgen then syft as subprocess — 20+ ecos depth, fail-open to internal parser."""
+        import shutil
+        import subprocess as _sp
+
+        # cdxgen: npx @cyclonedx/cdxgen -o /tmp/sbom.json
+        for cmd in (
+            ["npx", "--yes", "@cyclonedx/cdxgen", "-o", str(inp.root / ".patchi" / "sbom.cdxgen.json"), "--no-recurse"],
+            ["syft", str(inp.root), "-o", "cyclonedx-json"],
+        ):
+            if not shutil.which(cmd[0]):
+                continue
+            try:
+                proc = _sp.run(cmd, capture_output=True, text=True, timeout=120, cwd=str(inp.root))
+                out = proc.stdout.strip()
+                # cdxgen writes file, syft prints json
+                cand = inp.root / ".patchi" / "sbom.cdxgen.json"
+                if cand.exists():
+                    return json.loads(cand.read_text(encoding="utf-8"))
+                if out and out.startswith("{"):
+                    return json.loads(out)
+            except Exception as e:
+                _log.debug("SBOM external %s failed: %s", cmd[0], e)
+        return None
+
     def _run(self, inp: AgentInput, result: AgentResult) -> None:
+        # Try external depth first
+        ext = self._try_external(inp)
+        if ext and ext.get("components"):
+            sbom = ext
+            total = len(ext.get("components", []))
+            sbom_dir = inp.root / ".patchi"
+            sbom_dir.mkdir(parents=True, exist_ok=True)
+            sbom_path = sbom_dir / "sbom.cdx.json"
+            try:
+                sbom_path.write_text(json.dumps(sbom, indent=2), encoding="utf-8")
+                result.findings.append(
+                    make_finding(
+                        self.name, "sbom_generated", Severity.INFO, str(sbom_path.relative_to(inp.root)), f"SBOM (external) {total} components"
+                    )
+                )
+            except Exception as e:
+                result.add_error(f"Failed to write SBOM: {e}")
+            result.data["sbom_path"] = str(sbom_path)
+            result.data["total_components"] = total
+            result.data["ecosystems"] = ["external"]
+            result.data["sbom"] = sbom
+            result.data["external"] = True
+            result.status = AgentStatus.DONE
+            return
+
         deps_by_eco: dict[str, list[dict]] = {}
         files_scanned = 0
 
