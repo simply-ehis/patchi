@@ -91,8 +91,8 @@ async def dashboard(request: Request):
     try:
         from patchi.core.tenant import check_tenant_cost_alert
         cost_alert = check_tenant_cost_alert(root, cfg.load(root))
-    except Exception:
-        pass
+    except Exception as _exc:
+        _log.debug('suppressed: %s', _exc)
 
     import asyncio as _asyncio
     brain_data = await _asyncio.to_thread(_get_brain_data, request.app.state.root)

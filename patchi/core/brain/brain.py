@@ -496,16 +496,16 @@ class Brain:
                 try:
                     _u_block = report._understander.as_prompt_block(limit=8)  # type: ignore[attr-defined]
                     _core_hint["core_files_block"] = _u_block
-                except Exception:
-                    pass
+                except Exception as _exc:
+                    _log.debug('suppressed: %s', _exc)
             # ProjectInsight
             try:
                 from patchi.core.brain.project_reader import read_project_insight
 
                 _pi = read_project_insight(self.root)
                 _core_hint["project_insight"] = _pi.to_dict()
-            except Exception:
-                pass
+            except Exception as _exc:
+                _log.debug('suppressed: %s', _exc)
             # Layer summaries (up to 10)
             try:
                 _layer_summ = []
@@ -514,8 +514,8 @@ class Brain:
                     if len(_layer_summ) >= 10:
                         break
                 _core_hint["layer_summaries"] = _layer_summ
-            except Exception:
-                pass
+            except Exception as _exc:
+                _log.debug('suppressed: %s', _exc)
             report.enriched_context = enrich_project_context(
                 self.root,
                 cfg_for_ai,
@@ -650,8 +650,8 @@ class Brain:
                         _rag_index[_lname] = {"tf": tf, "summary": getattr(_lyr, "summary", "")[:500]}
                     _layers_data["rag_index"] = _rag_index
                     _layers_data["rag_index_version"] = 1
-                except Exception:
-                    pass
+                except Exception as _exc:
+                    _log.debug('suppressed: %s', _exc)
                 mem.save_layers(_layers_data, self.root)
         except Exception as e:
             logger.warning("Brain.scan failed: %s", e)

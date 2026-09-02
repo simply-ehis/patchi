@@ -295,8 +295,8 @@ def create_app(root: Path) -> FastAPI:
             try:
                 from patchi.core.health import compute as ch
                 ch(_r)
-            except Exception:
-                pass
+            except Exception as _exc:
+                _log.debug('suppressed: %s', _exc)
         await asyncio.to_thread(_do)
 
     return app

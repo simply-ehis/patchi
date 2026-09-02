@@ -427,8 +427,8 @@ class Council:
                 # persona_decisions are not fully rehydrated (lightweight cache)
                 self.session_history.append(sess)
                 return sess
-            except Exception:
-                pass
+            except Exception as _exc:
+                _log.debug('suppressed: %s', _exc)
         start_time = time.monotonic()
         context = context or {}
 
@@ -486,8 +486,8 @@ class Council:
                     "duration_ms": session.duration_ms,
                 },
             )
-        except Exception:
-            pass
+        except Exception as _exc:
+            _log.debug('suppressed: %s', _exc)
         return session
 
     async def _run_persona_analysis(
