@@ -242,9 +242,20 @@ def _security_agent_map(root: Path) -> dict[str, Any]:
 def _select_security_agents(
     root: Path, name_map: dict[str, Any], area: str | None = None
 ) -> list[Any]:
-    """Pick the security agents relevant to THIS project's signals."""
+    """Pick the security agents relevant to THIS project's signals + body tags gating."""
     signals = _detect_signals(root)
     web = "web" in signals or "web_frontend" in signals
+    # Try body_tags refined gating: drop web-only if no high/medium core route files
+    try:
+        from patchi.core.brain.body_tags import load_body_tags
+
+        tags = load_body_tags(root)
+        if tags:
+            high_route = any(t.get("is_route_file") and t.get("criticality") in ("high", "critical") for t in tags.values())
+            if not high_route:
+                web = False
+    except Exception:
+        pass
     selected = []
     for name, cls in name_map.items():
         low = name.lower()
@@ -1030,7 +1041,39 @@ def generate_tests(
 
     Files are written to ``.patchi/generated_tests/`` — never over the source —
     so the action is non-destructive.
+    If target_files is empty or ["auto"], uses Understander to find untested core files.
     """
+    if not target_files or target_files == ["auto"]:
+        try:
+            from patchi.core.brain.body_tags import load_body_tags
+            from patchi.core.brain.understander import Understander
+            from patchi.core.brain.file_corpus import FileCorpus
+
+            tags = load_body_tags(root)
+            # need file_infos for understander — quick corpus probe
+            corpus = FileCorpus(root)
+            # Build pseudo file_infos from corpus entries
+            class _FI:
+                def __init__(self, p: str):
+                    self.path = p
+            fis = [_FI(e.path) for e in corpus.files()]
+            # If tags empty, fall back to corpus high-size
+            if not tags:
+                # take 5 largest non-test python files as core hint
+                cand = sorted([e for e in corpus.files() if e.path.endswith(".py") and "tests" not in e.path], key=lambda e: -e.size_bytes)[:5]
+                target_files = [c.path for c in cand]
+            else:
+                u = Understander(root, fis, tags, {}, [])
+                core = u.core_files(limit=10)
+                # filter already tested (tests/test_<stem>.py exists)
+                auto: list[str] = []
+                for c in core:
+                    stem = Path(c["path"]).stem
+                    if not (root / f"tests/test_{stem}.py").exists() and not (root / f"tests/{stem}_test.py").exists():
+                        auto.append(c["path"])
+                target_files = auto[:5] if auto else [c["path"] for c in core[:3]]
+        except Exception:
+            pass
     out_dir = root / ".patchi" / "generated_tests"
     out_dir.mkdir(parents=True, exist_ok=True)
     created = []
