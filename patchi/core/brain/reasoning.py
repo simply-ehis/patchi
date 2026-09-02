@@ -19,10 +19,13 @@ This module is additive: it only reads the Layered Brain persisted at
 
 from __future__ import annotations
 
+import logging
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING
+
+_log = logging.getLogger("patchi.brain.reasoning")
 
 if TYPE_CHECKING:
     from patchi.core.brain.layered_brain import Layer

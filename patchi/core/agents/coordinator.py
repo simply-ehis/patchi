@@ -247,7 +247,13 @@ class Coordinator:
                     from patchi.core.security.defense_layer import DefenseLayer
                     from patchi.core.security.detection_pipeline import DetectionPipeline
 
-                    pipeline = DetectionPipeline(self.root, self._config)
+                    # Wire brain context for context-aware classification
+                    try:
+                        from patchi.core.brain.brain_context import get_brain_context
+                        _brain_ctx = get_brain_context(self.root, self._config)
+                    except Exception:
+                        _brain_ctx = None
+                    pipeline = DetectionPipeline(self.root, self._config, brain_context=_brain_ctx)
                     gated = pipeline.process(self.last_security_report)
                     self.last_gated_report = gated
                     if gated.findings:

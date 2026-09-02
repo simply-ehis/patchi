@@ -66,7 +66,7 @@ def build_body_tags(
     sorted_fan = sorted(fan_in_counts.items(), key=lambda x: -x[1])
     hubs = {fp for fp, _ in sorted_fan[:20] if _ >= hub_threshold}
     # route adjacency
-    route_paths = {getattr(r, "path", "") for r in (routes or [])}
+    _route_paths = {getattr(r, "path", "") for r in (routes or [])}
     route_files = set()
     for fi in file_infos:
         low = fi.path.lower()

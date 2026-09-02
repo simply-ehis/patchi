@@ -21,6 +21,8 @@ Output is a BrainReport: rich structured knowledge of the entire project.
 from __future__ import annotations
 
 import logging
+
+_log = logging.getLogger("patchi.brain.brain")
 import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -627,6 +629,44 @@ class Brain:
             )
         except Exception as e:
             logger.debug("Assurance graph build skipped: %s", e)
+
+        # ── Contract diff 3.1.3-7 — frontend ↔ backend mismatch (missing/orphan/method/param) ─
+        try:
+            from patchi.core.brain.contract_diff import build_and_save as _cd_build
+
+            _cd = _cd_build(self.root, report.file_infos, report.routes)
+            report.contract_diff = _cd.to_dict()  # type: ignore[attr-defined]
+            # surface as findings for p findings / gate (only missing + orphan at medium)
+            from patchi.core.agents.base import Finding, Severity
+
+            _cd_findings = []
+            for m in _cd.missing_routes:
+                _cd_findings.append(
+                    Finding(
+                        agent="ContractDiff",
+                        type="contract_missing_route",
+                        severity=Severity.MEDIUM,
+                        file=m.get("file", ""),
+                        line=m.get("line", 0),
+                        message=f"Frontend calls {m.get('method')} {m.get('raw')} with no backend route (404)",
+                        cwe="CWE-444",
+                    ).to_dict()
+                )
+            for o in _cd.orphan_endpoints:
+                _cd_findings.append(
+                    Finding(
+                        agent="ContractDiff",
+                        type="contract_orphan_endpoint",
+                        severity=Severity.LOW,
+                        file=o.get("file", ""),
+                        line=o.get("line", 0),
+                        message=f"Backend {o.get('method')} {o.get('path')} never called by frontend (dead API)",
+                    ).to_dict()
+                )
+            if _cd_findings:
+                mem.save_scan_result("ContractDiff", {"findings": _cd_findings}, self.root)
+        except Exception as exc:  # noqa: BLE001
+            _log.debug("contract_diff failed: %s", exc)
 
         # Persist the layered brain (Pillar 1) as a separate memory file, plus the
         # file-content snapshot that powers incremental (no-op) rebuilds.

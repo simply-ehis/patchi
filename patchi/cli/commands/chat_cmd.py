@@ -82,19 +82,33 @@ You have full control. Use it wisely."""
 
 # ── Context injection ──────────────────────────────────────────────────
 
-def _build_injected_context(brain: dict, message: str) -> str:
-    """Build relevant context from the brain based on what the user is asking about."""
+def _build_injected_context(brain: dict, message: str, root=None) -> str:
+    """Build rich context from the brain using BrainContext for deeper understanding."""
     m_lower = message.lower()
     parts = []
 
-    file_count = brain.get("file_count", 0)
-    framework = brain.get("framework", "Unknown")
-    route_count = brain.get("route_count", 0)
-    health = brain.get("health_score", {})
-    health_total = health.get("total", 0) if isinstance(health, dict) else health
+    # Try to load BrainContext for richer context
+    ctx = None
+    if root:
+        try:
+            from patchi.core.brain.brain_context import get_brain_context
+            ctx = get_brain_context(root)
+        except Exception:
+            pass
 
-    parts.append(f"Project: {file_count} files, {route_count} routes, framework: {framework}, health: {health_total}/100")
+    if ctx and ctx.is_loaded():
+        # Use BrainContext for rich context injection
+        parts.append(ctx.get_context_for_prompt(max_chars=2000))
+    else:
+        # Fallback to basic brain dict
+        file_count = brain.get("file_count", 0)
+        framework = brain.get("framework", "Unknown")
+        route_count = brain.get("route_count", 0)
+        health = brain.get("health_score", {})
+        health_total = health.get("total", 0) if isinstance(health, dict) else health
+        parts.append(f"Project: {file_count} files, {route_count} routes, framework: {framework}, health: {health_total}/100")
 
+    # Finding-specific context
     if any(w in m_lower for w in ["finding", "issue", "vulnerability", "bug", "critical", "high", "error"]):
         issues = brain.get("issues", []) or brain.get("findings", [])
         if issues:
@@ -331,7 +345,7 @@ def _process_message(
     # ── LLM-powered orchestration (default) ──
 
     # Build context
-    context = _build_injected_context(brain_state, clean_msg)
+    context = _build_injected_context(brain_state, clean_msg, root=root)
     extra = f"\n\nRelevant context:\n{context}" if context else ""
 
     # Build conversation history

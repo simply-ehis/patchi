@@ -268,7 +268,6 @@ def build_ai_contract_summary(
     # Prefer understander-ranked core files when available (Slice 2)
     use_core = False
     try:
-        from pathlib import Path as _Pth
 
         from patchi.core.brain.body_tags import load_body_tags
         from patchi.core.brain.understander import Understander

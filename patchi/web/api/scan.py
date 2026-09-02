@@ -13,6 +13,7 @@ import time
 from datetime import UTC, datetime
 from pathlib import Path
 
+import logging
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 

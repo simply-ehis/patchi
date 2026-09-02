@@ -35,7 +35,10 @@ def _as_correlated(finding) -> CorrelatedFinding:
 class DetectionPipeline:
     """Wires ConfidenceGate + Layer2Orchestrator + Sigma into a single pipeline."""
 
-    def __init__(self, root: Path, config: dict | None = None, component_types=None):
+    def __init__(
+        self, root: Path, config: dict | None = None,
+        component_types=None, brain_context=None,
+    ):
         self.root = root
         self.config = config or {}
         self.gate = ConfidenceGate(root, config)
@@ -44,6 +47,7 @@ class DetectionPipeline:
         self._domain_loader = None
         self._noise_filter = None
         self._component_types = component_types
+        self._brain = brain_context  # BrainContext for context-aware classification
 
     def _get_sigma_set(self):
         if self._sigma_set is None:
@@ -142,6 +146,29 @@ class DetectionPipeline:
             logging.getLogger("patchi.detection").warning(
                 "Domain taxonomy enrichment failed: %s", e
             )
+
+        # Stage 1a½: Brain context — context-aware false-positive reduction
+        if self._brain and self._brain.is_loaded():
+            for gf in gated_list:
+                fctx = self._brain.get_finding_context(
+                    gf.finding.file or "", gf.finding.type, gf.finding.message
+                )
+                # Demote test fixture findings (they contain intentional vulns)
+                if fctx["is_test_fixture"] and gf.routing == "defend":
+                    gf.routing = "ai_analyze"
+                    gf.routing_reason = (
+                        f"Test fixture — demoted for AI review ({gf.routing_reason})"
+                    )
+                    gf.confidence_score = min(gf.confidence_score, 0.5)
+                # Boost findings in critical directories
+                if fctx["project_relevance"] == "high":
+                    gf.confidence_score = min(1.0, gf.confidence_score + 0.1)
+                # Add domain context to finding message for downstream use
+                if fctx["domain_matches"]:
+                    domains_str = ', '.join(fctx['domain_matches'][:3])
+                    gf.routing_reason = (
+                        f"[domains: {domains_str}] {gf.routing_reason}"
+                    )
 
         # Stage 1b: Sigma rule matching — boosts confidence for known attack patterns
         sigma_set = self._get_sigma_set()
