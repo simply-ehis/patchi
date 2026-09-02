@@ -52,8 +52,8 @@ async def smart_run(req: SmartRunRequest, request: Request):
                     "current_file": msg,
                 }), loop
             )
-        except Exception:
-            pass
+        except Exception as _exc:
+            _log.warning('on_progress failed: %s', _exc)
 
     async def _run() -> None:
         from patchi.core.ai.orchestrator import Orchestrator

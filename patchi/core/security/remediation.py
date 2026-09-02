@@ -312,8 +312,8 @@ def get_remediation_confidence(finding_type: str, root: Path | None = None) -> f
                 acceptance_rate = accepted / total
                 # Blend: 60% base + 40% historical
                 base = 0.6 * base + 0.4 * acceptance_rate
-        except Exception:
-            pass
+        except Exception as _exc:
+            _log.warning('get_remediation_confidence failed: %s', _exc)
 
     return max(0.1, min(0.95, base))
 

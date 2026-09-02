@@ -8,12 +8,15 @@ Subcommands:
 """
 
 from __future__ import annotations
+import logging
 
 import json
 from pathlib import Path
 
 from rich.console import Console
 from rich.table import Table
+_log = logging.getLogger("patchi.cli.commands.findings_cmd")
+
 
 
 def run(args) -> None:
@@ -114,8 +117,8 @@ def _show_summary(root: Path, con: Console, json_output: bool = False) -> None:
     if baseline_path.exists():
         try:
             baseline = json.loads(baseline_path.read_text(encoding="utf-8"))
-        except Exception:
-            pass
+        except Exception as _exc:
+            _log.warning('_show_summary failed: %s', _exc)
 
     # Current counts
     agent_counts = {}

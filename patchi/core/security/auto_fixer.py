@@ -581,8 +581,8 @@ def fix_missing_headers(
             content = f.read_text(encoding="utf-8", errors="ignore")
             if any(kw in content for kw in ["FastAPI", "Flask", "Starlette", "@app", "middleware"]):
                 web_files.append(f)
-        except Exception:
-            pass
+        except Exception as _exc:
+            _log.warning('fix_missing_headers failed: %s', _exc)
 
     if not web_files:
         return {

@@ -9,9 +9,12 @@ Subcommands:
 """
 
 from __future__ import annotations
+import logging
 
 import json
 import sys
+_log = logging.getLogger("patchi.cli.commands.charter_cmd")
+
 
 
 def _get_root():
@@ -83,8 +86,8 @@ def run_check(args) -> None:
                     import_edges.append((e.get("source", ""), e.get("target", "")))
                 elif isinstance(e, (list, tuple)) and len(e) >= 2:
                     import_edges.append((str(e[0]), str(e[1])))
-    except Exception:
-        pass
+    except Exception as _exc:
+        _log.warning('run_check failed: %s', _exc)
 
     violations = check_all_violations(charter, import_edges=import_edges)
 

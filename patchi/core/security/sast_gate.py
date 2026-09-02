@@ -18,11 +18,14 @@ whole tree, and reuses the same agents/normalization as the full scanner.
 """
 
 from __future__ import annotations
+import logging
 
 import sys
 from pathlib import Path
 
 from patchi.core.agents.base import AgentInput, Severity
+_log = logging.getLogger("patchi.core.security.sast_gate")
+
 
 
 def _gather(tool_name: str, files: list[Path]) -> list:
@@ -46,8 +49,8 @@ def _gather(tool_name: str, files: list[Path]) -> list:
             # Re-anchor the finding to the real (staged) path for reporting.
             try:
                 finding.file = str(f)
-            except Exception:  # pragma: no cover - defensive
-                pass
+            except Exception as _exc:  # pragma: no cover - defensive
+                _log.warning('_gather failed: %s', _exc)
             findings.append(finding)
     return findings
 

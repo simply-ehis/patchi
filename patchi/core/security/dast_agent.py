@@ -220,8 +220,8 @@ class DASTAgent(BaseAgent):
                     if recording_id and recording_id in recorder._active_recordings:
                         try:
                             await recorder.stop_recording(recording_id)
-                        except Exception:
-                            pass
+                        except Exception as _exc:
+                            _log.warning('_run_tests failed: %s', _exc)
 
         except ImportError:
             _log.warning("Playwright not installed. Install with: pip install playwright")
@@ -283,8 +283,8 @@ class DASTAgent(BaseAgent):
             # Close page and stop recording
             try:
                 await page.close()
-            except Exception:
-                pass
+            except Exception as _exc:
+                _log.warning('_run_test_recorded failed: %s', _exc)
             # Stop recording and save video
             try:
                 if recording_id in recorder._active_recordings:
@@ -298,8 +298,8 @@ class DASTAgent(BaseAgent):
                 _log.debug("Video recording stop failed: %s", e)
             try:
                 await browser.close()
-            except Exception:
-                pass
+            except Exception as _exc:
+                _log.warning('_run_test_recorded failed: %s', _exc)
 
     # ── XSS Tests ──────────────────────────────────────────────────────────
 
@@ -354,8 +354,8 @@ class DASTAgent(BaseAgent):
                     # Note: actual file upload testing would require creating a temp file
                     return True, f"Potential XSS via SVG upload at {url}"
 
-        except Exception:
-            pass
+        except Exception as _exc:
+            _log.warning('test_xss_svg failed: %s', _exc)
 
         return False, ""
 
@@ -422,8 +422,8 @@ class DASTAgent(BaseAgent):
             if not csp:
                 return True, "Missing Content-Security-Policy header"
 
-        except Exception:
-            pass
+        except Exception as _exc:
+            _log.warning('test_csp_header failed: %s', _exc)
 
         return False, ""
 
@@ -439,8 +439,8 @@ class DASTAgent(BaseAgent):
             if not xfo and "frame-ancestors" not in csp:
                 return True, "Missing X-Frame-Options header (clickjacking risk)"
 
-        except Exception:
-            pass
+        except Exception as _exc:
+            _log.warning('test_x_frame_options failed: %s', _exc)
 
         return False, ""
 
@@ -458,8 +458,8 @@ class DASTAgent(BaseAgent):
             if not hsts:
                 return True, "Missing Strict-Transport-Security header"
 
-        except Exception:
-            pass
+        except Exception as _exc:
+            _log.warning('test_hsts_header failed: %s', _exc)
 
         return False, ""
 
@@ -480,8 +480,8 @@ class DASTAgent(BaseAgent):
             if x_powered:
                 return True, f"X-Powered-By disclosed: {x_powered}"
 
-        except Exception:
-            pass
+        except Exception as _exc:
+            _log.warning('test_server_version failed: %s', _exc)
 
         return False, ""
 
@@ -513,8 +513,8 @@ class DASTAgent(BaseAgent):
                     if indicator.lower() in content.lower():
                         return True, f"Error disclosure at {url}: {indicator}"
 
-        except Exception:
-            pass
+        except Exception as _exc:
+            _log.warning('test_error_disclosure failed: %s', _exc)
 
         return False, ""
 
@@ -581,8 +581,8 @@ class DASTAgent(BaseAgent):
                     action = await form.get_attribute("action") or "unknown"
                     return True, f"Form at {action} missing CSRF token"
 
-        except Exception:
-            pass
+        except Exception as _exc:
+            _log.warning('test_csrf_token failed: %s', _exc)
 
         return False, ""
 
@@ -611,8 +611,8 @@ class DASTAgent(BaseAgent):
             host = web_config.get("host", "127.0.0.1")
             port = web_config.get("port", 1612)
             return f"http://{host}:{port}"
-        except Exception:
-            pass
+        except Exception as _exc:
+            _log.warning('_detect_target failed: %s', _exc)
 
         return None
 

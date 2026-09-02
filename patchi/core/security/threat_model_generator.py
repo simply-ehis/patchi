@@ -279,8 +279,8 @@ class ThreatModelGenerator:
                     for kw, _ in kws:
                         if kw.lower() in content:
                             keyword_counts[kw] = keyword_counts.get(kw, 0) + 1
-            except Exception:
-                pass
+            except Exception as _exc:
+                _log.warning('_collect_project_signals failed: %s', _exc)
 
         # Convert counts to scores (0-1)
         max_count = max(keyword_counts.values()) if keyword_counts else 1

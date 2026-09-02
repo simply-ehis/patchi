@@ -1,6 +1,7 @@
 """Self-Improvement dashboard — agent profiles, learning, threat model."""
 
 from __future__ import annotations
+import logging
 
 import json
 from pathlib import Path
@@ -8,6 +9,8 @@ from pathlib import Path
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
+_log = logging.getLogger("patchi.web.routes.self_improvement")
+
 
 router = APIRouter()
 templates = Jinja2Templates(directory=str(Path(__file__).parent.parent / "templates"))
@@ -18,8 +21,8 @@ def _load_json(root: Path, rel: str) -> dict:
     if p.is_file():
         try:
             return json.loads(p.read_text(encoding="utf-8"))
-        except Exception:
-            pass
+        except Exception as _exc:
+            _log.warning('_load_json failed: %s', _exc)
     return {}
 
 

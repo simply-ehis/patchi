@@ -518,8 +518,8 @@ def _run_doctor(root: Path, json_output: bool = False, verbose: bool = False) ->
             checks.append((f"Ollama: {local_model}", "✓", "Configured", "#4ADE80"))
         else:
             checks.append(("Ollama", "—", "No local model configured (optional)", "#6B7280"))
-    except Exception:
-        pass
+    except Exception as _exc:
+        _log.warning('_run_doctor failed: %s', _exc)
 
     # ── 6. Optional: test tooling ─────────────────────────────────────────────
     con.print()
@@ -596,8 +596,8 @@ def _run_doctor(root: Path, json_output: bool = False, verbose: bool = False) ->
                 size_str = f"{total_bytes / 1024:.1f} KB"
             info_msg = f"{size_str} ({total_files} files)"
             checks.append((".patchi/ size", "✓", info_msg, "#4ADE80"))
-    except Exception:
-        pass
+    except Exception as _exc:
+        _log.warning('_run_doctor failed: %s', _exc)
 
     # ── 9. Stale commands check ────────────────────────────────────────────────
     try:
@@ -620,8 +620,8 @@ def _run_doctor(root: Path, json_output: bool = False, verbose: bool = False) ->
 
         if not any(name not in cmd_names for name in stale_commands):
             checks.append(("command hygiene", "✓", "No stale commands found", "#4ADE80"))
-    except Exception:
-        pass
+    except Exception as _exc:
+        _log.warning('_run_doctor failed: %s', _exc)
 
     # ── Render results ────────────────────────────────────────────────────────
     if json_output:

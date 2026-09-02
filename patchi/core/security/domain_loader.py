@@ -69,26 +69,48 @@ def _cache_dir() -> Path:
     return Path(base) / "patchi" / "domain-cache"
 
 
-def _stat_fingerprint(domains_dir: Path, playbooks_dir: Path) -> str:
-    """Cheap stat-only signature (name + mtime_ns + size) for change detection.
+# Module-level stat cache: {dir_path_str: (mtime, file_mtimes_dict)}
+_stat_cache: dict[str, tuple[float, dict[str, float]]] = {}
 
-    Used only as a fast early-out in the in-process reuse check. The
-    authoritative cache key is the content fingerprint below.
+
+def _stat_fingerprint(domains_dir: Path, playbooks_dir: Path) -> str:
+    """Fast fingerprint with per-file stat caching.
+
+    First call stats all files (O(n)). Subsequent calls reuse cached stats
+    and only re-stat files whose parent directory mtime changed — making
+    repeated calls O(1) when nothing changed, and O(changed) otherwise.
     """
-    h = hashlib.sha256()
+    parts: list[str] = []
     for d in (domains_dir, playbooks_dir):
         if not d.is_dir():
+            parts.append(f"{d.name}:0:0")
             continue
-        for f in sorted(d.glob("*.yaml")):
-            try:
-                st = f.stat()
-            except OSError:
-                continue
-            h.update(f.name.encode("utf-8", "replace"))
-            h.update(str(st.st_mtime_ns).encode("ascii"))
-            h.update(str(st.st_size).encode("ascii"))
-    return h.hexdigest()[:24]
+        try:
+            dir_mtime = d.stat().st_mtime
+        except OSError:
+            parts.append(f"{d.name}:0:0")
+            continue
 
+        cache_key = str(d)
+        cached = _stat_cache.get(cache_key)
+        if cached and cached[0] == dir_mtime:
+            # Directory didn't change — reuse cached file mtimes
+            file_mtimes = cached[1]
+        else:
+            # Directory changed — re-stat all files
+            file_mtimes = {}
+            for f in d.glob("*.yaml"):
+                try:
+                    file_mtimes[f.name] = f.stat().st_mtime
+                except OSError:
+                    pass
+            _stat_cache[cache_key] = (dir_mtime, file_mtimes)
+
+        count = len(file_mtimes)
+        mtime_sum = sum(file_mtimes.values())
+        parts.append(f"{d.name}:{count}:{mtime_sum:.6f}")
+
+    return "|".join(parts) if parts else "empty"
 
 def _content_fingerprint(domains_dir: Path, playbooks_dir: Path) -> str:
     """Authoritative cache key: dir paths + name + full bytes of every YAML.
@@ -176,8 +198,8 @@ def _purge_stale_caches(d: Path, keep_fingerprint: str) -> None:
                     old.unlink(missing_ok=True)
             except OSError:
                 pass
-    except Exception:  # noqa: BLE001
-        pass
+    except Exception as _exc:  # noqa: BLE001
+        _log.debug('_purge_stale_caches skipped: %s', _exc)
 
 
 def _save_cached(fingerprint: str, domains: dict, playbooks: dict) -> None:
@@ -245,22 +267,29 @@ def _try_load_yaml(path: Path) -> dict | None:
         return None
     try:
         import yaml
-
+        try:
+            Loader = yaml.CSafeLoader  # type: ignore[attr-defined]
+        except AttributeError:
+            Loader = yaml.SafeLoader
         with open(path, encoding="utf-8") as f:
-            return yaml.safe_load(f)
+            return yaml.load(f, Loader=Loader)
     except ImportError:
         try:
             import json
-
             with open(path, encoding="utf-8") as f:
                 return json.load(f)
         except Exception as e:
-            _log.debug("_try_load_yaml failed: %s", e)
+            import logging
+            logging.getLogger("patchi.security.domain_loader").warning(
+                "Failed to parse %s: %s", path, e
+            )
             return None
     except Exception as e:
-        _log.debug("_try_load_yaml failed: %s", e)
+        import logging
+        logging.getLogger("patchi.security.domain_loader").warning(
+            "Failed to parse %s: %s", path, e
+        )
         return None
-
 
 def _to_float(value, default: float = 0.5) -> float:
     """Coerce a YAML value to float, never raising on malformed data."""
@@ -661,6 +690,28 @@ class DomainLoader:
         self._load_all()
         return self._playbooks.get(control_id)
 
+    def _build_keyword_index(self) -> dict[str, list[tuple[str, DomainControl, Domain]]]:
+        """Pre-build inverted index: keyword -> [(domain_id, control, domain)].
+
+        Called once after loading; makes match_finding_to_controls O(k) per
+        finding instead of O(domains * controls).
+        """
+        if hasattr(self, "_kw_index") and self._kw_index is not None:
+            return self._kw_index
+        kws = self._domain_keywords()
+        index: dict[str, list[tuple[str, DomainControl, Domain]]] = {}
+        for domain in self._domains.values():
+            for ctrl in domain.controls:
+                # Index keywords from control name + description
+                ctrl_text = (ctrl.name + " " + ctrl.description).lower()
+                ctrl_domains = self._classify_domains(ctrl_text)
+                for kw_set_name in ctrl_domains:
+                    if kw_set_name not in index:
+                        index[kw_set_name] = []
+                    index[kw_set_name].append((domain.domain_id, ctrl, domain))
+        self._kw_index = index
+        return index
+
     @staticmethod
     def _domain_keywords() -> dict[str, set[str]]:
         return {
@@ -675,7 +726,10 @@ class DomainLoader:
                 "dom xss", "reflected xss", "stored xss", "self-xss",
             },
             "sqli": {"sql injection", "sqli", "blind sql", "union select", "stacked query"},
-            "ssrf": {"ssrf", "server-side request forgery", "server side request forgery", "url fetch"},
+            "ssrf": {
+                "ssrf", "server-side request forgery",
+                "server side request forgery", "url fetch",
+            },
             "xxe": {"xxe", "xml external", "xml entity", "xml parser", "dtd"},
             "rce": {"rce", "remote code", "code execution", "code injection", "command injection", "os command", "exec", "passthru", "system("},
             "path_traversal": {
@@ -707,7 +761,7 @@ class DomainLoader:
                 "crypto", "encryption", "cipher", "hash", "tls", "ssl",
                 "certificate", "cryptographic", "key management",
                 "key exchange", "digital signature", "hmac", "aes", "rsa",
-                "pbkdf2", "bcrypt", "argon2", "scrypt", "hmac", "nonce", "iv",
+                "pbkdf2", "bcrypt", "argon2", "scrypt", "nonce", "iv",
                 "quantum", "post-quantum", "ecc", "diffie",
             },
             # ── Web & Frontend ────────────────────────────────────────────
@@ -744,6 +798,47 @@ class DomainLoader:
                 "misconfig", "security header", "hardening",
                 "insecure default", "security config", "missing header",
                 "debug mode", "verbose error", "default credential",
+            },
+            # ── Secrets & Hardcoded Credentials ────────────────────────────
+            "hardcoded_secret": {
+                "hardcoded", "secret", "credential", "api key", "private key",
+                "password in code", "token exposure", "connection string",
+                "secret key", "auth token", "bearer token", "access key",
+            },
+            "hardcoded_key": {
+                "hardcoded key", "hardcoded secret", "hardcoded password",
+                "hardcoded credential", "hardcoded token",
+            },
+            # ── Authentication & Access ──────────────────────────────────
+            "auth_bypass": {
+                "authentication bypass", "auth bypass", "login bypass",
+                "without authentication", "no auth", "unauthenticated",
+                "missing auth", "missing authentication",
+            },
+            "missing_auth": {
+                "without authentication", "no auth", "unauthenticated",
+                "missing auth", "missing authentication", "missing authorization",
+            },
+            # ── Debug & Config ───────────────────────────────────────────
+            "debug_mode": {
+                "debug mode", "debug=true", "debug on", "verbose error",
+                "stack trace", "exposed error", "error details",
+                "traceback", "exception detail", "internal error",
+            },
+            "insecure_config": {
+                "insecure default", "default credential", "default password",
+                "insecure configuration", "security misconfiguration",
+                "missing security header", "open port", "exposed service",
+            },
+            # ── Type Safety & Quality ────────────────────────────────────
+            "type_safety": {
+                "type annotation", "type hint", "missing type",
+                "untyped", "any type", "type error", "type safety",
+            },
+            # ── Technical Debt ───────────────────────────────────────────
+            "technical_debt": {
+                "todo", "fixme", "hack", "workaround", "bug",
+                "technical debt", "deprecated", "legacy", "temporary",
             },
             "dos": {"dos", "denial of service", "rate limit", "resource exhaustion", "ddos", "throttle", "backlog"},
             "runtime": {"runtime", "container", "kubernetes", "docker", "orchestration", "falco", "pod", "node"},
@@ -848,39 +943,41 @@ class DomainLoader:
     def match_finding_to_controls(
         self, finding_type: str, file_path: str, message: str
     ) -> list[DomainControl]:
-        """Match a finding to domain controls by structured domain classification.
+        """Match a finding to domain controls using a pre-built keyword index.
 
-        On a scoped loader only loaded (in-scope) domains are matched — the
-        intended behavior for narrow scans, which should never consult the
-        full taxonomy.
+        O(k) per finding where k = number of matching keywords.
         """
         self._load_all()
-        matches = []
+        idx = self._build_keyword_index()
 
-        finding_domains = self._classify_domains(finding_type)
+        combined = f"{message} {file_path} {finding_type}"
+        finding_domains = self._classify_domains(combined)
         if not finding_domains:
-            return matches
+            return []
 
-        for domain in self._domains.values():
-            for ctrl in domain.controls:
-                ctrl_domains = self._classify_domains(ctrl.name + " " + ctrl.description)
-                overlap = finding_domains & ctrl_domains
-                if not overlap:
-                    continue
+        candidates = {}
+        for kw_set in finding_domains:
+            for domain_id, ctrl, domain in idx.get(kw_set, []):
+                key = ctrl.control_id
+                if key not in candidates:
+                    candidates[key] = [0, ctrl, domain]
+                candidates[key][0] += 1
 
-                score = 0
-                if overlap:
+        scored = []
+        for key, entry in candidates.items():
+            overlap_count, ctrl, domain = entry
+            score = overlap_count * 2
+            if message and ctrl.name:
+                ctrl_words = [w for w in ctrl.name.lower().split() if len(w) > 3]
+                if ctrl_words and any(w in message.lower() for w in ctrl_words):
+                    score += 3
+            if file_path:
+                dw = domain.domain_id.replace("-", " ").split()
+                if any(w in file_path.lower() for w in dw if len(w) > 3):
                     score += 2
-                if file_path and any(
-                    seg in file_path.lower() for seg in ctrl.name.lower().split() if len(seg) > 3
-                ):
-                    score += 1
-                if message and any(
-                    w in ctrl.description.lower() for w in message.lower().split() if len(w) > 4
-                ):
-                    score += 1
+            if score >= 4:
+                scored.append((score, ctrl))
 
-                if score >= 2:
-                    matches.append(ctrl)
+        scored.sort(key=lambda x: (-x[0], x[1].severity != "critical"))
+        return [ctrl for _, ctrl in scored[:5]]
 
-        return matches

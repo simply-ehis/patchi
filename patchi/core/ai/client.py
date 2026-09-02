@@ -119,8 +119,8 @@ def call_ai(
             from patchi.core.tenant import get_current_tenant_root
 
             root = get_current_tenant_root()
-        except Exception:
-            pass
+        except Exception as _exc:
+            _log.warning('call_ai failed: %s', _exc)
 
     # ── Cost-aware model routing ───────────────────────────────────────────
     # Use ModelRouter to select optimal model based on prompt complexity
@@ -142,8 +142,8 @@ def call_ai(
         # Override the model in config for this call
         ai_config = dict(ai_config)
         ai_config["_routed_model"] = routed_model
-    except Exception:
-        pass  # fall through to default routing
+    except Exception as _exc:
+        _log.debug("model routing skipped: %s", _exc)
 
     # Try local Ollama first
     local_model = ai_config.get("local_model_name")

@@ -174,10 +174,10 @@ class ReasoningEngine:
             "files_in_layer": len(layer.files),
         }
 
-    # ── Natural-language问答 (offline heuristic) ─────────────────────────────────
+    # ── Natural-language问答 (TF-IDF over layers + body_tags, LLM optional) ─
 
-    def ask(self, question: str) -> str:
-        """Answer a question from layer summaries (offline)."""
+    def ask(self, question: str, use_ai: bool = False) -> str:
+        """Answer a question from layer summaries. TF-IDF ranked, optionally LLM-synthesized."""
         if not self.layers:
             return (
                 "I don't have a brain-map of this project yet. "
@@ -189,14 +189,40 @@ class ReasoningEngine:
         if not tokens:
             return "Could you rephrase? Try naming a subsystem (auth, api, data, ui…)."
 
-        scored: list[tuple[int, str, Layer]] = []
+        # Try understander/body_tags boost if available
+        body_boost: dict[str, float] = {}
+        try:
+            from patchi.core.brain.body_tags import load_body_tags
+
+            tags = load_body_tags(self.root)
+            for path, tag in tags.items():
+                layer_hint = tag.get("layer", "")
+                if layer_hint:
+                    body_boost[layer_hint] = max(body_boost.get(layer_hint, 0), float(tag.get("score", 0)) / 100.0)
+        except Exception:
+            body_boost = {}
+
+        # TF-IDF-ish: term freq * inverse doc freq approximation
+        doc_freq: dict[str, int] = {}
+        for t in tokens:
+            df = sum(1 for n, layer in self.layers.items() if t in f"{n} {layer.summary} {layer.purpose}".lower())
+            doc_freq[t] = max(1, df)
+        import math
+
+        scored: list[tuple[float, str, Layer]] = []
         for name, layer in self.layers.items():
-            if layer.level == 4:  # skip the whole-project rollup
+            if layer.level == 4:
                 continue
             text = f"{name} {layer.summary} {layer.purpose}".lower()
-            score = sum(1 for t in tokens if t in text)
-            if score:
-                scored.append((score, name, layer))
+            tfidf = 0.0
+            for t in tokens:
+                if t in text:
+                    tf = text.count(t)
+                    idf = math.log(len(self.layers) / doc_freq[t] + 1)
+                    tfidf += tf * idf
+            tfidf += body_boost.get(name, 0.0)
+            if tfidf > 0:
+                scored.append((tfidf, name, layer))
 
         if not scored:
             return (
@@ -208,11 +234,26 @@ class ReasoningEngine:
 
         scored.sort(key=lambda x: x[0], reverse=True)
         top = scored[:3]
+        if use_ai:
+            try:
+                import os
+
+                if not os.environ.get("PATCHI_OFFLINE"):
+                    from patchi.core.ai.client import call_ai
+                    from patchi.core import config as cfg
+
+                    cfgd = cfg.load(self.root) if hasattr(cfg, "load") else {}
+                    ctx = "\n".join(f"[{n}] {lay.summary} — {lay.purpose}" for _, n, lay in top)
+                    ans = call_ai(cfgd, "You are Patchi understander. Answer from layered brain context.", f"Question: {question}\n\nContext:\n{ctx}", max_tokens=400)
+                    if ans:
+                        return ans
+            except Exception:
+                pass
         lines = [f"Based on the layered brain, here's what I know about '{question.strip()}':", ""]
         for _, name, layer in top:
             lines.append(f"[bold]{name}[/bold] ({_level_name(layer.level)}): {layer.summary}")
         lines.append("")
-        lines.append("[dim]Answers are derived from cached layer summaries, not raw source.[/dim]")
+        lines.append("[dim]Answers are derived from cached layer summaries + body_tags ranking.[/dim]")
         return "\n".join(lines)
 
 

@@ -1,6 +1,7 @@
 """Live Testing API — browser tests, screenshots, stress tests."""
 
 from __future__ import annotations
+import logging
 
 import asyncio
 import json
@@ -10,6 +11,8 @@ from pathlib import Path
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
+_log = logging.getLogger("patchi.web.api.live_testing")
+
 
 router = APIRouter(prefix="/api/live-testing")
 
@@ -79,8 +82,8 @@ def _run_audit_sync(base_url: str, root: Path, routes: list[str] | None = None) 
                     try:
                         page.reload(wait_until="load", timeout=15000)
                         page.wait_for_timeout(500)
-                    except Exception:
-                        pass
+                    except Exception as _exc:
+                        _log.warning('_run_audit_sync failed: %s', _exc)
                     perf_end = page.evaluate("() => performance.now()")
                     load_time_ms = round(perf_end - perf_start, 1)
 
@@ -151,8 +154,8 @@ def _run_audit_sync(base_url: str, root: Path, routes: list[str] | None = None) 
                 finally:
                     try:
                         page.close()
-                    except Exception:
-                        pass
+                    except Exception as _exc:
+                        _log.warning('_run_audit_sync failed: %s', _exc)
         finally:
             browser.close()
 
@@ -348,8 +351,8 @@ async def list_operations():
         from patchi.web.api.scan import _scan_state
         if _scan_state.get("running"):
             ops.append({"type": "scan", "label": "Security Scan", "cancel_url": "/api/scan/cancel"})
-    except Exception:
-        pass
+    except Exception as _exc:
+        _log.warning('list_operations failed: %s', _exc)
     if _stress_state["running"]:
         ops.append({"type": "stress", "label": "Stress Test", "cancel_url": "/api/live-testing/stress-cancel"})
     if _dast_state["running"]:
@@ -362,8 +365,8 @@ async def list_operations():
         from patchi.web.api.smart import _current_task
         if _current_task and not _current_task.done():
             ops.append({"type": "smart", "label": "Smart Agent", "cancel_url": "/api/smart/cancel"})
-    except Exception:
-        pass
+    except Exception as _exc:
+        _log.warning('list_operations failed: %s', _exc)
     return JSONResponse({"ok": True, "operations": ops, "count": len(ops)})
 
 
@@ -432,8 +435,8 @@ async def list_videos(request: Request):
                     "size_kb": round(stat.st_size / 1024, 1),
                     "timestamp": datetime.fromtimestamp(stat.st_mtime, UTC).isoformat(),
                 })
-            except Exception:
-                pass
+            except Exception as _exc:
+                _log.warning('list_videos failed: %s', _exc)
     # Sort all videos by mtime descending
     videos.sort(key=lambda v: v["timestamp"], reverse=True)
 
@@ -526,8 +529,8 @@ async def list_screenshots(request: Request):
                     "timestamp": datetime.fromtimestamp(stat.st_mtime, UTC).isoformat(),
                     "is_diff": is_diff,
                 })
-            except Exception:
-                pass
+            except Exception as _exc:
+                _log.warning('list_screenshots failed: %s', _exc)
 
     baseline_count = 0
     if baseline_dir.is_dir():
@@ -609,8 +612,8 @@ async def get_full_audit(request: Request):
     if audit_file.exists():
         try:
             return json.loads(audit_file.read_text(encoding="utf-8"))
-        except Exception:
-            pass
+        except Exception as _exc:
+            _log.warning('get_full_audit failed: %s', _exc)
 
     return {"ok": False, "message": "No audit results yet. Run a full-page audit first."}
 

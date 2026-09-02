@@ -25,12 +25,15 @@ Usage:
 """
 
 from __future__ import annotations
+import logging
 
 import time
 from pathlib import Path
 
 from patchi.cli.console import con
 from patchi.core.config import find_project_root
+_log = logging.getLogger("patchi.cli.commands.cleanup_cmd")
+
 
 # ── Artifact Patterns ────────────────────────────────────────────────────────
 # (glob_pattern, description, keep_in_safe_mode)
@@ -233,8 +236,8 @@ def cleanup(
                 d.rmdir()
                 if not json_output:
                     con.print(f"  [red]✗[/red] Empty dir: {d.relative_to(patchi_dir)}")
-            except Exception:
-                pass
+            except Exception as _exc:
+                _log.warning('cleanup failed: %s', _exc)
 
     # JSON output for CI
     if json_output:
@@ -308,8 +311,8 @@ def get_patchi_size(root: Path | None = None) -> dict:
             try:
                 total_bytes += f.stat().st_size
                 total_files += 1
-            except Exception:
-                pass
+            except Exception as _exc:
+                _log.warning('get_patchi_size failed: %s', _exc)
 
     return {"total_bytes": total_bytes, "total_files": total_files}
 

@@ -7,12 +7,15 @@ Subcommands:
 """
 
 from __future__ import annotations
+import logging
 
 import json
 from pathlib import Path
 
 from rich.console import Console
 from rich.table import Table
+_log = logging.getLogger("patchi.cli.commands.rules_cmd")
+
 
 
 def run(args) -> None:
@@ -223,7 +226,7 @@ def _which_rule(root: Path, con: Console, finding_id: str) -> None:
                             con.print(f"  [green]Found in patterns:[/green] {section}")
                             con.print(f"    {json.dumps(rule, indent=2)[:300]}")
                             con.print()
-    except Exception:
-        pass
+    except Exception as _exc:
+        _log.warning('_which_rule failed: %s', _exc)
 
     con.print("[dim]Search complete.[/dim]")

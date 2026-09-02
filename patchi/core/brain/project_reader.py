@@ -252,8 +252,8 @@ def _read_setup_cfg(root: Path, insight: ProjectInsight) -> None:
         if not insight.description:
             insight.description = cfg.get("metadata", "description", fallback="")
         insight.language = "python"
-    except Exception:
-        pass
+    except Exception as _exc:
+        _log.debug('_read_setup_cfg skipped: %s', _exc)
 
 
 def _read_cargo_toml(root: Path, insight: ProjectInsight) -> None:
@@ -280,8 +280,8 @@ def _read_cargo_toml(root: Path, insight: ProjectInsight) -> None:
 
         deps = data.get("dependencies", {})
         insight.dependencies = list(deps.keys())
-    except Exception:
-        pass
+    except Exception as _exc:
+        _log.debug('_read_cargo_toml skipped: %s', _exc)
 
 
 def _read_go_mod(root: Path, insight: ProjectInsight) -> None:
@@ -297,8 +297,8 @@ def _read_go_mod(root: Path, insight: ProjectInsight) -> None:
                 insight.name = line.split()[-1].split("/")[-1]
                 insight.language = "go"
                 break
-    except Exception:
-        pass
+    except Exception as _exc:
+        _log.debug('_read_go_mod skipped: %s', _exc)
 
 
 def _read_package_json_ts(root: Path, insight: ProjectInsight) -> None:
@@ -313,8 +313,8 @@ def _read_package_json_ts(root: Path, insight: ProjectInsight) -> None:
             insight.tech_stack.append("typescript")
             if insight.language == "":
                 insight.language = "typescript"
-    except Exception:
-        pass
+    except Exception as _exc:
+        _log.debug('_read_package_json_ts skipped: %s', _exc)
 
 
 def _infer_tech_stack_from_deps(
@@ -452,8 +452,8 @@ def _find_entry_points(root: Path, insight: ProjectInsight) -> None:
                 content = setup_path.read_text(encoding="utf-8", errors="replace")
                 if "console_scripts" in content or "entry_points" in content:
                     insight.entry_points.append(setup_file)
-            except Exception:
-                pass
+            except Exception as _exc:
+                _log.debug('_find_entry_points skipped: %s', _exc)
 
 
 def _find_critical_dirs(root: Path, insight: ProjectInsight) -> None:

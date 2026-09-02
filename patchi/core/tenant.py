@@ -166,8 +166,8 @@ class TenantManager:
                     return False
 
             roots_to_scan = [r for r in roots_to_scan if not _in_temp(r)]
-        except Exception:
-            pass
+        except Exception as _exc:
+            _log.warning('discover_projects failed: %s', _exc)
 
         for scan_root in roots_to_scan:
             try:

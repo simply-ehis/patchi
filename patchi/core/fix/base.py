@@ -236,11 +236,32 @@ def _build_fix_prompt(
     message: str = "",
 ) -> str:
     """Build the AI prompt for fix generation."""
-    # Extract context around the vulnerable line
+    # Extract context around the vulnerable line + caller hint via Understander/body_tags
     lines = original.splitlines()
     start = max(0, line_num - 5) if line_num else 0
     end = min(len(lines), line_num + 10) if line_num else min(20, len(lines))
     context = "\n".join(f"{i + 1:4d} | {l}" for i, l in enumerate(lines[start:end], start))
+    caller_hint = ""
+    try:
+        from pathlib import Path as _Pth
+
+        _root = _Pth.cwd()
+        for cand in [Path.cwd(), Path(".")]:
+            if (cand / ".patchi").exists():
+                _root = cand.resolve()
+                break
+        from patchi.core.brain.body_tags import load_body_tags
+        from patchi.core.brain.understander import Understander
+
+        _tags = load_body_tags(_root)
+        if _tags and file_path in _tags:
+            tag = _tags[file_path]
+            caller_hint = f"\nBody: role={tag.get('role')} fan_in={tag.get('fan_in')} score={tag.get('score')} layer={tag.get('layer')}\n"
+            # add function block
+            _u = Understander(_root, [], _tags, {}, [])
+            caller_hint += _u.function_at(file_path, line_num)[:1200]
+    except Exception:
+        caller_hint = ""
 
     prompt = f"""You are a security expert. Fix the following vulnerability.
 
@@ -261,6 +282,8 @@ def _build_fix_prompt(
 ## Code Context (lines {start + 1}-{end})
 ```python
 {context}
+```
+{caller_hint}
 ```
 
 ## Requirements

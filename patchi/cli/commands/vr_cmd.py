@@ -8,10 +8,13 @@ Commands:
 """
 
 from __future__ import annotations
+import logging
 
 import shutil
 import sys
 from pathlib import Path
+_log = logging.getLogger("patchi.cli.commands.vr_cmd")
+
 
 
 def _get_root() -> Path:
@@ -42,8 +45,8 @@ def _discover_routes(root: Path) -> list[str]:
         from patchi.core.testing.visual_regression_agent import discover_routes
 
         return discover_routes({}, {})
-    except Exception:
-        pass
+    except Exception as _exc:
+        _log.warning('_discover_routes failed: %s', _exc)
     # Fallback: known common routes
     return ["/", "/findings", "/live-tests", "/assurance", "/chat"]
 
@@ -162,8 +165,8 @@ def _cmd_capture(
                 finally:
                     try:
                         ctx.close()
-                    except Exception:
-                        pass
+                    except Exception as _exc:
+                        _log.warning('_cmd_capture failed: %s', _exc)
 
         browser.close()
 

@@ -256,11 +256,25 @@ class ToolRegistry:
                         required=False,
                         default=True,
                     ),
+                    ToolParameter(
+                        "use_real_tools",
+                        "boolean",
+                        "Use real DAST engines (nuclei/sqlmap/dalfox/ffuf/zap) if installed",
+                        required=False,
+                        default=False,
+                    ),
+                    ToolParameter(
+                        "use_shannon",
+                        "boolean",
+                        "Use Shannon AI pentester via npx (needs Docker + staging URL + disposable data; 1h run)",
+                        required=False,
+                        default=False,
+                    ),
                 ],
                 returns="AttackSimulationReport with findings, exploitability, detection signatures",
                 category="security",
                 requires_confirmation=True,
-                side_effects="May send HTTP requests to target_url if provided",
+                side_effects="May send HTTP requests to target_url if provided; with use_shannon runs external Shannon worker via npx/docker",
                 examples=[{"scenarios": ["sqli", "xss", "ssrf"], "safe_mode": True}],
             ),
             self._handle_attack_simulate,
@@ -531,6 +545,23 @@ class ToolRegistry:
                 examples=[{"urls": ["http://localhost:3000/", "http://localhost:3000/dashboard"]}],
             ),
             self._handle_visual_regression,
+        )
+
+        self.register(
+            ToolDefinition(
+                name="read_file",
+                description="Read a source file slice (max 500 lines) — LLM may request at most 3 calls per validation/fix with reason.",
+                parameters=[
+                    ToolParameter("path", "string", "Relative path from repo root, validated ≤2MB", required=True),
+                    ToolParameter("start", "integer", "Start line 1-indexed", required=False, default=1),
+                    ToolParameter("end", "integer", "End line inclusive (start+500 max)", required=False, default=500),
+                ],
+                returns="File content slice with line numbers",
+                category="memory",
+                side_effects="Reads file from disk, validated path",
+                examples=[{"path": "patchi/core/memory.py", "start": 1, "end": 80}],
+            ),
+            self._handle_read_file,
         )
 
         # Fix tools
@@ -1142,9 +1173,11 @@ class ToolRegistry:
         scenarios: list[str] = None,
         target_url: str = None,
         safe_mode: bool = True,
+        use_real_tools: bool = False,
+        use_shannon: bool = False,
     ) -> dict:
         return _realize.attack_simulate(
-            root, scenarios=scenarios, target_url=target_url, safe_mode=safe_mode
+            root, scenarios=scenarios, target_url=target_url, safe_mode=safe_mode, use_real_tools=use_real_tools, use_shannon=use_shannon
         )
 
     def _handle_red_team(self, root: Path, scope: str = "full", intensity: str = "active") -> dict:
@@ -1171,6 +1204,9 @@ class ToolRegistry:
         return _realize.generate_tests(
             root, target_files=target_files, test_type=test_type, framework=framework
         )
+
+    def _handle_read_file(self, root: Path, path: str, start: int = 1, end: int = 500) -> dict:
+        return _realize.read_file(root, path=path, start=start, end=end)
 
     def _handle_stress_test(
         self,

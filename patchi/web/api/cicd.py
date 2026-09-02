@@ -149,8 +149,8 @@ async def health(request: Request) -> JSONResponse:
 
         results = mem.get_scan_results(root)
         scan_results_exist = bool(results)
-    except Exception:
-        pass
+    except Exception as _exc:
+        _log.warning('health failed: %s', _exc)
 
     return JSONResponse(
         {
@@ -431,8 +431,8 @@ async def summary(request: Request, _key: str | None = Depends(_verify_api_key))
             graph = AssuranceGraph.load(root)
             assurance_claims = len(graph.claims)
             assurance_proved = sum(1 for c in graph.claims.values() if c.verdict.value == "proved")
-        except Exception:
-            pass
+        except Exception as _exc:
+            _log.warning('summary failed: %s', _exc)
 
         # Model routing stats
         routing_stats = {}
@@ -441,8 +441,8 @@ async def summary(request: Request, _key: str | None = Depends(_verify_api_key))
 
             router = get_model_router(root=root)
             routing_stats = router.get_routing_stats()
-        except Exception:
-            pass
+        except Exception as _exc:
+            _log.warning('summary failed: %s', _exc)
 
         # Tenant cost
         tenant_cost = 0.0
@@ -450,8 +450,8 @@ async def summary(request: Request, _key: str | None = Depends(_verify_api_key))
             from patchi.core.tenant import get_tenant_cost
 
             tenant_cost = get_tenant_cost(root)
-        except Exception:
-            pass
+        except Exception as _exc:
+            _log.warning('summary failed: %s', _exc)
 
         return JSONResponse(
             {

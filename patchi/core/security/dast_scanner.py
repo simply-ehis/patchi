@@ -194,12 +194,12 @@ class DastScanner:
                         for link in links:
                             if link.startswith(self.target_url):
                                 endpoints.add(link)
-                except Exception:
-                    pass
+                except Exception as _exc:
+                    _log.warning('_discover_endpoints failed: %s', _exc)
                 finally:
                     await pool.release_page(page)
-            except Exception:
-                pass
+            except Exception as _exc:
+                _log.warning('_discover_endpoints failed: %s', _exc)
 
         return list(endpoints)[:50]  # cap at 50 endpoints
 

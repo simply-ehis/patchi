@@ -120,8 +120,8 @@ def high_findings_on_file(file_path: Path) -> list[Finding]:
             if f.severity in (Severity.HIGH, Severity.CRITICAL):
                 try:
                     f.file = real
-                except Exception:
-                    pass
+                except Exception as _exc:
+                    _log.warning('high_findings_on_file failed: %s', _exc)
                 out.append(f)
     return out
 

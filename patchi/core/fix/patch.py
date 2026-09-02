@@ -34,6 +34,7 @@ Confidence score (0–100):
 """
 
 from __future__ import annotations
+import logging
 
 import difflib
 import json
@@ -43,6 +44,8 @@ from pathlib import Path
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from enum import StrEnum
+_log = logging.getLogger("patchi.core.fix.patch")
+
 
 # ── Helpers (must be defined before class field defaults reference them) ────────
 
@@ -434,8 +437,8 @@ def save_patch_state(root: Path, patch_id: str, state: PatchState) -> None:
             data = json.loads(path.read_text(encoding="utf-8"))
             data["state"] = state.value
             path.write_text(json.dumps(data, indent=2), encoding="utf-8")
-        except Exception:
-            pass
+        except Exception as _exc:
+            _log.warning('save_patch_state failed: %s', _exc)
 
 
 class PatchApplier:

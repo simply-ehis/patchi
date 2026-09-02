@@ -8,6 +8,7 @@ Deterministic first, AI second.
 """
 
 from __future__ import annotations
+import logging
 
 import json
 from dataclasses import dataclass, field
@@ -16,6 +17,8 @@ from pathlib import Path
 from patchi.core.agents.base import AgentResult, Finding
 from patchi.core.security.chain_analyzer import Chain, ChainAnalyzer
 from patchi.core.security.intent_analyzer import IntentAnalyzer, IntentReport
+_log = logging.getLogger("patchi.core.security.orchestrator")
+
 
 # ── Security Report ───────────────────────────────────────────────────────────
 
@@ -261,21 +264,21 @@ class SecurityOrchestrator:
 
             ig = build_import_graph(Path("."))
             import_edges = dict(ig.edges)
-        except Exception:
-            pass
+        except Exception as _exc:
+            _log.warning('correlate failed: %s', _exc)
         try:
             chain_analyzer = ChainAnalyzer(all_findings, import_edges=import_edges)
             chains = chain_analyzer.find_chains(max_chains=20)
-        except Exception:
-            pass
+        except Exception as _exc:
+            _log.warning('correlate failed: %s', _exc)
 
         # ── Intent analysis (route ↔ code gap detection) ──────────────────────
         intent_report: IntentReport | None = None
         try:
             intent_analyzer = IntentAnalyzer()
             intent_report = intent_analyzer.analyze_root(Path("."))
-        except Exception:
-            pass
+        except Exception as _exc:
+            _log.warning('correlate failed: %s', _exc)
 
         # ── Charter drift detection ───────────────────────────────────────────
         charter_violations: list[dict] = []
@@ -293,8 +296,8 @@ class SecurityOrchestrator:
                 charter_violations = [
                     v.to_dict() for v in check_all_violations(charter, flat_edges)
                 ]
-        except Exception:
-            pass
+        except Exception as _exc:
+            _log.warning('correlate failed: %s', _exc)
 
         return SecurityReport(
             findings=correlated,

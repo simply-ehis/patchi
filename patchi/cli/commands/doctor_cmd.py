@@ -396,8 +396,8 @@ def run(
                     size_str = f"{total_bytes / 1024:.1f} KB"
                 info_msg = f"{size_str} ({total_files} files)"
                 checks.append((".patchi/ size", "✓", info_msg, "#4ADE80"))
-        except Exception:
-            pass
+        except Exception as _exc:
+            _log.warning('run failed: %s', _exc)
 
     # ── Render results ────────────────────────────────────────────────────────
     if json_output:

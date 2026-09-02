@@ -138,8 +138,8 @@ def dispatch_event(root: Path, event: str, data: dict) -> int:
                             "reason": f"{MAX_FAILURES} consecutive delivery failures",
                         },
                     )
-                except Exception:
-                    pass
+                except Exception as _exc:
+                    _log.warning('dispatch_event failed: %s', _exc)
         dirty = True
 
     if dirty:
@@ -150,7 +150,7 @@ def dispatch_event(root: Path, event: str, data: dict) -> int:
 
         if delivered:
             audit_write(root, "webhook.delivered", data={"event": event, "count": delivered})
-    except Exception:
-        pass
+    except Exception as _exc:
+        _log.warning('dispatch_event failed: %s', _exc)
 
     return delivered

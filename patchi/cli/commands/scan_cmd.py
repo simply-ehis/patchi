@@ -87,8 +87,8 @@ def run(
         mgr = get_tenant_manager()
         mgr.register_project(r)
         mgr.switch_project(r)
-    except Exception:
-        pass  # non-critical
+    except Exception as _exc:
+        _log.debug("tenant registration skipped: %s", _exc)
 
     with tenant_context(r):
         _run_scan_inner(
@@ -350,8 +350,8 @@ def _run_scan_inner(
                         acount = getattr(ar, "finding_count", 0)
                         with record_run(r, aname, files_scanned=acount) as run:
                             run.findings_produced = acount
-                except Exception:
-                    pass  # profiling is best-effort
+                except Exception as _exc:
+                    _log.debug("profiling skipped: %s", _exc)
 
                 # ── Attack feedback loop: feed findings into learning ──────
                 try:
@@ -373,8 +373,8 @@ def _run_scan_inner(
                                     "evidence": f.get("message", ""),
                                 },
                             )
-                except Exception:
-                    pass  # feedback is best-effort
+                except Exception as _exc:
+                    _log.debug("attack feedback skipped: %s", _exc)
 
                 # Mark all tasks complete
                 for tid in tasks.values():
@@ -738,6 +738,41 @@ def _run_scan_inner(
             con.print(f"  [red]DAST error: {e}[/red]")
             con.print(traceback.format_exc())
 
+    # ── Domain enrichment (always runs) ────────────────────────────────────
+    try:
+        from patchi.core.security.domain_loader import DomainLoader
+        # Auto-detect component types from project structure
+        _ctypes = []
+        try:
+            _root = Path(str(r))
+            if any((_root / d).exists() for d in ("templates", "static", "public")):
+                _ctypes.append("frontend-web")
+            if any((_root / f).exists() for f in ("requirements.txt", "pyproject.toml", "setup.py")):
+                _ctypes.append("backend-api")
+            if any((_root / d).exists() for d in ("docker", "k8s", "kubernetes", ".github")):
+                _ctypes.append("infra")
+        except Exception:
+            pass
+        _dl = DomainLoader(r, component_types=_ctypes if _ctypes else None)
+        for _ar in (agent_results or []):
+            for _f in getattr(_ar, "findings", []):
+                _msg = getattr(_f, "message", "") or ""
+                _file = getattr(_f, "file", "") or ""
+                _type = getattr(_f, "type", "") or getattr(_f, "agent", "") or ""
+                _ctrls = _dl.match_finding_to_controls(_type, _file, _msg)
+                if _ctrls:
+                    setattr(_f, "domain_controls", [
+                        {"control_id": c.control_id, "name": c.name, "severity": c.severity}
+                        for c in _ctrls[:5]
+                    ])
+                    _pb = _dl.get_playbook(_ctrls[0].control_id)
+                    if _pb:
+                        setattr(_f, "playbook_ref", _pb.control_id)
+                        setattr(_f, "fix_strategy", _pb.fix_strategy)
+    except Exception as _e:
+        import logging
+        logging.getLogger("patchi.scan").debug("Domain enrichment skipped: %s", _e)
+
     # ── Pipeline / defense mode ───────────────────────────────────────────────
     if pipeline:
         con.print()
@@ -980,15 +1015,21 @@ def _run_scan_inner(
 
         findings = []
         for f in merged["findings"]:
-            findings.append(
-                {
-                    "severity": f.get("severity", "info"),
-                    "file": f.get("file", ""),
-                    "line": f.get("line", 0),
-                    "message": f.get("message", ""),
-                    "agent": f.get("agent", ""),
-                }
-            )
+            entry = {
+                "severity": f.get("severity", "info"),
+                "file": f.get("file", ""),
+                "line": f.get("line", 0),
+                "message": f.get("message", ""),
+                "agent": f.get("agent", ""),
+            }
+            # Include domain classification if present
+            if f.get("domain_controls"):
+                entry["domain_controls"] = f["domain_controls"]
+            if f.get("playbook_ref"):
+                entry["playbook_ref"] = f["playbook_ref"]
+            if f.get("fix_strategy"):
+                entry["fix_strategy"] = f["fix_strategy"]
+            findings.append(entry)
 
         dead_files = [str(df) for df in (report.dead_files or [])]
         circular_deps = [cd.short_label for cd in (report.circular_dependencies or [])]
@@ -1360,8 +1401,8 @@ def _show_agent_findings_summary(agent_results: list, root: Path | None = None) 
                         f"{nfr.discarded} discarded" + (f" ({cats})" if cats else "") + "[/dim]"
                     )
             findings = kept
-        except Exception:  # noqa: BLE001 — display must never crash on filter bugs
-            pass
+        except Exception as _exc:  # noqa: BLE001 — display must never crash on filter bugs
+            _log.warning('_show_agent_findings_summary failed: %s', _exc)
 
     merged["findings"] = findings
     total = len(findings)

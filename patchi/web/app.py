@@ -19,6 +19,8 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
+_log = logging.getLogger("patchi.web.app")
+
 
 
 def create_app(root: Path) -> FastAPI:
@@ -127,8 +129,8 @@ def create_app(root: Path) -> FastAPI:
             root = request.app.state.root
             with tenant_context(root):
                 return await call_next(request)
-    except Exception:
-        pass  # non-critical
+    except Exception as _exc:
+        _log.debug("tenant middleware not wired: %s", _exc)
 
     # Mount static files
     import sys as _sys

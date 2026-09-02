@@ -101,6 +101,8 @@ class BrainReport:
     active_security_domains: list[str] = field(default_factory=list)
     infrastructure_files: list[str] = field(default_factory=list)
     detected_imports: dict[str, set[str]] = field(default_factory=dict)
+    # L1 enriched context (Slice 1: one AI call per scan, heuristic fallback)
+    enriched_context: dict = field(default_factory=dict)
 
     # Contract (unconfirmed until user confirms)
     inferred_flows: list[ContractFlow] = field(default_factory=list)
@@ -140,6 +142,8 @@ class BrainReport:
             "project_domain": self.project_domain,
             "project_context": self.project_context,
             "active_security_domains": self.active_security_domains,
+            "enriched_context": getattr(self, "enriched_context", {}),
+            "body_tags_version": 1,
             "doc_validation": self.doc_validation,
             "graph_diff": self.graph_diff,
             "stale": False,
@@ -452,6 +456,72 @@ class Brain:
                 ),
             )
         )
+        # ── L2 Body tags + Understander (core-aware, not insertion order) ─
+        body_tags: dict[str, dict] = {}
+        try:
+            from patchi.core.brain.body_tags import build_body_tags, save_body_tags
+            from patchi.core.brain.understander import Understander
+
+            # Need layers already built (previous phase sets report.layers at line ~410)
+            layers_dict = getattr(report, "layers", {}) or {}
+            body_tags = build_body_tags(
+                report.file_infos, report.import_graph, layers_dict, report.routes, report.blast_radius_map
+            )
+            save_body_tags(body_tags, self.root)
+            self._emit(ScanProgress(phase="context", message=f"Body tags: {len(body_tags)} files tagged"))
+            # stash for understander reuse
+            report.body_tags = body_tags  # type: ignore[attr-defined]
+            # Understander instance for enriched + contract phases
+            _understander = Understander(self.root, report.file_infos, body_tags, report.blast_radius_map, report.routes)
+            report._understander = _understander  # type: ignore[attr-defined]
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("body_tags/understander failed: %s", exc)
+            body_tags = {}
+            # keep report._understander unset -> fallbacks use slicing
+
+        # ── L1 Enriched context (one AI call, offline-safe) ──────────────────
+        try:
+            from patchi.core.brain.enriched_context import enrich_project_context
+
+            cfg_for_ai: dict = {}
+            try:
+                cfg_for_ai = cfg.load(self.root)
+                if not isinstance(cfg_for_ai, dict):
+                    cfg_for_ai = {}
+            except Exception:
+                cfg_for_ai = {}
+            # If understander exists, enrich with core_files context
+            _u_block = ""
+            _core_hint = {}
+            if getattr(report, "_understander", None) is not None:
+                try:
+                    _u_block = report._understander.as_prompt_block(limit=8)  # type: ignore[attr-defined]
+                    _core_hint = {"core_files_block": _u_block}
+                except Exception:
+                    _core_hint = {}
+            report.enriched_context = enrich_project_context(
+                self.root,
+                cfg_for_ai,
+                report.stack,
+                report.routes,
+                report.file_infos,
+                report.project_context,
+                report.active_security_domains,
+                extra_context=_core_hint,
+            )
+            self._emit(
+                ScanProgress(
+                    phase="context",
+                    message=f"Enriched: {report.enriched_context.get('domain','?')} "
+                    f"({report.enriched_context.get('source','?')})",
+                )
+            )
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("enriched_context failed, heuristic fallback: %s", exc)
+            report.enriched_context = {
+                "purpose_1sent": report.project_context.get("purpose", "") if isinstance(report.project_context, dict) else "",
+                "source": "heuristic_wire_fallback",
+            }
         # ── Project purpose (AI-powered or fallback) ──────────────────────────
         self._emit(ScanProgress(phase="contract", message="Understanding project purpose…"))
         report.project_purpose, report.project_domain = self._infer_project_purpose(

@@ -312,8 +312,8 @@ class AIValidator:
             full = self.root / filepath
             if full.is_file():
                 return full.read_text(encoding="utf-8", errors="replace")[:8000]
-        except Exception:
-            pass
+        except Exception as _exc:
+            _log.warning('_read_file failed: %s', _exc)
         return ""
 
     def _build_prompt(

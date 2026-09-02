@@ -256,8 +256,8 @@ def _set(f, key: str, value) -> None:
         return
     try:
         setattr(f, key, value)
-    except Exception:  # noqa: BLE001 — frozen/sealed objects: skip silently
-        pass
+    except Exception as _exc:  # noqa: BLE001 — frozen/sealed objects: skip silently
+        _log.debug('_set skipped: %s', _exc)
 
 
 def _set_severity_info(f) -> None:
@@ -270,5 +270,5 @@ def _set_severity_info(f) -> None:
         from patchi.core.agents.base import Severity
 
         f.severity = Severity.INFO
-    except Exception:  # noqa: BLE001 — frozen/sealed objects: annotate only
-        pass
+    except Exception as _exc:  # noqa: BLE001 — frozen/sealed objects: annotate only
+        _log.debug('_set_severity_info skipped: %s', _exc)

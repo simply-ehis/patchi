@@ -82,8 +82,8 @@ def audit(root: Path | None = None) -> AuditReport:
         import patchi.core.agents.fix_agents  # noqa: F401
         import patchi.core.agents.test_agents  # noqa: F401
         import patchi.core.security.security_agents  # noqa: F401
-    except Exception:
-        pass
+    except Exception as _exc:
+        _log.warning('audit failed: %s', _exc)
 
     from patchi.core.agents.base import list_agents
 

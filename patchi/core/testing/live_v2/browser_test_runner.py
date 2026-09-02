@@ -143,8 +143,8 @@ class BrowserTestRunner:
                         ss_result = await screenshot_mgr.capture(page, page.url, name=f"{name}_error_step{i + 1}")
                         if ss_result and ss_result.image_path:
                             result.screenshots.append(ss_result.image_path)
-                    except Exception:
-                        pass
+                    except Exception as _exc:
+                        _log.warning('run_test failed: %s', _exc)
                     break
 
         except Exception as e:
@@ -155,15 +155,15 @@ class BrowserTestRunner:
             if context:
                 try:
                     await context.close()
-                except Exception:
-                    pass
+                except Exception as _exc:
+                    _log.warning('run_test failed: %s', _exc)
             # Clean up recording browser instance from pool
             if recording_instance and recording_instance.id in pool._browsers:
                 try:
                     browser_inst = pool._browsers.pop(recording_instance.id)
                     await browser_inst._browser.close()
-                except Exception:
-                    pass
+                except Exception as _exc:
+                    _log.warning('run_test failed: %s', _exc)
 
             # Find the recorded video file (Playwright saves it on context.close)
             try:

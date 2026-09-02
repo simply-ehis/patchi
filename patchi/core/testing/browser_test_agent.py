@@ -252,8 +252,8 @@ class BrowserTestAgent(BaseAgent):
                     try:
                         await page.screenshot(path=str(shot), full_page=False)
                         screenshots.append(shot.name)
-                    except Exception:
-                        pass
+                    except Exception as _exc:
+                        _log.warning('_probe_async failed: %s', _exc)
                     nav_failures.append({"url": url, "error": str(e)[:160]})
                     continue
         finally:

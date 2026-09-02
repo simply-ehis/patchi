@@ -132,8 +132,8 @@ def record_run(
         try:
             usage = resource.getrusage(resource.RUSAGE_SELF)
             run.peak_rss_mb = usage.ru_maxrss / 1024  # KB â†’ MB
-        except Exception:
-            pass
+        except Exception as _exc:
+            _log.warning('record_run failed: %s', _exc)
         _persist_run(root, run)
 
 
@@ -173,8 +173,8 @@ def record_tokens(root: Path, agent: str, prompt_tokens: int, completion_tokens:
                 prompt_tokens * profile.cost_per_1k_input / 1000
                 + completion_tokens * profile.cost_per_1k_output / 1000
             )
-    except Exception:
-        pass
+    except Exception as _exc:
+        _log.warning('record_tokens failed: %s', _exc)
     _save(root, data)
 
 

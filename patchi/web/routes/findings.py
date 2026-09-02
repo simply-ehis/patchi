@@ -1,6 +1,7 @@
 """Findings route — findings list with filters + chain/intent tabs, DAST screenshots, history."""
 
 from __future__ import annotations
+import logging
 
 import json as _json
 import os
@@ -11,6 +12,8 @@ from pathlib import Path
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
+_log = logging.getLogger("patchi.web.routes.findings")
+
 
 router = APIRouter()
 templates = Jinja2Templates(directory=str(Path(__file__).parent.parent / "templates"))
@@ -22,8 +25,8 @@ def _load_chain_intent(root: Path) -> dict:
     if ci_path.is_file():
         try:
             return _json.loads(ci_path.read_text(encoding="utf-8"))
-        except Exception:
-            pass
+        except Exception as _exc:
+            _log.warning('_load_chain_intent failed: %s', _exc)
     return {"chains": [], "intent_report": None}
 
 
@@ -52,8 +55,8 @@ def _load_visual_regression(root: Path) -> dict:
                         "source_name": f.stem.replace("_diff", "") if is_diff else None,
                     }
                 )
-            except Exception:
-                pass
+            except Exception as _exc:
+                _log.warning('_load_visual_regression failed: %s', _exc)
 
     # Pair screenshots: for each diff, find its source screenshot
     diff_map = {s["source_name"]: s for s in screenshots if s["is_diff"]}
@@ -208,8 +211,8 @@ async def findings(request: Request):
         charter = load_charter(root)
         if charter.rules:
             charter_violations = [v.to_dict() for v in check_all_violations(charter)]
-    except Exception:
-        pass
+    except Exception as _exc:
+        _log.warning('findings failed: %s', _exc)
 
     # Load scan history
     scan_history = _load_scan_history(root)

@@ -1,6 +1,7 @@
 """Assurance route — assurance graph, campaigns, attackers, fuzz."""
 
 from __future__ import annotations
+import logging
 
 from datetime import UTC, datetime
 from pathlib import Path
@@ -8,6 +9,8 @@ from pathlib import Path
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
+_log = logging.getLogger("patchi.web.routes.assurance")
+
 
 router = APIRouter()
 templates = Jinja2Templates(directory=str(Path(__file__).parent.parent / "templates"))
@@ -32,8 +35,8 @@ async def assurance(request: Request):
         attack_results = planner.run_all()
         confirmed = [r for r in attack_results if r.confirmed]
         attacker_results = [r.to_dict() for r in confirmed[:20]]
-    except Exception:
-        pass
+    except Exception as _exc:
+        _log.warning('assurance failed: %s', _exc)
 
     # Run campaigns
     campaign_results = []
@@ -43,8 +46,8 @@ async def assurance(request: Request):
         orch = CampaignOrchestrator(graph)
         result = orch.run_all()
         campaign_results = [c.to_dict() for c in result.campaigns]
-    except Exception:
-        pass
+    except Exception as _exc:
+        _log.warning('assurance failed: %s', _exc)
 
     # Fuzz stats
     fuzz_endpoints = len([c for c in graph.claims.values() if "endpoint" in c.domain])
@@ -85,8 +88,8 @@ async def assurance(request: Request):
                         "message": f.get("message", ""),
                         "file": f.get("file", ""),
                     })
-    except Exception:
-        pass
+    except Exception as _exc:
+        _log.warning('assurance failed: %s', _exc)
 
     # Correlate DAST findings with static analysis findings (same severity/type)
     dast_correlations = []
@@ -137,8 +140,8 @@ async def assurance(request: Request):
 
             ci = json.loads(ci_path.read_text(encoding="utf-8"))
             chain_raw = ci.get("chains", [])
-    except Exception:
-        pass
+    except Exception as _exc:
+        _log.warning('assurance failed: %s', _exc)
 
     return templates.TemplateResponse(
         request,
@@ -184,8 +187,8 @@ async def assurance_api(request: Request) -> JSONResponse:
         confirmed = [r for r in attack_results if r.confirmed]
         attacker_count = len(attack_results)
         confirmed_count = len(confirmed)
-    except Exception:
-        pass
+    except Exception as _exc:
+        _log.warning('assurance_api failed: %s', _exc)
 
     # Run campaigns
     campaign_data = []
@@ -195,8 +198,8 @@ async def assurance_api(request: Request) -> JSONResponse:
         orch = CampaignOrchestrator(graph)
         result = orch.run_all()
         campaign_data = [c.to_dict() for c in result.campaigns]
-    except Exception:
-        pass
+    except Exception as _exc:
+        _log.warning('assurance_api failed: %s', _exc)
 
     return JSONResponse(
         {
@@ -325,8 +328,8 @@ async def list_dast_screenshots(request: Request):
                     "size": f.stat().st_size,
                     "source": "dast",
                 })
-            except Exception:
-                pass
+            except Exception as _exc:
+                _log.warning('list_dast_screenshots failed: %s', _exc)
 
     # Scan visual_baselines/current/ directory
     current_dir = visual_dir / "current"
@@ -340,8 +343,8 @@ async def list_dast_screenshots(request: Request):
                     "size": f.stat().st_size,
                     "source": "visual",
                 })
-            except Exception:
-                pass
+            except Exception as _exc:
+                _log.warning('list_dast_screenshots failed: %s', _exc)
 
     # Scan visual_baselines/baselines/ directory (saved baselines)
     baselines_dir = visual_dir / "baselines"
@@ -360,8 +363,8 @@ async def list_dast_screenshots(request: Request):
                     "timestamp": meta.get("created_at", datetime.fromtimestamp(f.stat().st_mtime, UTC).isoformat()),
                     "size": f.stat().st_size,
                 })
-            except Exception:
-                pass
+            except Exception as _exc:
+                _log.warning('list_dast_screenshots failed: %s', _exc)
 
     return JSONResponse({
         "ok": True,
@@ -470,8 +473,8 @@ async def list_dast_videos(request: Request):
                         "timestamp": datetime.fromtimestamp(stat.st_mtime, UTC).isoformat(),
                         "source_dir": str(video_dir.relative_to(root)),
                     })
-                except Exception:
-                    pass
+                except Exception as _exc:
+                    _log.warning('list_dast_videos failed: %s', _exc)
 
     return JSONResponse({
         "ok": True,

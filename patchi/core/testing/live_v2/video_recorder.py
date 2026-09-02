@@ -274,8 +274,8 @@ class RecordingBrowserPool:
         # Clean up browser instance
         try:
             await instance._browser.close()
-        except Exception:
-            pass
+        except Exception as _exc:
+            _log.warning('release_recording failed: %s', _exc)
 
         return test_recording
 

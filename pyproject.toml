@@ -1,6 +1,6 @@
 [project]
 name = "patchi"
-version = "0.7.0.dev0"
+version = "0.7.2"
 description = "Patchi — AI-powered code security and quality agent colony (smart orchestrator, pre-1.0.0 dev preview)"
 readme = "README.md"
 license = {text = "Patchi Freemium — Free for personal & teams <3, enterprise contact idemudiaehis6@gmail.com"}
@@ -55,7 +55,7 @@ select = [
 ]
 ignore = []
 # NOTE: TOML inline tables are single-line only (v1.0)
-per-file-ignores = { "tests/*" = ["S101", "T201", "T203"] }
+per-file-ignores = { "tests/*" = ["S101", "T201", "T203"], "patchi/core/security/domain_loader.py" = ["E501"] }
 preview = false
 
 [tool.ruff.format]

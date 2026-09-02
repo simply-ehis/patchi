@@ -6,6 +6,7 @@ structured results for display in the Command Center card.
 """
 
 from __future__ import annotations
+import logging
 
 import asyncio
 import os
@@ -16,6 +17,8 @@ from pathlib import Path
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 from starlette.templating import Jinja2Templates
+_log = logging.getLogger("patchi.web.api.dev_check")
+
 
 router = APIRouter(prefix="/api")
 
@@ -173,8 +176,8 @@ async def _run_gate(
         try:
             os.unlink(tmp_out.name)
             os.unlink(tmp_err.name)
-        except Exception:
-            pass
+        except Exception as _exc:
+            _log.warning('_run_gate failed: %s', _exc)
 
         # Parse output for specific gate info
         parsed = _parse_gate_output(name, output)
@@ -246,8 +249,8 @@ def _record_history(root: Path, results: dict) -> None:
         tmp = history_path.with_suffix(".json.tmp")
         tmp.write_text(_json.dumps(history, indent=2), encoding="utf-8")
         tmp.replace(history_path)
-    except Exception:
-        pass  # best-effort
+    except Exception as _exc:
+        _log.debug("dev_check history write skipped: %s", _exc)
 
 
 @router.get("/dev-check/history")

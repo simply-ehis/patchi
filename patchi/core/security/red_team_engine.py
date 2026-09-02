@@ -165,6 +165,29 @@ class AttackExecutor:
         evidence["timestamp"] = time.time()
         self._evidence.append(evidence)
 
+    async def _run_pentest_tool(self, tool: str, step: dict, scenario: dict, context: dict) -> dict:
+        """Delegate to real PentestRegistry engines (nuclei/sqlmap/shannon etc)."""
+        try:
+            from patchi.core.security.pentest.registry import PentestRegistry
+
+            reg = PentestRegistry()
+            target = step.get("target") or step.get("url") or self.target_url
+            safe = step.get("safe_mode", self.safe_mode)
+            # shannon needs repo_root
+            extra = {"repo_root": str(self.root), "templates": step.get("templates"), "wordlist": step.get("wordlist"), "data": step.get("data")}
+            # Run in thread to avoid blocking event loop (subprocess)
+            import asyncio as _aio
+
+            res = await _aio.to_thread(reg.run, tool, target, safe, self._evidence_dir, extra)
+            out: dict = {"success": bool(res.success and not res.error and (res.findings or res.evidence)), "evidence": res.evidence or res.error, "data": {"tool": res.tool, "findings": res.findings, "raw": res.raw_output[:2000], "duration_ms": res.duration_ms}, "error": res.error}
+            # Count as success even if 0 findings but no error (target clean)
+            if res.success and not res.error and not res.findings:
+                out["success"] = True
+                out["evidence"] = f"{tool}: no findings (target clean or not vulnerable)"
+            return out
+        except Exception as exc:  # noqa: BLE001
+            return {"success": False, "error": f"pentest tool {tool} failed: {exc}"}
+
     def get_evidence(self) -> list[dict]:
         """Return all captured evidence."""
         return list(self._evidence)
@@ -198,6 +221,8 @@ class AttackExecutor:
                 result = await self._browser_action(step, scenario, context)
             elif tool == "jwt_tool":
                 result = await self._jwt_tool(step, scenario, context)
+            elif tool in ("nuclei", "sqlmap", "dalfox", "ffuf", "zap", "shannon"):
+                result = await self._run_pentest_tool(tool, step, scenario, context)
             else:
                 result = {"success": False, "error": f"Unknown tool: {tool}"}
 

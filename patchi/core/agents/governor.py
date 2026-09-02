@@ -336,8 +336,8 @@ class Governor:
                 _log.warning("Governor.close checkpoint failed: %s", e)
             try:
                 self._conn.close()
-            except Exception:
-                pass
+            except Exception as _exc:
+                _log.warning('close failed: %s', _exc)
             self._conn = None
         for suffix in (".db-wal", ".db-shm"):
             try:

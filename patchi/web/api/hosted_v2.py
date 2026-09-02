@@ -11,9 +11,12 @@ Adds on top of /api/hosted:
 """
 
 from __future__ import annotations
+import logging
 
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
+_log = logging.getLogger("patchi.web.api.hosted_v2")
+
 
 router = APIRouter(prefix="/api/hosted/v2")
 
@@ -101,8 +104,8 @@ async def compliance_report(request: Request, standard: str = "owasp-asvs") -> J
         from patchi.core.hosted.audit_log import write as audit_write
 
         audit_write(root, "compliance.report_generated", data={"standard": standard})
-    except Exception:
-        pass
+    except Exception as _exc:
+        _log.warning('compliance_report failed: %s', _exc)
 
     return JSONResponse(report)
 
@@ -136,8 +139,8 @@ async def add_webhook(request: Request) -> JSONResponse:
         from patchi.core.hosted.audit_log import write as audit_write
 
         audit_write(root, "webhook.added", data={"id": record["id"], "url": url})
-    except Exception:
-        pass
+    except Exception as _exc:
+        _log.warning('add_webhook failed: %s', _exc)
     return JSONResponse({"ok": True, "webhook": record})
 
 

@@ -63,8 +63,8 @@ def _show_preview(root: Path, fixes: list, applied: list) -> None:
 
                     con.print("     [green]After:[/green]")
                     con.print(f"       >>> {line_num:4d} │ {fix.suggested_line}")
-            except Exception:
-                pass
+            except Exception as _exc:
+                _log.warning('_show_preview failed: %s', _exc)
 
         con.print()
 

@@ -119,8 +119,8 @@ def open_page(browser, url: str, timeout: int = 30000, viewport: dict | None = N
         status = resp.status if resp is not None else 0
         try:
             page.wait_for_selector("body", state="visible", timeout=10000)
-        except Exception:
-            pass
+        except Exception as _exc:
+            _log.warning('open_page failed: %s', _exc)
         page.wait_for_timeout(700)  # let client JS (charts, ws feed) settle
     except Exception as e:  # navigation/timeout -> still return session w/ status
         _log.warning("open_page failed for %s: %s", url, e)

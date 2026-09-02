@@ -265,18 +265,58 @@ def build_ai_contract_summary(
         return None
 
     # Build a compact summary of what the AST scanners found
-    file_summaries = []
-    for fi in file_infos[:50]:
-        funcs = ", ".join(f.name for f in fi.functions[:5])
-        classes = ", ".join(c.name for c in fi.classes[:3])
-        parts = [fi.path]
-        if fi.purpose:
-            parts.append(f"({fi.purpose})")
-        if funcs:
-            parts.append(f"fns: [{funcs}]")
-        if classes:
-            parts.append(f"cls: [{classes}]")
-        file_summaries.append(" ".join(parts))
+    # Prefer understander-ranked core files when available (Slice 2)
+    use_core = False
+    try:
+        from pathlib import Path as _Pth
+
+        from patchi.core.brain.body_tags import load_body_tags
+        from patchi.core.brain.understander import Understander
+
+        _root = None
+        # try to infer root from first file_infos path (relative), fallback to cwd
+        if file_infos and len(file_infos) > 0:
+            # file_infos paths are relative to root; we don't have root here, use cwd probe
+            for cand in [Path.cwd(), Path(".")]:
+                if (cand / ".patchi").exists() or (cand / "pyproject.toml").exists():
+                    _root = cand.resolve()
+                    break
+        if _root is not None:
+            _tags = load_body_tags(_root)
+            if _tags:
+                _u = Understander(_root, file_infos, _tags, None, routes)
+                core = _u.core_files(limit=20)
+                file_summaries = []
+                for c in core:
+                    fi = next((x for x in file_infos if x.path == c["path"]), None)
+                    if fi is None:
+                        continue
+                    funcs = ", ".join(f.name for f in fi.functions[:5])
+                    classes = ", ".join(c.name for c in fi.classes[:3])
+                    parts = [fi.path + f" // {c['why']}"]
+                    if fi.purpose:
+                        parts.append(f"({fi.purpose})")
+                    if funcs:
+                        parts.append(f"fns: [{funcs}]")
+                    if classes:
+                        parts.append(f"cls: [{classes}]")
+                    file_summaries.append(" ".join(parts))
+                use_core = bool(file_summaries)
+    except Exception:
+        use_core = False
+    if not use_core:
+        file_summaries = []
+        for fi in file_infos[:50]:
+            funcs = ", ".join(f.name for f in fi.functions[:5])
+            classes = ", ".join(c.name for c in fi.classes[:3])
+            parts = [fi.path]
+            if fi.purpose:
+                parts.append(f"({fi.purpose})")
+            if funcs:
+                parts.append(f"fns: [{funcs}]")
+            if classes:
+                parts.append(f"cls: [{classes}]")
+            file_summaries.append(" ".join(parts))
 
     route_summaries = [f"{r.method} {r.path}" for r in routes[:30]]
 

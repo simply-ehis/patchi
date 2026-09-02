@@ -411,11 +411,15 @@ def attack_simulate(
     scenarios: list[str] | None = None,
     target_url: str | None = None,
     safe_mode: bool = True,
+    use_real_tools: bool = False,
+    use_shannon: bool = False,
 ) -> dict:
     """Run offensive agents (static) and, if a URL is given, a SAFE dynamic probe.
 
     ``safe_mode`` (default True) restricts the dynamic probe to read-only header
     inspection — no payloads are sent.
+    If ``use_real_tools`` is True and a target is given, additionally runs
+    PentestRegistry engines (nuclei/sqlmap/dalfox) or Shannon via npx.
     """
     name_map = _security_agent_map(root)
     selected = [c for n, c in name_map.items() if any(s in n.lower() for s in _OFFENSIVE)]
@@ -476,6 +480,33 @@ def attack_simulate(
         list(pool.map(_run_attack, selected))
 
     dyn = {}
+    # Real DAST engines when requested (opt-in, needs target)
+    if (use_real_tools or use_shannon) and target_url:
+        try:
+            from patchi.core import memory as _mem
+
+            brain = _mem.get_brain(root)
+            active = brain.get("active_security_domains", []) if isinstance(brain, dict) else []
+            from patchi.core.security.pentest.registry import PentestRegistry
+
+            reg = PentestRegistry()
+            ctx = {"active_domains": active, "routes": brain.get("routes", []) if isinstance(brain, dict) else [], "target_url": target_url, "config": brain, "use_shannon": bool(use_shannon)}
+            picks = reg.ai_pick(ctx)
+            # shannon is heavy — run alone
+            if any(p.get("tool") == "shannon" for p in picks) and use_shannon:
+                picks = [p for p in picks if p.get("tool") == "shannon"][:1]
+            for p in picks[:3]:
+                tool = p.get("tool")
+                _emit("security.agent.started", {"agent": tool, "class": tool})
+                extra = {"repo_root": str(root)}
+                res = reg.run(tool, target_url, safe_mode=safe_mode, workspace=root / ".patchi" / "pentest", extra=extra)
+                for f in res.findings:
+                    fd = {"type": f.get("ruleId") or f.get("template") or f.get("type") or tool, "severity": "high" if tool in ("nuclei","shannon") else "medium", "message": f.get("message") or f.get("name") or str(f)[:300], "file": target_url, "line": 0, "cwe": f.get("cwe","")}
+                    findings.append(fd)
+                    _emit("security.finding", {"severity": fd["severity"], "type": fd["type"], "file": target_url, "line": 0, "cwe": fd["cwe"], "description": fd["message"]})
+                _emit("security.agent.completed", {"agent": tool, "success": bool(res.success)})
+        except Exception as exc:  # noqa: BLE001
+            _log.warning("pentest registry failed: %s", exc)
     if target_url:
         dyn = _safe_dynamic_probe(target_url)
         for d in dyn.get("issues", []):
@@ -959,6 +990,37 @@ def visual_regression(root: Path, urls: list[str], threshold: float = 0.1) -> di
 # ---------------------------------------------------------------------------
 # Tool: generate_tests  (real skeleton generator, non-destructive)
 # ---------------------------------------------------------------------------
+
+
+def read_file(root: Path, path: str, start: int = 1, end: int = 500) -> dict:
+    """Validated file slice for LLM tool calls — 500 lines / 3 calls limit enforced by caller."""
+    try:
+        from patchi.core.brain.import_graph import KNOWN_EXTENSIONS
+
+        # path traversal guard
+        rel = Path(path)
+        if rel.is_absolute() or ".." in rel.parts:
+            return {"success": False, "error": "invalid path"}
+        full = (root / rel).resolve()
+        # ensure inside root
+        try:
+            full.relative_to(root.resolve())
+        except ValueError:
+            return {"success": False, "error": "outside repo"}
+        if full.suffix not in KNOWN_EXTENSIONS and full.suffix not in ("", ".py", ".js", ".ts"):
+            # allow any source, but cap size
+            pass
+        if not full.is_file():
+            return {"success": False, "error": "not found"}
+        if full.stat().st_size > 2 * 1024 * 1024:
+            return {"success": False, "error": ">2MB"}
+        end = min(end, start + 500 - 1)
+        lines = full.read_text(encoding="utf-8", errors="replace").splitlines()
+        sliced = lines[max(0, start - 1) : min(len(lines), end)]
+        numbered = "\n".join(f"{i+1:4d} | {l}" for i, l in enumerate(sliced, start=start))
+        return {"success": True, "path": str(rel), "start": start, "end": end, "content": numbered}
+    except Exception as exc:  # noqa: BLE001
+        return {"success": False, "error": str(exc)}
 
 
 def generate_tests(

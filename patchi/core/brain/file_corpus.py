@@ -20,6 +20,7 @@ Usage:
 """
 
 from __future__ import annotations
+import logging
 
 import hashlib
 import os
@@ -27,6 +28,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from patchi.core.brain.languages import DEFAULT_IGNORE_DIRS, Lang, detect_language
+_log = logging.getLogger("patchi.core.brain.file_corpus")
+
 
 # ── Defaults ──────────────────────────────────────────────────────────────────
 
@@ -130,8 +133,8 @@ class FileCorpus:
                         if self._ignore_learner.matches(rel_path) is not None:
                             self.learner_excluded += 1
                             continue
-                    except Exception:  # noqa: BLE001 — learner bugs never block scans
-                        pass
+                    except Exception as _exc:  # noqa: BLE001 — learner bugs never block scans
+                        _log.debug('_build skipped: %s', _exc)
 
                 if classify is not None:
                     cat = classify(rel_path)

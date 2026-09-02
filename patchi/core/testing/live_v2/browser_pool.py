@@ -292,8 +292,8 @@ class BrowserPool:
                 try:
                     await instance._context.close()
                     await instance._browser.close()
-                except Exception:
-                    pass
+                except Exception as _exc:
+                    _log.warning('cleanup_idle failed: %s', _exc)
                 _log.debug(f"Cleaned up idle browser: {instance_id}")
 
     async def shutdown(self):
@@ -303,8 +303,8 @@ class BrowserPool:
                 try:
                     await instance._context.close()
                     await instance._browser.close()
-                except Exception:
-                    pass
+                except Exception as _exc:
+                    _log.warning('shutdown failed: %s', _exc)
 
             self._browsers.clear()
 

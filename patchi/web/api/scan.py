@@ -17,6 +17,8 @@ from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 
 from patchi.core.tenant import tenant_context
+_log = logging.getLogger("patchi.web.api.scan")
+
 
 router = APIRouter(prefix="/api")
 
@@ -169,8 +171,8 @@ async def trigger_scan(
                         'auto_fix': auto_fix,
                         'cancelled': cancel_event.is_set(),
                     }, root)
-                except Exception:
-                    pass  # non-fatal
+                except Exception as _exc:
+                    _log.debug("record_scan history write skipped: %s", _exc)
 
                 # Auto-fix
                 if auto_fix and deduped_count > 0 and not cancel_event.is_set():
@@ -288,8 +290,8 @@ async def get_scan_report(request: Request) -> JSONResponse:
             payload["cached"] = True
             payload["total_findings"] = report.total_findings
             return JSONResponse(payload)
-    except Exception:
-        pass
+    except Exception as _exc:
+        _log.warning('get_scan_report failed: %s', _exc)
 
     return JSONResponse({
         "ok": True,
