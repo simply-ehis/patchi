@@ -68,12 +68,16 @@ p test --unit             # Unit tests only
 p test --browser          # Browser tests (Playwright)
 p test --stress           # Stress/load tests
 p test --visual           # Visual regression tests
+p ask "how does auth work?" --ai  # RAG TF-IDF + body_tags + optional LLM synthesis (needs scan)
+p read_file patchi/core/memory.py --start 1 --end 80  # Validated ≤500 lines slice for LLM tool calls
 ```
 
 ### Security Analysis
 
 ```bash
-p security                # Run all security agents
+p security                # Run all security agents (auto-gated via body_tags)
+p security --with-real-tools --target https://staging.example.com  # nuclei/sqlmap/dalfox real DAST (needs target)
+p red-team --with-shannon --target https://staging.example.com     # Shannon AI pentester via npx + Docker (1h, needs BYOK + disposable data)
 p chains                  # Show exploit chains
 p findings                # View all findings
 p deps                    # Supply chain scan

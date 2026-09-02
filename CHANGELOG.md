@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.7.2] - 2026-09-02
+
+### 🧠 Understander-First Brain (Slices 1-6)
+- **L1 Enriched Context — 1 LLM/scan** `brain/enriched_context.py` `ProjectInsight+StackInfo+layers` → `brain.json:enriched_context {purpose_1sent, domain, domain_confidence, tech_stack_confirmed, critical_dirs_reasoned, top_risks[3], scan_focus}` 1s timeout, `PATCHI_OFFLINE` heuristic fallback
+- **L2 AIConfidenceGate** `security/confidence_gate.py:201` second pass only `low + (high/critical OR secret/injection/auth)` capped 10 findings via `AIValidator 3-step code→data flow→exploitability` `{verdict, reason, exploitability}` offline `unverified`
+- **L3 RAG Reasoning** `brain/reasoning.py:179` was `re.findall` bag → TF-IDF `tf*idf + body_tags boost` over cached `layers[].summary` built at scan `brain.py:635 rag_index` stored `layers.json`, `ask(ask_ai=True)` wraps RAG + `call_ai`
+- **L4 Council Memo** `brain/council.py:410` `SHA256(issue+context)[:16]` `council_cache.json` 7-day TTL prune 50
+- **Body Tags + Understander** `brain/body_tags.py` `brain/understander.py` `core_files(16) score=fan_in*10+dep*3` replaces `file_infos[:50]` insertion order, `contract.py:269` + `brain.py:446` gated `body_tags.json {role: brain/muscle/bone/blood/skin/nerve}`
+- **Tool-Reading LLM** `ai/tools/read_file 500 lines/3 calls` `realize.py:995` validated `≤2MB`, wired `fix/base function_at`, `AIValidator`, `council`
+- **Real Pentest Registry** `security/pentest/` `nuclei/sqlmap/dalfox/ffuf/zap` `shannon_adapter Option 2 external npx` `shannon` AGPL-clean via `npx @keygraph/shannon start -u {target} -r {repo}` parsing `*.sarif`, `attack_simulate(use_real_tools,use_shannon)` `realize.py:420` + `red_team_engine _run_pentest_tool` `aio.to_thread`, `ai_pick` shannon-aware
+- **Fix/Test Context** `fix/base.py:229` `function_at` + `blast_radius dependents[:3]`, `realize generate_tests auto` → `Understander.untested_core()` `realize.py:1026`, `gate scanners` via `body_tags is_route_file high/critical` `realize.py:262` `182→~40` Flask
+- **Quality:** `0 bare except` prod (AST 103→0), `patchi/cli scan_cmd:767 unmatched )` fix, `reasoning ffuf/zap` debug logs, `py_compile` all, `pytest 73` pass, `Brain.scan patchi/core/brain 75 files 18s`
+
+---
+
 ## [0.7.0] - 2026-09-01
 
 ### 🚀 New Features

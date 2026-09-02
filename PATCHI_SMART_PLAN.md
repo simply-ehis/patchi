@@ -81,4 +81,4 @@ Verify: `nuclei -u http://127.0.0.1:1612 -t cves -jsonl` mocked via `mock_resp` 
 
 ---
 
-*Last updated: 2026-09-02 | Slices 1-2 landed | Slice 3 now includes Shannon Option 2 (external npx adapter, AGPL-clean) | Next: Slice 3a (base+registry+nuclei+shannon_adapter stub) then 4*
+*Last updated: 2026-09-02 | Slices 1-6 landed (L1-L4 + pentest + understander + gating) | Gate: pytest 73 pass, scan patchi/core/brain 75 files 18s, 0 bare except | Next: tag v0.7.2*
