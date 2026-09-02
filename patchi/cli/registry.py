@@ -494,6 +494,12 @@ COMMANDS: list[Command] = [
         ),
     ),
     Command(
+        "heatmap",
+        "Risk heatmap — bug-prone hotspots (score = findings×10 + churn×2 + size/10)",
+        "patchi.cli.commands.heatmap_cmd:run",
+        args=(Arg("--json", dest="json_output", action="store_true", help="Output as JSON"),),
+    ),
+    Command(
         "blame",
         "Show git blame for a file",
         "patchi.cli.commands.blame_cmd:run",
