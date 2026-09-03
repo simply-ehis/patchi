@@ -98,24 +98,26 @@ class ConsoleLoggingAgent(BaseAgent):
                 key = (route, msg[:80])
                 clusters[key] += 1
             for (route, msg), count in sorted(clusters.items(), key=lambda kv: -kv[1])[:10]:
+                text = msg[:160] or "empty error text"
                 result.add_finding(
                     make_finding(
                         agent=self.name,
                         finding_type="console_error",
                         severity=Severity.LOW if count == 1 else Severity.MEDIUM,
                         file=route,
-                        message=f"Console error ×{count} on {route}: {msg[:160]}",
+                        message=f"Console error ×{count} on {route}: {text}",
                     )
                 )
             for entry in page_errors[:10]:
                 route, _, msg = entry.partition(" :: ")
+                text = msg[:160] or "empty error text"
                 result.add_finding(
                     make_finding(
                         agent=self.name,
                         finding_type="page_error",
                         severity=Severity.MEDIUM,
                         file=route,
-                        message=f"Uncaught page error on {route}: {msg[:160]}",
+                        message=f"Uncaught page error on {route}: {text}",
                     )
                 )
             if error_pages:

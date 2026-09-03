@@ -419,20 +419,64 @@ def run_generate(test_type: str | None = None, root: Path | None = None) -> None
 
     skeletons_text = "\n\n".join(skeletons)
 
+    # Smarter context: mutation survived, branch gaps, coverage, fuzz boundaries
+    extra_context = []
+    try:
+        from patchi.core import memory as _mem2
+
+        scans = _mem2.get_scan_results(r) or {}
+        mut = scans.get("MutationAgent", {}).get("findings", [])
+        if mut:
+            mut_lines = [f"- {f.get('file')}:{f.get('line')} {f.get('message','')[:80]}" for f in mut[:5]]
+            extra_context.append("MUTATION SURVIVED (must kill):\n" + "\n".join(mut_lines))
+    except Exception:
+        pass
+    try:
+        # Branch gaps: heuristic from FileCorpus
+        from patchi.core.brain.file_corpus import FileCorpus
+
+        corpus = FileCorpus(r)
+        branch_gaps = []
+        for fp in top_files:
+            try:
+                txt = (r / fp).read_text(encoding="utf-8", errors="replace")
+                branches = txt.count(" if ") + txt.count(" else") + txt.count(" ? ")
+                if branches > 6:
+                    branch_gaps.append(f"- {fp}: {branches} branches")
+            except OSError:
+                pass
+        if branch_gaps:
+            extra_context.append("BRANCH GAPS (cover each if/else):\n" + "\n".join(branch_gaps[:5]))
+    except Exception:
+        pass
+    try:
+        from patchi.core.fuzz.input_fuzzer import InputFuzzer
+
+        fz = InputFuzzer(seed=42)
+        fuzz_samples = [f.to_dict() for f in fz.fuzz_string("test", count=5)]
+        extra_context.append("FUZZ BOUNDARIES (test these):\n" + "\n".join(f"- {s['label']}: {s['value']!r} ({s['strategy']})" for s in fuzz_samples[:4]))
+    except Exception:
+        pass
+    extra_block = "\n\n".join(extra_context) if extra_context else "No extra gap data — cover happy path + one edge per function."
+    if extra_block:
+        extra_block = f"\n\nSMART CONTEXT — Patchi decided what to catch:\n{extra_block}\n"
+
     prompt = f"""Generate a pytest test file{scope_msg} for these Python modules.
 
 MODULE SKELETONS (these are real — use ONLY these names):
 {skeletons_text}
-
+{extra_block}
 Rules:
 1. Import from the exact paths shown (e.g. from patchi.core.agents.base import ...)
 2. Use ONLY the function/class names listed above — do not invent new ones
 3. Mock call_ai, HTTP, and file I/O
-4. Keep under 200 lines
+4. Keep under 250 lines
 5. Return ONE test file in a ```python block
 6. NEVER use module-level `with patch(...)` blocks — use @patch decorators on test methods only
 7. NEVER import the module under test at the top level — import inside each test method
-8. Keep all imports inside test functions/methods to avoid side effects at collection time"""
+8. Keep all imports inside test functions/methods to avoid side effects at collection time
+9. SMART: For each function, add one happy path + one boundary/branch test + one mutation-killing test (use extra context above). For security-sensitive fns, add injection/encoding payload test from FUZZ BOUNDARIES.
+10. Prioritize covering MUTATION SURVIVED and BRANCH GAPS listed — those are Patchi's priority catch list."""
 
     from patchi.core.ai.prompts import SYSTEM_PROMPTS, Skill
 
