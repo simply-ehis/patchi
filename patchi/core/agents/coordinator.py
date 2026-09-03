@@ -513,6 +513,10 @@ class Coordinator:
             run_results = _run_process_parallel(
                 agent_classes_run, inp, on_done, self._config, self.root
             )
+        elif self._config.get("scan_bus", {}).get("enabled", True):
+            run_results = _run_scan_bus(
+                agent_classes_run, inp, on_done, self._config, self.root
+            )
         else:
             run_results = _run_parallel(agent_classes_run, inp, on_done, self._config)
 
@@ -525,6 +529,28 @@ class Coordinator:
 
 
 # ── Execution engines ──────────────────────────────────────────────────────────
+
+
+def _run_scan_bus(
+    agent_classes: list[type[BaseAgent]],
+    inp: AgentInput,
+    on_done: Callable[[AgentResult], None],
+    config: dict,
+    root: Path,
+) -> list[AgentResult]:
+    """ScanBus path: one shared corpus + FindingBus merge across shard workers.
+
+    Behavior-preserving vs _run_parallel: same agents, same full input, same
+    on_done (circuit breaker + save_scan_result). Fix agents never arrive here
+    (sequenced earlier); SEQUENTIAL/PROCESS modes bypass this branch.
+    """
+    from patchi.core.scan_bus import QueueRunner, ScanBus
+
+    sb = config.get("scan_bus", {})
+    runner = QueueRunner(ScanBus(root, shard_count=int(sb.get("shards", 4) or 4)))
+    inp.extra["scan_bus"] = runner.scan_bus
+    inp.extra["finding_bus"] = runner.finding_bus
+    return runner.run(agent_classes, lambda cls: _run_agent_safe(cls(), inp), on_done)
 
 
 def _run_parallel(

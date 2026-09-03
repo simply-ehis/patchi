@@ -69,6 +69,7 @@ def run(
     dast: bool = False,
     changed: bool = False,
     changed_commits: int = 1,
+    since: str | None = None,
     root: Path | None = None,
     with_license: bool = False,
     with_extended: bool = False,
@@ -115,6 +116,7 @@ def run(
             dast,
             changed,
             changed_commits,
+            since,
             with_license,
             with_extended,
         )
@@ -144,6 +146,7 @@ def _run_scan_inner(
     dast: bool = False,
     changed: bool = False,
     changed_commits: int = 1,
+    since: str | None = None,
     with_license: bool = False,
     with_extended: bool = False,
 ) -> None:
@@ -421,6 +424,26 @@ def _run_scan_inner(
                         con.print(f"[dim] confidence gate: {_gate_discarded} low-trust medium/low discarded[/dim]")
                 except Exception as _exc:
                     _log.debug("confidence gate skipped: %s", _exc)
+
+                # ── --since: keep only findings in files changed since git ref
+                if since:
+                    try:
+                        from patchi.core import ci_bundle
+
+                        _since_before = sum(len(getattr(ar, "findings", [])) for ar in agent_results)
+                        for ar in agent_results:
+                            _dicts = [f.to_dict() for f in getattr(ar, "findings", [])]
+                            _kept = ci_bundle.filter_since(_dicts, since, r)
+                            _keep = {(d.get("file"), d.get("line"), d.get("type")) for d in _kept}
+                            ar.findings = [  # type: ignore
+                                f for f in getattr(ar, "findings", [])
+                                if (f.file, f.line, f.type) in _keep
+                            ]
+                        _since_cut = _since_before - sum(len(getattr(ar, "findings", [])) for ar in agent_results)
+                        if not quiet:
+                            con.print(f"[dim] --since {since}: {_since_cut} finding(s) outside changed files hidden[/dim]")
+                    except Exception as _exc:
+                        _log.debug("--since filter skipped: %s", _exc)
 
                 # ── Blame annotation §10.3.2 — who introduced each error and when
                 try:

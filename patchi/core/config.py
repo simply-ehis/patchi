@@ -62,6 +62,7 @@ def _default_config() -> dict:
         },
         "digest_frequency": "daily",
         "queue_max_depth": 50,
+        "scan_bus": {"enabled": True, "shards": 4},
         "max_scanner_agents": 8,
         "max_security_agents": 19,
         "max_test_agents": 3,

@@ -172,6 +172,12 @@ COMMANDS: list[Command] = [
                 help="On-demand mode: only activate domains relevant to git-diff changed files",
             ),
             Arg(
+                "--since",
+                dest="since",
+                default=None,
+                help="Only report findings in files changed since git ref (e.g. HEAD~3, main)",
+            ),
+            Arg(
                 "--changed-commits",
                 dest="changed_commits",
                 type=int,
@@ -345,6 +351,12 @@ COMMANDS: list[Command] = [
                 dest="preview",
                 action="store_true",
                 help="Show before/after code diffs for each proposed fix",
+            ),
+            Arg(
+                "--safe-all",
+                dest="safe_all",
+                action="store_true",
+                help="Apply every non-blocked patch (AUTO + review), not just AUTO — test-only edits still queue",
             ),
         ),
     ),

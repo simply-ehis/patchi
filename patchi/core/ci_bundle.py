@@ -2,13 +2,14 @@
 CI/PR Bundle — Finding stable id + Baseline+delta + --since + SARIF + fix --safe-all.
 
 Stable id: hash(file+type+line//5) for dedup across runs.
-Renderer registry: markdown/json/sarif renderers.
+Renderer registry: markdown/json/sarif renderers via register_renderer().
 """
 
 from __future__ import annotations
 
 import hashlib
 import json
+from collections.abc import Callable
 from pathlib import Path
 
 def stable_id(finding: dict) -> str:
@@ -35,22 +36,47 @@ def filter_since(findings: list[dict], since_ref: str, root: Path) -> list[dict]
         return findings
 
 def to_sarif(findings: list[dict], root: Path | None = None) -> dict:
-    rules=[]
-    results=[]
-    seen=set()
-    for f in findings:
-        rule_id=f.get("type","")
-        if rule_id not in seen:
-            seen.add(rule_id)
-            rules.append({"id": rule_id, "name": rule_id, "shortDescription": {"text": f.get("message","")[:100]}})
-        results.append({
-            "ruleId": rule_id,
-            "level": "error" if f.get("severity") in ("high","critical") else "warning",
-            "message": {"text": f.get("message","")},
-            "locations": [{"physicalLocation": {"artifactLocation": {"uri": f.get("file","")}, "region": {"startLine": f.get("line",1)}}}]
-        })
-    return {"version":"2.1.0","runs":[{"tool":{"driver":{"name":"Patchi","rules":rules}},"results":results}]}
+    """Single SARIF implementation — delegates to export.sarif.
+
+    (root kept for compat; SARIF carries no repo-root field.)
+    """
+    from patchi.core.export.sarif import convert_findings
+
+    return convert_findings(findings)
 
 def write_sarif(findings: list[dict], out_path: Path) -> None:
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(json.dumps(to_sarif(findings), indent=2), encoding="utf-8")
+
+
+def render_markdown(findings: list[dict]) -> str:
+    lines = ["# Patchi Findings", ""]
+    order = {"critical": 0, "high": 1, "medium": 2, "low": 3, "info": 4}
+    def _sort_key(d: dict) -> tuple:
+        return (order.get(d.get("severity", "info"), 5), d.get("file", ""))
+    for f in sorted(findings, key=_sort_key):
+        lines.append(
+            f"- `{f.get('file', '?')}:{f.get('line', 0)}` "
+            f"[{f.get('severity', 'info')}] {f.get('type', '?')} — {f.get('message', '')}"
+        )
+    return "\n".join(lines) + "\n"
+
+
+RENDERERS: dict[str, Callable[[list[dict]], str]] = {
+    "markdown": render_markdown,
+    "json": lambda findings: json.dumps(findings, indent=2),
+    "sarif": lambda findings: json.dumps(to_sarif(findings), indent=2),
+}
+
+
+def register_renderer(name: str, fn: Callable[[list[dict]], str]) -> None:
+    """Add or override a findings renderer (e.g. plugins)."""
+    RENDERERS[name.lower()] = fn
+
+
+def render_findings(findings: list[dict], fmt: str = "markdown") -> str:
+    try:
+        renderer = RENDERERS[fmt.lower()]
+    except KeyError:
+        raise ValueError(f"unknown findings format {fmt!r} (have: {sorted(RENDERERS)})") from None
+    return renderer(findings)

@@ -47,8 +47,8 @@ and the 28-day implementation plan removed. Do not re-add.
 | Item | Size | Note |
 |---|---|---|
 | CLI Theme adoption (1243 `print()` → semantic helpers) | XL–XXL | Ongoing per design doc |
-| Scan Bus `FileCorpus + safe_rglob + shards + QueueRunner + FindingBus` | XL–XXL | Biggest remaining; bigger than 424-exception project |
-| CI/PR bundle `Finding model + stable id + Baseline+delta #1 + --since + SARIF + fix --safe-all` | M each | Blocked on Scan Bus + exit-code contract |
+| Scan Bus `FileCorpus + safe_rglob + shards + QueueRunner + FindingBus` | XL–XXL | P2 done: QueueRunner + FindingBus drain in coordinator (per-file sharding waits on scope-honoring agents) |
+| CI/PR bundle `Finding model + stable id + Baseline+delta #1 + --since + SARIF + fix --safe-all` | M each | Done: renderer registry, `p scan --since`, `p fix --safe-all`, SARIF unified |
 | Dynamic security checks (42 controls tagged `check_method: dynamic`, 0 impl) | — | Needs process-launch primitive (same as debugger) |
 | Debugger delegation brief (Python-first, DAP client) | L–XL | Brief ready `debugger-delegation-brief.md`, not started |
 | Language expansion `_parse_html` → tree-sitter, phases 5,7,8,9,10 | S–M / unknown | Half of 10-phase plan verified done; remainder unverified |

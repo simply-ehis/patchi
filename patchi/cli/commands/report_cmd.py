@@ -284,13 +284,13 @@ def _export_report(root: Path, data: dict, fmt: str) -> None:
         out_path = report_dir / "report.json"
         out_path.write_text(json.dumps(data, indent=2), encoding="utf-8")
     elif fmt == "sarif":
-        from patchi.core.export.sarif import export as sarif_export
+        from patchi.core import ci_bundle
 
         findings = []
         for sev_list in data.get("findings", {}).values():
             findings.extend(sev_list)
         out_path = report_dir / "report.sarif.json"
-        sarif_export(findings, out_path)
+        out_path.write_text(ci_bundle.render_findings(findings, "sarif"), encoding="utf-8")
     else:
         out_path = report_dir / "report.md"
         out_path.write_text(_render_markdown(data), encoding="utf-8")

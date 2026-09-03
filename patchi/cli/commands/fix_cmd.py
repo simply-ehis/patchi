@@ -5,6 +5,7 @@ Usage:
   p fix                  — fix entire project
   p fix src/auth         — fix specific area
   p fix --dry-run        — preview what would be fixed, touch nothing
+  p fix --safe-all       — apply every non-blocked patch, not just AUTO
 
 Flow:
   1. Check contract_locked (hard block if not confirmed)
@@ -40,6 +41,7 @@ def run(
     area: str | None = None,
     dry_run: bool = False,
     preview: bool = False,
+    safe_all: bool = False,
     root: Path | None = None,
 ) -> None:
     """Entry point for `p fix [area]`."""
@@ -141,7 +143,11 @@ def run(
             blocked.append((patch, gate_result.reason))
             continue
 
-        if gate_result.is_auto:
+        # --safe-all: apply everything the gate didn't block, except
+        # test-weakening edits (requires_review set above) which still queue.
+        if gate_result.is_auto or (
+            safe_all and gate_result.needs_review and not patch.requires_review
+        ):
             if (patch.source_finding or {}).get("type") == "test_failure":
                 # fix → verify → retry loop: apply, re-run the failing test,
                 # feed the failure back (up to 2 retries), never weaken tests.
