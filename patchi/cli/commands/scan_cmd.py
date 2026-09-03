@@ -433,6 +433,26 @@ def _run_scan_inner(
                 except Exception as _exc:
                     _log.debug("blame annotate skipped: %s", _exc)
 
+                # ── Ignore expiry §10.2.3 — patchi-ignore with date, warn on expired
+                try:
+                    from patchi.core.security.ignore_expiry import filter_ignores
+
+                    _all_findings = [f for ar in agent_results for f in getattr(ar, "findings", [])]
+                    _kept, _supp, _exp = filter_ignores(_all_findings, r)
+                    # Apply kept back to agents (preserve per-agent buckets for reporting)
+                    _kept_ids = {id(f) for f in _kept}
+                    for ar in agent_results:
+                        ar.findings = [f for f in getattr(ar, "findings", []) if id(f) in _kept_ids]  # type: ignore
+                    if _exp and not quiet:
+                        for w in _exp[:3]:
+                            con.print(f"[yellow]expired ignore[/yellow] {w['file']}:{w['line']} {w['rule']} was {w['message']}")
+                        if len(_exp) > 3:
+                            con.print(f"[dim] +{len(_exp)-3} more expired ignores[/dim]")
+                    if _supp and not quiet:
+                        con.print(f"[dim] ignore: {len(_supp)} findings suppressed by patchi-ignore[/dim]")
+                except Exception as _exc:
+                    _log.debug("ignore expiry skipped: %s", _exc)
+
                 # ── Self-profiling: record per-agent latency/cost ──────────
                 try:
                     from patchi.core.agents.coordinator import merge_results as _pmr
