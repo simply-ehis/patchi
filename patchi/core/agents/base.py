@@ -42,6 +42,24 @@ def _skip_asset(fname: str, skip_files: frozenset[str]) -> bool:
     return fname in skip_files or is_minified_asset(fname)
 
 
+def scope_allows(inp: AgentInput, rel_path: str) -> bool:
+    """True when `rel_path` is inside the agent's target scope.
+
+    Empty scope means whole-tree (unchanged behavior). Entries match as
+    exact files or directory prefixes, so per-file sharding and --since
+    scoping work without touching every agent's walk logic.
+    """
+    scope = inp.scope or []
+    if not scope:
+        return True
+    rel = rel_path.replace("\\", "/").lstrip("./")
+    for entry in scope:
+        e = str(entry).replace("\\", "/").lstrip("./")
+        if rel == e or rel.startswith(e.rstrip("/") + "/"):
+            return True
+    return False
+
+
 _log = logging.getLogger("patchi.agents.base")
 
 
@@ -882,7 +900,7 @@ def make_finding(
             ":", ""
         ).replace("'", "").replace("-", "_")
         agent = kwargs.pop("agent", _infer_agent_name())
-        message = title or description
+        message = kwargs.pop("message", "") or title or description
         detail = kwargs.pop("detail", description or evidence)
         return Finding(
             agent=agent,
@@ -906,7 +924,7 @@ def make_finding(
         line = kwargs.pop("line_start", kwargs.pop("line", 0))
         title = kwargs.pop("title", "")
         description = kwargs.pop("description", "")
-        message = title or description
+        message = kwargs.pop("message", "") or title or description
         evidence = kwargs.pop("evidence", "")
         finding_type = kwargs.pop("finding_type", None) or title.lower().replace(" ", "_").replace(
             ":", ""

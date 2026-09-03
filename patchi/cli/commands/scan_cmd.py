@@ -70,16 +70,17 @@ def run(
     changed: bool = False,
     changed_commits: int = 1,
     since: str | None = None,
+    fail_on: str | None = None,
     root: Path | None = None,
     with_license: bool = False,
     with_extended: bool = False,
-) -> None:
-    """Entry point for `p scan [area]`."""
+) -> int:
+    """Entry point for `p scan [area]`. Returns process exit code."""
     try:
         r = root or require_project_root()
     except RuntimeError as e:
         con.print(f"[red]{e}[/red]")
-        return
+        return 2
 
     # ── Set tenant context so profiler records the correct project root ────
     from patchi.core.tenant import get_tenant_manager, tenant_context
@@ -92,7 +93,7 @@ def run(
         _log.debug("tenant registration skipped: %s", _exc)
 
     with tenant_context(r):
-        _run_scan_inner(
+        return _run_scan_inner(
             r,
             area,
             dry_run,
@@ -117,6 +118,7 @@ def run(
             changed,
             changed_commits,
             since,
+            fail_on,
             with_license,
             with_extended,
         )
@@ -147,15 +149,16 @@ def _run_scan_inner(
     changed: bool = False,
     changed_commits: int = 1,
     since: str | None = None,
+    fail_on: str | None = None,
     with_license: bool = False,
     with_extended: bool = False,
-) -> None:
-    """Inner scan logic — runs inside tenant_context."""
+) -> int:
+    """Inner scan logic — runs inside tenant_context. Returns process exit code."""
 
     # ── Contract review mode ──────────────────────────────────────────────────
     if contract:
         _run_contract_review(r, all_flows=all_flows)
-        return
+        return 0
 
     # ── Offline mode ──────────────────────────────────────────────────────────
     if offline:
@@ -174,17 +177,17 @@ def _run_scan_inner(
     # ── Dry run ───────────────────────────────────────────────────────────────
     if dry_run and not changed:
         _show_dry_run(r, area)
-        return
+        return 0
 
     # ── Changed dry-run mode ──────────────────────────────────────────────
     if changed and dry_run:
         _show_changed_dry_run(r, changed_commits)
-        return
+        return 0
 
     # ── Handle file-specific deep scan ────────────────────────────────────────
     if file_path:
         _run_file_scan(r, file_path, deep)
-        return
+        return 0
 
     # ── Check freshness first ─────────────────────────────────────────────────
     freshness = check_freshness(r)
@@ -205,7 +208,7 @@ def _run_scan_inner(
         con.print()
         # Still show current status
         _show_summary_from_memory(r)
-        return
+        return 0
 
     # ── Scan ──────────────────────────────────────────────────────────────────
     con.print()
@@ -532,7 +535,7 @@ def _run_scan_inner(
 
     if error:
         con.print(f"\n[red]Scan failed:[/red] {error}")
-        return
+        return 2
 
     # ── Deep scan processing ──────────────────────────────────────────────────
     if deep:
@@ -540,7 +543,7 @@ def _run_scan_inner(
 
     if report is None:
         con.print("\n[red]Scan returned no results.[/red]")
-        return
+        return 2
 
     # ── Results summary ───────────────────────────────────────────────────────
     con.print()
@@ -1190,9 +1193,28 @@ def _run_scan_inner(
             "circular_deps": circular_deps,
         }
         con.print(json.dumps(result, indent=2))
-        return
+        from patchi.core import ci_bundle as _ci
 
+        return _ci.exit_code_for(findings, fail_on)
+
+    # ── Exit-code contract: --fail-on gates CI (plain scan always 0) ──
+    from patchi.core import ci_bundle as _ci
+
+    _tail_dicts = [f.to_dict() for ar in (agent_results or []) for f in getattr(ar, "findings", [])]
+    _exit = _ci.exit_code_for(_tail_dicts, fail_on)
+    if fail_on:
+        _n_fail = sum(
+            1
+            for f in _tail_dicts
+            if _ci._SEV_ORDER.get(str(f.get("severity", "info")).lower(), 5)
+            <= _ci._SEV_ORDER[fail_on.lower()]
+        )
+        con.print(
+            f"[dim] --fail-on {fail_on}: {_n_fail}/{len(_tail_dicts)} findings "
+            f"at/above threshold (exit {_exit})[/dim]"
+        )
     con.print()
+    return _exit
 
 
 def _run_contract_review(root: Path, all_flows: bool = False) -> None:

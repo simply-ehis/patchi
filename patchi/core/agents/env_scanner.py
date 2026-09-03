@@ -39,7 +39,12 @@ from .base import (
     make_finding,
     register,
     safe_rglob,
+    scope_allows,
 )
+
+# Directories holding intentional fake secrets (attacker fixtures, test
+# data) — scanning them only produces false positives.
+_FIXTURE_DIRS = ("attack_scenarios/", "tests/fixtures/", "fixtures/")
 
 _log = logging.getLogger("patchi.agents.env_scanner")
 
@@ -148,6 +153,8 @@ class EnvScanner(BaseAgent):
             for file_path in safe_rglob(inp.root, pattern):
                 if file_path.is_file():
                     rel_path = file_path.relative_to(inp.root).as_posix()
+                    if not scope_allows(inp, rel_path):
+                        continue
                     if not self._should_skip_file(rel_path, inp):
                         findings.extend(self._scan_env_file(file_path, rel_path))
 
@@ -174,6 +181,12 @@ class EnvScanner(BaseAgent):
         from pathlib import PurePosixPath
 
         if any(p in DEFAULT_IGNORE_DIRS for p in PurePosixPath(file_path).parts):
+            return True
+
+        # Skip intentional-secret fixtures (attacker scenarios, test data),
+        # wherever nested in the tree
+        parts = PurePosixPath(file_path).parts
+        if any(d.strip("/") in parts for d in _FIXTURE_DIRS):
             return True
 
         from pathlib import PurePosixPath

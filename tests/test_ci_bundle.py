@@ -53,6 +53,17 @@ def test_register_renderer_override():
     del ci_bundle.RENDERERS["shout"]
 
 
+def test_exit_code_for_threshold():
+    fs = [_f(severity="high"), _f(severity="low")]
+    assert ci_bundle.exit_code_for(fs, None) == 0
+    assert ci_bundle.exit_code_for(fs, "high") == 1
+    assert ci_bundle.exit_code_for(fs, "medium") == 1
+    assert ci_bundle.exit_code_for(fs, "critical") == 0
+    assert ci_bundle.exit_code_for([], "high") == 0
+    with pytest.raises(ValueError, match="unknown severity"):
+        ci_bundle.exit_code_for(fs, "bogus")
+
+
 def test_filter_since_fail_open(tmp_path: Path):
     findings = [_f()]
     # Not a git repo ref — must return input unchanged, never crash

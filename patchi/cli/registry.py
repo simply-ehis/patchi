@@ -178,6 +178,13 @@ COMMANDS: list[Command] = [
                 help="Only report findings in files changed since git ref (e.g. HEAD~3, main)",
             ),
             Arg(
+                "--fail-on",
+                dest="fail_on",
+                default=None,
+                choices=("critical", "high", "medium"),
+                help="Exit 1 when findings at/above this severity exist (CI gate). Default: always exit 0",
+            ),
+            Arg(
                 "--changed-commits",
                 dest="changed_commits",
                 type=int,

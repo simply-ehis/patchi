@@ -69,6 +69,28 @@ RENDERERS: dict[str, Callable[[list[dict]], str]] = {
 }
 
 
+_SEV_ORDER = {"critical": 0, "high": 1, "medium": 2, "low": 3, "info": 4}
+
+
+def exit_code_for(findings: list[dict], fail_on: str | None) -> int:
+    """CI gate: 1 when any finding meets the --fail-on severity, else 0.
+
+    No threshold (None) never fails — plain `p scan` stays exit 0.
+    """
+    if not fail_on:
+        return 0
+    try:
+        bar = _SEV_ORDER[fail_on.lower()]
+    except KeyError:
+        raise ValueError(f"unknown severity {fail_on!r} (have: {sorted(_SEV_ORDER)})") from None
+    for f in findings:
+        sev = f.get("severity", "info")
+        sev = sev.value if hasattr(sev, "value") else str(sev)
+        if _SEV_ORDER.get(sev.lower(), 5) <= bar:
+            return 1
+    return 0
+
+
 def register_renderer(name: str, fn: Callable[[list[dict]], str]) -> None:
     """Add or override a findings renderer (e.g. plugins)."""
     RENDERERS[name.lower()] = fn

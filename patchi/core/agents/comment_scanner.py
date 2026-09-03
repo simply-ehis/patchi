@@ -35,6 +35,7 @@ from .base import (
     make_finding,
     register,
     safe_rglob,
+    scope_allows,
 )
 
 
@@ -46,11 +47,12 @@ class CommentScanner(BaseAgent):
     name = "CommentScanner"
     description = "TODO/FIXME/HACK technical debt markers"
 
-    # Technical debt patterns with severity levels
+    # Technical debt patterns with severity levels.
+    # Comment markers are hygiene, never vulnerabilities: capped at MEDIUM
+    # (a "BUG" comment was flagging CRITICAL and drowning the gate).
     TECH_DEBT_PATTERNS = [
-        # Critical issues
-        (r"XXX\b", "XXX", Severity.HIGH),
-        (r"BUG\b", "BUG", Severity.CRITICAL),
+        (r"XXX\b", "XXX", Severity.MEDIUM),
+        (r"BUG\b", "BUG", Severity.MEDIUM),
         (r"HACK\b", "HACK", Severity.MEDIUM),
         # Important issues
         (r"FIXME\b", "FIXME", Severity.MEDIUM),
@@ -97,6 +99,8 @@ class CommentScanner(BaseAgent):
             for file_path in safe_rglob(inp.root, pattern):
                 if file_path.is_file():
                     rel_path = file_path.relative_to(inp.root).as_posix()
+                    if not scope_allows(inp, rel_path):
+                        continue
                     if not self._should_skip_file(rel_path, inp):
                         findings.extend(self._scan_file_comments(file_path, rel_path))
 

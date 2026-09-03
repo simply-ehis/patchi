@@ -73,9 +73,12 @@ _STATE_BASES = {"order", "payment", "subscription", "ticket", "workflow"}
 _STATE_VALIDATION_RE = re.compile(
     r"(?i)(?:\ballowed\b|\bvalid\b|\btransition\b|state_machine|STATUS_FLOW|\benum\b)"
 )
-# Ownership-identifying symbols for IDOR checks.
+# Ownership-identifying symbols for IDOR checks, including Patchi's own
+# tenant-isolation idiom (with tenant_context(...) + per-project ownership
+# comparison) so fixed endpoints stop flagging.
 _OWNERSHIP_RE = re.compile(
-    r"(?i)(?:current_user|user\.id|\bowner\b|request\.user|\.user_id\s*=|user_id\s*==)"
+    r"(?i)(?:current_user|user\.id|\bowner\b|request\.user|\.user_id\s*=|user_id\s*=="
+    r"|tenant_context|patch_project|\btenant\b)"
 )
 _RATE_LIMIT_RE = re.compile(r"(?i)@(?:ratelimit|throttle|limit)")
 
