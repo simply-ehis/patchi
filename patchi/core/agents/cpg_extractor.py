@@ -121,30 +121,39 @@ class CPGExtractor:
             return self._create_empty_graph()
 
     def _extract_python_graph(self, content: str, file_path: str) -> dict[str, Any]:
-        """Extract Python-specific graph structure."""
-        # Simulate Python AST extraction
-        lines = content.split("\n")
-        nodes = []
-        edges = []
+        """Real Python AST via ast + tree-sitter fallback."""
+        import ast as _ast
 
-        for i, line in enumerate(lines):
-            # Create node for each line (simplified)
-            node_id = i
-            node_type = self._get_python_node_type(line)
-            node_info = {
-                "id": node_id,
-                "type": node_type,
-                "line": i + 1,
-                "code": line.strip(),
-                "function": self._extract_python_function(line, nodes),
-            }
-            nodes.append(node_info)
-
-        # Create simple edges (parent-child relationships)
-        for i, _node in enumerate(nodes):
-            if i > 0:
-                edges.append([i - 1, i, "contains"])
-
+        nodes: list[dict] = []
+        edges: list[list] = []
+        try:
+            tree = _ast.parse(content)
+            for node in _ast.walk(tree):
+                if isinstance(node, (_ast.FunctionDef, _ast.AsyncFunctionDef, _ast.ClassDef)):
+                    code = _ast.get_source_segment(content, node) or ""
+                    nodes.append(
+                        {
+                            "id": len(nodes),
+                            "type": type(node).__name__,
+                            "line": getattr(node, "lineno", 0),
+                            "code": code.strip()[:200],
+                            "function": getattr(node, "name", ""),
+                        }
+                    )
+            # Fallback line nodes if no defs
+            if not nodes:
+                for i, line in enumerate(content.splitlines()):
+                    if line.strip():
+                        nodes.append({"id": len(nodes), "type": "statement", "line": i + 1, "code": line.strip()[:200], "function": ""})
+        except SyntaxError:
+            # Fallback to line-based
+            for i, line in enumerate(content.splitlines()):
+                if line.strip():
+                    nodes.append({"id": len(nodes), "type": "statement", "line": i + 1, "code": line.strip()[:200], "function": ""})
+        for i in range(1, len(nodes)):
+            edges.append([i - 1, i, "contains"])
+        if not nodes:
+            return {"nodes": [], "edges": [], "language": "python", "file_path": file_path}
         return {
             "nodes": nodes,
             "edges": edges,
@@ -166,34 +175,54 @@ class CPGExtractor:
         return self._extract_generic_graph(content, file_path)
 
     def _extract_generic_graph(self, content: str, file_path: str) -> dict[str, Any]:
-        """Extract generic graph structure."""
+        """Tree-sitter AST when available, else line fallback."""
+        try:
+            from patchi.core.brain.languages import Lang, detect_language, get_parser
+
+            lang = detect_language(Path(file_path))
+            parser = get_parser(lang) if lang else None
+            if parser is not None:
+                tree = parser.parse(content.encode("utf-8"))
+                nodes: list[dict] = []
+                edges: list[list] = []
+
+                def walk(node, parent_id: int | None = None):
+                    nid = len(nodes)
+                    # node.type is grammar type, code slice
+                    code = content[node.start_byte : node.end_byte].strip().splitlines()[0][:200] if hasattr(node, "start_byte") else ""
+                    nodes.append(
+                        {
+                            "id": nid,
+                            "type": getattr(node, "type", "unknown"),
+                            "line": getattr(node, "start_point", (0, 0))[0] + 1 if hasattr(node, "start_point") else 0,
+                            "code": code,
+                            "function": "",
+                        }
+                    )
+                    if parent_id is not None:
+                        edges.append([parent_id, nid, "contains"])
+                    for ch in getattr(node, "children", []):
+                        walk(ch, nid)
+
+                walk(tree.root_node)
+                # keep top 200 nodes to bound
+                if len(nodes) > 200:
+                    nodes = nodes[:200]
+                    edges = [e for e in edges if e[0] < 200 and e[1] < 200]
+                return {"nodes": nodes, "edges": edges, "language": lang.value if lang else "generic", "file_path": file_path}
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("tree-sitter generic failed: %s", exc)
+        # Fallback line-based
         lines = content.split("\n")
         nodes = []
         edges = []
-
         for i, line in enumerate(lines):
-            node_id = i
-            node_type = self._get_generic_node_type(line)
-            node_info = {
-                "id": node_id,
-                "type": node_type,
-                "line": i + 1,
-                "code": line.strip(),
-                "function": self._extract_function_from_line(line),
-            }
-            nodes.append(node_info)
-
-        # Create edges
-        for i, _node in enumerate(nodes):
-            if i > 0:
-                edges.append([i - 1, i, "contains"])
-
-        return {
-            "nodes": nodes,
-            "edges": edges,
-            "language": "generic",
-            "file_path": file_path,
-        }
+            if not line.strip():
+                continue
+            nodes.append({"id": len(nodes), "type": self._get_generic_node_type(line), "line": i + 1, "code": line.strip()[:200], "function": self._extract_function_from_line(line)})
+            if len(nodes) > 1:
+                edges.append([len(nodes) - 2, len(nodes) - 1, "contains"])
+        return {"nodes": nodes, "edges": edges, "language": "generic", "file_path": file_path}
 
     def _get_python_node_type(self, line: str) -> str:
         """Get Python AST node type for a line."""

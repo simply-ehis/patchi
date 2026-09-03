@@ -12,6 +12,7 @@ dependencies = [
     "pytest>=8.0",
     "pytest-timeout>=2.3",
     "asyncio-mqtt>=0.11",
+    "onnxruntime>=1.17",  # GNN inference — installed but lazy-loaded, unactivated until model present
 ]
 
 [project.optional-dependencies]
@@ -29,7 +30,11 @@ web = [
     "jinja2>=3.1",
     "websockets>=12.0",
 ]
-all = ["dev", "web"]
+gnn = [
+    "onnxruntime>=1.17",
+    "torch>=2.2; sys_platform != 'win32' or python_version >= '3.11'",
+]
+all = ["dev", "web", "gnn"]
 
 [build-system]
 requires = ["setuptools>=68", "wheel"]
