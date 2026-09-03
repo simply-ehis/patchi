@@ -311,3 +311,63 @@ def claim_holds(claim: str, report: VerifyReport) -> bool:
     if "pass" in low or "works" in low or "green" in low:
         return report.truthful
     return report.truthful
+
+
+def verify_ui_findings(root: Path, findings: list[dict]) -> tuple[list[dict], list[dict]]:
+    """Gate UI/test findings against the codebase before they enter memory.
+
+    A finding is kept only if its file resolves inside the project and any
+    claimed line exists in that file. Summary findings ("(all pages)", empty
+    file) always pass. Fail-open: anything unreadable is kept — only
+    provably-bogus entries (missing file, out-of-range line) are dropped.
+    Returns (kept, dropped).
+    """
+    try:
+        from patchi.core.brain.file_corpus import FileCorpus
+
+        entries = FileCorpus(root).entries
+    except Exception:
+        entries = {}
+
+    kept: list[dict] = []
+    dropped: list[dict] = []
+    for f in findings:
+        if not isinstance(f, dict):
+            kept.append(f)
+            continue
+        rel = (f.get("file") or "").strip()
+        if not rel or rel == "(all pages)":
+            kept.append(f)
+            continue
+        rel = rel.replace("\\", "/").lstrip("/")
+        if rel in entries:
+            try:
+                n_lines = len(entries[rel].read().splitlines())
+            except Exception:
+                kept.append(f)
+                continue
+        else:
+            cand = (root / rel).resolve()
+            try:
+                cand.relative_to(root.resolve())
+            except ValueError:
+                dropped.append({**f, "drop_reason": "file outside project"})
+                continue
+            if not cand.is_file():
+                dropped.append({**f, "drop_reason": "file not found"})
+                continue
+            try:
+                n_lines = len(cand.read_text(encoding="utf-8", errors="replace").splitlines())
+            except OSError:
+                kept.append(f)
+                continue
+        line = f.get("line", 0) or 0
+        try:
+            line = int(line)
+        except (TypeError, ValueError):
+            line = 0
+        if line > 0 and line > n_lines:
+            dropped.append({**f, "drop_reason": f"line {line} beyond {n_lines} lines"})
+            continue
+        kept.append(f)
+    return kept, dropped

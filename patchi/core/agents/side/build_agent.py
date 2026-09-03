@@ -29,6 +29,7 @@ class BuildAgent(BaseAgent):
     def _run(self, inp: AgentInput, result: AgentResult) -> None:
         root = inp.root
         findings = []
+        logs = []
         cmds = []
         if (root / "package.json").exists():
             try:
@@ -48,9 +49,17 @@ class BuildAgent(BaseAgent):
                 continue
             try:
                 proc = subprocess.run(cmd, capture_output=True, text=True, timeout=60, cwd=str(root))
+                logs.append(f"$ {' '.join(cmd)}\n{proc.stdout[:500]}{proc.stderr[:500]}")
                 if proc.returncode != 0:
                     findings.append(make_finding(severity=Severity.HIGH, file=file, line_start=0, title=f"Build failed: {' '.join(cmd)}", description=(proc.stdout + proc.stderr)[:600], finding_type="build_failed"))
             except Exception as exc:  # noqa: BLE001
                 _log.debug("build %s failed: %s", cmd, exc)
         result.status = AgentStatus.SUCCEEDED
         result.findings = findings
+        result.data["build_logs"] = logs[:4]
+        out = root / ".patchi" / "launcher" / "build.log"
+        out.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            out.write_text("\n".join(logs)[:8000], encoding="utf-8")
+        except OSError:
+            pass

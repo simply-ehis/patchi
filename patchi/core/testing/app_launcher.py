@@ -33,6 +33,47 @@ def _free_port() -> int:
     return port
 
 
+def _port_free(port: int) -> bool:
+    s = socket.socket()
+    try:
+        s.bind(("127.0.0.1", port))
+        return True
+    except OSError:
+        return False
+    finally:
+        s.close()
+
+
+def _preferred_port(root: Path) -> int | None:
+    """Configured port chain: .patchi/config.json → env PORT → package.json dev -p."""
+    try:
+        from patchi.core.testing._browser import read_web_port
+
+        p = read_web_port(root)
+        if p and 1 <= p <= 65535:
+            return p
+    except Exception:
+        pass
+    try:
+        env_p = int(os.environ.get("PORT", ""))
+        if 1 <= env_p <= 65535:
+            return env_p
+    except (TypeError, ValueError):
+        pass
+    try:
+        import json
+        import re
+
+        pkg = json.loads((root / "package.json").read_text(encoding="utf-8"))
+        dev = (pkg.get("scripts") or {}).get("dev", "")
+        m = re.search(r"(?:-p|--port)[= ](\d{2,5})", dev)
+        if m and 1 <= int(m.group(1)) <= 65535:
+            return int(m.group(1))
+    except Exception:
+        pass
+    return None
+
+
 def _detect_start_cmd(root: Path) -> list[str] | None:
     corpus = FileCorpus(root)
     stack = FrameworkDetector(root, corpus=corpus).detect()
@@ -84,7 +125,8 @@ def ensure_running(root: Path, config: dict | None = None, extra: dict | None = 
     if not cmd or not cmd[0] or not shutil.which(cmd[0]):
         return None
 
-    port = _free_port()
+    preferred = _preferred_port(root)
+    port = preferred if preferred and _port_free(preferred) else _free_port()
     # replace {port}
     cmd = [str(c).format(port=port) for c in cmd]
     env = os.environ.copy()

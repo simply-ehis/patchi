@@ -12,6 +12,9 @@ Focuses on:
 from __future__ import annotations
 
 from patchi.core.brain.layered_brain import Layer  # noqa: F401 — re-exported
+from patchi.core.brain.personas import (
+    bad_user as _bad_user,  # noqa: F401 — registers bad-user personas
+)
 from patchi.core.brain.personas.base import (
     BasePersona,
     PersonaDecision,
@@ -249,6 +252,99 @@ Your voice: Practical, coverage-aware, automation-focused. Think in test pyramid
             "query_findings",
             "get_brain",
         ]
+
+    def recommend_test_agents(
+        self,
+        root,
+        active_domains: list[str] | None = None,
+        core_files: list[dict] | None = None,
+    ) -> dict:
+        """Pick the Button/Layout/E2E agent set for this project.
+
+        Signals: active security/test domains (git-diff activation when not
+        supplied) + core-file paths (Understander.core_files shape when not
+        supplied, else cheap extension scan). Returns
+        {"agents": [...], "reasons": {agent: reason}}.
+        """
+        from pathlib import Path
+
+        root = Path(root)
+        domains = list(active_domains or [])
+        if not domains:
+            try:
+                from patchi.core.security.git_diff_activator import activate_from_diff
+
+                res = activate_from_diff(root, commits=1)
+                domains = list((res.activated_domains or {}).keys())
+            except Exception:
+                domains = []
+
+        paths: list[str] = []
+        if core_files:
+            paths = [str(c.get("path", "")) for c in core_files if c.get("path")]
+        else:
+            exts = {".jsx", ".tsx", ".vue", ".svelte", ".html", ".py", ".js", ".ts"}
+            try:
+                for p in root.rglob("*"):
+                    if len(paths) > 400:
+                        break
+                    if p.is_file() and p.suffix.lower() in exts and ".patchi" not in p.parts:
+                        paths.append(p.relative_to(root).as_posix())
+            except OSError:
+                pass
+
+        _front_exts = (".jsx", ".tsx", ".vue", ".svelte")
+        has_frontend = any(
+            p.endswith(_front_exts) or "/templates/" in p or p.endswith(".html")
+            for p in paths
+        )
+        has_spa_router = any(
+            "router" in p.lower() or "routes" in p.lower() for p in paths
+        )
+        has_api = any(
+            p.endswith(".py")
+            and ("api" in p.lower() or "route" in p.lower() or "view" in p.lower())
+            for p in paths
+        )
+        has_auth = any("auth" in p.lower() or "login" in p.lower() for p in paths)
+        dom_low = {d.lower() for d in domains}
+
+        agents: list[str] = []
+        reasons: dict[str, str] = {}
+
+        def _add(name: str, reason: str) -> None:
+            if name not in agents:
+                agents.append(name)
+                reasons[name] = reason
+
+        if has_frontend or dom_low & {"xss", "web", "frontend", "injection"}:
+            _add("UIButtonAgent", "frontend files present — clickability/handlers")
+            _add("UILayoutAgent", "frontend files present — layout/a11y")
+            _add("VisualRegressionAgent", "frontend files present — visual baseline")
+        if has_spa_router or has_api or dom_low & {"api", "routing", "spa"}:
+            _add("NavigationAgent", "router/api surface — SPA navigation")
+            _add("E2EFlowAgent", "routes present — critical flows + contract")
+        if has_api or dom_low & {"api", "injection", "auth"}:
+            _add("ApiContractAgent", "API surface — contract checks")
+        if has_auth or "auth" in dom_low:
+            _add("BadUserAgent", "auth surface — breaker/impatient/malicious personas")
+        if agents:
+            _add("ConsoleLoggingAgent", "browser set active — background console capture")
+        # Only recommend registered agents; planned names (Navigation, ApiContract,
+        # BadUser) activate automatically once their §3 implementations land.
+        try:
+            from patchi.core.agents.base import discover_agent_modules, list_agents
+
+            discover_agent_modules()
+            known = {a.name for a in list_agents()}
+        except Exception:
+            known = set(agents)
+        picked = [a for a in agents if a in known]
+        return {
+            "agents": picked,
+            "reasons": {a: reasons[a] for a in picked},
+            "planned": sorted(set(agents) - set(picked)),
+        }
 
 
 @register_persona

@@ -12,10 +12,17 @@ from __future__ import annotations
 
 import json
 import logging
-import re
 from pathlib import Path
 
-from patchi.core.agents.base import AgentGroup, AgentInput, AgentResult, AgentStatus, BaseAgent, Severity, make_finding, register
+from patchi.core.agents.base import (
+    AgentGroup,
+    AgentInput,
+    AgentResult,
+    BaseAgent,
+    Severity,
+    make_finding,
+    register,
+)
 
 _log = logging.getLogger("patchi.agents.linking")
 
@@ -116,17 +123,13 @@ class LinkingAgent(BaseAgent):
         backend_routes: list = []
         try:
             from patchi.core.brain.contract_diff import extract_frontend_calls
-            from patchi.core.brain.file_corpus import FileCorpus
-            from patchi.core.brain.route_mapper import RouteMapper
             from patchi.core.brain.framework import FrameworkDetector
+            from patchi.core.brain.route_mapper import RouteMapper
 
             if linking_cfg and linking_cfg.get("backend"):
                 # separate repos: two corpora
                 front_root = (root / linking_cfg["frontend"]).resolve() if linking_cfg["frontend"] != "." else root
                 back_root = (root / linking_cfg["backend"]).resolve() if linking_cfg["backend"] != "." else root
-                front_corpus = FileCorpus(front_root)
-                back_corpus = FileCorpus(back_root)
-                front_fis = [type("FI", (), {"language": __import__("patchi.core.brain.languages", fromlist=["Lang"]).Lang.JAVASCRIPT, "path": e.path}) for e in front_corpus.files()]  # dummy, will re-extract via extract
                 # Actually extract via file_infos from scanner for each
                 from patchi.core.brain.scanner import FileScanner
 
@@ -196,10 +199,18 @@ class LinkingAgent(BaseAgent):
             back_env = set()
             for p in [root / ".env", root / "frontend/.env"]:
                 if p.exists():
-                    front_env.update(l.split("=")[0].strip() for l in p.read_text(encoding="utf-8", errors="replace").splitlines() if "=" in l and not l.startswith("#"))
+                    front_env.update(
+                        ln.split("=")[0].strip()
+                        for ln in p.read_text(encoding="utf-8", errors="replace").splitlines()
+                        if "=" in ln and not ln.startswith("#")
+                    )
             for p in [root / ".env", root / "backend/.env"]:
                 if p.exists():
-                    back_env.update(l.split("=")[0].strip() for l in p.read_text(encoding="utf-8", errors="replace").splitlines() if "=" in l and not l.startswith("#"))
+                    back_env.update(
+                        ln.split("=")[0].strip()
+                        for ln in p.read_text(encoding="utf-8", errors="replace").splitlines()
+                        if "=" in ln and not ln.startswith("#")
+                    )
             for key in ["API_URL", "AUTH_SECRET", "FEATURE_FLAG"]:
                 if (key in front_env) != (key in back_env):
                     issues.append(("env_parity", f"Env key {key} present on one side only — front {key in front_env} back {key in back_env}"))

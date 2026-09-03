@@ -278,6 +278,7 @@ def _run_scan_inner(
     _domain_loader_future = None
     try:
         import concurrent.futures as _cf
+
         from patchi.core.security.domain_loader import DomainLoader as _DL
         _loader_pool = _cf.ThreadPoolExecutor(max_workers=1, thread_name_prefix="dl-preload")
         def _preload_loader() -> _DL:
@@ -396,7 +397,7 @@ def _run_scan_inner(
                 try:
                     from patchi.core.agents.base import Severity as _Sev
                     from patchi.core.security.confidence_gate import ConfidenceGate
-                    from patchi.core.security.orchestrator import CorrelatedFinding, SecurityReport
+                    from patchi.core.security.orchestrator import CorrelatedFinding
 
                     # Build a pseudo report for gating — we reuse the gate's scoring without re-running AI
                     _gate = ConfidenceGate(root=r, config={"confidence_gate": {"ai_weight": 0.0, "min_agents_for_defend": 1, "fp_auto_discard": False}})
@@ -730,16 +731,17 @@ def _run_scan_inner(
         try:
             from patchi.core.security.red_team_engine import RedTeamEngine
 
-            # Start the web server if not already running
+            # Launcher-provided base_url first (config port, then dev ports)
             target_url = None
             try:
-                # Check if web server is already running
-                import urllib.request
+                from patchi.core.testing._browser import find_server
 
-                urllib.request.urlopen("http://127.0.0.1:1612/api/health", timeout=2)
-                target_url = "http://127.0.0.1:1612"
+                target_url = find_server(r, {}, None)
+            except Exception as exc:  # noqa: BLE001
+                _log.debug("red-team target resolve failed: %s", exc)
+            if target_url:
                 con.print(f"  [dim]Target: {target_url} (detected running server)[/dim]")
-            except Exception:
+            else:
                 con.print("  [dim]No running web server detected — running code-only attacks[/dim]")
 
             engine = RedTeamEngine(

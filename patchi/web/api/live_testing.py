@@ -408,6 +408,17 @@ async def browser_pool_stats():
         return {"error": str(e)}
 
 
+def _ads_dirs(root: Path) -> list[Path]:
+    """Ads gallery viewport subdirs (evidence/ads/<WxH>/), if present."""
+    base = root / ".patchi" / "evidence" / "ads"
+    if not base.is_dir():
+        return []
+    try:
+        return [d for d in sorted(base.iterdir()) if d.is_dir()]
+    except OSError:
+        return []
+
+
 @router.get("/videos")
 async def list_videos(request: Request):
     """List all recorded video evidence files."""
@@ -415,6 +426,7 @@ async def list_videos(request: Request):
     video_dirs = [
         root / ".patchi" / "evidence" / "video",
         root / ".patchi" / "evidence" / "browser_tests" / "video",
+        *_ads_dirs(root),
     ]
 
     videos = []
@@ -458,6 +470,7 @@ async def serve_video(filename: str, request: Request):
     video_dirs = [
         root / ".patchi" / "evidence" / "video",
         root / ".patchi" / "evidence" / "browser_tests" / "video",
+        *_ads_dirs(root),
     ]
 
     # Security: only allow .webm files
@@ -564,10 +577,45 @@ async def serve_screenshot(filename: str, request: Request):
         return JSONResponse({"error": "Access denied"}, status_code=403)
 
     if not file_path.exists():
-        return JSONResponse({"error": "Screenshot not found"}, status_code=404)
+        # Fall back to ads gallery viewport subdirs
+        for ads_dir in _ads_dirs(root):
+            cand = ads_dir / filename
+            try:
+                cand.resolve().relative_to(ads_dir.resolve())
+            except ValueError:
+                return JSONResponse({"error": "Access denied"}, status_code=403)
+            if cand.is_file():
+                file_path = cand
+                break
+        else:
+            return JSONResponse({"error": "Screenshot not found"}, status_code=404)
 
     from starlette.responses import FileResponse
     return FileResponse(file_path, media_type="image/png")
+
+
+@router.get("/ads-gallery")
+async def ads_gallery(request: Request):
+    """Marketing gallery groups (viewport → screenshots + videos)."""
+    root: Path = request.app.state.root
+    groups: list[dict] = []
+    for vdir in _ads_dirs(root):
+        try:
+            shots = sorted(
+                (p.name for p in vdir.glob("*.png") if p.is_file()),
+                key=lambda n: (vdir / n).stat().st_mtime,
+                reverse=True,
+            )
+            vids = sorted(
+                (p.name for p in vdir.glob("*.webm") if p.is_file()),
+                key=lambda n: (vdir / n).stat().st_mtime,
+                reverse=True,
+            )
+        except OSError:
+            shots, vids = [], []
+        if shots or vids:
+            groups.append({"viewport": vdir.name, "screenshots": shots, "videos": vids})
+    return JSONResponse({"ok": True, "groups": groups})
 
 
 # ── Full-Page Browser Audit ───────────────────────────────────────────────

@@ -48,12 +48,12 @@ def patchi_project(tmp_path: Path) -> Path:
 
 
 def test_personas_register():
-    """All 8 personas register in the registry."""
+    """All 11 personas register in the registry (8 council + 3 bad-user)."""
     import patchi.core.brain.personas  # noqa: F401  (triggers registration)
     from patchi.core.brain.personas.base import list_personas
 
     names = list_personas()
-    assert len(names) == 8, f"Expected 8 personas, got {len(names)}: {names}"
+    assert len(names) == 11, f"Expected 11 personas, got {len(names)}: {names}"
     expected = {
         "ArchitectPersona",
         "SecurityOfficerPersona",
@@ -63,6 +63,9 @@ def test_personas_register():
         "CodeReviewerPersona",
         "ProductOwnerPersona",
         "IncidentResponderPersona",
+        "BreakerPersona",
+        "ImpatientPersona",
+        "MaliciousPersona",
     }
     assert set(names) == expected
 
