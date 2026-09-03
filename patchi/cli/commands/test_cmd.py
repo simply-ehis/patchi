@@ -357,23 +357,49 @@ def run_generate(test_type: str | None = None, root: Path | None = None) -> None
     con.print("[bold #C8621A]Generating tests with AI…[/bold #C8621A]")
     con.print()
 
-    project_files = _discover_project_files(r)
+    # Patchi decides — not user configured: Understander + coverage gap
+    try:
+        from patchi.core.ai.tools.realize import generate_tests as _realize_gen
+
+        # Let Patchi auto-pick untested core files (Understander + body_tags)
+        auto_res = _realize_gen(r, ["auto"], test_type or "unit")
+        # auto_res already wrote .patchi/generated_tests/test_*.py
+        # Now also do AI skeleton for deeper tests on same auto-picked files
+        auto_files = [c.get("source", "") for c in auto_res.get("created", []) if c.get("status") == "created"]
+        if auto_files:
+            project_files = [p.replace(str(r) + "/", "").replace("\\", "/") for p in auto_files]
+        else:
+            # fallback to Understander core
+            from patchi.core.brain.body_tags import load_body_tags
+            from patchi.core.brain.file_corpus import FileCorpus
+            from patchi.core.brain.understander import Understander
+
+            tags = load_body_tags(r)
+            corpus = FileCorpus(r)
+            class _FI:
+                def __init__(self, p: str):
+                    self.path = p
+
+            fis = [_FI(e.path) for e in corpus.files()]
+            if tags:
+                u = Understander(r, fis, tags, {}, [])
+                core = u.core_files(limit=8)
+                project_files = [c["path"] for c in core if not (r / f"tests/test_{Path(c['path']).stem}.py").exists()]
+                if not project_files:
+                    project_files = [c["path"] for c in core[:3]]
+            else:
+                project_files = _discover_project_files(r)[:8]
+    except Exception as e:
+        _log.debug("Patchi auto-pick failed, fallback: %s", e)
+        project_files = _discover_project_files(r)[:8]
+        top_files = project_files
     if not project_files:
-        con.print("[yellow]No Python files found to generate tests for.[/yellow]")
+        con.print("[yellow]Patchi found no untested core files to generate for.[/yellow]")
+        con.print("[dim]Patchi decides coverage gap: all core files already have tests or no core detected[/dim]")
         return
-
-    def _priority(f: str) -> int:
-        if "core/agents/" in f or "core/fix/" in f:
-            return 0
-        if "core/" in f:
-            return 1
-        if "cli/" in f:
-            return 2
-        return 3
-
-    project_files.sort(key=_priority)
-    top_files = project_files[:8]
-    scope_msg = f" for {test_type} tests" if test_type else ""
+    con.print(f"[dim]Patchi auto-picked {len(project_files)} untested core files: {', '.join(project_files[:3])}{' …' if len(project_files)>3 else ''}[/dim]")
+    scope_msg = f" for {test_type} tests" if test_type else " — Patchi decided"
+    top_files = project_files  # Patchi decides, not user
 
     # Extract AST skeletons — guaranteed real names, no hallucination
     skeletons = []
