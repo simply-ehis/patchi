@@ -91,8 +91,8 @@ def _apply_domain_fixes(r: Path, blocking: list) -> list[str]:
                     )
                     if proc.returncode == 0:
                         actions.append("ran ruff format .")
-                except Exception:
-                    pass
+                except Exception as _exc:
+                    logging.getLogger("patchi").debug('suppressed: %s', _exc)
     return actions
 
 
@@ -165,8 +165,8 @@ def run(fix: bool = False, json_output: bool = False, root: Path | None = None) 
                 )
             )
             blocking.append(findings[-1])
-    except Exception:
-        pass
+    except Exception as _exc:
+        logging.getLogger("patchi").debug('suppressed: %s', _exc)
 
     if blocking:
         # Escalate to Brain
@@ -182,8 +182,8 @@ def run(fix: bool = False, json_output: bool = False, root: Path | None = None) 
             # also save as issue for brain
             for f in blocking[:5]:
                 mem.save_issue({"type": f.type, "file": f.file, "line": f.line, "message": f.message, "source": "PCheck"}, r)
-        except Exception:
-            pass
+        except Exception as _exc:
+            logging.getLogger("patchi").debug('suppressed: %s', _exc)
         con.print("[yellow]P-Check: fix blocking errors (or run p check --fix if in domain) then re-run `p check` from step 1. Never READY_TO_SERVE while blocked.[/yellow]")
         con.print()
         if json_output:
@@ -225,7 +225,7 @@ def run(fix: bool = False, json_output: bool = False, root: Path | None = None) 
         from patchi.core import memory as mem
 
         mem.save_scan_result("PCheck", {"status": "READY_TO_SERVE", "url": url, "port": port, "findings": [f.to_dict() for f in findings]}, r)
-    except Exception:
-        pass
+    except Exception as _exc:
+        logging.getLogger("patchi").debug('suppressed: %s', _exc)
     if json_output:
         con.print(json.dumps({"status": "READY_TO_SERVE", "url": url, "port": port}, indent=2))

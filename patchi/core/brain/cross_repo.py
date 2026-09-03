@@ -28,8 +28,8 @@ def _deps(root: Path) -> dict:
             try:
                 txt=p.read_text(encoding="utf-8", errors="replace")
                 deps[name]=txt[:500]
-            except Exception:
-                pass
+            except Exception as _exc:
+                logging.getLogger("patchi").debug('suppressed: %s', _exc)
     return deps
 
 def drift_report(roots: list[Path]) -> dict:

@@ -52,8 +52,8 @@ def _preferred_port(root: Path) -> int | None:
         p = read_web_port(root)
         if p and 1 <= p <= 65535:
             return p
-    except Exception:
-        pass
+    except Exception as _exc:
+        _log.debug('suppressed: %s', _exc)
     try:
         env_p = int(os.environ.get("PORT", ""))
         if 1 <= env_p <= 65535:
@@ -69,8 +69,8 @@ def _preferred_port(root: Path) -> int | None:
         m = re.search(r"(?:-p|--port)[= ](\d{2,5})", dev)
         if m and 1 <= int(m.group(1)) <= 65535:
             return int(m.group(1))
-    except Exception:
-        pass
+    except Exception as _exc:
+        _log.debug('suppressed: %s', _exc)
     return None
 
 
@@ -89,8 +89,8 @@ def _detect_start_cmd(root: Path) -> list[str] | None:
                 return ["npm", "run", "dev"]
             if "start" in scripts:
                 return ["npm", "start"]
-        except Exception:
-            pass
+        except Exception as _exc:
+            _log.debug('suppressed: %s', _exc)
     if "fastapi" in fws:
         # find app module
         for cand in ["app.main:app", "main:app", "server:app"]:
@@ -153,14 +153,14 @@ def ensure_running(root: Path, config: dict | None = None, extra: dict | None = 
                 resp = httpx.get(f"{url}/health", timeout=2, follow_redirects=True)
                 if resp.status_code < 500:
                     return url
-            except Exception:
-                pass
+            except Exception as _exc:
+                _log.debug('suppressed: %s', _exc)
             try:
                 resp = httpx.get(url, timeout=2)
                 if resp.status_code < 500:
                     return url
-            except Exception:
-                pass
+            except Exception as _exc:
+                _log.debug('suppressed: %s', _exc)
         # fallback: try anyway if process still alive
         if _PROC.poll() is None:
             return url
@@ -178,7 +178,7 @@ def stop() -> None:
         except Exception:
             try:
                 _PROC.kill()
-            except Exception:
-                pass
+            except Exception as _exc:
+                _log.debug('suppressed: %s', _exc)
     _PROC = None
     _PORT = None

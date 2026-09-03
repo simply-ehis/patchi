@@ -45,8 +45,8 @@ def _load_linking_config(root: Path) -> dict | None:
                 link = data.get("linking") or data
                 if isinstance(link, dict) and link.get("backend"):
                     return link
-            except Exception:
-                pass
+            except Exception as _exc:
+                _log.debug('suppressed: %s', _exc)
     return None
 
 
@@ -188,8 +188,8 @@ class LinkingAgent(BaseAgent):
                     resp = httpx.request("OPTIONS", f"{back_origin}/api", headers={"Origin": front_url or "http://localhost:3000"}, timeout=3)
                     if "access-control-allow-origin" not in {k.lower() for k in resp.headers}:
                         issues.append(("cors", f"Backend {back_origin} does not allow frontend origin {front_url or 'http://localhost:3000'} — CORS not whitelisted"))
-                except Exception:
-                    pass
+                except Exception as _exc:
+                    _log.debug('suppressed: %s', _exc)
         except Exception as exc:  # noqa: BLE001
             _log.debug("cors check failed: %s", exc)
 

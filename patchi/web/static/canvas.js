@@ -653,10 +653,22 @@ var BrainMap = (() => {
       var toId = e.target || e.to;
       var from = nodes[fromId];
       var to = nodes[toId];
-      if (!from || !to || !from.group || !to.group) continue;
+      // Nodes beyond MAX_RENDERED_NODES are stored lightweight (no Konva group)
+      // but keep their layout x/y — draw edges through them too so links to
+      // capped-out files still appear. Skip only when both ends are invisible
+      // lightweight nodes (no visible anchor on the canvas).
+      if (!from || !to) continue;
+      var fromRendered = !!from.group;
+      var toRendered = !!to.group;
+      if (!fromRendered && !toRendered) continue;
       var t = e.type || 'dependency';
       if (!edgeGroups[t]) edgeGroups[t] = [];
-      edgeGroups[t].push({ fx: from.group.x(), fy: from.group.y(), tx: to.group.x(), ty: to.group.y() });
+      edgeGroups[t].push({
+        fx: fromRendered ? from.group.x() : from.x,
+        fy: fromRendered ? from.group.y() : from.y,
+        tx: toRendered ? to.group.x() : to.x,
+        ty: toRendered ? to.group.y() : to.y
+      });
     }
 
     var styles = {
@@ -877,7 +889,10 @@ var BrainMap = (() => {
       rings[d].push(id);
     });
     for(var d=0;d<=maxD;d++){
-      var ring=rings[d]||[], r=(d/maxD)*mr;
+      var ring=rings[d]||[];
+      // Offset depth by 1 so the innermost (root) ring gets a real radius
+      // instead of stacking every depth-0 node at the exact center point.
+      var r=mr*((d+1)/(maxD+1));
       ring.forEach(function(id,i){
         var a=(2*Math.PI*i)/ring.length-Math.PI/2;
         pos[id]={x:cx+r*Math.cos(a),y:cy+r*Math.sin(a)};
@@ -919,6 +934,30 @@ var BrainMap = (() => {
     if (sev === 'critical' || fc >= 5) return COLORS.critical;
     if (sev === 'high' || fc >= 3) return COLORS.wounded;
     return COLORS.scanning;
+  }
+
+  // ── Label truncation helper ────────────────────────────────
+  // Measures text at the label font size and trims with '…' so long
+  // filenames fit the 70px label width instead of overflowing.
+  var _labelProbe = null;
+  function _measureLabelWidth(txt) {
+    if (!_labelProbe) _labelProbe = new Konva.Text({ fontSize: 9 });
+    _labelProbe.text(txt);
+    return _labelProbe.getTextWidth() || 0;
+  }
+  function _truncateLabel(name, maxW) {
+    if (!name) return name;
+    if (_measureLabelWidth(name) <= maxW) return name;
+    var ell = '…';
+    var ellW = _measureLabelWidth(ell);
+    var budget = Math.max(1, maxW - ellW);
+    var lo = 1, hi = name.length, best = 1;
+    while (lo <= hi) {
+      var mid = (lo + hi) >> 1;
+      if (_measureLabelWidth(name.slice(0, mid)) <= budget) { best = mid; lo = mid + 1; }
+      else { hi = mid - 1; }
+    }
+    return name.slice(0, best) + ell;
   }
 
   function _addNode(id, label, type, x, y, fc, sev) {
@@ -973,15 +1012,19 @@ var BrainMap = (() => {
       group.on('touchend', function() { if(lpTimer){clearTimeout(lpTimer);lpTimer=null;} });
     })();
 
-    // Label (simplified — only filename, smaller)
+    // Label (simplified — only filename, smaller, truncated to fit)
+    var _shortLabel = _truncateLabel(label.split('/').pop() || label, 68);
     var text = new Konva.Text({
-      text: label.split('/').pop(),
+      text: _shortLabel,
       fontSize: 9,
       fill: COLORS.text,
       offsetX: 35,
       offsetY: -NODE_R - 3,
       width: 70,
       align: 'center',
+      wrap: 'none',
+      ellipsis: true,
+      listening: false,
     });
 
     group.add(shape, text);
@@ -1144,9 +1187,13 @@ var BrainMap = (() => {
   // ── View switching ──────────────────────────────────────────
   function switchView(viewName) {
     _currentView = viewName;
+    // Move the .is-on highlight to the active view button (2D views only;
+    // 3D buttons use view3d-* ids and are managed by brain3d.js).
     document.querySelectorAll('[id^="view-"]').forEach(function(btn) {
-      btn.style.background = btn.id === 'view-' + viewName ? 'var(--bg-tertiary)' : '';
-      btn.style.fontWeight = btn.id === 'view-' + viewName ? '600' : '';
+      var active = btn.id === 'view-' + viewName;
+      btn.classList.toggle('is-on', active);
+      btn.style.background = '';
+      btn.style.fontWeight = '';
     });
     if (_lastNodes.length === 0) return;
     _renderGraph(_lastNodes, _lastEdges);

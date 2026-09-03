@@ -195,8 +195,8 @@ def run(
                 from patchi.core.testing.app_launcher import ensure_running
 
                 _launcher_url = ensure_running(r, config, {})
-            except Exception:
-                pass
+            except Exception as _exc:
+                _log.debug('suppressed: %s', _exc)
 
     con.print()
     label = f" [dim]→ {area}[/dim]" if area else ""
@@ -430,8 +430,8 @@ def run_generate(test_type: str | None = None, root: Path | None = None) -> None
         if mut:
             mut_lines = [f"- {f.get('file')}:{f.get('line')} {f.get('message','')[:80]}" for f in mut[:5]]
             extra_context.append("MUTATION SURVIVED (must kill):\n" + "\n".join(mut_lines))
-    except Exception:
-        pass
+    except Exception as _exc:
+        _log.debug('suppressed: %s', _exc)
     try:
         # Branch gaps: heuristic from FileCorpus
         from patchi.core.brain.file_corpus import FileCorpus
@@ -448,16 +448,16 @@ def run_generate(test_type: str | None = None, root: Path | None = None) -> None
                 pass
         if branch_gaps:
             extra_context.append("BRANCH GAPS (cover each if/else):\n" + "\n".join(branch_gaps[:5]))
-    except Exception:
-        pass
+    except Exception as _exc:
+        _log.debug('suppressed: %s', _exc)
     try:
         from patchi.core.fuzz.input_fuzzer import InputFuzzer
 
         fz = InputFuzzer(seed=42)
         fuzz_samples = [f.to_dict() for f in fz.fuzz_string("test", count=5)]
         extra_context.append("FUZZ BOUNDARIES (test these):\n" + "\n".join(f"- {s['label']}: {s['value']!r} ({s['strategy']})" for s in fuzz_samples[:4]))
-    except Exception:
-        pass
+    except Exception as _exc:
+        _log.debug('suppressed: %s', _exc)
     extra_block = "\n\n".join(extra_context) if extra_context else "No extra gap data — cover happy path + one edge per function."
     if extra_block:
         extra_block = f"\n\nSMART CONTEXT — Patchi decided what to catch:\n{extra_block}\n"

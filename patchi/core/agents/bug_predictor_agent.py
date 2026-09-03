@@ -41,7 +41,7 @@ class BugPredictorAgent(BaseAgent):
                 for f in data.get("findings", []):
                     fp=f.get("file","")
                     if fp: past[fp]=past.get(fp,0)+1
-        except Exception: pass
+        except Exception as _exc: _log.debug("suppressed: %s", _exc)
         for fp in inp.root.rglob("*.py"):
             if "tests" in str(fp) or ".patchi" in str(fp): continue
             rel=fp.relative_to(inp.root).as_posix()

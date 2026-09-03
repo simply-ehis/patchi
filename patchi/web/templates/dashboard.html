@@ -96,9 +96,9 @@
   </header>
   <div style="position:relative;min-height:500px;height:calc(100vh - 300px);max-height:800px;background:var(--bg-primary);border-radius:0 0 var(--radius-lg) var(--radius-lg);overflow:hidden">
     <!-- 2D Legend -->
-    <button type="button" id="legend-toggle" onclick="var l=document.getElementById('legend-2d');l.style.display=l.style.display==='none'?'block':'none'" style="position:absolute;left:8px;top:8px;z-index:10;width:28px;height:28px;border-radius:var(--radius-md);background:var(--bg-secondary);border:1px solid var(--border-subtle);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center" title="Toggle legend">☰</button>
-    <div id="legend-2d" style="position:absolute;left:0;top:0;bottom:0;width:180px;padding:12px;border-right:1px solid var(--border-subtle);overflow-y:auto;font-size:11px;z-index:5;background:var(--bg-secondary);display:none">
-    <div id="brain-map-legend" style="width:180px;padding:12px;border-right:1px solid var(--border-subtle);overflow-y:auto;font-size:11px;flex-shrink:0;background:var(--bg-secondary)">
+    <button type="button" id="legend-toggle" onclick="toggleBrainLegend(event)" onmouseenter="showBrainLegend()" onmouseleave="scheduleHideBrainLegend()" style="position:absolute;left:8px;top:8px;z-index:10;width:28px;height:28px;border-radius:var(--radius-md);background:var(--bg-secondary);border:1px solid var(--border-subtle);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center" title="Legend (hover)">☰</button>
+    <div id="legend-2d" onmouseenter="cancelHideBrainLegend()" onmouseleave="scheduleHideBrainLegend()" style="position:absolute;left:8px;top:40px;width:215px;max-height:calc(100% - 48px);border:1px solid var(--border-subtle);border-radius:var(--radius-md);box-shadow:0 6px 20px rgba(0,0,0,0.35);overflow-y:auto;font-size:11px;z-index:30;background:var(--bg-secondary);display:none">
+    <div id="brain-map-legend" style="padding:12px;font-size:11px;background:var(--bg-secondary)">
       <div class="u-fw600 u-ink u-mb8 u-fs12">Node Shapes</div>
       <div class="u-flex u-aic u-gap8 u-mb6">
         <svg width="16" height="16"><polygon points="8,1 15,5 15,11 8,15 1,11 1,5" fill="#8B3A0F" stroke="#4b5563" stroke-width="1"/></svg>
@@ -1081,14 +1081,13 @@
     window._is3D = !window._is3D;
     var map2d = document.getElementById('brain-map');
     var map3d = document.getElementById('brain-map-3d');
-    var legend2d = document.getElementById('legend-2d');
     var views2d = document.getElementById('views-2d');
     var views3d = document.getElementById('views-3d');
     var btn3d = document.getElementById('btn-3d');
     if (window._is3D) {
       if (map2d) map2d.style.display = 'none';
       if (map3d) map3d.style.display = 'block';
-      if (legend2d) legend2d.style.display = 'none';
+      hideBrainLegend();
       if (views2d) views2d.style.display = 'none';
       if (views3d) views3d.style.display = 'inline';
       if (btn3d) btn3d.classList.add('is-on');
@@ -1098,10 +1097,48 @@
     } else {
       if (map2d) map2d.style.display = 'block';
       if (map3d) map3d.style.display = 'none';
-      if (legend2d) legend2d.style.display = 'block';
       if (views2d) views2d.style.display = 'inline';
       if (views3d) views3d.style.display = 'none';
       if (btn3d) btn3d.classList.remove('is-on');
+    }
+  };
+
+  // ── Legend hover tooltip ─────────────────────────────────────
+  // Shown while the ☰ button is hovered (or pinned via click);
+  // hidden when the mouse leaves both button and tooltip.
+  window._legendPinned = false;
+  window._legendHideTimer = null;
+  window.showBrainLegend = function() {
+    clearTimeout(window._legendHideTimer);
+    var l = document.getElementById('legend-2d');
+    if (l) l.style.display = 'block';
+  };
+  window.scheduleHideBrainLegend = function() {
+    if (window._legendPinned) return;
+    clearTimeout(window._legendHideTimer);
+    window._legendHideTimer = setTimeout(function() {
+      var l = document.getElementById('legend-2d');
+      if (l && !window._legendPinned) l.style.display = 'none';
+    }, 250);
+  };
+  window.cancelHideBrainLegend = function() {
+    clearTimeout(window._legendHideTimer);
+  };
+  window.hideBrainLegend = function() {
+    clearTimeout(window._legendHideTimer);
+    window._legendPinned = false;
+    var l = document.getElementById('legend-2d');
+    if (l) l.style.display = 'none';
+  };
+  window.toggleBrainLegend = function(ev) {
+    if (ev) { ev.stopPropagation(); ev.preventDefault(); }
+    window._legendPinned = !window._legendPinned;
+    var l = document.getElementById('legend-2d');
+    if (window._legendPinned) {
+      clearTimeout(window._legendHideTimer);
+      if (l) l.style.display = 'block';
+    } else {
+      window.scheduleHideBrainLegend();
     }
   };
 

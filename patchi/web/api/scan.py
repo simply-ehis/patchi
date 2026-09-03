@@ -165,8 +165,8 @@ async def trigger_scan(
                     from patchi.core.health import invalidate_cache
 
                     invalidate_cache()
-                except Exception:
-                    pass
+                except Exception as _exc:
+                    _log.debug('suppressed: %s', _exc)
 
                 # Record scan in history
                 try:
