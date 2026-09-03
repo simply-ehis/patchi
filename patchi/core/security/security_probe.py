@@ -234,7 +234,19 @@ class CORSAuditor(BaseAgent):
                         fix_agent="SecurityFixer",
                     )
                 )
-            elif has_wildcard:
+            elif has_wildcard and self._CORS_CONFIG_RE.search(content):
+                # Only flag wildcard if it's allow_origins with "*" — not allow_headers or detector examples
+                # Skip known detector/fix files that contain wildcard as example
+                if any(x in rel_path for x in ("security_probe.py", "misconfig_agent.py", "linking_agent.py", "fix/base.py", "security_test_agent.py", "realize.py")):
+                    cors_files.append(rel_path)
+                    continue
+                # Check for actual allow_origins wildcard, not just any headers wildcard
+                has_origin_wildcard = bool(re.search(r"allow_origins\s*=\s*\[.*\*", content, re.I | re.DOTALL)) or bool(
+                    re.search(r'allow_origins\s*=\s*["\']\*["\']', content, re.I)
+                )
+                if not has_origin_wildcard:
+                    cors_files.append(rel_path)
+                    continue
                 result.add_finding(
                     make_finding(
                         agent=self.name,
