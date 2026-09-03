@@ -13,40 +13,47 @@ router = APIRouter(prefix="/api/fix")
 @router.post("/apply/{patch_id}")
 async def apply_patch(patch_id: str, request: Request) -> JSONResponse:
     root = request.app.state.root
-    tenant_ctx = tenant_context(root)
-    tenant_ctx.__enter__()
-    from patchi.core import memory as mem
+    # IDOR fix: use context manager for tenant isolation and verify patch ownership
+    with tenant_context(root):
+        from patchi.core import memory as mem
 
-    patches = mem.read("patches", root)
-    patch = next((p for p in patches if p.get("id") == patch_id), None)
+        patches = mem.read("patches", root)
+        patch = next((p for p in patches if p.get("id") == patch_id), None)
 
-    if not patch:
-        return JSONResponse({"ok": False, "error": "Patch not found"}, status_code=404)
+        if not patch:
+            return JSONResponse({"ok": False, "error": "Patch not found"}, status_code=404)
 
-    from patchi.core.fix.applier import PatchApplier
-    from patchi.core.fix.patch import Patch
+        # Verify patch belongs to this tenant/project (prevent IDOR enumeration)
+        patch_project = patch.get("project") or patch.get("tenant") or ""
+        if patch_project and patch_project != str(root) and patch_project not in str(root):
+            return JSONResponse({"ok": False, "error": "Patch not found"}, status_code=404)
 
-    try:
-        p = Patch.from_dict(patch)
-        applier = PatchApplier(root)
-        applier.apply(p)
-        return JSONResponse({"ok": True, "message": f"Applied patch {patch_id}"})
-    except Exception as e:
-        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+        from patchi.core.fix.applier import PatchApplier
+        from patchi.core.fix.patch import Patch
+
+        try:
+            p = Patch.from_dict(patch)
+            applier = PatchApplier(root)
+            applier.apply(p)
+            return JSONResponse({"ok": True, "message": f"Applied patch {patch_id}"})
+        except Exception as e:
+            return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+
+    # Fallback (unreachable due to with)
+    return JSONResponse({"ok": False, "error": "Tenant error"}, status_code=500)
 
 
 @router.post("/reject/{patch_id}")
 async def reject_patch(patch_id: str, request: Request) -> JSONResponse:
     root = request.app.state.root
-    tenant_ctx = tenant_context(root)
-    tenant_ctx.__enter__()
-    from patchi.core import memory as mem
+    with tenant_context(root):
+        from patchi.core import memory as mem
 
-    try:
-        mem.record_rejection(patch_id, "web_user", root)
-        return JSONResponse({"ok": True, "message": f"Rejected patch {patch_id}"})
-    except Exception as e:
-        return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
+        try:
+            mem.record_rejection(patch_id, "web_user", root)
+            return JSONResponse({"ok": True, "message": f"Rejected patch {patch_id}"})
+        except Exception as e:
+            return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
 
 @router.post("/apply-all-safe")

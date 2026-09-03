@@ -89,27 +89,40 @@ async def create_token(request: Request) -> JSONResponse:
 @router.delete("/tokens/{token_id}")
 async def revoke_token(token_id: str, request: Request) -> JSONResponse:
     root = request.app.state.root
-    from patchi.core.hosted import tokens as tokens_mod
+    from patchi.core.tenant import tenant_context
 
-    ok = tokens_mod.revoke(root, token_id)
-    if ok:
-        return JSONResponse({"ok": True, "message": f"Token {token_id} revoked"})
-    return JSONResponse({"ok": False, "error": "Token not found"}, status_code=404)
+    with tenant_context(root):
+        from patchi.core.hosted import tokens as tokens_mod
+
+        # IDOR fix: verify token exists and belongs to tenant (list scope)
+        existing = {t.get("id") for t in tokens_mod.list_tokens(root)}
+        if token_id not in existing:
+            return JSONResponse({"ok": False, "error": "Token not found"}, status_code=404)
+        ok = tokens_mod.revoke(root, token_id)
+        if ok:
+            return JSONResponse({"ok": True, "message": f"Token {token_id} revoked"})
+        return JSONResponse({"ok": False, "error": "Token not found"}, status_code=404)
 
 
 @router.post("/block/{ip}")
 async def block_ip(ip: str, request: Request) -> JSONResponse:
     root = request.app.state.root
-    from patchi.core.hosted import ip_reputation
+    from patchi.core.tenant import tenant_context
 
-    ip_reputation.block(ip, root)
-    return JSONResponse({"ok": True, "message": f"Blocked {ip}"})
+    with tenant_context(root):
+        from patchi.core.hosted import ip_reputation
+
+        ip_reputation.block(ip, root)
+        return JSONResponse({"ok": True, "message": f"Blocked {ip}"})
 
 
 @router.post("/unblock/{ip}")
 async def unblock_ip(ip: str, request: Request) -> JSONResponse:
     root = request.app.state.root
-    from patchi.core.hosted import ip_reputation
+    from patchi.core.tenant import tenant_context
 
-    ip_reputation.unblock(ip, root)
-    return JSONResponse({"ok": True, "message": f"Unblocked {ip}"})
+    with tenant_context(root):
+        from patchi.core.hosted import ip_reputation
+
+        ip_reputation.unblock(ip, root)
+        return JSONResponse({"ok": True, "message": f"Unblocked {ip}"})

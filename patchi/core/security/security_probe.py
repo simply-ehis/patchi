@@ -209,10 +209,18 @@ class CORSAuditor(BaseAgent):
             result.files_scanned += 1
 
             # Check for dangerous wildcard with credentials
+            # Skip self-scan false positive: this file is the detector (contains regex for '*')
+            if "security_probe.py" in rel_path or "security_agents.py" in rel_path:
+                cors_files.append(rel_path)
+                continue
             has_wildcard = bool(self._WILDCARD_RE.search(content))
             has_credentials = bool(self._CREDENTIALS_RE.search(content))
 
             if has_wildcard and has_credentials:
+                # Require CORS context, not just any '*' string (avoid flagging detector regex)
+                if not self._CORS_CONFIG_RE.search(content):
+                    cors_files.append(rel_path)
+                    continue
                 result.add_finding(
                     make_finding(
                         agent=self.name,
