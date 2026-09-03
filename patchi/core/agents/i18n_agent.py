@@ -8,14 +8,44 @@ via tree-sitter scan for string literals in JSX/TSX/Vue/Svelte.
 from __future__ import annotations
 
 import logging
-import re
 
-from patchi.core.agents.base import AgentGroup, AgentInput, AgentResult, AgentStatus, BaseAgent, Severity, make_finding, register, safe_rglob
+from patchi.core.agents.base import (
+    AgentGroup,
+    AgentInput,
+    AgentResult,
+    AgentStatus,
+    BaseAgent,
+    Severity,
+    make_finding,
+    register,
+    safe_rglob,
+)
+from patchi.core.brain.code_query import (
+    js_calls,
+    js_jsx_texts,
+    lang_for_file,
+    parse_js,
+    vue_template_texts,
+)
 
 _log = logging.getLogger("patchi.agents.i18n")
 
-_HARDCODED_RE = re.compile(r">[^<]*[A-Za-z]{4,}[^<]*<|\"[A-Z][a-z]+ [a-z]+\"|'[A-Z][a-z]+ [a-z]+'")
-_I18N_KEY_RE = re.compile(r"t\s*\(\s*['\"][^'\"]+['\"]\s*\)|i18n\.t|useTranslation")
+
+def _looks_hardcoded(text: str) -> bool:
+    words = text.split()
+    return len(text) > 10 and 2 <= len(words) <= 5 and text[0].isupper()
+
+
+def _has_i18n(tree, lang: str, raw: str) -> bool:
+    for call in js_calls(tree, lang):
+        if call.name == "useTranslation":
+            return True
+        if call.full.startswith("i18n."):
+            return True
+        if call.name == "t" and call.arg_kinds[:1] == ["string"]:
+            return True
+    markers = ("useTranslation", "i18n", "$t(", "t('", 't("')
+    return any(m in raw for m in markers)
 
 @register
 class I18nAgent(BaseAgent):
@@ -29,18 +59,37 @@ class I18nAgent(BaseAgent):
         for pat in ("*.jsx","*.tsx","*.vue","*.svelte"):
             for fp in safe_rglob(inp.root, pat):
                 rel=fp.relative_to(inp.root).as_posix()
-                if "node_modules" in rel: continue
-                try: txt=fp.read_text(encoding="utf-8", errors="replace")
-                except OSError: continue
-                # skip if already i18n
-                has_i18n = bool(_I18N_KEY_RE.search(txt))
-                # find hardcoded UI strings: >Hello world< but not <div>
-                for m in re.finditer(r">([A-Z][a-z]+(?:\s+[a-zA-Z]+){1,4})<", txt):
-                    s=m.group(1).strip()
-                    if len(s)>10 and not has_i18n:
-                        findings.append(make_finding(severity=Severity.LOW, file=rel, line_start=txt[:m.start()].count("\n")+1, title=f"Hardcoded UI string '{s[:30]}' without i18n", description="Use t('key') / $t() / i18n key; check i18next-scanner", finding_type="i18n_hardcoded"))
+                if "node_modules" in rel:
+                    continue
+                try:
+                    txt=fp.read_text(encoding="utf-8", errors="replace")
+                except OSError:
+                    continue
+                if fp.suffix in (".vue", ".svelte"):
+                    texts = vue_template_texts(txt)
+                    markers = ("useTranslation", "i18n", "$t(", "t('", 't("')
+                    has_i18n = any(m in txt for m in markers)
+                else:
+                    lang = lang_for_file(rel)
+                    tree = parse_js(txt, lang)
+                    if tree is None:
+                        continue
+                    texts = js_jsx_texts(tree, lang)
+                    has_i18n = _has_i18n(tree, lang, txt)
+                if has_i18n:
+                    continue
+                for s, line in texts:
+                    if _looks_hardcoded(s):
+                        findings.append(make_finding(
+                            severity=Severity.LOW, file=rel, line_start=line,
+                            title=f"Hardcoded UI string '{s[:30]}' without i18n",
+                            description="Use t('key') / $t() / i18n key; check i18next-scanner",
+                            finding_type="i18n_hardcoded",
+                        ))
                         break
-                if len(findings)>=20: break
-            if len(findings)>=20: break
+                if len(findings) >= 20:
+                    break
+            if len(findings) >= 20:
+                break
         result.status=AgentStatus.SUCCEEDED
         result.findings=findings[:20]

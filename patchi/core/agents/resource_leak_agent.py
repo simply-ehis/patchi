@@ -54,9 +54,7 @@ class ResourceLeakAgent(BaseAgent):
                 by_name: dict[str, list] = {}
                 for c in calls:
                     by_name.setdefault(c.name, []).append(c)
-
-                def first(name: str) -> int:
-                    return by_name[name][0].line if name in by_name else 0
+                first_interval = by_name["setInterval"][0].line if "setInterval" in by_name else 0
 
                 has_interval = "setInterval" in names
                 has_clear = "clearInterval" in names
@@ -74,7 +72,7 @@ class ResourceLeakAgent(BaseAgent):
 
                 # Interval leak
                 if has_interval and not has_clear:
-                    findings.append(make_finding(severity=Severity.MEDIUM, file=rel, line_start=first("setInterval"), title="setInterval without clearInterval", description="Leaks interval; store handle and clearInterval on unmount/cleanup", finding_type="resource_leak_interval"))
+                    findings.append(make_finding(severity=Severity.MEDIUM, file=rel, line_start=first_interval, title="setInterval without clearInterval", description="Leaks interval; store handle and clearInterval on unmount/cleanup", finding_type="resource_leak_interval"))
                 # Emitter leak
                 if has_emitter and not has_off:
                     line = next((c.line for c in calls if c.name == "on" and c.arg_kinds[:1] == ["string"]), 0)

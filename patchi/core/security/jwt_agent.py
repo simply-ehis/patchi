@@ -19,7 +19,6 @@ from __future__ import annotations
 
 import logging
 import os
-import re
 from pathlib import Path
 
 from ..agents.base import (
@@ -33,7 +32,14 @@ from ..agents.base import (
     make_finding,
     register,
 )
-from ..brain.ast_utils import find_calls, find_imports
+from ..brain.ast_utils import find_assignments, find_calls, find_imports
+from ..brain.code_query import (
+    js_calls,
+    js_property_names,
+    lang_for_file,
+    parse_js,
+    string_literals,
+)
 from ..brain.languages import DEFAULT_IGNORE_DIRS, Lang, detect_language
 
 # ── JWT library names used across languages ──────────────────────────────────
@@ -79,92 +85,32 @@ class JWTSecurityAgent(BaseAgent):
         "JWT security: weak algorithms, missing expiry, insecure storage, hardcoded secrets"
     )
 
-    # ── Regex patterns (stay as regex — literal values) ──────────────────────
-
-    # Weak algorithm indicators
-    _WEAK_ALGO_PATTERNS = [
-        (
-            re.compile(r'["\']none["\']', re.I),
+    # ── Literal value markers (matched against parsed string/assignment
+    # nodes — never raw text, so comments can't trigger findings) ──────────
+    _SECRET_NAMES = ("secret", "jwt_secret", "signing_key", "private_key")
+    _KEY_NAMES = ("secret", "key")
+    _STORAGE_PREFIXES = ("jwt", "token", "auth", "access")
+    _EXPIRY_NAMES = (
+        "exp", "expires", "expiry", "expiration", "expires_in", "expiresin", "ttl",
+    )
+    _ALGO_SEVERITY = {
+        "none": (
             Severity.CRITICAL,
             "none algorithm allowed — can bypass signature verification",
         ),
-        (
-            re.compile(r"HS256", re.I),
+        "hs256": (
             Severity.MEDIUM,
             "HS256 symmetric algorithm — consider RS256/ES256 for distributed systems",
         ),
-        (
-            re.compile(r"HS384", re.I),
+        "hs384": (
             Severity.LOW,
             "HS384 symmetric algorithm — acceptable but verify key strength",
         ),
-        (
-            re.compile(r"HS512", re.I),
+        "hs512": (
             Severity.LOW,
             "HS512 symmetric algorithm — acceptable but verify key strength",
         ),
-    ]
-
-    # Hardcoded secret patterns
-    _SECRET_PATTERNS = [
-        (
-            re.compile(
-                r'(?:secret|jwt_secret|signing_key|private_key)\s*=\s*["\'][^"\']{8,}["\']', re.I
-            ),
-            Severity.CRITICAL,
-            "Hardcoded JWT secret in source code",
-        ),
-        (
-            re.compile(r'(?:secret|key)\s*[:=]\s*["\'][A-Za-z0-9+/=_-]{16,}["\']', re.I),
-            Severity.HIGH,
-            "Possible hardcoded cryptographic key",
-        ),
-    ]
-
-    # Insecure storage patterns
-    _STORAGE_PATTERNS = [
-        (
-            re.compile(
-                r'localStorage\.(?:set|get)Item\s*\(\s*["\'](?:jwt|token|auth|access)', re.I
-            ),
-            Severity.HIGH,
-            "JWT stored in localStorage — vulnerable to XSS",
-        ),
-        (
-            re.compile(
-                r'sessionStorage\.(?:set|get)Item\s*\(\s*["\'](?:jwt|token|auth|access)', re.I
-            ),
-            Severity.MEDIUM,
-            "JWT stored in sessionStorage — vulnerable to XSS",
-        ),
-        (
-            re.compile(r"(?:document\.cookie|res\.cookie|set_cookie).*jwt", re.I),
-            Severity.LOW,
-            "JWT in cookie — verify httpOnly and secure flags are set",
-        ),
-    ]
-
-    # Missing validation patterns
-    _VALIDATION_ISSUES = [
-        (
-            re.compile(r"jwt\.decode\s*\([^)]*\)(?![^}]*verify)", re.I),
-            Severity.HIGH,
-            "JWT decoded without signature verification",
-        ),
-        (
-            re.compile(r"decode\s*\(\s*token\s*(?:,\s*[^)]*)?\)(?![^}]*algorithms)", re.I),
-            Severity.MEDIUM,
-            "JWT decode missing explicit algorithms parameter",
-        ),
-    ]
-
-    # Expiration check patterns
-    _EXPIRY_PATTERNS = [
-        re.compile(r"exp(?:ir(?:ation|es)?)?\s*[:=]", re.I),
-        re.compile(r"exp\s*=", re.I),
-        re.compile(r"expires?[_-]?in", re.I),
-        re.compile(r"ttl", re.I),
-    ]
+    }
 
     _SOURCE_PATTERNS = [
         "*.py",
@@ -210,93 +156,235 @@ class JWTSecurityAgent(BaseAgent):
         result.data.update({"files_scanned": files_scanned, "finding_count": len(findings)})
         return
 
+    @staticmethod
+    def _unquote(value: str) -> str:
+        value = value.strip()
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'`":
+            return value[1:-1]
+        return value
+
     def _analyze_file(self, content: str, lang: Lang, rel_path: str) -> list[Finding]:
         findings = []
         lines = content.splitlines()
+
+        def _snippet(line_num: int) -> str:
+            if 0 < line_num <= len(lines):
+                return lines[line_num - 1].strip()
+            return ""
 
         # Detect JWT usage via AST (calls + imports)
         jwt_calls = find_calls(content, lang, JWT_API_CALLS)
         jwt_imports = find_imports(content, lang, JWT_LIBRARIES)
         has_jwt = bool(jwt_calls) or bool(jwt_imports)
 
-        # Also check regex for algorithm strings regardless of JWT detection
-        for line_num, line in enumerate(lines, 1):
-            stripped = line.strip()
-            if stripped.startswith("#") or stripped.startswith("//"):
-                continue
-
-            for pattern, severity, message in self._WEAK_ALGO_PATTERNS:
-                if pattern.search(line):
-                    findings.append(
-                        self._make_finding(
-                            "jwt_weak_algorithm",
-                            severity,
-                            rel_path,
-                            line_num,
-                            message,
-                            "Use RS256 or ES256 for distributed systems. Never allow 'none' algorithm.",
-                            stripped,
-                        )
-                    )
-
-            for pattern, severity, message in self._SECRET_PATTERNS:
-                if pattern.search(line):
-                    findings.append(
-                        self._make_finding(
-                            "jwt_hardcoded_secret",
-                            severity,
-                            rel_path,
-                            line_num,
-                            message,
-                            "Move JWT secret to environment variable.",
-                            stripped,
-                        )
-                    )
-
-            for pattern, severity, message in self._STORAGE_PATTERNS:
-                if pattern.search(line):
-                    findings.append(
-                        self._make_finding(
-                            "jwt_insecure_storage",
-                            severity,
-                            rel_path,
-                            line_num,
-                            message,
-                            "Use httpOnly, secure cookies for JWT storage.",
-                            stripped,
-                        )
-                    )
-
-            for pattern, severity, message in self._VALIDATION_ISSUES:
-                if pattern.search(line):
-                    findings.append(
-                        self._make_finding(
-                            "jwt_missing_validation",
-                            severity,
-                            rel_path,
-                            line_num,
-                            message,
-                            "Always verify JWT signatures and specify allowed algorithms.",
-                            stripped,
-                        )
-                    )
-
-        # Check for missing expiration (if JWT is used but no expiry pattern found)
-        if has_jwt:
-            has_expiry = any(p.search(content) for p in self._EXPIRY_PATTERNS)
-            if not has_expiry:
+        # String literals carry algorithm names — structural, comments can't match
+        literals = string_literals(content, lang)
+        for value, line_num in literals:
+            lowered = value.strip().lower()
+            if lowered in self._ALGO_SEVERITY:
+                severity, message = self._ALGO_SEVERITY[lowered]
                 findings.append(
-                    make_finding(
-                        agent=self.name,
-                        finding_type="jwt_no_expiry",
-                        severity=Severity.HIGH,
-                        file=rel_path,
-                        message="JWT used but no expiration claim (exp) found in file",
-                        suggestion="Always set expiration on JWT tokens. Recommended: short-lived access tokens (15min) + refresh tokens.",
+                    self._make_finding(
+                        "jwt_weak_algorithm",
+                        severity,
+                        rel_path,
+                        line_num,
+                        message,
+                        "Use RS256 or ES256 for distributed systems. Never allow 'none' algorithm.",
+                        _snippet(line_num),
                     )
                 )
 
+        # Hardcoded secrets via assignment targets (all languages)
+        try:
+            assignments = find_assignments(content, lang)
+        except Exception:
+            assignments = []
+        for assignment in assignments:
+            target = str(assignment.get("target", "")).lower()
+            value = self._unquote(str(assignment.get("value", "")))
+            line_num = int(assignment.get("line", 0) or 0)
+            if any(marker in target for marker in self._SECRET_NAMES) and len(value) >= 8:
+                findings.append(
+                    self._make_finding(
+                        "jwt_hardcoded_secret",
+                        Severity.CRITICAL,
+                        rel_path,
+                        line_num,
+                        "Hardcoded JWT secret in source code",
+                        "Move JWT secret to environment variable.",
+                        _snippet(line_num),
+                    )
+                )
+            elif any(marker in target for marker in self._KEY_NAMES) and len(value) >= 16:
+                findings.append(
+                    self._make_finding(
+                        "jwt_hardcoded_secret",
+                        Severity.HIGH,
+                        rel_path,
+                        line_num,
+                        "Possible hardcoded cryptographic key",
+                        "Move JWT secret to environment variable.",
+                        _snippet(line_num),
+                    )
+                )
+
+        # Insecure storage: storage calls with JWT-ish string args on the same line
+        lits_by_line: dict[int, list[str]] = {}
+        for value, line_num in literals:
+            lits_by_line.setdefault(line_num, []).append(value.lower())
+        storage_calls = find_calls(
+            content, lang, {"setItem", "getItem", "cookie", "set_cookie", "setcookie"}
+        )
+        for call in storage_calls:
+            lowered_name = str(call.get("name", "")).lower()
+            line_num = int(call.get("line", 0) or 0)
+            values = lits_by_line.get(line_num, [])
+            if not any(
+                v.startswith(prefix) for v in values for prefix in self._STORAGE_PREFIXES
+            ):
+                continue
+            if "localstorage" in lowered_name:
+                findings.append(
+                    self._make_finding(
+                        "jwt_insecure_storage",
+                        Severity.HIGH,
+                        rel_path,
+                        line_num,
+                        "JWT stored in localStorage — vulnerable to XSS",
+                        "Use httpOnly, secure cookies for JWT storage.",
+                        _snippet(line_num),
+                    )
+                )
+            elif "sessionstorage" in lowered_name:
+                findings.append(
+                    self._make_finding(
+                        "jwt_insecure_storage",
+                        Severity.MEDIUM,
+                        rel_path,
+                        line_num,
+                        "JWT stored in sessionStorage — vulnerable to XSS",
+                        "Use httpOnly, secure cookies for JWT storage.",
+                        _snippet(line_num),
+                    )
+                )
+            elif "cookie" in lowered_name:
+                findings.append(
+                    self._make_finding(
+                        "jwt_insecure_storage",
+                        Severity.LOW,
+                        rel_path,
+                        line_num,
+                        "JWT in cookie — verify httpOnly and secure flags are set",
+                        "Use httpOnly, secure cookies for JWT storage.",
+                        _snippet(line_num),
+                    )
+                )
+
+        # Missing validation: decode sites without verify / algorithms
+        decode_calls = find_calls(content, lang, {"decode"})
+        if decode_calls:
+            verify_calls = find_calls(
+                content, lang, {"verify", "authenticate", "validate"}
+            )
+            if not verify_calls:
+                first = decode_calls[0]
+                findings.append(
+                    self._make_finding(
+                        "jwt_missing_validation",
+                        Severity.HIGH,
+                        rel_path,
+                        int(first.get("line", 0) or 0),
+                        "JWT decoded without signature verification",
+                        "Always verify JWT signatures and specify allowed algorithms.",
+                        _snippet(int(first.get("line", 0) or 0)),
+                    )
+                )
+            for call in decode_calls:
+                if not self._call_has_algorithms(content, rel_path, call):
+                    findings.append(
+                        self._make_finding(
+                            "jwt_missing_validation",
+                            Severity.MEDIUM,
+                            rel_path,
+                            int(call.get("line", 0) or 0),
+                            "JWT decode missing explicit algorithms parameter",
+                            "Always verify JWT signatures and specify allowed algorithms.",
+                            _snippet(int(call.get("line", 0) or 0)),
+                        )
+                    )
+
+        # Check for missing expiration (if JWT is used but no expiry marker found)
+        if has_jwt and not self._has_expiry(content, lang, rel_path, assignments):
+            findings.append(
+                make_finding(
+                    agent=self.name,
+                    finding_type="jwt_no_expiry",
+                    severity=Severity.HIGH,
+                    file=rel_path,
+                    message="JWT used but no expiration claim (exp) found in file",
+                    suggestion="Always set expiration on JWT tokens. Recommended: short-lived access tokens (15min) + refresh tokens.",
+                )
+            )
+
         return findings
+
+    def _call_has_algorithms(self, content: str, rel_path: str, call: dict) -> bool:
+        """True when a decode call passes algorithms (kwarg, object key, or span)."""
+        line_no = int(call.get("line", 0) or 0)
+        if rel_path.endswith(".py"):
+            try:
+                import ast as _ast
+
+                tree = _ast.parse(content)
+                for node in _ast.walk(tree):
+                    if not isinstance(node, _ast.Call):
+                        continue
+                    if getattr(node, "lineno", 0) != line_no:
+                        continue
+                    if any((kw.arg or "") == "algorithms" for kw in node.keywords):
+                        return True
+            except SyntaxError:
+                pass
+            return False
+        try:
+            lang_key = lang_for_file(rel_path)
+            for site in js_calls(parse_js(content, lang_key), lang_key):
+                if site.line == line_no and "algorithms" in site.text:
+                    return True
+        except Exception:
+            pass
+        return "algorithms" in str(call.get("full_text", ""))
+
+    def _has_expiry(
+        self, content: str, lang: Lang, rel_path: str, assignments: list[dict]
+    ) -> bool:
+        """Expiry markers via assignment targets, kwargs, and object keys."""
+        for assignment in assignments:
+            if str(assignment.get("target", "")).lower() in self._EXPIRY_NAMES:
+                return True
+        if lang == Lang.PYTHON:
+            try:
+                import ast as _ast
+
+                tree = _ast.parse(content)
+                for node in _ast.walk(tree):
+                    if isinstance(node, _ast.Call):
+                        if any((kw.arg or "").lower() in self._EXPIRY_NAMES for kw in node.keywords):
+                            return True
+                    elif isinstance(node, _ast.Dict):
+                        for key in node.keys:
+                            if isinstance(key, _ast.Constant) and str(key.value).lower() in self._EXPIRY_NAMES:
+                                return True
+            except SyntaxError:
+                pass
+            return False
+        try:
+            lang_key = lang_for_file(rel_path)
+            props = js_property_names(parse_js(content, lang_key), lang_key)
+            return any(p.lower() in self._EXPIRY_NAMES for p in props)
+        except Exception:
+            return False
 
     def _make_finding(
         self,
@@ -321,32 +409,33 @@ class JWTSecurityAgent(BaseAgent):
 
     def _check_no_jwt_in_codebase(self, content: str, rel_path: str) -> list[Finding]:
         findings = []
-        env_patterns = [
-            (
-                re.compile(r'JWT_SECRET\s*=\s*["\'][^"\']+["\']', re.I),
-                Severity.CRITICAL,
-                "JWT secret in environment/config file — use .env, not hardcoded",
-            ),
-            (
-                re.compile(r'JWT_KEY\s*=\s*["\'][^"\']+["\']', re.I),
-                Severity.HIGH,
-                "JWT key in environment/config file — ensure .env is in .gitignore",
-            ),
-        ]
+        # KEY=VALUE lines need splitting, not patterns (env-style parsing).
         for line_num, line in enumerate(content.splitlines(), 1):
-            for pattern, severity, message in env_patterns:
-                if pattern.search(line):
-                    findings.append(
-                        self._make_finding(
-                            "jwt_env_exposure",
-                            severity,
-                            rel_path,
-                            line_num,
-                            message,
-                            "Ensure .env files are in .gitignore. Use secret managers in production.",
-                            line.strip(),
-                        )
-                    )
+            if "=" not in line:
+                continue
+            name, _, value = line.partition("=")
+            name, value = name.strip().upper(), value.strip().strip("\"'")
+            if not value:
+                continue
+            if name == "JWT_SECRET":
+                severity = Severity.CRITICAL
+                message = "JWT secret in environment/config file — use .env, not hardcoded"
+            elif name == "JWT_KEY":
+                severity = Severity.HIGH
+                message = "JWT key in environment/config file — ensure .env is in .gitignore"
+            else:
+                continue
+            findings.append(
+                self._make_finding(
+                    "jwt_env_exposure",
+                    severity,
+                    rel_path,
+                    line_num,
+                    message,
+                    "Ensure .env files are in .gitignore. Use secret managers in production.",
+                    line.strip(),
+                )
+            )
         return findings
 
     def _should_skip(self, rel_path: str) -> bool:

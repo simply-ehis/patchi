@@ -19,12 +19,13 @@ _log = logging.getLogger("patchi.brain.code_query")
 
 @dataclass
 class JsCall:
-    """A call site: property name, full dotted callee, line, argument kinds."""
+    """A call site: property name, full dotted callee, line, args, span text."""
 
     name: str
     line: int
     arg_kinds: list[str] = field(default_factory=list)
     full: str = ""
+    text: str = ""
 
 
 def _parser(lang: str):
@@ -129,7 +130,13 @@ def js_calls(tree, lang: str = "javascript") -> list[JsCall]:
             fn = node.child_by_field_name("function")
             full = _node_text(fn) if fn is not None else ""
             out.append(
-                JsCall(name=_callee_name(node), line=_line(node), arg_kinds=kinds, full=full)
+                JsCall(
+                    name=_callee_name(node),
+                    line=_line(node),
+                    arg_kinds=kinds,
+                    full=full,
+                    text=_node_text(node),
+                )
             )
     return out
 
@@ -225,6 +232,18 @@ def js_class_heritages(tree, lang: str = "javascript") -> list[tuple[str, int]]:
 def js_identifiers(tree, lang: str = "javascript") -> set[str]:
     """All identifier spellings (for $store-style prefix checks)."""
     return {text for text, _line_no in js_identifier_lines(tree, lang)}
+
+
+def js_property_names(tree, lang: str = "javascript") -> set[str]:
+    """Object/dict key spellings (property_identifier nodes)."""
+    if tree is None:
+        return set()
+    lang_obj = _lang_obj(lang)
+    out: set[str] = set()
+    for nodes in _query_text(lang_obj, "(property_identifier) @p", tree.root_node).values():
+        for node in nodes:
+            out.add(_node_text(node))
+    return out
 
 
 def js_identifier_lines(tree, lang: str = "javascript") -> list[tuple[str, int]]:
@@ -384,6 +403,288 @@ def js_jsx_attributes(tree, lang: str = "javascript") -> list[tuple[str, str, in
                     if name_node is not None:
                         out.append((tag, _node_text(name_node), _line(child)))
     return out
+
+
+def extract_script_blocks(text: str) -> list[str]:
+    """Raw JS from <script> blocks in SFC/HTML (for .vue/.svelte parsing)."""
+    from html.parser import HTMLParser
+
+    out: list[str] = []
+    current: list[str] | None = None
+
+    class _P(HTMLParser):
+        def handle_starttag(self, tag, attrs):
+            nonlocal current
+            if tag == "script":
+                current = []
+
+        def handle_endtag(self, tag):
+            nonlocal current
+            if tag == "script" and current is not None:
+                out.append("".join(current))
+                current = None
+
+        def handle_data(self, data):
+            if current is not None:
+                current.append(data)
+
+    try:
+        _P().feed(text)
+    except Exception as exc:  # noqa: BLE001
+        _log.debug("script extract failed: %s", exc)
+    return out
+
+
+def vue_template_texts(text: str) -> list[tuple[str, int]]:
+    """Visible text nodes from Vue/SFC/HTML markup via html.parser."""
+    from html.parser import HTMLParser
+
+    out: list[tuple[str, int]] = []
+
+    class _P(HTMLParser):
+        def handle_data(self, data):
+            rest, chunks = data, []
+            while "{{" in rest and "}}" in rest:
+                before, _, rest = rest.partition("{{")
+                chunks.append(before)
+                _, _, rest = rest.partition("}}")
+            chunks.append(rest)
+            stripped = " ".join(chunks).strip()
+            if stripped:
+                line, _ = self.getpos()
+                out.append((stripped, line))
+
+    try:
+        _P().feed(text)
+    except Exception as exc:  # noqa: BLE001
+        _log.debug("template text parse failed: %s", exc)
+    return out
+
+
+def string_literals(text: str, lang) -> list[tuple[str, int]]:
+    """(unquoted value, 1-based line) for string/symbol literals, any grammar.
+
+    Tries common string node types so one helper serves every installed
+    tree-sitter grammar. Fail-open: [] when the grammar is missing.
+    """
+    from tree_sitter import Query, QueryCursor
+
+    try:
+        from patchi.core.brain.languages import get_parser
+
+        parser = get_parser(lang)
+    except Exception:
+        return []
+    if parser is None:
+        return []
+    try:
+        tree = parser.parse(text.encode("utf-8", errors="replace"))
+    except Exception:
+        return []
+    try:
+        language = tree.language
+    except Exception:
+        return []
+    seen: set[tuple[str, int]] = set()
+    out: list[tuple[str, int]] = []
+    patterns = (
+        "(string) @s",
+        "(string_literal) @s",
+        "(interpreted_string_literal) @s",
+        "(raw_string_literal) @s",
+        "(encapsed_string) @s",
+        "(symbol) @s",
+    )
+    for pattern in patterns:
+        try:
+            found = QueryCursor(Query(language, pattern)).captures(tree.root_node)
+        except Exception:
+            continue
+        for nodes in found.values():
+            for node in nodes:
+                raw = _node_text(node)
+                val = raw.strip()
+                if len(val) >= 2 and val[0] == val[-1] and val[0] in "\"'`":
+                    val = val[1:-1]
+                val = val.lstrip(":")
+                if val:
+                    key = (val, _line(node))
+                    if key not in seen:
+                        seen.add(key)
+                        out.append(key)
+    return out
+
+
+def js_string_pairs(tree, lang: str = "javascript") -> list[tuple[str, str, int]]:
+    """(key, value, line) for object properties with string values."""
+    if tree is None:
+        return []
+    lang_obj = _lang_obj(lang)
+    out: list[tuple[str, str, int]] = []
+    for nodes in _query_text(lang_obj, "(pair) @p", tree.root_node).values():
+        for node in nodes:
+            key_node = node.child_by_field_name("key")
+            val_node = node.child_by_field_name("value")
+            if key_node is None or val_node is None:
+                continue
+            key = _node_text(key_node).strip("\"'`")
+            val = _node_text(val_node).strip()
+            if len(val) >= 2 and val[0] == val[-1] and val[0] in "\"'`":
+                val = val[1:-1]
+            out.append((key, val, _line(node)))
+    return out
+
+
+def member_paths(text: str, lang) -> list[tuple[str, int]]:
+    """(dotted member-access text, line) for attribute/subscript/member nodes.
+
+    `lang` is a languages.Lang enum member. Tries member-ish node types across
+    grammars (member_expression, attribute, subscript_expression, ...),
+    skipping types the grammar lacks. Fail-open: [] when unparseable.
+    """
+    from tree_sitter import Query, QueryCursor
+
+    try:
+        from patchi.core.brain.languages import get_parser
+
+        parser = get_parser(lang)
+    except Exception:
+        return []
+    if parser is None:
+        return []
+    try:
+        tree = parser.parse(text.encode("utf-8", errors="replace"))
+        language = tree.language
+    except Exception:
+        return []
+    seen: set[tuple[str, int]] = set()
+    out: list[tuple[str, int]] = []
+    for node_type in (
+        "member_expression",
+        "attribute",
+        "subscript_expression",
+        "member_access_expression",
+        "scoped_identifier",
+        "field_expression",
+    ):
+        try:
+            found = QueryCursor(Query(language, f"({node_type}) @m")).captures(
+                tree.root_node
+            )
+        except Exception:
+            continue
+        for nodes in found.values():
+            for node in nodes:
+                text_val = _node_text(node)
+                # Skip bare identifiers and call-covered nodes; keep dotted paths
+                if "." not in text_val and "[" not in text_val:
+                    continue
+                key = (text_val, _line(node))
+                if key not in seen:
+                    seen.add(key)
+                    out.append(key)
+    return out
+
+
+def calls_with_dynamic_arg(text: str, lang, names: set[str]) -> list[int]:
+    """Lines of calls to `names` whose arguments build strings dynamically.
+
+    Python: +/% BinOp, f-strings, .format() in call args (stdlib ast).
+    JS/TS: binary_expression / template_string in call args (tree-sitter).
+    `lang` is a languages.Lang enum member. Fail-open: [].
+    """
+    import ast as _ast
+
+    try:
+        from patchi.core.brain.languages import Lang
+    except Exception:
+        return []
+    wanted = {n.split(".")[-1] for n in names} | set(names)
+    if lang == Lang.PYTHON:
+        try:
+            tree = _ast.parse(text)
+        except SyntaxError:
+            return []
+        out: list[int] = []
+        for node in _ast.walk(tree):
+            if not isinstance(node, _ast.Call):
+                continue
+            func = node.func
+            if isinstance(func, _ast.Name):
+                dotted = func.id
+            elif isinstance(func, _ast.Attribute):
+                parts, cur = [], func
+                while isinstance(cur, _ast.Attribute):
+                    parts.append(cur.attr)
+                    cur = cur.value
+                if isinstance(cur, _ast.Name):
+                    parts.append(cur.id)
+                dotted = ".".join(reversed(parts))
+            else:
+                continue
+            if dotted not in names and dotted.split(".")[-1] not in wanted:
+                continue
+            dynamic = False
+            for arg in list(node.args) + [kw.value for kw in node.keywords]:
+                for sub in _ast.walk(arg):
+                    if isinstance(sub, (_ast.BinOp, _ast.JoinedStr)):
+                        dynamic = True
+                        break
+                    if isinstance(sub, _ast.Call):
+                        f = sub.func
+                        fn = f.id if isinstance(f, _ast.Name) else getattr(f, "attr", "")
+                        if fn == "format":
+                            dynamic = True
+                            break
+                if dynamic:
+                    break
+            if dynamic:
+                out.append(getattr(node, "lineno", 0))
+        return sorted(set(out))
+    # tree-sitter languages: dynamic = binary/template args in the call span
+    try:
+        from patchi.core.brain.languages import get_parser
+
+        parser = get_parser(lang)
+    except Exception:
+        return []
+    if parser is None:
+        return []
+    try:
+        parsed = parser.parse(text.encode("utf-8", errors="replace"))
+        language = parsed.language
+    except Exception:
+        return []
+    from tree_sitter import Query, QueryCursor
+
+    out = []
+    try:
+        found = QueryCursor(
+            Query(language, "(call_expression) @c")
+        ).captures(parsed.root_node)
+    except Exception:
+        return []
+    for nodes in found.values():
+        for node in nodes:
+            fn = node.child_by_field_name("function")
+            dotted = _node_text(fn) if fn is not None else ""
+            if dotted not in names and dotted.split(".")[-1] not in wanted:
+                continue
+            args = node.child_by_field_name("arguments")
+            if args is None:
+                continue
+            try:
+                dyn = QueryCursor(
+                    Query(
+                        language,
+                        "[(binary_expression) (template_string) (template_substitution)] @d",
+                    )
+                ).captures(args)
+            except Exception:
+                continue
+            if any(dyn.values()):
+                out.append(_line(node))
+    return sorted(set(out))
 
 
 def vue_template_attrs(text: str) -> list[tuple[str, str, int]]:

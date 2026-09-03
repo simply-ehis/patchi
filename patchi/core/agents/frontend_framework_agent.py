@@ -27,10 +27,10 @@ from patchi.core.agents.base import (
     safe_rglob,
 )
 from patchi.core.brain.code_query import (
+    extract_script_blocks,
     js_call_names,
     js_calls,
     js_constructor_di_line,
-    js_identifiers,
     js_identifier_lines,
     js_jsx_attributes,
     js_jsx_elements,
@@ -77,7 +77,7 @@ class FrontendFrameworkAgent(BaseAgent):
                     # React: list rendering without key (previously dead branch)
                     attrs = js_jsx_attributes(tree, lang)
                     if any(c.name in ("map", "forEach") for c in calls):
-                        if not any(name == "key" for _tag, name, _line in attrs):
+                        if not any(name == "key" for _, name, _ in attrs):
                             elems = js_jsx_elements(tree, lang)
                             line0 = elems[0][1] if elems else 1
                             findings.append(make_finding(severity=Severity.LOW, file=rel, line_start=line0, title="List element without key", description="Add key to list-rendered elements for stable diffing", finding_type="react_key"))
@@ -86,15 +86,36 @@ class FrontendFrameworkAgent(BaseAgent):
                     by_el: dict[tuple[str, int], set[str]] = {}
                     for tag, attr, line in vue_template_attrs(txt):
                         by_el.setdefault((tag, line), set()).add(attr)
-                    for (tag, line), attr_set in by_el.items():
+                    for (_tag, line), attr_set in by_el.items():
                         if "v-for" in attr_set and "key" not in attr_set and ":key" not in attr_set:
                             findings.append(make_finding(severity=Severity.LOW, file=rel, line_start=line, title="Vue v-for without :key", description="Add :key to v-for for stable diffing", finding_type="vue_key"))
                             break
                 # Svelte: $store subscription without unsubscribe
                 if fp.suffix == ".svelte":
-                    stores = [(t, n) for t, n in js_identifier_lines(tree, lang) if t.startswith("$")]
-                    if stores and "subscribe" in names and not names & {"unsubscribe", "onDestroy"}:
-                        findings.append(make_finding(severity=Severity.LOW, file=rel, line_start=stores[0][1], title="Svelte store without unsubscribe", description="Store subscription may leak; use $store auto-sub or onDestroy unsubscribe", finding_type="svelte_store_leak"))
+                    for block in extract_script_blocks(txt) or [txt]:
+                        stree = parse_js(block, "javascript")
+                        if stree is None:
+                            continue
+                        snames = js_call_names(stree, "javascript")
+                        stores = [
+                            (t, n)
+                            for t, n in js_identifier_lines(stree, "javascript")
+                            if t.startswith("$")
+                        ]
+                        if not stores or "subscribe" not in snames:
+                            continue
+                        if snames & {"unsubscribe", "onDestroy"}:
+                            continue
+                        findings.append(make_finding(
+                            severity=Severity.LOW, file=rel, line_start=stores[0][1],
+                            title="Svelte store without unsubscribe",
+                            description=(
+                                "Store subscription may leak; "
+                                "use $store auto-sub or onDestroy unsubscribe"
+                            ),
+                            finding_type="svelte_store_leak",
+                        ))
+                        break
                 # Angular: constructor DI (private param)
                 if "Angular" in txt or "@Component" in txt:
                     line = js_constructor_di_line(tree, lang)

@@ -7,7 +7,6 @@ from __future__ import annotations
 import json
 import logging
 import os
-import re
 import shutil
 import subprocess
 import tempfile
@@ -226,65 +225,112 @@ class TaintAnalyzer(BaseAgent):
     timeout = 120
 
     # Sources that introduce untrusted data
-    _SOURCE_PATTERNS = [
-        (
-            re.compile(
-                r"""\brequest\.(args|form|json|data|files|cookies|headers|values)\[?['"]?(\w*)['"]?\]?"""
-            ),
-            "http_param",
-        ),
-        (re.compile(r"""\bos\.environ\.get\(['"](.*?)['"]\)"""), "env_var"),
-        (
-            re.compile(r"""\bflask\.request\.|\bfastapi\b.*\bRequest\b|\bdjango\b.*\brequest\."""),
-            "http_framework",
-        ),
-        (re.compile(r"""\bwebsocket\.recv\(\)|\bws\.receive\(\)"""), "websocket"),
-        # Node.js / Express sources
-        (re.compile(r"""\breq\.(query|body|params|headers|cookies)\b"""), "http_param"),
-        (re.compile(r"""\bevent\.(queryStringParameters|body|pathParameters)\b"""), "http_param"),
-        # PHP sources
-        (re.compile(r"""\$_(GET|POST|REQUEST|COOKIE|SERVER)\["""), "http_param"),
-    ]
+    # Sources that introduce untrusted data - matched against parsed member
+    # paths and call sites (member_paths / find_calls), never raw text.
+    _REQUEST_ATTRS = {"args", "form", "json", "data", "files", "cookies", "headers", "values"}
+    _REQ_ATTRS = {"query", "body", "params", "headers", "cookies"}
+    _EVENT_ATTRS = {"queryStringParameters", "body", "pathParameters"}
+    _PHP_VARS = ("$_GET", "$_POST", "$_REQUEST", "$_COOKIE", "$_SERVER")
+    _SOURCE_CALLS = {"os.environ.get", "websocket.recv", "ws.receive"}
+    _SOURCE_CALL_TYPES = {
+        "os.environ.get": "env_var",
+        "websocket.recv": "websocket",
+        "ws.receive": "websocket",
+    }
 
-    # Sinks where untrusted data causes vulnerabilities
-    _SINK_PATTERNS = [
-        (re.compile(r"""\b(?:eval|exec)\s*\("""), "code_injection", Severity.CRITICAL),
-        (
-            re.compile(r"""\bos\.system\s*\(|\bsubprocess\.\w+\s*\("""),
-            "command_injection",
-            Severity.CRITICAL,
-        ),
-        (
-            re.compile(r"""\bcursor\.execute\s*\(.*?\+|f['"]\s*SELECT.*?{""", re.DOTALL),
-            "sql_injection",
-            Severity.CRITICAL,
-        ),
-        (
-            re.compile(r"""\bopen\s*\([^)]*\+|\bpathlib\..*?\+.*?["'/]"""),
-            "path_traversal",
-            Severity.HIGH,
-        ),
-        (
-            re.compile(r"""\bredirect\s*\([^)]*request\.|HttpResponseRedirect\("""),
-            "open_redirect",
-            Severity.HIGH,
-        ),
-        (
-            re.compile(r"""\brender_template_string\s*\(|jinja2.*?\bTemplate\s*\("""),
-            "template_injection",
-            Severity.HIGH,
-        ),
-        (
-            re.compile(r"""\bpickle\.loads?\s*\(|\byaml\.load\s*\([^,)]*\)"""),
-            "deserialization",
-            Severity.HIGH,
-        ),
-        (
-            re.compile(r"""\binnerHTML\s*=|document\.write\s*\(|\.html\s*\([^)]*\$"""),
-            "xss",
-            Severity.HIGH,
-        ),
-    ]
+    # Sink call names (full dotted or leaf) shared with the track_taint pass.
+    _SINK_CALL_NAMES = {
+        "eval", "exec", "os.system", "subprocess.run", "subprocess.Popen",
+        "subprocess.call", "execute", "open", "redirect", "HttpResponseRedirect",
+        "render_template_string", "Template", "pickle.loads", "pickle.load",
+        "yaml.load", "document.write", "html",
+    }
+
+    @staticmethod
+    def _member_source_kind(dotted: str) -> str | None:
+        head, _, rest = dotted.partition(".")
+        attr = rest.split(".")[0].split("[")[0]
+        if head.lower() == "request" and attr in TaintAnalyzer._REQUEST_ATTRS:
+            return "http_param"
+        if head.lower() == "req" and attr in TaintAnalyzer._REQ_ATTRS:
+            return "http_param"
+        if head.lower() == "event" and attr in TaintAnalyzer._EVENT_ATTRS:
+            return "http_param"
+        if any(dotted.startswith(v) for v in TaintAnalyzer._PHP_VARS):
+            return "http_param"
+        low = dotted.lower()
+        if "flask.request" in low:
+            return "http_framework"
+        if "fastapi" in low and "request" in low:
+            return "http_framework"
+        if "django" in low and "request" in low:
+            return "http_framework"
+        return None
+
+    def _structural_sources(self, content: str, lang) -> list[dict]:
+        """Source reads as (line, type, code) from parsed member paths + calls."""
+        from patchi.core.brain.ast_utils import find_calls
+        from patchi.core.brain.code_query import member_paths
+
+        out: list[dict] = []
+        for dotted, line in member_paths(content, lang):
+            kind = self._member_source_kind(dotted)
+            if kind is not None:
+                out.append({"line": line, "type": kind, "code": dotted[:100]})
+        for call in find_calls(content, lang, set(self._SOURCE_CALLS)):
+            name = str(call.get("name", ""))
+            kind = self._SOURCE_CALL_TYPES.get(name)
+            if kind:
+                line_no = int(call.get("line", 0) or 0)
+                out.append({"line": line_no, "type": kind, "code": name[:100]})
+        return out
+
+    def _structural_sinks(self, content: str, lang) -> list[dict]:
+        """Sink sites as (line, sink_type, severity, cwe) from parsed calls."""
+        from patchi.core.brain.ast_utils import find_assignments, find_calls
+        from patchi.core.brain.code_query import calls_with_dynamic_arg
+
+        out: list[dict] = []
+        try:
+            calls = find_calls(content, lang, set(self._SINK_CALL_NAMES))
+        except Exception:
+            calls = []
+        dynamic_lines = set(calls_with_dynamic_arg(content, lang, {"execute", "open"}))
+        for call in calls:
+            name = str(call.get("name", ""))
+            leaf = name.split(".")[-1]
+            line = int(call.get("line", 0) or 0)
+            if leaf in ("eval", "exec"):
+                out.append((line, "code_injection", Severity.CRITICAL, "CWE-94"))
+            elif name == "os.system" or name.startswith("subprocess."):
+                out.append((line, "command_injection", Severity.CRITICAL, "CWE-78"))
+            elif leaf == "execute":
+                if line in dynamic_lines:
+                    out.append((line, "sql_injection", Severity.CRITICAL, "CWE-89"))
+            elif leaf == "open" or "pathlib" in name:
+                if line in dynamic_lines:
+                    out.append((line, "path_traversal", Severity.HIGH, "CWE-22"))
+            elif leaf in ("redirect", "HttpResponseRedirect"):
+                out.append((line, "open_redirect", Severity.HIGH, "CWE-601"))
+            elif leaf in ("render_template_string", "Template"):
+                out.append((line, "template_injection", Severity.HIGH, "CWE-94"))
+            elif name in ("pickle.loads", "pickle.load", "yaml.load"):
+                out.append((line, "deserialization", Severity.HIGH, "CWE-502"))
+            elif name == "document.write":
+                out.append((line, "xss", Severity.HIGH, "CWE-79"))
+            elif leaf == "html":
+                if line in dynamic_lines:
+                    out.append((line, "xss", Severity.HIGH, "CWE-79"))
+        # innerHTML assignment targets (parsed, not text search)
+        try:
+            assignments = find_assignments(content, lang)
+        except Exception:
+            assignments = []
+        for assignment in assignments:
+            target = str(assignment.get("target", ""))
+            if target.endswith(".innerHTML"):
+                out.append((int(assignment.get("line", 0) or 0), "xss", Severity.HIGH, "CWE-79"))
+        return out
 
     def _run(self, inp: AgentInput, result: AgentResult) -> None:
         from patchi.core.brain.scanner import FileScanner
@@ -306,9 +352,8 @@ class TaintAnalyzer(BaseAgent):
                 continue
 
             rel = path.relative_to(root).as_posix()
-            lines = src.splitlines()
 
-            # ── AST-based taint tracking (source → sink argument flow) ───────
+            # ── AST-based taint tracking (source → sink argument flow) ──────
             taint_results = track_taint(src, lang, _TAINT_SINK_NAMES)
             for tr in taint_results:
                 info = _taint_sink_info(tr["name"])
@@ -346,59 +391,51 @@ class TaintAnalyzer(BaseAgent):
                         suggestion=f"Validate and sanitize input before passing to {sink_type} sink.",
                         cwe=cwe,
                         fix_agent="SecurityFixer",
-                        ai_confirmed=ai_confirmed,
                     )
                 )
 
-            # ── Regex proximity pass (concat / assignment sinks AST can't model) ─
-            sources_in_file: list[dict] = []
-            for i, line in enumerate(lines, 1):
-                for pattern, source_type in self._SOURCE_PATTERNS:
-                    if pattern.search(line):
-                        sources_in_file.append(
-                            {"line": i, "type": source_type, "code": line.strip()[:100]}
-                        )
+            # Structural proximity pass (parsed sources/sinks, 30-line window)
+            sources_in_file = self._structural_sources(src, lang)
 
-            for i, line in enumerate(lines, 1):
-                for sink_pattern, sink_type, severity in self._SINK_PATTERNS:
-                    if not sink_pattern.search(line):
-                        continue
-                    nearby_sources = [s for s in sources_in_file if abs(s["line"] - i) <= 30]
-                    if not nearby_sources:
-                        continue
-                    key = (i, sink_type)
-                    if key in seen:
-                        continue
-                    seen.add(key)
-                    source = nearby_sources[0]
-                    ai_confirmed = self._confirm_with_ai(
-                        rel,
-                        source,
-                        {"line": i, "code": line.strip()[:100], "type": sink_type},
-                        src,
-                        inp.config,
+            for line, sink_type, severity, cwe in self._structural_sinks(src, lang):
+                nearby_sources = [s for s in sources_in_file if abs(s["line"] - line) <= 30]
+                if not nearby_sources:
+                    continue
+                key = (line, sink_type)
+                if key in seen:
+                    continue
+                seen.add(key)
+                source = nearby_sources[0]
+                ai_confirmed = self._confirm_with_ai(
+                    rel,
+                    source,
+                    {"line": line, "code": source["code"], "type": sink_type},
+                    src,
+                    inp.config,
+                )
+                if ai_confirmed is False:
+                    continue
+                result.add_finding(
+                    make_finding(
+                        agent=self.name,
+                        finding_type=f"taint_{sink_type}",
+                        severity=severity,
+                        file=rel,
+                        line=line,
+                        message=(
+                            f"Potential {sink_type.replace('_', ' ')}: "
+                            f"user input from {source['type']} reaches {sink_type} sink."
+                        ),
+                        code_snippet=source["code"][:120],
+                        detail=f"Source at line {source['line']}: {source['code'][:80]}",
+                        suggestion=(
+                            f"Validate and sanitize input before passing to {sink_type} sink."
+                        ),
+                        cwe=cwe,
+                        fix_agent="SecurityFixer",
+                        ai_confirmed=ai_confirmed,
                     )
-                    if ai_confirmed is False:
-                        continue
-                    result.add_finding(
-                        make_finding(
-                            agent=self.name,
-                            finding_type=f"taint_{sink_type}",
-                            severity=severity,
-                            file=rel,
-                            line=i,
-                            message=(
-                                f"Potential {sink_type.replace('_', ' ')}: "
-                                f"user input from {source['type']} reaches {sink_type} sink."
-                            ),
-                            code_snippet=line.strip()[:120],
-                            detail=f"Source at line {source['line']}: {source['code'][:80]}",
-                            suggestion=f"Validate and sanitize input before passing to {sink_type} sink.",
-                            cwe=self._cwe(sink_type),
-                            fix_agent="SecurityFixer",
-                            ai_confirmed=ai_confirmed,
-                        )
-                    )
+                )
 
             if taint_results or sources_in_file:
                 total_paths += 1

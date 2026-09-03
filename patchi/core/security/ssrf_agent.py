@@ -18,10 +18,11 @@ Does NOT call AI. Does NOT write to disk. Does NOT touch the queue.
 
 from __future__ import annotations
 
+import ipaddress
 import logging
 import os
-import re
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from ..agents.base import (
     AgentGroup,
@@ -35,6 +36,7 @@ from ..agents.base import (
     register,
 )
 from ..brain.ast_utils import HTTP_CLIENTS, find_assignments, find_calls, get_call_arg
+from ..brain.code_query import string_literals
 from ..brain.languages import DEFAULT_IGNORE_DIRS, Lang, detect_language
 from ..brain.trace_log import trace_agent
 from .pattern_loader import (
@@ -83,58 +85,38 @@ class SSRFProtectionAgent(BaseAgent):
     ]
 
     # ── Dangerous protocol handlers (merged from YAML + defaults) ────────────
-    _PROTOCOL_PATTERNS = [
-        (
-            re.compile(r'["\']file://', re.I),
+    # Dangerous schemes / hosts, matched against parsed string literals
+    # (urllib.parse + ipaddress — comments and formatting can't misfire).
+    # User-supplied YAML customs stay pattern-based (see _YAML_* below).
+    _DANGEROUS_SCHEMES = {
+        "file": (
             Severity.HIGH,
             "file:// protocol handler — potential local file access via SSRF",
         ),
-        (
-            re.compile(r'["\']gopher://', re.I),
+        "gopher": (
             Severity.HIGH,
             "gopher:// protocol handler — potential SSRF vector",
         ),
-        (
-            re.compile(r'["\']dict://', re.I),
+        "dict": (
             Severity.MEDIUM,
             "dict:// protocol handler — potential SSRF vector",
         ),
-        (
-            re.compile(r'["\']ldap://', re.I),
+        "ldap": (
             Severity.MEDIUM,
             "ldap:// protocol handler — potential SSRF vector",
         ),
-    ] + [(p, Severity(s), m) for p, s, m in _YAML_PROTOCOL]
+    }
+    _METADATA_HOSTS = frozenset({"169.254.169.254", "metadata.google.internal"})
 
     # ── Cloud metadata endpoints (merged from YAML + defaults) ──────────────
-    _METADATA_PATTERNS = [
-        (
-            re.compile(r"169\.254\.169\.254", re.I),
-            Severity.CRITICAL,
-            "AWS/GCP cloud metadata endpoint access — potential SSRF to cloud credentials",
-        ),
-        (
-            re.compile(r"metadata\.google\.internal", re.I),
-            Severity.CRITICAL,
-            "GCP metadata endpoint access — potential SSRF to cloud credentials",
-        ),
-    ] + [(p, Severity(s), m) for p, s, m in _YAML_METADATA]
+    _METADATA_MESSAGES = {
+        "169.254.169.254": "AWS/GCP cloud metadata endpoint access — potential SSRF to cloud credentials",
+        "metadata.google.internal": "GCP metadata endpoint access — potential SSRF to cloud credentials",
+    }
 
     # ── Internal network patterns (merged from YAML + defaults) ─────────────
-    _INTERNAL_NETWORK_PATTERNS = [
-        (
-            re.compile(r"(?:localhost|127\.0\.0\.1|0\.0\.0\.0):\d+"),
-            Severity.LOW,
-            "Localhost URL — verify this isn't user-controlled",
-        ),
-        (
-            re.compile(
-                r"(?:10\.\d+\.\d+\.\d+|172\.(?:1[6-9]|2\d|3[01])\.\d+\.\d+|192\.168\.\d+\.\d+)"
-            ),
-            Severity.MEDIUM,
-            "Internal network IP — potential SSRF to internal services",
-        ),
-    ] + [(p, Severity(s), m) for p, s, m in _YAML_INTERNAL]
+    _LOCALHOST_MESSAGE = "Localhost URL — verify this isn't user-controlled"
+    _INTERNAL_MESSAGE = "Internal network IP — potential SSRF to internal services"
 
     # ── URL construction patterns (where user input flows to URL) ───────────
     _URL_VAR_NAMES = {
@@ -203,11 +185,20 @@ class SSRFProtectionAgent(BaseAgent):
 
                     lang = detect_language(p)
                     findings.extend(self._check_http_clients(content, lang, rel))
-                    findings.extend(self._check_protocols(content, rel))
-                    findings.extend(self._check_metadata(content, rel))
-                    findings.extend(self._check_internal_network(content, rel))
+                    findings.extend(self._check_url_literals(content, lang, rel))
+                    findings.extend(self._check_custom_patterns(content, rel))
                     findings.extend(self._check_url_construction(content, lang, rel))
                     findings.extend(self._check_redirects(content, lang, rel))
+            # Dedupe: structural checks and YAML customs can flag the same
+            # literal with slightly different messages — same place+type is one issue
+            seen: set[tuple] = set()
+            unique: list = []
+            for finding in findings:
+                key = (finding.file, finding.type, finding.line)
+                if key not in seen:
+                    seen.add(key)
+                    unique.append(finding)
+            findings = unique
             trace.findings = len(findings)
             trace.files_scanned = files_scanned
 
@@ -234,71 +225,139 @@ class SSRFProtectionAgent(BaseAgent):
             )
         return findings
 
-    def _check_protocols(self, content: str, rel_path: str) -> list[Finding]:
+    @staticmethod
+    def _split_host(value: str) -> tuple[str, str]:
+        """(scheme, host) from a literal; bare hostnames work without scheme."""
+        text = value.strip()
+        if "://" in text:
+            try:
+                parsed = urlsplit(text)
+                return parsed.scheme.lower(), parsed.hostname or ""
+            except ValueError:
+                return "", ""
+        return "", text
+
+    def _check_url_literals(self, content: str, lang: Lang, rel_path: str) -> list[Finding]:
+        """Dangerous URLs via parsed string literals (urllib.parse + ipaddress)."""
         findings = []
         lines = content.splitlines()
-        for line_num, line in enumerate(lines, 1):
-            stripped = line.strip()
-            if stripped.startswith("#"):
+
+        def _snippet(line_num: int) -> str:
+            if 0 < line_num <= len(lines):
+                return lines[line_num - 1].strip()[:120]
+            return ""
+
+        for value, line_num in string_literals(content, lang):
+            if "://" not in value and "." not in value and ":" not in value:
                 continue
-            for pattern, severity, message in self._PROTOCOL_PATTERNS:
-                if pattern.search(line):
-                    findings.append(
-                        make_finding(
-                            self.name,
-                            "ssrf_dangerous_protocol",
-                            severity,
-                            rel_path,
-                            message,
-                            line=line_num,
-                            code_snippet=stripped[:120],
-                            suggestion="Block non-HTTP/HTTPS protocols in URL handling.",
-                        )
+            scheme, host = self._split_host(value)
+            if scheme in self._DANGEROUS_SCHEMES:
+                severity, message = self._DANGEROUS_SCHEMES[scheme]
+                findings.append(
+                    make_finding(
+                        self.name,
+                        "ssrf_dangerous_protocol",
+                        severity,
+                        rel_path,
+                        message,
+                        line=line_num,
+                        code_snippet=_snippet(line_num),
+                        suggestion="Block non-HTTP/HTTPS protocols in URL handling.",
                     )
+                )
+                continue
+            host = (host or "").lower().split("@")[-1].split(":")[0].strip("[]")
+            if not host:
+                continue
+            if host in self._METADATA_MESSAGES:
+                findings.append(
+                    make_finding(
+                        self.name,
+                        "ssrf_metadata_access",
+                        Severity.CRITICAL,
+                        rel_path,
+                        self._METADATA_MESSAGES[host],
+                        line=line_num,
+                        code_snippet=_snippet(line_num),
+                        suggestion="Block access to cloud metadata endpoints. Use IMDSv2 if metadata access is required.",
+                    )
+                )
+                continue
+            if host == "localhost":
+                findings.append(
+                    make_finding(
+                        self.name,
+                        "ssrf_internal_network",
+                        Severity.LOW,
+                        rel_path,
+                        self._LOCALHOST_MESSAGE,
+                        line=line_num,
+                        code_snippet=_snippet(line_num),
+                        suggestion="Restrict outbound HTTP requests to prevent access to internal services.",
+                    )
+                )
+                continue
+            try:
+                addr = ipaddress.ip_address(host)
+            except ValueError:
+                continue
+            if addr.is_private or addr.is_loopback or addr.is_link_local or addr.is_reserved:
+                if addr.is_loopback:
+                    severity, message = Severity.LOW, self._LOCALHOST_MESSAGE
+                else:
+                    severity, message = Severity.MEDIUM, self._INTERNAL_MESSAGE
+                findings.append(
+                    make_finding(
+                        self.name,
+                        "ssrf_internal_network",
+                        severity,
+                        rel_path,
+                        message,
+                        line=line_num,
+                        code_snippet=_snippet(line_num),
+                        suggestion="Restrict outbound HTTP requests to prevent access to internal services.",
+                    )
+                )
         return findings
 
-    def _check_metadata(self, content: str, rel_path: str) -> list[Finding]:
-        findings = []
-        lines = content.splitlines()
-        for line_num, line in enumerate(lines, 1):
-            stripped = line.strip()
-            if stripped.startswith("#"):
-                continue
-            for pattern, severity, message in self._METADATA_PATTERNS:
-                if pattern.search(line):
-                    findings.append(
-                        make_finding(
-                            self.name,
-                            "ssrf_metadata_access",
-                            severity,
-                            rel_path,
-                            message,
-                            line=line_num,
-                            code_snippet=stripped[:120],
-                            suggestion="Block access to cloud metadata endpoints. Use IMDSv2 if metadata access is required.",
-                        )
-                    )
-        return findings
+    @staticmethod
+    def _as_severity(value) -> Severity:
+        if isinstance(value, Severity):
+            return value
+        try:
+            return Severity(str(value).lower())
+        except ValueError:
+            return Severity.MEDIUM
 
-    def _check_internal_network(self, content: str, rel_path: str) -> list[Finding]:
+    def _check_custom_patterns(self, content: str, rel_path: str) -> list[Finding]:
+        """User-supplied YAML customs stay pattern-based (configuration, not logic)."""
         findings = []
-        lines = content.splitlines()
-        for line_num, line in enumerate(lines, 1):
+        customs: list[tuple] = []
+        customs.extend((p, s, m, "ssrf_dangerous_protocol") for p, s, m in _YAML_PROTOCOL)
+        customs.extend((p, s, m, "ssrf_metadata_access") for p, s, m in _YAML_METADATA)
+        customs.extend((p, s, m, "ssrf_internal_network") for p, s, m in _YAML_INTERNAL)
+        if not customs:
+            return findings
+        for line_num, line in enumerate(content.splitlines(), 1):
             stripped = line.strip()
             if stripped.startswith("#"):
                 continue
-            for pattern, severity, message in self._INTERNAL_NETWORK_PATTERNS:
-                if pattern.search(line):
+            for pattern, severity, message, finding_type in customs:
+                try:
+                    matched = pattern.search(line)
+                except Exception:
+                    continue
+                if matched:
                     findings.append(
                         make_finding(
                             self.name,
-                            "ssrf_internal_network",
-                            severity,
+                            finding_type,
+                            self._as_severity(severity),
                             rel_path,
                             message,
                             line=line_num,
                             code_snippet=stripped[:120],
-                            suggestion="Restrict outbound HTTP requests to prevent access to internal services.",
+                            suggestion="Review against SSRF guidance.",
                         )
                     )
         return findings
