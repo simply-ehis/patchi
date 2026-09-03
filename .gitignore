@@ -86,6 +86,7 @@ scan_output.txt
 
 # Root-level temp scripts
 check_*.py
+!patchi/cli/commands/check_cmd.py
 find_*.py
 fix_*.py
 show_*.py

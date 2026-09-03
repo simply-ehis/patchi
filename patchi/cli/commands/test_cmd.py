@@ -21,24 +21,23 @@ Usage:
   p test config flows remove <n>  — remove a custom test flow
 """
 
-from __future__ import annotations
-
 import json
 import time
 from pathlib import Path
-
 from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
-
 from patchi.cli.console import con
 from patchi.cli.display.live_progress import LiveProgress
 from patchi.core import memory as mem
 from patchi.core.config import require_project_root
+import logging
+
+from __future__ import annotations
+
 
 _MAPS_DIR = Path(__file__).resolve().parent
 
-import logging
 
 _log = logging.getLogger("patchi.cli.test_cmd")
 
@@ -130,6 +129,21 @@ def run(
         con.print("[red]No matching test agents found.[/red]")
         return
 
+    # App launcher for browser/e2e agents — start app like a real user
+    _launcher_url = None
+    needs_launcher = any(n in ("BrowserTestAgent", "UIButtonAgent", "UILayoutAgent", "UIAccessibilityAgent", "VisualRegressionAgent", "E2EFlowAgent") for n in to_run_names) or test_type in ("browser", "e2e", "visual", "full")
+    if needs_launcher:
+        try:
+            from patchi.core.testing.app_launcher import ensure_running
+
+            _launcher_url = ensure_running(r, config, {})
+            if _launcher_url:
+                con.print(f"[dim]App running at {_launcher_url} — launcher started[/dim]")
+            else:
+                con.print("[dim]Launcher: no app detected or already running — probing existing server[/dim]")
+        except Exception as exc:  # noqa: BLE001
+            _log.debug("launcher failed: %s", exc)
+
     con.print()
     label = f" [dim]→ {area}[/dim]" if area else ""
     con.print(
@@ -149,11 +163,16 @@ def run(
         lp.log(f"  {short_name}…")
         lp.update()
 
+        extra = {}
+        if _launcher_url:
+            extra["base_url"] = _launcher_url
+            extra["live_probe"] = True
         inp = AgentInput(
             root=r,
             scope=scope,
             brain=brain,
             config=config,
+            extra=extra,
             on_message=lambda n, msg, s: (lp.log(f"    {msg}", s), lp.update()),
         )
         result = agent_cls().run(inp)
@@ -188,6 +207,15 @@ def run(
     total_passed = sum(r.data.get("suite", {}).get("passed", 0) for r in results)
     total_failed = sum(r.data.get("suite", {}).get("failed", 0) for r in results)
     lp.stop(summary=f"{total_tests} tests - {total_passed} passed, {total_failed} failed")
+    # Launcher teardown
+    if _launcher_url:
+        try:
+            from patchi.core.testing.app_launcher import stop
+
+            stop()
+            con.print(f"[dim]Launcher: app at {_launcher_url} stopped[/dim]")
+        except Exception as exc:  # noqa: BLE001
+            _log.debug("launcher stop failed: %s", exc)
     _show_results(results)
 
     # Save to test history
