@@ -61,23 +61,72 @@ def is_ready(root: Path) -> tuple[bool, dict | None]:
     return True, st
 
 
-def run(fix: bool = False, json_output: bool = False, root: Path | None = None) -> None:  # noqa: ARG001
+# Finding types p check --fix may auto-repair (its lane: type/deps/build/format/install).
+# Everything else (incl. all security findings) is reported for the Brain, never touched.
+_FIXABLE_TYPES = {"missing_env", "format_error"}
+
+
+def _apply_domain_fixes(r: Path, blocking: list) -> list[str]:
+    """Attempt safe auto-fixes for in-lane findings. Returns human-readable actions taken."""
+    import shutil
+    import subprocess
+
+    actions: list[str] = []
+    for f in blocking:
+        ftype = getattr(f, "type", "") or ""
+        if ftype == "missing_env":
+            src, dst = r / ".env.example", r / ".env"
+            try:
+                if src.exists() and not dst.exists():
+                    dst.write_text(src.read_text(encoding="utf-8"), encoding="utf-8")
+                    actions.append("copied .env.example → .env (fill values before run)")
+            except OSError:
+                pass
+        elif ftype == "format_error":
+            if shutil.which("ruff") and (r / "pyproject.toml").exists():
+                try:
+                    proc = subprocess.run(
+                        ["ruff", "format", "."],
+                        capture_output=True, text=True, timeout=60, cwd=str(r),
+                    )
+                    if proc.returncode == 0:
+                        actions.append("ran ruff format .")
+                except Exception:
+                    pass
+    return actions
+
+
+def _run_side_agents(r: Path, brain: dict, config: dict):
+    from patchi.core.agents.base import AgentInput
+    from patchi.core.agents.base import list_agents as la
+
+    agents = [a for a in la() if a.name in ("InstallAgent", "BuildAgent", "FormatAgent")]
+    findings: list = []
+    blocking: list = []
+    for cls in agents:
+        res = cls().run(AgentInput(root=r, scope=[], brain=brain, config=config, extra={}))
+        findings.extend(res.findings)
+        for f in res.findings:
+            sev = f.severity.value if hasattr(f.severity, "value") else str(f.severity)
+            if sev in ("high", "critical"):
+                blocking.append(f)
+    return findings, blocking
+
+
+def run(fix: bool = False, json_output: bool = False, root: Path | None = None) -> None:
     try:
         r = root or require_project_root()
     except RuntimeError as e:
         con.print(f"[red]{e}[/red]")
         return
 
-    from patchi.core.agents.base import AgentInput, discover_agent_modules
+    from patchi.core.agents.base import discover_agent_modules
 
     discover_agent_modules()
     import patchi.core.agents.side.build_agent  # noqa: F401
     import patchi.core.agents.side.format_agent  # noqa: F401
     import patchi.core.agents.side.install_agent  # noqa: F401
-    from patchi.core.agents.base import list_agents as la
 
-    # Side agents for steps 1-2
-    agents = [a for a in la() if a.name in ("InstallAgent", "BuildAgent", "FormatAgent")]
     try:
         from patchi.core import config as cfg
         from patchi.core import memory as mem
@@ -88,15 +137,17 @@ def run(fix: bool = False, json_output: bool = False, root: Path | None = None) 
         brain, config = {}, {}
 
     # Step 1-3: run side agents
-    findings: list = []
-    blocking: list = []
-    for cls in agents:
-        res = cls().run(AgentInput(root=r, scope=[], brain=brain, config=config, extra={}))
-        findings.extend(res.findings)
-        for f in res.findings:
-            sev = f.severity.value if hasattr(f.severity, "value") else str(f.severity)
-            if sev in ("high", "critical"):
-                blocking.append(f)
+    findings, blocking = _run_side_agents(r, brain, config)
+
+    # --fix: repair in-lane findings once, then re-run from step 1
+    if fix and blocking:
+        lane = [f for f in blocking if (getattr(f, "type", "") or "") in _FIXABLE_TYPES]
+        if lane:
+            actions = _apply_domain_fixes(r, lane)
+            if actions:
+                for a in actions:
+                    con.print(f"[dim]--fix: {a}[/dim]")
+                findings, blocking = _run_side_agents(r, brain, config)
 
     # Step 3 extra: env file check (missing .env but .env.example exists)
     try:

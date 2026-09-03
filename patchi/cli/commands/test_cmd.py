@@ -130,20 +130,72 @@ def run(
         con.print("[red]No matching test agents found.[/red]")
         return
 
-    # App launcher for browser/e2e agents — start app like a real user
-    _launcher_url = None
-    needs_launcher = any(n in ("BrowserTestAgent", "UIButtonAgent", "UILayoutAgent", "UIAccessibilityAgent", "VisualRegressionAgent", "E2EFlowAgent") for n in to_run_names) or test_type in ("browser", "e2e", "visual", "full")
-    if needs_launcher:
-        try:
-            from patchi.core.testing.app_launcher import ensure_running
+    # ConsoleLoggingAgent rides along on browser-family runs (§11: auto when
+    # p test is active). Fail-open inside the agent if no server/playwright.
+    _browser_family = {
+        "BrowserTestAgent", "UIButtonAgent", "UILayoutAgent", "UIAccessibilityAgent",
+        "VisualRegressionAgent", "E2EFlowAgent", "ConsoleLoggingAgent",
+    }
+    if "ConsoleLoggingAgent" in agent_map and any(n in _browser_family for n in to_run_names):
+        if all(a.name != "ConsoleLoggingAgent" for a in to_run):
+            to_run.append(agent_map["ConsoleLoggingAgent"])
+            to_run_names = [*to_run_names, "ConsoleLoggingAgent"]
 
-            _launcher_url = ensure_running(r, config, {})
-            if _launcher_url:
-                con.print(f"[dim]App running at {_launcher_url} — launcher started[/dim]")
-            else:
-                con.print("[dim]Launcher: no app detected or already running — probing existing server[/dim]")
+    # Chain: Check → Run → Test/Attack (Run relies on Check green, Test relies on Run)
+    _launcher_url = None
+    needs_launcher = any(n in ("BrowserTestAgent", "UIButtonAgent", "UILayoutAgent", "UIAccessibilityAgent", "VisualRegressionAgent", "E2EFlowAgent", "ConsoleLoggingAgent") for n in to_run_names) or test_type in ("browser", "e2e", "visual", "full")
+    needs_run = needs_launcher or any(n in ("RedTeamAgent", "DastAgent", "ApiFuzzerAgent") for n in to_run_names)
+    if needs_run:
+        # 1. Check must be green — gate via .patchi/p_check_status.json
+        try:
+            from patchi.core.testing.gate import require_ready
+
+            ready, url, st = require_ready(r)
+            if not ready:
+                con.print(f"[yellow]P-Check not READY_TO_SERVE — running p check first[/yellow] [dim]({st.get('status') if st else 'no status'})[/dim]")
+                # Run P-Check side agents inline (install/build/format)
+                try:
+                    from patchi.cli.commands.check_cmd import run as check_run
+
+                    check_run(root=r)
+                    ready, url, st = require_ready(r)
+                    if not ready:
+                        con.print(f"[red]P-Check still BLOCKED: {st.get('error') if st else 'unknown'} — aborting test (fix via p check --fix)[/red]")
+                        return
+                except Exception as exc:  # noqa: BLE001
+                    _log.debug("p check inline failed: %s", exc)
         except Exception as exc:  # noqa: BLE001
-            _log.debug("launcher failed: %s", exc)
+            _log.debug("gate check failed: %s", exc)
+        # 2. Run — start app after Check green
+        try:
+            from patchi.core.agents.base import AgentInput as _AI
+            from patchi.core.agents.run_agent import RunAgent
+
+            run_inp = _AI(root=r, scope=[], brain=brain, config=config, extra={})
+            run_res = RunAgent().run(run_inp)
+            if run_res.status.value == "done" and run_res.data.get("base_url"):
+                _launcher_url = run_res.data["base_url"]
+                con.print(f"[dim]RunAgent: app at {_launcher_url} — P-Check was green[/dim]")
+            else:
+                _log.debug("RunAgent %s: %s", run_res.status, run_res.data.get("gate_reason") or run_res.errors)
+                if run_res.data.get("gate_blocked"):
+                    con.print(f"[red]Run blocked: {run_res.data.get('gate_reason')}[/red]")
+                    return
+                # Fallback to direct launcher if RunAgent failed but Check was green
+                from patchi.core.testing.app_launcher import ensure_running
+
+                _launcher_url = ensure_running(r, config, {})
+                if _launcher_url:
+                    con.print(f"[dim]App running at {_launcher_url} — launcher fallback[/dim]")
+        except Exception as exc:  # noqa: BLE001
+            _log.debug("RunAgent failed: %s", exc)
+            # Fallback direct
+            try:
+                from patchi.core.testing.app_launcher import ensure_running
+
+                _launcher_url = ensure_running(r, config, {})
+            except Exception:
+                pass
 
     con.print()
     label = f" [dim]→ {area}[/dim]" if area else ""
@@ -218,6 +270,33 @@ def run(
         except Exception as exc:  # noqa: BLE001
             _log.debug("launcher stop failed: %s", exc)
     _show_results(results)
+
+    # Merge TEST findings through the UI verification gate before memory —
+    # only findings whose file/line check out against the codebase are saved.
+    try:
+        from patchi.core.brain.verify import verify_ui_findings
+
+        ui_dicts: list[dict] = []
+        for res in results:
+            for f in res.findings:
+                ui_dicts.append(f.to_dict() if hasattr(f, "to_dict") else dict(f))
+        kept, dropped = verify_ui_findings(r, ui_dicts)
+        mem.save_scan_result(
+            "UI",
+            {
+                "status": "ok",
+                "finding_count": len(kept),
+                "dropped_unverifiable": len(dropped),
+                "findings": kept,
+            },
+            r,
+        )
+        if dropped:
+            con.print(
+                f"[dim]UI gate: kept {len(kept)}, dropped {len(dropped)} unverifiable[/dim]"
+            )
+    except Exception as e:
+        _log.warning("UI merge failed: %s", e)
 
     # Save to test history
     _save_to_history(results, test_type or "default", area, r)
