@@ -1,0 +1,15 @@
+name: Patchi
+on: [push, pull_request]
+jobs:
+  patchi:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: pip install -e .[dev]
+      - run: p check --json
+      - run: p scan --offline --json > patchi.json
+      - uses: actions/upload-artifact@v4
+        with: { name: patchi-report, path: patchi.json }
+      - run: p trend --json

@@ -1,0 +1,8 @@
+patchi:
+  image: python:3.11
+  script:
+    - pip install -e .[dev]
+    - p check --json
+    - p scan --offline --json > patchi.json
+  artifacts:
+    paths: [patchi.json]
