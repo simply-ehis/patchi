@@ -12,18 +12,16 @@ Usage:
   p audit save [--intent "..."]   — snapshot current state as the agreed Plan
   p audit [--no-scan]             — Plan-vs-Built report card + drift
 """
-
 from __future__ import annotations
 
 import hashlib
 import json
+import logging
 from datetime import UTC, datetime
 from pathlib import Path
 
 _PLAN_FILE = ".patchi/plan.json"
 
-
-import logging
 
 _log = logging.getLogger("patchi.brain.audit")
 

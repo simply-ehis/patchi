@@ -9,9 +9,9 @@ Features:
 - Test session monitoring
 - Command palette for AI tool calls
 """
-
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 from pathlib import Path
@@ -145,6 +145,7 @@ async def _handle_ws_message(ws: WebSocket, root: Path, raw: str):
             # because the CLI handler reports via rich console instead of
             # returning values. Offloaded to a thread so the socket stays live.
             import asyncio as _asyncio
+
             from patchi.core import memory as mem
 
             def _cli_scan():
@@ -399,5 +400,3 @@ async def deliberate(request: Request):
     }
 
 
-# Import asyncio for streaming
-import asyncio

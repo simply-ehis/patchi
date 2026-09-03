@@ -71,7 +71,7 @@ def build() -> int:
 
         clf = GNNVulnerabilityClassifier()
         if clf.available:
-            print("session:    loaded OK (trusted=%s)" % clf.trusted)
+            print(f"session:    loaded OK (trusted={clf.trusted})")
         else:
             print(f"session:    NOT trusted -> {clf.skip_reason()}")
             return 1 if "integrity" in clf.skip_reason() else 0

@@ -33,7 +33,7 @@ def _git_churn(root: Path, rel: str) -> int:
             cwd=str(root),
         )
         if out.returncode == 0:
-            return len([l for l in out.stdout.splitlines() if l.strip()])
+            return len([line for line in out.stdout.splitlines() if line.strip()])
     except Exception as exc:  # noqa: BLE001
         _log.debug("churn %s failed: %s", rel, exc)
     return 0

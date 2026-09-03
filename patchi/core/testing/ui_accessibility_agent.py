@@ -17,10 +17,9 @@ are surfaced so a11y runs don't silently no-op on broken pages.
 
 Requires: playwright, axe-core (injected from CDN)
 """
-
 from __future__ import annotations
 
-
+import logging
 
 from ..agents.base import (
     AgentGroup,
@@ -64,7 +63,6 @@ AXE_RULES_BY_SEVERITY = {
     ],
 }
 
-import logging
 
 _log = logging.getLogger("patchi.testing.ui_accessibility_agent")
 

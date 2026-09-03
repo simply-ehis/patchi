@@ -1,14 +1,15 @@
 """Self-Improvement dashboard — agent profiles, learning, threat model."""
 
 from __future__ import annotations
-import logging
 
 import json
+import logging
 from pathlib import Path
 
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
+
 _log = logging.getLogger("patchi.web.routes.self_improvement")
 
 

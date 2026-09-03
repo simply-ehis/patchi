@@ -4,7 +4,6 @@ CodeQLAgent - CodeQL static analysis integration.
 CodeQL is a semantic code analysis engine from GitHub that can find
 vulnerabilities and code quality issues.
 """
-
 from __future__ import annotations
 
 import json
@@ -231,6 +230,4 @@ class CodeqlAgent(BaseAgent):
 
 
 # Register the agent
-from patchi.core.agents.base import register
-
 register(CodeqlAgent)

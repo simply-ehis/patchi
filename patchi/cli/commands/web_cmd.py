@@ -86,11 +86,11 @@ def run(
     """Start the unified Patchi web server (blocking)."""
     try:
         import uvicorn  # noqa: F401
-    except ImportError:
+    except ImportError as e:
         console.print(
             "[red]Missing dependencies.[/red] Install with: [bold]pip install patchi[web][/bold]"
         )
-        raise SystemExit(1)
+        raise SystemExit(1) from e
 
     project_root = root or _resolve_project(project)
 

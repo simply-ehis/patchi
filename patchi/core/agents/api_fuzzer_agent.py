@@ -24,7 +24,6 @@ from patchi.core.agents.base import (
     AgentResult,
     AgentStatus,
     BaseAgent,
-    Finding,
     Severity,
     make_finding,
     register,
@@ -72,9 +71,9 @@ class ApiFuzzerAgent(BaseAgent):
         # Routes from brain (RouteMapper) or live scan
         routes: list[RouteInfo] = []
         try:
-            from patchi.core.brain.route_mapper import RouteMapper
-            from patchi.core.brain.framework import FrameworkDetector
             from patchi.core.brain.file_corpus import FileCorpus
+            from patchi.core.brain.framework import FrameworkDetector
+            from patchi.core.brain.route_mapper import RouteMapper
 
             corpus = FileCorpus(inp.root)
             stack = FrameworkDetector(inp.root, corpus=corpus).detect()

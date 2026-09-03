@@ -34,11 +34,15 @@ def _cleanup_tmpdir(tmpdir: tempfile.TemporaryDirectory) -> None:
     p = Path(tmpdir.name)
     # Remove stale SQLite WAL/SHM files that Windows still holds
     for f in p.rglob("*.db-wal"):
-        try: os.remove(f)
-        except OSError: pass
+        try:
+            os.remove(f)
+        except OSError:
+            pass
     for f in p.rglob("*.db-shm"):
-        try: os.remove(f)
-        except OSError: pass
+        try:
+            os.remove(f)
+        except OSError:
+            pass
     gc.collect()
     time.sleep(0.05)
     for _ in range(5):

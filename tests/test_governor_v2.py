@@ -349,9 +349,8 @@ class TestGovernorVerifyLoop(_GovTestCase):
         """Applied-but-not-re-verified outcomes are reported separately."""
         from unittest.mock import patch as mock_patch
 
-        from patchi.core.fix.verify_loop import VerifyOutcome
-
         from patchi.core.fix.patch import Patch
+        from patchi.core.fix.verify_loop import VerifyOutcome
 
         pd = self._patch_dict()
         patch = Patch.from_dict(pd)
@@ -373,9 +372,8 @@ class TestGovernorVerifyLoop(_GovTestCase):
         """A patch that exhausts retries is reported as rolled_back."""
         from unittest.mock import patch as mock_patch
 
-        from patchi.core.fix.verify_loop import VerifyOutcome
-
         from patchi.core.fix.patch import Patch
+        from patchi.core.fix.verify_loop import VerifyOutcome
 
         pd = self._patch_dict()
         patch = Patch.from_dict(pd)

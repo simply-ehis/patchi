@@ -7,9 +7,9 @@ Covers §3.3.1-2:
 - Parse Next.js (file-based /app/ or /pages/)
 - Cross-ref link usages (<Link to=>, navigate()) against route inventory
 """
-
 from __future__ import annotations
 
+import logging
 import re
 from pathlib import Path
 
@@ -49,8 +49,6 @@ _LINK_PATTERNS = [
     re.compile(r"href=[\"']([^\"']+)[\"']"),
 ]
 
-
-import logging
 
 _log = logging.getLogger("patchi.agents.spa_route_inventory")
 

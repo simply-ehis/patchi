@@ -5,14 +5,16 @@ A fast, low-false-positive regex sweep over source files. If `gitleaks`
 or `semgrep` is installed it can be used instead (see `scan_secrets`).
 Both `p audit` and `p watch` reuse this so detection stays consistent.
 """
-
 from __future__ import annotations
 
+import logging
 import re
 import shutil
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
+
+from patchi.core.brain.languages import DEFAULT_IGNORE_DIRS
 
 # Source-ish extensions worth scanning for secrets.
 _SCAN_EXTS = {
@@ -40,7 +42,6 @@ _SCAN_EXTS = {
     ".p12",
     ".keystore",
 }
-from patchi.core.brain.languages import DEFAULT_IGNORE_DIRS
 
 _SKIP_DIRS = DEFAULT_IGNORE_DIRS
 
@@ -59,8 +60,6 @@ _PATTERNS: list[tuple[str, re.Pattern]] = [
     ),
 ]
 
-
-import logging
 
 _log = logging.getLogger("patchi.brain.secrets")
 

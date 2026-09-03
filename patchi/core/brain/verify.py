@@ -14,10 +14,10 @@ Usage:
 This reuses the project's own test runner (pytest by default) and Patchi's
 Brain scan — it never trusts a self-report.
 """
-
 from __future__ import annotations
 
 import json
+import logging
 import re
 import shutil
 import subprocess
@@ -28,8 +28,6 @@ from pathlib import Path
 
 _BASELINE_FILE = ".patchi/verify_baseline.json"
 
-
-import logging
 
 _log = logging.getLogger("patchi.brain.verify")
 

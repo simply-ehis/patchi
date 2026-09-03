@@ -1,3 +1,4 @@
+import logging
 import re
 
 from patchi.core.brain.route_detector.base import BaseRouteDetector
@@ -13,8 +14,6 @@ _SPRING_MAPPINGS = {
 }
 _SPRING_AUTH_ANNOTATIONS = {"preauthorize", "secured", "rolesallowed"}
 
-
-import logging
 
 _log = logging.getLogger("patchi.brain.java")
 

@@ -7,7 +7,6 @@ real secret scanning) — not that a function returns a placeholder string.
 
 from __future__ import annotations
 
-import asyncio
 import http.server
 import threading
 from pathlib import Path

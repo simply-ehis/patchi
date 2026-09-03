@@ -222,7 +222,7 @@ class ShadowAgent(BaseAgent):
     def _run(self, inp, result):
         pages = {"a": {"violations": []}}
         total = sum(len(item.get("violations", [])) for item in pages.values())
-        for url, result in pages.items():  # shadow! rebinds the AgentResult
+        for _url, result in pages.items():  # shadow! rebinds the AgentResult
             total += len(result.get("violations", []))
         result.status = AgentStatus.DONE
         return

@@ -7,13 +7,14 @@ Subcommands:
 """
 
 from __future__ import annotations
-import logging
 
 import json
+import logging
 from pathlib import Path
 
 from rich.console import Console
 from rich.table import Table
+
 _log = logging.getLogger("patchi.cli.commands.rules_cmd")
 
 

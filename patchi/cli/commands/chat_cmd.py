@@ -17,10 +17,10 @@ Usage:
   p chat "write a rate limiter"       — creates the file
   p ask "what changed?"               — backward-compatible alias
 """
-
 from __future__ import annotations
 
 import json
+import logging
 from pathlib import Path
 
 from rich.markdown import Markdown
@@ -32,7 +32,6 @@ from patchi.cli.console import con
 MAX_HISTORY = 50
 CHAT_HISTORY_FILE = ".patchi/memory/chat_history.json"
 
-import logging
 
 _log = logging.getLogger("patchi.cli.chat_cmd")
 

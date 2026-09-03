@@ -21,7 +21,7 @@ _log = logging.getLogger("patchi.web.smart")
 
 router = APIRouter()
 
-_current_task: "asyncio.Task | None" = None
+_current_task: asyncio.Task | None = None
 
 
 class SmartRunRequest(BaseModel):

@@ -136,7 +136,6 @@ class MutationAgent(BaseAgent):
         if not findings:
             try:
                 from patchi.core.brain.file_corpus import FileCorpus
-                from patchi.core.brain.languages import Lang
 
                 corpus = FileCorpus(inp.root)
                 for entry in corpus.files():
@@ -172,4 +171,4 @@ class MutationAgent(BaseAgent):
         result.status = AgentStatus.SUCCEEDED
         result.findings = findings[:30]
         result.data["total_survived"] = len(findings)
-        result.files_scanned = len(set(f.file for f in findings)) if findings else 0
+        result.files_scanned = len({f.file for f in findings}) if findings else 0

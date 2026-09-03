@@ -1,3 +1,4 @@
+import logging
 import re
 
 from patchi.core.brain.route_detector.base import BaseRouteDetector
@@ -16,8 +17,6 @@ _RUST_HTTP_METHODS = {
     "any",
 }
 
-
-import logging
 
 _log = logging.getLogger("patchi.brain.rust")
 

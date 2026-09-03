@@ -13,6 +13,7 @@ Stages:
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 
 from patchi.core.security.confidence_gate import ConfidenceGate

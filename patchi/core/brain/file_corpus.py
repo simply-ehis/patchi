@@ -20,14 +20,15 @@ Usage:
 """
 
 from __future__ import annotations
-import logging
 
 import hashlib
+import logging
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
 
 from patchi.core.brain.languages import DEFAULT_IGNORE_DIRS, Lang, detect_language
+
 _log = logging.getLogger("patchi.core.brain.file_corpus")
 
 

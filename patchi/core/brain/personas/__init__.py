@@ -12,7 +12,12 @@ Focuses on:
 from __future__ import annotations
 
 from patchi.core.brain.layered_brain import Layer  # noqa: F401 — re-exported
-from patchi.core.brain.personas.base import BasePersona, PersonaDecision, PersonaStyle, register_persona
+from patchi.core.brain.personas.base import (
+    BasePersona,
+    PersonaDecision,
+    PersonaStyle,
+    register_persona,
+)
 
 
 @register_persona

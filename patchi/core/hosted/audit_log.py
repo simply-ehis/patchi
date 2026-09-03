@@ -5,10 +5,10 @@ Writes structured JSON-lines to .patchi/hosted/audit.log.
 Rotates when file exceeds MAX_SIZE_BYTES, keeping MAX_BACKUPS old files.
 Each entry: {timestamp, event, actor, data}.
 """
-
 from __future__ import annotations
 
 import json
+import logging
 import time
 from pathlib import Path
 
@@ -16,8 +16,6 @@ _LOG_FILE = ".patchi/hosted/audit.log"
 MAX_SIZE_BYTES = 5 * 1024 * 1024  # 5 MB
 MAX_BACKUPS = 3
 
-
-import logging
 
 _log = logging.getLogger("patchi.core.audit_log")
 

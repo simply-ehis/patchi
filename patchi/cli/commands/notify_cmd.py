@@ -210,4 +210,4 @@ def _require_root() -> Path:
         return config.require_project_root()
     except RuntimeError as exc:
         console.print(f"[red]{exc}[/red]")
-        raise SystemExit(1)
+        raise SystemExit(1) from exc

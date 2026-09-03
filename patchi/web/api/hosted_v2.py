@@ -11,10 +11,12 @@ Adds on top of /api/hosted:
 """
 
 from __future__ import annotations
+
 import logging
 
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
+
 _log = logging.getLogger("patchi.web.api.hosted_v2")
 
 

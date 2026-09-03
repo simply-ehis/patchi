@@ -8,10 +8,10 @@ escalation fires to the next channel in the notification list.
 Ack store persists to .patchi/escalation.json.
 `p notify ack [id]` calls EscalationTracker.acknowledge(id).
 """
-
 from __future__ import annotations
 
 import json
+import logging
 import threading
 import time as _time
 from pathlib import Path
@@ -24,8 +24,6 @@ _ESCALATION_FILE = ".patchi/escalation.json"
 _DEFAULT_ESCALATION_MINS = 30  # escalate after 30 min if unacknowledged
 _POLL_INTERVAL_SECS = 60  # check every 60 seconds
 
-
-import logging
 
 _log = logging.getLogger("patchi.core.escalation")
 

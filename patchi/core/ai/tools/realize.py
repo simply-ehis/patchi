@@ -160,8 +160,8 @@ def _run_agent_class(cls, root: Path, scope: list[str] | None = None) -> Any:
             # the timeout we abandon it, but a blocking join would wait for the
             # (still-running) agent subprocess and defeat the timeout entirely.
             ex.shutdown(wait=False)
-    except _cf.TimeoutError:
-        raise TimeoutError(f"{cls.__name__} exceeded {timeout:g}s and was aborted")
+    except _cf.TimeoutError as e:
+        raise TimeoutError(f"{cls.__name__} exceeded {timeout:g}s and was aborted") from e
     try:
         from patchi.core.security.pattern_context import suppress_findings
 
@@ -1028,7 +1028,7 @@ def read_file(root: Path, path: str, start: int = 1, end: int = 500) -> dict:
         end = min(end, start + 500 - 1)
         lines = full.read_text(encoding="utf-8", errors="replace").splitlines()
         sliced = lines[max(0, start - 1) : min(len(lines), end)]
-        numbered = "\n".join(f"{i+1:4d} | {l}" for i, l in enumerate(sliced, start=start))
+        numbered = "\n".join(f"{i+1:4d} | {line}" for i, line in enumerate(sliced, start=start))
         return {"success": True, "path": str(rel), "start": start, "end": end, "content": numbered}
     except Exception as exc:  # noqa: BLE001
         return {"success": False, "error": str(exc)}
@@ -1046,8 +1046,8 @@ def generate_tests(
     if not target_files or target_files == ["auto"]:
         try:
             from patchi.core.brain.body_tags import load_body_tags
-            from patchi.core.brain.understander import Understander
             from patchi.core.brain.file_corpus import FileCorpus
+            from patchi.core.brain.understander import Understander
 
             tags = load_body_tags(root)
             # need file_infos for understander — quick corpus probe

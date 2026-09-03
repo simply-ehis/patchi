@@ -10,10 +10,10 @@ SymbolNode types:
   - route (web route handler)
   - variable (module-level exported)
 """
-
 from __future__ import annotations
 
 import hashlib
+import logging
 import re
 import sqlite3
 import threading
@@ -81,8 +81,6 @@ _SVELTE_SCRIPT_RE = re.compile(r"<script[^>]*>", re.IGNORECASE)
 
 # ── Symbol kind enum ────────────────────────────────────────────────────────────
 
-
-import logging
 
 _log = logging.getLogger("patchi.brain.symbol_graph")
 

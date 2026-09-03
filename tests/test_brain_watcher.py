@@ -112,7 +112,7 @@ def test_mark_and_clear_stale():
     assert layers["api"].stale is True
     assert layers["auth"].stale is False
     clear_stale(layers)
-    assert all(not l.stale for l in layers.values())
+    assert all(not lay.stale for lay in layers.values())
 
 
 def _write_fis(tmp_path: Path, content_map: dict[str, str]) -> list:

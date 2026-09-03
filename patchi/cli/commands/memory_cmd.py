@@ -1,4 +1,14 @@
+from pathlib import Path
+
+from rich.panel import Panel
+from rich.prompt import Confirm, Prompt
+from rich.table import Table
+from rich.text import Text
+
 from patchi.cli.console import con
+from patchi.core import memory as mem
+from patchi.core.config import require_project_root
+from patchi.core.constants import MemoryCategory
 
 """
 `p memory` — view and manage Patchi's memory.
@@ -9,17 +19,6 @@ Subcommands:
   p memory delete <category>— clear a category (with warning)
   p memory delete all       — full reset (requires CONFIRM)
 """
-
-from pathlib import Path
-
-from rich.panel import Panel
-from rich.prompt import Confirm, Prompt
-from rich.table import Table
-from rich.text import Text
-
-from patchi.core import memory as mem
-from patchi.core.config import require_project_root
-from patchi.core.constants import MemoryCategory
 
 
 def run_show_all(root: Path | None = None) -> None:

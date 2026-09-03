@@ -13,11 +13,11 @@ Agent contract:
   3. Return AgentResult (findings, metadata, duration, errors)
   4. Done. Never mutate state. Never touch the queue directly.
 """
-
 from __future__ import annotations
 
 import ast
 import fnmatch
+import logging
 import os
 import time
 import traceback
@@ -36,8 +36,6 @@ _SKIP_FILES = frozenset(
     {"package-lock.json", "yarn.lock", "pnpm-lock.yaml", "composer.lock", "Gemfile.lock"}
 )
 
-
-import logging
 
 _log = logging.getLogger("patchi.agents.base")
 
@@ -454,6 +452,50 @@ class BaseAgent(ABC):
 
         Never override this — override _run() instead.
         """
+        # Gate Rule — Testing/Live/Attack must confirm P-Check READY_TO_SERVE
+        if self.group in (AgentGroup.TEST, AgentGroup.SECURITY) and self.name not in ("PreCheckAgent",):
+            # Only gate live/test/attack agents, not pure static scanners
+            needs_gate = self.group == AgentGroup.TEST or self.name in (
+                "RedTeamAgent",
+                "RedTeamEngineAgent",
+                "DastAgent",
+                "BrowserTestAgent",
+                "UIButtonAgent",
+                "UILayoutAgent",
+                "UIAccessibilityAgent",
+                "VisualRegressionAgent",
+                "E2EFlowAgent",
+                "ApiFuzzerAgent",
+                "StressTestAgent",
+            )
+            if needs_gate:
+                try:
+                    from patchi.core.testing.gate import require_ready
+
+                    ready, url, st = require_ready(inp.root)
+                    if not ready:
+                        from patchi.core.testing.gate import gate_message
+
+                        msg = gate_message(st)
+                        # Stay idle — do not run, request P-Check
+                        result = AgentResult(
+                            agent_name=self.name,
+                            agent_group=self.group,
+                            status=AgentStatus.SKIPPED,
+                        )
+                        result.data["gate_blocked"] = True
+                        result.data["gate_reason"] = msg
+                        result.data["gate_status"] = st
+                        result.errors.append(msg)
+                        return result
+                    # Inject url for agents that need it
+                    if url and not inp.extra.get("base_url"):
+                        safe_extra = dict(inp.extra)
+                        safe_extra["base_url"] = url
+                        safe_extra["live_probe"] = True
+                except Exception as e:
+                    _log.debug("gate check failed: %s", e)
+
         # Load companion skills for this agent name
         skill_map = _build_skill_map()
         self._skill_context = skill_map.get(self.name, {})

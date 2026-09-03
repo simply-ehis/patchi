@@ -18,10 +18,10 @@ Does NOT call AI.
 Does NOT write to disk.
 Does NOT touch the queue.
 """
-
 from __future__ import annotations
 
 import json
+import logging
 import re
 import urllib.error
 import urllib.request
@@ -47,8 +47,6 @@ from .base import (
 # recursive replacement when updating calls to use the compatibility wrapper.
 _base_make_finding = make_finding
 
-
-import logging
 
 _log = logging.getLogger("patchi.agents.dependency_scanner")
 

@@ -5,10 +5,10 @@ Covers §11.6:
 - Extract license field from each dependency
 - Flag GPL/AGPL licenses (restrictive) and missing license fields
 """
-
 from __future__ import annotations
 
 import json
+import logging
 import re
 import urllib.request
 from pathlib import Path
@@ -66,8 +66,6 @@ _UNKNOWN_LICENSE_RISK = {
     "unknown",
 }
 
-
-import logging
 
 _log = logging.getLogger("patchi.agents.license_compliance")
 

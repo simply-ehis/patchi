@@ -135,7 +135,7 @@ class CVEMonitorAgent(BaseAgent):
                 if queries and not is_offline():
                     try:
                         batch_results = self._batch_check_osv(queries)
-                        for name, version, ecosystem, cache_key in queries:
+                        for _name, _version, _ecosystem, cache_key in queries:
                             vulns = batch_results.get(cache_key, [])
                             _CVE_CACHE[cache_key] = {"vulns": vulns, "_ts": time.time()}
                     except Exception as e:
@@ -177,7 +177,7 @@ class CVEMonitorAgent(BaseAgent):
             return results
         try:
             batch_query = {"queries": []}
-            for name, version, ecosystem, cache_key in queries:
+            for name, version, ecosystem, _cache_key in queries:
                 batch_query["queries"].append(
                     {"package": {"name": name, "ecosystem": ecosystem}, "version": version}
                 )
@@ -190,7 +190,7 @@ class CVEMonitorAgent(BaseAgent):
             with urllib.request.urlopen(req, timeout=30) as resp:
                 data = json.loads(resp.read().decode())
                 # Map results back to cache keys
-                for i, (name, version, ecosystem, cache_key) in enumerate(queries):
+                for i, (_name, _version, _ecosystem, cache_key) in enumerate(queries):
                     results[cache_key] = (
                         data.get("results", [{}])[i].get("vulns", [])
                         if i < len(data.get("results", []))

@@ -1,4 +1,15 @@
+import logging
+import os
+import platform
+from pathlib import Path
+
+from rich.panel import Panel
+from rich.prompt import Prompt
+from rich.table import Table
+
 from patchi.cli.console import con
+from patchi.core import config as cfg
+from patchi.core.constants import PROVIDERS, DeviceTier
 
 """
 `p init` - Initialize Patchi in the current project directory.
@@ -7,13 +18,6 @@ Professional first-run experience with step indicators, clean flow,
 and proper OS-specific alias installation.
 """
 
-import os
-import platform
-from pathlib import Path
-
-from rich.panel import Panel
-from rich.prompt import Prompt
-from rich.table import Table
 
 try:
     from patchi.cli.logo import draw as draw_logo
@@ -23,14 +27,10 @@ except ImportError:
         return None
 
 
-from patchi.core import config as cfg
-from patchi.core.constants import PROVIDERS, DeviceTier
-
 STEP_DONE = "[#4ADE80]  ok  [/#4ADE80]"
 STEP_ARROW = "[#C8621A] >> [/#C8621A]"
 STEP_PENDING = "[dim] ... [/dim]"
 
-import logging
 
 _log = logging.getLogger("patchi.cli.init")
 

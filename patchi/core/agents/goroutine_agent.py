@@ -10,7 +10,6 @@ import logging
 import re
 import shutil
 import subprocess
-from pathlib import Path
 
 from patchi.core.agents.base import (
     AgentGroup,
@@ -18,7 +17,6 @@ from patchi.core.agents.base import (
     AgentResult,
     AgentStatus,
     BaseAgent,
-    Finding,
     Severity,
     make_finding,
     register,

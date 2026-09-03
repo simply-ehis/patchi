@@ -42,7 +42,7 @@ def _git_log_count(root: Path, rel: str, flag_name: str, commits: int = 20) -> i
         )
         if out.returncode != 0:
             return 0
-        return len([l for l in out.stdout.splitlines() if l.strip()])
+        return len([line for line in out.stdout.splitlines() if line.strip()])
     except Exception as exc:  # noqa: BLE001
         _log.debug("git log %s failed: %s", flag_name, exc)
         return 0

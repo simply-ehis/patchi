@@ -9,9 +9,9 @@ Parses inline ignore comments in source code:
 
 Reports expired ignores as findings.
 """
-
 from __future__ import annotations
 
+import logging
 import re
 from dataclasses import dataclass
 from datetime import date, datetime
@@ -31,8 +31,6 @@ IGNORE_PATTERN = re.compile(
     re.IGNORECASE | re.VERBOSE,
 )
 
-
-import logging
 
 _log = logging.getLogger("patchi.brain.ignore_parser")
 

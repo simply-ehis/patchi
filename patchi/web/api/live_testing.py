@@ -1,16 +1,17 @@
 """Live Testing API — browser tests, screenshots, stress tests."""
 
 from __future__ import annotations
-import logging
 
 import asyncio
 import json
+import logging
 from datetime import UTC, datetime
 from pathlib import Path
 
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
+
 _log = logging.getLogger("patchi.web.api.live_testing")
 
 
@@ -43,10 +44,11 @@ _smoke_state = {"running": False, "task": None, "cancelled": False}
 def _run_audit_sync(base_url: str, root: Path, routes: list[str] | None = None) -> dict:
     """Run full-page browser audit synchronously (called via to_thread)."""
     from playwright.sync_api import sync_playwright
+
     from patchi.core.testing._browser import (
+        discover_routes,
         open_page,
         save_screenshot,
-        discover_routes,
     )
 
     if routes is None:
@@ -483,9 +485,11 @@ async def run_visual_regression(request: Request):
     root: Path = request.app.state.root
     try:
         import asyncio
-        from patchi.core.testing.visual_regression_agent import VisualRegressionAgent
+
+        from patchi.core import config as cfg
+        from patchi.core import memory as mem
         from patchi.core.agents.base import AgentInput, AgentResult
-        from patchi.core import config as cfg, memory as mem
+        from patchi.core.testing.visual_regression_agent import VisualRegressionAgent
 
         config = cfg.load(root) if root.exists() else {}
         brain = mem.get_brain(root)

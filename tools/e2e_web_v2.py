@@ -79,7 +79,7 @@ def main() -> int:
 
     app = create_app(root)
 
-    config = uvicorn_config = None
+    config = None
     import uvicorn
 
     config = uvicorn.Config(app, host="127.0.0.1", port=PORT, log_level="error")

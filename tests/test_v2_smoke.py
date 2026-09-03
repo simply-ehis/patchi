@@ -70,7 +70,7 @@ def test_personas_register():
 def test_persona_creation(patchi_project):
     """Personas can be instantiated against a project."""
     import patchi.core.brain.personas  # noqa: F401
-    from patchi.core.brain.personas.base import create_persona, PERSONA_REGISTRY
+    from patchi.core.brain.personas.base import create_persona
 
     persona = create_persona(
         name="ArchitectPersona",
@@ -211,14 +211,14 @@ def test_scenario_selection_scoring(patchi_project):
 
 def test_live_v2_imports():
     """All live testing v2 modules import cleanly."""
-    from patchi.core.testing.live_v2.browser_pool import BrowserPool, BrowserConfig  # noqa: F401
+    from patchi.core.testing.live_v2.browser_pool import BrowserConfig, BrowserPool  # noqa: F401
+    from patchi.core.testing.live_v2.screenshot_manager import (  # noqa: F401
+        ScreenshotConfig,
+        ScreenshotManager,
+    )
     from patchi.core.testing.live_v2.stress_orchestrator import (  # noqa: F401
         StressConfig,
         StressOrchestrator,
-    )
-    from patchi.core.testing.live_v2.screenshot_manager import (  # noqa: F401
-        ScreenshotManager,
-        ScreenshotConfig,
     )
 
 

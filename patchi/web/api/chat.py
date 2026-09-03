@@ -1,9 +1,12 @@
 """Chat API — AI chat with smart brain context injection."""
-
 from __future__ import annotations
+
+import logging
 
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
+
+_log = logging.getLogger("patchi.web.api.chat")
 
 router = APIRouter(prefix="/api/chat")
 
@@ -89,6 +92,90 @@ def _build_context(brain: dict, message: str) -> str:
     return "\n".join(parts) if parts else ""
 
 
+def _local_fallback(message: str, brain: dict) -> str:
+    """Rule-based fallback when no AI provider is available."""
+    m = message.lower()
+    file_count = brain.get("file_count", 0)
+    framework = brain.get("framework", "Unknown")
+    health = brain.get("health_score", {})
+    health_total = health.get("total", 0) if isinstance(health, dict) else health
+
+    # Greeting
+    if any(w in m for w in ["hello", "hi", "hey", "greetings"]):
+        return (
+            f"Hi! I'm Patchi. This project has {file_count} files, "
+            f"uses {framework}, and has a health score of {health_total}/100. "
+            f"No AI provider is configured — run `p key add` for full AI chat."
+        )
+
+    # Project overview
+    if any(w in m for w in ["project", "about", "what is", "overview"]):
+        purpose = brain.get("project_purpose", "")
+        parts = [f"This is a {framework} project with {file_count} files."]
+        if purpose:
+            parts.append(f"Purpose: {purpose}")
+        parts.append(f"Health score: {health_total}/100.")
+        routes = brain.get("routes", [])
+        if routes:
+            parts.append(f"{len(routes)} routes detected.")
+        return " ".join(parts)
+
+    # Findings / security
+    if any(w in m for w in ["finding", "issue", "vulnerability", "security", "critical", "bug"]):
+        scans = brain.get("scan_results", {})
+        if not scans:
+            from pathlib import Path
+
+            from patchi.core import memory as mem
+            try:
+                scans = mem.get_scan_results(Path(brain.get("_root", ".")))
+            except Exception:
+                scans = {}
+        total = sum(len(v.get("findings", [])) for v in scans.values()) if scans else 0
+        if total:
+            return (
+                f"Found {total} findings across {len(scans)} scanners. "
+                f"Run `p findings` in the CLI for details, or configure an AI provider "
+                f"with `p key add` for AI-powered analysis."
+            )
+        return "No scan results yet. Run `p scan` first to detect findings."
+
+    # Health
+    if any(w in m for w in ["health", "score", "grade"]):
+        grade = health.get("grade", "?") if isinstance(health, dict) else "?"
+        return (
+            f"Health score: {health_total}/100 (grade {grade}). "
+            f"{file_count} files, {framework} framework. "
+            f"Run `p doctor` for a full health check."
+        )
+
+    # Routes
+    if any(w in m for w in ["route", "endpoint", "api", "path"]):
+        routes = brain.get("routes", [])
+        if routes:
+            samples = [f"  {r.get('method', '?')} {r.get('path', '?')}" for r in routes[:10] if isinstance(r, dict)]
+            return f"{len(routes)} routes detected:\n" + "\n".join(samples)
+        return "No routes detected yet. Run `p scan` to discover routes."
+
+    # Help
+    if any(w in m for w in ["help", "how", "what can"]):
+        return (
+            "I can help with:\n"
+            "• **Findings** — ask about security issues and vulnerabilities\n"
+            "• **Project** — overview of your codebase\n"
+            "• **Health** — project health score and grade\n"
+            "• **Routes** — API endpoints and paths\n"
+            "\nFor AI-powered analysis, run `p key add` to configure an AI provider."
+        )
+
+    return (
+        f"I'm Patchi (local mode — no AI provider configured). "
+        f"This {framework} project has {file_count} files with health score {health_total}/100. "
+        f"Ask about findings, project, health, or routes. "
+        f"Run `p key add` for full AI chat."
+    )
+
+
 @router.post("")
 async def chat_message(request: Request) -> JSONResponse:
     body = await request.json()
@@ -111,21 +198,27 @@ async def chat_message(request: Request) -> JSONResponse:
     context = _build_context(brain, message)
     system = f"{BASE_PROMPT}\n\n{context}" if context else BASE_PROMPT
 
-    try:
-        from patchi.core.ai.client import call_ai
+    # Skip AI call if no real providers configured — use instant local fallback.
+    # AI Horde is too slow for chat; only use it with a custom key, not the anon fallback.
+    ai_cfg = config.get("ai", {})
+    ai_keys = ai_cfg.get("keys", [])
+    has_provider = (
+        ai_keys
+        or ai_cfg.get("local_model_name")
+    )
+    if has_provider:
+        try:
+            from patchi.core.ai.client import call_ai
 
-        response = call_ai(config, system, message, max_tokens=1000)
-        return JSONResponse(
-            {
-                "ok": True,
-                "response": response
-                or "I couldn't generate a response. Make sure an AI key is configured with 'p key add'.",
-            }
-        )
-    except Exception as e:
-        return JSONResponse(
-            {
-                "ok": True,
-                "response": f"AI not available: {e}. Run 'p key add' to configure an AI provider.",
-            }
-        )
+            response = call_ai(
+                config, system, message,
+                max_tokens=1000, timeout=25,
+            )
+            if response:
+                return JSONResponse({"ok": True, "response": response})
+        except Exception as e:
+            _log.debug("AI call failed: %s", e)
+
+    # Local fallback — rule-based responses when no AI provider is available
+    fallback = _local_fallback(message, brain)
+    return JSONResponse({"ok": True, "response": fallback})

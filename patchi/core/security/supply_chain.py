@@ -120,7 +120,6 @@ def _entropy(s: str) -> float:
 
 def _has_install_script(root: Path, manifest: str) -> bool:
     try:
-        fp = root / manifest if not Path(manifest).is_absolute() else Path(manifest)
         # we receive file rel, so need to resolve via root walk in caller
         return False
     except Exception:

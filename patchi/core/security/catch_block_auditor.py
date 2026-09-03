@@ -317,9 +317,9 @@ class CatchBlockAuditor(BaseAgent):
         if not stripped:
             return True
         noop_lines = [
-            l.strip().rstrip(";")
-            for l in stripped.split("\n")
-            if l.strip() and not l.strip().startswith(("#", "//", "/*", "*"))
+            ln.strip().rstrip(";")
+            for ln in stripped.split("\n")
+            if ln.strip() and not ln.strip().startswith(("#", "//", "/*", "*"))
         ]
         if not noop_lines:
             return True

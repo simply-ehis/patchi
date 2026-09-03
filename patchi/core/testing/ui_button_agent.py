@@ -15,7 +15,7 @@ Requires: playwright
 
 from __future__ import annotations
 
-
+import logging
 
 from ..agents.base import (
     AgentGroup,
@@ -32,8 +32,6 @@ from ._browser import (
     open_page,
     save_screenshot,
 )
-
-import logging
 
 _log = logging.getLogger("patchi.testing.ui_button_agent")
 

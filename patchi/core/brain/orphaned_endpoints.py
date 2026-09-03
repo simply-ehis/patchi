@@ -5,9 +5,9 @@ Finds:
 - Backend routes never called from frontend code ("orphaned endpoints")
 - Frontend HTTP calls that don't match any backend route ("dead calls")
 """
-
 from __future__ import annotations
 
+import logging
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -58,8 +58,6 @@ _FRONTEND_EXTENSIONS = (
     ".njk",
 )
 
-
-import logging
 
 _log = logging.getLogger("patchi.brain.orphaned_endpoints")
 

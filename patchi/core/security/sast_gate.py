@@ -18,12 +18,13 @@ whole tree, and reuses the same agents/normalization as the full scanner.
 """
 
 from __future__ import annotations
-import logging
 
+import logging
 import sys
 from pathlib import Path
 
 from patchi.core.agents.base import AgentInput, Severity
+
 _log = logging.getLogger("patchi.core.security.sast_gate")
 
 

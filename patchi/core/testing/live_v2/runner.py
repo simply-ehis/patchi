@@ -2,7 +2,6 @@
 Live Test Runner v2 — Enhanced test orchestration with browser automation,
 visual regression, stress testing, and video recording.
 """
-
 from __future__ import annotations
 
 import asyncio
@@ -14,7 +13,15 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from patchi.core.agents.base import AgentGroup, AgentInput, AgentResult
+from patchi.core.agents.base import (
+    AgentGroup,
+    AgentInput,
+    AgentResult,
+    BaseAgent,
+    Finding,
+    Severity,
+    register,
+)
 from patchi.core.testing.live_test_runner import TestRunConfig, TestRunResult
 from patchi.core.testing.live_v2.browser_pool import BrowserConfig, BrowserPool, get_browser_pool
 from patchi.core.testing.live_v2.screenshot_manager import (
@@ -541,9 +548,6 @@ async def run_live_tests_v2(
 
 
 # Agent wrapper for integration
-from patchi.core.agents.base import BaseAgent, Finding, Severity, register
-
-
 @register
 class LiveTestRunnerV2Agent(BaseAgent):
     """Live Test Runner v2 as a Patchi agent."""

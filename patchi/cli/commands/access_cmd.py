@@ -62,4 +62,4 @@ def _require_root() -> Path:
         return require_project_root()
     except RuntimeError as e:
         con.print(f"[red]{e}[/red]")
-        raise SystemExit(1)
+        raise SystemExit(1) from e

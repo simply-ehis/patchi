@@ -1,9 +1,10 @@
 """Tests for new security agents: orchestrator, secrets guard, supply chain, IaC, policy, CVE monitor, red team, security test agent."""
 
-import pytest
 import tempfile
 import unittest
 from pathlib import Path
+
+import pytest
 
 from patchi.core.agents.base import (
     AgentInput,

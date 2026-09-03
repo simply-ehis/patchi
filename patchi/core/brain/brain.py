@@ -17,12 +17,9 @@ the config restrictions before scanning.
 
 Output is a BrainReport: rich structured knowledge of the entire project.
 """
-
 from __future__ import annotations
 
 import logging
-
-_log = logging.getLogger("patchi.brain.brain")
 import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -50,6 +47,9 @@ from patchi.core.brain.layered_brain import build_layers, layers_to_dict
 from patchi.core.brain.route_mapper import RouteInfo, RouteMapper
 from patchi.core.brain.scanner import FileInfo, FileScanner
 from patchi.core.constants import RestrictionType
+
+_log = logging.getLogger("patchi.brain.brain")
+
 
 logger = logging.getLogger("patchi.brain.brain")
 

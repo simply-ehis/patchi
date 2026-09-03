@@ -175,7 +175,7 @@ def main() -> int:
         parser = _build_parser()
         args = parser.parse_args(["web", "--port", "9001"])
         assert args.port == 9001 and args.host == "127.0.0.1"
-        args2 = parser.parse_args(["scan", "--json"])  # other command unaffected
+        parser.parse_args(["scan", "--json"])  # other command unaffected
         parser.parse_args(["web", "--help"] ) if False else None
         ok("cli-parser: 'p web' flags coexist with all commands")
     except SystemExit as e:

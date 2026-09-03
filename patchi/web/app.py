@@ -11,17 +11,17 @@ Exposes:
   WS   /ws                  → WebSocket for live events
   /api/*                    → REST + htmx endpoints
 """
-
 from __future__ import annotations
 
+import logging
+import os as _os
 from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
-import logging
 from fastapi.staticfiles import StaticFiles
-_log = logging.getLogger("patchi.web.app")
 
+_log = logging.getLogger("patchi.web.app")
 
 
 def create_app(root: Path) -> FastAPI:
@@ -302,5 +302,4 @@ def create_app(root: Path) -> FastAPI:
     return app
 
 # Module-level app for uvicorn discovery
-import os as _os
 app = create_app(Path(_os.getcwd()))

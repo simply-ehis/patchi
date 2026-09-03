@@ -8,11 +8,12 @@ Commands:
 """
 
 from __future__ import annotations
-import logging
 
+import logging
 import shutil
 import sys
 from pathlib import Path
+
 _log = logging.getLogger("patchi.cli.commands.vr_cmd")
 
 
@@ -409,7 +410,7 @@ def _cmd_list(
                 vp = b["viewport"]
                 vp_counts[vp] = vp_counts.get(vp, 0) + 1
                 vp_size[vp] = vp_size.get(vp, 0) + b["size_kb"]
-            print(f"   Routes: {len(set(b['route'] for b in baselines))}")
+            print(f"   Routes: {len({b['route'] for b in baselines})}")
             for vp_label in ["desktop", "tablet", "mobile"]:
                 if vp_label in vp_counts:
                     print(

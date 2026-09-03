@@ -5,10 +5,11 @@ p heatmap — Risk Heatmap §9.1.3 color-coded file map of bug-prone hotspots.
 from __future__ import annotations
 
 import json
+import logging
 from pathlib import Path
 
-from rich.table import Table
 from rich.panel import Panel
+from rich.table import Table
 
 from patchi.cli.console import con
 from patchi.core.config import require_project_root

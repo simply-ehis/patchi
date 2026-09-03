@@ -78,7 +78,7 @@ class Understander:
             try:
                 txt = (self.root / rel_path).read_text(encoding="utf-8", errors="replace")
                 lines = txt.splitlines()[:max_lines]
-                return "\n".join(f"{i+1:4d} | {l}" for i, l in enumerate(lines))
+                return "\n".join(f"{i+1:4d} | {line}" for i, line in enumerate(lines))
             except Exception as exc:  # noqa: BLE001
                 _log.debug("understander snippet failed for %s: %s", rel_path, exc)
                 return ""
@@ -113,7 +113,7 @@ class Understander:
                     end = i
                     break
         block = lines[start:end]
-        return "\n".join(f"{i+1:4d} | {l}" for i, l in enumerate(block, start=start + 1))
+        return "\n".join(f"{i+1:4d} | {line}" for i, line in enumerate(block, start=start + 1))
 
     def as_prompt_block(self, limit: int = 14) -> str:
         """One-shot block for LLM prompts — core files + why."""

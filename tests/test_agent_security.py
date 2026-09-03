@@ -165,7 +165,7 @@ class TestAgentSelfReview:
         monkeypatch.setenv("PATCHI_OFFLINE", "1")
         from patchi.core.agents.base import AgentGroup, AgentInput, list_agents
 
-        agents = [cls for cls in list_agents(AgentGroup.SECURITY)]
+        agents = list(list_agents(AgentGroup.SECURITY))
         for cls in agents:
             own_file = cls.__module__.rsplit(".", 1)[-1] + ".py"
             src = AGENTS_DIR / own_file

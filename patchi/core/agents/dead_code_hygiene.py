@@ -8,10 +8,10 @@ Covers §2.1.2-4 and §2.2.2-5:
 - Outdated dependency report
 - Supply chain risk signals
 """
-
 from __future__ import annotations
 
 import json
+import logging
 import re
 from pathlib import Path
 
@@ -67,8 +67,6 @@ _DEP_MANIFESTS = {
 
 _LOCK_FILES = {"Cargo.lock", "go.sum", "poetry.lock", "Gemfile.lock", "yarn.lock", "pnpm-lock.yaml"}
 
-
-import logging
 
 _log = logging.getLogger("patchi.agents.dead_code_hygiene")
 

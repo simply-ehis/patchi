@@ -7,10 +7,7 @@ without any API key.
 
 from __future__ import annotations
 
-import asyncio
 from pathlib import Path
-
-import pytest
 
 from patchi.core.ai.smart import SmartAgent, run_smart_agent
 

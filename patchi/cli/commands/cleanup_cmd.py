@@ -25,13 +25,14 @@ Usage:
 """
 
 from __future__ import annotations
-import logging
 
+import logging
 import time
 from pathlib import Path
 
 from patchi.cli.console import con
 from patchi.core.config import find_project_root
+
 _log = logging.getLogger("patchi.cli.commands.cleanup_cmd")
 
 

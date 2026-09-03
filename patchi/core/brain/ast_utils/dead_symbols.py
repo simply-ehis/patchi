@@ -13,10 +13,10 @@ Conservative by design — only flags file-scope symbols that:
   - have a length >= 3 (avoids false positives on trivial names),
   - never appear as an identifier/reference on any line other than their own.
 """
-
 from __future__ import annotations
 
 import ast as _py_ast
+import logging
 
 from patchi.core.brain.languages import Lang, get_parser
 
@@ -79,8 +79,6 @@ _ENTRY_NAMES = frozenset(
     }
 )
 
-
-import logging
 
 _log = logging.getLogger("patchi.brain.dead_symbols")
 

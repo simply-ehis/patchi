@@ -116,7 +116,7 @@ async def get_status(request: Request) -> JSONResponse:
             }
         )
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=str(exc))
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
 
 
 # ── Config ────────────────────────────────────────────────────────────────────
@@ -689,7 +689,7 @@ async def get_security_report(request: Request, fresh: str = "0") -> JSONRespons
         payload["cached"] = False
         return JSONResponse(payload)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 # ── Tests ─────────────────────────────────────────────────────────────────────
@@ -716,7 +716,7 @@ async def post_create_test_suite(request: Request) -> JSONResponse:
         # For now, return success - this would create actual test suite
         return JSONResponse({"ok": True, "message": "Test suite creation started"})
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 # ── Memory ────────────────────────────────────────────────────────────────────
@@ -1269,7 +1269,7 @@ async def get_health_breakdown(request: Request) -> JSONResponse:
         h = hm.compute(_root(request))
         return JSONResponse(h.to_dict())
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/report/markdown")
@@ -1328,7 +1328,7 @@ async def get_report_markdown(request: Request) -> JSONResponse:
         md = _render_markdown(data)
         return JSONResponse({"ok": True, "markdown": md})
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 # ── Missing endpoints panels.js requires ──────────────────────────────────────

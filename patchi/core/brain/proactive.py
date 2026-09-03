@@ -16,10 +16,10 @@ Detection is offline (AST for Python, textual heuristics otherwise) and reads
 only the Layered Brain / import graph — no raw re-scan of the whole repo.
 Applying is always opt-in (``--apply`` for safe fixes, ``--unsafe`` for all).
 """
-
 from __future__ import annotations
 
 import ast
+import logging
 import re
 import shutil
 import subprocess
@@ -27,12 +27,13 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from patchi.core.brain import learning
+from patchi.core.brain.layered_brain import _classify_subsystem, _module_of
+
 if TYPE_CHECKING:
     from patchi.core.brain.import_graph import ImportGraph
     from patchi.core.brain.scanner import FileInfo
 
-from patchi.core.brain import learning
-from patchi.core.brain.layered_brain import _classify_subsystem, _module_of
 
 # fix_type → (human label, is_safe_to_auto_apply)
 _FIX_META: dict[str, tuple[str, bool]] = {
@@ -44,8 +45,6 @@ _FIX_META: dict[str, tuple[str, bool]] = {
     "charter_violation": ("Charter violation in change", False),
 }
 
-
-import logging
 
 _log = logging.getLogger("patchi.brain.proactive")
 

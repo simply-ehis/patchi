@@ -24,10 +24,7 @@ from patchi.core.agents.base import (
     AgentResult,
     AgentStatus,
     BaseAgent,
-    Severity,
-    make_finding,
     register,
-    safe_rglob,
 )
 from patchi.core.agents.dead_code_scanner import _run_all_tools, _should_skip
 from patchi.core.security.tool_adapters import make_tool_finding
@@ -133,5 +130,5 @@ class DeadCodeOrchestrator(BaseAgent):
 
         result.status = AgentStatus.SUCCEEDED
         result.findings = findings
-        result.files_scanned = len(set(f.file for f in findings)) if findings else 0
+        result.files_scanned = len({f.file for f in findings}) if findings else 0
         result.data["total_findings"] = len(findings)

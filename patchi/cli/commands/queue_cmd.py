@@ -1,4 +1,13 @@
+from pathlib import Path
+
+from rich.prompt import Confirm
+from rich.table import Table
+from rich.text import Text
+
 from patchi.cli.console import con
+from patchi.core import config as cfg
+from patchi.core import queue as q
+from patchi.core.constants import QueueMode
 
 """
 `p queue` — view and control the task queue.
@@ -13,16 +22,6 @@ Subcommands:
   p queue mode multi    — set multi queue mode
   p queue mode off      — disable queue
 """
-
-from pathlib import Path
-
-from rich.prompt import Confirm
-from rich.table import Table
-from rich.text import Text
-
-from patchi.core import config as cfg
-from patchi.core import queue as q
-from patchi.core.constants import QueueMode
 
 
 def _root(root: Path | None) -> Path | None:

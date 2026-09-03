@@ -1,3 +1,8 @@
+import argparse
+import logging
+import sys
+
+from patchi import __version__
 from patchi.cli.console import con
 
 """
@@ -10,13 +15,9 @@ imports happen inside the registry framework (dotted "module:handler" paths),
 so cold start stays fast regardless of how many commands are registered.
 """
 
-import argparse
 
 # ── Lazy imports (only load what's needed for the called command) ──────────────
-import logging
-import sys
 
-from patchi import __version__
 
 _log = logging.getLogger("patchi.cli.main")
 

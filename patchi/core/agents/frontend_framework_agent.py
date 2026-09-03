@@ -15,9 +15,18 @@ from __future__ import annotations
 
 import logging
 import re
-from pathlib import Path
 
-from patchi.core.agents.base import AgentGroup, AgentInput, AgentResult, AgentStatus, BaseAgent, Severity, make_finding, register, safe_rglob
+from patchi.core.agents.base import (
+    AgentGroup,
+    AgentInput,
+    AgentResult,
+    AgentStatus,
+    BaseAgent,
+    Severity,
+    make_finding,
+    register,
+    safe_rglob,
+)
 
 _log = logging.getLogger("patchi.agents.frontend_framework")
 
@@ -40,9 +49,12 @@ class FrontendFrameworkAgent(BaseAgent):
         for pat in ("*.jsx","*.tsx","*.js","*.ts","*.vue","*.svelte"):
             for fp in safe_rglob(inp.root, pat):
                 rel=fp.relative_to(inp.root).as_posix()
-                if "node_modules" in rel or "tests" in rel: continue
-                try: txt=fp.read_text(encoding="utf-8", errors="replace")
-                except OSError: continue
+                if "node_modules" in rel or "tests" in rel:
+                    continue
+                try:
+                    txt=fp.read_text(encoding="utf-8", errors="replace")
+                except OSError:
+                    continue
                 lines=txt.splitlines()
                 for i, line in enumerate(lines,1):
                     if "React" in txt or pat in (".jsx",".tsx"):
@@ -61,7 +73,9 @@ class FrontendFrameworkAgent(BaseAgent):
                             findings.append(make_finding(severity=Severity.INFO, file=rel, line_start=i, title="Angular DI injection", description="Verify DI token provided", finding_type="angular_di"))
                     if _SOLID_EFFECT.search(line):
                         findings.append(make_finding(severity=Severity.INFO, file=rel, line_start=i, title="Solid createEffect without cleanup", description="Return cleanup function if needed", finding_type="solid_effect"))
-                if len(findings) >= 40: break
-            if len(findings) >= 40: break
+                if len(findings) >= 40:
+                    break
+            if len(findings) >= 40:
+                break
         result.status=AgentStatus.SUCCEEDED
         result.findings=findings[:40]

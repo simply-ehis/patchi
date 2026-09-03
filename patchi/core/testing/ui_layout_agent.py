@@ -12,10 +12,9 @@ Uses Playwright to:
 
 Requires: playwright
 """
-
 from __future__ import annotations
 
-
+import logging
 
 from ..agents.base import (
     AgentGroup,
@@ -40,7 +39,6 @@ VIEWPORTS = [
     {"width": 1440, "height": 900, "label": "desktop"},
 ]
 
-import logging
 
 _log = logging.getLogger("patchi.testing.ui_layout_agent")
 

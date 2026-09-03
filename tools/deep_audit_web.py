@@ -100,7 +100,6 @@ def main() -> int:
         # followed by JS concatenation (e.g. fetch('/x/' + id)) — accept when
         # some registered route extends this prefix.
         if path.endswith("/"):
-            base = path.rstrip("/")
             for rp in route_paths:
                 if rp.startswith(path):
                     return True
@@ -120,8 +119,6 @@ def main() -> int:
         if not f.is_file():
             continue
         text = f.read_text(encoding="utf-8", errors="replace")
-        # strip jinja blocks to avoid templated URLs false-positives
-        text_clean = re.sub(r"\{\{.*?\}\}", "", text)
 
         for href in extract(href_re, text):
             if href.startswith(("http://", "https://", "#", "mailto:", "data:", "javascript:")):

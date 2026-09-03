@@ -11,9 +11,9 @@ Usage:
                      no_color_flag=getattr(args, "no_color", False),
                      json_mode=getattr(args, "json_output", False))
 """
-
 from __future__ import annotations
 
+import logging
 import os
 import sys
 
@@ -21,8 +21,6 @@ from rich.console import Console
 
 _encoding_fixed = False
 
-
-import logging
 
 _log = logging.getLogger("patchi.cli.console")
 

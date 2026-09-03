@@ -1,3 +1,4 @@
+import logging
 import re
 
 from patchi.core.brain.route_detector.base import BaseRouteDetector
@@ -9,8 +10,6 @@ _EXPRESS_OBJECTS = {"app", "router", "route"}
 _FASTIFY_OBJECTS = {"fastify"}
 _HTTP_METHODS = {"get", "post", "put", "delete", "patch", "all", "use", "head", "options"}
 
-
-import logging
 
 _log = logging.getLogger("patchi.brain.javascript")
 

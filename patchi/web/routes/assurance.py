@@ -1,14 +1,15 @@
 """Assurance route — assurance graph, campaigns, attackers, fuzz."""
 
 from __future__ import annotations
-import logging
 
+import logging
 from datetime import UTC, datetime
 from pathlib import Path
 
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
+
 _log = logging.getLogger("patchi.web.routes.assurance")
 
 

@@ -9,10 +9,10 @@ sink without being sanitized.
 The analysis is intra-procedural and best-effort: it tracks simple local
 aliasing (`x = src; sink(x)`) and string concatenation of tainted values.
 """
-
 from __future__ import annotations
 
 import ast
+import logging
 
 from patchi.core.brain.languages import Lang, get_parser
 
@@ -67,8 +67,6 @@ SANITIZERS = {
     "encode_for_sql",
 }
 
-
-import logging
 
 _log = logging.getLogger("patchi.brain.taint")
 

@@ -7,8 +7,6 @@ import os
 import re
 from pathlib import Path
 
-_log = logging.getLogger("patchi.fix")
-
 from patchi.core.fix.patch import (
     FileChange,
     Patch,
@@ -17,6 +15,8 @@ from patchi.core.fix.patch import (
     compute_confidence,
     compute_risk_score,
 )
+
+_log = logging.getLogger("patchi.fix")
 
 
 def _call_ai(prompt: str, config: dict, max_tokens: int = 1500, system_prompt: str = "") -> str:
@@ -240,7 +240,7 @@ def _build_fix_prompt(
     lines = original.splitlines()
     start = max(0, line_num - 5) if line_num else 0
     end = min(len(lines), line_num + 10) if line_num else min(20, len(lines))
-    context = "\n".join(f"{i + 1:4d} | {l}" for i, l in enumerate(lines[start:end], start))
+    context = "\n".join(f"{i + 1:4d} | {line}" for i, line in enumerate(lines[start:end], start))
     caller_hint = ""
     try:
         from pathlib import Path as _Pth
@@ -341,7 +341,7 @@ def _generate_fix_with_ai(
     if line_num and 0 < line_num <= len(lines):
         original_line = lines[line_num - 1]
         # Use the first non-empty line from the AI response
-        fixed_lines = [l for l in fixed_code.strip().splitlines() if l.strip()]
+        fixed_lines = [line for line in fixed_code.strip().splitlines() if line.strip()]
         if fixed_lines:
             proposed_line = fixed_lines[0]
             # Preserve original indentation

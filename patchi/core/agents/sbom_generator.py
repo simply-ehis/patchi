@@ -7,10 +7,10 @@ Covers §11.5:
 
 Language-agnostic: supports npm, pip, cargo, go, bundler, composer ecosystems.
 """
-
 from __future__ import annotations
 
 import json
+import logging
 import re
 from datetime import UTC, datetime
 from pathlib import Path
@@ -54,8 +54,6 @@ _COMPONENT_TYPES = {
     "composer": "library",
 }
 
-
-import logging
 
 _log = logging.getLogger("patchi.agents.sbom_generator")
 

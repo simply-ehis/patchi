@@ -52,16 +52,16 @@ class TestLayerDataclass(unittest.TestCase):
     def test_compute_hash_changes_with_api(self):
         from patchi.core.brain.layered_brain import Layer
 
-        l = Layer(name="m", level=1, files=["a.py"], public_api=["foo"])
-        h1 = l.compute_hash()
-        l.public_api = ["foo", "bar"]
-        h2 = l.compute_hash()
+        lay = Layer(name="m", level=1, files=["a.py"], public_api=["foo"])
+        h1 = lay.compute_hash()
+        lay.public_api = ["foo", "bar"]
+        h2 = lay.compute_hash()
         self.assertNotEqual(h1, h2)
 
     def test_to_from_dict_roundtrip(self):
         from patchi.core.brain.layered_brain import Layer
 
-        l = Layer(
+        lay = Layer(
             name="auth",
             level=2,
             path="auth",
@@ -70,13 +70,13 @@ class TestLayerDataclass(unittest.TestCase):
             depends_on=["data"],
             public_api=["login"],
         )
-        l.validity_hash = l.compute_hash()
-        d = l.to_dict()
+        lay.validity_hash = lay.compute_hash()
+        d = lay.to_dict()
         l2 = Layer.from_dict(d)
         self.assertEqual(l2.name, "auth")
         self.assertEqual(l2.level, 2)
         self.assertEqual(l2.depends_on, ["data"])
-        self.assertEqual(l2.validity_hash, l.validity_hash)
+        self.assertEqual(l2.validity_hash, lay.validity_hash)
 
 
 class TestBuildLayers(unittest.TestCase):

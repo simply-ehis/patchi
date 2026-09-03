@@ -1034,9 +1034,8 @@ class RedTeamEngine:
         for patch_id in patch_ids:
             patch = next((p for p in patches if p.get("id") == patch_id), None)
             if patch:
-                # Find related findings
-                for sr in patches:  # This is wrong, should get scan results
-                    pass
+                # TODO: wire scan results for related findings
+                pass
 
         # For now, run a focused assessment
         verification_report = await self.run_assessment(

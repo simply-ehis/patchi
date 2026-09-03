@@ -16,7 +16,6 @@ is configured, :meth:`ReasoningEngine.ask` can optionally enrich the answer.
 This module is additive: it only reads the Layered Brain persisted at
 ``.patchi/memory/layers.json`` and existing ``layered_brain`` helpers.
 """
-
 from __future__ import annotations
 
 import logging
@@ -25,17 +24,17 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-_log = logging.getLogger("patchi.brain.reasoning")
-
-if TYPE_CHECKING:
-    from patchi.core.brain.layered_brain import Layer
-
 from patchi.core.brain.brain_watcher import ChangeSet, affected_layers
 from patchi.core.brain.layered_brain import (
     find_layers_for_file,
     get_layer_context,
     layers_from_dict,
 )
+
+_log = logging.getLogger("patchi.brain.reasoning")
+
+if TYPE_CHECKING:
+    from patchi.core.brain.layered_brain import Layer
 
 
 @dataclass
@@ -204,7 +203,7 @@ class ReasoningEngine:
             from patchi.core.brain.body_tags import load_body_tags
 
             tags = load_body_tags(self.root)
-            for path, tag in tags.items():
+            for _path, tag in tags.items():
                 layer_hint = tag.get("layer", "")
                 if layer_hint:
                     body_boost[layer_hint] = max(body_boost.get(layer_hint, 0), float(tag.get("score", 0)) / 100.0)
@@ -248,8 +247,8 @@ class ReasoningEngine:
                 import os
 
                 if not os.environ.get("PATCHI_OFFLINE"):
-                    from patchi.core.ai.client import call_ai
                     from patchi.core import config as cfg
+                    from patchi.core.ai.client import call_ai
 
                     cfgd = cfg.load(self.root) if hasattr(cfg, "load") else {}
                     ctx = "\n".join(f"[{n}] {lay.summary} — {lay.purpose}" for _, n, lay in top)

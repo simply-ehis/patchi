@@ -6,7 +6,6 @@ Mission: v2 as base + v1 enhancements + full CLI wrapper.
 - Full CLI wrapper: every CLI command exposed via web UI/API
 - Single design: one nav, one WebSocket (/ws), one template env (templates_v2)
 """
-
 from __future__ import annotations
 
 import asyncio
@@ -18,6 +17,9 @@ from fastapi import APIRouter, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 
+from patchi.core import config as cfg
+from patchi.core.ai.tools.executor import ToolExecutor, WebConfirmationProvider
+
 router = APIRouter()
 
 _log = logging.getLogger("patchi.web.dashboard")
@@ -25,8 +27,6 @@ _log = logging.getLogger("patchi.web.dashboard")
 templates = Jinja2Templates(directory=str(Path(__file__).parent.parent / "templates"))
 templates.env.filters["tojson"] = lambda v: json.dumps(v)
 
-from patchi.core import config as cfg
-from patchi.core.ai.tools.executor import ToolExecutor, WebConfirmationProvider
 
 # ──────────────────────────────────────────────────────────────────────
 # Helpers

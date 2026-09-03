@@ -13,10 +13,10 @@ Fallback (--offline mode):
     from patchi.core.brain.doc_validator import validate_project_docs
     result = validate_project_docs(...)  # regex-based heuristic
 """
-
 from __future__ import annotations
 
 import json
+import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -119,8 +119,6 @@ If there are zero verifiable claims, output: []
 Do NOT output anything else — no explanations, no markdown.
 """
 
-
-import logging
 
 _log = logging.getLogger("patchi.agents.doc_claim_agent")
 

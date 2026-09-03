@@ -9,9 +9,18 @@ from __future__ import annotations
 
 import logging
 import re
-from pathlib import Path
 
-from patchi.core.agents.base import AgentGroup, AgentInput, AgentResult, AgentStatus, BaseAgent, Severity, make_finding, register, safe_rglob
+from patchi.core.agents.base import (
+    AgentGroup,
+    AgentInput,
+    AgentResult,
+    AgentStatus,
+    BaseAgent,
+    Severity,
+    make_finding,
+    register,
+    safe_rglob,
+)
 
 _log = logging.getLogger("patchi.agents.modernization")
 
@@ -32,9 +41,12 @@ class ModernizationAgent(BaseAgent):
         for pat in ("*.js","*.jsx","*.ts","*.tsx"):
             for fp in safe_rglob(inp.root, pat):
                 rel=fp.relative_to(inp.root).as_posix()
-                if "node_modules" in rel: continue
-                try: txt=fp.read_text(encoding="utf-8", errors="replace")
-                except OSError: continue
+                if "node_modules" in rel:
+                    continue
+                try:
+                    txt=fp.read_text(encoding="utf-8", errors="replace")
+                except OSError:
+                    continue
                 lines=txt.splitlines()
                 for i, line in enumerate(lines,1):
                     if _VAR_RE.search(line):
@@ -45,8 +57,11 @@ class ModernizationAgent(BaseAgent):
                         findings.append(make_finding(severity=Severity.LOW, file=rel, line_start=i, title="require() → import", description="Migrate to ESM import via jscodeshift", finding_type="modernization_require"))
                     if _CLASS_RE.search(line):
                         findings.append(make_finding(severity=Severity.LOW, file=rel, line_start=i, title="Class component → functional", description="Codemod React class to functional + hooks", finding_type="modernization_class"))
-                    if len(findings) >= 40: break
-                if len(findings) >= 40: break
-            if len(findings) >= 40: break
+                    if len(findings) >= 40:
+                        break
+                if len(findings) >= 40:
+                    break
+            if len(findings) >= 40:
+                break
         result.status=AgentStatus.SUCCEEDED
         result.findings=findings[:40]

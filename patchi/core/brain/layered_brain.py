@@ -286,7 +286,7 @@ def build_layers(
         purpose="The whole project — top of the layer hierarchy.",
         files=sorted(fi.path for fi in file_infos),
         child_layers=sorted(subsystem_modules.keys()),
-        public_api=sorted({a for l in layers.values() for a in l.public_api}),
+        public_api=sorted({a for lay in layers.values() for a in lay.public_api}),
     )
     project_layer.validity_hash = project_layer.compute_hash()
     layers["__project__"] = project_layer

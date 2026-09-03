@@ -8,12 +8,11 @@ Covers:
   - CI/CD API endpoints: health, scan status, findings
 """
 
+import os
 import tempfile
 import threading
 import unittest
 from pathlib import Path
-
-import os
 
 # Ensure offline for all tests
 os.environ["PATCHI_OFFLINE"] = "1"
@@ -292,7 +291,7 @@ class TestModelRouter(unittest.TestCase):
     def test_model_profiles_exist(self):
         from patchi.core.ai.model_router import MODEL_PROFILES
         self.assertGreater(len(MODEL_PROFILES), 0)
-        for name, profile in MODEL_PROFILES.items():
+        for _name, profile in MODEL_PROFILES.items():
             self.assertIsInstance(profile.cost_per_1k_input, float)
             self.assertGreaterEqual(profile.quality_score, 0)
             self.assertLessEqual(profile.quality_score, 1)
@@ -313,7 +312,7 @@ class TestCicdApi(unittest.TestCase):
 
     def test_health_endpoint_structure(self):
         """Verify the health endpoint returns expected fields."""
-        from patchi.web.api.cicd import health, _scan_state
+        from patchi.web.api.cicd import _scan_state, health
         # Can't call directly without a Request mock, but verify function exists
         self.assertTrue(callable(health))
         self.assertIn("running", _scan_state)
@@ -345,8 +344,8 @@ class TestTenantModelRouterIntegration(unittest.TestCase):
         self.tmpdir.cleanup()
 
     def test_tenant_scoped_router(self):
-        from patchi.core.tenant import tenant_context
         from patchi.core.ai.model_router import ModelRouter
+        from patchi.core.tenant import tenant_context
         with tenant_context(self.root):
             router = ModelRouter(root=self.root)
             model = router.select_model()

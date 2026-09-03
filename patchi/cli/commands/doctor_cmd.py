@@ -8,14 +8,13 @@ Checks:
   4. .patchi/ size warnings
   5. Config validation
 """
-
 from __future__ import annotations
 
 import importlib
 import logging
+import pathlib
+import re
 import shutil
-
-_log = logging.getLogger("patchi.cli.doctor")
 import sys
 
 from rich.panel import Panel
@@ -24,13 +23,13 @@ from rich.text import Text
 
 from patchi.cli.console import con
 
+_log = logging.getLogger("patchi.cli.doctor")
+
 
 # ── Stale reference auto-fixer ───────────────────────────────────────
 
 # Patterns to search: "p <old>" as a shell command in any text file
 # We match whole-word to avoid false positives (e.g. "p status" shouldn't match "p status --deep")
-import re
-import pathlib
 
 
 def _build_replacement_patterns(

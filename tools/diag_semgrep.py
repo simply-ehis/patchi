@@ -5,8 +5,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from patchi.core.agents.base import AgentGroup, AgentInput, list_agents  # noqa: E402
 import patchi.core.security.security_agents  # noqa: E402,F401
+from patchi.core.agents.base import AgentGroup, AgentInput, list_agents  # noqa: E402
 
 td = Path(tempfile.mkdtemp())
 (td / "vuln.py").write_text(
@@ -28,7 +28,7 @@ r = agent.run(AgentInput(root=td, scope=[], brain={}, config={}))
 print("status:", r.status.value)
 print("errors:", r.errors[:3])
 print("findings:", len(r.findings), [(f.type, f.line) for f in r.findings][:6])
-print("data:", {k: v for k, v in list(r.data.items())[:8]})
+print("data:", dict(list(r.data.items())[:8]))
 
 # Raw semgrep invocation for comparison
 if pack and pack.exists():

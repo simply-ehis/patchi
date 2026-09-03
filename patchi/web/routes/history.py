@@ -33,7 +33,7 @@ async def history_page(request: Request):
         logger.warning("Failed to fetch scan history: %s", e)
 
     # Extract unique tools for filter dropdown
-    tools = sorted(set(s.get("tool", "unknown") for s in scan_history))
+    tools = sorted({s.get("tool", "unknown") for s in scan_history})
 
     return templates.TemplateResponse(
         request,

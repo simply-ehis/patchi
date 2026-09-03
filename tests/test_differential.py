@@ -12,9 +12,13 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import numpy as np
-import onnxruntime as ort
+import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
+
+pytest.importorskip("torch")
+pytest.importorskip("onnxruntime")
+import onnxruntime as ort
 
 from patchi.core.agents.gnn_models import (
     CLASS_NAMES,
@@ -25,7 +29,7 @@ from patchi.core.agents.gnn_models import (
 
 # ── Helper: export + create session ──────────────────────────────────────
 
-def _export_and_session(net: "GINGATNet") -> tuple[ort.InferenceSession, set[str]]:
+def _export_and_session(net: GINGATNet) -> tuple[ort.InferenceSession, set[str]]:
     """Export and return ONNX session + the session's declared input names."""
     import tempfile
     with tempfile.TemporaryDirectory() as td:
@@ -38,7 +42,7 @@ def _export_and_session(net: "GINGATNet") -> tuple[ort.InferenceSession, set[str
 
 # ── Helper: feed only declared inputs ───────────────────────────────────
 
-def _feed(sess: "ort.InferenceSession", x, ei, b) -> dict:
+def _feed(sess: ort.InferenceSession, x, ei, b) -> dict:
     """Feed only the inputs the exported session declares."""
     declared = {i.name for i in sess.get_inputs()}
     feed = {"x": x.numpy(), "edge_index": ei.numpy()}

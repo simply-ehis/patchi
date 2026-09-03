@@ -6,17 +6,18 @@ structured results for display in the Command Center card.
 """
 
 from __future__ import annotations
-import logging
 
 import asyncio
-import os
 import json
+import logging
+import os
 import time
 from pathlib import Path
 
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 from starlette.templating import Jinja2Templates
+
 _log = logging.getLogger("patchi.web.api.dev_check")
 
 
@@ -278,7 +279,7 @@ def _parse_gate_output(gate_name: str, output: str) -> dict:
 
     if gate_name == "Ruff Lint":
         # Count errors
-        error_lines = [l for l in output.splitlines() if l.startswith("Found ")]
+        error_lines = [line for line in output.splitlines() if line.startswith("Found ")]
         if error_lines:
             parts = error_lines[0].split()
             if len(parts) >= 2:

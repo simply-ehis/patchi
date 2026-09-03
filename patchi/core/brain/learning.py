@@ -8,10 +8,10 @@ Maintains a Bayesian-style classifier that learns:
 
 All data stored in .patchi/learning.json. Zero external dependencies.
 """
-
 from __future__ import annotations
 
 import json
+import logging
 import time
 from pathlib import Path
 
@@ -23,8 +23,6 @@ _MIN_SAMPLES = 3
 # Decay factor: older decisions matter less (per day)
 _DECAY_HALF_LIFE_DAYS = 30
 
-
-import logging
 
 _log = logging.getLogger("patchi.brain.learning")
 

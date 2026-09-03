@@ -90,7 +90,6 @@ def extract_frontend_calls(file_infos: list[FileInfo], root: Path) -> list[dict]
 def diff_contract(frontend_calls: list[dict], backend_routes: list[RouteInfo]) -> ContractDiff:
     backend_set = {(_normalize(r.path), r.method.upper()): r for r in backend_routes}
     backend_paths = {_normalize(r.path) for r in backend_routes}
-    frontend_set = {(c["path"], c["method"]) for c in frontend_calls}
     frontend_paths = {c["path"] for c in frontend_calls}
 
     diff = ContractDiff()
@@ -132,13 +131,13 @@ def _param_drift(a: str, b: str) -> bool:
     if len(sa) != len(sb):
         return False
     # one segment differs by pluralization
-    diffs = sum(1 for x, y in zip(sa, sb) if x != y)
+    diffs = sum(1 for x, y in zip(sa, sb, strict=True) if x != y)
     if diffs == 1:
-        for x, y in zip(sa, sb):
+        for x, y in zip(sa, sb, strict=True):
             if x != y and x.rstrip("s") != y.rstrip("s") and x != ":param" and y != ":param":
                 return False
         # check if param name drift :id vs :userId (both become :param so not drift) — actually normalized, so drift only plural
-        return any(abs(len(x) - len(y)) <= 1 for x, y in zip(sa, sb) if x != y)
+        return any(abs(len(x) - len(y)) <= 1 for x, y in zip(sa, sb, strict=True) if x != y)
     return False
 
 

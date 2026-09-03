@@ -11,10 +11,10 @@ Auto-update check:
   On startup, Patchi checks for updates silently once per week.
   A notification is shown on the next command if a newer version exists.
 """
-
 from __future__ import annotations
 
 import json
+import logging
 
 # ── Config ────────────────────────────────────────────────────────────────────
 import os
@@ -40,8 +40,6 @@ CHECK_INTERVAL_DAYS = 7
 
 # ── Public entry points ───────────────────────────────────────────────────────
 
-
-import logging
 
 _log = logging.getLogger("patchi.cli.update_cmd")
 

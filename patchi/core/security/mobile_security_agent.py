@@ -448,13 +448,13 @@ class MobileSecurityAgent(BaseAgent):
 
             # Negative-match patterns: scan all text once, track which seen
             if is_mobile_project:
-                for pname, pattern, msg, severity in self.DEFENSIVE_PATTERNS:
+                for pname, pattern, _msg, _severity in self.DEFENSIVE_PATTERNS:
                     if re.search(pattern, text, re.IGNORECASE):
                         seen_defensive.add(pname)
 
         # Report missing defensive controls
         if is_mobile_project:
-            for pname, pattern, msg, severity in self.DEFENSIVE_PATTERNS:
+            for pname, _pattern, msg, severity in self.DEFENSIVE_PATTERNS:
                 if pname not in seen_defensive:
                     findings.append(
                         Finding(

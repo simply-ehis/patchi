@@ -16,13 +16,10 @@ Parsing strategy:
 Output per file (FileInfo):
   path, language, size, imports, exports, functions, classes, is_entry_point, purpose
 """
-
 from __future__ import annotations
 
 import ast as py_ast
 import hashlib
-
-# ── Data model ─────────────────────────────────────────────────────────────────
 import logging
 import os
 import re
@@ -32,7 +29,11 @@ from pathlib import Path
 from typing import Any
 
 from patchi.core.brain.file_corpus import FileCorpus
+from patchi.core.brain.languages import DEFAULT_IGNORE_DIRS as _LANG_IGNORE_DIRS
 from patchi.core.brain.languages import Lang, detect_language, get_parser
+
+# ── Data model ─────────────────────────────────────────────────────────────────
+
 
 _log = logging.getLogger("patchi.brain.scanner")
 
@@ -155,8 +156,6 @@ def _parse_by_language(source: str, info: FileInfo, lang: Lang) -> None:
 
 
 # ── Default ignore patterns ────────────────────────────────────────────────────
-
-from patchi.core.brain.languages import DEFAULT_IGNORE_DIRS as _LANG_IGNORE_DIRS
 
 DEFAULT_IGNORE_DIRS = _LANG_IGNORE_DIRS
 

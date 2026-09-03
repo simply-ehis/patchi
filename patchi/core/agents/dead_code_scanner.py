@@ -10,10 +10,10 @@ Strategy (per MASTER_REBUILD_BRIEF FIX 2C):
 
 No keyword grep. No hardcoded summaries. Every scan derives from real code.
 """
-
 from __future__ import annotations
 
 import json
+import logging
 import shutil
 import subprocess
 from pathlib import Path
@@ -56,8 +56,6 @@ _SKIP_SEGMENTS = frozenset(
     }
 )
 
-
-import logging
 
 _log = logging.getLogger("patchi.agents.dead_code_scanner")
 

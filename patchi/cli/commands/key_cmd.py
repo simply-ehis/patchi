@@ -10,9 +10,9 @@ Subcommands:
 Keys are stored in .patchi/.env (gitignored).
 Only the nickname + provider name are stored in config.json — never the raw key.
 """
-
 from __future__ import annotations
 
+import logging
 import os
 from pathlib import Path
 
@@ -101,7 +101,6 @@ PROVIDERS: list[dict] = [
 
 PROVIDER_NAMES = [p["name"] for p in PROVIDERS]
 
-import logging
 
 _log = logging.getLogger("patchi.cli.key_cmd")
 

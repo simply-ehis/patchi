@@ -10,10 +10,10 @@ Supports:
 
 All data stored locally in .patchi/hosted/ip_reputation.json.
 """
-
 from __future__ import annotations
 
 import json
+import logging
 import time
 from pathlib import Path
 
@@ -26,8 +26,6 @@ _BLOCKLIST_URLS = [
 # IPs from these lists are automatically blocked
 _AUTO_BLOCK_THRESHOLD = 3  # IPs seen on 3+ lists
 
-
-import logging
 
 _log = logging.getLogger("patchi.core.ip_reputation")
 

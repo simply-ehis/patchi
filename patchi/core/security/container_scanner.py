@@ -8,6 +8,7 @@ Falls back to static Dockerfile analysis when Trivy is not available.
 from __future__ import annotations
 
 import json
+import logging
 import re
 import subprocess
 

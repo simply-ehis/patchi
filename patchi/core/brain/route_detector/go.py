@@ -1,3 +1,4 @@
+import logging
 import re
 
 from patchi.core.brain.route_detector.base import BaseRouteDetector
@@ -15,8 +16,6 @@ _FRAMEWORK_MAP: list[tuple[set[str], str]] = [
     (_FIBER_PATTERNS, "Fiber"),
 ]
 
-
-import logging
 
 _log = logging.getLogger("patchi.brain.go")
 

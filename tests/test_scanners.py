@@ -526,7 +526,7 @@ class TestCommentScanner(unittest.TestCase):
     def test_todo_severity_info(self):
         _write(self.root, "src/app.py", "# TODO: add tests\n")
         result = CommentScanner().run(_inp(self.root))
-        todos = [f for f in result.findings]
+        todos = list(result.findings)
         if todos:
             self.assertEqual(todos[0].severity, Severity.INFO)
 

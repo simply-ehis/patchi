@@ -21,20 +21,21 @@ Usage:
   p test config flows remove <n>  — remove a custom test flow
 """
 
+from __future__ import annotations
+
 import json
+import logging
 import time
 from pathlib import Path
+
 from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
+
 from patchi.cli.console import con
 from patchi.cli.display.live_progress import LiveProgress
 from patchi.core import memory as mem
 from patchi.core.config import require_project_root
-import logging
-
-from __future__ import annotations
-
 
 _MAPS_DIR = Path(__file__).resolve().parent
 

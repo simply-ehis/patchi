@@ -19,10 +19,10 @@ The charter is stored in `.patchi/memory/charter.json` and checked on every
 scan.  Violations are surfaced as ``charter-drift`` findings so that **both
 humans (via ``p scan``) and agents (via the Governor) stay in context**.
 """
-
 from __future__ import annotations
 
 import json
+import logging
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -111,8 +111,6 @@ _ROLE_MAP: dict[str, set[str]] = {
 
 # ── Dataclasses ────────────────────────────────────────────────────────────────
 
-
-import logging
 
 _log = logging.getLogger("patchi.brain.charter")
 
@@ -388,7 +386,7 @@ def check_charter(
         return violations
 
     # ── Boundary checks (subsystem-level dependency edges) ─────────────────────
-    subsystem_layers = {n: l for n, l in layers.items() if l.get("level") == 2}
+    subsystem_layers = {n: lay for n, lay in layers.items() if lay.get("level") == 2}
     for name, layer in subsystem_layers.items():
         for dep in layer.get("depends_on", []):
             for b in charter.boundaries:

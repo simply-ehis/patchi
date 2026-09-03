@@ -10,11 +10,11 @@ Stored in .patchi/cache/agent_cache/{agent_name}.json
 
 On a full scan with zero file changes, this skips every agent → ~5-10x speedup.
 """
-
 from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import time
 from pathlib import Path
 from typing import Any
@@ -57,8 +57,6 @@ _SOURCE_EXTS = frozenset(
     }
 )
 
-
-import logging
 
 _log = logging.getLogger("patchi.agents.cache")
 

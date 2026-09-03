@@ -1,4 +1,11 @@
+from pathlib import Path
+
+from rich.table import Table
+from rich.text import Text
+
 from patchi.cli.console import con
+from patchi.core import config as cfg
+from patchi.core.constants import RestrictionType
 
 """
 `p restrict` — manage no-touch zones, scan-only paths, and sensitive files.
@@ -13,13 +20,6 @@ Subcommands:
   p restrict enable <path>        — re-enable
 """
 
-from pathlib import Path
-
-from rich.table import Table
-from rich.text import Text
-
-from patchi.core import config as cfg
-from patchi.core.constants import RestrictionType
 
 _TYPE_COLORS = {
     RestrictionType.NO_TOUCH.value: "red",

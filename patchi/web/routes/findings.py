@@ -1,9 +1,9 @@
 """Findings route — findings list with filters + chain/intent tabs, DAST screenshots, history."""
 
 from __future__ import annotations
-import logging
 
 import json as _json
+import logging
 import os
 import sqlite3
 from datetime import datetime
@@ -12,6 +12,7 @@ from pathlib import Path
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
+
 _log = logging.getLogger("patchi.web.routes.findings")
 
 
@@ -175,7 +176,7 @@ async def findings(request: Request):
             if cat in dast_evidence:
                 # Get first screenshot for this category
                 screenshots = []
-                for test_name, paths in dast_evidence[cat].items():
+                for _test_name, paths in dast_evidence[cat].items():
                     screenshots.extend(paths[:1])  # one per test type
                 f["screenshots"] = screenshots[:3]  # max 3 per finding
             else:

@@ -4,7 +4,6 @@ PysaAgent - Python Static Analyzer integration.
 Pysa (Python Static Analyzer) is a static analysis tool for Python that focuses on
 security vulnerabilities like SQL injection, XSS, and other taint-style vulnerabilities.
 """
-
 from __future__ import annotations
 
 import json
@@ -139,6 +138,4 @@ class PysaAgent(BaseAgent):
 
 
 # Register the agent
-from patchi.core.agents.base import register
-
 register(PysaAgent)

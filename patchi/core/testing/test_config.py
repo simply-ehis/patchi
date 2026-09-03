@@ -21,10 +21,10 @@ Config shape:
   "report_format": "rich"
 }
 """
-
 from __future__ import annotations
 
 import json
+import logging
 from pathlib import Path
 from typing import Any
 
@@ -49,8 +49,6 @@ DEFAULT_TEST_CONFIG = {
     "report_format": "rich",
 }
 
-
-import logging
 
 _log = logging.getLogger("patchi.testing.test_config")
 

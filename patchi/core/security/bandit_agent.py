@@ -3,7 +3,6 @@ BanditAgent - Bandit security linter integration.
 
 Bandit is a Python security linter that finds common security issues.
 """
-
 from __future__ import annotations
 
 import json
@@ -148,6 +147,4 @@ class BanditAgent(BaseAgent):
 
 
 # Register the agent
-from patchi.core.agents.base import register
-
 register(BanditAgent)

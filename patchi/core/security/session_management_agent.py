@@ -88,8 +88,8 @@ class SessionManagementAgent(BaseAgent):
     def _offset_of_line(self, content: str, line: int) -> int:
         lines = content.splitlines()
         offset = 0
-        for l in lines[: max(0, line - 1)]:
-            offset += len(l) + 1
+        for ln in lines[: max(0, line - 1)]:
+            offset += len(ln) + 1
         return offset
 
     # ── Scan ────────────────────────────────────────────────────────────────

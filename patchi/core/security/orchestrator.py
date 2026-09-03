@@ -8,15 +8,16 @@ Deterministic first, AI second.
 """
 
 from __future__ import annotations
-import logging
 
 import json
+import logging
 from dataclasses import dataclass, field
 from pathlib import Path
 
 from patchi.core.agents.base import AgentResult, Finding
 from patchi.core.security.chain_analyzer import Chain, ChainAnalyzer
 from patchi.core.security.intent_analyzer import IntentAnalyzer, IntentReport
+
 _log = logging.getLogger("patchi.core.security.orchestrator")
 
 
@@ -224,7 +225,7 @@ class SecurityOrchestrator:
 
         correlated: list[CorrelatedFinding] = []
 
-        for key, group in groups.items():
+        for _key, group in groups.items():
             primary = group[0]
             confirmed_by = list({f.agent for f in group})
             owasp = _classify_owasp(primary)

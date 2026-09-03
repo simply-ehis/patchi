@@ -118,7 +118,7 @@ def _build_prompt(
     try:
         lb = extra_context.get("layer_summaries") if extra_context else None
         if isinstance(lb, list) and lb:
-            layer_block = "\nLAYER_SUMMARIES:\n" + "\n".join(f"- {l.get('name','')} ({l.get('level','')}): {l.get('summary','')[:180]}" for l in lb[:10]) + "\n"
+            layer_block = "\nLAYER_SUMMARIES:\n" + "\n".join(f"- {lay.get('name','')} ({lay.get('level','')}): {lay.get('summary','')[:180]}" for lay in lb[:10]) + "\n"
     except Exception:
         layer_block = ""
     core_block = ""

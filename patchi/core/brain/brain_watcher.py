@@ -232,7 +232,7 @@ def update_layers(
         _populate_dependencies(new_layers, graph, module_to_subsystem)
 
     # ── Level 4: project (recompute only if the module set changed) ──────────────
-    old_module_names = {n for n, l in old_layers.items() if l.level == 1}
+    old_module_names = {n for n, lay in old_layers.items() if lay.level == 1}
     module_set_changed = (set(modules) != old_module_names) or bool(changed_modules)
     if "__project__" in old_layers and not module_set_changed:
         new_layers["__project__"] = old_layers["__project__"]  # no-op
@@ -257,7 +257,7 @@ def update_layers(
             purpose="The whole project — top of the layer hierarchy.",
             files=sorted(fi.path for fi in file_infos),
             child_layers=sorted(subsystem_modules.keys()),
-            public_api=sorted({a for l in new_layers.values() for a in l.public_api}),
+            public_api=sorted({a for lay in new_layers.values() for a in lay.public_api}),
         )
         project_layer.validity_hash = project_layer.compute_hash()
         new_layers["__project__"] = project_layer

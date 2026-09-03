@@ -9,10 +9,11 @@ Subcommands:
 """
 
 from __future__ import annotations
-import logging
 
 import json
+import logging
 import sys
+
 _log = logging.getLogger("patchi.cli.commands.charter_cmd")
 
 

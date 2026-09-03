@@ -9,15 +9,16 @@ the whole scan.
 from __future__ import annotations
 
 import asyncio
+import logging
 import time
 from datetime import UTC, datetime
 from pathlib import Path
 
-import logging
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 
 from patchi.core.tenant import tenant_context
+
 _log = logging.getLogger("patchi.web.api.scan")
 
 
@@ -132,7 +133,8 @@ async def trigger_scan(
                             if isinstance(r, Exception):
                                 # Agent timed out or crashed — record as empty result
                                 from patchi.core.agents.base import (
-                                    AgentResult, AgentStatus,
+                                    AgentResult,
+                                    AgentStatus,
                                 )
                                 r = AgentResult(
                                     agent_name="unknown",
@@ -159,8 +161,9 @@ async def trigger_scan(
 
                 # Record scan in history
                 try:
-                    from patchi.core.memory import record_scan
                     import time as _time
+
+                    from patchi.core.memory import record_scan
                     elapsed = round(_time.time() - _scan_state.get('started_at', _time.time()), 1)
                     agent_names = [getattr(r, 'agent_name', '?') for r in results]
                     record_scan({

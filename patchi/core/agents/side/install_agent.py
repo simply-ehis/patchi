@@ -6,7 +6,16 @@ import logging
 import shutil
 import subprocess
 
-from patchi.core.agents.base import AgentGroup, AgentInput, AgentResult, AgentStatus, BaseAgent, Severity, make_finding, register
+from patchi.core.agents.base import (
+    AgentGroup,
+    AgentInput,
+    AgentResult,
+    AgentStatus,
+    BaseAgent,
+    Severity,
+    make_finding,
+    register,
+)
 
 _log = logging.getLogger("patchi.agents.side.install")
 

@@ -34,16 +34,17 @@ Confidence score (0–100):
 """
 
 from __future__ import annotations
-import logging
 
 import difflib
 import json
+import logging
 import re as _re
 import uuid
-from pathlib import Path
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from enum import StrEnum
+from pathlib import Path
+
 _log = logging.getLogger("patchi.core.fix.patch")
 
 

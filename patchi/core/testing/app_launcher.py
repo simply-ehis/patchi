@@ -16,8 +16,8 @@ import subprocess
 import time
 from pathlib import Path
 
-from patchi.core.brain.framework import FrameworkDetector
 from patchi.core.brain.file_corpus import FileCorpus
+from patchi.core.brain.framework import FrameworkDetector
 
 _log = logging.getLogger("patchi.testing.launcher")
 
