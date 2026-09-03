@@ -106,3 +106,8 @@ server_run.log
 web_server.log
 commit.log
 verify_out.log
+
+# Dev/test scaffolding
+_start_web.py
+_run_web.py
+_test_ws.py

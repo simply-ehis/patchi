@@ -1,6 +1,28 @@
 {% extends "base.html" %}
 
 {% block content %}
+<!-- Loading overlay — shows while server computes health/domain data -->
+<div id="dashboard-loading" style="position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--bg-primary,#0a0f0d);transition:opacity 0.3s ease">
+  <div style="width:48px;height:48px;border:3px solid var(--border,#2a2a2a);border-top-color:var(--accent,#c8621a);border-radius:50%;animation:spin 0.8s linear infinite"></div>
+  <div style="margin-top:16px;color:var(--text-secondary,#888);font-size:13px;font-family:Inter,sans-serif">Loading dashboard…</div>
+  <div id="load-sub" style="margin-top:8px;color:var(--text-tertiary,#555);font-size:11px;font-family:Inter,sans-serif"></div>
+</div>
+<style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+<script>
+(function(){
+  var el=document.getElementById('dashboard-loading');
+  if(!el)return;
+  var sub=document.getElementById('load-sub');
+  var steps=['Initializing brain…','Loading domains…','Computing health…','Rendering…'];
+  var si=0;
+  var iv=setInterval(function(){if(si<steps.length){if(sub)sub.textContent=steps[si++];}else clearInterval(iv);},600);
+  document.addEventListener('DOMContentLoaded',function(){
+    clearInterval(iv);
+    el.style.opacity='0';
+    setTimeout(function(){el.remove();},350);
+  });
+})();
+</script>
 <!-- Severity Cards — polished stat grid -->
 <div class="sev-grid">
   <div class="sev-card">

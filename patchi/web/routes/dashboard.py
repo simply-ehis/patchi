@@ -401,7 +401,10 @@ async def deliberate(request: Request):
 @router.websocket("/ws")
 async def websocket_endpoint(ws: WebSocket):
     """Unified WebSocket for real-time dashboard updates."""
+    from patchi.web.ws import manager as ws_manager
+
     await ws.accept()
+    await ws_manager.connect(ws)
     root = ws.app.state.root
 
     try:
@@ -413,6 +416,8 @@ async def websocket_endpoint(ws: WebSocket):
         pass
     except Exception as e:
         _log.error(f"WebSocket error: {e}")
+    finally:
+        await ws_manager.disconnect(ws)
 
 
 async def _send_initial_state(ws: WebSocket, root: Path):

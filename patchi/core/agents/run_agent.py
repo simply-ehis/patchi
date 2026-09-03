@@ -10,9 +10,17 @@ This agent is always run anytime a Test or Attack agent is queued.
 from __future__ import annotations
 
 import logging
-from pathlib import Path
 
-from patchi.core.agents.base import AgentGroup, AgentInput, AgentResult, AgentStatus, BaseAgent, Severity, make_finding, register
+from patchi.core.agents.base import (
+    AgentGroup,
+    AgentInput,
+    AgentResult,
+    AgentStatus,
+    BaseAgent,
+    Severity,
+    make_finding,
+    register,
+)
 
 _log = logging.getLogger("patchi.agents.run")
 

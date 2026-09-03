@@ -159,6 +159,15 @@ async def trigger_scan(
 
                 await evt_scan_complete(deduped_count, 0)
 
+                # Fresh data is in — drop the health/scan cache so the
+                # dashboard reflects the new scan immediately.
+                try:
+                    from patchi.core.health import invalidate_cache
+
+                    invalidate_cache()
+                except Exception:
+                    pass
+
                 # Record scan in history
                 try:
                     import time as _time

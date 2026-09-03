@@ -325,7 +325,7 @@ Your voice: Practical, coverage-aware, automation-focused. Think in test pyramid
             _add("NavigationAgent", "router/api surface — SPA navigation")
             _add("E2EFlowAgent", "routes present — critical flows + contract")
         if has_api or dom_low & {"api", "injection", "auth"}:
-            _add("ApiContractAgent", "API surface — contract checks")
+            _add("APIContractAgent", "API surface — contract checks")
         if has_auth or "auth" in dom_low:
             _add("BadUserAgent", "auth surface — breaker/impatient/malicious personas")
         if agents:

@@ -22,12 +22,26 @@ It is saved back to brain memory after every scan so `p status` can display it.
 from __future__ import annotations
 
 import logging
+import threading
+import time
 from dataclasses import dataclass
 from pathlib import Path
 
 from patchi.core import memory as mem
 
 _log = logging.getLogger("patchi.core.health")
+
+# In-process cache: recompute at most every N seconds so dashboard requests
+# stay fast.  Scan completion bumps the timestamp so fresh data shows quickly.
+_HEALTH_TTL = 30.0
+_health_cache: dict = {}
+_health_lock = threading.Lock()
+
+
+def invalidate_cache() -> None:
+    """Force next compute() to re-run (call after a scan completes)."""
+    with _health_lock:
+        _health_cache.clear()
 
 
 @dataclass
@@ -76,7 +90,16 @@ def compute(root: Path | None = None) -> HealthScore:
     """
     Compute the health score from brain memory and agent scan results.
     Returns a HealthScore with all components filled.
+    Results are cached in-process for _HEALTH_TTL seconds — the dashboard
+    calls this on every request, and a full recompute is expensive.
     """
+    key = str(root) if root is not None else ""
+    now = time.time()
+    with _health_lock:
+        cached = _health_cache.get(key)
+        if cached and (now - cached[0]) < _HEALTH_TTL:
+            return cached[1]
+
     brain = mem.get_brain(root)
     scans = mem.get_scan_results(root)
     patches = mem.list_patches(root)
@@ -127,6 +150,9 @@ def compute(root: Path | None = None) -> HealthScore:
             patchi_record_scan(root, tool="health_compute", findings=[], health_score=total)
         except Exception as e:
             _log.warning("compute failed: %s", e)
+
+    with _health_lock:
+        _health_cache[key] = (time.time(), score)
 
     return score
 
@@ -270,7 +296,13 @@ def _compute_contract(brain: dict) -> float:
 
 
 def _compute_test_coverage_pct(root: Path | None, brain: dict) -> float:
-    """Count source files with test counterparts and return percentage."""
+    """Count source files with test counterparts and return percentage.
+
+    Same semantics as the original implementation (a source file is covered
+    only by a test co-located in its own directory or a sibling tests/
+    directory) but implemented as set lookups instead of per-file stat
+    probes — that probe storm made this the dashboard's #1 bottleneck (~3.8s).
+    """
     if root is None:
         return 0.0
 
@@ -282,71 +314,64 @@ def _compute_test_coverage_pct(root: Path | None, brain: dict) -> float:
     test_patterns = ("test_", "_test.", ".test.", ".spec.", "_spec.")
     test_dirs = ("tests", "test", "__tests__", "spec")
 
-    source_files = 0
-    files_with_tests = 0
-
     try:
         from patchi.core.agents.base import safe_rglob
 
+        # Pass 1 — walk the tree once, collecting existing test names and
+        # all source files.  No per-file stat() calls.
+        src_by_dir: dict = {}
+        test_names_by_dir: dict = {}
         for ext in source_extensions:
             for f in safe_rglob(root, f"*{ext}"):
                 rel = f.relative_to(root).as_posix()
                 parts = Path(rel).parts
+                fname = f.name.lower()
 
                 in_test_dir = any(p.lower() in test_dirs for p in parts)
-                is_test_file = any(pat in f.name.lower() for pat in test_patterns)
+                is_test_file = any(pat in fname for pat in test_patterns)
+                dir_key = str(f.parent)
 
                 if in_test_dir or is_test_file:
-                    continue
+                    test_names_by_dir.setdefault(dir_key, set()).add(fname)
+                else:
+                    src_by_dir.setdefault(dir_key, []).append(f)
 
+        source_files = 0
+        files_with_tests = 0
+
+        for dir_key, files in src_by_dir.items():
+            own_tests = test_names_by_dir.get(dir_key, set())
+            parent = Path(dir_key)
+            sibling_tests = set()
+            for td in test_dirs:
+                sibling_tests |= test_names_by_dir.get(str(parent / td), set())
+
+            for f in files:
                 source_files += 1
-
                 stem = f.stem
-                parent = f.parent
-                has_test = False
-
-                for test_dir_name in test_dirs:
-                    test_dir = parent / test_dir_name
-                    if test_dir.is_dir():
-                        for test_ext in source_extensions:
-                            for pattern in [
-                                f"test_{stem}{test_ext}",
-                                f"{stem}_test{test_ext}",
-                                f"{stem}.test{test_ext}",
-                                f"{stem}.spec{test_ext}",
-                            ]:
-                                if (test_dir / pattern).exists():
-                                    has_test = True
-                                    break
-                            if has_test:
-                                break
-                    if has_test:
-                        break
-
-                if not has_test:
-                    for test_ext in source_extensions:
-                        for pattern in [
-                            f"test_{stem}{test_ext}",
-                            f"{stem}_test{test_ext}",
-                            f"{stem}.test{test_ext}",
-                            f"{stem}.spec{test_ext}",
-                        ]:
-                            if (parent / pattern).exists():
-                                has_test = True
-                                break
-                        if has_test:
-                            break
-
-                if has_test:
+                candidates = {
+                    f"test_{stem}{ext}".lower()
+                    for ext in source_extensions
+                } | {
+                    f"{stem}_test{ext}".lower()
+                    for ext in source_extensions
+                } | {
+                    f"{stem}.test{ext}".lower()
+                    for ext in source_extensions
+                } | {
+                    f"{stem}.spec{ext}".lower()
+                    for ext in source_extensions
+                }
+                if candidates & own_tests or candidates & sibling_tests:
                     files_with_tests += 1
+
+        if source_files == 0:
+            return 0.0
+
+        return round((files_with_tests / source_files) * 100, 1)
     except Exception as e:
         _log.warning("_compute_test_coverage_pct failed: %s", e)
         return 0.0
-
-    if source_files == 0:
-        return 0.0
-
-    return round((files_with_tests / source_files) * 100, 1)
 
 
 # ── Grade + color ──────────────────────────────────────────────────────────────

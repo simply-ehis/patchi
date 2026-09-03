@@ -696,24 +696,7 @@ var BrainMap = (() => {
     var n = nodesList.length;
     if (n === 0) return pos;
 
-    // Initialize on a grid with random jitter for even initial spread
-    var cols = Math.ceil(Math.sqrt(n));
-    var rows = Math.ceil(n / cols);
-    var cellW = W / (cols + 1);
-    var cellH = H / (rows + 1);
-    nodesList.forEach(function(node, i) {
-      var col = i % cols;
-      var row = Math.floor(i / cols);
-      var jitterX = (Math.random() - 0.5) * cellW * 0.6;
-      var jitterY = (Math.random() - 0.5) * cellH * 0.6;
-      pos[node.id || node.path] = {
-        x: cellW * (col + 1) + jitterX,
-        y: cellH * (row + 1) + jitterY,
-        vx: 0, vy: 0
-      };
-    });
-
-    // Build adjacency
+    // Build adjacency first — used for both connected-component detection and force
     var adj = {};
     edgesList.forEach(function(e) {
       var f = e.from || e.source, t = e.to || e.target;
@@ -723,52 +706,53 @@ var BrainMap = (() => {
       adj[t].push(f);
     });
 
-    // Fewer iterations for large graphs; scale repulsion with node count
-    var iterations = n > 200 ? 20 : 50;
-    var repulsion = Math.max(12000, n * 200);
-    var attraction = 0.005;
-    var damping = 0.9;
-    var centerPull = 0.003;
+    // Phase 1: Grid layout for ALL nodes — guarantees even spread
+    var cols = Math.ceil(Math.sqrt(n));
+    var rows = Math.ceil(n / cols);
+    var cellW = W / (cols + 1);
+    var cellH = H / (rows + 1);
+    nodesList.forEach(function(node, i) {
+      var col = i % cols;
+      var row = Math.floor(i / cols);
+      pos[node.id || node.path] = {
+        x: cellW * (col + 1),
+        y: cellH * (row + 1),
+        vx: 0, vy: 0,
+        _connected: !!(adj[node.id || node.path] || []).length
+      };
+    });
+
+    // Phase 2: Light force simulation ONLY for connected nodes
+    // Disconnected nodes stay on their grid positions (perfect spread)
+    var iterations = n > 200 ? 15 : 30;
+    var repulsion = Math.max(8000, n * 100);
+    var attraction = 0.008;
+    var damping = 0.85;
+    var centerPull = 0.005;
 
     for (var iter = 0; iter < iterations; iter++) {
       var keys = Object.keys(pos);
 
-      // Repulsion: for large graphs, sample neighbors instead of all pairs
-      if (n > 100) {
-        // Only apply repulsion between nodes that are close
-        for (var i = 0; i < keys.length; i++) {
-          var a = pos[keys[i]];
-          // Check neighbors and a few random others
-          var candidates = (adj[keys[i]] || []).slice();
-          // Add a few random samples
-          var sampleSize = Math.min(10, n);
-          for (var s = 0; s < sampleSize; s++) {
-            var rk = keys[Math.floor(Math.random() * n)];
-            if (rk !== keys[i] && candidates.indexOf(rk) < 0) candidates.push(rk);
-          }
-          for (var ci = 0; ci < candidates.length; ci++) {
-            var b = pos[candidates[ci]];
-            if (!b) continue;
-            var dx = a.x - b.x, dy = a.y - b.y;
-            var dist = Math.sqrt(dx*dx + dy*dy) || 1;
-            var force = repulsion / (dist * dist);
-            var fx = (dx/dist)*force, fy = (dy/dist)*force;
-            a.vx += fx; a.vy += fy;
-            b.vx -= fx; b.vy -= fy;
-          }
+      // Repulsion between connected nodes and their neighbors
+      for (var i = 0; i < keys.length; i++) {
+        var a = pos[keys[i]];
+        if (!a._connected) continue;
+        var candidates = (adj[keys[i]] || []).slice();
+        // Add a few random non-connected nodes for spacing
+        var sampleSize = Math.min(5, n);
+        for (var s = 0; s < sampleSize; s++) {
+          var rk = keys[Math.floor(Math.random() * n)];
+          if (rk !== keys[i] && candidates.indexOf(rk) < 0) candidates.push(rk);
         }
-      } else {
-        // Full O(n^2) for small graphs
-        for (var ii = 0; ii < keys.length; ii++) {
-          for (var jj = ii+1; jj < keys.length; jj++) {
-            var aa = pos[keys[ii]], bb = pos[keys[jj]];
-            var ddx = aa.x - bb.x, ddy = aa.y - bb.y;
-            var ddist = Math.sqrt(ddx*ddx + ddy*ddy) || 1;
-            var fforce = repulsion / (ddist*ddist);
-            var ffx = (ddx/ddist)*fforce, ffy = (ddy/ddist)*fforce;
-            aa.vx += ffx; aa.vy += ffy;
-            bb.vx -= ffx; bb.vy -= ffy;
-          }
+        for (var ci = 0; ci < candidates.length; ci++) {
+          var b = pos[candidates[ci]];
+          if (!b) continue;
+          var dx = a.x - b.x, dy = a.y - b.y;
+          var dist = Math.sqrt(dx*dx + dy*dy) || 1;
+          var force = repulsion / (dist * dist);
+          var fx = (dx/dist)*force, fy = (dy/dist)*force;
+          a.vx += fx; a.vy += fy;
+          b.vx -= fx; b.vy -= fy;
         }
       }
 
@@ -778,13 +762,15 @@ var BrainMap = (() => {
         if (!a || !b) return;
         var dx = b.x - a.x, dy = b.y - a.y;
         var dist = Math.sqrt(dx*dx + dy*dy) || 1;
-        var force = dist * attraction;
+        // Target distance: keep connected nodes close but not overlapping
+        var targetDist = Math.min(W, H) * 0.08;
+        var force = (dist - targetDist) * attraction;
         var fx = (dx/dist)*force, fy = (dy/dist)*force;
         a.vx += fx; a.vy += fy;
         b.vx -= fx; b.vy -= fy;
       });
 
-      // Center gravity + damping
+      // Center gravity + boundary clamp
       for (var k = 0; k < keys.length; k++) {
         var p = pos[keys[k]];
         p.vx += (W/2 - p.x) * centerPull;
@@ -793,15 +779,16 @@ var BrainMap = (() => {
         p.vy *= damping;
         p.x += p.vx;
         p.y += p.vy;
-        p.x = Math.max(40, Math.min(W-40, p.x));
-        p.y = Math.max(40, Math.min(H-40, p.y));
+        // Clamp to canvas bounds with padding
+        p.x = Math.max(30, Math.min(W - 30, p.x));
+        p.y = Math.max(30, Math.min(H - 30, p.y));
       }
     }
 
-    // Clean velocity
+    // Clean velocity and metadata
     for (var kk = 0; kk < keys.length; kk++) {
       var pp = pos[keys[kk]];
-      delete pp.vx; delete pp.vy;
+      delete pp.vx; delete pp.vy; delete pp._connected;
     }
     return pos;
   }

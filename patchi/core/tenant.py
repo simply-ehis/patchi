@@ -328,36 +328,59 @@ def check_tenant_cost_alert(root: Path, config: dict | None = None) -> dict | No
     """Check if per-tenant spending exceeds the configured limit.
 
     Returns a dict with alert info if threshold exceeded, None otherwise.
+    Never raises — handles None, missing keys, and non-numeric values gracefully.
 
     Config keys (under ``ai``):
       cost_limit          — dollar amount that triggers the alert (default 10.0)
       cost_warn_pct       — percentage of limit that triggers warning (default 80)
     """
-    cfg = config or {}
-    ai_cfg = cfg.get("ai") or {}
-    limit = float(ai_cfg.get("cost_limit") or 10.0)
-    warn_pct = float(ai_cfg.get("cost_warn_pct") or 80)
+    try:
+        cfg = config or {}
+        ai_cfg = cfg.get("ai") or {}
 
-    if limit <= 0:
+        # Safely parse cost_limit — handle None, empty string, non-numeric
+        raw_limit = ai_cfg.get("cost_limit")
+        if raw_limit in (None, "", "null", "None"):
+            limit = 10.0
+        else:
+            try:
+                limit = float(raw_limit)
+            except (TypeError, ValueError):
+                limit = 10.0
+
+        # Safely parse cost_warn_pct
+        raw_pct = ai_cfg.get("cost_warn_pct")
+        if raw_pct in (None, "", "null", "None"):
+            warn_pct = 80.0
+        else:
+            try:
+                warn_pct = float(raw_pct)
+            except (TypeError, ValueError):
+                warn_pct = 80.0
+
+        if limit <= 0:
+            return None
+
+        spent = get_tenant_cost(root)
+        pct = (spent / limit) * 100 if limit > 0 else 0
+
+        if pct >= 100:
+            return {
+                "level": "critical",
+                "message": f"AI budget exhausted: ${spent:.2f} / ${limit:.2f}",
+                "spent": spent,
+                "limit": limit,
+                "pct": round(pct, 1),
+            }
+        elif pct >= warn_pct:
+            return {
+                "level": "warning",
+                "message": f"AI spending at {pct:.0f}% of budget: ${spent:.2f} / ${limit:.2f}",
+                "spent": spent,
+                "limit": limit,
+                "pct": round(pct, 1),
+            }
         return None
-
-    spent = get_tenant_cost(root)
-    pct = (spent / limit) * 100 if limit > 0 else 0
-
-    if pct >= 100:
-        return {
-            "level": "critical",
-            "message": f"AI budget exhausted: ${spent:.2f} / ${limit:.2f}",
-            "spent": spent,
-            "limit": limit,
-            "pct": round(pct, 1),
-        }
-    elif pct >= warn_pct:
-        return {
-            "level": "warning",
-            "message": f"AI spending at {pct:.0f}% of budget: ${spent:.2f} / ${limit:.2f}",
-            "spent": spent,
-            "limit": limit,
-            "pct": round(pct, 1),
-        }
-    return None
+    except Exception:
+        # Never crash — cost alerts are non-critical
+        return None

@@ -63,7 +63,6 @@ def run(action: str | None = None, root: Path | None = None, **kwargs) -> None:
         return
 
     if action == "add":
-        import argparse
 
         # Called via registry: kwargs has frontend, backend, frontend_url, backend_url
         front = kwargs.get("frontend") or "./"
