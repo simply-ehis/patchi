@@ -65,10 +65,20 @@ def _detect_py_file_handle_leaks(content: str) -> list[dict]:
         tree = ast.parse(content)
     except SyntaxError:
         return findings
+
+    def _is_open(node) -> bool:
+        return isinstance(node, ast.Call) and getattr(node.func, "id", "") == "open"
+
+    guarded: set[int] = set()
     for node in ast.walk(tree):
-        if isinstance(node, ast.Call) and getattr(node.func, "id", "") == "open":
+        if isinstance(node, ast.With):
+            for item in node.items:
+                for n in ast.walk(item.context_expr):
+                    if _is_open(n):
+                        guarded.add(n.lineno)
+    for node in ast.walk(tree):
+        if _is_open(node) and node.lineno not in guarded:
             findings.append({"line": node.lineno, "resource": "open()", "type": "file_handle"})
-            break
     return findings
 
 

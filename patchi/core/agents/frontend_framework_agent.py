@@ -1,7 +1,7 @@
 """
 FrontendFrameworkAgent §8.1.1-5 — React/Vue/Svelte/Angular/Solid checks.
 
-Uses ESLint plugins where available, else tree-sitter regex.
+Uses ESLint plugins where available, else tree-sitter structural queries.
 
 Checks:
   React: hooks rules, missing key in list, useEffect dep array
@@ -14,7 +14,6 @@ Checks:
 from __future__ import annotations
 
 import logging
-import re
 
 from patchi.core.agents.base import (
     AgentGroup,
@@ -27,15 +26,22 @@ from patchi.core.agents.base import (
     register,
     safe_rglob,
 )
+from patchi.core.brain.code_query import (
+    js_call_names,
+    js_calls,
+    js_constructor_di_line,
+    js_identifiers,
+    js_identifier_lines,
+    js_jsx_attributes,
+    js_jsx_elements,
+    lang_for_file,
+    parse_js,
+    vue_template_attrs,
+)
 
 _log = logging.getLogger("patchi.agents.frontend_framework")
 
-_REACT_HOOK = re.compile(r"use(Effect|State|Memo|Callback|Ref)\s*\(")
-_REACT_KEY = re.compile(r"<\w+[^>]*\bkey\s*=")
-_VUE_FOR_KEY = re.compile(r"v-for\s*=\s*\"[^\"]+\"\s*(?!.*:key)")
-_SVELTE_STORE = re.compile(r"\$\w+")
-_ANGULAR_DI = re.compile(r"constructor\s*\([^)]*private\s+\w+")
-_SOLID_EFFECT = re.compile(r"createEffect\s*\(")
+_HOOKS = {"useEffect", "useState", "useMemo", "useCallback", "useRef"}
 
 @register
 class FrontendFrameworkAgent(BaseAgent):
@@ -55,24 +61,49 @@ class FrontendFrameworkAgent(BaseAgent):
                     txt=fp.read_text(encoding="utf-8", errors="replace")
                 except OSError:
                     continue
-                lines=txt.splitlines()
-                for i, line in enumerate(lines,1):
-                    if "React" in txt or pat in (".jsx",".tsx"):
-                        if _REACT_HOOK.search(line) and "useEffect" in line and "[]" not in line and "eslint-disable" not in line:
-                            # naive: useEffect without dep array
-                            if "useEffect(" in line and line.count(",") < 1:
-                                findings.append(make_finding(severity=Severity.LOW, file=rel, line_start=i, title="React useEffect missing deps", description="Add dependency array or disable exhaustive-deps consciously", finding_type="react_hook"))
-                        if "<" in line and "map(" in txt and not _REACT_KEY.search(line) and i<10:
-                            pass  # handled broadly
-                    if fp.suffix==".vue" and _VUE_FOR_KEY.search(line):
-                        findings.append(make_finding(severity=Severity.LOW, file=rel, line_start=i, title="Vue v-for without :key", description="Add :key to v-for for stable diffing", finding_type="vue_key"))
-                    if fp.suffix==".svelte" and _SVELTE_STORE.search(line) and "subscribe" in line and "unsubscribe" not in txt:
-                        findings.append(make_finding(severity=Severity.LOW, file=rel, line_start=i, title="Svelte store without unsubscribe", description="Store subscription may leak; use $store auto-sub or onDestroy unsubscribe", finding_type="svelte_store_leak"))
-                    if "Angular" in txt or "@Component" in txt:
-                        if _ANGULAR_DI.search(line):
-                            findings.append(make_finding(severity=Severity.INFO, file=rel, line_start=i, title="Angular DI injection", description="Verify DI token provided", finding_type="angular_di"))
-                    if _SOLID_EFFECT.search(line):
-                        findings.append(make_finding(severity=Severity.INFO, file=rel, line_start=i, title="Solid createEffect without cleanup", description="Return cleanup function if needed", finding_type="solid_effect"))
+                lang = lang_for_file(rel)
+                tree = parse_js(txt, lang)
+                if tree is None:
+                    continue
+                calls = js_calls(tree, lang)
+                names = {c.name for c in calls}
+                is_jsx = fp.suffix in (".jsx", ".tsx") or "React" in txt
+                # React: useEffect without dep array (single-argument call)
+                if is_jsx:
+                    for call in calls:
+                        if call.name == "useEffect" and len(call.arg_kinds) < 2:
+                            findings.append(make_finding(severity=Severity.LOW, file=rel, line_start=call.line, title="React useEffect missing deps", description="Add dependency array or disable exhaustive-deps consciously", finding_type="react_hook"))
+                            break
+                    # React: list rendering without key (previously dead branch)
+                    attrs = js_jsx_attributes(tree, lang)
+                    if any(c.name in ("map", "forEach") for c in calls):
+                        if not any(name == "key" for _tag, name, _line in attrs):
+                            elems = js_jsx_elements(tree, lang)
+                            line0 = elems[0][1] if elems else 1
+                            findings.append(make_finding(severity=Severity.LOW, file=rel, line_start=line0, title="List element without key", description="Add key to list-rendered elements for stable diffing", finding_type="react_key"))
+                # Vue: v-for without :key (template markup via html.parser)
+                if fp.suffix == ".vue":
+                    by_el: dict[tuple[str, int], set[str]] = {}
+                    for tag, attr, line in vue_template_attrs(txt):
+                        by_el.setdefault((tag, line), set()).add(attr)
+                    for (tag, line), attr_set in by_el.items():
+                        if "v-for" in attr_set and "key" not in attr_set and ":key" not in attr_set:
+                            findings.append(make_finding(severity=Severity.LOW, file=rel, line_start=line, title="Vue v-for without :key", description="Add :key to v-for for stable diffing", finding_type="vue_key"))
+                            break
+                # Svelte: $store subscription without unsubscribe
+                if fp.suffix == ".svelte":
+                    stores = [(t, n) for t, n in js_identifier_lines(tree, lang) if t.startswith("$")]
+                    if stores and "subscribe" in names and not names & {"unsubscribe", "onDestroy"}:
+                        findings.append(make_finding(severity=Severity.LOW, file=rel, line_start=stores[0][1], title="Svelte store without unsubscribe", description="Store subscription may leak; use $store auto-sub or onDestroy unsubscribe", finding_type="svelte_store_leak"))
+                # Angular: constructor DI (private param)
+                if "Angular" in txt or "@Component" in txt:
+                    line = js_constructor_di_line(tree, lang)
+                    if line:
+                        findings.append(make_finding(severity=Severity.INFO, file=rel, line_start=line, title="Angular DI injection", description="Verify DI token provided", finding_type="angular_di"))
+                # Solid: createEffect without cleanup
+                if "createEffect" in names:
+                    line = next(c.line for c in calls if c.name == "createEffect")
+                    findings.append(make_finding(severity=Severity.INFO, file=rel, line_start=line, title="Solid createEffect without cleanup", description="Return cleanup function if needed", finding_type="solid_effect"))
                 if len(findings) >= 40:
                     break
             if len(findings) >= 40:

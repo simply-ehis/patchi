@@ -224,12 +224,36 @@ def js_class_heritages(tree, lang: str = "javascript") -> list[tuple[str, int]]:
 
 def js_identifiers(tree, lang: str = "javascript") -> set[str]:
     """All identifier spellings (for $store-style prefix checks)."""
+    return {text for text, _line_no in js_identifier_lines(tree, lang)}
+
+
+def js_identifier_lines(tree, lang: str = "javascript") -> list[tuple[str, int]]:
+    """(identifier spelling, line) pairs."""
+    if tree is None:
+        return []
     lang_obj = _lang_obj(lang)
-    out: set[str] = set()
+    out: list[tuple[str, int]] = []
     for nodes in _query_text(lang_obj, "(identifier) @i", tree.root_node).values():
         for node in nodes:
-            out.add(_node_text(node))
+            out.append((_node_text(node), _line(node)))
     return out
+
+
+def js_constructor_di_line(tree, lang: str = "javascript") -> int:
+    """Line of a constructor() with a private/parameter-property param, else 0."""
+    if tree is None:
+        return 0
+    lang_obj = _lang_obj(lang)
+    found = _query_text(lang_obj, "(method_definition) @m", tree.root_node)
+    for nodes in found.values():
+        for node in nodes:
+            name_node = node.child_by_field_name("name")
+            if name_node is None or _node_text(name_node) != "constructor":
+                continue
+            params = node.child_by_field_name("parameters")
+            if params is not None and "private" in _node_text(params):
+                return _line(node)
+    return 0
 
 
 def js_string_literals(tree, lang: str = "javascript") -> list[tuple[str, int]]:
@@ -319,6 +343,22 @@ def js_new_without_catch(tree, names=("Promise",), lang: str = "javascript") -> 
                     if handled:
                         continue
             out.append(_line(node))
+    return out
+
+
+def js_jsx_elements(tree, lang: str = "javascript") -> list[tuple[str, int]]:
+    """(tag, line) for every JSX opening element."""
+    if tree is None:
+        return []
+    lang_obj = _lang_obj(lang)
+    out: list[tuple[str, int]] = []
+    found = _query_text(lang_obj, "(jsx_opening_element) @o", tree.root_node)
+    for nodes in found.values():
+        for node in nodes:
+            for child in node.named_children:
+                if child.type == "identifier":
+                    out.append((_node_text(child), _line(node)))
+                    break
     return out
 
 
