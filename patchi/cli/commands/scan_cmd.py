@@ -289,8 +289,8 @@ def _run_scan_inner(
 
         _domain_loader_future = _loader_pool.submit(_preload_loader)
         _loader_pool.shutdown(wait=False)
-    except Exception:
-        pass
+    except Exception as _exc:
+        _log.debug('suppressed: %s', _exc)
 
     def _run_scan() -> None:
         nonlocal report, agent_results, error
@@ -860,8 +860,8 @@ def _run_scan_inner(
         if _domain_loader_future is not None:
             try:
                 _dl = _domain_loader_future.result(timeout=0)
-            except Exception:
-                pass
+            except Exception as _exc:
+                _log.debug('suppressed: %s', _exc)
         if _dl is None:
             _dl = DomainLoader(r, component_types=_ctypes if _ctypes else None)
         _SEC_AGENTS = {

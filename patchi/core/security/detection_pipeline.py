@@ -48,6 +48,24 @@ class DetectionPipeline:
         self._noise_filter = None
         self._component_types = component_types
         self._brain = brain_context  # BrainContext for context-aware classification
+        # Pre-load DomainLoader in background to avoid blocking on first use
+        self._domain_loader_future = None
+        try:
+            import concurrent.futures as _cf
+
+            from patchi.core.security.domain_loader import DomainLoader
+            pool = _cf.ThreadPoolExecutor(max_workers=1, thread_name_prefix="dl-pipeline")
+
+            def _preload() -> DomainLoader:
+                # Construct + force the (lazy) load in this background thread.
+                _ldr = DomainLoader(root, component_types=component_types)
+                _ldr.list_domains()  # parses + caches taxonomy off the hot path
+                return _ldr
+
+            self._domain_loader_future = pool.submit(_preload)
+            pool.shutdown(wait=False)
+        except Exception as _exc:
+            logging.getLogger("patchi").debug('suppressed: %s', _exc)
 
     def _get_sigma_set(self):
         if self._sigma_set is None:
@@ -122,10 +140,18 @@ class DetectionPipeline:
 
         # Stage 1a: Domain taxonomy matching — enrich findings with ASVS/domain context
         try:
-            from patchi.core.security.domain_loader import DomainLoader
-
+            # Use pre-loaded DomainLoader if available, else create new
             if self._domain_loader is None:
-                self._domain_loader = DomainLoader(self.root, component_types=self._component_types)
+                if self._domain_loader_future is not None:
+                    try:
+                        self._domain_loader = self._domain_loader_future.result(timeout=0)
+                    except Exception as _exc:
+                        logging.getLogger("patchi").debug('suppressed: %s', _exc)
+                if self._domain_loader is None:
+                    from patchi.core.security.domain_loader import DomainLoader
+                    self._domain_loader = DomainLoader(
+                        self.root, component_types=self._component_types,
+                    )
             loader = self._domain_loader
             for gf in gated_list:
                 ctrl_matches = loader.match_finding_to_controls(

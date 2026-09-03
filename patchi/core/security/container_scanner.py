@@ -131,8 +131,8 @@ class ContainerScannerAgent(BaseAgent):
                             )
                         )
                     return  # dive succeeded, skip heuristic
-            except Exception:
-                pass
+            except Exception as _exc:
+                logging.getLogger("patchi").debug('suppressed: %s', _exc)
         # Heuristic fallback: count RUN, check multi-stage, large base
         runs = len(re.findall(r"^\s*RUN\s+", content, re.MULTILINE | re.I))
         froms = re.findall(r"^\s*FROM\s+(\S+)", content, re.MULTILINE | re.I)

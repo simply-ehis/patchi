@@ -93,8 +93,8 @@ def _build_injected_context(brain: dict, message: str, root=None) -> str:
         try:
             from patchi.core.brain.brain_context import get_brain_context
             ctx = get_brain_context(root)
-        except Exception:
-            pass
+        except Exception as _exc:
+            _log.debug('suppressed: %s', _exc)
 
     if ctx and ctx.is_loaded():
         # Use BrainContext for rich context injection

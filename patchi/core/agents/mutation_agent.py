@@ -82,8 +82,8 @@ def _try_cargo_mutants(root: Path) -> list[dict] | None:
         try:
             data = json.loads(proc.stdout)
             return [{"file": m.get("file",""), "line": m.get("line",0), "mutant": m.get("name",""), "killed": False} for m in data[:10]]
-        except Exception:
-            pass
+        except Exception as _exc:
+            _log.debug('suppressed: %s', _exc)
     return None
 
 

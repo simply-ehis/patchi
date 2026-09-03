@@ -56,6 +56,6 @@ def run(json_output: bool = False, root: Path | None = None) -> None:
     try:
         out = r / ".patchi" / "heatmap.json"
         out.write_text(json.dumps(data, indent=2), encoding="utf-8")
-    except Exception:
-        pass
+    except Exception as _exc:
+        logging.getLogger("patchi").debug('suppressed: %s', _exc)
     con.print()

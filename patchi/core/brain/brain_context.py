@@ -306,8 +306,8 @@ def build_brain_context(root: Path, config: dict | None = None) -> BrainContext:
             from patchi.core.agents.discovery import discover_project
             disc = discover_project(root)
             file_infos = getattr(disc, 'file_infos', [])
-        except Exception:
-            pass
+        except Exception as _exc:
+            _log.debug('suppressed: %s', _exc)
         body_tags = build_body_tags(root, file_infos)
         if body_tags:
             ranked = sorted(
@@ -341,8 +341,8 @@ def build_brain_context(root: Path, config: dict | None = None) -> BrainContext:
                 ctx.known_fps = {tuple(fp) if isinstance(fp, list) else fp for fp in fps}
             elif isinstance(fps, dict):
                 ctx.known_fps = set(fps.keys())
-    except Exception:
-        pass
+    except Exception as _exc:
+        _log.debug('suppressed: %s', _exc)
 
     # 5. Recent findings
     try:
@@ -352,8 +352,8 @@ def build_brain_context(root: Path, config: dict | None = None) -> BrainContext:
             for finding in data.get("findings", [])[-50:]:
                 if isinstance(finding, dict):
                     ctx.recent_findings.append(finding)
-    except Exception:
-        pass
+    except Exception as _exc:
+        _log.debug('suppressed: %s', _exc)
 
     from datetime import datetime as _dtnow
     ctx.built_at = _dtnow.now(UTC).isoformat()
