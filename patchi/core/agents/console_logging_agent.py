@@ -98,7 +98,7 @@ class ConsoleLoggingAgent(BaseAgent):
                 key = (route, msg[:80])
                 clusters[key] += 1
             for (route, msg), count in sorted(clusters.items(), key=lambda kv: -kv[1])[:10]:
-                text = msg[:160] or "empty error text"
+                text = msg[:160].strip() or "empty error text"
                 result.add_finding(
                     make_finding(
                         agent=self.name,
@@ -110,7 +110,7 @@ class ConsoleLoggingAgent(BaseAgent):
                 )
             for entry in page_errors[:10]:
                 route, _, msg = entry.partition(" :: ")
-                text = msg[:160] or "empty error text"
+                text = msg[:160].strip() or "empty error text"
                 result.add_finding(
                     make_finding(
                         agent=self.name,

@@ -122,7 +122,8 @@ def run(
                 to_run_names = [test_type]
             else:
                 con.print(f"[red]Unknown test type: {test_type!r}[/red]")
-                con.print(f"[dim]Valid: {' · '.join(VALID_TYPES)}[/dim]")
+                con.print(f"[dim]Valid types: {' · '.join(VALID_TYPES)}[/dim]")
+                con.print(f"[dim]Or an agent name: {' · '.join(sorted(agent_map))}[/dim]")
                 return
 
     to_run = [agent_map[n] for n in to_run_names if n in agent_map]
@@ -705,13 +706,12 @@ def _manage_flows(sub_action: str | None, name: str | None, root: Path) -> None:
 
 
 def _import_all_agents():
-    """Import all test agent modules to trigger registration."""
-    import patchi.core.testing.e2e_flow_agent  # noqa: F401
-    import patchi.core.testing.test_agents  # noqa: F401
-    import patchi.core.testing.ui_accessibility_agent  # noqa: F401
-    import patchi.core.testing.ui_button_agent  # noqa: F401
-    import patchi.core.testing.ui_layout_agent  # noqa: F401
-    import patchi.core.testing.visual_regression_agent  # noqa: F401
+    """Import all agent modules to trigger registration (never hand-list)."""
+    from patchi.core.agents.base import discover_agent_modules
+
+    failures = discover_agent_modules()
+    for failure in failures:
+        _log.debug("agent discovery: %s", failure)
 
 
 def _extract_skeleton(filepath: str) -> str:

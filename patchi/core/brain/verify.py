@@ -339,6 +339,12 @@ def verify_ui_findings(root: Path, findings: list[dict]) -> tuple[list[dict], li
         if not rel or rel == "(all pages)":
             kept.append(f)
             continue
+        # URL routes (UI findings reference pages, not files): fail open.
+        # Full route verification needs RouteMapper contract scope, which is
+        # unavailable here; file findings below are still strictly gated.
+        if rel.startswith("/"):
+            kept.append(f)
+            continue
         rel = rel.replace("\\", "/").lstrip("/")
         if rel in entries:
             try:
