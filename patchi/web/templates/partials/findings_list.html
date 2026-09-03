@@ -12,8 +12,8 @@
     {% for f in findings %}
     <tr>
       <td><span class="badge badge-{{ f.severity }}">{{ f.severity }}</span></td>
-      <td style="font-family:var(--font-mono);font-size:11px">{{ f.file }}{% if f.line %}:{{ f.line }}{% endif %}</td>
-      <td>{{ (f.message or '')[:60] }}</td>
+      <td style="font-family:var(--font-mono);font-size:11px" data-tooltip="{{ f.file }}{% if f.line %}:{{ f.line }}{% endif %}">{{ f.file }}{% if f.line %}:{{ f.line }}{% endif %}</td>
+      <td data-tooltip="{{ f.message or '' }}">{{ (f.message or '')[:60] }}</td>
       <td style="color:var(--text-dim);font-size:11px">{{ f.agent }}</td>
     </tr>
     {% endfor %}

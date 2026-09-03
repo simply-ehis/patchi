@@ -287,7 +287,7 @@ def create_app(root: Path) -> FastAPI:
         def _do():
             try:
                 from patchi.core.security.domain_loader import DomainLoader
-                dl = DomainLoader()
+                dl = DomainLoader(_r)
                 dl.load_all()
                 _log.info("Domain cache warmed: %d domains", len(dl._domains))
             except Exception as exc:

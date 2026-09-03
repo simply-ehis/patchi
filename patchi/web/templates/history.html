@@ -121,16 +121,16 @@
             <td style="padding:6px 8px;text-align:right;font-weight:600">{{ s.findings_count }}</td>
             <td style="padding:6px 8px;text-align:center">
               {% if s.severity_breakdown.get('critical', 0) > 0 %}
-              <span style="color:var(--sev-critical)" title="Critical: {{ s.severity_breakdown.get('critical', 0) }}">●{{ s.severity_breakdown.get('critical', 0) }}</span>
+              <span style="color:var(--sev-critical)" data-tooltip="Critical: {{ s.severity_breakdown.get('critical', 0) }}">●{{ s.severity_breakdown.get('critical', 0) }}</span>
               {% endif %}
               {% if s.severity_breakdown.get('high', 0) > 0 %}
-              <span style="color:var(--sev-high)" title="High: {{ s.severity_breakdown.get('high', 0) }}">●{{ s.severity_breakdown.get('high', 0) }}</span>
+              <span style="color:var(--sev-high)" data-tooltip="High: {{ s.severity_breakdown.get('high', 0) }}">●{{ s.severity_breakdown.get('high', 0) }}</span>
               {% endif %}
               {% if s.severity_breakdown.get('medium', 0) > 0 %}
-              <span style="color:var(--sev-medium)" title="Medium: {{ s.severity_breakdown.get('medium', 0) }}">●{{ s.severity_breakdown.get('medium', 0) }}</span>
+              <span style="color:var(--sev-medium)" data-tooltip="Medium: {{ s.severity_breakdown.get('medium', 0) }}">●{{ s.severity_breakdown.get('medium', 0) }}</span>
               {% endif %}
               {% if s.severity_breakdown.get('low', 0) > 0 %}
-              <span style="color:var(--sev-info)" title="Low: {{ s.severity_breakdown.get('low', 0) }}">●{{ s.severity_breakdown.get('low', 0) }}</span>
+              <span style="color:var(--sev-info)" data-tooltip="Low: {{ s.severity_breakdown.get('low', 0) }}">●{{ s.severity_breakdown.get('low', 0) }}</span>
               {% endif %}
             </td>
             <td style="padding:6px 8px;text-align:right">

@@ -8,12 +8,282 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="preload" href="/static/dashboard_v2.css?v=10" as="style">
-  <link rel="stylesheet" href="/static/dashboard_v2.css?v=10">
-  <!-- Non-critical JS: deferred to avoid parser blocking -->
-  <script defer src="/static/htmx.min.js" onerror="var s=document.createElement('script');s.src='https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js';document.head.appendChild(s)"></script>
-  <!-- Brain map libs: loaded on demand via _loadBrainLibs() -->
-  <script>window._brainLibsLoaded=false;window._loadBrainLibs=function(){if(window._brainLibsLoaded)return;window._brainLibsLoaded=true;var s1=document.createElement('script');s1.src='/static/konva.min.js';s1.onload=function(){var s2=document.createElement('script');s2.src='/static/canvas.js?v=12';document.head.appendChild(s2);};document.head.appendChild(s1);var s3=document.createElement('script');s3.src='https://unpkg.com/three@0.160.0/build/three.min.js';s3.onload=function(){var s4=document.createElement('script');s4.src='https://unpkg.com/three@0.160.0/examples/js/controls/OrbitControls.js';s4.onload=function(){var s5=document.createElement('script');s5.src='/static/brain3d.js?v=3';document.head.appendChild(s5);};document.head.appendChild(s4);};document.head.appendChild(s3);};</script>
+  <link rel="preload" href="/static/dashboard_v2.css?v=14" as="style">
+  <link rel="stylesheet" href="/static/dashboard_v2.css?v=14">
+  <!-- Shared UI helpers (styled hover tooltip + data-tooltip delegation) -->
+  <script defer src="/static/brain-ui.js?v=1"></script>
+  <!-- htmx + brain-map libs share one resilient loader: per-source timeout ->
+       retry -> mirror fallback (local -> unpkg -> jsdelivr) with global
+       verification. Every remote fetch is preceded by a preconnect hint
+       (_ensurePreconnect) whose "timeout" is a short grace period and whose
+       "retry" re-issues the hint when a fetch from that origin proves
+       unreachable (Chromium does not fire load/error on preconnect links,
+       so fetch outcome is the only truthful signal). htmx starts immediately;
+       brain libs start on demand via _loadBrainLibs(). -->
+  <script>
+    (function(){
+    'use strict';
+    /* Public state (tests can pre-seed _brainLibsCfg via add_init_script):
+         _brainLibsCfg  { timeout, attempts, preconnectGrace, preconnectAttempts, sources }
+         _scriptStatus    per-lib outcome map  (konva/canvas/three/orbit/brain3d/htmx)
+         _preconnectStatus per-origin state map: undefined -> pending -> ok | fail
+       A later _loadBrainLibs()/_loadHtmx() call re-attempts only libs that
+       previously failed (already-ready libs short-circuit). */
+    window._brainLibsCfg=window._brainLibsCfg||{};
+    window._scriptStatus={konva:false,canvas:false,three:false,orbit:false,brain3d:false,htmx:false};
+    window._brainLibsStatus=window._scriptStatus; /* legacy alias */
+    window._preconnectStatus={};
+    window._preconnectIssues={};
+    window._preconnectTimers={};
+    /* Single place state is written: cancels any pending grace timer so a
+       stale timer can never flip an origin after it was proven failed. */
+    function _setPC(origin,state){
+      var t=window._preconnectTimers[origin];
+      if(t){clearTimeout(t);window._preconnectTimers[origin]=null;}
+      window._preconnectStatus[origin]=state;
+    }
+    function _scheduleGrace(origin,grace){
+      var t=window._preconnectTimers[origin];
+      if(t){clearTimeout(t);window._preconnectTimers[origin]=null;}
+      window._preconnectTimers[origin]=setTimeout(function(){
+        if(window._preconnectStatus[origin]==='pending')_setPC(origin,'grace-ok');
+      },grace);
+    }
+    var SRC={
+      htmx:[
+        '/static/htmx.min.js',
+        'https://unpkg.com/htmx.org@2.0.4/dist/htmx.min.js',
+        'https://cdn.jsdelivr.net/npm/htmx.org@2.0.4/dist/htmx.min.js'
+      ],
+      konva:[
+        '/static/konva.min.js',
+        'https://unpkg.com/konva@9.3.22/konva.min.js',
+        'https://cdn.jsdelivr.net/npm/konva@9.3.22/konva.min.js'
+      ],
+      canvas:['/static/canvas.js?v=19'],
+      three:[
+        '/static/three.min.js',
+        'https://unpkg.com/three@0.160.0/build/three.min.js',
+        'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js'
+      ],
+      orbit:[
+        '/static/OrbitControls.js',
+        'https://unpkg.com/three@0.160.0/examples/js/controls/OrbitControls.js',
+        'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/controls/OrbitControls.js'
+      ],
+      brain3d:['/static/brain3d.js?v=11']
+    };
+    function _log(msg){try{console.log('[loader] '+msg);}catch(_){}};
+    function _warn(msg){try{console.warn('[loader] '+msg);}catch(_){}};
+    function _libReady(name){
+      try{
+        if(name==='htmx')return !!(window.htmx&&typeof window.htmx.ajax==='function'&&typeof window.htmx.trigger==='function');
+        if(name==='konva')return !!window.Konva;
+        if(name==='canvas')return !!window.BrainMap;
+        if(name==='three')return !!(window.THREE&&window.THREE.Scene);
+        if(name==='orbit')return !!(window.THREE&&window.THREE.OrbitControls);
+        if(name==='brain3d')return !!window.BrainMap3D;
+      }catch(e){}
+      return false;
+    }
+    function _originOf(url){
+      try{var a=document.createElement('a');a.href=url;return a.origin||'';}catch(e){return '';}
+    }
+    function _findPreconnectLink(origin){
+      var norm=function(u){return u.split('?')[0].replace(/\/+$/,'');};
+      var links=document.querySelectorAll('link[rel="preconnect"]');
+      for(var i=0;i<links.length;i++){if(norm(links[i].href)===norm(origin))return links[i];}
+      return null;
+    }
+    /* Preconnect hint sharing the loader's timeout/retry discipline, tuned to
+       how browsers actually behave:
+         - issue: append <link rel=preconnect> once (deduped vs static hints)
+         - timeout: after `preconnectGrace` ms without evidence of failure the
+           origin is optimistically marked ok (link events never fire reliably)
+         - retry: when a script fetch from the origin proves it unreachable
+           (_markOriginResult false), the hint is dropped and _ensurePreconnect
+           re-issues it on the next attempt (bounded by preconnectAttempts).
+       Purely advisory — never blocks script loading. */
+    window._ensurePreconnect=function(origin){
+      origin=origin||'';
+      if(!origin||origin===location.origin)return;
+      var st=window._preconnectStatus;
+      if(st[origin]==='ok'||st[origin]==='grace-ok')return;
+      var cfg=window._brainLibsCfg||{};
+      var grace=cfg.preconnectGrace||2000;
+      var link=_findPreconnectLink(origin);
+      if(link&&st[origin]!=='fail'){if(!st[origin])_scheduleGrace(origin,grace);return;} /* already issued */
+      if(st[origin]==='fail'){
+        /* retry: drop the stale hint so the re-issue triggers a fresh handshake.
+           preconnectAttempts caps how many re-issues happen; blocked calls
+           neither re-issue nor count further. */
+        var issues=window._preconnectIssues[origin]||0;
+        if(issues>=(cfg.preconnectAttempts||3)){
+          _warn('preconnect retry limit reached for '+origin+' ('+issues+' issues)');
+          return;
+        }
+        issues+=1;
+        window._preconnectIssues[origin]=issues;
+        _warn('preconnect retrying '+origin+' (issue '+issues+')');
+        if(link&&link.parentNode){try{link.parentNode.removeChild(link);}catch(e){}}
+      }
+      link=document.createElement('link');
+      link.rel='preconnect';
+      link.href=origin;
+      link.crossOrigin='anonymous';
+      document.head.appendChild(link);
+      _setPC(origin,'pending');
+      /* grace period: no failure signal within the window => assume ready */
+      _scheduleGrace(origin,grace);
+      _log('preconnect issued: '+origin);
+    };
+    /* Only a real fetch outcome tells us the truth about an origin. */
+    window._markOriginResult=function(origin,ok){
+      if(!origin||origin===location.origin)return;
+      var st=window._preconnectStatus;
+      if(ok){_setPC(origin,'ok');_log('preconnect proven: '+origin);}
+      else if(st[origin]==='ok'){_warn('origin unreachable despite preconnect: '+origin);}
+      else if(st[origin]!=='fail'){_setPC(origin,'fail');_warn('preconnect origin unreachable: '+origin);}
+    };
+    /* Append one <script> with a hard timeout; resolves on load, rejects on
+       error or timeout. async=false keeps execution ordered (defer-like). */
+    function _loadOneScript(src,timeoutMs){
+      return new Promise(function(res,rej){
+        var s=document.createElement('script');
+        var done=false;
+        var timer=setTimeout(function(){
+          if(done)return;done=true;
+          s.onload=s.onerror=null;
+          if(s.parentNode)s.parentNode.removeChild(s);
+          rej(new Error('timeout'));
+        },timeoutMs);
+        s.async=false;
+        s.onload=function(){if(done)return;done=true;clearTimeout(timer);res();};
+        s.onerror=function(){if(done)return;done=true;clearTimeout(timer);if(s.parentNode)s.parentNode.removeChild(s);rej(new Error('error'));};
+        s.src=src;
+        document.head.appendChild(s);
+      });
+    }
+    /* One dependency stage: verify the global, then walk sources; each source
+       gets up to `attempts` tries (cache-busted on retry) before the next
+       source. Remote origins are preconnected before each attempt and marked
+       ok/fail from the fetch outcome so the next attempt re-issues the hint. */
+    function _loadStage(name,srcs,timeoutMs,attempts){
+      var i=0;
+      function next(){
+        if(_libReady(name))return Promise.resolve(true);
+        if(i>=srcs.length)return Promise.resolve(false);
+        var src=srcs[i];
+        var attempt=0;
+        function trySrc(){
+          attempt++;
+          var url=src;
+          if(attempt>1)url+=(url.indexOf('?')>=0?'&':'?')+'_r='+attempt;
+          var origin=_originOf(url);
+          if(origin&&origin!==location.origin)window._ensurePreconnect(origin); /* advisory, never blocks */
+          _log('loading '+name+' ('+attempt+'/'+attempts+') '+url);
+          return _loadOneScript(url,timeoutMs).then(function(){
+            if(origin)window._markOriginResult(origin,true);
+            if(_libReady(name))return true;
+            _warn(name+' loaded but global missing — retrying');
+            if(attempt<attempts)return trySrc();
+            i++;return next();
+          },function(err){
+            _warn(name+' '+url+' '+err.message+' (attempt '+attempt+'/'+attempts+')');
+            if(origin)window._markOriginResult(origin,false);
+            if(attempt<attempts)return trySrc();
+            i++;return next();
+          });
+        }
+        return trySrc();
+      }
+      return next().then(function(ok){
+        window._scriptStatus[name]=ok;
+        if(ok)_log(name+' ready');
+        else _warn(name+' unavailable after '+srcs.length+' source(s) x '+attempts+' attempts');
+        return ok;
+      });
+    }
+    function _cfg(){return window._brainLibsCfg||{};}
+    /* ── 2D/3D brain-map chains (loaded on demand) ─────────────────── */
+    window._brainLibsLoaded=false;
+    window._brainLibsLoading=false;
+    window._brainLibsPromise=null;
+    window._loadBrainLibs=function(){
+      if(window._brainLibsLoading)return window._brainLibsPromise;
+      window._brainLibsLoading=true;
+      var cfg=_cfg();
+      var TIMEOUT=cfg.timeout||12000;
+      var ATTEMPTS=cfg.attempts||2;
+      if(cfg.sources)for(var k in cfg.sources)if(cfg.sources[k])SRC[k]=cfg.sources[k];
+      // 2D chain
+      var canvasP=_loadStage('konva',SRC.konva,TIMEOUT,ATTEMPTS).then(function(ok){
+        return ok?_loadStage('canvas',SRC.canvas,TIMEOUT,ATTEMPTS):false;
+      });
+      // 3D chain (independent of 2D — a stalled 3D dep never blocks 2D)
+      var brain3dP=_loadStage('three',SRC.three,TIMEOUT,ATTEMPTS).then(function(ok){
+        return ok?_loadStage('orbit',SRC.orbit,TIMEOUT,ATTEMPTS):false;
+      }).then(function(ok){
+        return ok?_loadStage('brain3d',SRC.brain3d,TIMEOUT,ATTEMPTS):false;
+      });
+      window._brainLibsPromise=Promise.all([canvasP,brain3dP]).then(function(res){
+        window._brainLibsLoading=false;
+        window._brainLibsLoaded=true;
+        if(res[1])document.dispatchEvent(new CustomEvent('brainlibs:3dready'));
+        else document.dispatchEvent(new CustomEvent('brainlibs:3dfailed',{detail:{attempted:true}}));
+        return {canvas:res[0],brain3d:res[1]};
+      }).catch(function(err){
+        window._brainLibsLoading=false;
+        window._brainLibsLoaded=true;
+        _warn('brain lib loader error: '+(err&&err.message?err.message:err));
+        return {canvas:false,brain3d:false};
+      });
+      return window._brainLibsPromise;
+    };
+    /* ── htmx chain (starts immediately; consumers are guarded with
+           typeof htmx !== 'undefined' fetch fallbacks) ─────────────── */
+    window._htmxFixing=false;
+    window._htmxPromise=null;
+    window._loadHtmx=function(){
+      if(window._htmxFixing)return window._htmxPromise;
+      window._htmxFixing=true;
+      var cfg=_cfg();
+      var TIMEOUT=cfg.timeout||12000;
+      var ATTEMPTS=cfg.attempts||2;
+      if(cfg.sources&&cfg.sources.htmx)SRC.htmx=cfg.sources.htmx;
+      window._htmxPromise=_loadStage('htmx',SRC.htmx,TIMEOUT,ATTEMPTS).then(function(ok){
+        window._htmxFixing=false;
+        if(ok){
+          /* htmx 2.x only self-initializes at document.readyState 'complete'
+             (otherwise it waits for DOMContentLoaded, which it registers at
+             eval time). A deferred parser script always evals before
+             DOMContentLoaded, but a DYNAMIC script that finishes loading after
+             it (readyState 'interactive') registers a listener that never
+             fires — leaving htmx loaded but the initial document unprocessed
+             (hx-trigger=load etc. never run). Detect that dead window and
+             process the document explicitly. */
+          try{
+            var rs=document.readyState;
+            if(rs==='interactive'&&document.body&&window.htmx&&window.htmx.process){
+              window.htmx.process(document.body);
+              _log('htmx initial document processed (late dynamic load)');
+            }
+          }catch(e){_warn('htmx initial process failed: '+(e&&e.message?e.message:e));}
+          document.dispatchEvent(new CustomEvent('patchi-htmx-ready'));
+        }
+        return ok;
+      });
+      return window._htmxPromise;
+    };
+    // Warm CDN connections at page start so any later mirror fallback
+    // (htmx/konva/three/orbit) has a ready socket instead of a cold one.
+    window._ensurePreconnect('https://unpkg.com');
+    window._ensurePreconnect('https://cdn.jsdelivr.net');
+    // Kick htmx off immediately (dynamic, defer-like, non-blocking).
+    window._loadHtmx();
+    })();
+  </script>
+
   {% block head %}{% endblock %}
 </head>
 <body>

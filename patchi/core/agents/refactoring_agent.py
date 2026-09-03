@@ -10,10 +10,17 @@ Covers §7.1.3-4 and §7.3.1-3:
 
 from __future__ import annotations
 
+import ast
 import logging
-import re
 from pathlib import Path
 
+from ..brain.code_query import (
+    js_call_names,
+    js_calls,
+    js_useeffect_without_cleanup,
+    lang_for_file,
+    parse_js,
+)
 from ..brain.languages import DEFAULT_IGNORE_DIRS
 from .base import (
     AgentGroup,
@@ -30,51 +37,66 @@ from .base import (
 _log = logging.getLogger("patchi.agents.refactoring_agent")
 
 
-def _detect_interval_without_cleanup(content: str) -> list[dict]:
+def _detect_interval_without_cleanup(content: str, lang: str) -> list[dict]:
     findings: list[dict] = []
-    has_clear = "clearInterval" in content
-    for i, line in enumerate(content.splitlines()):
-        if "setInterval" in line and "clearInterval" not in line:
-            if not has_clear:
-                m = re.search(r"setInterval\s*\(", line)
-                if m:
-                    findings.append({"line": i + 1, "type": "setInterval"})
+    tree = parse_js(content, lang)
+    if tree is None:
+        return findings
+    names = js_call_names(tree, lang)
+    if "setInterval" in names and "clearInterval" not in names:
+        for call in js_calls(tree, lang):
+            if call.name == "setInterval":
+                findings.append({"line": call.line, "type": "setInterval"})
+                break
     return findings
 
 
-def _detect_effect_without_cleanup(content: str) -> list[dict]:
+def _detect_effect_without_cleanup(content: str, lang: str) -> list[dict]:
+    return [
+        {"line": line, "type": "useEffect_no_cleanup"}
+        for line in js_useeffect_without_cleanup(parse_js(content, lang), lang)
+    ]
+
+
+def _detect_py_file_handle_leaks(content: str) -> list[dict]:
+    """Python open() outside a with-statement, via stdlib ast."""
     findings: list[dict] = []
-    lines = content.splitlines()
-    in_effect = False
-    effect_start = 0
-    has_cleanup = False
-    brace_depth = 0
-    for i, line in enumerate(lines):
-        stripped = line.strip()
-        if "useEffect" in stripped and "=>" in stripped:
-            in_effect = True
-            effect_start = i + 1
-            has_cleanup = False
-            brace_depth = stripped.count("{") - stripped.count("}")
-            if brace_depth > 0:
-                continue
-        if in_effect:
-            brace_depth += stripped.count("{") - stripped.count("}")
-            if "return" in stripped and ("=>" in stripped or "(" in stripped or ";" in stripped):
-                has_cleanup = True
-            if brace_depth <= 0:
-                if not has_cleanup:
-                    findings.append({"line": effect_start, "type": "useEffect_no_cleanup"})
-                in_effect = False
+    try:
+        tree = ast.parse(content)
+    except SyntaxError:
+        return findings
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Call) and getattr(node.func, "id", "") == "open":
+            findings.append({"line": node.lineno, "resource": "open()", "type": "file_handle"})
+            break
     return findings
 
 
-def _detect_file_handle_leaks(content: str) -> list[dict]:
+def _detect_file_handle_leaks(content: str, lang: str) -> list[dict]:
+    findings: list[dict] = []
+    tree = parse_js(content, lang)
+    if tree is None:
+        return findings
+    names = js_call_names(tree, lang)
+    opened = [c for c in js_calls(tree, lang) if c.name in ("createReadStream", "createWriteStream") or c.full == "fs.open"]
+    if opened and not names & {"close", "destroy", "end"}:
+        first = opened[0]
+        findings.append({"line": first.line, "resource": first.full or first.name, "type": "file_handle"})
+    return findings
+
+
+def _detect_file_handle_leaks_legacy(content: str) -> list[dict]:
+    """Fallback for languages without an installed tree-sitter grammar.
+
+    Regex is the only available tool here (no parser installed); kept
+    deliberately narrow and documented.
+    """
+    import re
+
     findings: list[dict] = []
     lines = content.splitlines()
     streams: dict[str, int] = {}
     for i, line in enumerate(lines):
-        # Detect stream creation patterns
         for pat in [
             r"(?:createReadStream|createWriteStream)\s*\(\s*([^)]+)\)",
             r"open\s*\(\s*['\"]([^'\"]+)",
@@ -83,7 +105,6 @@ def _detect_file_handle_leaks(content: str) -> list[dict]:
             if m:
                 ident = m.group(1)[:20]
                 streams[ident] = i + 1
-        # Detect close/destroy calls
         if re.search(r"\.(close|destroy|end)\s*\(", line):
             for k in list(streams.keys()):
                 streams.pop(k, None)
@@ -92,24 +113,30 @@ def _detect_file_handle_leaks(content: str) -> list[dict]:
     return findings
 
 
-def _detect_modernization_candidates(content: str, ext: str) -> list[dict]:
+def _detect_modernization_candidates(content: str, ext: str, lang: str) -> list[dict]:
     findings: list[dict] = []
+    tree = parse_js(content, lang)
+    if tree is None:
+        return findings
+    from ..brain.code_query import js_var_kinds
+
     lines = content.splitlines()
-    if ext in (".js", ".jsx", ".ts", ".tsx"):
-        for i, line in enumerate(lines):
-            stripped = line.strip()
-            if re.search(r"\bvar\s+\w+\s*=", stripped) and not stripped.startswith("//"):
-                findings.append({"line": i + 1, "type": "var_to_const_let", "text": stripped[:60]})
-            if ".then(" in stripped and "async" not in stripped and "await" not in stripped:
-                if re.search(r"\.then\s*\(", stripped):
-                    findings.append(
-                        {"line": i + 1, "type": "then_to_async_await", "text": stripped[:60]}
-                    )
-            if re.search(r"require\s*\(['\"]", stripped) and not stripped.startswith("//"):
-                if "import " not in content:
-                    findings.append(
-                        {"line": i + 1, "type": "require_to_import", "text": stripped[:60]}
-                    )
+    for kind, line in js_var_kinds(tree, lang):
+        if kind == "var":
+            text = lines[line - 1].strip()[:60] if 0 < line <= len(lines) else ""
+            findings.append({"line": line, "type": "var_to_const_let", "text": text})
+    for call in js_calls(tree, lang):
+        if call.name != "then":
+            continue
+        text = lines[call.line - 1] if 0 < call.line <= len(lines) else ""
+        if "async" in text or "await" in text:
+            continue
+        findings.append({"line": call.line, "type": "then_to_async_await", "text": text.strip()[:60]})
+    if "require" in js_call_names(tree, lang) and "import " not in content:
+        for call in js_calls(tree, lang):
+            if call.name == "require":
+                text = lines[call.line - 1] if 0 < call.line <= len(lines) else ""
+                findings.append({"line": call.line, "type": "require_to_import", "text": text.strip()[:60]})
     return findings
 
 
@@ -157,19 +184,29 @@ class RefactoringAgent(BaseAgent):
                 continue
 
             if ext in (".js", ".jsx", ".ts", ".tsx", ".svelte"):
+                lang = lang_for_file(rel)
                 interval_leaks.extend(
-                    {"file": rel, **f} for f in _detect_interval_without_cleanup(content)
+                    {"file": rel, **f} for f in _detect_interval_without_cleanup(content, lang)
                 )
                 effect_issues.extend(
-                    {"file": rel, **f} for f in _detect_effect_without_cleanup(content)
+                    {"file": rel, **f} for f in _detect_effect_without_cleanup(content, lang)
                 )
                 modernization.extend(
-                    {"file": rel, **f} for f in _detect_modernization_candidates(content, ext)
+                    {"file": rel, **f} for f in _detect_modernization_candidates(content, ext, lang)
                 )
 
-            if ext in (".js", ".jsx", ".ts", ".tsx", ".py", ".rs", ".go", ".java", ".c", ".cpp"):
+            if ext in (".js", ".jsx", ".ts", ".tsx"):
                 file_handle_leaks.extend(
-                    {"file": rel, **f} for f in _detect_file_handle_leaks(content)
+                    {"file": rel, **f}
+                    for f in _detect_file_handle_leaks(content, lang_for_file(rel))
+                )
+            elif ext == ".py":
+                file_handle_leaks.extend(
+                    {"file": rel, **f} for f in _detect_py_file_handle_leaks(content)
+                )
+            elif ext in (".rs", ".go", ".java", ".c", ".cpp"):
+                file_handle_leaks.extend(
+                    {"file": rel, **f} for f in _detect_file_handle_leaks_legacy(content)
                 )
 
         result.data["interval_leaks"] = interval_leaks

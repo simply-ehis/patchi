@@ -98,6 +98,13 @@ async def evt_scan_complete(total_findings: int, duration_ms: int) -> None:
     )
 
 
+async def evt_scan_cancelled(total_findings: int) -> None:
+    await manager.broadcast(
+        "scan.cancelled",
+        {"total_findings": total_findings},
+    )
+
+
 async def evt_agent_started(agent_name: str) -> None:
     await manager.broadcast("agent.started", {"agent": agent_name})
 

@@ -32,18 +32,13 @@
 
 ---
 
-## 2. GNN Bug Detection (docs/planning/GNNBugDetection_IMPLEMENTATION_PLAN.md — 28 days)
+## 2. GNN Bug Detection — DELETED
 
-**Status:** Not started (all files `to be created`).
-
-| Phase | What | Files |
-|---|---|---|
-| **1 Days 1-5** | GNN agent core, CPG extractor, graph normalizer | `agents/gnn_detector.py`, `gnn_models.py`, `cpg_extractor.py`, `graph_normalizer.py`, `vulnerability_classifier.py` |
-| **2 Days 6-12** | Orchestrator integration, `AgentGroup.GNN_DETECTION` | `agents/base.py`, `agent_registry.py` |
-| **3 Days 13-20** | Tests `test_gnn_detector.py` + benchmarks vs static tools | — |
-| **4 Days 21-28** | Memory mgmt (graph caching), Docker, ONNX quantization | — |
-
-Goal: 15M params <5ms/function, detects buffer overflow, null deref, race, leak vs CPGs.
+**Status:** Deleted — untrainable without a labeled corpus; all code
+(`agents/gnn_detector.py`, `gnn_models.py`, `cpg_extractor.py`,
+`graph_normalizer.py`, `vulnerability_classifier.py`,
+`tools/fetch_vuln_model.py`, `tests/test_gnn_*`, `tests/test_cpg_extractor.py`)
+and the 28-day implementation plan removed. Do not re-add.
 
 ---
 
@@ -79,7 +74,7 @@ Goal: 15M params <5ms/function, detects buffer overflow, null deref, race, leak 
 docs/
   ARCHITECTURE.md, CLI.md, WEB.md, OVERVIEW.md, DEPLOYMENT.md, LANGUAGE_SUPPORT.md, STRIDE.md
   planning/          ← single planning folder (43 MDs consolidated here)
-    PATCHI_FEATURE_PLAN.md (source for §1), GNNBugDetection_IMPLEMENTATION_PLAN.md (§2),
+    PATCHI_FEATURE_PLAN.md (source for §1),
     _planning_docs/*, patchi_plans/*, files-5/*
     defense-and-repo-integration-plan.md, hosted-mode-2.0-pipeline.md, ...
   archive/           ← completed plans (do not edit)
@@ -95,7 +90,7 @@ ROADMAP.md           ← this file (root) — single roadmap from uncompleted
 ## 6. Next Actions (in priority order from consolidated plan)
 
 1. **Quick Wins (Day 1-2)** §4.1.7 + §7.2.1 + §10.3.2 + §10.2.1 + §9.1.2 from Feature Plan
-2. **GNN Phase 1** or **Dead Code Orchestrator** (§2.1.1) — pick one track
+2. **Dead Code Orchestrator** (§2.1.1)
 3. **Scan Bus** — only after Quick Wins, as it's the largest
 4. **Debugger vs Dynamic checks** — share process-launch primitive, sequence together
 

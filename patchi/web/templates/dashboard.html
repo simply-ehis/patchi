@@ -50,6 +50,10 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
       Brain Map
     </h2>
+    <span class="brain-map-meta" id="brain-map-meta">
+      <span class="brain-map-count" id="brain-map-count">&mdash; nodes</span>
+      <span class="brain-map-desc" id="brain-map-desc">Force-directed layout &mdash; connected modules pulled together by shared references</span>
+    </span>
     <div class="panel-actions">
       <button type="button" class="btn btn-sm" onclick="toggle3D()" id="btn-3d" title="Toggle 3D mode">🔮 3D</button>
       <button type="button" class="btn btn-sm" onclick="toggleBrainMapFullScreen()" id="btn-fullscreen" title="Toggle full-screen">⛶</button>
@@ -94,6 +98,19 @@
       <button type="button" class="btn btn-sm" onclick="BrainMap.exportJSON()" title="Export data as JSON">💾 JSON</button>
     </div>
   </header>
+  <!-- Render-cap caption: shown once nodes exceed MAX_RENDERED_NODES (300) -->
+  <div id="brain-map-cap-note" class="brain-map-cap-note" hidden>
+    <span class="brain-map-cap-dot" aria-hidden="true"></span>
+    <span>Files beyond the 300-node render cap appear as dim dots so the map stays fast &mdash; edges still connect to them.</span>
+  </div>
+  <!-- 3D engine unavailable banner (shown when the three.js chain fails to load) -->
+  <div id="brain-3d-fail" class="brain-3d-fail" hidden>
+    <span class="brain-3d-fail-ic" aria-hidden="true">🛰️</span>
+    <span class="brain-3d-fail-msg" id="brain-3d-fail-msg">3D engine failed to load — check your connection and try again. The 2D map keeps working.</span>
+    <span class="brain-3d-fail-grow"></span>
+    <button type="button" class="btn btn-sm" id="brain-3d-fail-retry" onclick="window._retryBrain3D && window._retryBrain3D()">↻ Retry</button>
+    <button type="button" class="btn btn-sm btn-ghost brain-3d-fail-x" id="brain-3d-fail-dismiss" onclick="window._dismissBrain3DFail && window._dismissBrain3DFail()" title="Don't show again this session">✕</button>
+  </div>
   <div style="position:relative;min-height:500px;height:calc(100vh - 300px);max-height:800px;background:var(--bg-primary);border-radius:0 0 var(--radius-lg) var(--radius-lg);overflow:hidden">
     <!-- 2D Legend -->
     <button type="button" id="legend-toggle" onclick="toggleBrainLegend(event)" onmouseenter="showBrainLegend()" onmouseleave="scheduleHideBrainLegend()" style="position:absolute;left:8px;top:8px;z-index:10;width:28px;height:28px;border-radius:var(--radius-md);background:var(--bg-secondary);border:1px solid var(--border-subtle);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center" title="Legend (hover)">☰</button>
@@ -198,6 +215,70 @@
       </div>
     </div>
     </div> <!-- close legend-2d -->
+    <!-- 3D Legend (shown while 3D mode is active) -->
+    <div id="legend-3d" onmouseenter="cancelHideBrainLegend()" onmouseleave="scheduleHideBrainLegend()" style="position:absolute;left:8px;top:40px;width:215px;max-height:calc(100% - 48px);border:1px solid var(--border-subtle);border-radius:var(--radius-md);box-shadow:0 6px 20px rgba(0,0,0,0.35);overflow-y:auto;font-size:11px;z-index:30;background:var(--bg-secondary);display:none">
+      <div style="padding:12px;font-size:11px;background:var(--bg-secondary)">
+        <div class="u-fw600 u-ink u-mb8 u-fs12">Node Color (3D)</div>
+        <div class="u-flex u-aic u-gap8 u-mb6">
+          <svg width="16" height="16"><circle cx="8" cy="8" r="7" fill="#FF4D6D" stroke="#ff6b8a" stroke-width="1.5"/></svg>
+          <span class="u-muted">Critical &mdash; critical finding or 5+ issues</span>
+        </div>
+        <div class="u-flex u-aic u-gap8 u-mb6">
+          <svg width="16" height="16"><circle cx="8" cy="8" r="7" fill="#FACC15" stroke="#FACC15" stroke-width="1.5"/></svg>
+          <span class="u-muted">High &mdash; high finding or 3+ issues</span>
+        </div>
+        <div class="u-flex u-aic u-gap8 u-mb6">
+          <svg width="16" height="16"><circle cx="8" cy="8" r="7" fill="#E8920A" stroke="#E8920A" stroke-width="1.5"/></svg>
+          <span class="u-muted">Has findings &mdash; 1&ndash;2 issues</span>
+        </div>
+        <div class="u-flex u-aic u-gap8 u-mb12">
+          <svg width="16" height="16"><circle cx="8" cy="8" r="7" fill="#C8621A" stroke="#4b5563" stroke-width="1"/></svg>
+          <span class="u-muted">Clean &mdash; type color, 0 issues</span>
+        </div>
+
+        <div class="u-fw600 u-ink u-mb8 u-fs12">Size &amp; Glow</div>
+        <div style="color:var(--text-secondary);margin-bottom:12px;font-size:10px;line-height:1.4">
+          Sphere radius grows with findings (base 5 &rarr; 18); critical &times;1.4, high &times;1.2.<br>
+          Emissive glow intensifies as the issue count rises.
+        </div>
+
+        <div class="u-fw600 u-ink u-mb8 u-fs12">Edge Colors</div>
+        <div class="u-flex u-aic u-gap8 u-mb6">
+          <svg width="20" height="4"><line x1="0" y1="2" x2="20" y2="2" stroke="#1E3014" stroke-width="1.5" opacity="0.5"/></svg>
+          <span class="u-muted">Import</span>
+        </div>
+        <div class="u-flex u-aic u-gap8 u-mb6">
+          <svg width="20" height="4"><line x1="0" y1="2" x2="20" y2="2" stroke="#f59e0b" stroke-width="1.5" opacity="0.5"/></svg>
+          <span class="u-muted">Route</span>
+        </div>
+        <div class="u-flex u-aic u-gap8 u-mb6">
+          <svg width="20" height="4"><line x1="0" y1="2" x2="20" y2="2" stroke="#22c55e" stroke-width="1.5" opacity="0.5"/></svg>
+          <span class="u-muted">Test Coverage</span>
+        </div>
+        <div class="u-flex u-aic u-gap8 u-mb12">
+          <svg width="20" height="4"><line x1="0" y1="2" x2="20" y2="2" stroke="#f97316" stroke-width="1.5" opacity="0.5"/></svg>
+          <span class="u-muted">Blast Radius</span>
+        </div>
+
+        <div class="u-fw600 u-ink u-mb8 u-fs12">3D Views</div>
+        <div style="color:var(--text-secondary);margin-bottom:8px;font-size:10px;line-height:1.4">
+          <b>Force</b> &mdash; 3D force-directed<br>
+          <b>Tree</b> &mdash; hierarchical cone<br>
+          <b>Spiral</b> &mdash; double helix<br>
+          <b>Helix</b> &mdash; triple intertwined spirals<br>
+          <b>Sphere</b> &mdash; Fibonacci sphere<br>
+          <b>Grid</b> &mdash; volumetric cube<br>
+          <b>Cluster</b> &mdash; spherical clusters<br>
+          <b>Radial</b> &mdash; 3D concentric shells
+        </div>
+
+        <div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--border-subtle);color:var(--text-muted);font-size:10px;line-height:1.5">
+          Drag &mdash; orbit &bull; Scroll / pinch &mdash; zoom<br>
+          Two-finger &mdash; rotate &bull; Double-tap &mdash; reset camera<br>
+          Three-finger &mdash; preset views &bull; Arrows / WASD &mdash; pan
+        </div>
+      </div>
+    </div> <!-- close legend-3d -->
 
     <!-- 2D Canvas -->
     <div id="brain-map" style="position:absolute;top:0;right:0;bottom:0;left:0;min-width:0;min-height:0;touch-action:none"></div>
@@ -218,7 +299,7 @@
       <button type="button" class="btn btn-primary" id="btn-scan-fix" onclick="runQuickAction('scan_fix')">Scan + Fix</button>
       <div style="display:inline-flex;align-items:center;gap:4px">
         <button type="button" class="btn" id="btn-devcheck" onclick="runQuickAction('devcheck')">Dev Check</button>
-        <label class="u-flex u-aic u-gap4 u-ptr u-fs10 u-muted" title="Fast mode runs only 8 core tests (~18s) instead of the full suite">
+        <label class="u-flex u-aic u-gap4 u-ptr u-fs10 u-muted" data-tooltip="Fast mode runs only 8 core tests (~18s) instead of the full suite">
           <input type="checkbox" id="devcheck-fast" style="display:none">
           <span id="devcheck-fast-track" onclick="document.getElementById('devcheck-fast').click()" style="width:28px;height:16px;border-radius:8px;background:var(--bg-tertiary);border:1px solid var(--border);position:relative;transition:background 0.2s;cursor:pointer">
             <span id="devcheck-fast-knob" style="position:absolute;top:1px;left:1px;width:12px;height:12px;border-radius:50%;background:var(--text-secondary);transition: background 150ms var(--ease-out), color 150ms var(--ease-out) 0.2s"></span>
@@ -382,7 +463,7 @@
         var domainLabel = tile.domain.length > 14 ? tile.domain.substring(0, 12) + '…' : tile.domain;
         html += '<div style="background:' + bgColor + ';border-radius:6px;padding:8px;text-align:center;cursor:default;transition:transform 0.15s" ';
         html += 'onmouseenter="this.style.transform=\'scale(1.05)\'" onmouseleave="this.style.transform=\'scale(1)\'" ';
-        html += 'title="' + tile.domain + ': ' + tile.proved + '/' + tile.total + ' proved (' + pct + '%)"';
+        html += 'data-tooltip="' + tile.domain + ': ' + tile.proved + '/' + tile.total + ' proved (' + pct + '%)"';
         html += '>';
         html += '<div style="font-size:18px;font-weight:700;color:' + textColor + '">' + pct + '%</div>';
         html += '<div style="font-size:10px;color:' + textColor + ';opacity:0.8;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + domainLabel + '</div>';
@@ -872,60 +953,179 @@
     _updateToggle();
   })();
 
+  // ── Scan WebSocket + status-polling fallback ─────────────────
+  // The WS delivers live scan.started/progress/complete events, but if the
+  // socket drops mid-scan (or base.html reconnects to a fresh socket that
+  // this listener isn't bound to) progress would freeze. So we also poll
+  // /api/scan/status and re-bind whenever the socket object changes.
+  var _scanBoundWs = null;              // ws this listener is attached to
+  var _scanUiOn = false;                // progress UI currently showing an active scan
+  var _scanEndHandled = false;          // completion/cancel cleanup fired for current scan
+  var _scanLastWsTick = Date.now();     // when the last scan.* WS event arrived
+  var _scanPollTimer = null;
+  var _scanCancelled = false;           // current scan ended via cancel
+
+  function _dashboardScanWsOpen() {
+    var w = window._ws;
+    return !!(w && w.readyState === 1); // WebSocket.OPEN
+  }
+
+  function _scanShowStartedUi(totalAgents) {
+    var sp = document.getElementById('scan-progress');
+    if (sp) sp.style.display = 'block';
+    var sl = document.getElementById('scan-progress-label');
+    if (sl) { sl.textContent = 'Starting ' + (totalAgents || 0) + ' agents…'; }
+    var sc = document.getElementById('scan-progress-count');
+    if (sc) sc.textContent = '0/' + (totalAgents || 0);
+    var sb = document.getElementById('scan-progress-bar');
+    if (sb) { sb.style.width = '0%'; sb.style.background = 'var(--accent)'; }
+    var ts = document.getElementById('topbar-scan');
+    if (ts) { ts.textContent = 'Scanning…'; ts.className = 'scan-badge scanning'; }
+    var btn = document.getElementById('btn-cancel-scan');
+    if (btn) { btn.style.display = 'inline-block'; btn.textContent = 'Cancel'; btn.disabled = false; btn.style.opacity = '1'; }
+    _registerOpIfMissing();
+    _startAgentFastPoll();
+  }
+
+  function _registerOpIfMissing() {
+    if (typeof _registerOp !== 'function') return;
+    var ops = window._activeOps;
+    if (!ops || !ops.scan) _registerOp('scan', 'Security Scan', '/api/scan/cancel');
+  }
+
+  function _scanApplyProgress(cur, total, agentName) {
+    total = total || 1;
+    cur = Math.min(cur, total);
+    var pct = total > 0 ? Math.round(cur / total * 100) : 0;
+    var pctEl = document.getElementById('scan-progress-pct');
+    if (pctEl) { pctEl.textContent = pct + '%'; pctEl.style.color = pct >= 100 ? 'var(--success)' : 'var(--accent)'; }
+    var bar = document.getElementById('scan-progress-bar');
+    if (bar) bar.style.width = pct + '%';
+    var cnt = document.getElementById('scan-progress-count');
+    if (cnt) cnt.textContent = cur + '/' + total;
+    var nameEl = document.getElementById('scan-progress-agent-name');
+    var icon = document.getElementById('scan-progress-agent-icon');
+    if (nameEl) nameEl.textContent = agentName ? 'Running: ' + agentName : '';
+    if (icon) icon.style.display = agentName ? 'inline-block' : 'none';
+    _highlightCurrentAgent(agentName);
+    return pct;
+  }
+
+  function _scanFinishUi(data) {
+    if (_scanEndHandled) return;
+    _scanEndHandled = true;
+    _scanUiOn = false;
+    // Hide cancel button and unregister
+    var btnCancel2 = document.getElementById('btn-cancel-scan');
+    if (btnCancel2) { btnCancel2.style.display = 'none'; }
+    if (typeof _unregisterOp === 'function') _unregisterOp('scan');
+    _stopAgentFastPoll();
+    // Clear progress display
+    var pctDone = document.getElementById('scan-progress-pct');
+    if (pctDone) { pctDone.textContent = '100%'; pctDone.style.color = 'var(--success)'; }
+    var agentDone = document.getElementById('scan-progress-agent-name');
+    if (agentDone) agentDone.textContent = '';
+    var agentIconDone = document.getElementById('scan-progress-agent-icon');
+    if (agentIconDone) agentIconDone.style.display = 'none';
+    _highlightCurrentAgent('');
+    var barDone = document.getElementById('scan-progress-bar');
+    if (barDone) { barDone.style.width = '100%'; barDone.style.background = 'var(--success)'; }
+    var tsDone = document.getElementById('topbar-scan');
+    if (tsDone) {
+      tsDone.textContent = _scanCancelled ? 'Scan cancelled' : 'Scan complete';
+      tsDone.className = 'scan-badge ' + (_scanCancelled ? 'cancelled' : 'complete');
+    }
+    setTimeout(function() {
+      window.refreshFindings();
+      window.refreshAgents();
+      var total = (data && data.total_findings);
+      var doneWord = _scanCancelled ? 'Scan cancelled' : 'Scan complete';
+      _scanCancelled = false;  // reset for the next scan
+      if (total) {
+        toast(doneWord + ' — ' + total + ' finding' + (total !== 1 ? 's' : '') + ' discovered', total > 0 ? 'warning' : 'success');
+      } else {
+        toast(doneWord + ' — results refreshed', 'success');
+      }
+      var sp = document.getElementById('scan-progress');
+      if (sp) sp.style.display = 'none';
+      var b2 = document.getElementById('scan-progress-bar');
+      if (b2) { b2.style.background = 'var(--accent)'; b2.style.width = '0%'; }
+    }, 1500);
+  }
+
+  function _dashboardOnWsMsg(e) {
+    try {
+      var msg = JSON.parse(e.data);
+      if (!msg || !msg.event) return;
+      if (msg.event === 'scan.started') {
+        _scanUiOn = true; _scanEndHandled = false;
+        _scanShowStartedUi(msg.data && msg.data.agent_count);
+      } else if (msg.event === 'scan.progress') {
+        _scanLastWsTick = Date.now();
+        if (!_scanUiOn) { _scanUiOn = true; _scanEndHandled = false; }
+        _scanApplyProgress((msg.data && msg.data.current) || 0, (msg.data && msg.data.total) || 1, (msg.data && msg.data.agent) || '');
+        window.refreshAgents();
+      } else if (msg.event === 'scan.complete' || msg.event === 'scan.cancelled') {
+        _scanLastWsTick = Date.now();
+        _scanCancelled = msg.event === 'scan.cancelled';
+        _scanFinishUi(msg.data);
+      }
+    } catch(_) {}
+  }
+
+  function _bindScanWs() {
+    var w = window._ws;
+    if (!w) return false;
+    if (w === _scanBoundWs) return true;          // already bound
+    if (_scanBoundWs) {
+      try { _scanBoundWs.removeEventListener('message', _dashboardOnWsMsg); } catch(_) {}
+    }
+    w.addEventListener('message', _dashboardOnWsMsg);
+    _scanBoundWs = w;
+    return true;
+  }
+
   function _setupWSListener() {
-    var ws = window._ws;
-    if (!ws) { setTimeout(_setupWSListener, 500); return; }
-    ws.addEventListener('message', function(e) {
-      try {
-        var msg = JSON.parse(e.data);
-        if (msg.event === 'scan.started') {
-          // Show cancel button
-          var btnCancel = document.getElementById('btn-cancel-scan');
-          if (btnCancel) { btnCancel.style.display = 'inline-block'; btnCancel.textContent = 'Cancel'; btnCancel.disabled = false; btnCancel.style.opacity = '1'; }
-          // Start fast agent refresh
-          _startAgentFastPoll();
-        }
-        if (msg.event === 'scan.progress') {
-          // Update progress percentage
-          var pct = msg.data && msg.data.current && msg.data.total ? Math.round(msg.data.current / msg.data.total * 100) : 0;
-          var pctEl = document.getElementById('scan-progress-pct');
-          if (pctEl) { pctEl.textContent = pct + '%'; pctEl.style.color = pct >= 100 ? 'var(--success)' : 'var(--accent)'; }
-          // Update current agent name
-          var agentName = (msg.data && msg.data.agent) || '';
-          var agentNameEl = document.getElementById('scan-progress-agent-name');
-          var agentIcon = document.getElementById('scan-progress-agent-icon');
-          if (agentNameEl) agentNameEl.textContent = agentName ? 'Running: ' + agentName : '';
-          if (agentIcon) agentIcon.style.display = agentName ? 'inline-block' : 'none';
-          // Highlight current agent row in the grid
-          _highlightCurrentAgent(agentName);
-          // Refresh agents on each agent completion during scan
-          window.refreshAgents();
-        }
-        if (msg.event === 'scan.complete' || msg.event === 'scan.cancelled') {
-          // Hide cancel button and unregister
-          var btnCancel2 = document.getElementById('btn-cancel-scan');
-          if (btnCancel2) { btnCancel2.style.display = 'none'; }
-          if (typeof _unregisterOp === 'function') _unregisterOp('scan');
-          _stopAgentFastPoll();
-          // Clear progress display
-          var pctDone = document.getElementById('scan-progress-pct');
-          if (pctDone) { pctDone.textContent = '100%'; pctDone.style.color = 'var(--success)'; }
-          var agentDone = document.getElementById('scan-progress-agent-name');
-          if (agentDone) agentDone.textContent = '';
-          var agentIconDone = document.getElementById('scan-progress-agent-icon');
-          if (agentIconDone) agentIconDone.style.display = 'none';
-          _highlightCurrentAgent('');
-          setTimeout(function() {
-            window.refreshFindings();
-            window.refreshAgents();
-            var total = (msg.data && msg.data.total_findings) || 0;
-            toast('Scan complete — ' + total + ' finding' + (total !== 1 ? 's' : '') + ' discovered', total > 0 ? 'warning' : 'success');
-          }, 1500);
-        }
-      } catch(_) {}
-    });
+    if (!_bindScanWs()) { setTimeout(_setupWSListener, 500); return; }
+    _startScanStatusPolling();
   }
   _setupWSListener();
+
+  // Poll /api/scan/status as a fallback when the WS is down or its events
+  // have stalled (e.g. right after a reconnect). Re-binds the listener when
+  // base.html swaps in a fresh socket so events resume on the new one.
+  function _startScanStatusPolling() {
+    if (_scanPollTimer) return;
+    _scanPollTimer = setInterval(function() {
+      if (_scanBoundWs && window._ws && window._ws !== _scanBoundWs) _bindScanWs();
+      var wsOpen = _dashboardScanWsOpen();
+      if (wsOpen) {
+        // Socket healthy: if no scan UI is showing there is nothing to track.
+        if (!_scanUiOn) return;
+        // Socket healthy + events flowing recently — let the WS drive the UI.
+        if ((Date.now() - _scanLastWsTick) < 4000) return;
+        // Fall through: scan UI on but events stalled (post-reconnect watchdog).
+      }
+      fetch('/api/scan/status', { cache: 'no-store' })
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+          if (!d || typeof d.running !== 'boolean') return;
+          if (d.running) {
+            _scanEndHandled = false;
+            if (!_scanUiOn) {
+              _scanUiOn = true;
+              _scanShowStartedUi(d.agent_total);
+            }
+            _scanLastWsTick = Date.now();
+            _scanApplyProgress(d.agent_index || 0, d.agent_total || 1, d.current_agent || '');
+          } else if (_scanUiOn && !_scanEndHandled) {
+            // Scan finished while the socket was down — synthesize completion.
+            _scanFinishUi(null);
+          }
+        })
+        .catch(function() { /* transient — retry next tick */ });
+    }, 2500);
+  }
 
   // ── Global Operation Registry ──────────────────────────────
   window._activeOps = {};  // {type: {label, cancelUrl, startedAt}}
@@ -1021,11 +1221,9 @@
       .then(function(r) { return r.json(); })
       .then(function(d) {
         toast(d.message || 'Scan cancelled', 'info');
-        // Hide progress bar
-        var sp = document.getElementById('scan-progress'); if (sp) sp.style.display = 'none';
-        var sb = document.getElementById('scan-progress-bar'); if (sb) { sb.style.width = '0%'; sb.style.background = 'var(--accent)'; }
-        var sbadge = document.getElementById('topbar-scan'); if (sbadge) { sbadge.textContent = 'Cancelled'; sbadge.className = 'scan-badge'; }
-        if (btn) { btn.style.display = 'none'; btn.disabled = false; btn.style.opacity = '1'; btn.textContent = 'Cancel'; }
+        // UI cleanup is driven by the scan.cancelled WS event (or the polling
+        // fallback when the socket is down) — don't fight it here.
+        if (btn) { btn.disabled = false; btn.style.opacity = '1'; btn.textContent = 'Cancel'; }
       })
       .catch(function(e) { toast('Cancel failed: ' + e.message, 'high'); if (btn) { btn.textContent = 'Cancel'; btn.disabled = false; btn.style.opacity = '1'; } });
   };
@@ -1075,6 +1273,49 @@
     }
   };
 
+  // ── Brain map meta (view description + node count badge) ──
+  window._VIEW_DESCS = {
+    graph: 'Force-directed layout — connected modules pulled together by shared references',
+    tree: 'Hierarchical tree — dependencies flow top-down from root modules',
+    spiral: 'Golden spiral — nodes layered outward by depth from the roots',
+    grid: 'Compact grid — evenly spaced nodes in a matrix',
+    radial: 'Radial — root modules at the center, children in rings by depth',
+    cluster: 'Cluster — groups formed by shared modules and dependency density',
+    force3d: '3D force-directed — physics simulation with depth',
+    tree3d: '3D tree — hierarchical tiers with real depth',
+    spiral3d: '3D spiral — golden spiral rising through Z',
+    helix3d: '3D helix — DNA-style double spiral',
+    sphere3d: '3D sphere — nodes on a globe surface',
+    grid3d: '3D grid — lattice across X, Y and Z',
+    cluster3d: '3D cluster — groups floating in space',
+    radial3d: '3D radial — roots at the origin, rings of depth',
+  };
+  window.updateBrainMapMeta = function(viewName) {
+    if (!viewName) {
+      if (window._is3D) {
+        var active3d = document.querySelector('#views-3d [id^="view3d-"][style*="background"]');
+        viewName = active3d ? active3d.id.replace('view3d-', '') : 'force3d';
+      } else {
+        var active2d = document.querySelector('#views-2d .is-on');
+        viewName = active2d ? active2d.id.replace('view-', '') : 'graph';
+      }
+    }
+    var descEl = document.getElementById('brain-map-desc');
+    var countEl = document.getElementById('brain-map-count');
+    if (descEl) descEl.textContent = window._VIEW_DESCS[viewName] || 'Brain map view';
+    if (countEl) {
+      var n = (window._brainNodes || []).length;
+      var e = (window._brainEdges || []).length;
+      countEl.textContent = n + ' nodes · ' + e + ' edges';
+    }
+    // Render-cap caption: shown only when files exceed MAX_RENDERED_NODES (300)
+    var capEl = document.getElementById('brain-map-cap-note');
+    if (capEl) capEl.hidden = (window._brainNodes || []).length <= 300;
+  };
+
+  // (Styled hover tooltip + data-tooltip delegation now live in
+  // /static/brain-ui.js, loaded on every page by base.html.)
+
   // 3D toggle
   window._is3D = false;
   window.toggle3D = function() {
@@ -1091,34 +1332,132 @@
       if (views2d) views2d.style.display = 'none';
       if (views3d) views3d.style.display = 'inline';
       if (btn3d) btn3d.classList.add('is-on');
-      // Init 3D and load data
-      BrainMap3D.init('brain-map-3d');
-      BrainMap3D.loadNodes(window._brainNodes || [], window._brainEdges || []);
+      window.updateBrainMapMeta && window.updateBrainMapMeta();
+      window.hideBrainTooltip && window.hideBrainTooltip();
+      // 3D libs may still be loading (or retrying after a stall):
+      // init once BrainMap3D is defined, else re-trigger the loader.
+      window._loadBrainLibs && window._loadBrainLibs();
+      var _3dInitAttempts = 0;
+      (function _tryInit3D() {
+        if (window.BrainMap3D) {
+          BrainMap3D.init('brain-map-3d');
+          BrainMap3D.loadNodes(window._brainNodes || [], window._brainEdges || []);
+        } else if (_3dInitAttempts++ < 60) { // ~10s of retry headroom
+          setTimeout(_tryInit3D, 150);
+        } else {
+          // 3D never became available — say so instead of showing a dead canvas.
+          window._maybeShow3dFailed && window._maybeShow3dFailed(true);
+          window.toast && window.toast('3D engine unavailable — check your connection and try again', 'high');
+        }
+      })();
     } else {
       if (map2d) map2d.style.display = 'block';
       if (map3d) map3d.style.display = 'none';
       if (views2d) views2d.style.display = 'inline';
       if (views3d) views3d.style.display = 'none';
       if (btn3d) btn3d.classList.remove('is-on');
+      window.updateBrainMapMeta && window.updateBrainMapMeta();
+      window.hideBrainTooltip && window.hideBrainTooltip();
     }
   };
 
-  // ── Legend hover tooltip ─────────────────────────────────────
+  // ── 3D engine failure banner ────────────────────────────────
+  // Shown when the three.js 3D chain failed to load (brainlibs:3dfailed) so
+  // the user knows the 🔮 toggle can't work yet. Retry re-runs the resilient
+  // loader — which only re-attempts libs that failed — and Dismiss hides the
+  // banner for the rest of the session. An explicit 3D attempt overrides a
+  // dismissal so the user always gets feedback when they actually try 3D.
+  window._3dFail = {
+    shown: false,
+    dismissed: (function(){ try { return sessionStorage.getItem('patchi:3dfail-dismissed') === '1'; } catch (e) { return false; } })(),
+    busy: false
+  };
+  window.hideBrain3DFailBanner = function() {
+    var el = document.getElementById('brain-3d-fail');
+    if (el) el.hidden = true;
+    window._3dFail.shown = false;
+  };
+  window._dismissBrain3DFail = function() {
+    window._3dFail.dismissed = true;
+    try { sessionStorage.setItem('patchi:3dfail-dismissed', '1'); } catch (e) {}
+    window.hideBrain3DFailBanner();
+  };
+  window.showBrain3DFailBanner = function(msg, force) {
+    var st = window._3dFail;
+    var el = document.getElementById('brain-3d-fail');
+    if (!el) return;
+    if (window.BrainMap3D) { window.hideBrain3DFailBanner(); return; } // engine came up meanwhile
+    if (st.dismissed && !force) return;                                 // dismissed this session
+    if (msg) {
+      var m = document.getElementById('brain-3d-fail-msg');
+      if (m) m.textContent = msg;
+    }
+    st.shown = true;
+    el.hidden = false;
+  };
+  window._maybeShow3dFailed = function(force) {
+    if (window.BrainMap3D) return;
+    window.showBrain3DFailBanner(null, !!force);
+  };
+  window._retryBrain3D = function() {
+    var st = window._3dFail;
+    if (st.busy) return;
+    st.busy = true;
+    var btn = document.getElementById('brain-3d-fail-retry');
+    if (btn) { btn.disabled = true; btn.textContent = 'Retrying…'; }
+    (window._loadBrainLibs ? window._loadBrainLibs() : Promise.resolve({ canvas: false, brain3d: false })).then(function() {
+      st.busy = false;
+      if (btn) { btn.disabled = false; btn.textContent = '↻ Retry'; }
+      if (window.BrainMap3D) {
+        window.hideBrain3DFailBanner();
+        if (window._is3D) { // finish the pending 3D intent
+          BrainMap3D.init('brain-map-3d');
+          BrainMap3D.loadNodes(window._brainNodes || [], window._brainEdges || []);
+        }
+        window.toast && window.toast('3D engine loaded — try the 🔮 toggle', 'info');
+      } else {
+        window.showBrain3DFailBanner(null, true);
+        window.toast && window.toast('3D engine still unreachable', 'high');
+      }
+    });
+  };
+  document.addEventListener('brainlibs:3dready', function() {
+    window.hideBrain3DFailBanner();
+    if (window._is3D && window.BrainMap3D) { // finish a pending 3D intent
+      BrainMap3D.init('brain-map-3d');
+      BrainMap3D.loadNodes(window._brainNodes || [], window._brainEdges || []);
+    }
+  });
+  document.addEventListener('brainlibs:3dfailed', function() { window._maybeShow3dFailed(false); });
+
+  // ── Legend hover tooltip (mode-aware) ─────────────────────────
   // Shown while the ☰ button is hovered (or pinned via click);
   // hidden when the mouse leaves both button and tooltip.
+  // The visible panel follows the active mode: legend-2d in 2D,
+  // legend-3d in 3D — each explains what that renderer actually shows.
   window._legendPinned = false;
   window._legendHideTimer = null;
+  window._legendPanels = function() {
+    return [document.getElementById('legend-2d'), document.getElementById('legend-3d')];
+  };
+  window._activeLegendId = function() {
+    return window._is3D ? 'legend-3d' : 'legend-2d';
+  };
+  window._showLegendPanel = function(visible) {
+    var id = window._activeLegendId();
+    window._legendPanels().forEach(function(l) {
+      if (l) l.style.display = (visible && l.id === id) ? 'block' : 'none';
+    });
+  };
   window.showBrainLegend = function() {
     clearTimeout(window._legendHideTimer);
-    var l = document.getElementById('legend-2d');
-    if (l) l.style.display = 'block';
+    window._showLegendPanel(true);
   };
   window.scheduleHideBrainLegend = function() {
     if (window._legendPinned) return;
     clearTimeout(window._legendHideTimer);
     window._legendHideTimer = setTimeout(function() {
-      var l = document.getElementById('legend-2d');
-      if (l && !window._legendPinned) l.style.display = 'none';
+      if (!window._legendPinned) window._showLegendPanel(false);
     }, 250);
   };
   window.cancelHideBrainLegend = function() {
@@ -1127,16 +1466,14 @@
   window.hideBrainLegend = function() {
     clearTimeout(window._legendHideTimer);
     window._legendPinned = false;
-    var l = document.getElementById('legend-2d');
-    if (l) l.style.display = 'none';
+    window._showLegendPanel(false);
   };
   window.toggleBrainLegend = function(ev) {
     if (ev) { ev.stopPropagation(); ev.preventDefault(); }
     window._legendPinned = !window._legendPinned;
-    var l = document.getElementById('legend-2d');
     if (window._legendPinned) {
       clearTimeout(window._legendHideTimer);
-      if (l) l.style.display = 'block';
+      window._showLegendPanel(true);
     } else {
       window.scheduleHideBrainLegend();
     }
@@ -1198,8 +1535,11 @@
     }
   };
   
-  // ESC to exit full-screen
+  // ESC to exit full-screen / clear a 3D node selection
   document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && window._is3D && window.BrainMap3D && BrainMap3D.clearSelection) {
+      BrainMap3D.clearSelection();
+    }
     if (e.key === 'Escape' && window._isFullScreen) {
       window.toggleBrainMapFullScreen();
     }

@@ -28,13 +28,18 @@ from enum import StrEnum
 from pathlib import Path
 
 from patchi.core.brain.file_corpus import FileCorpus
-from patchi.core.brain.languages import DEFAULT_IGNORE_DIRS
+from patchi.core.brain.languages import DEFAULT_IGNORE_DIRS, is_minified_asset
 
 # ponytail: rglob traverses node_modules (30k+ files). Shared skip sets.
 _SKIP_DIRS = frozenset(DEFAULT_IGNORE_DIRS)
 _SKIP_FILES = frozenset(
     {"package-lock.json", "yarn.lock", "pnpm-lock.yaml", "composer.lock", "Gemfile.lock"}
 )
+
+
+def _skip_asset(fname: str, skip_files: frozenset[str]) -> bool:
+    """True when a filename is user-skipped or a minified/bundled asset."""
+    return fname in skip_files or is_minified_asset(fname)
 
 
 _log = logging.getLogger("patchi.agents.base")
@@ -54,7 +59,9 @@ def safe_rglob(
     """
     if corpus is not None:
         for entry in corpus.by_glob(pattern):
-            if entry.path in skip_files or Path(entry.path).name in skip_files:
+            if _skip_asset(entry.path, skip_files) or _skip_asset(
+                Path(entry.path).name, skip_files
+            ):
                 continue
             yield root / entry.path
         return
@@ -64,7 +71,7 @@ def safe_rglob(
         for dirpath, dirnames, filenames in os.walk(root):
             dirnames[:] = [d for d in dirnames if d not in _SKIP_DIRS]
             for fname in filenames:
-                if fname in skip_files:
+                if _skip_asset(fname, skip_files):
                     continue
                 if fnmatch.fnmatch(fname, pattern):
                     yield Path(dirpath) / fname
@@ -78,7 +85,7 @@ def safe_rglob(
             if mid and mid not in rel.split("/"):
                 continue
             for fname in filenames:
-                if fname in skip_files:
+                if _skip_asset(fname, skip_files):
                     continue
                 if fnmatch.fnmatch(fname, parts[-1]):
                     yield Path(dirpath) / fname
@@ -93,7 +100,7 @@ def safe_rglob(
             if dir_part and dir_part not in rel:
                 continue
             for fname in filenames:
-                if fname in skip_files:
+                if _skip_asset(fname, skip_files):
                     continue
                 if fnmatch.fnmatch(fname, file_part):
                     yield Path(dirpath) / fname
@@ -627,9 +634,8 @@ def validate_agent_registry() -> list[str]:
 
       * a @register-ed plain class that is not a BaseAgent subclass
         (PysaAgent/CodeqlAgent had no run() and no AgentResult)
-      * a class whose body raised while reading AgentGroup (GNNBugDetector
-        referenced a nonexistent AgentGroup.GNN_DETECTION, so it silently
-        never registered)
+      * a class whose body raised while reading AgentGroup (e.g. referencing
+        a nonexistent AgentGroup member, so it silently never registered)
       * an agent without a name, or with a group outside AgentGroup
 
     Call after discover_agent_modules() (or after any aggregator import).

@@ -28,9 +28,35 @@ from ..agents.base import (
 
 
 _log = logging.getLogger("patchi.security.security_config")
+# Local semgrep rule pack resolution. `--config=auto` pulls the ENTIRE Semgrep
+# registry (hundreds of rule packs) and can take many minutes per invocation,
+# which wedges whole scans. Prefer the bundled deterministic pack; fall back to
+# a single bounded registry pack only when online.
 
 
-def _run(cmd: list[str], cwd: Path, timeout: int = 120, env: dict | None = None) -> dict:
+def _semgrep_config_value(root: Path) -> str | None:
+    """Pick the semgrep --config value to run: local pack, else owasp-top-ten.
+
+    Returns None when only network packs would be usable while offline (skip).
+    """
+    candidates = [
+        root / "patchi" / "core" / "security" / "semgrep_rules" / "security.yaml",
+        Path(__file__).parent / "semgrep_rules" / "security.yaml",
+    ]
+    for c in candidates:
+        if c.is_file():
+            return str(c)
+    return None if is_offline() else "p/owasp-top-ten"
+
+
+
+def _run(
+    cmd: list[str],
+    cwd: Path,
+    timeout: int = 120,
+    env: dict | None = None,
+    max_stdout: int = 10000,
+) -> dict:
     import os
 
     if cmd and cmd[0] == "echo":
@@ -55,7 +81,7 @@ def _run(cmd: list[str], cwd: Path, timeout: int = 120, env: dict | None = None)
         )
         return {
             "returncode": proc.returncode,
-            "stdout": proc.stdout[:10000],
+            "stdout": proc.stdout[:max_stdout],
             "stderr": proc.stderr[:3000],
             "timed_out": False,
         }
@@ -169,12 +195,13 @@ class ConfigAuditAgent(BaseAgent):
     """
     SAST scanning via Semgrep CE (LGPL-2.1).
 
-    Runs: semgrep --json --config=auto [target_path]
+    Runs: semgrep --json --config=<bundled rule pack> [target_path]
     Parses structured JSON output into standard findings.
 
-    Semgrep auto config pulls from the Semgrep registry (requires internet).
-    Falls back to --config=p/python or --config=p/javascript if auto fails.
-    Falls back to semgrep --config=p/owasp-top-ten if no internet.
+    Uses the bundled deterministic rule pack first (fast, offline-safe) and
+    only falls back to the single bounded p/owasp-top-ten registry pack when
+    online. Never uses --config=auto — it pulls the entire Semgrep registry
+    and can take many minutes, wedging whole scans.
     """
 
     name = "ConfigAuditAgent"
@@ -233,32 +260,46 @@ class ConfigAuditAgent(BaseAgent):
         result.data["rules_run"] = len({f.get("check_id", "") for f in findings})
 
     def _run_semgrep(self, root: Path, paths: list[str]) -> tuple[list[dict], int]:
-        """Run semgrep with JSON output. Returns (findings, files_scanned)."""
-        configs = ["auto", "p/python", "p/javascript", "p/owasp-top-ten"]
-        target = str(root)
+        """Run semgrep with JSON output. Returns (findings, files_scanned).
 
-        for config in configs:
-            cmd = [
-                "semgrep",
-                "--json",
-                f"--config={config}",
-                "--quiet",
-                "--no-rewrite-rule-ids",
-                target,
-            ]
-            out = _run(cmd, root, timeout=self.timeout - 20)
-            if out["timed_out"]:
-                return [], 0
-            try:
-                data = json.loads(out["stdout"])
-                findings = data.get("results", [])
-                stats = data.get("stats", {})
-                files = stats.get("total_bytes", 0) // 1000  # approximate
-                return findings, max(files, len({f.get("path") for f in findings}))
-            except json.JSONDecodeError:
-                continue  # try next config
-
-        return [], 0
+        Local-first: the bundled rule pack when present, else a single bounded
+        registry pack (p/owasp-top-ten) when online. Scope targets to the
+        requested paths instead of always scanning the whole repository.
+        """
+        config_value = _semgrep_config_value(root)
+        if not config_value:
+            return [], 0
+        targets = paths or [str(root)]
+        # Direct subprocess: full stdout (JSON can exceed 10 KB) and UTF-8 with
+        # replacement, so non-cp1252 bytes in findings never abort the parse.
+        env = {**os.environ, "SEMGREP_SEND_METRICS": "off"}
+        cmd = [
+            "semgrep",
+            "--json",
+            f"--config={config_value}",
+            "--quiet",
+            "--no-rewrite-rule-ids",
+            *targets,
+        ]
+        try:
+            proc = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=self.timeout - 20,
+                cwd=str(root),
+                env=env,
+            )
+        except (subprocess.TimeoutExpired, OSError):
+            return [], 0
+        try:
+            data = json.loads(proc.stdout)
+        except json.JSONDecodeError:
+            return [], 0
+        findings = data.get("results", [])
+        return findings, len({f.get("path") for f in findings})
 
 
 # ──────────────────────────────────────────────────────────────────────────────

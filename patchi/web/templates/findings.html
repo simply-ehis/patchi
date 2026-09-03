@@ -4,30 +4,30 @@
 <div class="findings-panel">
   <!-- Tab bar — polished, sticky -->
   <div class="findings-tabs">
-    <button type="button" class="tab-btn active" onclick="showTab('findings')" id="tab-findings">
+    <button type="button" class="tab-btn active" role="tab" aria-selected="true" onclick="showTab('findings')" id="tab-findings">
       Findings <span class="tab-count">{{ total }}</span>
     </button>
-    <button type="button" class="tab-btn" onclick="showTab('chains')" id="tab-chains">
+    <button type="button" class="tab-btn" role="tab" aria-selected="false" onclick="showTab('chains')" id="tab-chains">
       Exploit Chains <span class="tab-count">{{ chains|length }}</span>
     </button>
-    <button type="button" class="tab-btn" onclick="showTab('intent')" id="tab-intent">
+    <button type="button" class="tab-btn" role="tab" aria-selected="false" onclick="showTab('intent')" id="tab-intent">
       Intent Gaps <span class="tab-count">{{ intent.gap_count if intent else 0 }}</span>
     </button>
-    <button type="button" class="tab-btn" onclick="showTab('charter')" id="tab-charter">
+    <button type="button" class="tab-btn" role="tab" aria-selected="false" onclick="showTab('charter')" id="tab-charter">
       Charter <span class="tab-count">{{ charter_violations|length }}</span>
     </button>
     {% if vr_total > 0 or vr_diffs > 0 %}
-    <button type="button" class="tab-btn tab-btn-vr" onclick="showTab('vr')" id="tab-vr">
+    <button type="button" class="tab-btn tab-btn-vr" role="tab" aria-selected="false" onclick="showTab('vr')" id="tab-vr">
       📸 Visual <span class="tab-count">{{ vr_total }}</span>
       {% if vr_diffs > 0 %}<span class="tab-count tab-count-diff">{{ vr_diffs }} diffs</span>{% endif %}
     </button>
     {% endif %}
     {% if dast_findings_count > 0 %}
-    <button type="button" class="tab-btn tab-btn-dast" onclick="showTab('dast')" id="tab-dast">
+    <button type="button" class="tab-btn tab-btn-dast" role="tab" aria-selected="false" onclick="showTab('dast')" id="tab-dast">
       DAST <span class="tab-count">{{ dast_findings_count }}</span>
     </button>
     {% endif %}
-    <button type="button" class="tab-btn" onclick="showTab('history')" id="tab-history">
+    <button type="button" class="tab-btn" role="tab" aria-selected="false" onclick="showTab('history')" id="tab-history">
       History <span class="tab-count">—</span>
     </button>
   </div>
@@ -100,9 +100,9 @@
               data-finding-id="{{ fkey }}" data-is-dast="{{ 'true' if f.is_dast else 'false' }}"
               {% if in_chains %}style="cursor:pointer" onclick="jumpToChain({{ in_chains[0] }}, '{{ fkey }}')"{% endif %}>
             <td><span class="badge badge-{{ f.severity }}">{{ f.severity }}</span></td>
-            <td style="font-family:var(--font-mono);font-size:12px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="{{ f.file }}">{{ f.file }}</td>
+            <td style="font-family:var(--font-mono);font-size:12px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" data-tooltip="{{ f.file }}">{{ f.file }}</td>
             <td>{{ f.line if f.line is not none else '' }}</td>
-            <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="{{ f.message }}">{{ (f.message or '')[:80] }}</td>
+            <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" data-tooltip="{{ f.message }}">{{ (f.message or '')[:80] }}</td>
             <td>
               {% if f.is_dast %}
               <span style="color:#ef4444;font-size:11px;font-weight:600">🔒 DAST</span>
@@ -116,19 +116,19 @@
                 📸 {{ f.screenshots|length }}
               </span>
               {% elif f.code_snippet %}
-              <span class="u-fs11 u-muted u-ptr" title="{{ f.code_snippet[:200] }}" onclick="event.stopPropagation();openEvidenceModal('{{ f.type }}', `{{ f.code_snippet[:500] }}`)">
+              <span class="u-fs11 u-muted u-ptr" data-tooltip="{{ f.code_snippet[:200] }}" onclick="event.stopPropagation();openEvidenceModal('{{ f.type }}', `{{ f.code_snippet[:500] }}`)">
                 📝 Evidence
               </span>
               {% endif %}
             </td>
             <td>
               {% if in_chains %}
-              <span style="color:var(--accent);font-size:11px;cursor:pointer" title="Chain #{{ in_chains|join(', #') }}">
+              <span style="color:var(--accent);font-size:11px;cursor:pointer" data-tooltip="Chain #{{ in_chains|join(', #') }}">
                 🔗 {{ in_chains|length }}
               </span>
               {% endif %}
               {% if f.remediation %}
-              <span style="font-size:11px;cursor:pointer;color:{% if f.remediation.auto_fixable %}#4ADE80{% else %}var(--text-secondary){% endif %}" title="{{ f.remediation.action }}{% if f.remediation.auto_fixable %} (auto-fixable, {{ f.remediation.confidence }}%){% endif %}">
+              <span style="font-size:11px;cursor:pointer;color:{% if f.remediation.auto_fixable %}#4ADE80{% else %}var(--text-secondary){% endif %}" data-tooltip="{{ f.remediation.action }}{% if f.remediation.auto_fixable %} (auto-fixable, {{ f.remediation.confidence }}%){% endif %}">
                 💊
               </span>
               {% endif %}

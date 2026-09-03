@@ -1,14 +1,13 @@
 """
 ModernizationAgent §7.1.4 — var→const/let, .then→async/await, require→import codemods.
 
-Wraps jscodeshift / ts-migrate style via regex + tree-sitter where possible.
+Wraps jscodeshift / ts-migrate style via tree-sitter structural queries.
 Emits Findings of type modernization_* with suggestion to run codemod.
 """
 
 from __future__ import annotations
 
 import logging
-import re
 
 from patchi.core.agents.base import (
     AgentGroup,
@@ -21,13 +20,15 @@ from patchi.core.agents.base import (
     register,
     safe_rglob,
 )
+from patchi.core.brain.code_query import (
+    js_calls,
+    js_class_heritages,
+    js_var_kinds,
+    lang_for_file,
+    parse_js,
+)
 
 _log = logging.getLogger("patchi.agents.modernization")
-
-_VAR_RE = re.compile(r"^\s*var\s+\w+")
-_THEN_RE = re.compile(r"\.then\s*\(")
-_REQUIRE_RE = re.compile(r"require\s*\(\s*['\"][^'\"]+['\"]\s*\)")
-_CLASS_RE = re.compile(r"class\s+\w+\s+extends\s+React\.Component")
 
 @register
 class ModernizationAgent(BaseAgent):
@@ -47,16 +48,32 @@ class ModernizationAgent(BaseAgent):
                     txt=fp.read_text(encoding="utf-8", errors="replace")
                 except OSError:
                     continue
-                lines=txt.splitlines()
-                for i, line in enumerate(lines,1):
-                    if _VAR_RE.search(line):
-                        findings.append(make_finding(severity=Severity.LOW, file=rel, line_start=i, title="var → const/let", description="jscodeshift var-to-const: replace var with const/let", finding_type="modernization_var"))
-                    if _THEN_RE.search(line):
-                        findings.append(make_finding(severity=Severity.LOW, file=rel, line_start=i, title=".then() → async/await", description="Codemod .then() chain to async/await for readability", finding_type="modernization_then"))
-                    if _REQUIRE_RE.search(line):
-                        findings.append(make_finding(severity=Severity.LOW, file=rel, line_start=i, title="require() → import", description="Migrate to ESM import via jscodeshift", finding_type="modernization_require"))
-                    if _CLASS_RE.search(line):
-                        findings.append(make_finding(severity=Severity.LOW, file=rel, line_start=i, title="Class component → functional", description="Codemod React class to functional + hooks", finding_type="modernization_class"))
+                lang = lang_for_file(rel)
+                tree = parse_js(txt, lang)
+                if tree is None:
+                    continue
+                events: list[tuple[int, str]] = []
+                for kind, line in js_var_kinds(tree, lang):
+                    if kind == "var":
+                        events.append((line, "var"))
+                for call in js_calls(tree, lang):
+                    if call.name == "then":
+                        events.append((call.line, "then"))
+                    elif call.name == "require":
+                        events.append((call.line, "require"))
+                for text, line in js_class_heritages(tree, lang):
+                    if "React.Component" in text:
+                        events.append((line, "class"))
+                events.sort()
+                for line, kind in events:
+                    if kind == "var":
+                        findings.append(make_finding(severity=Severity.LOW, file=rel, line_start=line, title="var → const/let", description="jscodeshift var-to-const: replace var with const/let", finding_type="modernization_var"))
+                    elif kind == "then":
+                        findings.append(make_finding(severity=Severity.LOW, file=rel, line_start=line, title=".then() → async/await", description="Codemod .then() chain to async/await for readability", finding_type="modernization_then"))
+                    elif kind == "require":
+                        findings.append(make_finding(severity=Severity.LOW, file=rel, line_start=line, title="require() → import", description="Migrate to ESM import via jscodeshift", finding_type="modernization_require"))
+                    elif kind == "class":
+                        findings.append(make_finding(severity=Severity.LOW, file=rel, line_start=line, title="Class component → functional", description="Codemod React class to functional + hooks", finding_type="modernization_class"))
                     if len(findings) >= 40:
                         break
                 if len(findings) >= 40:

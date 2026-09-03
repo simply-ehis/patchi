@@ -38,6 +38,80 @@ _scan_state: dict = {
 
 # Max agents that run concurrently inside each batch.
 BATCH_SIZE = 8
+
+# ── Background domain preload (CLI parity) ─────────────────────────────────
+# The 800-domain YAML taxonomy takes seconds-to-tens-of-seconds to parse on
+# first use. The CLI scan parses it in a background thread while agents run;
+# web scans do the same so post-scan domain work (quick_scan activation,
+# assurance, enrichment) never blocks on a cold DomainLoader. The parse also
+# populates the shared disk pickle cache, so every later load is fast.
+_domain_preload_future = None
+
+
+def _detect_component_types(root: Path) -> list[str]:
+    """Cheap auto-detect of project component types (mirrors CLI scan)."""
+    ctypes: list[str] = []
+    try:
+        if any((root / d).exists() for d in ("templates", "static", "public")):
+            ctypes.append("frontend-web")
+        if any(
+            (root / f).exists() for f in ("requirements.txt", "pyproject.toml", "setup.py")
+        ):
+            ctypes.append("backend-api")
+        if (
+            any((root / d).exists() for d in ("docker", "k8s", "kubernetes", ".github"))
+            or (root / "Dockerfile").exists()
+        ):
+            ctypes.append("infra")
+    except Exception as _exc:
+        _log.debug("component type detect skipped: %s", _exc)
+    return ctypes
+
+
+def _preload_domain_loader(root: Path):
+    """Start DomainLoader parsing in the background; return the future.
+
+    Reuses an in-flight preload if one is already running.
+    """
+    global _domain_preload_future
+    if _domain_preload_future is not None:
+        if not _domain_preload_future.done():
+            return _domain_preload_future  # already in flight
+        try:
+            _domain_preload_future.result(timeout=0)  # completed OK — reuse it
+            return _domain_preload_future
+        except Exception:
+            pass  # failed preload — fall through and retry
+    try:
+        import concurrent.futures as _cf
+
+        from patchi.core.security.domain_loader import DomainLoader as _DL
+
+        ctypes = _detect_component_types(root)
+
+        def _preload() -> _DL:
+            _ldr = _DL(root, component_types=ctypes if ctypes else None)
+            _ldr.list_domains()  # public force-load; parses + caches taxonomy
+            return _ldr
+
+        _pool = _cf.ThreadPoolExecutor(max_workers=1, thread_name_prefix="web-dl-preload")
+        _domain_preload_future = _pool.submit(_preload)
+        _pool.shutdown(wait=False)
+    except Exception as _exc:
+        _log.debug("domain preload suppressed: %s", _exc)
+        _domain_preload_future = None
+    return _domain_preload_future
+
+
+def _joined_domain_loader(root: Path):
+    """Return the preloaded DomainLoader if it already finished, else None."""
+    fut = _domain_preload_future
+    if fut is None:
+        return None
+    try:
+        return fut.result(timeout=0)
+    except Exception:
+        return None
 # Per-agent hard timeout (seconds).  Agents that exceed this are killed.
 AGENT_TIMEOUT = 120
 
@@ -56,11 +130,15 @@ async def trigger_scan(
         )
 
     root = request.app.state.root
+    # Background domain preload (CLI parity): parse the taxonomy off the hot
+    # path while the agents run, so post-scan domain consumers are never cold.
+    _preload_domain_loader(root)
     import patchi.core.security.security_agents  # noqa: F401
     from patchi.core import config as cfg
     from patchi.core import memory as mem
     from patchi.core.agents.base import AgentGroup, AgentInput, list_agents
     from patchi.web.ws import (
+        evt_scan_cancelled,
         evt_scan_complete,
         evt_scan_progress,
         evt_scan_started,
@@ -157,7 +235,15 @@ async def trigger_scan(
                 except Exception:
                     deduped_count = total_findings
 
-                await evt_scan_complete(deduped_count, 0)
+                # Non-blocking join: make sure the background taxonomy parse
+                # finished so the shared cache is warm for whatever the
+                # dashboard touches right after the scan.
+                _joined_domain_loader(root)
+
+                if cancel_event.is_set():
+                    await evt_scan_cancelled(deduped_count)
+                else:
+                    await evt_scan_complete(deduped_count, 0)
 
                 # Fresh data is in — drop the health/scan cache so the
                 # dashboard reflects the new scan immediately.
@@ -228,6 +314,15 @@ async def cancel_scan() -> JSONResponse:
     task = _scan_state.get("task")
     if task and not task.done():
         task.cancel()
+    from patchi.web.ws import evt_scan_cancelled
+
+    # task.cancel() kills _run() with CancelledError before it reaches its own
+    # completion broadcast, so the dashboard would otherwise sit on the polling
+    # fallback and show "Scan complete". Emit the cancellation event here.
+    try:
+        await evt_scan_cancelled(0)
+    except Exception as _exc:
+        _log.debug("cancel broadcast suppressed: %s", _exc)
     return JSONResponse({"ok": True, "message": "Scan cancellation requested"})
 
 
@@ -331,8 +426,9 @@ async def quick_scan(request: Request) -> JSONResponse:
         if diff_result.error:
             return JSONResponse({"ok": False, "error": diff_result.error})
 
-        # 2. Map domains to agents
-        activator = DomainActivatorV2(root)
+        # 2. Map domains to agents (reuse the background-preloaded taxonomy)
+        _preload_domain_loader(root)
+        activator = DomainActivatorV2(root, domain_loader=_joined_domain_loader(root))
         relevant = activator.get_relevant_agents(list(diff_result.activated_domains.keys()))
         relevant.extend(["PreCheckAgent", "PlanAuditorAgent"])
         relevant = list(dict.fromkeys(relevant))

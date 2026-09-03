@@ -88,6 +88,11 @@ var BrainMap = (() => {
     antLayer = new Konva.Layer();
     stage.add(nodeLayer, antLayer);
 
+    // Hide the hover tooltip when the pointer leaves the map area
+    stage.on('mouseleave', function() {
+      if (window.hideBrainTooltip) window.hideBrainTooltip();
+    });
+
     _bindWsEvents();
     setTimeout(function() { _onResize(); _loadNodes(); }, 100);
 
@@ -548,6 +553,7 @@ var BrainMap = (() => {
       if (el) init('brain-map');
     }
     if (stage) _renderGraph(_lastNodes, _lastEdges);
+    if (window.updateBrainMapMeta) window.updateBrainMapMeta(_currentView);
   }
 
   function _loadNodes() {
@@ -556,6 +562,7 @@ var BrainMap = (() => {
       fetch("/api/brain-map/edges").then(function(r) { if (!r.ok) throw new Error('Edges API: ' + r.status); return r.json(); }),
     ]).then(function(res) {
       _renderGraph(res[0].nodes || [], res[1].edges || []);
+      if (window.updateBrainMapMeta) window.updateBrainMapMeta(_currentView);
     }).catch(function(err) { console.error('Brain map load error:', err); });
   }
 
@@ -588,22 +595,10 @@ var BrainMap = (() => {
     nodes = {};
     _renderedSet.clear();
 
-    // Use a virtual canvas size for layout computation so nodes spread well
-    // even when the actual stage is small. Zoom-to-fit will scale them in.
-    var vw = Math.max(stage.width(), 800);
-    var vh = Math.max(stage.height(), 600);
-    var W = vw, H = vh;
-
-    // Compute layout
-    var positions;
-    switch (_currentView) {
-      case 'tree':   positions = _treeLayout(ns, _lastEdges, W, H); break;
-      case 'spiral': positions = _spiralLayout(ns, W, H); break;
-      case 'grid':   positions = _gridLayout(ns, W, H); break;
-      case 'radial': positions = _radialLayout(ns, _lastEdges, W, H); break;
-      case 'cluster':positions = _clusterLayout(ns, _lastEdges, W, H); break;
-      default:       positions = _forceLayout(ns, _lastEdges, W, H);
-    }
+    // Compute layout (shared with the animated renderer)
+    var layout = _computeLayout(ns, _lastEdges);
+    var positions = layout.positions;
+    var W = layout.W, H = layout.H;
 
     // Add nodes (up to MAX_RENDERED_NODES)
     var added = 0;
@@ -625,6 +620,7 @@ var BrainMap = (() => {
     }
 
     // Draw edges
+    _drawCappedDots(ns);
     _drawEdges();
 
     // Labels toggle
@@ -641,6 +637,156 @@ var BrainMap = (() => {
     if (ns.length > 0) {
       setTimeout(function() { _zoomToFit(); }, 50);
     }
+  }
+
+  // ── Layout computation (shared by instant + animated renders) ──
+  function _computeLayout(ns, edgesData) {
+    // Use a virtual canvas size for layout computation so nodes spread well
+    // even when the actual stage is small. Zoom-to-fit will scale them in.
+    var vw = Math.max(stage.width(), 800);
+    var vh = Math.max(stage.height(), 600);
+    var W = vw, H = vh;
+    var positions;
+    switch (_currentView) {
+      case 'tree':   positions = _treeLayout(ns, edgesData, W, H); break;
+      case 'spiral': positions = _spiralLayout(ns, W, H); break;
+      case 'grid':   positions = _gridLayout(ns, W, H); break;
+      case 'radial': positions = _radialLayout(ns, edgesData, W, H); break;
+      case 'cluster':positions = _clusterLayout(ns, edgesData, W, H); break;
+      default:       positions = _forceLayout(ns, edgesData, W, H);
+    }
+    return { positions: positions, W: W, H: H };
+  }
+
+  // ── Animated view switch ────────────────────────────────────
+  // Nodes glide to their new positions instead of jumping: existing groups
+  // tween from where they are, nodes that left the rendered set fade out,
+  // new nodes fade in. Edges redraw once everything has arrived.
+  var _animGen = 0;
+  function _renderGraphAnimated(ns, edgesData) {
+    _lastNodes = ns;
+    _lastEdges = edgesData || [];
+    edges = _lastEdges;
+
+    var layout = _computeLayout(ns, edges);
+    var positions = layout.positions;
+    var W = layout.W, H = layout.H;
+
+    // Edge lines and capped-node dots are stale during the glide — drop them
+    // now, redraw both on arrival. Collect first: destroying Konva children
+    // while iterating their live array skips every other item.
+    var stale = [];
+    nodeLayer.getChildren().forEach(function(ch) {
+      if (ch.getAttr('_isEdgeLine') || ch.getAttr('_isCapDot')) stale.push(ch);
+    });
+    stale.forEach(function(ch) { ch.destroy(); });
+
+    _animGen++;
+    var gen = _animGen;
+    var remaining = 0;
+    var finished = false;
+
+    function finish() {
+      if (finished || gen !== _animGen) return;
+      finished = true;
+      _drawCappedDots(ns);
+      _drawEdges();
+      if (!_showLabels) {
+        nodeLayer.getChildren().forEach(function(g) {
+          var txt = g.findOne && g.findOne('Text');
+          if (txt) txt.visible(false);
+        });
+      }
+      nodeLayer.draw();
+      _debounceMiniMap();
+      if (ns.length > 0) setTimeout(function() { _zoomToFit(); }, 30);
+    }
+    function onDone() {
+      remaining--;
+      if (remaining <= 0 && gen === _animGen) finish();
+    }
+
+    // New rendered id set (capped exactly like the instant renderer)
+    var newIds = [];
+    for (var i = 0; i < ns.length && newIds.length < MAX_RENDERED_NODES; i++) {
+      newIds.push(ns[i].id || ns[i].path);
+    }
+    var newIdSet = {};
+    newIds.forEach(function(id) { newIdSet[id] = true; });
+
+    // Existing groups: glide to their new positions, or fade out if gone
+    nodeLayer.getChildren().forEach(function(g) {
+      if (g.getAttr('_isEdgeLine')) return;
+      var sh = g.findOne && g.findOne('Circle,Rect,RegularPolygon');
+      var id = sh && sh.getAttr('nodeId');
+      if (!id) return;
+      var pos = positions[id];
+      if (pos) {
+        if (g._tween) g._tween.destroy();
+        g._tween = null;
+        if (nodes[id]) { nodes[id].x = pos.x; nodes[id].y = pos.y; }
+        g.opacity(1);
+        remaining++;
+        g._tween = new Konva.Tween({
+          node: g, duration: 0.65, easing: Konva.Easings.EaseInOut,
+          x: pos.x, y: pos.y,
+          onFinish: function() { g._tween = null; onDone(); }
+        });
+        g._tween.play();
+      } else {
+        // Left the rendered set (e.g. fell beyond MAX_RENDERED_NODES)
+        if (g._tween) g._tween.destroy();
+        g._tween = null;
+        remaining++;
+        g._tween = new Konva.Tween({
+          node: g, duration: 0.25, easing: Konva.Easings.EaseInOut,
+          opacity: 0,
+          onFinish: function() {
+            g._tween = null;
+            var sh2 = g.findOne && g.findOne('Circle,Rect,RegularPolygon');
+            var nid = sh2 && sh2.getAttr('nodeId');
+            if (nid && nodes[nid]) delete nodes[nid];
+            g.destroy();
+            onDone();
+          }
+        });
+        g._tween.play();
+      }
+    });
+
+    // New nodes: fade in at their target positions
+    _renderedSet.clear();
+    var added = 0;
+    for (var j = 0; j < ns.length && added < MAX_RENDERED_NODES; j++) {
+      var n = ns[j];
+      var id = n.id || n.path;
+      var pos = positions[id] || { x: W/2, y: H/2 };
+      _renderedSet.add(id);
+      added++;
+      if (nodes[id] && nodes[id].group) continue; // already gliding in place
+      _addNode(id, n.label || n.path, n.type || 'default', pos.x, pos.y, n.finding_count || 0, n.severity || 'info');
+      var g2 = nodes[id] && nodes[id].group;
+      if (g2) {
+        g2.opacity(0);
+        remaining++;
+        var t2 = new Konva.Tween({
+          node: g2, duration: 0.35, easing: Konva.Easings.EaseOut,
+          opacity: 1,
+          onFinish: onDone
+        });
+        t2.play();
+      }
+    }
+
+    // Lightweight (beyond-cap) nodes — static positions, no animation
+    for (var k = MAX_RENDERED_NODES; k < ns.length; k++) {
+      var nn = ns[k];
+      var nid = nn.id || nn.path;
+      var pp = positions[nid] || { x: W/2, y: H/2 };
+      nodes[nid] = { x: pp.x, y: pp.y, type: nn.type || 'default', _color: COLORS[nn.type] || COLORS.default, group: null, shape: null };
+    }
+
+    if (remaining === 0) finish();
   }
 
   // ── Edge drawing (batched) ──────────────────────────────────
@@ -696,9 +842,40 @@ var BrainMap = (() => {
         dash: st.dash,
         opacity: st.o,
         listening: false,
+        _isEdgeLine: true,
       });
       nodeLayer.add(line);
       line.moveToBottom();
+    }
+  }
+
+  // ── Capped-out node dots ──────────────────────────
+  // Nodes past MAX_RENDERED_NODES keep only layout data; draw a tiny dim dot
+  // at their position so edges to them end at a visible point, not thin air.
+  function _drawCappedDots(ns) {
+    // Idempotent: clear any existing dots first so repeated calls (e.g. from
+    // the animated renderer) can never leave stale leftovers behind. Collect
+    // before destroying (live-array iteration would skip every other dot).
+    var stale = [];
+    nodeLayer.getChildren().forEach(function(ch) {
+      if (ch.getAttr && ch.getAttr('_isCapDot')) stale.push(ch);
+    });
+    stale.forEach(function(ch) { ch.destroy(); });
+    for (var j = MAX_RENDERED_NODES; j < (ns || []).length; j++) {
+      var n = ns[j];
+      var id = n.id || n.path;
+      var e = nodes[id];
+      if (!e) continue;
+      var dot = new Konva.Circle({
+        x: e.x, y: e.y,
+        radius: 2.2,
+        fill: 'rgba(139,148,158,0.5)',
+        listening: false,
+        _isCapDot: true,
+        _capNodeId: id,
+      });
+      nodeLayer.add(dot);
+      dot.moveToBottom();
     }
   }
 
@@ -1012,6 +1189,19 @@ var BrainMap = (() => {
       group.on('touchend', function() { if(lpTimer){clearTimeout(lpTimer);lpTimer=null;} });
     })();
 
+    // Hover tooltip — the drawn label is a truncated basename, so hovering
+    // shows the full filename (with directories) at the cursor.
+    var _tipFull = label || id;
+    group.on('mouseenter', function(ev) {
+      if (window.showBrainTooltip) window.showBrainTooltip(_tipFull, ev.evt.clientX, ev.evt.clientY);
+    });
+    group.on('mousemove', function(ev) {
+      if (window.showBrainTooltip) window.showBrainTooltip(_tipFull, ev.evt.clientX, ev.evt.clientY);
+    });
+    group.on('mouseleave', function() {
+      if (window.hideBrainTooltip) window.hideBrainTooltip();
+    });
+
     // Label (simplified — only filename, smaller, truncated to fit)
     var _shortLabel = _truncateLabel(label.split('/').pop() || label, 68);
     var text = new Konva.Text({
@@ -1187,6 +1377,7 @@ var BrainMap = (() => {
   // ── View switching ──────────────────────────────────────────
   function switchView(viewName) {
     _currentView = viewName;
+    if (window.updateBrainMapMeta) window.updateBrainMapMeta(viewName);
     // Move the .is-on highlight to the active view button (2D views only;
     // 3D buttons use view3d-* ids and are managed by brain3d.js).
     document.querySelectorAll('[id^="view-"]').forEach(function(btn) {
@@ -1196,7 +1387,11 @@ var BrainMap = (() => {
       btn.style.fontWeight = '';
     });
     if (_lastNodes.length === 0) return;
-    _renderGraph(_lastNodes, _lastEdges);
+    if (nodeLayer && nodeLayer.getChildren().length > 0) {
+      _renderGraphAnimated(_lastNodes, _lastEdges);
+    } else {
+      _renderGraph(_lastNodes, _lastEdges);
+    }
   }
 
   function toggleLabels() {
@@ -1480,7 +1675,7 @@ var BrainMap = (() => {
       if (isSelected) html += '<svg width="10" height="10" viewBox="0 0 10 10"><path d="M2 5l2.5 2.5L8 3" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
       html += '</span>';
       html += '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:' + sevColor + ';flex-shrink:0"></span>';
-      html += '<span style="flex:1;font-size:12px;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + did + '">' + shortName + '</span>';
+      html += '<span style="flex:1;font-size:12px;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" data-tooltip="' + did + '">' + shortName + '</span>';
       if (fc > 0) html += '<span style="font-size:10px;color:' + sevColor + ';font-weight:600;flex-shrink:0">' + fc + '</span>';
       html += '<span style="font-size:9px;color:var(--text-tertiary);flex-shrink:0;text-transform:uppercase">' + sev + '</span>';
       html += '</div>';
@@ -1581,9 +1776,9 @@ var BrainMap = (() => {
       html += '<button onclick="BrainMap.removeSelected(\'' + cid + '\')" style="position:absolute;top:2px;right:2px;width:14px;height:14px;border:none;background:none;color:var(--text-tertiary);cursor:pointer;font-size:10px;line-height:1;padding:0">\u00d7</button>';
       html += '<div style="display:flex;align-items:center;gap:4px;margin-bottom:2px">';
       html += '<span style="width:6px;height:6px;border-radius:50%;background:' + cColor + ';flex-shrink:0"></span>';
-      html += '<span style="font-weight:600;color:var(--text-primary);font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + cid + '">' + cShort + '</span>';
+      html += '<span style="font-weight:600;color:var(--text-primary);font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" data-tooltip="' + cid + '">' + cShort + '</span>';
       html += '</div>';
-      if (cDir) html += '<div style="color:var(--text-tertiary);font-size:9px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="' + cDir + '">' + cDir + '</div>';
+      if (cDir) html += '<div style="color:var(--text-tertiary);font-size:9px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" data-tooltip="' + cDir + '">' + cDir + '</div>';
       html += '<div style="display:flex;justify-content:space-between;margin-top:2px">';
       html += '<span style="color:' + cColor + ';font-size:10px;font-weight:600">' + cFc + ' findings</span>';
       html += '<span style="color:var(--text-tertiary);font-size:9px;text-transform:uppercase">' + cSev + '</span>';

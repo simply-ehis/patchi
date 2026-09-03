@@ -85,7 +85,7 @@ async def run_dev_check(request: Request, strict: bool = False, fast: bool = Fal
         "tests/test_snapshot.py", "tests/test_verify.py",
         "tests/test_verify_loop.py", "tests/test_generated_suite.py",
         "tests/test_app_profile.py", "tests/test_audit.py",
-        "tests/test_cpg_extractor.py", "tests/test_framework.py",
+        "tests/test_framework.py",
         "tests/test_new_features.py", "tests/test_route_mapper.py",
         "tests/test_applier.py", "tests/test_dispatcher.py",
         "tests/test_notifications.py", "tests/test_queue.py",

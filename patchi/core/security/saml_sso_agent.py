@@ -341,12 +341,17 @@ class SamlSSOAgent(BaseAgent):
             # Phase 3: Try external SAST tools (semgrep has SAML rules)
             semgrep_path = shutil.which("semgrep")
             if semgrep_path:
+                from .security_config import _semgrep_config_value
+                semgrep_config = _semgrep_config_value(inp.root)
+                if not semgrep_config:
+                    semgrep_path = None  # offline + no local pack -> skip
+            if semgrep_path:
                 try:
                     proc = subprocess.run(
                         [
                             semgrep_path,
                             "--config",
-                            "auto",
+                            semgrep_config,
                             "--include",
                             "*.py",
                             "--json",

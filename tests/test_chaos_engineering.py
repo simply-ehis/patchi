@@ -1,8 +1,7 @@
-"""Chaos engineering tests — resilience of trust gate and crash tracer.
+"""Chaos engineering tests — resilience of crash tracer.
 
-Verifies that infrastructure failures (corrupt models, missing files,
-crashing target scripts) surface as honest skip reasons or captured
-trace data instead of unhandled crashes.
+Verifies that crashing target scripts surface as captured trace data
+instead of unhandled crashes.
 """
 from __future__ import annotations
 
@@ -13,15 +12,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import pytest
 
-torch = pytest.importorskip("torch", reason="torch not installed")
-ort = pytest.importorskip("onnxruntime", reason="onnxruntime not installed")
-
-from patchi.core.agents.gnn_models import (  # noqa: E402
-    MODEL_NAME,
-    GINGATNet,
-    export_onnx,
-    write_checksum,
-)
 from patchi.core.runtime.tracer import TraceReport, trace_file  # noqa: E402
 
 # ── TraceReport invariants ───────────────────────────────────────────────
@@ -38,55 +28,6 @@ def test_trace_report_crashed_property():
 def test_trace_report_hot_functions_empty():
     report = TraceReport()
     assert report.hot_functions(top_n=5) == []
-
-
-# ── Trust-gate chaos: corrupt / missing models ───────────────────────────
-
-
-class TestCorruptModelHandling:
-    def test_garbage_model_file_blocked(self, tmp_path: Path):
-        """A non-ONNX blob must yield unavailable + integrity skip, never a crash."""
-        from patchi.core.agents.gnn_models import GNNVulnerabilityClassifier
-
-        garbage = tmp_path / MODEL_NAME
-        garbage.write_bytes(b"\x00\x01\x02\x03not-a-model")
-        clf = GNNVulnerabilityClassifier(model_path=garbage)
-        assert not clf.available
-        assert clf.detect_vulnerabilities({"nodes": [], "edges": []}) == []
-
-    def test_empty_model_file_blocked(self, tmp_path: Path):
-        from patchi.core.agents.gnn_models import GNNVulnerabilityClassifier
-
-        empty = tmp_path / MODEL_NAME
-        empty.write_bytes(b"")
-        clf = GNNVulnerabilityClassifier(model_path=empty)
-        assert not clf.available
-
-    def test_missing_model_reports_not_found(self, tmp_path: Path):
-        from patchi.core.agents.gnn_models import GNNVulnerabilityClassifier
-
-        clf = GNNVulnerabilityClassifier(model_path=tmp_path / "absent.onnx")
-        assert not clf.available
-        assert "not found" in clf.skip_reason()
-
-    def test_allow_untrained_smoke_never_raises(self, tmp_path: Path):
-        """Smoke mode on an exported-but-untrained model stays capped and quiet."""
-        from patchi.core.agents.gnn_models import GNNVulnerabilityClassifier
-
-        net = GINGATNet().eval()
-        p = tmp_path / MODEL_NAME
-        export_onnx(net, p)
-        write_checksum(p)
-
-        clf = GNNVulnerabilityClassifier(
-            model_path=p, allow_untrained=True  # marker absent on purpose
-        )
-        results = clf.detect_vulnerabilities({
-            "nodes": [{"type": "call", "line": 1, "code": "db.execute(q)"}],
-            "edges": [],
-        })
-        for r in results:
-            assert r["severity"] in ("info", "low")
 
 
 # ── Crash tracer chaos ───────────────────────────────────────────────────

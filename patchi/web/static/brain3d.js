@@ -6,13 +6,17 @@
  */
 
 var BrainMap3D = (() => {
-  let scene, camera, renderer, controls, nodeGroup, edgeGroup;
+  let scene, camera, renderer, controls, nodeGroup, edgeGroup, dotGroup;
   let raycaster, mouse;
   let _nodes3d = {}, _edges3d = [];
   let _lastNodes = [], _lastEdges = [];
   let _currentView = 'force3d';
   let _showLabels = true;
   let _showEdges = true;
+  // Same rendered-node cap as the 2D renderer: only this many nodes get real
+  // meshes + label textures; the rest are lightweight position-only entries so
+  // edges still route through them without paying for geometry or textures.
+  const MAX_RENDERED_NODES = 300;
   let _nodeLabels = [];
   let _animFrame = null;
   let _initialized = false;
@@ -25,7 +29,10 @@ var BrainMap3D = (() => {
   // Momentum / inertia state
   let _momentum = { vx: 0, vy: 0, active: false };
   let _lastMouse = null;
+  let _mouseDownAt = null;
   let _isMouseDown = false;
+  let _selectedId = null;   // currently selected node id (highlight + edge focus)
+  let _selChip = null;      // DOM chip showing the selected file
   let _lastTap = null; // {x, y, time} for double-tap detection
 
   // Colors matching 2D palette
@@ -115,6 +122,7 @@ var BrainMap3D = (() => {
     el.addEventListener('mousedown', function(e) {
       _isMouseDown = true;
       _lastMouse = { x: e.clientX, y: e.clientY, t: performance.now() };
+      _mouseDownAt = { x: e.clientX, y: e.clientY };
       _momentum.active = false;
     });
     el.addEventListener('mousemove', function(e) {
@@ -127,13 +135,26 @@ var BrainMap3D = (() => {
       }
       _lastMouse = { x: e.clientX, y: e.clientY, t: now };
     });
-    el.addEventListener('mouseup', function() {
+    el.addEventListener('mouseup', function(e) {
       _isMouseDown = false;
+      // A click (not an orbit/pan drag) is a press+release within ~6px.
+      var wasClick = false;
+      if (_mouseDownAt) {
+        var dx = e.clientX - _mouseDownAt.x, dy = e.clientY - _mouseDownAt.y;
+        wasClick = (dx * dx + dy * dy) <= 36;
+      }
       _lastMouse = null;
+      _mouseDownAt = null;
       // Activate momentum if velocity is significant
       if (Math.abs(_momentum.vx) > 0.5 || Math.abs(_momentum.vy) > 0.5) {
         _momentum.active = true;
       }
+      if (wasClick) _pick(e.clientX, e.clientY);
+    });
+    el.addEventListener('mouseleave', function() {
+      _isMouseDown = false;
+      _lastMouse = null;
+      _mouseDownAt = null;
     });
     el.addEventListener('mouseleave', function() {
       _isMouseDown = false;
@@ -270,6 +291,136 @@ var BrainMap3D = (() => {
     }, { passive: true });
   }
 
+// ── Capped-dot selection ─────────────────────────────────
+  // Capped dots are tiny and dim; clicking one selects the file it represents
+  // (like clicking any rendered node), highlighting its edges so its role in
+  // the graph is visible even though it never got a full node sprite.
+
+  function _selEdgesOf(id) {
+    var set = {};
+    var count = 0;
+    _lastEdges.forEach(function(e) {
+      var f = e.source || e.from, t = e.target || e.to;
+      if (f === id || t === id) { set[f + '>' + t] = true; count++; }
+    });
+    return { set: set, count: count };
+  }
+
+  function _entry(id) { return _nodes3d[id] || null; }
+
+  function _isCapped(id) {
+    var en = _entry(id);
+    return !!(en && (en.dot || (en.userData && en.userData.dot)));
+  }
+
+  function _setMeshDim(mesh, dim) {
+    if (!mesh || !mesh.material) return;
+    if (dim) {
+      if (mesh._origOpacity === undefined) mesh._origOpacity = mesh.material.opacity;
+      mesh.material.opacity = 0.10;
+      mesh.material.transparent = true;
+    } else {
+      if (mesh._origOpacity !== undefined) mesh.material.opacity = mesh._origOpacity;
+    }
+  }
+
+  function _clearChip() {
+    if (_selChip && _selChip.parentNode) _selChip.parentNode.removeChild(_selChip);
+    _selChip = null;
+  }
+
+  function _showChip(id, entry, edgeCount) {
+    _clearChip();
+    var container = document.getElementById('brain-map-3d');
+    if (!container) return;
+    var label = (entry && (entry.label || (entry.userData && entry.userData.label))) ||
+                (id) || '';
+    var short = String(label).split('/').pop();
+    var chip = document.createElement('div');
+    chip.className = 'brain-sel-chip';
+    var dotStyle = _isCapped(id) ? 'brain-sel-chip-dot' : 'brain-sel-chip-node';
+    chip.innerHTML =
+      '<span class="' + dotStyle + '" aria-hidden="true"></span>' +
+      '<span class="brain-sel-chip-name" title="' + (label || '').replace(/"/g, '&quot;') + '">' + short + '</span>' +
+      '<span class="brain-sel-chip-meta">' + edgeCount + ' edge' + (edgeCount === 1 ? '' : 's') + '</span>' +
+      '<span class="brain-sel-chip-x" title="Clear selection (Esc)" aria-label="Clear selection">✕</span>';
+    container.appendChild(chip);
+    _selChip = chip;
+    var x = chip.querySelector('.brain-sel-chip-x');
+    if (x) x.addEventListener('click', function(ev) {
+      ev.stopPropagation();
+      clearSelection();
+    });
+    chip.addEventListener('dblclick', function() { clearSelection(); });
+  }
+
+  function selectNode(id, opts) {
+    opts = opts || {};
+    if (!_entry(id)) { if (opts.silent) return; clearSelection(); return; }
+    _selectedId = id;
+
+    // Dim non-selected nodes/dots, restore + spotlight the selected one.
+    nodeGroup.children.forEach(function(c) {
+      if (c.isMesh) {
+        if (c.userData && c.userData.id !== id) _setMeshDim(c, true);
+        else if (c.userData && c.userData.id === id) _setMeshDim(c, false);
+      }
+    });
+    if (dotGroup) dotGroup.children.forEach(function(c) {
+      if (c.userData && c.userData.id !== id) _setMeshDim(c, true);
+      else if (c.userData && c.userData.id === id) _setMeshDim(c, false);
+    });
+
+    // Connected edges stand out; unrelated ones are suppressed by _rebuildEdges.
+    var sel = _selEdgesOf(id);
+    _rebuildEdges();
+
+    var en = _entry(id);
+    _showChip(id, en, sel.count);
+
+    if (window.hideBrainTooltip) window.hideBrainTooltip();
+    // Keep the selected entry on screen when the graph shifts.
+    focusNode(id);
+    return sel.count;
+  }
+
+  function clearSelection() {
+    _selectedId = null;
+    nodeGroup.children.forEach(function(c) {
+      if (c.isMesh) _setMeshDim(c, false);
+    });
+    if (dotGroup) dotGroup.children.forEach(function(c) {
+      if (c.isMesh) _setMeshDim(c, false);
+    });
+    _clearChip();
+    if (_showEdges) _rebuildEdges();
+  }
+
+  function _pick(clientX, clientY) {
+    if (!scene || !camera || !raycaster) return;
+    var el = renderer && renderer.domElement;
+    if (!el) return;
+    var rect = el.getBoundingClientRect();
+    if (rect.width === 0) return;
+    mouse.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+    mouse.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+    raycaster.setFromCamera(mouse, camera);
+    var pickables = [];
+    nodeGroup.children.forEach(function(c) { if (c.isMesh) pickables.push(c); });
+    if (dotGroup) dotGroup.children.forEach(function(c) { pickables.push(c); });
+    var hits = raycaster.intersectObjects(pickables, false);
+    var picked = null;
+    for (var i = 0; i < hits.length; i++) {
+      var ud = hits[i].object.userData;
+      if (ud && ud.id) { picked = ud.id; break; }
+    }
+    if (picked) {
+      selectNode(picked);
+    } else {
+      clearSelection();
+    }
+  }
+
   function init(containerId) {
     const el = document.getElementById(containerId);
     if (!el) return;
@@ -329,8 +480,10 @@ var BrainMap3D = (() => {
     // Groups
     nodeGroup = new THREE.Group();
     edgeGroup = new THREE.Group();
+    dotGroup = new THREE.Group();  // tiny dim dots for capped-out nodes
     scene.add(nodeGroup);
     scene.add(edgeGroup);
+    scene.add(dotGroup);
 
     // Lights
     var ambient = new THREE.AmbientLight(0xffffff, 0.6);
@@ -345,6 +498,45 @@ var BrainMap3D = (() => {
     // Raycaster for click
     raycaster = new THREE.Raycaster();
     mouse = new THREE.Vector2();
+
+    // Hover tooltip — raycast nodes and their labels so the full filename
+    // shows at the cursor (drawn labels are truncated basenames).
+    var hoverLastPick = 0;
+    var hoverEl = renderer.domElement;
+    hoverEl.addEventListener('mousemove', function(e) {
+      if (_isMouseDown) return;               // orbiting / panning
+      var now = performance.now();
+      if (now - hoverLastPick < 50) return;   // throttle to ~20fps
+      hoverLastPick = now;
+      var rect = hoverEl.getBoundingClientRect();
+      if (rect.width === 0) return;
+      mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+      raycaster.setFromCamera(mouse, camera);
+      // Raycast rendered nodes AND capped-out dots (both carry userData.id).
+      var pickables = [];
+      nodeGroup.children.forEach(function(c) { if (c.isMesh) pickables.push(c); });
+      if (dotGroup) dotGroup.children.forEach(function(c) { pickables.push(c); });
+      var hits = raycaster.intersectObjects(pickables, false);
+      var hitLabel = null;
+      for (var i = 0; i < hits.length; i++) {
+        var ud = hits[i].object.userData;
+        if (ud && ud.id) {
+          // Dots are dim by design; prefix the tooltip so it's clear this is a
+          // capped file (no label sprite) vs a rendered node.
+          hitLabel = (ud.dot ? 'capped · ' : '') + (ud.label || ud.id);
+          break;
+        }
+      }
+      if (hitLabel) {
+        if (window.showBrainTooltip) window.showBrainTooltip(hitLabel, e.clientX, e.clientY);
+      } else if (window.hideBrainTooltip) {
+        window.hideBrainTooltip();
+      }
+    });
+    hoverEl.addEventListener('mouseleave', function() {
+      if (window.hideBrainTooltip) window.hideBrainTooltip();
+    });
 
     // Grid helper (subtle)
     var gridHelper = new THREE.GridHelper(1200, 30, 0x21262d, 0x161b22);
@@ -380,6 +572,38 @@ var BrainMap3D = (() => {
     if (severity === 'critical' || findingCount >= 5) return COLORS.critical;
     if (severity === 'high' || findingCount >= 3) return COLORS.wounded;
     return COLORS.scanning;
+  }
+
+  // ── Label truncation (same strategy as the 2D renderer) ────
+  // Measures text at the label font size and trims with '…' so long filenames
+  // fit the 240px texture budget instead of being hard-cut at 20 chars.
+  var _labelProbeCtx = null;
+  function _labelProbe() {
+    if (!_labelProbeCtx) {
+      var c = document.createElement('canvas');
+      c.width = 256;
+      c.height = 64;
+      _labelProbeCtx = c.getContext('2d');
+      _labelProbeCtx.font = '24px Inter, sans-serif';
+    }
+    return _labelProbeCtx;
+  }
+  function _measureLabelWidth3D(txt) {
+    return _labelProbe().measureText(txt).width || 0;
+  }
+  function _truncateLabel3D(name, maxW) {
+    if (!name) return name;
+    if (_measureLabelWidth3D(name) <= maxW) return name;
+    var ell = '…';
+    var ellW = _measureLabelWidth3D(ell);
+    var budget = Math.max(1, maxW - ellW);
+    var lo = 1, hi = name.length, best = 1;
+    while (lo <= hi) {
+      var mid = (lo + hi) >> 1;
+      if (_measureLabelWidth3D(name.slice(0, mid)) <= budget) { best = mid; lo = mid + 1; }
+      else { hi = mid - 1; }
+    }
+    return name.slice(0, best) + ell;
   }
 
   function _addNode3D(id, label, type, x, y, z, findingCount, severity) {
@@ -422,19 +646,26 @@ var BrainMap3D = (() => {
       ctx.font = '24px Inter, sans-serif';
       ctx.textAlign = 'center';
       var shortLabel = label.split('/').pop();
-      ctx.fillText(shortLabel.substring(0, 20), 128, 40);
+      ctx.fillText(_truncateLabel3D(shortLabel, 240), 128, 40);
       var texture = new THREE.CanvasTexture(canvas);
       var spriteMat = new THREE.SpriteMaterial({ map: texture, transparent: true, opacity: 0.8 });
       var sprite = new THREE.Sprite(spriteMat);
       sprite.position.set(x, y + radius + 10, z);
       sprite.scale.set(80, 20, 1);
+      sprite.userData = { id: id, label: label };
       nodeGroup.add(sprite);
       _nodeLabels.push(sprite);
     }
   }
 
+  function _edgeTouchesSelection(from, to) {
+    if (!_selectedId) return true;   // no selection: draw everything
+    return from === _selectedId || to === _selectedId;
+  }
+
   function _addEdge3D(from, to, type) {
     if (!_nodes3d[from] || !_nodes3d[to]) return;
+    if (!_edgeTouchesSelection(from, to)) return;  // suppress unrelated edges
     var fromPos = _nodes3d[from].position;
     var toPos = _nodes3d[to].position;
 
@@ -444,8 +675,19 @@ var BrainMap3D = (() => {
     else if (type === 'blast_radius') color = COLORS.edgeBlast;
 
     var geometry = new THREE.BufferGeometry().setFromPoints([fromPos, toPos]);
-    var material = new THREE.LineBasicMaterial({ color: color, transparent: true, opacity: 0.3 });
+    // Selected edges render brighter + more opaque so the file's role pops.
+    var selected = !!_selectedId;
+    var material = new THREE.LineBasicMaterial({
+      color: color,
+      transparent: true,
+      opacity: selected ? 0.9 : 0.3,
+    });
     var line = new THREE.Line(geometry, material);
+    if (selected) {
+      line.material.linewidth = 2;  // best-effort (WebGL caps at 1 on most GPUs)
+      // Slight bloom-ish boost: nothing more available without postprocessing,
+      // so brightness comes from opacity + color already being vivid.
+    }
     edgeGroup.add(line);
   }
 
@@ -741,9 +983,13 @@ var BrainMap3D = (() => {
     var goldenRatio = (1 + Math.sqrt(5)) / 2;
     for (var d = 0; d <= maxDepth; d++) {
       var ring = rings[d] || [];
-      var shellR = 60 + d * 80;
+      // Single root stays at the exact center (no overlap possible); any
+      // other depth-0 nodes must NOT stack there. Offset the shell radius by
+      // one level so every ring (including depth 0 with 2+ nodes) gets a real
+      // radius — same fix as the 2D radial layout.
+      if (d === 0 && ring.length === 1) { pos[ring[0]] = { x: 0, y: 0, z: 0 }; continue; }
+      var shellR = 60 + (d + 1) * 80;
       ring.forEach(function(id, i) {
-        if (d === 0) { pos[id] = { x: 0, y: 0, z: 0 }; return; }
         var phi = Math.acos(1 - 2 * (i + 0.5) / ring.length);
         var theta = 2 * Math.PI * i / goldenRatio + d * 0.5;
         pos[id] = {
@@ -785,6 +1031,7 @@ var BrainMap3D = (() => {
       mesh.position.x += (tgt.x - mesh.position.x) * t;
       mesh.position.y += (tgt.y - mesh.position.y) * t;
       mesh.position.z += (tgt.z - mesh.position.z) * t;
+      if (mesh.dot) mesh.dot.position.copy(mesh.position);
     });
 
     // Update labels to follow their nodes
@@ -798,7 +1045,7 @@ var BrainMap3D = (() => {
       Object.keys(_animTarget).forEach(function(id) {
         var mesh = _nodes3d[id];
         var tgt = _animTarget[id];
-        if (mesh) mesh.position.set(tgt.x, tgt.y, tgt.z);
+        if (mesh) { mesh.position.set(tgt.x, tgt.y, tgt.z); if (mesh.dot) mesh.dot.position.copy(mesh.position); }
       });
       _repositionLabels();
       _rebuildEdges();
@@ -847,6 +1094,7 @@ var BrainMap3D = (() => {
     _lastNodes = nodesList || [];
     _lastEdges = edgesList || [];
     _render3D(_lastNodes, _lastEdges);
+    if (window.updateBrainMapMeta) window.updateBrainMapMeta(_currentView);
   }
 
   function _render3D(nodesList, edgesList) {
@@ -854,6 +1102,7 @@ var BrainMap3D = (() => {
     // Clear previous
     while (nodeGroup.children.length > 0) nodeGroup.remove(nodeGroup.children[0]);
     while (edgeGroup.children.length > 0) edgeGroup.remove(edgeGroup.children[0]);
+    if (dotGroup) while (dotGroup.children.length > 0) dotGroup.remove(dotGroup.children[0]);
     _nodes3d = {};
     _nodeLabels = [];
 
@@ -869,9 +1118,23 @@ var BrainMap3D = (() => {
       case 'force3d': default: positions = _forceLayout3D(nodesList, edgesList); break;
     }
 
-    nodesList.forEach(function(n) {
-      var pos = positions[n.id || n.path] || { x: 0, y: 0, z: 0 };
-      _addNode3D(n.id || n.path, n.label || n.path, n.type || 'default', pos.x, pos.y, pos.z, n.finding_count || 0, n.severity || 'info');
+    nodesList.forEach(function(n, idx) {
+      var id = n.id || n.path;
+      var pos = positions[id] || { x: 0, y: 0, z: 0 };
+      if (idx < MAX_RENDERED_NODES) {
+        _addNode3D(id, n.label || n.path, n.type || 'default', pos.x, pos.y, pos.z, n.finding_count || 0, n.severity || 'info');
+      } else {
+        // Capped-out node: keep a position-only entry so edges route through
+        // it, but ALSO render a tiny dim dot so the edge endpoint is visible
+        // instead of a line floating into empty space.
+        var dotGeom = new THREE.SphereGeometry(2.2, 8, 8);
+        var dotMat = new THREE.MeshBasicMaterial({ color: 0x8b949e, transparent: true, opacity: 0.35, depthWrite: false });
+        var dot = new THREE.Mesh(dotGeom, dotMat);
+        dot.position.set(pos.x, pos.y, pos.z);
+        dot.userData = { id: id, label: n.label || n.path, node: n, dot: true };
+        dotGroup.add(dot);
+        _nodes3d[id] = { position: dot.position, dot: dot, node: n, label: n.label || n.path };
+      }
     });
 
     if (_showEdges) {
@@ -879,10 +1142,33 @@ var BrainMap3D = (() => {
         _addEdge3D(e.source || e.from, e.target || e.to, e.type || 'dependency');
       });
     }
+
+    // A rebuild creates fresh meshes/dots — re-apply an active selection
+    // (dim others + edge filter) so toggling labels/edges doesn't lose it.
+    if (_selectedId) _reapplySelection();
+  }
+
+  function _reapplySelection() {
+    if (!_selectedId) return;
+    var id = _selectedId;
+    if (!_entry(id)) { clearSelection(); return; }
+    nodeGroup.children.forEach(function(c) {
+      if (c.isMesh && c.userData) {
+        _setMeshDim(c, c.userData.id !== id);
+      }
+    });
+    if (dotGroup) dotGroup.children.forEach(function(c) {
+      if (c.userData) _setMeshDim(c, c.userData.id !== id);
+    });
+    _rebuildEdges();
+    _clearChip();
+    var en = _entry(id);
+    if (en) _showChip(id, en, _selEdgesOf(id).count);
   }
 
   function switchView(viewName) {
     _currentView = viewName;
+    if (window.updateBrainMapMeta) window.updateBrainMapMeta(viewName);
     document.querySelectorAll('[id^="view3d-"]').forEach(function(btn) {
       btn.style.background = btn.id === 'view3d-' + viewName ? 'var(--bg-tertiary)' : '';
       btn.style.fontWeight = btn.id === 'view3d-' + viewName ? '600' : '';
@@ -945,7 +1231,19 @@ var BrainMap3D = (() => {
   }
 
   function getStats() {
-    return { nodes: Object.keys(_nodes3d).length, edges: _lastEdges.length, view: _currentView };
+    // Audit hook: rendered = nodes with real meshes (the cap), labels = sprites.
+    var meshes = 0;
+    nodeGroup.children.forEach(function(ch) {
+      if (ch.isMesh) meshes++;
+    });
+    return {
+      nodes: Object.keys(_nodes3d).length,
+      rendered: meshes,
+      labels: _nodeLabels.length,
+      capped: dotGroup ? dotGroup.children.length : 0,
+      edges: _lastEdges.length,
+      view: _currentView,
+    };
   }
 
   function destroy() {
@@ -962,6 +1260,9 @@ var BrainMap3D = (() => {
     var q = (query || '').trim().toLowerCase();
     var countEl = document.getElementById('brain-search-count');
     var matchCount = 0;
+    // Search and selection both dim the graph — a fresh search dismisses the
+    // current selection so the match highlight reads cleanly.
+    if (q && _selectedId) clearSelection();
 
     // Restore all nodes if query is empty
     if (!q) {
@@ -1019,10 +1320,22 @@ var BrainMap3D = (() => {
     }
   }
 
+  function getPositions() {
+    // Test/audit hook: id -> [x, y, z] for every rendered 3D node.
+    var out = {};
+    Object.keys(_nodes3d).forEach(function(id) {
+      var p = _nodes3d[id].position;
+      out[id] = [p.x, p.y, p.z];
+    });
+    return out;
+  }
+
   return {
     init: init,
     loadNodes: loadNodes,
     switchView: switchView,
+    getPositions: getPositions,
+    truncateLabel: _truncateLabel3D,
     toggleEdges: toggleEdges,
     toggleLabels: toggleLabels3D,
     resetCamera: resetCamera,
@@ -1031,5 +1344,15 @@ var BrainMap3D = (() => {
     getStats: getStats,
     destroy: destroy,
     searchNodes: searchNodes,
+    selectNode: selectNode,
+    clearSelection: clearSelection,
+    // Audit/test hook: project a node's world position to screen coordinates.
+    _project: function(id) {
+      if (!camera || !renderer || !_entry(id)) return null;
+      var v = _entry(id).position.clone().project(camera);
+      var w = renderer.domElement.clientWidth || 800;
+      var h = renderer.domElement.clientHeight || 400;
+      return { x: (v.x + 1) / 2 * w, y: (-v.y + 1) / 2 * h, z: v.z };
+    },
   };
 })();

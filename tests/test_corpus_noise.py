@@ -32,13 +32,14 @@ def _make_project(tmp_path: Path) -> Path:
 
 
 class TestCorpusNoiseExclusion:
-    def test_default_keeps_everything(self, tmp_path: Path):
+    def test_default_keeps_everything_except_builtins(self, tmp_path: Path):
         root = _make_project(tmp_path)
         corpus = FileCorpus(root)
-        # 5 scannable files (guide.md is not a detectable language and is
-        # dropped by language detection long before noise classification).
-        assert len(corpus) == 5
-        assert "web/bundle.min.js" in corpus
+        # 4 scannable files: guide.md is dropped by language detection, and
+        # minified/bundled assets are excluded by default (single-line giants
+        # freeze the scan loop — see is_minified_asset in languages.py).
+        assert len(corpus) == 4
+        assert "web/bundle.min.js" not in corpus
         assert "tests/test_app.py" in corpus
         assert "web/package-lock.json" in corpus
         assert corpus.noise_excluded == {}
@@ -54,8 +55,10 @@ class TestCorpusNoiseExclusion:
         assert "src/app.py" in paths
         assert "tests/test_app.py" in paths
         assert corpus.noise_excluded.get("lockfile") == 1
-        assert corpus.noise_excluded.get("generated") == 1
         assert corpus.noise_excluded.get("docs") == 1
+        # bundle.min.js is pruned as a built-in before noise classification,
+        # so it never reaches the classifier's "generated" counter.
+        assert corpus.noise_excluded.get("generated") is None
 
     def test_exclude_tests_opt_in(self, tmp_path: Path):
         root = _make_project(tmp_path)
@@ -100,7 +103,7 @@ class TestCorpusLearnerWiring:
 
         root = _make_project(tmp_path)
         corpus = FileCorpus(root, ignore_learner=ExplodingLearner())
-        assert len(corpus) == 5  # everything still scanned
+        assert len(corpus) == 4  # source kept; built-in excludes still apply
 
     def test_full_learning_loop(self, tmp_path: Path, monkeypatch):
         """FP memory -> learner -> corpus pruning, the real scan sequence."""

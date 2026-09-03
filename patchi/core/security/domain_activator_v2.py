@@ -742,12 +742,15 @@ class DomainActivatorV2:
         root: Path,
         activation_threshold: float = 0.5,
         max_domains: int = 20,
+        domain_loader=None,
     ):
         self.root = root
         self.activation_threshold = activation_threshold
         self.max_domains = max_domains
         self.extractor = SignalExtractor(root)
-        self.domain_loader = DomainLoader(root)
+        # Callers that preloaded the taxonomy in the background (CLI/web scan)
+        # inject it here so activation never blocks on a cold DomainLoader.
+        self.domain_loader = domain_loader or DomainLoader(root)
 
     def activate_domains(
         self,

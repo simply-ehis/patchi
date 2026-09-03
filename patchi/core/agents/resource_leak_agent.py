@@ -7,7 +7,6 @@ Tree-sitter pattern: setInterval without clearInterval in same scope; useEffect 
 from __future__ import annotations
 
 import logging
-import re
 
 from patchi.core.agents.base import (
     AgentGroup,
@@ -20,14 +19,14 @@ from patchi.core.agents.base import (
     register,
     safe_rglob,
 )
+from patchi.core.brain.code_query import (
+    js_calls,
+    js_useeffect_without_cleanup,
+    lang_for_file,
+    parse_js,
+)
 
 _log = logging.getLogger("patchi.agents.resource_leak")
-
-_INTERVAL_RE = re.compile(r"setInterval\s*\(")
-_TIMEOUT_RE = re.compile(r"setTimeout\s*\(")
-_EMITTER_RE = re.compile(r"\.on\s*\(\s*['\"]\w+['\"]\s*,")
-_USEEFFECT_RE = re.compile(r"useEffect\s*\(")
-_STREAM_RE = re.compile(r"createReadStream|createWriteStream|fs\.open")
 
 @register
 class ResourceLeakAgent(BaseAgent):
@@ -47,40 +46,45 @@ class ResourceLeakAgent(BaseAgent):
                     txt=fp.read_text(encoding="utf-8", errors="replace")
                 except OSError:
                     continue
-                lines=txt.splitlines()
-                has_interval = any(_INTERVAL_RE.search(line) for line in lines)
-                has_clear = any("clearInterval" in line for line in lines)
-                has_emitter = any(_EMITTER_RE.search(line) for line in lines)
-                has_off = "removeListener" in txt or "off(" in txt or "removeEventListener" in txt
-                has_effect = any(_USEEFFECT_RE.search(line) for line in lines)
-                has_effect_cleanup = "return () =>" in txt or "return function" in txt
-                has_stream = any(_STREAM_RE.search(line) for line in lines)
-                has_close = ".close(" in txt or ".destroy(" in txt or ".end(" in txt
+                tree=parse_js(txt, lang_for_file(rel))
+                if tree is None:
+                    continue
+                calls=js_calls(tree, lang_for_file(rel))
+                names={c.name for c in calls}
+                by_name: dict[str, list] = {}
+                for c in calls:
+                    by_name.setdefault(c.name, []).append(c)
+
+                def first(name: str) -> int:
+                    return by_name[name][0].line if name in by_name else 0
+
+                has_interval = "setInterval" in names
+                has_clear = "clearInterval" in names
+                has_emitter = any(
+                    c.name == "on" and c.arg_kinds[:1] == ["string"] for c in calls
+                )
+                has_off = bool(names & {"removeListener", "off", "removeEventListener"})
+                no_cleanup_lines = js_useeffect_without_cleanup(tree, lang_for_file(rel))
+                stream_call = next(
+                    (c for c in calls if c.name in ("createReadStream", "createWriteStream") or c.full == "fs.open"),
+                    None,
+                )
+                has_stream = stream_call is not None
+                has_close = bool(names & {"close", "destroy", "end"})
 
                 # Interval leak
                 if has_interval and not has_clear:
-                    for i, line in enumerate(lines,1):
-                        if _INTERVAL_RE.search(line):
-                            findings.append(make_finding(severity=Severity.MEDIUM, file=rel, line_start=i, title="setInterval without clearInterval", description="Leaks interval; store handle and clearInterval on unmount/cleanup", finding_type="resource_leak_interval"))
-                            break
+                    findings.append(make_finding(severity=Severity.MEDIUM, file=rel, line_start=first("setInterval"), title="setInterval without clearInterval", description="Leaks interval; store handle and clearInterval on unmount/cleanup", finding_type="resource_leak_interval"))
                 # Emitter leak
                 if has_emitter and not has_off:
-                    for i, line in enumerate(lines,1):
-                        if _EMITTER_RE.search(line):
-                            findings.append(make_finding(severity=Severity.LOW, file=rel, line_start=i, title="EventEmitter .on without off/cleanup", description="Add removeListener/off in cleanup", finding_type="resource_leak_emitter"))
-                            break
+                    line = next((c.line for c in calls if c.name == "on" and c.arg_kinds[:1] == ["string"]), 0)
+                    findings.append(make_finding(severity=Severity.LOW, file=rel, line_start=line, title="EventEmitter .on without off/cleanup", description="Add removeListener/off in cleanup", finding_type="resource_leak_emitter"))
                 # useEffect without cleanup
-                if has_effect and not has_effect_cleanup and has_interval:
-                    for i, line in enumerate(lines,1):
-                        if _USEEFFECT_RE.search(line):
-                            findings.append(make_finding(severity=Severity.LOW, file=rel, line_start=i, title="useEffect with interval but no cleanup return", description="Return () => clearInterval in useEffect", finding_type="resource_leak_effect"))
-                            break
+                if no_cleanup_lines and has_interval:
+                    findings.append(make_finding(severity=Severity.LOW, file=rel, line_start=no_cleanup_lines[0], title="useEffect with interval but no cleanup return", description="Return () => clearInterval in useEffect", finding_type="resource_leak_effect"))
                 # Stream not closed
-                if has_stream and not has_close:
-                    for i, line in enumerate(lines,1):
-                        if _STREAM_RE.search(line):
-                            findings.append(make_finding(severity=Severity.LOW, file=rel, line_start=i, title="Stream without close/destroy", description="Ensure fs stream closed/destroyed", finding_type="resource_leak_stream"))
-                            break
+                if has_stream and not has_close and stream_call is not None:
+                    findings.append(make_finding(severity=Severity.LOW, file=rel, line_start=stream_call.line, title="Stream without close/destroy", description="Ensure fs stream closed/destroyed", finding_type="resource_leak_stream"))
                 if len(findings) >= 40:
                     break
             if len(findings) >= 40:

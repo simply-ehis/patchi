@@ -310,14 +310,13 @@ class TestRegistry(unittest.TestCase):
         """Auto-discovery walks the whole package tree, so a module that is NOT
         imported by scanners.py / security_agents.py / test_agents.py / fix/
         still fires its @register — e.g. flake_detector_agent is not re-exported
-        by test_agents, and gnn_detector/attack_agent/doc_claim_agent are not
+        by test_agents, and attack_agent/doc_claim_agent are not
         pulled in by any aggregator."""
         from patchi.core.agents.base import AGENT_PACKAGES, discover_agent_modules
 
         self.assertEqual(discover_agent_modules(), [])
         for name in (
             "FlakeDetectorAgent",
-            "GNNBugDetector",
             "AttackAgent",
             "DocClaimAgent",
         ):

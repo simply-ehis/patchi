@@ -23,6 +23,8 @@ import os
 import subprocess
 from pathlib import Path
 
+from patchi.core.constants import is_offline
+
 from ..agents.base import (
     AgentGroup,
     AgentInput,
@@ -96,12 +98,20 @@ class SemgrepAgent(BaseAgent):
         return None
 
     def _run_semgrep(self, root: Path, scope: list[str] | None) -> list[Finding] | None:
-        """Run semgrep with the local rules pack; fall back to --config auto."""
+        """Run semgrep with the local rules pack; bounded network fallback.
+
+        Never falls back to --config=auto (the full registry pull can take many
+        minutes). When no local pack exists we only try the single, bounded
+        p/owasp-top-ten registry pack while online.
+        """
         pack = self._rules_pack(root)
         configs = []
         if pack is not None:
             configs.append(str(pack))
-        configs.append("auto")  # network fallback
+        elif not is_offline():
+            configs.append("p/owasp-top-ten")
+        if not configs:
+            return None
 
         target = str(root)
         env = {**os.environ, "SEMGREP_SEND_METRICS": "off"}

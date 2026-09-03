@@ -360,6 +360,19 @@ def clear_source_tree_cache() -> int:
 
 # ── Ignore dirs (shared with scanner + freshness) ─────────────────────────────
 
+MINIFIED_SUFFIXES = (".min.js", ".min.mjs", ".min.css", ".bundle.js", ".map")
+
+
+def is_minified_asset(name: str) -> bool:
+    """True for minified/bundled/source-map assets.
+
+    These are typically single-line giants (e.g. a 900 KB one-line
+    three.min.js). Python's re module holds the GIL for the whole match on a
+    single line, so scanning them freezes the dashboard event loop mid-scan.
+    """
+    return name.lower().endswith(MINIFIED_SUFFIXES)
+
+
 DEFAULT_IGNORE_DIRS = {
     "node_modules",
     ".git",

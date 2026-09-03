@@ -499,7 +499,7 @@ async function loadVideos() {
         '</div>' +
         '<div style="padding:8px 12px;display:flex;justify-content:space-between;align-items:center">' +
           '<div>' +
-            '<div style="font-size:12px;font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px" title="' + v.name + '">' + v.name + '</div>' +
+            '<div style="font-size:12px;font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px" data-tooltip="' + v.name + '">' + v.name + '</div>' +
             '<div style="font-size:10px;color:var(--text-tertiary)">' + v.size_kb + ' KB • ' + new Date(v.timestamp).toLocaleString() + '</div>' +
           '</div>' +
           '<a href="/api/live-testing/video/' + v.filename + '" download style="color:var(--accent);font-size:11px;text-decoration:none" title="Download">💾</a>' +
@@ -679,7 +679,7 @@ function screenshotCard(s, isDiff) {
     '<div style="aspect-ratio:16/10;background:#111;display:flex;align-items:center;justify-content:center">' +
       '<img src="/api/live-testing/screenshot/' + s.filename + '" style="width:100%;height:100%;object-fit:contain" loading="lazy" onerror="this.style.display=\'none\'">' +
     '</div>' +
-    '<div style="padding:6px 10px;font-size:11px;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="' + s.name + '">' +
+    '<div style="padding:6px 10px;font-size:11px;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis" data-tooltip="' + s.name + '">' +
       (isDiff ? '🔴 ' : '') + s.name +
     '</div>' +
   '</div>';

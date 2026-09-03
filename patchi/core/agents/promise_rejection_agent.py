@@ -12,7 +12,6 @@ without catch, and test runs that never register handlers.
 from __future__ import annotations
 
 import logging
-import re
 
 from patchi.core.agents.base import (
     AgentGroup,
@@ -25,14 +24,13 @@ from patchi.core.agents.base import (
     register,
     safe_rglob,
 )
+from patchi.core.brain.code_query import (
+    js_new_without_catch,
+    lang_for_file,
+    parse_js,
+)
 
 _log = logging.getLogger("patchi.agents.promise_rejection")
-
-
-# JS/TS: new Promise, .then without .catch, async without try/catch
-_PROMISE_NO_CATCH = re.compile(r"\bnew\s+Promise\s*\(")
-_THEN_NO_CATCH = re.compile(r"\.then\s*\([^)]*\)\s*(?:\.then[^)]*\)\s*)*\s*;")
-_ASYNC_NO_TRY = re.compile(r"async\s+function\s+\w*\s*\([^)]*\)\s*\{[^}]*\bawait\b", re.DOTALL)
 
 
 @register
@@ -65,22 +63,23 @@ class PromiseRejectionTrackerAgent(BaseAgent):
                     txt = fp.read_text(encoding="utf-8", errors="replace")
                 except OSError:
                     continue
-                lines = txt.splitlines()
-                for i, line in enumerate(lines, 1):
-                    if _PROMISE_NO_CATCH.search(line) and ".catch" not in "\n".join(lines[i : i + 5]):
-                        findings.append(
-                            make_finding(
-                                severity=Severity.LOW,
-                                file=rel,
-                                line_start=i,
-                                title="Promise without catch — unhandledRejection risk",
-                                description="`new Promise` without `.catch` or `await try/catch` — aggregate via process.on('unhandledRejection') during test runs (see §5.1.1).",
-                                evidence=line.strip()[:120],
-                                finding_type="promise_no_catch",
-                            )
+                lang = lang_for_file(rel)
+                tree = parse_js(txt, lang)
+                if tree is None:
+                    continue
+                for line in js_new_without_catch(tree, ("Promise",), lang):
+                    findings.append(
+                        make_finding(
+                            severity=Severity.LOW,
+                            file=rel,
+                            line_start=line,
+                            title="Promise without catch — unhandledRejection risk",
+                            description="`new Promise` without `.catch` or `await try/catch` — aggregate via process.on('unhandledRejection') during test runs (see §5.1.1).",
+                            finding_type="promise_no_catch",
                         )
-                        if len(findings) >= 30:
-                            break
+                    )
+                    if len(findings) >= 30:
+                        break
             if len(findings) >= 30:
                 break
 

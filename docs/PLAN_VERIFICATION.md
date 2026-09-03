@@ -144,7 +144,7 @@ The plan didn't include a formal plugin interface. We added:
 | Item | Priority | Status |
 |------|----------|--------|
 | Quick Wins (trend graphs, heatmap, baseline) | High | Partially done |
-| GNN Bug Detection | Medium | Not started |
+| GNN Bug Detection | Dropped | Deleted — untrainable, code+plan removed |
 | Scan Bus (FileCorpus + shards) | High | Not started |
 | Debugger delegation | Low | Not started |
 
@@ -165,8 +165,7 @@ The plan was conservative — it didn't anticipate the BrainContext bridge or Pl
 
 **Recommendation:** The plan is complete. Focus next on:
 1. The remaining 73 features from the Feature Plan
-2. GNN Bug Detection (28-day plan)
-3. Scan Bus (largest remaining architecture piece)
+2. Scan Bus (largest remaining architecture piece)
 
 ---
 

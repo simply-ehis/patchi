@@ -27,7 +27,12 @@ import os
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from patchi.core.brain.languages import DEFAULT_IGNORE_DIRS, Lang, detect_language
+from patchi.core.brain.languages import (
+    DEFAULT_IGNORE_DIRS,
+    Lang,
+    detect_language,
+    is_minified_asset,
+)
 
 _log = logging.getLogger("patchi.core.brain.file_corpus")
 
@@ -124,7 +129,7 @@ class FileCorpus:
                 rel_dir = ""
 
             for fname in filenames:
-                if fname in self._skip_files:
+                if fname in self._skip_files or is_minified_asset(fname):
                     continue
                 rel_path = f"{rel_dir}/{fname}" if rel_dir else fname
                 abs_path = Path(dirpath) / fname

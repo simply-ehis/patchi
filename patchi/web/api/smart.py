@@ -15,9 +15,14 @@ from pathlib import Path
 
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 
 _log = logging.getLogger("patchi.web.smart")
+
+_templates = Jinja2Templates(
+    directory=str(Path(__file__).resolve().parent.parent / "templates")
+)
 
 router = APIRouter()
 
@@ -101,13 +106,6 @@ async def smart_cancel() -> dict:
     }
 
 
-_SMART_HTML = None
-
-
 @router.get("/smart", response_class=HTMLResponse)
 async def smart_page(request: Request):
-    global _SMART_HTML
-    if _SMART_HTML is None:
-        p = Path(__file__).resolve().parent.parent / "templates" / "smart.html"
-        _SMART_HTML = p.read_text(encoding="utf-8")
-    return HTMLResponse(_SMART_HTML)
+    return _templates.TemplateResponse(request, "smart.html", {"request": request})
