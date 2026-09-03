@@ -7,11 +7,11 @@
       <span class="panel-title">Project Summary</span>
     </div>
     <div style="display:flex;gap:24px;padding:16px;font-size:13px">
-      <div><span style="color:var(--text-secondary)">Files:</span> <strong>{{ file_count }}</strong></div>
-      <div><span style="color:var(--text-secondary)">Routes:</span> <strong>{{ route_count }}</strong></div>
-      <div><span style="color:var(--text-secondary)">Framework:</span> <strong>{{ framework }}</strong></div>
-      <div><span style="color:var(--text-secondary)">Patches:</span> <strong>{{ patches|length }}</strong></div>
-      <div><span style="color:var(--text-secondary)">Scans:</span> <strong id="scan-count">{{ scan_history|length }}</strong></div>
+      <div><span class="u-muted">Files:</span> <strong>{{ file_count }}</strong></div>
+      <div><span class="u-muted">Routes:</span> <strong>{{ route_count }}</strong></div>
+      <div><span class="u-muted">Framework:</span> <strong>{{ framework }}</strong></div>
+      <div><span class="u-muted">Patches:</span> <strong>{{ patches|length }}</strong></div>
+      <div><span class="u-muted">Scans:</span> <strong id="scan-count">{{ scan_history|length }}</strong></div>
     </div>
   </div>
 
@@ -19,44 +19,44 @@
   <div class="panel" style="margin-top:12px">
     <div class="panel-header">
       <span class="panel-title">🔍 Filter & Sort</span>
-      <button onclick="resetFilters()" style="background:transparent;border:1px solid var(--border);color:var(--text-secondary);padding:4px 12px;border-radius:6px;cursor:pointer;font-size:12px">Reset</button>
+      <button type="button" class="btn btn-ghost btn-sm" onclick="resetFilters()">Reset</button>
     </div>
     <div style="display:flex;flex-wrap:wrap;gap:16px;padding:12px 16px;align-items:end">
       <!-- Date Range -->
-      <div style="display:flex;flex-direction:column;gap:4px">
+      <div class="u-flex u-col u-gap4">
         <label style="font-size:11px;color:var(--text-secondary);text-transform:uppercase">From</label>
-        <input type="date" id="filter-date-from" onchange="applyFilters()" style="background:var(--bg-secondary);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;font-size:12px">
+        <input type="date" id="filter-date-from" onchange="applyFilters()">
       </div>
-      <div style="display:flex;flex-direction:column;gap:4px">
+      <div class="u-flex u-col u-gap4">
         <label style="font-size:11px;color:var(--text-secondary);text-transform:uppercase">To</label>
-        <input type="date" id="filter-date-to" onchange="applyFilters()" style="background:var(--bg-secondary);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;font-size:12px">
+        <input type="date" id="filter-date-to" onchange="applyFilters()">
       </div>
 
       <!-- Severity Filter -->
-      <div style="display:flex;flex-direction:column;gap:4px">
+      <div class="u-flex u-col u-gap4">
         <label style="font-size:11px;color:var(--text-secondary);text-transform:uppercase">Severity</label>
-        <div style="display:flex;gap:6px">
-          <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer">
+        <div class="u-flex u-gap6">
+          <label class="u-flex u-aic u-gap4 u-fs12 u-ptr">
             <input type="checkbox" class="sev-check" value="critical" onchange="applyFilters()" checked>
-            <span style="color:#FF4D6D">●</span> Critical
+            <span style="color:var(--sev-critical)">●</span> Critical
           </label>
-          <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer">
+          <label class="u-flex u-aic u-gap4 u-fs12 u-ptr">
             <input type="checkbox" class="sev-check" value="high" onchange="applyFilters()" checked>
-            <span style="color:#FF8C42">●</span> High
+            <span style="color:var(--sev-high)">●</span> High
           </label>
-          <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer">
+          <label class="u-flex u-aic u-gap4 u-fs12 u-ptr">
             <input type="checkbox" class="sev-check" value="medium" onchange="applyFilters()" checked>
-            <span style="color:#FACC15">●</span> Medium
+            <span style="color:var(--sev-medium)">●</span> Medium
           </label>
-          <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer">
+          <label class="u-flex u-aic u-gap4 u-fs12 u-ptr">
             <input type="checkbox" class="sev-check" value="low" onchange="applyFilters()" checked>
-            <span style="color:#6B7280">●</span> Low
+            <span style="color:var(--sev-info)">●</span> Low
           </label>
         </div>
       </div>
 
       <!-- Tool Filter -->
-      <div style="display:flex;flex-direction:column;gap:4px">
+      <div class="u-flex u-col u-gap4">
         <label style="font-size:11px;color:var(--text-secondary);text-transform:uppercase">Tool</label>
         <select id="filter-tool" onchange="applyFilters()" style="background:var(--bg-secondary);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;font-size:12px;min-width:120px">
           <option value="all">All Tools</option>
@@ -67,9 +67,9 @@
       </div>
 
       <!-- Sort -->
-      <div style="display:flex;flex-direction:column;gap:4px">
+      <div class="u-flex u-col u-gap4">
         <label style="font-size:11px;color:var(--text-secondary);text-transform:uppercase">Sort By</label>
-        <div style="display:flex;gap:4px">
+        <div class="u-flex u-gap4">
           <select id="filter-sort" onchange="applyFilters()" style="background:var(--bg-secondary);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;font-size:12px">
             <option value="timestamp">Time</option>
             <option value="findings">Findings</option>
@@ -77,7 +77,7 @@
             <option value="severity">Severity</option>
             <option value="duration">Duration</option>
           </select>
-          <button id="sort-dir-btn" onclick="toggleSortDir()" style="background:var(--bg-secondary);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;font-size:12px;cursor:pointer" title="Toggle sort direction">↓</button>
+          <button type="button" class="btn btn-sm" id="sort-dir-btn" onclick="toggleSortDir()" title="Toggle sort direction" aria-label="Toggle sort direction">↓</button>
         </div>
       </div>
     </div>
@@ -88,7 +88,7 @@
   <div class="panel" style="margin-top:12px">
     <div class="panel-header">
       <span class="panel-title">Scan History</span>
-      <span id="scan-filter-count" style="font-size:12px;color:var(--text-secondary)"></span>
+      <span id="scan-filter-count" class="u-fs12 u-muted"></span>
     </div>
     <div style="overflow-x:auto;padding:12px">
       <table id="scan-table" style="width:100%;border-collapse:collapse;font-size:12px">
@@ -121,25 +121,25 @@
             <td style="padding:6px 8px;text-align:right;font-weight:600">{{ s.findings_count }}</td>
             <td style="padding:6px 8px;text-align:center">
               {% if s.severity_breakdown.get('critical', 0) > 0 %}
-              <span style="color:#FF4D6D" title="Critical: {{ s.severity_breakdown.get('critical', 0) }}">●{{ s.severity_breakdown.get('critical', 0) }}</span>
+              <span style="color:var(--sev-critical)" title="Critical: {{ s.severity_breakdown.get('critical', 0) }}">●{{ s.severity_breakdown.get('critical', 0) }}</span>
               {% endif %}
               {% if s.severity_breakdown.get('high', 0) > 0 %}
-              <span style="color:#FF8C42" title="High: {{ s.severity_breakdown.get('high', 0) }}">●{{ s.severity_breakdown.get('high', 0) }}</span>
+              <span style="color:var(--sev-high)" title="High: {{ s.severity_breakdown.get('high', 0) }}">●{{ s.severity_breakdown.get('high', 0) }}</span>
               {% endif %}
               {% if s.severity_breakdown.get('medium', 0) > 0 %}
-              <span style="color:#FACC15" title="Medium: {{ s.severity_breakdown.get('medium', 0) }}">●{{ s.severity_breakdown.get('medium', 0) }}</span>
+              <span style="color:var(--sev-medium)" title="Medium: {{ s.severity_breakdown.get('medium', 0) }}">●{{ s.severity_breakdown.get('medium', 0) }}</span>
               {% endif %}
               {% if s.severity_breakdown.get('low', 0) > 0 %}
-              <span style="color:#6B7280" title="Low: {{ s.severity_breakdown.get('low', 0) }}">●{{ s.severity_breakdown.get('low', 0) }}</span>
+              <span style="color:var(--sev-info)" title="Low: {{ s.severity_breakdown.get('low', 0) }}">●{{ s.severity_breakdown.get('low', 0) }}</span>
               {% endif %}
             </td>
             <td style="padding:6px 8px;text-align:right">
               {% if s.health_score >= 80 %}
-              <span style="color:#4ADE80">{{ s.health_score }}/100</span>
+              <span style="color:var(--success)">{{ s.health_score }}/100</span>
               {% elif s.health_score >= 50 %}
-              <span style="color:#FACC15">{{ s.health_score }}/100</span>
+              <span style="color:var(--sev-medium)">{{ s.health_score }}/100</span>
               {% else %}
-              <span style="color:#FF4D6D">{{ s.health_score }}/100</span>
+              <span style="color:var(--sev-critical)">{{ s.health_score }}/100</span>
               {% endif %}
             </td>
             <td style="padding:6px 8px;text-align:right;font-family:var(--font-mono)">{{ s.duration_ms }}ms</td>
@@ -178,20 +178,20 @@
             <td style="padding:6px 8px">{{ (p.changes or [{}])[0].get('path','') }}</td>
             <td style="padding:6px 8px">
               {% if p.state == 'applied' %}
-              <span style="color:#4ADE80">✓ applied</span>
+              <span style="color:var(--success)">✓ applied</span>
               {% elif p.state == 'rolled_back' %}
-              <span style="color:#FF4D6D">✗ rolled back</span>
+              <span style="color:var(--sev-critical)">✗ rolled back</span>
               {% else %}
-              <span style="color:var(--text-secondary)">{{ p.state }}</span>
+              <span class="u-muted">{{ p.state }}</span>
               {% endif %}
             </td>
             <td style="padding:6px 8px;text-align:right">
               {% if p.risk_score >= 70 %}
-              <span style="color:#FF4D6D">{{ p.risk_score }}%</span>
+              <span style="color:var(--sev-critical)">{{ p.risk_score }}%</span>
               {% elif p.risk_score >= 40 %}
-              <span style="color:#FACC15">{{ p.risk_score }}%</span>
+              <span style="color:var(--sev-medium)">{{ p.risk_score }}%</span>
               {% else %}
-              <span style="color:#4ADE80">{{ p.risk_score }}%</span>
+              <span style="color:var(--success)">{{ p.risk_score }}%</span>
               {% endif %}
             </td>
             <td style="padding:6px 8px;font-family:var(--font-mono);font-size:11px">{{ (p.applied_at or p.rolled_back_at or '—')[:19] }}</td>

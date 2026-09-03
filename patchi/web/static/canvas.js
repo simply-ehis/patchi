@@ -79,6 +79,9 @@ var BrainMap = (() => {
       w = Math.max(pw - 180, 400);
       h = Math.max(ph, 300);
     }
+    // Ensure minimum usable size
+    if (w < 200) w = 200;
+    if (h < 200) h = 200;
 
     stage = new Konva.Stage({ container: containerId, width: w, height: h });
     nodeLayer = new Konva.Layer();
@@ -285,9 +288,18 @@ var BrainMap = (() => {
   function _onResize() {
     var el = document.getElementById('brain-map');
     if (!stage || !el) return;
-    stage.width(el.clientWidth);
-    stage.height(el.clientHeight);
-    stage.batchDraw();
+    var w = el.clientWidth || 800;
+    var h = el.clientHeight || 500;
+    if (w < 200) w = 200;
+    if (h < 200) h = 200;
+    stage.width(w);
+    stage.height(h);
+    // Re-fit after resize so nodes stay visible
+    if (_lastNodes.length > 0) {
+      _zoomToFit();
+    } else {
+      stage.batchDraw();
+    }
     _debounceMiniMap();
   }
 
@@ -302,28 +314,28 @@ var BrainMap = (() => {
       ctrl = document.createElement('div');
       ctrl.id = 'zoom-controls';
       ctrl.innerHTML = [
-        '<div style="display:flex;gap:4px;align-items:center;margin-bottom:4px">',
-        '  <button id="zoom-in" class="btn" title="Zoom in (+)" style="width:26px;height:26px;padding:0;font-size:14px">+</button>',
-        '  <span id="zoom-level" style="min-width:36px;text-align:center;font-size:10px;color:var(--text-secondary)">100%</span>',
-        '  <button id="zoom-out" class="btn" title="Zoom out (-)" style="width:26px;height:26px;padding:0;font-size:14px">\u2212</button>',
-        '  <button id="zoom-fit" class="btn" title="Fit all (0)" style="width:26px;height:26px;padding:0;font-size:10px">Fit</button>',
+        '<div class="brain-zoom-row">',
+        '  <button type="button" id="zoom-in" class="btn brain-zoom-btn" title="Zoom in (+)">+</button>',
+        '  <span id="zoom-level" class="brain-zoom-level">100%</span>',
+        '  <button type="button" id="zoom-out" class="btn brain-zoom-btn" title="Zoom out (-)">−</button>',
+        '  <button type="button" id="zoom-fit" class="btn brain-zoom-btn brain-zoom-fit" title="Fit all (0)">Fit</button>',
         '</div>',
-        '<div style="display:grid;grid-template-columns:24px 24px 24px;grid-template-rows:24px 24px 24px;gap:1px;margin-bottom:4px">',
+        '<div class="brain-dpad">',
         '  <div></div>',
-        '  <button id="dpad-up" class="btn" style="padding:0;font-size:12px" title="Pan up">\u25b2</button>',
+        '  <button type="button" id="dpad-up" class="btn brain-dpad-btn" title="Pan up">▲</button>',
         '  <div></div>',
-        '  <button id="dpad-left" class="btn" style="padding:0;font-size:12px" title="Pan left">\u25c0</button>',
-        '  <button id="dpad-center" class="btn" style="padding:0;font-size:9px" title="Reset view">\u2302</button>',
-        '  <button id="dpad-right" class="btn" style="padding:0;font-size:12px" title="Pan right">\u25b6</button>',
+        '  <button type="button" id="dpad-left" class="btn brain-dpad-btn" title="Pan left">◀</button>',
+        '  <button type="button" id="dpad-center" class="btn brain-dpad-btn brain-dpad-center" title="Reset view">⌂</button>',
+        '  <button type="button" id="dpad-right" class="btn brain-dpad-btn" title="Pan right">▶</button>',
         '  <div></div>',
-        '  <button id="dpad-down" class="btn" style="padding:0;font-size:12px" title="Pan down">\u25bc</button>',
+        '  <button type="button" id="dpad-down" class="btn brain-dpad-btn" title="Pan down">▼</button>',
         '  <div></div>',
         '</div>',
-        '<div style="font-size:8px;color:var(--text-tertiary);line-height:1.2">',
-        '  WASD/Arrows: pan<br>0: fit \u2022 +/-: zoom<br>Scroll: zoom \u2022 Drag: pan',
+        '<div class="brain-ctrl-hint">',
+        '  WASD/Arrows: pan<br>0: fit • +/-: zoom<br>Scroll: zoom • Drag: pan',
         '</div>',
       ].join('\n');
-      ctrl.style.cssText = 'position:absolute;bottom:8px;left:8px;z-index:10;display:flex;flex-direction:column;align-items:center;background:var(--bg-secondary);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);padding:6px;box-shadow:0 2px 8px rgba(0,0,0,0.3);';
+      ctrl.className = 'brain-controls';
       container.appendChild(ctrl);
 
       // Wire buttons
@@ -376,7 +388,7 @@ var BrainMap = (() => {
       mm = document.createElement('div');
       mm.id = 'mini-map';
       mm.innerHTML = '<canvas id="mini-map-canvas" width="150" height="100"></canvas>';
-      mm.style.cssText = 'position:absolute;bottom:8px;right:8px;z-index:10;border:1px solid #374151;background:#0a0a0a;overflow:hidden;cursor:pointer;border-radius:4px;';
+      mm.className = 'brain-minimap';
       container.appendChild(mm);
 
       mm.addEventListener('click', function(e) {
@@ -527,7 +539,15 @@ var BrainMap = (() => {
   function loadNodes(ns, edgesArr) {
     var useNodes = ns || _lastNodes || [];
     var useEdges = edgesArr || _lastEdges || [];
-    _renderGraph(useNodes, useEdges);
+    // Cache data for view switches
+    if (ns && ns.length) _lastNodes = ns;
+    if (edgesArr && edgesArr.length) _lastEdges = edgesArr;
+    // If stage is missing, re-init
+    if (!stage) {
+      var el = document.getElementById('brain-map');
+      if (el) init('brain-map');
+    }
+    if (stage) _renderGraph(_lastNodes, _lastEdges);
   }
 
   function _loadNodes() {
@@ -568,7 +588,11 @@ var BrainMap = (() => {
     nodes = {};
     _renderedSet.clear();
 
-    var W = stage.width(), H = stage.height();
+    // Use a virtual canvas size for layout computation so nodes spread well
+    // even when the actual stage is small. Zoom-to-fit will scale them in.
+    var vw = Math.max(stage.width(), 800);
+    var vh = Math.max(stage.height(), 600);
+    var W = vw, H = vh;
 
     // Compute layout
     var positions;
@@ -613,6 +637,10 @@ var BrainMap = (() => {
 
     nodeLayer.draw();
     _debounceMiniMap();
+    // Auto fit on first render so nodes are visible even if stage is large
+    if (ns.length > 0) {
+      setTimeout(function() { _zoomToFit(); }, 50);
+    }
   }
 
   // ── Edge drawing (batched) ──────────────────────────────────
@@ -657,8 +685,8 @@ var BrainMap = (() => {
         opacity: st.o,
         listening: false,
       });
-      line.moveToBottom();
       nodeLayer.add(line);
+      line.moveToBottom();
     }
   }
 
@@ -668,11 +696,21 @@ var BrainMap = (() => {
     var n = nodesList.length;
     if (n === 0) return pos;
 
-    // Initialize in circle
+    // Initialize on a grid with random jitter for even initial spread
+    var cols = Math.ceil(Math.sqrt(n));
+    var rows = Math.ceil(n / cols);
+    var cellW = W / (cols + 1);
+    var cellH = H / (rows + 1);
     nodesList.forEach(function(node, i) {
-      var angle = (2 * Math.PI * i) / n;
-      var radius = Math.min(W, H) * 0.35;
-      pos[node.id || node.path] = { x: W/2 + radius*Math.cos(angle), y: H/2 + radius*Math.sin(angle), vx: 0, vy: 0 };
+      var col = i % cols;
+      var row = Math.floor(i / cols);
+      var jitterX = (Math.random() - 0.5) * cellW * 0.6;
+      var jitterY = (Math.random() - 0.5) * cellH * 0.6;
+      pos[node.id || node.path] = {
+        x: cellW * (col + 1) + jitterX,
+        y: cellH * (row + 1) + jitterY,
+        vx: 0, vy: 0
+      };
     });
 
     // Build adjacency
@@ -685,12 +723,12 @@ var BrainMap = (() => {
       adj[t].push(f);
     });
 
-    // Fewer iterations for large graphs
+    // Fewer iterations for large graphs; scale repulsion with node count
     var iterations = n > 200 ? 20 : 50;
-    var repulsion = 8000;
+    var repulsion = Math.max(12000, n * 200);
     var attraction = 0.005;
     var damping = 0.9;
-    var centerPull = 0.01;
+    var centerPull = 0.003;
 
     for (var iter = 0; iter < iterations; iter++) {
       var keys = Object.keys(pos);
@@ -1616,6 +1654,7 @@ var BrainMap = (() => {
     zoomIn: zoomIn,
     zoomOut: zoomOut,
     zoomReset: zoomReset,
+    zoomToFit: function() { _zoomToFit(); },
     handleEvent: handleEvent,
     _relistenWs: _relistenWs,
     switchView: switchView,

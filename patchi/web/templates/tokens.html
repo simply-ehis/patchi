@@ -8,17 +8,17 @@
       <span class="badge badge-info">{{ tokens|length }} active</span>
     </div>
 
-    <div style="margin-bottom:16px;font-size:13px;color:var(--text-secondary)">
+    <div class="u-mb16 u-fs13 u-muted">
       Tokens authenticate automated tools (CI/CD, monitoring) against the API.
       The plaintext token is shown <strong>once</strong> at creation.
     </div>
 
     <!-- Create token form -->
     <div class="panel" style="padding:12px;margin-bottom:16px">
-      <div style="display:flex;gap:8px;align-items:center">
+      <div class="u-flex u-gap8 u-aic">
         <input id="token-name" type="text" placeholder="Token name (e.g. ci-server)" 
                style="flex:1;padding:6px 10px;border:1px solid var(--border);border-radius:6px;background:var(--bg-secondary);color:var(--text-primary)">
-        <button class="btn btn-primary" id="token-generate" onclick="generateToken()">
+        <button type="button" class="btn btn-primary" id="token-generate" onclick="generateToken()">
           <span class="btn-text">Generate</span>
           <span class="btn-spinner" style="display:none;margin-left:6px">⏳</span>
         </button>
@@ -36,16 +36,16 @@
         <th style="text-align:left">ID</th>
         <th style="text-align:left">Created</th>
         <th style="text-align:left">Last Used</th>
-        <th style="text-align:right"></th>
+        <th class="u-tar"></th>
       </tr>
       {% for tok in tokens %}
       <tr>
         <td>{{ tok.name }}</td>
-        <td style="font-family:var(--font-mono);font-size:12px">{{ tok.id }}</td>
+        <td class="u-mono u-fs12">{{ tok.id }}</td>
         <td style="color:var(--text-dim);font-size:12px" class="ts" data-ts="{{ tok.created_at or '' }}"></td>
         <td style="color:var(--text-dim);font-size:12px" class="ts" data-ts="{{ tok.last_used or '' }}" data-never="Never"></td>
-        <td style="text-align:right">
-          <button class="btn btn-sm btn-danger" onclick="revokeToken('{{ tok.id }}', this)">Revoke</button>
+        <td class="u-tar">
+          <button type="button" class="btn btn-sm btn-danger" onclick="revokeToken('{{ tok.id }}', this)">Revoke</button>
         </td>
       </tr>
       {% else %}

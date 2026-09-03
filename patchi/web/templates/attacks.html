@@ -5,10 +5,10 @@
     <h2 class="panel-title">Attack Timeline</h2>
   </header>
   <div class="panel-body">
-    <p style="color:var(--text-secondary)">Red team attack simulations and adversarial testing results.</p>
+    <p class="u-muted">Red team attack simulations and adversarial testing results.</p>
     {% if attack_data and attack_data.findings %}
       {% for finding in attack_data.findings[:20] %}
-      <div class="finding-item" style="margin-bottom:8px">
+      <div class="finding-item u-mb8">
         <div class="finding-header">
           <span class="finding-severity severity-{{ finding.get('severity', 'info') }}">{{ finding.get('severity', 'info') }}</span>
           <span class="finding-type">{{ finding.get('type', '') }}</span>

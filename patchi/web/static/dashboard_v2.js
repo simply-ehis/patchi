@@ -401,9 +401,9 @@
         if (existing) existing.remove();
         const overlay = document.createElement('div');
         overlay.id = 'confirm-dialog-overlay';
-        overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:10000;display:flex;align-items:center;justify-content:center;animation:fadeIn 0.15s';
-        var btnColor = confirmText.indexOf('Fix') >= 0 ? '#f59e0b' : 'var(--accent)';
-        overlay.innerHTML = '<div style="background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:24px;max-width:420px;width:90%;box-shadow:0 16px 48px rgba(0,0,0,0.3)"><div style="font-size:16px;font-weight:600;margin-bottom:8px">' + title + '</div><div style="font-size:14px;color:var(--text-secondary);line-height:1.5;margin-bottom:20px">' + message + '</div><div style="display:flex;gap:8px;justify-content:flex-end"><button id="confirm-cancel" class="btn" style="padding:8px 16px">Cancel</button><button id="confirm-ok" class="btn btn-primary" style="padding:8px 16px;background:' + btnColor + ';border-color:' + btnColor + '">' + confirmText + '</button></div></div>';
+        overlay.className = 'js-confirm-overlay';
+        var okCls = confirmText.indexOf('Fix') >= 0 ? 'btn btn-warning' : 'btn btn-primary';
+        overlay.innerHTML = '<div class="js-confirm-card"><div class="js-confirm-title">' + title + '</div><div class="js-confirm-msg">' + message + '</div><div class="js-confirm-actions"><button type="button" id="confirm-cancel" class="btn">Cancel</button><button type="button" id="confirm-ok" class="' + okCls + '">' + confirmText + '</button></div></div>';
         document.body.appendChild(overlay);
         document.getElementById('confirm-cancel').onclick = function() { overlay.remove(); };
         document.getElementById('confirm-ok').onclick = function() { overlay.remove(); onConfirm(); };
@@ -418,7 +418,7 @@
         addFeedEntry('scan', 'Starting scan...', '');
         var progressDiv = document.createElement('div');
         progressDiv.id = 'scan-progress-feed';
-        progressDiv.style.cssText = 'padding:8px;background:var(--bg-secondary);border-radius:6px;margin:4px 0;border:1px solid var(--border)';
+        progressDiv.className = 'js-feed-progress';
         if (agentFeed) agentFeed.prepend(progressDiv);
         try {
             var resp = await fetch('/api/scan', { method: 'POST' });

@@ -8,35 +8,35 @@
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:24px">
     <div class="panel" style="padding:16px;text-align:center">
       <div style="font-size:28px;font-weight:700;color:var(--accent)">{{ profile_summary.agents }}</div>
-      <div style="font-size:12px;color:var(--text-secondary)">Agents Profiled</div>
+      <div class="u-fs12 u-muted">Agents Profiled</div>
     </div>
     <div class="panel" style="padding:16px;text-align:center">
       <div style="font-size:28px;font-weight:700;color:var(--accent)">{{ profile_summary.total_runs }}</div>
-      <div style="font-size:12px;color:var(--text-secondary)">Total Runs</div>
+      <div class="u-fs12 u-muted">Total Runs</div>
     </div>
     <div class="panel" style="padding:16px;text-align:center">
       <div style="font-size:28px;font-weight:700;color:#4ADE80">${{ "%.4f"|format(profile_summary.total_cost) }}</div>
-      <div style="font-size:12px;color:var(--text-secondary)">Total AI Cost</div>
+      <div class="u-fs12 u-muted">Total AI Cost</div>
     </div>
     <div class="panel" style="padding:16px;text-align:center">
       <div style="font-size:28px;font-weight:700;color:var(--accent)">{{ profile_summary.total_findings }}</div>
-      <div style="font-size:12px;color:var(--text-secondary)">Findings Produced</div>
+      <div class="u-fs12 u-muted">Findings Produced</div>
     </div>
     <div class="panel" style="padding:16px;text-align:center">
       <div style="font-size:28px;font-weight:700;color:#4ADE80">{{ "%.1f"|format((profile_summary.avg_accuracy or 0) * 100) }}%</div>
-      <div style="font-size:12px;color:var(--text-secondary)">Avg Accuracy</div>
+      <div class="u-fs12 u-muted">Avg Accuracy</div>
     </div>
     <div class="panel" style="padding:16px;text-align:center">
       <div style="font-size:28px;font-weight:700;color:var(--accent)">{{ corpus_stats.total }}</div>
-      <div style="font-size:12px;color:var(--text-secondary)">Fuzz Corpus Seeds</div>
+      <div class="u-fs12 u-muted">Fuzz Corpus Seeds</div>
     </div>
   </div>
 
   <!-- Tab bar -->
   <div style="display:flex;gap:0;margin-bottom:16px;border-bottom:1px solid var(--border)">
-    <button class="tab-btn active" onclick="showPanel('profiles')">Agent Profiles</button>
-    <button class="tab-btn" onclick="showPanel('learning')">Learning</button>
-    <button class="tab-btn" onclick="showPanel('threats')">Threat Model</button>
+    <button type="button" class="tab-btn active" onclick="showPanel('profiles')">Agent Profiles</button>
+    <button type="button" class="tab-btn" onclick="showPanel('learning')">Learning</button>
+    <button type="button" class="tab-btn" onclick="showPanel('threats')">Threat Model</button>
   </div>
 
   <!-- Agent Profiles panel -->
@@ -47,36 +47,36 @@
         <thead>
           <tr>
             <th>Agent</th>
-            <th style="text-align:right">Runs</th>
-            <th style="text-align:right">P50 (ms)</th>
-            <th style="text-align:right">P95 (ms)</th>
-            <th style="text-align:right">Findings</th>
-            <th style="text-align:right">Accuracy</th>
-            <th style="text-align:right">Cost</th>
+            <th class="u-tar">Runs</th>
+            <th class="u-tar">P50 (ms)</th>
+            <th class="u-tar">P95 (ms)</th>
+            <th class="u-tar">Findings</th>
+            <th class="u-tar">Accuracy</th>
+            <th class="u-tar">Cost</th>
             <th>Model</th>
           </tr>
         </thead>
         <tbody>
           {% for name, p in profiles|dictsort(by='total_runs', reverse=true) %}
           <tr>
-            <td style="font-weight:600">{{ name }}</td>
-            <td style="text-align:right">{{ p.run_count }}</td>
-            <td style="text-align:right;font-family:var(--font-mono)">{{ "%.0f"|format(p.p50_wall_ms) }}</td>
-            <td style="text-align:right;font-family:var(--font-mono)">
+            <td class="u-fw600">{{ name }}</td>
+            <td class="u-tar">{{ p.run_count }}</td>
+            <td class="u-tar u-mono">{{ "%.0f"|format(p.p50_wall_ms) }}</td>
+            <td class="u-tar u-mono">
               {% if p.p95_wall_ms > 5000 %}<span style="color:#ef4444">{{ "%.0f"|format(p.p95_wall_ms) }}</span>
               {% elif p.p95_wall_ms > 2000 %}<span style="color:#f97316">{{ "%.0f"|format(p.p95_wall_ms) }}</span>
               {% else %}{{ "%.0f"|format(p.p95_wall_ms) }}{% endif %}
             </td>
-            <td style="text-align:right">{{ p.total_findings }}</td>
-            <td style="text-align:right">
+            <td class="u-tar">{{ p.total_findings }}</td>
+            <td class="u-tar">
               {% if p.run_count >= 3 %}
                 {% if p.accuracy >= 0.8 %}<span style="color:#4ADE80">{{ "%.0f"|format(p.accuracy * 100) }}%</span>
                 {% elif p.accuracy >= 0.5 %}<span style="color:#f97316">{{ "%.0f"|format(p.accuracy * 100) }}%</span>
                 {% else %}<span style="color:#ef4444">{{ "%.0f"|format(p.accuracy * 100) }}%</span>{% endif %}
-              {% else %}<span style="color:var(--text-secondary)">n/a</span>{% endif %}
+              {% else %}<span class="u-muted">n/a</span>{% endif %}
             </td>
-            <td style="text-align:right;font-family:var(--font-mono)">${{ "%.4f"|format(p.total_cost_usd) }}</td>
-            <td style="font-size:12px;color:var(--text-secondary)">{{ p.most_used_model or 'â€”' }}</td>
+            <td class="u-tar u-mono">${{ "%.4f"|format(p.total_cost_usd) }}</td>
+            <td class="u-fs12 u-muted">{{ p.most_used_model or 'â€”' }}</td>
           </tr>
           {% endfor %}
         </tbody>
@@ -116,7 +116,7 @@
         </div>
         {% endfor %}
         {% else %}
-        <div style="color:var(--text-secondary);font-size:13px">No acceptance data yet.</div>
+        <div class="u-muted u-fs13">No acceptance data yet.</div>
         {% endif %}
       </div>
 
@@ -131,7 +131,7 @@
         </div>
         {% endfor %}
         {% else %}
-        <div style="color:var(--text-secondary);font-size:13px">No rejection data yet.</div>
+        <div class="u-muted u-fs13">No rejection data yet.</div>
         {% endif %}
       </div>
 
@@ -142,7 +142,7 @@
         {% for agent, score in learning.agent_trust|dictsort(by='value', reverse=true) %}
         <div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;font-size:13px">
           <span>{{ agent }}</span>
-          <div style="display:flex;align-items:center;gap:8px">
+          <div class="u-flex u-aic u-gap8">
             <div style="width:80px;height:6px;background:var(--bg-tertiary);border-radius:3px;overflow:hidden">
               <div style="width:{{ score * 100 }}%;height:100%;background:{% if score >= 0.7 %}#4ADE80{% elif score >= 0.4 %}#f97316{% else %}#ef4444{% endif %};border-radius:3px"></div>
             </div>
@@ -151,7 +151,7 @@
         </div>
         {% endfor %}
         {% else %}
-        <div style="color:var(--text-secondary);font-size:13px">No trust data yet.</div>
+        <div class="u-muted u-fs13">No trust data yet.</div>
         {% endif %}
       </div>
 
@@ -163,15 +163,15 @@
         <div style="padding:3px 0;font-size:13px;color:#f97316">{{ ftype }}</div>
         {% endfor %}
         {% else %}
-        <div style="color:var(--text-secondary);font-size:13px">No types being skipped.</div>
+        <div class="u-muted u-fs13">No types being skipped.</div>
         {% endif %}
       </div>
     </div>
 
     <!-- Ignore Learner -->
     <div class="panel" style="margin-top:16px;padding:16px">
-      <h4 style="margin-bottom:8px">ðŸ›¡ Ignore Learner</h4>
-      <div style="font-size:13px;color:var(--text-secondary)">
+      <h4 class="u-mb8">ðŸ›¡ Ignore Learner</h4>
+      <div class="u-fs13 u-muted">
         {{ ignore_count }} learned ignore patterns active.
         The ignore learner automatically suppresses noisy finding paths based on false-positive history.
       </div>
@@ -184,16 +184,16 @@
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:16px">
       <div class="panel" style="padding:12px;text-align:center">
         <div style="font-size:24px;font-weight:700;color:var(--accent)">{{ threat_model.applicable_scenarios }}</div>
-        <div style="font-size:11px;color:var(--text-secondary)">Applicable</div>
+        <div class="u-fs11 u-muted">Applicable</div>
       </div>
       <div class="panel" style="padding:12px;text-align:center">
         <div style="font-size:24px;font-weight:700">{{ threat_model.total_scenarios }}</div>
-        <div style="font-size:11px;color:var(--text-secondary)">Total Scenarios</div>
+        <div class="u-fs11 u-muted">Total Scenarios</div>
       </div>
       {% for sev, count in threat_model.by_severity|dictsort %}
       <div class="panel" style="padding:12px;text-align:center">
         <div style="font-size:24px;font-weight:700;color:{% if sev == 'critical' %}#ef4444{% elif sev == 'high' %}#f97316{% elif sev == 'medium' %}#eab308{% else %}var(--text-secondary){% endif %}">{{ count }}</div>
-        <div style="font-size:11px;color:var(--text-secondary)">{{ sev }}</div>
+        <div class="u-fs11 u-muted">{{ sev }}</div>
       </div>
       {% endfor %}
     </div>
@@ -207,7 +207,7 @@
             <th>Name</th>
             <th>Category</th>
             <th>Severity</th>
-            <th style="text-align:right">Relevance</th>
+            <th class="u-tar">Relevance</th>
             <th>Tags</th>
           </tr>
         </thead>
@@ -215,20 +215,20 @@
           {% for s in threat_model.scenarios[:30] %}
           {% if s.applicable %}
           <tr>
-            <td style="font-family:var(--font-mono);font-size:12px">{{ s.id }}</td>
+            <td class="u-mono u-fs12">{{ s.id }}</td>
             <td>{{ s.name }}</td>
             <td>{{ s.category }}</td>
             <td><span class="badge badge-{{ s.severity }}">{{ s.severity }}</span></td>
-            <td style="text-align:right">
+            <td class="u-tar">
               {% set pct = (s.relevance_score * 100)|int %}
               <div style="display:flex;align-items:center;justify-content:flex-end;gap:6px">
                 <div style="width:60px;height:4px;background:var(--bg-tertiary);border-radius:2px;overflow:hidden">
                   <div style="width:{{ pct }}%;height:100%;background:{% if pct >= 70 %}#ef4444{% elif pct >= 40 %}#f97316{% else %}#eab308{% endif %};border-radius:2px"></div>
                 </div>
-                <span style="font-family:var(--font-mono);font-size:12px">{{ pct }}%</span>
+                <span class="u-mono u-fs12">{{ pct }}%</span>
               </div>
             </td>
-            <td style="font-size:11px;color:var(--text-secondary)">{{ s.tags|join(', ') }}</td>
+            <td class="u-fs11 u-muted">{{ s.tags|join(', ') }}</td>
           </tr>
           {% endif %}
           {% endfor %}
@@ -238,7 +238,7 @@
 
     {% if threat_model.recommendations %}
     <div class="panel" style="margin-top:16px;padding:16px">
-      <h4 style="margin-bottom:8px">ðŸ’¡ Recommendations</h4>
+      <h4 class="u-mb8">ðŸ’¡ Recommendations</h4>
       {% for rec in threat_model.recommendations %}
       <div style="padding:4px 0;font-size:13px;border-bottom:1px solid var(--border)">
         {{ rec }}
@@ -265,7 +265,7 @@
     color: var(--text-secondary);
     border-bottom: 2px solid transparent;
     font-size: 14px;
-    transition: all 0.15s;
+    transition: background 150ms var(--ease-out), color 150ms var(--ease-out), transform 150ms var(--ease-out);
   }
   .tab-btn:hover { color: var(--text-primary); }
   .tab-btn.active {

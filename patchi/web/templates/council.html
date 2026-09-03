@@ -5,16 +5,16 @@
     <h2 class="panel-title">Council Deliberation</h2>
   </header>
   <div class="panel-body">
-    <p style="color:var(--text-secondary)">The Council convenes multi-persona deliberation on security and architecture decisions.</p>
+    <p class="u-muted">The Council convenes multi-persona deliberation on security and architecture decisions.</p>
     {% if council_sessions %}
       {% for session in council_sessions %}
-      <div class="panel" style="margin-bottom:12px">
+      <div class="panel u-mb12">
         <header class="panel-header">
           <h3 class="panel-title">{{ session.get('issue', 'Untitled') }}</h3>
           <span class="badge">{{ session.get('timestamp', '') }}</span>
         </header>
         <div class="panel-body">
-          <p style="color:var(--text-secondary);font-size:13px">{{ session.get('synthesis', 'No synthesis available') }}</p>
+          <p class="u-muted u-fs13">{{ session.get('synthesis', 'No synthesis available') }}</p>
         </div>
       </div>
       {% endfor %}

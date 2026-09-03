@@ -18,15 +18,15 @@
     <div class="panel-header">
       <span class="panel-title">Set Charter</span>
     </div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <textarea id="charter-input" rows="3" 
-        style="flex:1;min-width:300px;padding:8px;border-radius:6px;background:var(--bg-secondary);color:var(--text);border:1px solid var(--border);font-family:inherit;resize:vertical"
+    <div class="u-flex u-gap8 u-wrap">
+      <textarea id="charter-input" rows="3"
+        style="flex:1;min-width:300px;resize:vertical"
         placeholder="e.g. Frontend must not import backend. No hardcoded secrets. All files must have headers. Services under 200 lines.">{{ charter_text }}</textarea>
     </div>
     <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
-      <button class="btn btn-primary" onclick="setCharter()" id="btn-save">💾 Save Charter</button>
-      <button class="btn" onclick="checkViolations()">🔍 Check Now</button>
-      <span id="charter-status" style="font-size:13px"></span>
+      <button type="button" class="btn btn-primary" onclick="setCharter()" id="btn-save">💾 Save Charter</button>
+      <button type="button" class="btn" onclick="checkViolations()">🔍 Check Now</button>
+      <span id="charter-status" class="u-fs13"></span>
     </div>
   </div>
 
@@ -36,28 +36,28 @@
       <span class="panel-title">Active Rules ({{ rule_count }})</span>
     </div>
     {% if rules %}
-    <table style="width:100%;border-collapse:collapse;font-size:13px">
+    <table class="data-table">
       <thead>
-        <tr style="border-bottom:1px solid var(--border);text-align:left">
-          <th style="padding:8px">ID</th>
-          <th style="padding:8px">Type</th>
-          <th style="padding:8px">Severity</th>
-          <th style="padding:8px">Description</th>
-          <th style="padding:8px">Details</th>
+        <tr>
+          <th>ID</th>
+          <th>Type</th>
+          <th>Severity</th>
+          <th>Description</th>
+          <th>Details</th>
         </tr>
       </thead>
       <tbody>
         {% for rule in rules %}
-        <tr style="border-bottom:1px solid var(--border)">
-          <td style="padding:8px;font-family:monospace;font-size:12px">{{ rule.id }}</td>
-          <td style="padding:8px">
+        <tr>
+          <td class="u-mono u-fs12">{{ rule.id }}</td>
+          <td>
             <span class="badge badge-{{ rule.type }}">{{ rule.type }}</span>
           </td>
-          <td style="padding:8px">
+          <td>
             <span class="severity-badge severity-{{ rule.severity }}">{{ rule.severity }}</span>
           </td>
-          <td style="padding:8px">{{ rule.description }}</td>
-          <td style="padding:8px;color:var(--text-secondary);font-size:12px">
+          <td>{{ rule.description }}</td>
+          <td class="u-muted u-fs12">
             {% if rule.from_pattern %}from: {{ rule.from_pattern }} → to: {{ rule.to_pattern }}{% endif %}
             {% if rule.max_value %}max: {{ rule.max_value }} {{ rule.metric }}{% endif %}
             {% if rule.keywords %}keywords: {{ rule.keywords|join(', ') }}{% endif %}
@@ -83,13 +83,13 @@
       Automatically fix safe charter violations (missing headers, formatting) in all project files.
       Dangerous violations (security, boundaries) are flagged but not auto-fixed.
     </p>
-    <div style="display:flex;gap:8px;align-items:center">
-      <label class="toggle-label" style="font-size:13px;cursor:pointer;display:flex;align-items:center;gap:6px;">
+    <div class="u-flex u-gap8 u-aic">
+      <label class="toggle-label u-fs13 u-ptr u-flex u-aic u-gap6">
         <input type="checkbox" id="preview-mode" checked style="cursor:pointer;">
         <span>Dry-run (preview only)</span>
       </label>
-      <button class="btn btn-primary" onclick="runAutoFix()" id="btn-fix">Fix Charter</button>
-      <span id="fix-status" style="font-size:13px"></span>
+      <button type="button" class="btn btn-primary" onclick="runAutoFix()" id="btn-fix">Fix Charter</button>
+      <span id="fix-status" class="u-fs13"></span>
     </div>
     <div id="fix-results" style="margin-top:12px;display:none"></div>
   </div>
@@ -98,7 +98,7 @@
   <div class="panel">
     <div class="panel-header">
       <span class="panel-title">Fix History</span>
-      <button class="btn" onclick="loadFixHistory()" style="font-size:12px">Refresh</button>
+      <button type="button" class="btn u-fs12" onclick="loadFixHistory()">Refresh</button>
     </div>
     <div id="fix-history-list">
       <div style="text-align:center;padding:16px;color:var(--text-secondary);font-size:13px">Loading history...</div>
@@ -111,16 +111,16 @@
       <span class="panel-title">Violations ({{ violation_count }})</span>
     </div>
     {% if violations %}
-    <div style="display:flex;flex-direction:column;gap:8px">
+    <div class="u-flex u-col u-gap8">
       {% for v in violations %}
       <div style="padding:12px;border-radius:8px;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2)">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <div class="u-flex u-jcsb u-aic u-mb4">
           <span class="severity-badge severity-{{ v.severity }}">{{ v.severity }}</span>
-          <span style="font-size:12px;color:var(--text-secondary)">{{ v.rule_id }}</span>
+          <span class="u-fs12 u-muted">{{ v.rule_id }}</span>
         </div>
         <div style="font-weight:500;margin-bottom:4px">{{ v.message }}</div>
         {% if v.suggestion %}
-        <div style="font-size:12px;color:var(--text-secondary)">💡 {{ v.suggestion }}</div>
+        <div class="u-fs12 u-muted">💡 {{ v.suggestion }}</div>
         {% endif %}
       </div>
       {% endfor %}
@@ -138,11 +138,11 @@
 <!-- Fix Confirmation Modal -->
 <div id="fix-confirm-modal" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,0.6);align-items:center;justify-content:center">
   <div style="max-width:420px;width:90%;background:var(--bg-primary);border-radius:12px;padding:24px;box-shadow:0 8px 32px rgba(0,0,0,0.4)" onclick="event.stopPropagation()">
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+    <div class="u-flex u-aic u-gap12 u-mb16">
       <div style="width:40px;height:40px;border-radius:50%;background:rgba(234,179,8,0.15);display:flex;align-items:center;justify-content:center;font-size:20px">⚠️</div>
       <div>
         <div style="font-weight:600;font-size:15px">Apply Fixes?</div>
-        <div style="font-size:12px;color:var(--text-secondary)">This will modify project files</div>
+        <div class="u-fs12 u-muted">This will modify project files</div>
       </div>
     </div>
     <p style="font-size:13px;color:var(--text-primary);margin:0 0 16px;line-height:1.5">
@@ -152,8 +152,8 @@
       Dangerous violations (security, boundaries) will NOT be fixed. This action can be undone with <code>git checkout</code>.
     </p>
     <div style="display:flex;gap:8px;justify-content:flex-end">
-      <button class="btn" onclick="resolveFixConfirm(false)">Cancel</button>
-      <button class="btn" style="background:#eab308;color:#1a1a1a;border-color:#eab308" onclick="resolveFixConfirm(true)">Apply Fixes</button>
+      <button type="button" class="btn" onclick="resolveFixConfirm(false)">Cancel</button>
+      <button type="button" class="btn btn-warning" onclick="resolveFixConfirm(true)">Apply Fixes</button>
     </div>
   </div>
 </div>

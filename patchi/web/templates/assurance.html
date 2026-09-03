@@ -4,32 +4,32 @@
 
   <!-- DAST Scan Tab -->
   <div id="tab-dast" class="tab-content" style="display:none">
-    <div style="margin-bottom:16px;display:flex;align-items:center;gap:12px">
-      <button id="btn-run-dast" class="btn" onclick="runDAST()" style="background:#ef4444;color:white;border-color:#ef4444">
+    <div class="u-mb16 u-flex u-aic u-gap12">
+      <button type="button" id="btn-run-dast" class="btn btn-danger" onclick="runDAST()">
         <span id="dast-btn-text">🔒 Run DAST Scan</span>
         <span id="dast-btn-spinner" style="display:none">⏳</span>
       </button>
-      <button id="btn-fix-headers" class="btn" onclick="fixHeaders()" style="background:#22c55e;color:white;border-color:#22c55e">
+      <button type="button" id="btn-fix-headers" class="btn btn-success" onclick="fixHeaders()">
         <span id="header-btn-text">🛡️ Fix Headers</span>
         <span id="header-btn-spinner" style="display:none">⏳</span>
       </button>
-      <span id="dast-status" style="font-size:13px;color:var(--text-secondary)"></span>
+      <span id="dast-status" class="u-fs13 u-muted"></span>
     </div>
     {% if dast_findings %}
     <div style="margin-bottom:16px;padding:12px;background:var(--bg-secondary);border-radius:8px;border:1px solid var(--border)">
-      <div style="display:flex;align-items:center;justify-content:space-between">
-        <div style="display:flex;align-items:center;gap:8px">
+      <div class="u-flex u-aic u-jcsb">
+        <div class="u-flex u-aic u-gap8">
           <span style="font-size:18px">&#x1f512;</span>
           <div>
-            <div style="font-weight:600">DAST Scan Results</div>
-            <div style="font-size:12px;color:var(--text-secondary)">
+            <div class="u-fw600">DAST Scan Results</div>
+            <div class="u-fs12 u-muted">
               {{ dast_tests_run }} tests run
               {% if dast_target %} against {{ dast_target }}{% endif %}
               &middot; <span style="color:#ef4444">{{ dast_findings|length }} findings</span>
             </div>
           </div>
         </div>
-        <span style="font-size:12px;color:var(--text-secondary)">
+        <span class="u-fs12 u-muted">
           {{ dast_correlations|length }} correlated with static analysis
         </span>
       </div>
@@ -41,16 +41,16 @@
       <div style="padding:12px;display:flex;flex-direction:column;gap:10px">
         {% for c in dast_correlations %}
         <div style="padding:10px 14px;border-radius:8px;background:rgba(249,115,22,0.06);border:1px solid rgba(249,115,22,0.2)">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <div class="u-flex u-jcsb u-aic u-mb6">
             <div>
-              <span class="badge badge-{{ c.dast.severity }}" style="font-size:10px">{{ c.dast.severity }}</span>
+              <span class="badge badge-{{ c.dast.severity }} u-fs10">{{ c.dast.severity }}</span>
               <span style="font-weight:600;margin-left:6px">{{ c.dast.type }}</span>
             </div>
-            <span style="font-size:11px;color:var(--text-secondary)">{{ c.dast.file }}</span>
+            <span class="u-fs11 u-muted">{{ c.dast.file }}</span>
           </div>
-          <div style="font-size:13px;margin-bottom:6px">{{ c.dast.message }}</div>
+          <div class="u-fs13 u-mb6">{{ c.dast.message }}</div>
           {% if c.static_matches %}
-          <div style="font-size:11px;color:var(--text-secondary)">
+          <div class="u-fs11 u-muted">
             Correlated static findings:
             {% for m in c.static_matches %}
             <span style="background:rgba(239,68,68,0.1);padding:1px 6px;border-radius:3px;margin-left:4px">{{ m.agent }}: {{ m.type }}</span>
@@ -68,11 +68,11 @@
       <div style="padding:12px;display:flex;flex-direction:column;gap:8px">
         {% for f in dast_findings %}
         <div style="padding:10px 14px;border-radius:8px;border:1px solid var(--border)">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-            <span class="badge badge-{{ f.severity }}" style="font-size:10px">{{ f.severity }}</span>
+          <div class="u-flex u-jcsb u-aic u-mb4">
+            <span class="badge badge-{{ f.severity }} u-fs10">{{ f.severity }}</span>
             <span style="font-family:monospace;font-size:11px;color:var(--text-secondary)">{{ f.type }}</span>
           </div>
-          <div style="font-size:13px">{{ f.message }}</div>
+          <div class="u-fs13">{{ f.message }}</div>
           {% if f.suggestion %}<div style="font-size:12px;color:var(--text-secondary);margin-top:4px">{{ f.suggestion }}</div>{% endif %}
           {% if f.code_snippet %}
           <pre style="margin-top:6px;padding:8px;background:var(--bg-tertiary);border-radius:4px;font-size:11px;overflow-x:auto;max-height:100px">{{ f.code_snippet }}</pre>
@@ -91,9 +91,9 @@
 
     <!-- Screenshot Comparison -->
     <div style="margin-top:24px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div class="u-flex u-aic u-jcsb u-mb12">
         <h3 style="margin:0;font-size:16px">📸 Screenshot Comparison</h3>
-        <button class="btn" onclick="loadScreenshots()" style="font-size:12px">Refresh</button>
+        <button type="button" class="btn btn-sm" onclick="loadScreenshots()">Refresh</button>
       </div>
       <div id="screenshot-comparison">
         <div style="text-align:center;padding:24px;color:var(--text-secondary)">Loading screenshots...</div>
@@ -102,10 +102,10 @@
 
     <!-- Video Recordings -->
     <div style="margin-top:24px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div class="u-flex u-aic u-jcsb u-mb12">
         <h3 style="margin:0;font-size:16px">🎬 Video Recordings</h3>
-        <div style="display:flex;gap:8px">
-          <button class="btn" onclick="loadVideos()" style="font-size:12px">Refresh</button>
+        <div class="u-flex u-gap8">
+          <button type="button" class="btn btn-sm" onclick="loadVideos()">Refresh</button>
         </div>
       </div>
       <div id="video-recordings">
@@ -192,14 +192,14 @@
 
   <!-- Tabs -->
   <div class="tab-bar">
-    <button class="tab-btn active" onclick="showTab('claims')">Claims ({{ total_claims }})</button>
-    <button class="tab-btn" onclick="showTab('campaigns')">Campaigns ({{ campaign_count }})</button>
-    <button class="tab-btn" onclick="showTab('attackers')">Attackers ({{ attacker_count }})</button>
-    <button class="tab-btn" onclick="showTab('domains')">Domains</button>
-    <button class="tab-btn" onclick="showTab('heatmap')">Heatmap</button>
-    <button class="tab-btn" onclick="showTab('chainclaims')">Chains ({{ chain_claims|length }})</button>
+    <button type="button" class="tab-btn active" onclick="showTab('claims')">Claims ({{ total_claims }})</button>
+    <button type="button" class="tab-btn" onclick="showTab('campaigns')">Campaigns ({{ campaign_count }})</button>
+    <button type="button" class="tab-btn" onclick="showTab('attackers')">Attackers ({{ attacker_count }})</button>
+    <button type="button" class="tab-btn" onclick="showTab('domains')">Domains</button>
+    <button type="button" class="tab-btn" onclick="showTab('heatmap')">Heatmap</button>
+    <button type="button" class="tab-btn" onclick="showTab('chainclaims')">Chains ({{ chain_claims|length }})</button>
     {% if dast_findings %}
-    <button class="tab-btn" onclick="showTab('dast')" style="color:#ef4444">DAST ({{ dast_findings|length }})</button>
+    <button type="button" class="tab-btn tab-btn-dast" onclick="showTab('dast')">DAST ({{ dast_findings|length }})</button>
     {% endif %}
   </div>
 
@@ -219,7 +219,7 @@
         <tr>
           <td><span class="verdict-badge verdict-{{ claim.verdict }}">{{ claim.verdict|upper }}</span></td>
           <td>{{ claim.statement[:80] }}{% if claim.statement|length > 80 %}...{% endif %}</td>
-          <td style="color: var(--text-secondary);">{{ claim.domain }}</td>
+          <td class="u-muted">{{ claim.domain }}</td>
           <td>{{ claim.evidence_count }}</td>
         </tr>
         {% endfor %}
@@ -230,7 +230,7 @@
   <!-- Campaigns Tab -->
   <div id="tab-campaigns" class="tab-content">
     {% for campaign in campaign_results %}
-    <div class="assurance-card" style="margin-bottom: 12px;">
+    <div class="assurance-card u-mb12">
       <h3>{{ campaign.name }} — {{ campaign.total_findings }} findings</h3>
       {% for step in campaign.steps %}
       <div class="campaign-step">
@@ -242,7 +242,7 @@
     {% endfor %}
     {% if not campaign_results %}
     <div class="assurance-card">
-      <div style="color: var(--text-secondary);">No campaigns run yet. Use <code>p assure --run-campaigns</code> to run them.</div>
+      <div class="u-muted">No campaigns run yet. Use <code>p assure --run-campaigns</code> to run them.</div>
     </div>
     {% endif %}
   </div>
@@ -251,7 +251,7 @@
   <div id="tab-attackers" class="tab-content">
     {% if attacker_results %}
     {% for result in attacker_results %}
-    <div class="assurance-card" style="margin-bottom: 12px;">
+    <div class="assurance-card u-mb12">
       <div class="attacker-row">
         <div>
           <strong class="severity-{{ result.hypothesis.risk }}">{{ result.hypothesis.attacker }}</strong>
@@ -264,7 +264,7 @@
     {% endfor %}
     {% else %}
     <div class="assurance-card">
-      <div style="color: var(--text-secondary);">No confirmed attacker findings. Use <code>p assure --run-attackers</code> to run them.</div>
+      <div class="u-muted">No confirmed attacker findings. Use <code>p assure --run-attackers</code> to run them.</div>
     </div>
     {% endif %}
   </div>
@@ -272,7 +272,7 @@
   <!-- Domains Tab -->
   <div id="tab-domains" class="tab-content">
     {% for domain, counts in coverage.by_domain.items() %}
-    <div class="assurance-card" style="margin-bottom: 12px;">
+    <div class="assurance-card u-mb12">
       <h3>{{ domain }}</h3>
       <div style="display: flex; justify-content: space-between; font-size: 13px; margin-top: 4px;">
         <span>{{ counts.proved }} / {{ counts.total }} proved</span>
@@ -287,12 +287,12 @@
 
   <!-- Heatmap Tab (full-screen) -->
   <div id="tab-heatmap" class="tab-content">
-    <div style="margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
-      <div style="display:flex;align-items:center;gap:12px">
+    <div class="u-mb16 u-flex u-aic u-jcsb u-wrap u-gap12">
+      <div class="u-flex u-aic u-gap12">
         <h2 style="margin:0;font-size:18px;font-weight:700;color:var(--text-primary)">Assurance Coverage Heatmap</h2>
         <span id="hm-overall-badge" style="font-size:14px;font-weight:600;padding:4px 12px;border-radius:8px;background:var(--bg-tertiary);color:var(--text-secondary)"></span>
       </div>
-      <div style="display:flex;align-items:center;gap:8px">
+      <div class="u-flex u-aic u-gap8">
         <input id="hm-search" type="text" placeholder="Filter domains..." style="padding:6px 12px;border-radius:6px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);font-size:12px;width:180px">
         <select id="hm-sort" style="padding:6px 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);font-size:12px">
           <option value="asc">Lowest coverage first</option>
@@ -300,17 +300,17 @@
           <option value="alpha">Alphabetical</option>
           <option value="claims">Most claims</option>
         </select>
-        <div style="display:flex;border:1px solid var(--border);border-radius:6px;overflow:hidden">
-          <button id="hm-view-grid" class="btn btn-sm" onclick="_setHmView('grid')" style="border-radius:0;border:none;font-size:11px;padding:4px 10px;background:var(--accent);color:#fff">▦ Grid</button>
-          <button id="hm-view-treemap" class="btn btn-sm" onclick="_setHmView('treemap')" style="border-radius:0;border:none;font-size:11px;padding:4px 10px;background:var(--bg-tertiary);color:var(--text-secondary)">◫ Treemap</button>
+        <div class="seg-group" role="group" aria-label="Heatmap view">
+          <button type="button" id="hm-view-grid" class="btn btn-sm seg-btn" onclick="_setHmView('grid')" aria-pressed="true">▦ Grid</button>
+          <button type="button" id="hm-view-treemap" class="btn btn-sm seg-btn" onclick="_setHmView('treemap')" aria-pressed="false">◫ Treemap</button>
         </div>
-        <button class="btn btn-sm" onclick="_exportHeatmapPNG()" style="font-size:12px" title="Export current view as PNG">💾 Export PNG</button>
-        <button class="btn btn-sm" onclick="loadFullHeatmap()" style="font-size:12px">Refresh</button>
+        <button type="button" class="btn btn-sm" onclick="_exportHeatmapPNG()" title="Export current view as PNG">💾 Export PNG</button>
+        <button type="button" class="btn btn-sm" onclick="loadFullHeatmap()">Refresh</button>
       </div>
     </div>
 
     <!-- Verdict breakdown -->
-    <div id="hm-verdicts" style="display:flex;gap:16px;margin-bottom:16px;flex-wrap:wrap"></div>
+    <div id="hm-verdicts" class="u-flex u-gap16 u-mb16 u-wrap"></div>
 
     <!-- Overall coverage bar -->
     <div id="hm-bar" style="margin-bottom:20px"></div>
@@ -326,13 +326,13 @@
 
     <!-- Coverage Trend Line -->
     <div id="hm-trend-section" style="margin-top:24px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div class="u-flex u-aic u-jcsb u-mb12">
         <h3 style="margin:0;font-size:15px;font-weight:700;color:var(--text-primary)">&#x1F4C8; Coverage Trend</h3>
-        <div style="display:flex;align-items:center;gap:8px">
+        <div class="u-flex u-aic u-gap8">
           <select id="hm-trend-domain" onchange="loadTrendChart()" style="padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--bg-secondary);color:var(--text-primary);font-size:12px">
             <option value="__overall__">Overall Coverage</option>
           </select>
-          <span id="hm-trend-count" style="font-size:11px;color:var(--text-tertiary)"></span>
+          <span id="hm-trend-count" class="u-fs11 u-faint"></span>
         </div>
       </div>
       <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;padding:16px;position:relative">
@@ -347,9 +347,9 @@
     <!-- Domain detail modal -->
     <div id="hm-detail" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,0.7);align-items:center;justify-content:center" onclick="if(event.target===this)this.style.display='none'">
       <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:24px;max-width:500px;width:90%;max-height:80vh;overflow-y:auto">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <div class="u-flex u-jcsb u-aic u-mb16">
           <h3 id="hm-detail-title" style="margin:0;font-size:16px"></h3>
-          <button onclick="document.getElementById('hm-detail').style.display='none'" style="background:none;border:none;color:var(--text-secondary);font-size:18px;cursor:pointer">✕</button>
+          <button type="button" class="btn btn-ghost btn-icon btn-sm" onclick="document.getElementById('hm-detail').style.display='none'" aria-label="Close details" style="font-size:18px;color:var(--text-secondary)">✕</button>
         </div>
         <div id="hm-detail-body"></div>
       </div>
@@ -360,8 +360,8 @@
   <div id="tab-chainclaims" class="tab-content">
     {% if chain_claims %}
     <div class="panel" style="margin-bottom:16px;padding:16px">
-      <h3 style="margin-bottom:8px">🔗 Exploit Chain Claims</h3>
-      <p style="font-size:13px;color:var(--text-secondary)">{{ chain_claims|length }} claims from cross-file attack paths and intent gaps.</p>
+      <h3 class="u-mb8">🔗 Exploit Chain Claims</h3>
+      <p class="u-fs13 u-muted">{{ chain_claims|length }} claims from cross-file attack paths and intent gaps.</p>
     </div>
     <table class="claims-table">
       <thead>
@@ -385,12 +385,12 @@
     </table>
     {% if chain_raw %}
     <div class="panel" style="margin-top:16px;padding:16px">
-      <h3 style="margin-bottom:8px">Attack Path Visualizations</h3>
+      <h3 class="u-mb8">Attack Path Visualizations</h3>
       {% for chain in chain_raw %}
       <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">
-        <span class="badge badge-{{ chain.severity }}" style="font-size:10px">{{ chain.severity }}</span>
-        <span style="font-size:12px;color:var(--text-secondary)">score={{ chain.score }}</span>
-        <span style="font-family:var(--font-mono);font-size:12px">
+        <span class="badge badge-{{ chain.severity }} u-fs10">{{ chain.severity }}</span>
+        <span class="u-fs12 u-muted">score={{ chain.score }}</span>
+        <span class="u-mono u-fs12">
           {% for step in chain.steps %}{% if not loop.first %} → {% endif %}{{ step.type }}{% endfor %}
         </span>
       </div>
@@ -408,9 +408,9 @@
   <script>
     function showTab(name) {
       document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-      document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(el => { el.classList.remove('active'); el.setAttribute('aria-selected', 'false'); });
       document.getElementById('tab-' + name).classList.add('active');
-      event.target.classList.add('active');
+      document.getElementById('tab-' + name).setAttribute('aria-selected', 'true');
       if (name === 'heatmap') loadFullHeatmap();
     }
 
@@ -570,21 +570,16 @@
 
     function _setHmView(view) {
       _hmView = view;
+      var isGrid = (view === 'grid');
       var gridBtn = document.getElementById('hm-view-grid');
-      var tmBtn = document.getElementById('hm-view-treemap');n      var gridEl = document.getElementById('hm-grid');
+      var tmBtn = document.getElementById('hm-view-treemap');
+      var gridEl = document.getElementById('hm-grid');
       var tmWrap = document.getElementById('hm-treemap-wrap');
-      if (view === 'grid') {
-        if (gridBtn) { gridBtn.style.background = 'var(--accent)'; gridBtn.style.color = '#fff'; }
-        if (tmBtn) { tmBtn.style.background = 'var(--bg-tertiary)'; tmBtn.style.color = 'var(--text-secondary)'; }
-        if (gridEl) gridEl.style.display = 'grid';
-        if (tmWrap) tmWrap.style.display = 'none';
-      } else {
-        if (gridBtn) { gridBtn.style.background = 'var(--bg-tertiary)'; gridBtn.style.color = 'var(--text-secondary)'; }
-        if (tmBtn) { tmBtn.style.background = 'var(--accent)'; tmBtn.style.color = '#fff'; }
-        if (gridEl) gridEl.style.display = 'none';
-        if (tmWrap) tmWrap.style.display = 'block';
-        _renderTreemap(_hmTiles);
-      }
+      if (gridBtn) gridBtn.setAttribute('aria-pressed', isGrid ? 'true' : 'false');
+      if (tmBtn) tmBtn.setAttribute('aria-pressed', isGrid ? 'false' : 'true');
+      if (gridEl) gridEl.style.display = isGrid ? 'grid' : 'none';
+      if (tmWrap) tmWrap.style.display = isGrid ? 'none' : 'block';
+      if (!isGrid) _renderTreemap(_hmTiles);
     }
 
     function _renderTreemap(tiles) {
@@ -736,7 +731,8 @@
         if (newAspect <= bestAspect) {
           row = newRow;
           rowSum = newSum;
-          bestAspect = newAspect;        } else {
+          bestAspect = newAspect;
+        } else {
           break;
         }
       }
@@ -956,7 +952,8 @@
         coords.push({ x: x, y: y, pct: points[i].pct, t: points[i].t });
       }
 
-      // Gradient fill under linen      var grad = ctx.createLinearGradient(0, pad.top, 0, H - pad.bottom);
+      // Gradient fill under line
+n      var grad = ctx.createLinearGradient(0, pad.top, 0, H - pad.bottom);
       grad.addColorStop(0, 'rgba(74,222,128,0.25)');
       grad.addColorStop(1, 'rgba(74,222,128,0.02)');
       ctx.fillStyle = grad;
@@ -1016,7 +1013,8 @@
         ctx.fillText(label, coords[idx].x, H - pad.bottom + 16);
       }
 
-      // Hover interactionr
+      // Hover interaction
+r
       canvas.onmousemove = function(e) {
         var r = canvas.getBoundingClientRect();
         var mx = e.clientX - r.left;
@@ -1117,7 +1115,7 @@
           var vColor = c.verdict === 'proved' ? '#4ADE80' : c.verdict === 'disproved' ? '#FF4D6D' : c.verdict === 'unproven' ? '#FACC15' : '#94a3b8';
           var vBg = c.verdict === 'proved' ? 'rgba(74,222,128,0.08)' : c.verdict === 'disproved' ? 'rgba(255,77,109,0.08)' : c.verdict === 'unproven' ? 'rgba(250,204,21,0.08)' : 'rgba(148,163,184,0.08)';
           html += '<div class="hm-claim-item" data-verdict="' + c.verdict + '" data-statement="' + (c.statement || '').toLowerCase() + '" ' +
-            'style="padding:10px 14px;border-radius:8px;border:1px solid var(--border);background:' + vBg + ';cursor:pointer;transition:all 0.15s ease" ' +
+            'style="padding:10px 14px;border-radius:8px;border:1px solid var(--border);background:' + vBg + ';cursor:pointer;transition: background 150ms var(--ease-out), color 150ms var(--ease-out) 0.15s ease" ' +
             'onmouseenter="this.style.borderColor='' + vColor + ''" onmouseleave="this.style.borderColor='var(--border)'" ' +
             'onclick="_toggleClaimDetail(this)">';
           // Header row
@@ -1350,13 +1348,13 @@
       if (!modal) {
         modal = document.createElement('div');
         modal.id = 'screenshot-modal';
-        modal.style.cssText = 'display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,0.85);align-items:center;justify-content:center';
-        modal.innerHTML = '<div style="max-width:90vw;max-height:90vh;position:relative" onclick="event.stopPropagation()"><img id="screenshot-modal-img" src="" style="max-width:100%;max-height:85vh;border-radius:8px"><button onclick="document.getElementById(\'screenshot-modal\').style.display=\'none\'" style="position:absolute;top:-12px;right:-12px;background:#ef4444;color:white;border:none;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:14px">✕</button></div>';
-        modal.onclick = () => modal.style.display = 'none';
+        modal.className = 'js-modal-veil';
+        modal.innerHTML = '<div style="max-width:90vw;max-height:90vh;position:relative" onclick="event.stopPropagation()"><img id="screenshot-modal-img" src="" style="max-width:100%;max-height:85vh;border-radius:8px"><button type="button" class="btn-modal-close" onclick="document.getElementById(\'screenshot-modal\').classList.remove(\'open\')" aria-label="Close screenshot viewer">✕</button></div>';
+        modal.onclick = () => modal.classList.remove('open');
         document.body.appendChild(modal);
       }
       document.getElementById('screenshot-modal-img').src = src;
-      modal.style.display = 'flex';
+      modal.classList.add('open');
     }
 
     // ── Video Recordings ──────────────────────────────────────────────
@@ -1410,21 +1408,21 @@
       if (!modal) {
         modal = document.createElement('div');
         modal.id = 'video-modal';
-        modal.style.cssText = 'display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,0.85);align-items:center;justify-content:center';
-        modal.innerHTML = '<div style="max-width:90vw;max-height:90vh;position:relative" onclick="event.stopPropagation()"><video id="video-modal-player" controls autoplay style="max-width:100%;max-height:85vh;border-radius:8px"></video><button onclick="closeVideoModal()" style="position:absolute;top:-12px;right:-12px;background:#ef4444;color:white;border:none;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:14px">✕</button></div>';
+        modal.className = 'js-modal-veil';
+        modal.innerHTML = '<div style="max-width:90vw;max-height:90vh;position:relative" onclick="event.stopPropagation()"><video id="video-modal-player" controls autoplay style="max-width:100%;max-height:85vh;border-radius:8px"></video><button type="button" class="btn-modal-close" onclick="closeVideoModal()" aria-label="Close video viewer">✕</button></div>';
         modal.onclick = () => closeVideoModal();
         document.body.appendChild(modal);
       }
       const player = document.getElementById('video-modal-player');
       player.innerHTML = `<source src="${src}" type="${type || 'video/webm'}">`;
-      modal.style.display = 'flex';
+      modal.classList.add('open');
       player.play().catch(() => {});
     }
 
     function closeVideoModal() {
       const modal = document.getElementById('video-modal');
       if (modal) {
-        modal.style.display = 'none';
+        modal.classList.remove('open');
         const player = document.getElementById('video-modal-player');
         if (player) { player.pause(); player.src = ''; }
       }

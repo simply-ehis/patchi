@@ -1,15 +1,13 @@
 {% extends "base.html" %}
-
 {% block content %}
-<div class="brain-panel">
+<div style="max-width:860px; margin:0 auto;">
   <div class="panel">
     <div class="panel-header">
       <span class="panel-title">Brain Knowledge</span>
-      <button class="btn" onclick="location.reload()">Refresh</button>
+      <button type="button" class="btn btn-sm" onclick="location.reload()">Refresh</button>
     </div>
-
-    <div style="padding:16px;line-height:1.7;font-size:14px;max-width:800px">
-      {{ brain_content }}
+    <div style="padding:20px; line-height:1.75; font-size:14px; color:var(--text-secondary);">
+      <div style="color:var(--text-primary); font-size:15px; line-height:1.6;">{{ brain_content }}</div>
     </div>
   </div>
 </div>

@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/landing.css">
+  <link rel="stylesheet" href="/static/landing.css?v=3">
 </head>
 <body class="landing">
   <nav class="landing-nav" aria-label="Primary">
@@ -34,7 +34,7 @@
     <h1 class="hero-h1">Patchi finds what scanners miss <span class="accent">and fixes what's safe.</span></h1>
     <p class="hero-sub">A CLI agent colony + Mission Control web that <strong style="color:var(--ink)">scans, secures, tests and fixes</strong> your codebase with static analysis + optional AI. <strong style="color:var(--ink)">1:1 CLI ↔ Web</strong> — the web is a fancy wrapper. Cross-platform, Python 3.11+, works offline.</p>
     <div class="hero-ctas">
-      <a href="/" class="btn btn-primary">Get Started — <span style="font-family:var(--font-mono);font-weight:600">p web</span></a>
+      <a href="/" class="btn btn-primary">Get Started — <span class="u-mono u-fw600">p web</span></a>
       <span class="code-pill">pip install ".[web]" <span class="copy" onclick="navigator.clipboard.writeText('pip install &quot;.[web]&quot;'); this.textContent='Copied'; setTimeout(()=>this.textContent='Copy',1200)">Copy</span></span>
       <a href="#overview" class="btn btn-ghost">Explore →</a>
     </div>
@@ -48,7 +48,7 @@
             <span style="font-size:11px;color:var(--muted)">Health Score</span>
           </div>
           <div style="display:grid;gap:8px">
-            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--body)"><span>Security posture</span><span style="font-family:var(--font-mono);font-weight:700">{{ health_score }}/100</span></div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--body)"><span>Security posture</span><span class="u-mono u-fw700">{{ health_score }}/100</span></div>
             <div class="mini-bar"><div class="mini-fill" style="width:{{ health_score }}%"></div></div>
             <div class="hero-stats">
               <span class="hero-stat">{{ file_count }} files</span>
@@ -93,7 +93,7 @@
 
   <section class="band" id="overview">
     <div class="band-head">
-      <div class="eyebrow" style="text-align:center">WHAT IS PATCHI</div>
+      <div class="eyebrow u-tac">WHAT IS PATCHI</div>
       <h2>One colony, not one scanner</h2>
       <p>Patchi isn’t a linter. It’s a <strong style="color:var(--ink)">colony of 54+ specialist agents</strong> orchestrated by a Brain that understands your code as a graph. Static + dynamic + AI, with a risk gate that never auto-fixes what it shouldn’t.</p>
     </div>
@@ -147,22 +147,22 @@
 
   <section class="band" id="security">
     <div class="band-head">
-      <div class="eyebrow" style="text-align:center">SECURITY — 54 AGENTS</div>
+      <div class="eyebrow u-tac">SECURITY — 54 AGENTS</div>
       <h2>From injection to supply chain, one orchestrator</h2>
       <p>54 lazy-loaded agents, deduplicated, correlated, OWASP-mapped. Uses Semgrep CE, Gitleaks, OSV-Scanner under the hood. Heavy compliance (license per dep) is opt-in.</p>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
       <div class="hero-panel">
         <div class="hero-panel-title">Categories</div>
-        <table style="width:100%;font-size:12px;border-collapse:collapse">
-          <tr style="border-bottom:1px solid var(--border)"><td style="padding:6px 0;color:var(--body)">Injection</td><td style="padding:6px 0">SQLi, XSS, command, SSRF, CSRF, path traversal</td></tr>
-          <tr style="border-bottom:1px solid var(--border)"><td style="padding:6px 0;color:var(--body)">Auth</td><td style="padding:6px 0">Missing auth, BAC, JWT, SAML SSO</td></tr>
-          <tr style="border-bottom:1px solid var(--border)"><td style="padding:6px 0;color:var(--body)">Crypto</td><td style="padding:6px 0">Weak hash, hardcoded keys, SSL/TLS</td></tr>
-          <tr style="border-bottom:1px solid var(--border)"><td style="padding:6px 0;color:var(--body)">Secrets</td><td style="padding:6px 0">Leaked creds, API keys, connection strings</td></tr>
-          <tr style="border-bottom:1px solid var(--border)"><td style="padding:6px 0;color:var(--body)">Supply Chain</td><td style="padding:6px 0">CVEs, typosquat, unpinned deps (<code>--with-license</code>)</td></tr>
-          <tr style="border-bottom:1px solid var(--border)"><td style="padding:6px 0;color:var(--body)">Config/IaC</td><td style="padding:6px 0">Debug mode, headers, CORS, Docker/K8s/Terraform</td></tr>
-          <tr style="border-bottom:1px solid var(--border)"><td style="padding:6px 0;color:var(--body)">Compliance</td><td style="padding:6px 0">SOC2, HIPAA, PCI-DSS, CIS</td></tr>
-          <tr><td style="padding:6px 0;color:var(--body)">+ Runtime/Adversarial/Governance</td><td style="padding:6px 0">Live DAST, anomaly, blast radius, drift</td></tr>
+        <table class="landing-table">
+          <tr><td class="dim">Injection</td><td>SQLi, XSS, command, SSRF, CSRF, path traversal</td></tr>
+          <tr><td class="dim">Auth</td><td>Missing auth, BAC, JWT, SAML SSO</td></tr>
+          <tr><td class="dim">Crypto</td><td>Weak hash, hardcoded keys, SSL/TLS</td></tr>
+          <tr><td class="dim">Secrets</td><td>Leaked creds, API keys, connection strings</td></tr>
+          <tr><td class="dim">Supply Chain</td><td>CVEs, typosquat, unpinned deps (<code>--with-license</code>)</td></tr>
+          <tr><td class="dim">Config/IaC</td><td>Debug mode, headers, CORS, Docker/K8s/Terraform</td></tr>
+          <tr><td class="dim">Compliance</td><td>SOC2, HIPAA, PCI-DSS, CIS</td></tr>
+          <tr><td class="dim">+ Runtime/Adversarial/Governance</td><td>Live DAST, anomaly, blast radius, drift</td></tr>
         </table>
       </div>
       <div class="hero-panel">
@@ -178,7 +178,7 @@
     </div>
     <div class="hero-panel" style="margin-top:16px">
       <div class="hero-panel-title">Domain Taxonomy Spotlight (from BUILD_MAP)</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;font-family:var(--font-mono);font-size:11px">
+      <div class="u-flex u-gap8 u-wrap u-mono u-fs11">
         <span class="hero-stat">injection</span><span class="hero-stat">auth</span><span class="hero-stat">xss</span><span class="hero-stat">ssrf</span><span class="hero-stat">secrets</span><span class="hero-stat">crypto</span><span class="hero-stat">supply-chain</span><span class="hero-stat">iac</span><span class="hero-stat">compliance</span><span class="hero-stat">privacy</span><span class="hero-stat">runtime</span>
       </div>
       <p style="margin-top:8px;font-size:12px;color:var(--muted)">Specificity tightened (has_backend_api_surface requires routes + web/framework import, DB surface requires DB deps) — zero false positives for verticals (IoT, blockchain, healthcare) when no signals.</p>
@@ -208,8 +208,8 @@
           <div class="at-event"><strong>Auth</strong> · bypass · failed</div>
         </div>
         <div>
-          <div class="persona-mini"><span style="width:28px;height:28px;border-radius:50%;background:var(--accent);display:grid;place-items:center;color:#fff;font-weight:700">1</span><div><div style="font-weight:600">Security Officer</div><div style="color:var(--body)">Validate auth boundary · 92% → gate</div></div></div>
-          <div class="persona-mini" style="border-left-color:var(--low)"><span style="width:28px;height:28px;border-radius:50%;background:var(--low);display:grid;place-items:center;color:#000;font-weight:700">2</span><div><div style="font-weight:600">Test Engineer</div><div style="color:var(--body)">Add regression · 88% → run_tests</div></div></div>
+          <div class="persona-mini"><span style="width:28px;height:28px;border-radius:50%;background:var(--accent);display:grid;place-items:center;color:#fff;font-weight:700">1</span><div><div class="u-fw600">Security Officer</div><div style="color:var(--body)">Validate auth boundary · 92% → gate</div></div></div>
+          <div class="persona-mini" style="border-left-color:var(--low)"><span style="width:28px;height:28px;border-radius:50%;background:var(--low);display:grid;place-items:center;color:#000;font-weight:700">2</span><div><div class="u-fw600">Test Engineer</div><div style="color:var(--body)">Add regression · 88% → run_tests</div></div></div>
           <div style="margin-top:8px;padding:10px;background:rgba(200,98,26,0.08);border:1px solid rgba(200,98,26,0.18);border-radius:8px;font-size:12px"><strong>Synthesis:</strong> Isolate auth, add regression, verify via DAST.</div>
         </div>
       </div>
@@ -238,9 +238,9 @@
         <div class="browser-viewport">Screenshot · 16:10 · video + HAR</div>
       </div>
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px">
-        <div style="text-align:center;background:#0A0A0A;border:1px solid var(--border);border-radius:8px;padding:10px"><div style="font-family:var(--font-mono);font-weight:700">124ms</div><div style="font-size:11px;color:var(--muted)">p50 latency</div></div>
-        <div style="text-align:center;background:#0A0A0A;border:1px solid var(--border);border-radius:8px;padding:10px"><div style="font-family:var(--font-mono);font-weight:700">842</div><div style="font-size:11px;color:var(--muted)">req/s</div></div>
-        <div style="text-align:center;background:#0A0A0A;border:1px solid var(--border);border-radius:8px;padding:10px"><div style="font-family:var(--font-mono);font-weight:700">0.4%</div><div style="font-size:11px;color:var(--muted)">error</div></div>
+        <div style="text-align:center;background:#0A0A0A;border:1px solid var(--border);border-radius:8px;padding:10px"><div class="u-mono u-fw700">124ms</div><div style="font-size:11px;color:var(--muted)">p50 latency</div></div>
+        <div style="text-align:center;background:#0A0A0A;border:1px solid var(--border);border-radius:8px;padding:10px"><div class="u-mono u-fw700">842</div><div style="font-size:11px;color:var(--muted)">req/s</div></div>
+        <div style="text-align:center;background:#0A0A0A;border:1px solid var(--border);border-radius:8px;padding:10px"><div class="u-mono u-fw700">0.4%</div><div style="font-size:11px;color:var(--muted)">error</div></div>
       </div>
     </div>
   </section>
@@ -250,19 +250,19 @@
       <div class="hero-panel">
         <div class="hero-panel-title">Route & API Contracts</div>
         <p style="font-size:13px;color:var(--body);margin-bottom:10px">Frontend routes (fetch, axios, ky, trpc, GraphQL) ↔ backend (FastAPI, Flask, Express, etc.) diffed. Finds guaranteed 404s, orphan APIs, method mismatches, param drift (<code>/user/:id</code> vs <code>/users/:userId</code>), Zod/validator drift, OpenAPI sync, env var validation, dead links.</p>
-        <div class="code-pill" style="font-size:11px">p scan → RouteMapper → Contract diff → 404 before prod</div>
+        <div class="code-pill u-fs11">p scan → RouteMapper → Contract diff → 404 before prod</div>
       </div>
       <div class="hero-panel">
         <div class="hero-panel-title">Dead Code & Hygiene</div>
         <p style="font-size:13px;color:var(--body);margin-bottom:10px">Unused exports (knip/vulture/deadcode), orphan files, unreachable paths, duplicate deps, outdated deps, supply-chain risk (Socket.dev/Guac), feature-flag archaeology via git log, codemods (<code>var→const</code>, <code>.then→await</code>).</p>
-        <div class="code-pill" style="font-size:11px">p fix → DeadCodeRemover + DependencyFixer</div>
+        <div class="code-pill u-fs11">p fix → DeadCodeRemover + DependencyFixer</div>
       </div>
     </div>
   </section>
 
   <section class="band" style="padding-top:0">
     <div class="band-head">
-      <div class="eyebrow" style="text-align:center">11 LANGUAGES • 18 FRAMEWORKS</div>
+      <div class="eyebrow u-tac">11 LANGUAGES • 18 FRAMEWORKS</div>
       <h2>One graph, many stacks</h2>
       <p>Python, JS/TS, Rust, Go, Java, C/C++, Swift, Ruby, Svelte, Vue, Angular + more via tree-sitter. Works anywhere Python runs.</p>
     </div>
@@ -300,24 +300,24 @@
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
       <div class="hero-panel">
-        <table style="width:100%;font-size:12px;border-collapse:collapse">
-          <tr style="border-bottom:1px solid var(--border)"><td style="padding:6px 0"><code>p scan</code></td><td style="padding:6px 0;color:var(--body)">Full scan (—json / —deep / —offline / —with-license)</td></tr>
-          <tr style="border-bottom:1px solid var(--border)"><td style="padding:6px 0"><code>p fix</code></td><td style="padding:6px 0;color:var(--body)">Apply AI fixes (—dry-run)</td></tr>
-          <tr style="border-bottom:1px solid var(--border)"><td style="padding:6px 0"><code>p web</code></td><td style="padding:6px 0;color:var(--body)">Mission Control @ 127.0.0.1:1612 (—project, —open)</td></tr>
-          <tr style="border-bottom:1px solid var(--border)"><td style="padding:6px 0"><code>p security</code></td><td style="padding:6px 0;color:var(--body)">Run 54 agents (—json, filter)</td></tr>
-          <tr style="border-bottom:1px solid var(--border)"><td style="padding:6px 0"><code>p test</code></td><td style="padding:6px 0;color:var(--body)">unit/browser/stress/regression/api/e2e</td></tr>
-          <tr style="border-bottom:1px solid var(--border)"><td style="padding:6px 0"><code>p audit</code></td><td style="padding:6px 0;color:var(--body)">Scan + security + test + report</td></tr>
-          <tr><td style="padding:6px 0"><code>p chat / p explain</code></td><td style="padding:6px 0;color:var(--body)">Ask Patchi about your project</td></tr>
+        <table class="landing-table">
+          <tr><td><code>p scan</code></td><td class="dim">Full scan (—json / —deep / —offline / —with-license)</td></tr>
+          <tr><td><code>p fix</code></td><td class="dim">Apply AI fixes (—dry-run)</td></tr>
+          <tr><td><code>p web</code></td><td class="dim">Mission Control @ 127.0.0.1:1612 (—project, —open)</td></tr>
+          <tr><td><code>p security</code></td><td class="dim">Run 54 agents (—json, filter)</td></tr>
+          <tr><td><code>p test</code></td><td class="dim">unit/browser/stress/regression/api/e2e</td></tr>
+          <tr><td><code>p audit</code></td><td class="dim">Scan + security + test + report</td></tr>
+          <tr><td><code>p chat / p explain</code></td><td class="dim">Ask Patchi about your project</td></tr>
         </table>
       </div>
       <div class="hero-panel">
-        <table style="width:100%;font-size:12px;border-collapse:collapse">
-          <tr style="border-bottom:1px solid var(--border)"><td style="padding:6px 0"><code>p plan</code></td><td style="padding:6px 0;color:var(--body)">Prioritized fixes (risk × blast)</td></tr>
-          <tr style="border-bottom:1px solid var(--border)"><td style="padding:6px 0"><code>p cockpit</code></td><td style="padding:6px 0;color:var(--body)">Live TUI (—area, —once, —scan-secrets)</td></tr>
-          <tr style="border-bottom:1px solid var(--border)"><td style="padding:6px 0"><code>p doctor</code></td><td style="padding:6px 0;color:var(--body)">Validate setup + config</td></tr>
-          <tr style="border-bottom:1px solid var(--border)"><td style="padding:6px 0"><code>p watch</code></td><td style="padding:6px 0;color:var(--body)">Auto-scan on save</td></tr>
-          <tr style="border-bottom:1px solid var(--border)"><td style="padding:6px 0"><code>p undo / redo</code></td><td style="padding:6px 0;color:var(--body)">Atomic rollback</td></tr>
-          <tr><td style="padding:6px 0"><code>p deps / report / trend / blast</code></td><td style="padding:6px 0;color:var(--body)">Supply chain, export, history, radius</td></tr>
+        <table class="landing-table">
+          <tr><td><code>p plan</code></td><td class="dim">Prioritized fixes (risk × blast)</td></tr>
+          <tr><td><code>p cockpit</code></td><td class="dim">Live TUI (—area, —once, —scan-secrets)</td></tr>
+          <tr><td><code>p doctor</code></td><td class="dim">Validate setup + config</td></tr>
+          <tr><td><code>p watch</code></td><td class="dim">Auto-scan on save</td></tr>
+          <tr><td><code>p undo / redo</code></td><td class="dim">Atomic rollback</td></tr>
+          <tr><td><code>p deps / report / trend / blast</code></td><td class="dim">Supply chain, export, history, radius</td></tr>
         </table>
         <div style="margin-top:12px" class="code-pill">p init && p scan && p web — three commands, full colony</div>
       </div>
@@ -330,8 +330,8 @@
       <p>Without AI: structural analysis, free, zero tokens. With AI: fix gen, council, NL queries. Priority: Ollama (offline, 0$) → API keys → Free keys (Groq, Google, OpenRouter, Mistral, Together) → AI Horde (anonymous).</p>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-      <div class="hero-panel"><div class="hero-panel-title">Providers</div><div style="display:flex;gap:6px;flex-wrap:wrap;font-family:var(--font-mono);font-size:11px"><span class="hero-stat">OpenAI</span><span class="hero-stat">Anthropic</span><span class="hero-stat">Google</span><span class="hero-stat">Groq</span><span class="hero-stat">Mistral</span><span class="hero-stat">Cohere</span><span class="hero-stat">Together</span><span class="hero-stat">Fireworks</span><span class="hero-stat">Perplexity</span><span class="hero-stat">OpenRouter</span><span class="hero-stat">DeepSeek</span><span class="hero-stat">xAI</span><span class="hero-stat">NVIDIA</span><span class="hero-stat">HF</span></div><p style="margin-top:8px;font-size:12px;color:var(--muted)">+ any OpenAI-compatible endpoint. Keys in <code>.patchi/keys.json</code>, never sent elsewhere. Cost tracker + budget alerts.</p></div>
-      <div class="hero-panel"><div class="hero-panel-title">Modes & Governance</div><table style="width:100%;font-size:12px"><tr style="border-bottom:1px solid var(--border)"><td style="padding:6px 0"><code>confirm</code> (default)</td><td style="color:var(--body)">Every fix asks</td></tr><tr style="border-bottom:1px solid var(--border)"><td style="padding:6px 0"><code>auto</code></td><td style="color:var(--body)">Low-risk auto, risky asks</td></tr><tr><td style="padding:6px 0"><code>autopilot</code></td><td style="color:var(--body)">Full trust (use with CI gate)</td></tr></table><p style="margin-top:8px;font-size:12px;color:var(--muted)">Governor: phase-gated scan → fix → verify, crash-recoverable.</p></div>
+      <div class="hero-panel"><div class="hero-panel-title">Providers</div><div class="u-flex u-gap6 u-wrap u-mono u-fs11"><span class="hero-stat">OpenAI</span><span class="hero-stat">Anthropic</span><span class="hero-stat">Google</span><span class="hero-stat">Groq</span><span class="hero-stat">Mistral</span><span class="hero-stat">Cohere</span><span class="hero-stat">Together</span><span class="hero-stat">Fireworks</span><span class="hero-stat">Perplexity</span><span class="hero-stat">OpenRouter</span><span class="hero-stat">DeepSeek</span><span class="hero-stat">xAI</span><span class="hero-stat">NVIDIA</span><span class="hero-stat">HF</span></div><p style="margin-top:8px;font-size:12px;color:var(--muted)">+ any OpenAI-compatible endpoint. Keys in <code>.patchi/keys.json</code>, never sent elsewhere. Cost tracker + budget alerts.</p></div>
+      <div class="hero-panel"><div class="hero-panel-title">Modes & Governance</div><table class="landing-table"><tr><td><code>confirm</code> (default)</td><td class="dim">Every fix asks</td></tr><tr><td><code>auto</code></td><td class="dim">Low-risk auto, risky asks</td></tr><tr><td><code>autopilot</code></td><td class="dim">Full trust (use with CI gate)</td></tr></table><p style="margin-top:8px;font-size:12px;color:var(--muted)">Governor: phase-gated scan → fix → verify, crash-recoverable.</p></div>
     </div>
   </section>
 
@@ -347,11 +347,11 @@
     </div>
     <div style="margin-top:16px" class="hero-panel">
       <div class="hero-panel-title">Parity Table (excerpt)</div>
-      <table style="width:100%;font-size:12px;border-collapse:collapse">
-        <tr style="border-bottom:1px solid var(--border)"><td style="padding:6px 0"><code>p scan</code></td><td style="padding:6px 0">→</td><td style="padding:6px 0"><code>POST /api/scan</code> + WS agent feed</td></tr>
-        <tr style="border-bottom:1px solid var(--border)"><td style="padding:6px 0"><code>p fix</code></td><td style="padding:6px 0">→</td><td style="padding:6px 0"><code>POST /api/fix/apply-all-safe</code> (risk-gated)</td></tr>
-        <tr style="border-bottom:1px solid var(--border)"><td style="padding:6px 0"><code>p chat</code></td><td style="padding:6px 0">→</td><td style="padding:6px 0"><code>/chat</code> + <code>POST /api/chat</code></td></tr>
-        <tr><td style="padding:6px 0"><code>p brain</code></td><td style="padding:6px 0">→</td><td style="padding:6px 0"><code>/brain</code> & <code>/brain-map</code> (import + layers)</td></tr>
+      <table class="landing-table">
+        <tr><td><code>p scan</code></td><td>→</td><td><code>POST /api/scan</code> + WS agent feed</td></tr>
+        <tr><td><code>p fix</code></td><td>→</td><td><code>POST /api/fix/apply-all-safe</code> (risk-gated)</td></tr>
+        <tr><td><code>p chat</code></td><td>→</td><td><code>/chat</code> + <code>POST /api/chat</code></td></tr>
+        <tr><td><code>p brain</code></td><td>→</td><td><code>/brain</code> & <code>/brain-map</code> (import + layers)</td></tr>
       </table>
       <p style="margin-top:8px;font-size:11px;color:var(--muted)">Full table: <code>docs/web-cli-parity.md</code>. CLI is source of truth; web adds streaming, charts, council UX.</p>
     </div>
@@ -359,7 +359,7 @@
 
   <section class="band" style="padding-top:0">
     <div class="band-head">
-      <div class="eyebrow" style="text-align:center">ROADMAP — 112 FEATURES</div>
+      <div class="eyebrow u-tac">ROADMAP — 112 FEATURES</div>
       <h2>23 done, 16 partial, 73 next</h2>
       <p>From PATCHI_FEATURE_PLAN: Static Analysis (13), Dead Code (9), Routes (10), Security (10), Runtime (11), Testing (10), Refactoring (9), Frameworks (11), Reporting (11), CI/CD (10), Advanced (8). Quick wins first, then tool integration, then deep framework, then runtime.</p>
     </div>
@@ -374,12 +374,12 @@
 
   <section class="band" style="padding-top:0">
     <div class="freemium">
-      <div class="eyebrow" style="margin-bottom:8px">FREEMIUM • PRE-1.0.0</div>
+      <div class="eyebrow u-mb8">FREEMIUM • PRE-1.0.0</div>
       <h3>Free for personal & teams &lt;3, enterprise ≥3</h3>
       <p>Peak stable at <strong>v1.0.0</strong> — ~0.4.0 remains. Pin <code>.patchi/</code> formats as best-effort forward-compatible. Hosted guard is experimental.</p>
       <div style="margin-top:16px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
         <a href="mailto:idemudiaehis6@gmail.com" class="btn btn-primary">Contact enterprise</a>
-        <a href="/static/landing.css" class="btn btn-ghost">View tokens</a>
+        <a href="/static/landing.css?v=3" class="btn btn-ghost">View tokens</a>
         <span class="hero-stat">pip install ".[web]" · Python 3.11+</span>
       </div>
       <p style="margin-top:10px;font-size:11px;color:var(--muted)">License: Patchi Freemium — Free for personal, education, research, open-source, teams &lt;3. Enterprise contact idemudiaehis6@gmail.com. 30-day trial OK.</p>

@@ -2,32 +2,32 @@
 
 {% block content %}
 <div class="findings-panel">
-  <!-- Tab bar -->
-  <div style="display:flex;gap:0;margin-bottom:16px;border-bottom:1px solid var(--border)">
-    <button class="tab-btn active" onclick="showTab('findings')" id="tab-findings">
+  <!-- Tab bar — polished, sticky -->
+  <div class="findings-tabs">
+    <button type="button" class="tab-btn active" onclick="showTab('findings')" id="tab-findings">
       Findings <span class="tab-count">{{ total }}</span>
     </button>
-    <button class="tab-btn" onclick="showTab('chains')" id="tab-chains">
+    <button type="button" class="tab-btn" onclick="showTab('chains')" id="tab-chains">
       Exploit Chains <span class="tab-count">{{ chains|length }}</span>
     </button>
-    <button class="tab-btn" onclick="showTab('intent')" id="tab-intent">
+    <button type="button" class="tab-btn" onclick="showTab('intent')" id="tab-intent">
       Intent Gaps <span class="tab-count">{{ intent.gap_count if intent else 0 }}</span>
     </button>
-    <button class="tab-btn" onclick="showTab('charter')" id="tab-charter">
+    <button type="button" class="tab-btn" onclick="showTab('charter')" id="tab-charter">
       Charter <span class="tab-count">{{ charter_violations|length }}</span>
     </button>
     {% if vr_total > 0 or vr_diffs > 0 %}
-    <button class="tab-btn" onclick="showTab('vr')" id="tab-vr" style="color:#a855f7">
-      📸 Visual <span class="tab-count" style="background:#a855f720;color:#a855f7">{{ vr_total }}</span>
-      {% if vr_diffs > 0 %}<span class="tab-count" style="background:#ef444420;color:#ef4444">{{ vr_diffs }} diffs</span>{% endif %}
+    <button type="button" class="tab-btn tab-btn-vr" onclick="showTab('vr')" id="tab-vr">
+      📸 Visual <span class="tab-count">{{ vr_total }}</span>
+      {% if vr_diffs > 0 %}<span class="tab-count tab-count-diff">{{ vr_diffs }} diffs</span>{% endif %}
     </button>
     {% endif %}
     {% if dast_findings_count > 0 %}
-    <button class="tab-btn" onclick="showTab('dast')" id="tab-dast" style="color:#ef4444">
-      DAST <span class="tab-count" style="background:#ef4444;color:white">{{ dast_findings_count }}</span>
+    <button type="button" class="tab-btn tab-btn-dast" onclick="showTab('dast')" id="tab-dast">
+      DAST <span class="tab-count">{{ dast_findings_count }}</span>
     </button>
     {% endif %}
-    <button class="tab-btn" onclick="showTab('history')" id="tab-history">
+    <button type="button" class="tab-btn" onclick="showTab('history')" id="tab-history">
       History <span class="tab-count">—</span>
     </button>
   </div>
@@ -38,21 +38,21 @@
     {% if dast_tests_run > 0 %}
     <div class="panel" style="margin-bottom:12px;border-left:3px solid {% if dast_findings_count > 0 %}#ef4444{% else %}#22c55e{% endif %}">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px">
-        <div style="display:flex;align-items:center;gap:12px">
+        <div class="u-flex u-aic u-gap12">
           <span style="font-size:20px">🔒</span>
           <div>
-            <div style="font-weight:600;font-size:13px">
+            <div class="u-fw600 u-fs13">
               DAST Scan Complete
               {% if dast_target %}<span style="color:var(--text-secondary);font-weight:400"> — {{ dast_target }}</span>{% endif %}
             </div>
-            <div style="font-size:12px;color:var(--text-secondary)">
+            <div class="u-fs12 u-muted">
               {{ dast_tests_run }} tests run across {{ scan_agent_count }} agents
               · <span style="color:{% if dast_findings_count > 0 %}#ef4444{% else %}#22c55e{% endif %}">{{ dast_findings_count }} DAST finding{{ 's' if dast_findings_count != 1 }}</span>
             </div>
           </div>
         </div>
         {% if dast_findings_count > 0 %}
-        <button class="btn" onclick="showTab('dast')" style="font-size:12px;border-color:#ef4444;color:#ef4444">View DAST Findings →</button>
+        <button type="button" class="btn btn-ghost btn-danger btn-sm" onclick="showTab('dast')">View DAST Findings →</button>
         {% endif %}
       </div>
     </div>
@@ -61,7 +61,7 @@
     <div class="panel">
       <div class="panel-header">
         <span class="panel-title">Security Findings ({{ total }})</span>
-        <div style="display:flex;gap:8px">
+        <div class="u-flex u-gap8">
           <select id="filter-severity" onchange="filterFindings()" class="btn" style="padding:4px 8px">
             <option value="">All Severity</option>
             <option value="critical">Critical</option>
@@ -107,16 +107,16 @@
               {% if f.is_dast %}
               <span style="color:#ef4444;font-size:11px;font-weight:600">🔒 DAST</span>
               {% else %}
-              <span style="color:var(--text-secondary);font-size:11px">{{ f.agent }}</span>
+              <span class="u-muted u-fs11">{{ f.agent }}</span>
               {% endif %}
             </td>
             <td>
               {% if f.screenshots and f.screenshots|length > 0 %}
-              <span style="cursor:pointer" onclick="event.stopPropagation();openScreenshotModal('{{ f.screenshots[0] }}')" title="View screenshot evidence">
+              <span class="u-ptr" onclick="event.stopPropagation();openScreenshotModal('{{ f.screenshots[0] }}')" title="View screenshot evidence">
                 📸 {{ f.screenshots|length }}
               </span>
               {% elif f.code_snippet %}
-              <span style="font-size:11px;color:var(--text-secondary);cursor:pointer" title="{{ f.code_snippet[:200] }}" onclick="event.stopPropagation();openEvidenceModal('{{ f.type }}', `{{ f.code_snippet[:500] }}`)">
+              <span class="u-fs11 u-muted u-ptr" title="{{ f.code_snippet[:200] }}" onclick="event.stopPropagation();openEvidenceModal('{{ f.type }}', `{{ f.code_snippet[:500] }}`)">
                 📝 Evidence
               </span>
               {% endif %}
@@ -154,7 +154,7 @@
       <div class="panel-header">
         <span class="panel-title">🔒 DAST Findings with Evidence ({{ dast_findings|length }})</span>
         {% if dast_target %}
-        <span style="font-size:12px;color:var(--text-secondary)">Target: {{ dast_target }}</span>
+        <span class="u-fs12 u-muted">Target: {{ dast_target }}</span>
         {% endif %}
       </div>
       <div style="padding:12px;display:flex;flex-direction:column;gap:12px">
@@ -162,11 +162,11 @@
         <div style="border:1px solid var(--border);border-radius:8px;overflow:hidden">
           <!-- Finding header -->
           <div style="padding:10px 14px;display:flex;justify-content:space-between;align-items:center;background:var(--bg-secondary);border-bottom:1px solid var(--border)">
-            <div style="display:flex;align-items:center;gap:8px">
+            <div class="u-flex u-aic u-gap8">
               <span class="badge badge-{{ f.severity }}">{{ f.severity }}</span>
-              <span style="font-weight:600;font-size:13px">{{ f.type }}</span>
+              <span class="u-fw600 u-fs13">{{ f.type }}</span>
             </div>
-            <span style="font-size:11px;color:var(--text-secondary)">{{ f.file }}</span>
+            <span class="u-fs11 u-muted">{{ f.file }}</span>
           </div>
           <!-- Finding message -->
           <div style="padding:10px 14px;font-size:13px;border-bottom:1px solid var(--border)">
@@ -178,8 +178,8 @@
           <!-- Evidence / Screenshots -->
           {% if f.screenshots and f.screenshots|length > 0 %}
           <div style="padding:10px 14px">
-            <div style="font-size:11px;font-weight:600;color:var(--text-secondary);margin-bottom:6px">📸 EVIDENCE</div>
-            <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <div class="u-fs11 u-fw600 u-muted u-mb6">📸 EVIDENCE</div>
+            <div class="u-flex u-gap8 u-wrap">
               {% for img in f.screenshots %}
               <div style="border:1px solid var(--border);border-radius:4px;overflow:hidden;cursor:pointer;max-width:200px" onclick="openScreenshotModal('{{ img }}')">
                 <img src="{{ img }}" alt="DAST evidence" style="width:100%;height:auto;display:block" onerror="this.parentElement.innerHTML='<div style=padding:8px;text-align:center;color:var(--text-secondary);font-size:11px>Image not found</div>'" loading="lazy">
@@ -189,7 +189,7 @@
           </div>
           {% elif f.code_snippet %}
           <div style="padding:10px 14px">
-            <div style="font-size:11px;font-weight:600;color:var(--text-secondary);margin-bottom:6px">📝 EVIDENCE</div>
+            <div class="u-fs11 u-fw600 u-muted u-mb6">📝 EVIDENCE</div>
             <pre style="margin:0;padding:8px;background:var(--bg-tertiary);border-radius:4px;font-size:11px;overflow-x:auto;max-height:120px;overflow-y:auto">{{ f.code_snippet[:500] }}</pre>
           </div>
           {% endif %}
@@ -218,9 +218,9 @@
           {% for chain in chains %}
           <div class="chain-list-item" data-idx="{{ loop.index0 }}" onclick="selectChain({{ loop.index0 }})"
                style="padding:8px 10px;border-radius:6px;cursor:pointer;margin-bottom:4px;border-left:3px solid {% if chain.severity == 'critical' %}#ef4444{% elif chain.severity == 'high' %}#f97316{% elif chain.severity == 'medium' %}#eab308{% else %}var(--border){% endif %};transition:background 0.15s">
-            <div style="display:flex;justify-content:space-between;align-items:center">
-              <span class="badge badge-{{ chain.severity }}" style="font-size:10px">{{ chain.severity }}</span>
-              <span style="font-size:11px;color:var(--text-secondary)">{{ chain.length }} steps</span>
+            <div class="u-flex u-jcsb u-aic">
+              <span class="badge badge-{{ chain.severity }} u-fs10">{{ chain.severity }}</span>
+              <span class="u-fs11 u-muted">{{ chain.length }} steps</span>
             </div>
             <div style="font-size:12px;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
               {{ chain.steps[0].type if chain.steps else '?' }} → {{ chain.steps[-1].type if chain.steps else '?' }}
@@ -232,13 +232,13 @@
       </div>
 
       <!-- Explorer (main) -->
-      <div class="panel" style="display:flex;flex-direction:column">
-        <div class="panel-header" style="justify-content:space-between">
+      <div class="panel u-flex u-col">
+        <div class="panel-header u-jcsb">
           <span class="panel-title" id="explorer-title">Select a chain</span>
-          <div style="display:flex;gap:6px;align-items:center">
-            <button class="btn" onclick="chainPrev()" id="btn-prev" disabled style="padding:4px 10px;font-size:12px">← Prev</button>
+          <div class="u-flex u-gap6 u-aic">
+            <button type="button" class="btn btn-sm" onclick="chainPrev()" id="btn-prev" disabled>← Prev</button>
             <span id="step-counter" style="font-size:12px;color:var(--text-secondary);min-width:50px;text-align:center"></span>
-            <button class="btn" onclick="chainNext()" id="btn-next" disabled style="padding:4px 10px;font-size:12px">Next →</button>
+            <button type="button" class="btn btn-sm" onclick="chainNext()" id="btn-next" disabled>Next →</button>
           </div>
         </div>
 
@@ -272,8 +272,8 @@
       document.getElementById('explorer-title').textContent =
         `Chain: ${currentChain.steps[0].type} → ${currentChain.steps[currentChain.steps.length-1].type}`;
       document.getElementById('step-counter').textContent = `${currentStep + 1}/${total}`;
-      document.getElementById('btn-prev').disabled = currentStep === 0;
-      document.getElementById('btn-next').disabled = currentStep >= total - 1;
+      if(window.setBtnState){window.setBtnState(document.getElementById('btn-prev'),{disabled:currentStep===0});window.setBtnState(document.getElementById('btn-next'),{disabled:currentStep>=total-1});}
+      else{document.getElementById('btn-prev').disabled=currentStep===0;document.getElementById('btn-next').disabled=currentStep>=total-1;}
 
       let html = `<div style="padding:16px;border:1px solid var(--border);border-radius:8px;background:var(--bg-secondary)">`;
 
@@ -388,26 +388,26 @@
       </div>
       <div style="padding:12px">
         {% if intent.unauthenticated_state_changing %}
-        <div style="margin-bottom:16px">
+        <div class="u-mb16">
           <h4 style="color:#ef4444;margin-bottom:8px">🔓 Unauthenticated State-Changing Routes ({{ intent.unauthenticated_state_changing|length }})</h4>
           {% for r in intent.unauthenticated_state_changing %}
           <div style="display:flex;gap:8px;align-items:center;padding:4px 8px;border-left:2px solid #ef4444;margin-bottom:4px;font-size:13px">
             <span class="badge" style="background:#ef444420;color:#ef4444">{{ r.method }}</span>
-            <span style="font-family:var(--font-mono)">{{ r.path }}</span>
-            <span style="color:var(--text-secondary);font-size:11px">{{ r.file }}:{{ r.line }}</span>
+            <span class="u-mono">{{ r.path }}</span>
+            <span class="u-muted u-fs11">{{ r.file }}:{{ r.line }}</span>
           </div>
           {% endfor %}
         </div>
         {% endif %}
 
         {% if intent.admin_without_strict_guard %}
-        <div style="margin-bottom:16px">
+        <div class="u-mb16">
           <h4 style="color:#f97316;margin-bottom:8px">👑 Admin Routes Without Strict Guard ({{ intent.admin_without_strict_guard|length }})</h4>
           {% for r in intent.admin_without_strict_guard %}
           <div style="display:flex;gap:8px;align-items:center;padding:4px 8px;border-left:2px solid #f97316;margin-bottom:4px;font-size:13px">
             <span class="badge" style="background:#f9731620;color:#f97316">{{ r.method }}</span>
-            <span style="font-family:var(--font-mono)">{{ r.path }}</span>
-            <span style="color:var(--text-secondary);font-size:11px">{{ r.file }}:{{ r.line }}</span>
+            <span class="u-mono">{{ r.path }}</span>
+            <span class="u-muted u-fs11">{{ r.file }}:{{ r.line }}</span>
             {% if r.has_auth_guard %}<span style="color:#22c55e;font-size:11px">✓ guard</span>{% else %}<span style="color:#ef4444;font-size:11px">✗ no guard</span>{% endif %}
           </div>
           {% endfor %}
@@ -415,13 +415,13 @@
         {% endif %}
 
         {% if intent.unprotected_among_protected %}
-        <div style="margin-bottom:16px">
+        <div class="u-mb16">
           <h4 style="color:#eab308;margin-bottom:8px">⚠️ Unprotected Routes Among Protected Peers ({{ intent.unprotected_among_protected|length }})</h4>
           {% for r in intent.unprotected_among_protected %}
           <div style="display:flex;gap:8px;align-items:center;padding:4px 8px;border-left:2px solid #eab308;margin-bottom:4px;font-size:13px">
             <span class="badge" style="background:#eab30820;color:#eab308">{{ r.method }}</span>
-            <span style="font-family:var(--font-mono)">{{ r.path }}</span>
-            <span style="color:var(--text-secondary);font-size:11px">{{ r.file }}:{{ r.line }}</span>
+            <span class="u-mono">{{ r.path }}</span>
+            <span class="u-muted u-fs11">{{ r.file }}:{{ r.line }}</span>
           </div>
           {% endfor %}
         </div>
@@ -438,18 +438,18 @@
 
   <!-- Scan History tab -->
   <div id="panel-history" class="tab-panel" style="display:none">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+    <div class="u-flex u-jcsb u-aic u-mb16">
       <h3 style="margin:0;font-size:16px">📋 Scan History</h3>
-      <button class="btn" onclick="exportHistoryJSON()" style="font-size:12px">⬇ Export JSON</button>
+      <button type="button" class="btn btn-sm" onclick="exportHistoryJSON()">⬇ Export JSON</button>
     </div>
-    <div id="history-list" style="display:flex;flex-direction:column;gap:8px">
+    <div id="history-list" class="u-flex u-col u-gap8">
       <div style="text-align:center;padding:24px;color:var(--text-secondary)">Loading history…</div>
     </div>
   </div>
 
   <!-- Visual Regression tab -->
   <div id="panel-vr" class="tab-panel" style="display:none">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+    <div class="u-flex u-jcsb u-aic u-mb16">
       <div>
         <h3 style="margin:0;font-size:16px">📸 Visual Regression</h3>
         <div style="font-size:12px;color:var(--text-secondary);margin-top:4px">
@@ -457,7 +457,7 @@
           {% if vr_diffs > 0 %} · <span style="color:#ef4444;font-weight:600">{{ vr_diffs }} with visual changes</span>{% endif %}
         </div>
       </div>
-      <button class="btn" onclick="loadVRFromAPI()" style="font-size:12px">🔄 Refresh</button>
+      <button type="button" class="btn btn-sm" onclick="loadVRFromAPI()">🔄 Refresh</button>
     </div>
     {% if vr_pairs %}
     <div id="vr-gallery" style="display:grid;grid-template-columns:repeat(auto-fill, minmax(320px, 1fr));gap:16px">
@@ -483,7 +483,7 @@
           <div style="font-size:12px;font-weight:500;color:var(--text-primary);margin-bottom:4px">
             {{ pair.source.name if pair.source else pair.diff.name }}
           </div>
-          <div style="font-size:11px;color:var(--text-secondary)">
+          <div class="u-fs11 u-muted">
             {{ pair.source.size_kb if pair.source else '—' }} KB
             {% if pair.diff %}
             · <a href="{{ pair.diff.serve_url }}" style="color:#ef4444;text-decoration:none" onclick="event.preventDefault();openScreenshotModal('{{ pair.diff.serve_url }}')">View diff →</a>
@@ -512,11 +512,11 @@
         {% for v in charter_violations %}
         <div style="display:flex;gap:8px;align-items:flex-start;padding:8px 12px;border-left:2px solid {% if v.severity == 'critical' %}#ef4444{% elif v.severity == 'high' %}#f97316{% elif v.severity == 'medium' %}#eab308{% else %}#64748b{% endif %};margin-bottom:8px;border-radius:0 6px 6px 0;background:{% if v.severity == 'critical' %}#ef444410{% elif v.severity == 'high' %}#f9731610{% elif v.severity == 'medium' %}#eab30810{% else %}#64748b10{% endif %}">
           <div style="flex:1">
-            <div style="display:flex;gap:8px;align-items:center;margin-bottom:4px">
+            <div class="u-flex u-gap8 u-aic u-mb4">
               <span class="badge" style="background:{% if v.severity == 'critical' %}#ef4444{% elif v.severity == 'high' %}#f97316{% elif v.severity == 'medium' %}#eab308{% else %}#64748b{% endif %}20;color:{% if v.severity == 'critical' %}#ef4444{% elif v.severity == 'high' %}#f97316{% elif v.severity == 'medium' %}#eab308{% else %}#64748b{% endif %}">{{ v.severity }}</span>
               <span style="font-weight:500;font-size:13px">{{ v.rule_id }}</span>
             </div>
-            <div style="font-size:13px;color:var(--text-primary)">{{ v.message }}</div>
+            <div class="u-fs13 u-ink">{{ v.message }}</div>
             {% if v.suggestion %}
             <div style="font-size:12px;color:var(--text-secondary);margin-top:4px">→ {{ v.suggestion }}</div>
             {% endif %}
@@ -538,7 +538,7 @@
 <div id="screenshot-modal" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,0.85);display:none;align-items:center;justify-content:center" onclick="closeScreenshotModal()">
   <div style="max-width:90vw;max-height:90vh;position:relative" onclick="event.stopPropagation()">
     <img id="screenshot-modal-img" src="" style="max-width:100%;max-height:85vh;border-radius:8px;box-shadow:0 8px 32px rgba(0,0,0,0.5)" alt="Screenshot evidence">
-    <button onclick="closeScreenshotModal()" style="position:absolute;top:-12px;right:-12px;background:#ef4444;color:white;border:none;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center">✕</button>
+    <button type="button" class="btn-modal-close" onclick="closeScreenshotModal()" aria-label="Close screenshot viewer">✕</button>
   </div>
 </div>
 
@@ -547,7 +547,7 @@
   <div style="max-width:80vw;max-height:80vh;background:var(--bg-secondary);border-radius:12px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.5)" onclick="event.stopPropagation()">
     <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
       <span id="evidence-modal-title" style="font-weight:600;font-size:14px"></span>
-      <button onclick="closeEvidenceModal()" style="background:none;border:none;cursor:pointer;font-size:18px;color:var(--text-secondary)">✕</button>
+      <button type="button" class="btn btn-ghost btn-icon btn-sm" onclick="closeEvidenceModal()" aria-label="Close evidence viewer" style="font-size:18px;color:var(--text-secondary)">✕</button>
     </div>
     <pre id="evidence-modal-code" style="padding:16px;margin:0;font-size:13px;overflow:auto;max-height:60vh;white-space:pre-wrap;word-break:break-word"></pre>
   </div>
@@ -562,7 +562,7 @@
     color: var(--text-secondary);
     border-bottom: 2px solid transparent;
     font-size: 14px;
-    transition: all 0.15s;
+    transition: background 150ms var(--ease-out), color 150ms var(--ease-out), transform 150ms var(--ease-out);
   }
   .tab-btn:hover { color: var(--text-primary); }
   .tab-btn.active {
@@ -586,9 +586,11 @@
 <script>
 function showTab(name) {
   document.querySelectorAll('.tab-panel').forEach(p => p.style.display = 'none');
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'))
+  document.querySelectorAll('.tab-btn').forEach(b => { b.classList.remove('active'); b.setAttribute('aria-selected', 'false'); });
   document.getElementById('panel-' + name).style.display = '';
-  document.getElementById('tab-' + name).classList.add('active');
+  var _tab = document.getElementById('tab-' + name);
+  _tab.classList.add('active');
+  _tab.setAttribute('aria-selected', 'true');
   if (name === 'history') loadHistory();
   if (name === 'vr') loadVRFromAPI();
 }

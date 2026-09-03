@@ -103,9 +103,8 @@ var BrainMap3D = (() => {
     var existing = container.querySelector('.preset-indicator');
     if (existing) existing.remove();
     var el = document.createElement('div');
-    el.className = 'preset-indicator';
+    el.className = 'preset-indicator brain-preset-toast';
     el.textContent = name.charAt(0).toUpperCase() + name.slice(1) + ' View';
-    el.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,0.7);color:#fff;padding:8px 20px;border-radius:8px;font-size:14px;font-weight:600;pointer-events:none;z-index:10;transition:opacity 0.5s';
     container.appendChild(el);
     setTimeout(function() { el.style.opacity = '0'; }, 800);
     setTimeout(function() { el.remove(); }, 1300);

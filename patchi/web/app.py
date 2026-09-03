@@ -243,7 +243,7 @@ def create_app(root: Path) -> FastAPI:
         return HTMLResponse(
             """<!DOCTYPE html><html lang="en">
 <head><meta charset="UTF-8"><title>404 — Patchi</title>
-<link rel="stylesheet" href="/static/style.css"></head>
+<link rel="stylesheet" href="/static/dashboard_v2.css?v=10"></head>
 <body style="display:flex;align-items:center;justify-content:center;height:100vh;background:var(--bg-primary)">
 <div style="text-align:center">
   <h1 style="font-size:72px;color:var(--accent);margin:0">404</h1>
@@ -258,7 +258,7 @@ def create_app(root: Path) -> FastAPI:
         return HTMLResponse(
             """<!DOCTYPE html><html lang="en">
 <head><meta charset="UTF-8"><title>500 — Patchi</title>
-<link rel="stylesheet" href="/static/style.css"></head>
+<link rel="stylesheet" href="/static/dashboard_v2.css?v=10"></head>
 <body style="display:flex;align-items:center;justify-content:center;height:100vh;background:var(--bg-primary)">
 <div style="text-align:center">
   <h1 style="font-size:72px;color:var(--critical);margin:0">500</h1>

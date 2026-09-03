@@ -5,41 +5,41 @@
   <div class="panel">
     <div class="panel-header">
       <span class="panel-title">Patch Review ({{ total }})</span>
-      <div style="display:flex;gap:4px">
+      <div class="u-flex u-gap4">
         {% if patches %}
-        <button class="btn btn-primary" onclick="applyAllSafe()">Apply All Low Risk</button>
+        <button type="button" class="btn btn-primary" onclick="applyAllSafe()">Apply All Low Risk</button>
         {% endif %}
-        <button class="btn" onclick="undo()" title="Undo last applied patch">↩ Undo</button>
-        <button class="btn" onclick="redo()" title="Redo last undone patch">↪ Redo</button>
+        <button type="button" class="btn" onclick="undo()" title="Undo last applied patch">↩ Undo</button>
+        <button type="button" class="btn" onclick="redo()" title="Redo last undone patch">↪ Redo</button>
       </div>
     </div>
 
     {% if patches %}
     {% for p in patches %}
-    <div class="panel" style="margin-bottom:8px" id="patch-{{ p.id }}">
+    <div class="panel u-mb8" id="patch-{{ p.id }}">
       <div style="display:flex;justify-content:space-between;align-items:start">
         <div>
-          <div style="font-weight:600;margin-bottom:4px">{{ (p.description or '')[:80] }}</div>
-          <div style="font-size:12px;color:var(--text-secondary)">
+          <div class="u-fw600 u-mb4">{{ (p.description or '')[:80] }}</div>
+          <div class="u-fs12 u-muted">
             {{ (p.changes or [{}])[0].get('path', '') }} · Risk: {{ p.risk_score }}/100 · Confidence: {{ p.confidence }}%
           </div>
         </div>
-        <div style="display:flex;gap:4px;align-items:center">
-          <button class="btn" style="font-size:12px;padding:4px 12px"
+        <div class="u-flex u-gap4 u-aic">
+          <button type="button" class="btn" style="font-size:12px;padding:4px 12px"
             hx-post="/api/fix/apply/{{ p.id }}" hx-swap="none"
             hx-on::before-request="this.classList.add('loading')"
             hx-on::after-request="this.classList.remove('loading');document.getElementById('patch-{{ p.id }}').style.opacity=0.3"
             hx-indicator="#patch-{{ p.id }}-spin">
             ✓ Apply
           </button>
-          <button class="btn btn-danger" style="font-size:12px;padding:4px 12px"
+          <button type="button" class="btn btn-danger" style="font-size:12px;padding:4px 12px"
             hx-post="/api/fix/reject/{{ p.id }}" hx-swap="none"
             hx-on::before-request="this.classList.add('loading')"
             hx-on::after-request="this.classList.remove('loading');document.getElementById('patch-{{ p.id }}').style.display='none'">
             ✗ Reject
           </button>
           <span id="patch-{{ p.id }}-spin" class="htmx-indicator loading-spinner" style="width:16px;height:16px;border-width:2px"></span>
-          <button class="btn" style="font-size:12px;padding:4px 8px"
+          <button type="button" class="btn" style="font-size:12px;padding:4px 8px"
             onclick="toggleDiff('diff-{{ p.id }}')">
             ⌥ Diff
           </button>

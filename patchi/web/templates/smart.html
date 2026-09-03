@@ -16,11 +16,11 @@
     <label class="smart-steps-label">steps
       <input id="smart-steps" class="smart-steps" type="number" min="1" max="12" value="6" />
     </label>
-    <button id="smart-run" class="btn btn-primary">
+    <button type="button" id="smart-run" class="btn btn-primary">
       <span class="btn-text">▶ Run Agent</span>
       <span class="btn-spinner" style="display:none;">⏳</span>
     </button>
-    <button id="smart-cancel" class="btn btn-cancel" style="display:none;">
+    <button type="button" id="smart-cancel" class="btn btn-cancel" style="display:none;">
       <span>✕ Cancel</span>
     </button>
   </div>
@@ -79,7 +79,7 @@
   .smart-tools { display: flex; gap: 8px; flex-wrap: wrap; margin: 14px 0; min-height: 28px; }
   .tool-pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px;
                background: var(--bg-card); border: 1px solid var(--border); border-radius: 999px;
-               font-size: 12px; color: var(--text-secondary); opacity: 0.6; transition: all 0.2s; }
+               font-size: 12px; color: var(--text-secondary); opacity: 0.6; transition: background 150ms var(--ease-out), color 150ms var(--ease-out), transform 150ms var(--ease-out); }
   .tool-pill.pending { border-color: var(--accent); opacity: 1; color: var(--accent); }
   .tool-pill.running { border-color: #C8621A; background: rgba(200, 98, 26, 0.15); color: #C8621A; }
   .tool-pill.done { border-color: #4ADE80; background: rgba(74, 222, 128, 0.15); color: #4ADE80; }

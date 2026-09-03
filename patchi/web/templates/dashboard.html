@@ -1,23 +1,23 @@
 {% extends "base.html" %}
 
 {% block content %}
-<!-- Severity Cards -->
-<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px">
-  <div class="panel" style="text-align:center;padding:16px">
-    <div id="count-critical" style="font-size:28px;font-weight:700;font-family:var(--font-mono);color:var(--sev-critical)">--</div>
-    <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-top:4px">Critical</div>
+<!-- Severity Cards — polished stat grid -->
+<div class="sev-grid">
+  <div class="sev-card">
+    <div id="count-critical" class="sev-count" style="color:var(--sev-critical)">--</div>
+    <div class="sev-label">Critical</div>
   </div>
-  <div class="panel" style="text-align:center;padding:16px">
-    <div id="count-high" style="font-size:28px;font-weight:700;font-family:var(--font-mono);color:var(--sev-high)">--</div>
-    <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-top:4px">High</div>
+  <div class="sev-card">
+    <div id="count-high" class="sev-count" style="color:var(--sev-high)">--</div>
+    <div class="sev-label">High</div>
   </div>
-  <div class="panel" style="text-align:center;padding:16px">
-    <div id="count-medium" style="font-size:28px;font-weight:700;font-family:var(--font-mono);color:var(--sev-medium)">--</div>
-    <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-top:4px">Medium</div>
+  <div class="sev-card">
+    <div id="count-medium" class="sev-count" style="color:var(--sev-medium)">--</div>
+    <div class="sev-label">Medium</div>
   </div>
-  <div class="panel" style="text-align:center;padding:16px">
-    <div id="count-low" style="font-size:28px;font-weight:700;font-family:var(--font-mono);color:var(--sev-low)">--</div>
-    <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;margin-top:4px">Low</div>
+  <div class="sev-card">
+    <div id="count-low" class="sev-count" style="color:var(--sev-low)">--</div>
+    <div class="sev-label">Low</div>
   </div>
 </div>
 
@@ -29,88 +29,89 @@
       Brain Map
     </h2>
     <div class="panel-actions">
-      <button class="btn btn-sm" onclick="toggle3D()" id="btn-3d" title="Toggle 3D mode" style="background:var(--bg-tertiary);font-weight:600">🔮 3D</button>
-      <button class="btn btn-sm" onclick="toggleBrainMapFullScreen()" id="btn-fullscreen" title="Toggle full-screen">⛶</button>
+      <button type="button" class="btn btn-sm" onclick="toggle3D()" id="btn-3d" title="Toggle 3D mode">🔮 3D</button>
+      <button type="button" class="btn btn-sm" onclick="toggleBrainMapFullScreen()" id="btn-fullscreen" title="Toggle full-screen">⛶</button>
       <span style="width:1px;height:16px;background:var(--border);margin:0 4px"></span>
-      <div style="position:relative;display:inline-flex;align-items:center">
-        <input type="text" id="brain-search" placeholder="Search nodes… (/ or Ctrl+F)" style="width:220px;padding:4px 24px 4px 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg-tertiary);color:var(--text-primary);font-size:12px;outline:none" onfocus="if(!this.value.trim())BrainMap.showHistoryOnFocus()" oninput="BrainMap.searchNodes(this.value);if(window._is3D&&BrainMap3D)BrainMap3D.searchNodes(this.value)" onkeydown="if(event.key==='Escape'){this.value='';BrainMap.searchNodes('');if(window._is3D&&BrainMap3D)BrainMap3D.searchNodes('');this.blur()}else if(event.key==='ArrowDown'){event.preventDefault();BrainMap.searchNext();if(window._is3D&&BrainMap3D)BrainMap3D.searchNext()}else if(event.key==='ArrowUp'){event.preventDefault();BrainMap.searchPrev();if(window._is3D&&BrainMap3D)BrainMap3D.searchPrev()}else if(event.key==='Enter'){event.preventDefault();BrainMap.commitSearch();BrainMap.searchNext()}">
-        <button onclick="document.getElementById('brain-search').value='';BrainMap.searchNodes('');if(window._is3D&&BrainMap3D)BrainMap3D.searchNodes('')" style="position:absolute;right:4px;background:none;border:none;color:var(--text-secondary);cursor:pointer;font-size:12px;padding:0;line-height:1" title="Clear search">✕</button>
-        <span id="brain-search-count" style="font-size:10px;color:var(--text-secondary);margin-left:4px;white-space:nowrap"></span>
-        <div id="brain-search-dropdown" style="display:none;position:absolute;top:100%;left:-100px;min-width:300px;max-height:300px;overflow-y:auto;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;box-shadow:0 8px 32px rgba(0,0,0,0.4);z-index:200;margin-top:4px"></div>
+      <div class="brain-search-wrap">
+        <input type="text" id="brain-search" class="brain-search-input" placeholder="Search nodes… (/ or Ctrl+F)" onfocus="if(!this.value.trim())BrainMap.showHistoryOnFocus()" oninput="BrainMap.searchNodes(this.value);if(window._is3D&&BrainMap3D)BrainMap3D.searchNodes(this.value)" onkeydown="if(event.key==='Escape'){this.value='';BrainMap.searchNodes('');if(window._is3D&&BrainMap3D)BrainMap3D.searchNodes('');this.blur()}else if(event.key==='ArrowDown'){event.preventDefault();BrainMap.searchNext();if(window._is3D&&BrainMap3D)BrainMap3D.searchNext()}else if(event.key==='ArrowUp'){event.preventDefault();BrainMap.searchPrev();if(window._is3D&&BrainMap3D)BrainMap3D.searchPrev()}else if(event.key==='Enter'){event.preventDefault();BrainMap.commitSearch();BrainMap.searchNext()}">
+        <button type="button" class="btn btn-ghost btn-icon brain-search-clear" onclick="document.getElementById('brain-search').value='';BrainMap.searchNodes('');if(window._is3D&&BrainMap3D)BrainMap3D.searchNodes('')" title="Clear search" aria-label="Clear brain search">✕</button>
+        <span id="brain-search-count" class="brain-search-count"></span>
+        <div id="brain-search-dropdown" class="brain-search-dropdown"></div>
       </div>
       <!-- 2D views -->
       <span id="views-2d">
-        <button class="btn btn-sm" onclick="BrainMap.switchView('graph')" id="view-graph" style="background:var(--bg-tertiary);font-weight:600">Graph</button>
-        <button class="btn btn-sm" onclick="BrainMap.switchView('tree')" id="view-tree">Tree</button>
-        <button class="btn btn-sm" onclick="BrainMap.switchView('spiral')" id="view-spiral">Spiral</button>
-        <button class="btn btn-sm" onclick="BrainMap.switchView('grid')" id="view-grid">Grid</button>
-        <button class="btn btn-sm" onclick="BrainMap.switchView('radial')" id="view-radial">Radial</button>
-        <button class="btn btn-sm" onclick="BrainMap.switchView('cluster')" id="view-cluster">Cluster</button>
+        <button type="button" class="btn btn-sm is-on" onclick="BrainMap.switchView('graph')" id="view-graph">Graph</button>
+        <button type="button" class="btn btn-sm" onclick="BrainMap.switchView('tree')" id="view-tree">Tree</button>
+        <button type="button" class="btn btn-sm" onclick="BrainMap.switchView('spiral')" id="view-spiral">Spiral</button>
+        <button type="button" class="btn btn-sm" onclick="BrainMap.switchView('grid')" id="view-grid">Grid</button>
+        <button type="button" class="btn btn-sm" onclick="BrainMap.switchView('radial')" id="view-radial">Radial</button>
+        <button type="button" class="btn btn-sm" onclick="BrainMap.switchView('cluster')" id="view-cluster">Cluster</button>
         <span style="width:1px;height:16px;background:var(--border);margin:0 4px"></span>
-        <button class="btn btn-sm" onclick="BrainMap.rotateGraph(15)" title="Rotate">↻</button>
-        <button class="btn btn-sm" onclick="BrainMap.rotateGraph(-15)" title="Rotate">↺</button>
-        <button class="btn btn-sm" onclick="BrainMap.resetRotation()" title="Reset"><span id="angle-display">0°</span></button>
-        <button class="btn btn-sm" onclick="BrainMap.toggleLabels()" id="btn-toggle-labels">Hide Labels</button>
+        <button type="button" class="btn btn-sm" onclick="BrainMap.rotateGraph(15)" title="Rotate">↻</button>
+        <button type="button" class="btn btn-sm" onclick="BrainMap.rotateGraph(-15)" title="Rotate">↺</button>
+        <button type="button" class="btn btn-sm" onclick="BrainMap.resetRotation()" title="Reset"><span id="angle-display">0°</span></button>
+        <button type="button" class="btn btn-sm" onclick="BrainMap.toggleLabels()" id="btn-toggle-labels">Hide Labels</button>
       </span>
       <!-- 3D views (hidden by default) -->
       <span id="views-3d" style="display:none">
-        <button class="btn btn-sm" onclick="BrainMap3D.switchView('force3d')" id="view3d-force3d" style="background:var(--bg-tertiary);font-weight:600">Force</button>
-        <button class="btn btn-sm" onclick="BrainMap3D.switchView('tree3d')" id="view3d-tree3d">Tree</button>
-        <button class="btn btn-sm" onclick="BrainMap3D.switchView('spiral3d')" id="view3d-spiral3d">Spiral</button>
-        <button class="btn btn-sm" onclick="BrainMap3D.switchView('helix3d')" id="view3d-helix3d">Helix</button>
-        <button class="btn btn-sm" onclick="BrainMap3D.switchView('sphere3d')" id="view3d-sphere3d">Sphere</button>
-        <button class="btn btn-sm" onclick="BrainMap3D.switchView('grid3d')" id="view3d-grid3d">Grid</button>
-        <button class="btn btn-sm" onclick="BrainMap3D.switchView('cluster3d')" id="view3d-cluster3d">Cluster</button>
-        <button class="btn btn-sm" onclick="BrainMap3D.switchView('radial3d')" id="view3d-radial3d">Radial</button>
+        <button type="button" class="btn btn-sm is-on" onclick="BrainMap3D.switchView('force3d')" id="view3d-force3d">Force</button>
+        <button type="button" class="btn btn-sm" onclick="BrainMap3D.switchView('tree3d')" id="view3d-tree3d">Tree</button>
+        <button type="button" class="btn btn-sm" onclick="BrainMap3D.switchView('spiral3d')" id="view3d-spiral3d">Spiral</button>
+        <button type="button" class="btn btn-sm" onclick="BrainMap3D.switchView('helix3d')" id="view3d-helix3d">Helix</button>
+        <button type="button" class="btn btn-sm" onclick="BrainMap3D.switchView('sphere3d')" id="view3d-sphere3d">Sphere</button>
+        <button type="button" class="btn btn-sm" onclick="BrainMap3D.switchView('grid3d')" id="view3d-grid3d">Grid</button>
+        <button type="button" class="btn btn-sm" onclick="BrainMap3D.switchView('cluster3d')" id="view3d-cluster3d">Cluster</button>
+        <button type="button" class="btn btn-sm" onclick="BrainMap3D.switchView('radial3d')" id="view3d-radial3d">Radial</button>
         <span style="width:1px;height:16px;background:var(--border);margin:0 4px"></span>
-        <button class="btn btn-sm" onclick="BrainMap3D.toggleEdges()" id="btn-toggle-edges-3d">Hide Edges</button>
-        <button class="btn btn-sm" onclick="BrainMap3D.toggleLabels()" id="btn-toggle-labels-3d">Hide Labels</button>
-        <button class="btn btn-sm" onclick="BrainMap3D.resetCamera()" title="Reset camera">🎥 Reset</button>
-        <button class="btn btn-sm" onclick="BrainMap3D.exportPNG()" title="Export 3D render">📷 PNG</button>
+        <button type="button" class="btn btn-sm" onclick="BrainMap3D.toggleEdges()" id="btn-toggle-edges-3d">Hide Edges</button>
+        <button type="button" class="btn btn-sm" onclick="BrainMap3D.toggleLabels()" id="btn-toggle-labels-3d">Hide Labels</button>
+        <button type="button" class="btn btn-sm" onclick="BrainMap3D.resetCamera()" title="Reset camera">🎥 Reset</button>
+        <button type="button" class="btn btn-sm" onclick="BrainMap3D.exportPNG()" title="Export 3D render">📷 PNG</button>
       </span>
       <span style="width:1px;height:16px;background:var(--border);margin:0 4px"></span>
-      <button class="btn btn-sm" onclick="BrainMap.exportJSON()" title="Export data as JSON">💾 JSON</button>
+      <button type="button" class="btn btn-sm" onclick="BrainMap.exportJSON()" title="Export data as JSON">💾 JSON</button>
     </div>
   </header>
   <div style="position:relative;min-height:500px;height:calc(100vh - 300px);max-height:800px;background:var(--bg-primary);border-radius:0 0 var(--radius-lg) var(--radius-lg);overflow:hidden">
     <!-- 2D Legend -->
-    <div id="legend-2d" style="position:absolute;left:0;top:0;bottom:0;width:180px;padding:12px;border-right:1px solid var(--border-subtle);overflow-y:auto;font-size:11px;z-index:5;background:var(--bg-secondary)">
+    <button type="button" id="legend-toggle" onclick="var l=document.getElementById('legend-2d');l.style.display=l.style.display==='none'?'block':'none'" style="position:absolute;left:8px;top:8px;z-index:10;width:28px;height:28px;border-radius:var(--radius-md);background:var(--bg-secondary);border:1px solid var(--border-subtle);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center" title="Toggle legend">☰</button>
+    <div id="legend-2d" style="position:absolute;left:0;top:0;bottom:0;width:180px;padding:12px;border-right:1px solid var(--border-subtle);overflow-y:auto;font-size:11px;z-index:5;background:var(--bg-secondary);display:none">
     <div id="brain-map-legend" style="width:180px;padding:12px;border-right:1px solid var(--border-subtle);overflow-y:auto;font-size:11px;flex-shrink:0;background:var(--bg-secondary)">
-      <div style="font-weight:600;color:var(--text-primary);margin-bottom:8px;font-size:12px">Node Shapes</div>
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+      <div class="u-fw600 u-ink u-mb8 u-fs12">Node Shapes</div>
+      <div class="u-flex u-aic u-gap8 u-mb6">
         <svg width="16" height="16"><polygon points="8,1 15,5 15,11 8,15 1,11 1,5" fill="#8B3A0F" stroke="#4b5563" stroke-width="1"/></svg>
-        <span style="color:var(--text-secondary)">Entry Point</span>
+        <span class="u-muted">Entry Point</span>
       </div>
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+      <div class="u-flex u-aic u-gap8 u-mb6">
         <svg width="16" height="16"><rect x="1" y="3" width="14" height="10" rx="2" fill="#7A2E08" stroke="#4b5563" stroke-width="1"/></svg>
-        <span style="color:var(--text-secondary)">Route Handler</span>
+        <span class="u-muted">Route Handler</span>
       </div>
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+      <div class="u-flex u-aic u-gap8 u-mb6">
         <svg width="16" height="16"><circle cx="8" cy="8" r="7" fill="#6B8B5A" stroke="#4b5563" stroke-width="1"/></svg>
-        <span style="color:var(--text-secondary)">Component</span>
+        <span class="u-muted">Component</span>
       </div>
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+      <div class="u-flex u-aic u-gap8 u-mb6">
         <svg width="16" height="16"><polygon points="8,1 15,8 8,15 1,8" fill="#4A5030" stroke="#4b5563" stroke-width="1"/></svg>
-        <span style="color:var(--text-secondary)">Config</span>
+        <span class="u-muted">Config</span>
       </div>
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+      <div class="u-flex u-aic u-gap8 u-mb6">
         <svg width="16" height="16"><circle cx="8" cy="8" r="7" fill="#4ADE80" stroke="#4b5563" stroke-width="1"/><circle cx="8" cy="8" r="4" fill="none" stroke="#d1fa22" stroke-width="1.5"/></svg>
-        <span style="color:var(--text-secondary)">Test File</span>
+        <span class="u-muted">Test File</span>
       </div>
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+      <div class="u-flex u-aic u-gap8 u-mb6">
         <svg width="16" height="16"><circle cx="8" cy="8" r="7" fill="#3D2A1A" stroke="#4b5563" stroke-width="1"/><line x1="4" y1="4" x2="12" y2="12" stroke="#ef4444" stroke-width="1.5"/><line x1="12" y1="4" x2="4" y2="12" stroke="#ef4444" stroke-width="1.5"/></svg>
-        <span style="color:var(--text-secondary)">Dead File</span>
+        <span class="u-muted">Dead File</span>
       </div>
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+      <div class="u-flex u-aic u-gap8 u-mb6">
         <svg width="16" height="16"><circle cx="8" cy="8" r="7" fill="#2C2010" stroke="#4b5563" stroke-width="1"/><text x="5" y="12" font-size="10">🔒</text></svg>
-        <span style="color:var(--text-secondary)">Restricted</span>
+        <span class="u-muted">Restricted</span>
       </div>
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+      <div class="u-flex u-aic u-gap8 u-mb12">
         <svg width="16" height="16"><circle cx="8" cy="8" r="7" fill="#FF8C42" stroke="#4b5563" stroke-width="1"/><text x="3" y="12" font-size="9">👁️</text></svg>
-        <span style="color:var(--text-secondary)">Sensitive</span>
+        <span class="u-muted">Sensitive</span>
       </div>
 
-      <div style="font-weight:600;color:var(--text-primary);margin-bottom:8px;font-size:12px">2D Views</div>
+      <div class="u-fw600 u-ink u-mb8 u-fs12">2D Views</div>
       <div style="color:var(--text-secondary);margin-bottom:8px;font-size:10px;line-height:1.4">
         <b>Graph</b> — Force-directed<br>
         <b>Tree</b> — Hierarchical BFS<br>
@@ -119,7 +120,7 @@
         <b>Radial</b> — Concentric rings<br>
         <b>Cluster</b> — Grouped by type
       </div>
-      <div style="font-weight:600;color:var(--text-primary);margin-bottom:8px;font-size:12px">3D Views</div>
+      <div class="u-fw600 u-ink u-mb8 u-fs12">3D Views</div>
       <div style="color:var(--text-secondary);margin-bottom:8px;font-size:10px;line-height:1.4">
         <b>Force</b> — 3D force-directed<br>
         <b>Tree</b> — Hierarchical cone<br>
@@ -131,44 +132,44 @@
         <b>Radial</b> — 3D concentric shells
       </div>
 
-      <div style="font-weight:600;color:var(--text-primary);margin-bottom:8px;font-size:12px">Edge Types</div>
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+      <div class="u-fw600 u-ink u-mb8 u-fs12">Edge Types</div>
+      <div class="u-flex u-aic u-gap8 u-mb6">
         <svg width="20" height="4"><line x1="0" y1="2" x2="20" y2="2" stroke="#1E3014" stroke-width="1.5"/></svg>
-        <span style="color:var(--text-secondary)">Import</span>
+        <span class="u-muted">Import</span>
       </div>
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+      <div class="u-flex u-aic u-gap8 u-mb6">
         <svg width="20" height="4"><line x1="0" y1="2" x2="20" y2="2" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="4,3"/></svg>
-        <span style="color:var(--text-secondary)">Route</span>
+        <span class="u-muted">Route</span>
       </div>
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+      <div class="u-flex u-aic u-gap8 u-mb6">
         <svg width="20" height="4"><line x1="0" y1="2" x2="20" y2="2" stroke="#22c55e" stroke-width="1.5" stroke-dasharray="2,2"/></svg>
-        <span style="color:var(--text-secondary)">Test Coverage</span>
+        <span class="u-muted">Test Coverage</span>
       </div>
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+      <div class="u-flex u-aic u-gap8 u-mb6">
         <svg width="20" height="4"><line x1="0" y1="2" x2="20" y2="2" stroke="#f97316" stroke-width="2"/></svg>
-        <span style="color:var(--text-secondary)">Blast Radius</span>
+        <span class="u-muted">Blast Radius</span>
       </div>
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+      <div class="u-flex u-aic u-gap8 u-mb12">
         <svg width="20" height="4"><line x1="0" y1="2" x2="20" y2="2" stroke="#6b7280" stroke-width="1" stroke-dasharray="3,3" opacity="0.5"/></svg>
-        <span style="color:var(--text-secondary)">Dead Path</span>
+        <span class="u-muted">Dead Path</span>
       </div>
 
-      <div style="font-weight:600;color:var(--text-primary);margin-bottom:8px;font-size:12px">Health & Size (3D)</div>
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+      <div class="u-fw600 u-ink u-mb8 u-fs12">Health & Size (3D)</div>
+      <div class="u-flex u-aic u-gap8 u-mb6">
         <svg width="16" height="16"><circle cx="8" cy="8" r="7" fill="#FF4D6D" stroke="#ff6b8a" stroke-width="1.5"/></svg>
-        <span style="color:var(--text-secondary)">Critical (≥5) — largest + glow</span>
+        <span class="u-muted">Critical (≥5) — largest + glow</span>
       </div>
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+      <div class="u-flex u-aic u-gap8 u-mb6">
         <svg width="14" height="14"><circle cx="7" cy="7" r="6" fill="#FACC15" stroke="#FACC15" stroke-width="1.5"/></svg>
-        <span style="color:var(--text-secondary)">High (≥3) — large</span>
+        <span class="u-muted">High (≥3) — large</span>
       </div>
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+      <div class="u-flex u-aic u-gap8 u-mb6">
         <svg width="12" height="12"><circle cx="6" cy="6" r="5" fill="#E8920A" stroke="#E8920A" stroke-width="1.5"/></svg>
-        <span style="color:var(--text-secondary)">Has Findings — medium</span>
+        <span class="u-muted">Has Findings — medium</span>
       </div>
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+      <div class="u-flex u-aic u-gap8 u-mb6">
         <svg width="8" height="8"><circle cx="4" cy="4" r="3" fill="#C8621A" stroke="#4b5563" stroke-width="1"/></svg>
-        <span style="color:var(--text-secondary)">Clean — small</span>
+        <span class="u-muted">Clean — small</span>
       </div>
       <div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--border-subtle);color:var(--text-muted);font-size:10px;line-height:1.4">
         Drag to pan • Scroll to zoom • WASD/arrows: navigate<br>Right-click node for details • 0: fit view<br>Node size scales with findings — bigger = more issues
@@ -177,7 +178,7 @@
     </div> <!-- close legend-2d -->
 
     <!-- 2D Canvas -->
-    <div id="brain-map" style="position:absolute;top:0;right:0;bottom:0;left:180px;min-width:0;min-height:0;touch-action:none"></div>
+    <div id="brain-map" style="position:absolute;top:0;right:0;bottom:0;left:0;min-width:0;min-height:0;touch-action:none"></div>
     <!-- 3D Canvas (hidden by default) -->
     <div id="brain-map-3d" style="position:absolute;left:0;top:0;right:0;bottom:0;width:100%;height:100%;display:none;touch-action:none"></div>
   </div>
@@ -190,56 +191,56 @@
     <header class="panel-header">
       <h2 class="panel-title">Quick Actions</h2>
     </header>
-    <div class="panel-body" style="display:flex;flex-wrap:wrap;gap:8px">
-      <button class="btn btn-primary" id="btn-scan" onclick="runQuickAction('scan')">Scan Project</button>
-      <button class="btn" id="btn-scan-fix" style="background:var(--accent);color:#fff" onclick="runQuickAction('scan_fix')">Scan + Fix</button>
+    <div class="panel-body u-flex u-wrap u-gap8">
+      <button type="button" class="btn btn-primary" id="btn-scan" onclick="runQuickAction('scan')">Scan Project</button>
+      <button type="button" class="btn btn-primary" id="btn-scan-fix" onclick="runQuickAction('scan_fix')">Scan + Fix</button>
       <div style="display:inline-flex;align-items:center;gap:4px">
-        <button class="btn" id="btn-devcheck" onclick="runQuickAction('devcheck')">Dev Check</button>
-        <label style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:10px;color:var(--text-secondary)" title="Fast mode runs only 8 core tests (~18s) instead of the full suite">
+        <button type="button" class="btn" id="btn-devcheck" onclick="runQuickAction('devcheck')">Dev Check</button>
+        <label class="u-flex u-aic u-gap4 u-ptr u-fs10 u-muted" title="Fast mode runs only 8 core tests (~18s) instead of the full suite">
           <input type="checkbox" id="devcheck-fast" style="display:none">
           <span id="devcheck-fast-track" onclick="document.getElementById('devcheck-fast').click()" style="width:28px;height:16px;border-radius:8px;background:var(--bg-tertiary);border:1px solid var(--border);position:relative;transition:background 0.2s;cursor:pointer">
-            <span id="devcheck-fast-knob" style="position:absolute;top:1px;left:1px;width:12px;height:12px;border-radius:50%;background:var(--text-secondary);transition:all 0.2s"></span>
+            <span id="devcheck-fast-knob" style="position:absolute;top:1px;left:1px;width:12px;height:12px;border-radius:50%;background:var(--text-secondary);transition: background 150ms var(--ease-out), color 150ms var(--ease-out) 0.2s"></span>
           </span>
           <span id="devcheck-fast-label">Full</span>
         </label>
       </div>
-      <button class="btn" onclick="runQuickAction('assurance')">Assurance</button>
-      <button class="btn" onclick="runQuickAction('dast')">DAST Scan</button>
+      <button type="button" class="btn" onclick="runQuickAction('assurance')">Assurance</button>
+      <button type="button" class="btn" onclick="runQuickAction('dast')">DAST Scan</button>
       <a class="btn" href="/chat">Chat</a>
       <a class="btn" href="/review">Review Fixes</a>
       <!-- Bulk cancel (visible when operations are running) -->
       <div id="bulk-cancel-wrap" style="display:none;align-items:center;gap:8px;margin-left:auto">
-        <span id="bulk-op-count" style="font-size:11px;color:var(--text-secondary)"></span>
-        <button id="btn-bulk-cancel" onclick="bulkCancelAll()" title="Cancel all running operations (Ctrl+Shift+X)" style="padding:4px 12px;border:1px solid var(--danger);border-radius:6px;background:transparent;color:var(--danger);font-size:11px;font-weight:600;cursor:pointer;transition:all 0.15s;white-space:nowrap" onmouseenter="this.style.background='var(--danger)';this.style.color='#fff'" onmouseleave="this.style.background='transparent';this.style.color='var(--danger)'">&#x2716; Cancel All</button>
+        <span id="bulk-op-count" class="u-fs11 u-muted"></span>
+        <button type="button" id="btn-bulk-cancel" onclick="bulkCancelAll()" title="Cancel all running operations (Ctrl+Shift+X)" class="btn btn-ghost btn-danger btn-xs">&#x2716; Cancel All</button>
       </div>
     </div>
     <!-- Live scan progress -->
     <div id="scan-progress" style="display:none;margin-top:12px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-        <span id="scan-progress-label" style="font-size:13px;color:var(--text-secondary)">Initializing scan…</span>
-        <div style="display:flex;align-items:center;gap:8px">
+      <div class="u-flex u-jcsb u-aic u-mb6">
+        <span id="scan-progress-label" class="u-fs13 u-muted">Initializing scan…</span>
+        <div class="u-flex u-aic u-gap8">
           <span id="scan-progress-pct" style="font-size:18px;font-weight:800;color:var(--accent);font-family:var(--font-mono);min-width:48px;text-align:right">0%</span>
-          <span id="scan-progress-count" style="font-size:13px;color:var(--text-secondary)">0/0</span>
-          <button id="btn-cancel-scan" onclick="cancelScan()" style="display:none;padding:3px 10px;border:1px solid var(--danger);border-radius:6px;background:transparent;color:var(--danger);font-size:11px;font-weight:600;cursor:pointer;transition:all 0.15s" onmouseenter="this.style.background='var(--danger)';this.style.color='#fff'" onmouseleave="this.style.background='transparent';this.style.color='var(--danger)'">Cancel</button>
+          <span id="scan-progress-count" class="u-fs13 u-muted">0/0</span>
+          <button type="button" id="btn-cancel-scan" onclick="cancelScan()" style="display:none" class="btn btn-ghost btn-danger btn-xs">Cancel</button>
         </div>
       </div>
       <div style="height:8px;background:var(--bg-tertiary);border-radius:4px;overflow:hidden;margin-bottom:4px">
         <div id="scan-progress-bar" style="height:100%;width:0%;background:linear-gradient(90deg,var(--accent),#4ade80);border-radius:4px;transition:width 0.3s ease"></div>
       </div>
-      <div id="scan-progress-agent" style="font-size:12px;color:var(--text-secondary);display:flex;align-items:center;gap:6px">
+      <div id="scan-progress-agent" class="u-fs12 u-muted u-flex u-aic u-gap6">
         <span id="scan-progress-agent-icon" style="display:none;animation:spin 1s linear infinite">⚙️</span>
         <span id="scan-progress-agent-name"></span>
       </div>
     </div>
     <!-- Gate Timing Chart -->
     <div style="margin-top:12px;border-top:1px solid var(--border);padding-top:12px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-        <span style="font-size:12px;font-weight:600;color:var(--text-secondary)">&#x1F4CA; Gate Timing (last 20 runs)</span>
-        <div style="display:flex;align-items:center;gap:4px">
+      <div class="u-flex u-aic u-jcsb u-mb8">
+        <span class="u-fs12 u-fw600 u-muted">&#x1F4CA; Gate Timing (last 20 runs)</span>
+        <div class="u-flex u-aic u-gap4">
           <div id="gt-filter-all" class="gt-filter active" onclick="_setGtFilter('all')">All</div>
           <div id="gt-filter-fast" class="gt-filter" onclick="_setGtFilter('fast')">Fast</div>
           <div id="gt-filter-full" class="gt-filter" onclick="_setGtFilter('full')">Full</div>
-          <button class="btn btn-sm" onclick="loadGateTimingChart()" style="font-size:10px;padding:2px 8px">Refresh</button>
+          <button type="button" class="btn btn-sm" onclick="loadGateTimingChart()" style="font-size:10px;padding:2px 8px">Refresh</button>
         </div>
       </div>
       <div style="background:var(--bg-secondary);border:1px solid var(--border);border-radius:8px;padding:12px;position:relative">
@@ -257,7 +258,7 @@
     <header class="panel-header">
       <h2 class="panel-title">🛡️ Assurance Coverage</h2>
       <div class="panel-actions">
-        <button class="btn btn-sm" onclick="loadAssuranceHeatmap()" style="font-size:11px">Refresh</button>
+        <button type="button" class="btn btn-sm u-fs11" onclick="loadAssuranceHeatmap()">Refresh</button>
       </div>
     </header>
     <div class="panel-body" id="heatmap-container" style="padding:12px">
@@ -270,7 +271,7 @@
     <header class="panel-header">
       <h2 class="panel-title">📋 Scan History</h2>
       <div class="panel-actions">
-        <button class="btn btn-sm" onclick="loadScanHistory()" style="font-size:11px">Refresh</button>
+        <button type="button" class="btn btn-sm u-fs11" onclick="loadScanHistory()">Refresh</button>
       </div>
     </header>
     <div class="panel-body" id="scan-history-container" style="max-height:220px;overflow-y:auto">
@@ -1068,7 +1069,7 @@
       if (legend2d) legend2d.style.display = 'none';
       if (views2d) views2d.style.display = 'none';
       if (views3d) views3d.style.display = 'inline';
-      if (btn3d) { btn3d.style.background = 'var(--accent)'; btn3d.style.color = '#fff'; }
+      if (btn3d) btn3d.classList.add('is-on');
       // Init 3D and load data
       BrainMap3D.init('brain-map-3d');
       BrainMap3D.loadNodes(window._brainNodes || [], window._brainEdges || []);
@@ -1078,7 +1079,7 @@
       if (legend2d) legend2d.style.display = 'block';
       if (views2d) views2d.style.display = 'inline';
       if (views3d) views3d.style.display = 'none';
-      if (btn3d) { btn3d.style.background = ''; btn3d.style.color = ''; }
+      if (btn3d) btn3d.classList.remove('is-on');
     }
   };
 
@@ -1093,7 +1094,7 @@
     
     if (window._isFullScreen) {
       // Enter full-screen: expand panel to fill viewport
-      panel.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:100;margin:0;border-radius:0;display:flex;flex-direction:column;background:var(--bg-primary)';
+      panel.classList.add('brain-map-fullscreen');
       if (sidebar) sidebar.style.display = 'none';
       // Hide other panels on the page
       document.querySelectorAll('.panel').forEach(function(p) { if (p !== panel) p.style.display = 'none'; });
@@ -1112,13 +1113,13 @@
       // Expand the inner container
       var inner = panel.querySelector('[style*="min-height:500px"]');
       if (inner) { inner.style.height = 'calc(100vh - 60px)'; inner.style.maxHeight = 'none'; inner.style.minHeight = '0'; inner.style.borderRadius = '0'; }
-      if (btn) { btn.textContent = '⛶'; btn.title = 'Exit full-screen (ESC)'; btn.style.background = 'var(--accent)'; btn.style.color = '#fff'; }
+      if (btn) { btn.textContent = '⛶'; btn.title = 'Exit full-screen (ESC)'; btn.classList.add('is-on'); }
       // Resize canvas
       if (window._is3D && window.BrainMap3D) { BrainMap3D.init('brain-map-3d'); BrainMap3D.loadNodes(window._brainNodes || [], window._brainEdges || []); }
       else if (window.BrainMap) { setTimeout(function() { BrainMap.init('brain-map'); BrainMap.loadNodes(window._brainNodes || [], window._brainEdges || []); }, 100); }
     } else {
       // Exit full-screen: restore original layout
-      panel.style.cssText = '';
+      panel.classList.remove('brain-map-fullscreen');
       if (sidebar) sidebar.style.display = '';
       document.querySelectorAll('.panel').forEach(function(p) { p.style.display = ''; });
       var mainContent2 = panel.parentElement;
@@ -1127,11 +1128,11 @@
       }
       var mapR = document.getElementById('brain-map');
       var mapR3d = document.getElementById('brain-map-3d');
-      if (mapR) { mapR.style.left = '180px'; mapR.style.top = '0'; mapR.style.bottom = '0'; mapR.style.right = '0'; }
+      if (mapR) { mapR.style.left = '0'; mapR.style.top = '0'; mapR.style.bottom = '0'; mapR.style.right = '0'; }
       if (mapR3d) { mapR3d.style.left = '0'; mapR3d.style.top = '0'; mapR3d.style.bottom = '0'; mapR3d.style.right = '0'; }
       var innerR = panel.querySelector('[style*="min-height"]');
       if (innerR) { innerR.style.height = 'calc(100vh - 300px)'; innerR.style.maxHeight = '800px'; innerR.style.minHeight = '500px'; innerR.style.borderRadius = ''; }
-      if (btn) { btn.textContent = '⛶'; btn.title = 'Toggle full-screen (F)'; btn.style.background = ''; btn.style.color = ''; }
+      if (btn) { btn.textContent = '⛶'; btn.title = 'Toggle full-screen (F)'; btn.classList.remove('is-on'); }
       // Resize canvas back
       if (window._is3D && window.BrainMap3D) { BrainMap3D.init('brain-map-3d'); BrainMap3D.loadNodes(window._brainNodes || [], window._brainEdges || []); }
       else if (window.BrainMap) { setTimeout(function() { BrainMap.init('brain-map'); BrainMap.loadNodes(window._brainNodes || [], window._brainEdges || []); }, 100); }

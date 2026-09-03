@@ -5,7 +5,7 @@
   .test-card { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 16px; }
   .test-card h3 { margin: 0 0 12px; color: var(--text-primary); }
   .test-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
-  .btn-test { padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.2s; }
+  .btn-test { padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; transition: transform 150ms var(--ease-out), box-shadow 150ms var(--ease-out), background 150ms var(--ease-out), opacity 150ms var(--ease-out); }
   .btn-smoke { background: var(--accent); color: white; }
   .btn-stress { background: var(--warning); color: #1a1a1a; }
   .btn-screenshot { background: var(--info); color: white; }
@@ -17,7 +17,7 @@
   .stat-value { font-size: 24px; font-weight: 700; }
   .stat-label { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
   .progress-bar { height: 6px; background: var(--bg-tertiary); border-radius: 3px; margin-top: 8px; overflow: hidden; }
-  .progress-fill { height: 100%; border-radius: 3px; transition: width 0.3s; }
+  .progress-fill { height: 100%; border-radius: 3px; transition: width 300ms var(--ease-out); will-change: width; }
   .stress-form { display: flex; gap: 12px; align-items: end; flex-wrap: wrap; margin-top: 12px; }
   .form-group { display: flex; flex-direction: column; gap: 4px; }
   .form-group label { font-size: 12px; color: var(--text-secondary); }
@@ -51,15 +51,15 @@
   <!-- Smoke Test -->
   <div class="test-card">
     <h3>🔥 Smoke Test</h3>
-    <p style="color:var(--text-secondary);font-size:13px">Quick health check — loads homepage, verifies body visible, captures screenshots.</p>
-    <button class="btn-test btn-smoke" onclick="runSmokeTest()" id="btn-smoke">Run Smoke Test</button>
+    <p class="u-muted u-fs13">Quick health check — loads homepage, verifies body visible, captures screenshots.</p>
+    <button type="button" class="btn-test btn-smoke" onclick="runSmokeTest()" id="btn-smoke">Run Smoke Test</button>
     <div class="result-box" id="smoke-result" style="display:none"></div>
   </div>
 
   <!-- Stress Test -->
   <div class="test-card">
     <h3>⚡ Stress Test</h3>
-    <p style="color:var(--text-secondary);font-size:13px">Load test with configurable concurrent users and duration.</p>
+    <p class="u-muted u-fs13">Load test with configurable concurrent users and duration.</p>
     <div class="stress-form">
       <div class="form-group">
         <label>Users</label>
@@ -69,7 +69,7 @@
         <label>Duration (s)</label>
         <input type="number" id="stress-duration" value="30" min="5" max="300">
       </div>
-      <button class="btn-test btn-stress" onclick="runStressTest()" id="btn-stress">Start Stress Test</button>
+      <button type="button" class="btn-test btn-stress" onclick="runStressTest()" id="btn-stress">Start Stress Test</button>
     </div>
     <div class="result-box" id="stress-result" style="display:none"></div>
   </div>
@@ -77,38 +77,38 @@
   <!-- Screenshot -->
   <div class="test-card">
     <h3>📸 Screenshot</h3>
-    <p style="color:var(--text-secondary);font-size:13px">Capture a single screenshot of the running app.</p>
-    <button class="btn-test btn-screenshot" onclick="takeScreenshot()" id="btn-screenshot">Capture Screenshot</button>
+    <p class="u-muted u-fs13">Capture a single screenshot of the running app.</p>
+    <button type="button" class="btn-test btn-screenshot" onclick="takeScreenshot()" id="btn-screenshot">Capture Screenshot</button>
     <div class="result-box" id="screenshot-result" style="display:none"></div>
   </div>
 
   <!-- Visual Regression -->
   <div class="test-card">
     <h3>🔍 Visual Regression</h3>
-    <p style="color:var(--text-secondary);font-size:13px">Auto-capture screenshots of all pages, compare against baselines, and generate pixel-diff overlays for changed regions.</p>
-    <button class="btn-test" style="background:var(--success);color:#fff" onclick="runVisualRegression()" id="btn-vr">Run Visual Regression</button>
+    <p class="u-muted u-fs13">Auto-capture screenshots of all pages, compare against baselines, and generate pixel-diff overlays for changed regions.</p>
+    <button type="button" class="btn-test" style="background:var(--success);color:#fff" onclick="runVisualRegression()" id="btn-vr">Run Visual Regression</button>
     <div class="result-box" id="vr-result" style="display:none"></div>
   </div>
 
   <!-- Browser Pool -->
   <div class="test-card">
     <h3>🌐 Browser Pool</h3>
-    <p style="color:var(--text-secondary);font-size:13px">Status of the shared browser instance pool.</p>
+    <p class="u-muted u-fs13">Status of the shared browser instance pool.</p>
     <div id="pool-info" style="font-family:monospace;font-size:13px;color:var(--text-secondary)">Loading...</div>
   </div>
 </div>
 
 <!-- Full-Page Browser Audit -->
 <div class="test-card" style="margin-top:16px">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+  <div class="u-flex u-jcsb u-aic u-mb12">
     <h3 style="margin:0">🔎 Full-Page Browser Audit</h3>
-    <button class="btn-test" style="background:var(--accent);color:#fff;padding:8px 16px;font-size:13px" onclick="runFullAudit()" id="btn-audit">Run Full Audit</button>
+    <button type="button" class="btn-test" style="background:var(--accent);color:#fff;padding:8px 16px;font-size:13px" onclick="runFullAudit()" id="btn-audit">Run Full Audit</button>
   </div>
   <p style="color:var(--text-secondary);font-size:13px;margin:0 0 12px">Tests every web page with Playwright: navigation status, console errors, load time, broken images, empty links, screenshots, and DOM metrics.</p>
 
   <!-- Progress bar -->
   <div id="audit-progress" style="display:none;margin-bottom:16px">
-    <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text-secondary);margin-bottom:4px">
+    <div class="u-flex u-jcsb u-fs12 u-muted u-mb4">
       <span id="audit-progress-label">Starting...</span>
       <span id="audit-progress-count"></span>
     </div>
@@ -150,12 +150,12 @@
 
 <!-- Video Recordings -->
 <div class="test-card" style="margin-top:16px">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+  <div class="u-flex u-jcsb u-aic u-mb12">
     <h3 style="margin:0">📹 Video Recordings</h3>
-    <button class="btn-test btn-smoke" onclick="loadVideos()" style="padding:6px 14px;font-size:12px">Refresh</button>
+    <button type="button" class="btn-test btn-smoke" onclick="loadVideos()" style="padding:6px 14px;font-size:12px">Refresh</button>
   </div>
   <p style="color:var(--text-secondary);font-size:13px;margin:0 0 12px">Full test session recordings captured by Playwright. Each smoke test or browser test automatically records video evidence.</p>
-  <div id="video-count" style="font-size:12px;color:var(--text-secondary);margin-bottom:12px"></div>
+  <div id="video-count" class="u-fs12 u-muted u-mb12"></div>
   <div id="video-list" style="display:grid;grid-template-columns:repeat(auto-fill, minmax(320px, 1fr));gap:12px;max-height:600px;overflow-y:auto">
     <div style="color:var(--text-tertiary);font-size:13px;padding:20px;text-align:center">Loading videos...</div>
   </div>
@@ -165,8 +165,8 @@
 <div id="video-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.8);z-index:1000;justify-content:center;align-items:center" onclick="if(event.target===this)closeVideoModal()">
   <div style="max-width:900px;width:95%;background:var(--bg-secondary);border-radius:12px;overflow:hidden">
     <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid var(--border)">
-      <span id="video-modal-title" style="font-weight:600;color:var(--text-primary)">Video</span>
-      <button onclick="closeVideoModal()" style="background:none;border:none;color:var(--text-secondary);cursor:pointer;font-size:20px">×</button>
+      <span id="video-modal-title" class="u-fw600 u-ink">Video</span>
+      <button type="button" class="btn btn-ghost btn-icon btn-sm" onclick="closeVideoModal()" aria-label="Close video player" style="font-size:18px;color:var(--text-secondary)">×</button>
     </div>
     <video id="video-player" controls style="width:100%;max-height:70vh;background:#000"></video>
   </div>
@@ -174,12 +174,12 @@
 
 <!-- Screenshot Gallery -->
 <div class="test-card" style="margin-top:16px">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+  <div class="u-flex u-jcsb u-aic u-mb12">
     <h3 style="margin:0">🖼️ Visual Regression Gallery</h3>
-    <button class="btn-test btn-smoke" onclick="loadScreenshots()" style="padding:6px 14px;font-size:12px">Refresh</button>
+    <button type="button" class="btn-test btn-smoke" onclick="loadScreenshots()" style="padding:6px 14px;font-size:12px">Refresh</button>
   </div>
   <p style="color:var(--text-secondary);font-size:13px;margin:0 0 12px">Auto-captured screenshots of all pages with pixel-diff overlays for visual regressions. Red-bordered images show changed regions.</p>
-  <div id="screenshot-count" style="font-size:12px;color:var(--text-secondary);margin-bottom:12px"></div>
+  <div id="screenshot-count" class="u-fs12 u-muted u-mb12"></div>
   <div id="screenshot-grid" style="display:grid;grid-template-columns:repeat(auto-fill, minmax(280px, 1fr));gap:12px;max-height:800px;overflow-y:auto">
     <div style="color:var(--text-tertiary);font-size:13px;padding:20px;text-align:center">Loading screenshots...</div>
   </div>
@@ -695,7 +695,7 @@ function viewScreenshot(filename, title) {
   if (!img) {
     img = document.createElement('img');
     img.id = 'screenshot-viewer';
-    img.style.cssText = 'width:100%;max-height:70vh;object-fit:contain;background:#000';
+    img.className = 'js-screenshot-img';
     player.parentElement.appendChild(img);
   }
   img.src = '/api/live-testing/screenshot/' + filename;

@@ -1,86 +1,53 @@
 {% extends "base.html" %}
-
 {% block content %}
-<div class="chat-panel" style="display:flex;flex-direction:column;height:calc(100vh - 88px)">
-  <div class="panel" style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+<style>
+.chat-shell{ display:flex; flex-direction:column; height:calc(100vh - 96px); max-width:880px; margin:0 auto; }
+.chat-panel{ flex:1; display:flex; flex-direction:column; overflow:hidden; }
+.chat-messages{ flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:12px; scrollbar-width:thin; scrollbar-color:var(--border) transparent; }
+.msg{ padding:12px 14px; border-radius:var(--radius-md); font-size:13.5px; line-height:1.5; max-width:80%; animation: msgIn 180ms var(--ease-out); }
+@keyframes msgIn{ from{ opacity:0; transform:translateY(4px) scale(0.99);} to{opacity:1; transform:none;} }
+.msg-bot{ background:var(--bg-secondary); border:1px solid var(--border); align-self:flex-start; }
+.msg-user{ background:var(--bg-tertiary); border:1px solid var(--border); align-self:flex-end; text-align:right; }
+.msg-thinking{ background:var(--bg-secondary); border:1px dashed var(--border); color:var(--text-muted); font-style:italic; }
+.chat-input-bar{ padding:12px 14px; border-top:1px solid var(--border-subtle); display:flex; gap:10px; align-items:center; background:var(--bg-secondary); }
+.chat-input{ flex:1; }
+</style>
+<div class="chat-shell">
+  <div class="panel chat-panel">
     <div class="panel-header">
       <span class="panel-title">Security Chat</span>
+      <span class="badge">AI • findings-aware</span>
     </div>
-
-    <!-- Messages -->
-    <div id="chat-messages" style="flex:1;overflow-y:auto;padding:12px">
-      <div style="margin-bottom:12px;padding:12px;background:var(--bg-secondary);border-radius:var(--radius);font-size:13px">
-        <strong>Patchi:</strong> Hi! I can help you understand security findings, explain vulnerabilities, or suggest fixes. What would you like to know?
-      </div>
+    <div id="chat-messages" class="chat-messages">
+      <div class="msg msg-bot"><strong>Patchi</strong> — Hi! I can explain findings, suggest fixes, or review a patch. What would you like to know?</div>
     </div>
-
-    <!-- Input -->
-    <div style="padding:12px;border-top:1px solid var(--border);display:flex;gap:8px">
-      <input type="text" id="chat-input" placeholder="Ask about security findings…"
-        style="flex:1;padding:8px 12px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text-primary);font-size:13px"
-        onkeydown="if(event.key==='Enter')sendMessage()">
-      <button class="btn btn-primary" id="chat-send" onclick="sendMessage()">
-        <span class="btn-text">Send</span>
-        <span class="btn-spinner" style="display:none;margin-left:6px">⏳</span>
-      </button>
+    <div class="chat-input-bar">
+      <input type="text" id="chat-input" class="chat-input" placeholder="Ask about security findings… (Enter to send)" autocomplete="off" onkeydown="if(event.key==='Enter')sendMessage()">
+      <button type="button" class="btn btn-primary" id="chat-send" onclick="sendMessage()"><span class="btn-text">Send</span><span class="btn-spinner" style="display:none">⏳</span></button>
     </div>
   </div>
 </div>
-
 <script>
-function sendMessage() {
-  const input = document.getElementById('chat-input');
-  const btn = document.getElementById('chat-send');
-  const msg = input.value.trim();
-  if (!msg) return;
-
-  btn.disabled = true;
-  btn.classList.add('loading');
-
-  const messages = document.getElementById('chat-messages');
-
-  // Add user message
-  messages.innerHTML += `
-    <div style="margin-bottom:12px;padding:12px;background:var(--bg-card);border-radius:var(--radius);font-size:13px;text-align:right">
-      ${escapeHtml(msg)}
-    </div>`;
-
-  input.value = '';
-  messages.scrollTop = messages.scrollHeight;
-
-  // Add loading indicator
-  const loadingId = 'loading-' + Date.now();
-  messages.innerHTML += `<div id="${loadingId}" style="margin-bottom:12px;padding:12px;background:var(--bg-secondary);border-radius:var(--radius);font-size:13px;color:var(--text-dim)">
-    Thinking…
-  </div>`;
-
-  // Send to API
-  fetch('/api/chat', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({message: msg}),
-  })
-  .then(r => r.json())
-  .then(data => {
-    const el = document.getElementById(loadingId);
-    if (el) {
-      el.innerHTML = `<strong>Patchi:</strong> ${escapeHtml(data.response || 'No response')}`;
-      el.style.color = 'var(--text-primary)';
-    }
-    messages.scrollTop = messages.scrollHeight;
-  })
-  .catch(err => {
-    const el = document.getElementById(loadingId);
-    if (el) el.innerHTML = `<strong>Error:</strong> ${err.message}`;
-  })
-  .finally(() => {
-    btn.disabled = false;
-    btn.classList.remove('loading');
-  });
+function sendMessage(){
+  const input=document.getElementById('chat-input');
+  const btn=document.getElementById('chat-send');
+  const msg=input.value.trim(); if(!msg) return;
+  if(window.setBtnState){window.setBtnState(btn,{disabled:true,loading:true});}else{btn.disabled=true;btn.classList.add('loading');}
+  const messages=document.getElementById('chat-messages');
+  messages.insertAdjacentHTML('beforeend', `<div class="msg msg-user">${escapeHtml(msg)}</div>`);
+  input.value=''; messages.scrollTop=messages.scrollHeight;
+  const loadingId='loading-'+Date.now();
+  messages.insertAdjacentHTML('beforeend', `<div id="${loadingId}" class="msg msg-thinking">Thinking…</div>`);
+  messages.scrollTop=messages.scrollHeight;
+  fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:msg})})
+  .then(r=>r.json()).then(data=>{
+    const el=document.getElementById(loadingId);
+    if(el){ el.className='msg msg-bot'; el.innerHTML=`<strong>Patchi:</strong> ${escapeHtml(data.response||'No response')}`; }
+    messages.scrollTop=messages.scrollHeight;
+  }).catch(err=>{
+    const el=document.getElementById(loadingId); if(el) el.innerHTML=`<strong>Error:</strong> ${escapeHtml(err.message)}`;
+  }).finally(()=>{ if(window.setBtnState){window.setBtnState(btn,{disabled:false,loading:false});}else{btn.disabled=false;btn.classList.remove('loading');} });
 }
-
-function escapeHtml(str) {
-  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
+function escapeHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 </script>
 {% endblock %}

@@ -7,7 +7,7 @@
     </div>
 
     <div style="display:grid;gap:16px;padding:16px">
-      <div style="font-size:12px;color:var(--text-secondary);margin-bottom:8px">
+      <div class="u-fs12 u-muted u-mb8">
         Framework: <strong>{{ framework }}</strong> &middot;
         Health: <strong>{{ health_score }}/100</strong> &middot;
         AI Keys: <strong>{{ ai_keys }}</strong>
@@ -18,7 +18,7 @@
         <label for="cfg-{{ key }}" style="flex:0 0 180px;font-size:13px;color:var(--text-secondary)">{{ key }}</label>
         <input id="cfg-{{ key }}" type="text" value="{{ value }}"
           style="flex:1;padding:6px 10px;background:var(--bg-primary);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text-primary);font-size:13px;font-family:var(--font-mono)">
-        <button class="btn" style="font-size:11px;padding:4px 10px"
+        <button type="button" class="btn" style="font-size:11px;padding:4px 10px"
           hx-post="/api/config" hx-vals='js:{key: this.dataset.key, value: document.getElementById("cfg-{{ key }}").value}'
           data-key="{{ key | replace('"', '\\"') }}"
           hx-swap="none" onclick="toast('Saved {{ key }}','info')">Save</button>
@@ -36,13 +36,13 @@
       <span class="panel-title">Actions</span>
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;padding:12px">
-      <button class="btn" onclick="if(confirm('Clear all memory?')){fetch('/api/memory/clear',{method:'POST'}).then(r=>r.json()).then(d=>toast(d.ok?'Cleared':'Error',d.ok?'info':'error'))}">
+      <button type="button" class="btn" onclick="if(confirm('Clear all memory?')){fetch('/api/memory/clear',{method:'POST'}).then(r=>r.json()).then(d=>toast(d.ok?'Cleared':'Error',d.ok?'info':'error'))}">
         Clear Memory
       </button>
-      <button class="btn" onclick="if(confirm('Clear queue?')){fetch('/api/queue/clear',{method:'POST'}).then(r=>r.json()).then(d=>toast(d.ok?'Queue cleared':'Error',d.ok?'info':'error'))}">
+      <button type="button" class="btn" onclick="if(confirm('Clear queue?')){fetch('/api/queue/clear',{method:'POST'}).then(r=>r.json()).then(d=>toast(d.ok?'Queue cleared':'Error',d.ok?'info':'error'))}">
         Clear Queue
       </button>
-      <button class="btn" onclick="fetch('/api/doctor').then(r=>r.json()).then(d=>{const err=d.errors||0;const warn=d.warnings||0;toast(err+' errors, '+warn+' warnings',err?'error':warn?'warning':'info')})">
+      <button type="button" class="btn" onclick="fetch('/api/doctor').then(r=>r.json()).then(d=>{const err=d.errors||0;const warn=d.warnings||0;toast(err+' errors, '+warn+' warnings',err?'error':warn?'warning':'info')})">
         Run Doctor
       </button>
     </div>
@@ -53,10 +53,10 @@
       <span class="panel-title">File Watcher</span>
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;padding:12px">
-      <button class="btn" onclick="fetch('/api/watch/start',{method:'POST'}).then(r=>r.json()).then(d=>toast(d.ok?'Watcher started':'Error',d.ok?'info':'error'))">
+      <button type="button" class="btn" onclick="fetch('/api/watch/start',{method:'POST'}).then(r=>r.json()).then(d=>toast(d.ok?'Watcher started':'Error',d.ok?'info':'error'))">
         Start Watcher
       </button>
-      <button class="btn" onclick="fetch('/api/watch/stop',{method:'POST'}).then(r=>r.json()).then(d=>toast(d.ok?'Watcher stopped':'Error',d.ok?'info':'error'))">
+      <button type="button" class="btn" onclick="fetch('/api/watch/stop',{method:'POST'}).then(r=>r.json()).then(d=>toast(d.ok?'Watcher stopped':'Error',d.ok?'info':'error'))">
         Stop Watcher
       </button>
       <span style="font-size:12px;color:var(--text-secondary);padding:4px 0">Automatically re-scans on file changes</span>
@@ -70,10 +70,10 @@
     <div style="display:flex;gap:8px;flex-wrap:wrap;padding:12px;align-items:center">
       <input id="model-name" type="text" placeholder="e.g. llama3.2:3b"
         style="flex:1;padding:6px 10px;background:var(--bg-primary);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text-primary);font-size:13px;font-family:var(--font-mono)">
-      <button class="btn" onclick="const m=document.getElementById('model-name').value;if(!m){toast('Enter a model name','error');return}fetch('/api/model/set',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:m})}).then(r=>r.json()).then(d=>toast(d.ok?'Model set: '+m:'Error',d.ok?'info':'error'))">
+      <button type="button" class="btn" onclick="const m=document.getElementById('model-name').value;if(!m){toast('Enter a model name','error');return}fetch('/api/model/set',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:m})}).then(r=>r.json()).then(d=>toast(d.ok?'Model set: '+m:'Error',d.ok?'info':'error'))">
         Set Model
       </button>
-      <button class="btn" onclick="fetch('/api/model/status').then(r=>r.json()).then(d=>{if(d.ollama_running){toast('Ollama: '+d.ollama_models.join(', '),'info')}else{toast('Ollama not running','error')}})">
+      <button type="button" class="btn" onclick="fetch('/api/model/status').then(r=>r.json()).then(d=>{if(d.ollama_running){toast('Ollama: '+d.ollama_models.join(', '),'info')}else{toast('Ollama not running','error')}})">
         Check Status
       </button>
     </div>
@@ -101,7 +101,7 @@
           style="flex:1;padding:6px 10px;background:var(--bg-primary);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text-primary);font-size:13px;font-family:var(--font-mono)">
         <input id="notif-name" type="text" placeholder="Label"
           style="width:120px;padding:6px 10px;background:var(--bg-primary);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text-primary);font-size:13px;font-family:var(--font-mono)">
-        <button class="btn" onclick="addNotification()">Add</button>
+        <button type="button" class="btn" onclick="addNotification()">Add</button>
       </div>
     </div>
   </div>
