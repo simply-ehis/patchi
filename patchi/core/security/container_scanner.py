@@ -101,6 +101,73 @@ class ContainerScannerAgent(BaseAgent):
             count += 1
         return count
 
+    def _check_layer_bloat(self, content: str, rel: str, result: AgentResult) -> None:
+        """§8.3.3 dive / scout heuristic: layer bloat detection §8.3.3."""
+        import shutil as _sh
+        import subprocess as _sp
+
+        # Try dive CI if installed
+        if _sh.which("dive"):
+            try:
+                proc = _sp.run(
+                    ["dive", "--ci", "--json", rel],
+                    capture_output=True,
+                    text=True,
+                    timeout=30,
+                )
+                if proc.stdout:
+                    import json as _js
+
+                    data = _js.loads(proc.stdout)
+                    eff = data.get("efficiencyScore", 1.0)
+                    if eff < 0.9:
+                        result.add_finding(
+                            Finding(
+                                agent=self.name,
+                                type="layer_bloat",
+                                severity=Severity.MEDIUM,
+                                file=rel,
+                                message=f"Dive efficiency {eff:.0%} — image has wasted space / duplicate layers",
+                            )
+                        )
+                    return  # dive succeeded, skip heuristic
+            except Exception:
+                pass
+        # Heuristic fallback: count RUN, check multi-stage, large base
+        runs = len(re.findall(r"^\s*RUN\s+", content, re.MULTILINE | re.I))
+        froms = re.findall(r"^\s*FROM\s+(\S+)", content, re.MULTILINE | re.I)
+        if runs > 7:
+            result.add_finding(
+                Finding(
+                    agent=self.name,
+                    type="layer_bloat",
+                    severity=Severity.LOW,
+                    file=rel,
+                    message=f"{runs} RUN layers — consolidate with && \\ to reduce layers (dive: layer bloat)",
+                )
+            )
+        if len(froms) == 1 and runs > 5:
+            result.add_finding(
+                Finding(
+                    agent=self.name,
+                    type="no_multistage",
+                    severity=Severity.LOW,
+                    file=rel,
+                    message="Single-stage build with many RUNs — consider multi-stage to slim final image",
+                )
+            )
+        for base in froms:
+            if any(b in base.lower() for b in (":latest", "ubuntu:latest", "alpine:latest")) or ":" not in base:
+                result.add_finding(
+                    Finding(
+                        agent=self.name,
+                        type="unpinned_base",
+                        severity=Severity.MEDIUM,
+                        file=rel,
+                        message=f"Unpinned base image: {base} — pin to digest or specific tag",
+                    )
+                )
+
     def _scan_dockerfiles(self, inp: AgentInput, result: AgentResult) -> int:
         """Static Dockerfile analysis when Trivy is not available."""
         count = 0
@@ -173,6 +240,9 @@ class ContainerScannerAgent(BaseAgent):
                         message="No HEALTHCHECK instruction — container health unknown to orchestrator",
                     )
                 )
+
+            # Layer bloat check §8.3.3
+            self._check_layer_bloat(content, rel, result)
 
         return count
 
