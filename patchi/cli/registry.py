@@ -672,6 +672,15 @@ COMMANDS: list[Command] = [
     ),
     # â”€â”€ Batch 5: Legacy ladder commands migrated last â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     Command(
+        "check",
+        "Preflight install/build/format — side agents before app run (also --fix domain: type/deps)",
+        "patchi.cli.commands.check_cmd:run",
+        args=(
+            Arg("--fix", action="store_true", help="Auto-fix domain issues (type/deps/build)"),
+            Arg("--json", dest="json_output", action="store_true", help="Output as JSON"),
+        ),
+    ),
+    Command(
         "report",
         "Generate a structured analysis report",
         "patchi.cli.commands.report_cmd:run",
