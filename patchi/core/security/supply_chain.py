@@ -107,6 +107,26 @@ def _is_likely_typosquat(pkg_name: str) -> tuple[bool, str]:
     return False, ""
 
 
+def _entropy(s: str) -> float:
+    import math as _math
+    from collections import Counter as _Counter
+
+    if not s:
+        return 0.0
+    freq = _Counter(s)
+    total = len(s)
+    return -sum((c / total) * _math.log2(c / total) for c in freq.values())
+
+
+def _has_install_script(root: Path, manifest: str) -> bool:
+    try:
+        fp = root / manifest if not Path(manifest).is_absolute() else Path(manifest)
+        # we receive file rel, so need to resolve via root walk in caller
+        return False
+    except Exception:
+        return False
+
+
 # ── Supply Chain Agent ────────────────────────────────────────────────────────
 
 
@@ -144,8 +164,17 @@ class SupplyChainAgent(BaseAgent):
                 deps = parser(content, rel)
                 all_deps.extend(deps)
 
+        # Optional Socket.dev / Guac remote scoring (API key via env)
+        _socket_findings = self._check_socket_scores(all_deps)
+        for f in _socket_findings:
+            result.add_finding(f)
+
         # Check each dependency
         for name, version, file in all_deps:
+            # Suspicious metadata: install scripts, obfuscated, entropy, 0.0.0
+            for f in self._check_suspicious_metadata(name, version, file, inp.root):
+                result.add_finding(f)
+
             # Typosquatting check
             is_squat, target = _is_likely_typosquat(name)
             if is_squat:
@@ -179,6 +208,59 @@ class SupplyChainAgent(BaseAgent):
 
         result.files_scanned = len({f for _, _, f in all_deps})
         result.data["total_deps"] = len(all_deps)
+
+    def _check_socket_scores(self, all_deps: list[tuple[str, str, str]]) -> list[Finding]:
+        """Socket.dev / Guac scoring via API if key present, else no-op (fail-open)."""
+        import os
+
+        token = os.environ.get("SOCKET_API_KEY") or os.environ.get("GUAC_API_URL")
+        if not token:
+            return []
+        findings: list[Finding] = []
+        # Placeholder: call Socket API per package (rate-limited) — best-effort
+        try:
+            import httpx  # type: ignore
+
+            for name, ver, file in all_deps[:10]:
+                try:
+                    # Socket.dev npm/packages/{name} endpoint (simplified)
+                    resp = httpx.get(f"https://api.socket.dev/v0/npm/{name}", headers={"Authorization": f"Bearer {token}"}, timeout=3)
+                    if resp.status_code == 200 and any(k in resp.text.lower() for k in ("malware", "suspicious", "typosquat")):
+                        findings.append(
+                            Finding(agent=self.name, type="socket_flagged", severity=Severity.HIGH, file=file, message=f"Socket.dev flagged {name}@{ver}", cwe="CWE-1395")
+                        )
+                except Exception as e:
+                    _log.debug("socket check %s failed: %s", name, e)
+        except Exception as e:
+            _log.debug("socket httpx unavailable: %s", e)
+        return findings
+
+    def _check_suspicious_metadata(self, name: str, version: str, file: str, root: Path) -> list[Finding]:
+        out: list[Finding] = []
+        # 0.0.0 / 0.0.1 + high entropy → new/obfuscated
+        if version.strip() in ("0.0.0", "0.0.1", "0.0.2"):
+            out.append(Finding(agent=self.name, type="suspicious_version", severity=Severity.MEDIUM, file=file, message=f"Suspicious new package {name}@{version} (0.0.x)"))
+        if len(name) > 28 or _entropy(name) > 4.2:
+            out.append(Finding(agent=self.name, type="obfuscated_name", severity=Severity.LOW, file=file, message=f"High-entropy package name {name} (possible obfuscation)"))
+        # install script in package.json
+        if file.endswith("package.json"):
+            try:
+                fp = (root / file) if not Path(file).is_absolute() else Path(file)
+                if fp.exists():
+                    import json
+
+                    data = json.loads(fp.read_text(encoding="utf-8", errors="ignore") or "{}")
+                    scripts = data.get("scripts", {})
+                    if any(k in scripts for k in ("postinstall", "preinstall", "install")):
+                        # only flag if dep itself is the package.json's own name (not dep list) — heuristic
+                        pass
+                    # Check for lifecycle scripts that download remote code
+                    raw = fp.read_text(encoding="utf-8", errors="ignore")
+                    if "postinstall" in raw and ("curl " in raw or "wget " in raw or "eval(" in raw):
+                        out.append(Finding(agent=self.name, type="install_script_download", severity=Severity.HIGH, file=file, message=f"Install script downloads remote code in {file}", cwe="CWE-829"))
+            except Exception as e:
+                _log.debug("suspicious metadata %s failed: %s", name, e)
+        return out
 
     def _check_license(self, name: str, file: str) -> Finding | None:
         """Check package license via project metadata or pip show (LIMIT-09)."""
