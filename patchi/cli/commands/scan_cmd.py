@@ -261,6 +261,37 @@ def _run_scan_inner(
 
     _is_tty = con.is_terminal
 
+    # ── Pre-load DomainLoader in background (saves ~5-10s) ──────────────
+    # Auto-detect component types first (cheap), then load scoped taxonomy
+    # in a background thread while the main scan runs.
+    _ctypes = []
+    try:
+        _root = Path(str(r))
+        if any((_root / d).exists() for d in ("templates", "static", "public")):
+            _ctypes.append("frontend-web")
+        if any((_root / f).exists() for f in ("requirements.txt", "pyproject.toml", "setup.py")):
+            _ctypes.append("backend-api")
+        if any((_root / d).exists() for d in ("docker", "k8s", "kubernetes", ".github")) or (_root / "Dockerfile").exists():
+            _ctypes.append("infra")
+    except Exception as _exc:
+        _log.debug("component type detect skipped: %s", _exc)
+    _domain_loader_future = None
+    try:
+        import concurrent.futures as _cf
+        from patchi.core.security.domain_loader import DomainLoader as _DL
+        _loader_pool = _cf.ThreadPoolExecutor(max_workers=1, thread_name_prefix="dl-preload")
+        def _preload_loader() -> _DL:
+            # Construct + force the (lazy) load so YAML parsing happens in
+            # this background thread, not on first use in the main thread.
+            _ldr = _DL(r, component_types=_ctypes if _ctypes else None)
+            _ldr.list_domains()  # public force-load; parses + caches taxonomy
+            return _ldr
+
+        _domain_loader_future = _loader_pool.submit(_preload_loader)
+        _loader_pool.shutdown(wait=False)
+    except Exception:
+        pass
+
     def _run_scan() -> None:
         nonlocal report, agent_results, error
         try:
@@ -389,6 +420,18 @@ def _run_scan_inner(
                         con.print(f"[dim] confidence gate: {_gate_discarded} low-trust medium/low discarded[/dim]")
                 except Exception as _exc:
                     _log.debug("confidence gate skipped: %s", _exc)
+
+                # ── Blame annotation §10.3.2 — who introduced each error and when
+                try:
+                    from patchi.core.brain.git_aware import annotate_findings_with_blame
+
+                    _blame_n = 0
+                    for ar in agent_results:
+                        _blame_n += annotate_findings_with_blame(getattr(ar, "findings", []), r, max_workers=4)
+                    if _blame_n and not quiet:
+                        con.print(f"[dim] blame: { _blame_n} findings annotated with git author/date[/dim]")
+                except Exception as _exc:
+                    _log.debug("blame annotate skipped: %s", _exc)
 
                 # ── Self-profiling: record per-agent latency/cost ──────────
                 try:
@@ -792,19 +835,15 @@ def _run_scan_inner(
     # ── Domain enrichment (always runs) ────────────────────────────────────
     try:
         from patchi.core.security.domain_loader import DomainLoader
-        # Auto-detect component types from project structure
-        _ctypes = []
-        try:
-            _root = Path(str(r))
-            if any((_root / d).exists() for d in ("templates", "static", "public")):
-                _ctypes.append("frontend-web")
-            if any((_root / f).exists() for f in ("requirements.txt", "pyproject.toml", "setup.py")):
-                _ctypes.append("backend-api")
-            if any((_root / d).exists() for d in ("docker", "k8s", "kubernetes", ".github")) or (_root / "Dockerfile").exists():
-                _ctypes.append("infra")
-        except Exception as _exc:
-            _log.debug("component type detect skipped: %s", _exc)
-        _dl = DomainLoader(r, component_types=_ctypes if _ctypes else None)
+        # Use pre-loaded DomainLoader if available, else create new
+        _dl = None
+        if _domain_loader_future is not None:
+            try:
+                _dl = _domain_loader_future.result(timeout=0)
+            except Exception:
+                pass
+        if _dl is None:
+            _dl = DomainLoader(r, component_types=_ctypes if _ctypes else None)
         _SEC_AGENTS = {
             "EnvScanner", "SideFileScanner", "CoreScanner",
             "DependencyScanner", "RouteGraphScanner", "SBOMGeneratorAgent",
