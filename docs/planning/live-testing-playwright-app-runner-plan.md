@@ -84,10 +84,49 @@ Each `shutil.which` fail-open. Results `scan_results["SideInstall"]` → `p chec
 
 ## Files
 
-`cli/commands/check_cmd.py` (new `p check --fix --json`) `core/agents/side/install_agent.py, build_agent.py, format_agent.py` `core/testing/app_launcher.py` `core/brain/personas/bad_user.py` `core/testing/ads_agent.py` `cli/registry p check/test` `core/brain/verify.py` `install.sh playwright install` `docs/planning/live-testing-playwright-app-runner-plan.md` (this file)
+`cli/commands/check_cmd.py` (new `p check --fix --json` P-Check 4 steps READY/BLOCKED) `core/agents/side/install_agent.py, build_agent.py, format_agent.py` `core/testing/app_launcher.py` `core/brain/personas/bad_user.py` `core/testing/ads_agent.py` `cli/registry p check/test` `core/brain/verify.py` `install.sh playwright install` `docs/planning/live-testing-playwright-app-runner-plan.md` (this file)
 
 ## Phases
 
 * **P1 2d:** Side `install/build/format` + `app_launcher ensure/stop` + move `TEST` out of `scan`.
 * **P2 2d:** Audit `12` `py_compile + p test --browser` against `p web 1612` self-test `5 pages`.
 * **P3 2d:** AI operator `call_ai` loop + `p test --generate` `.patchi/tests/browser/` + `doctor` binary check.
+
+---
+
+## 9. P-Check Agent — READY_TO_SERVE gate (user spec)
+
+**Spec:** `P-Check` sole job `install deps → format/lint → setup (env/codegen/config) → build+start localhost`. On success emit `READY_TO_SERVE` with `url http://localhost:{port}` and stop; on fail flag `domain: dep install/version/format/build/config/missing env` exact error → escalate to Brain `save_issue` → wait → re-run from step 1. `No other agent may treat app as usable until READY_TO_SERVE`. Gate Rule injected into every `Testing/Live/Attack` prompt: confirm `READY_TO_SERVE + zero unresolved` else request `p check` and stay idle.
+
+Implementation: `cli/commands/check_cmd.py` writes `.patchi/p_check_status.json {status, url, port, error, domain, timestamp}`, `core/testing/gate.py require_ready()` + `gate_message()`, `core/agents/base.py:456` `Group.TEST + RedTeam/Browser/UI/E2E/ApiFuzzer/Stress` check at `BaseAgent.run()` entry → `SKIPPED gate_blocked true`.
+
+---
+
+## 10. Linking Agent — `p scan` hybrid (monorepo + separate repos)
+
+**Part of `p scan` (not preflight), only when `backend+frontend` pair exists:**
+
+* Guard: `has_frontend && has_backend` via `FrameworkDetector + FileCorpus` — single-type `cli/library` → `skip("single-type — no backend+frontend to link")`.
+* Monorepo: both sides in same `FileCorpus` → check 1-7 on single `RouteMapper` (no config).
+* Separate repos: hybrid `auto discovery + tag confirmation + manual`.
+  * Auto: scan `../*` siblings `package.json vs requirements.txt` heuristic up to 5, top `../backend` → write `.patchi/linking_suggestion.json {frontend:".", backend:"../backend", status:"pending"}` + `Panel LINK SUGGESTION — run p link confirm`.
+  * Tag: only after `p link confirm` or explicit `p link add --frontend ./ --backend ../backend --frontend-url http://localhost:3000 --backend-url http://localhost:5000` writes `.patchi/config.json {linking:{mode:separate, frontend:{repo,url}, backend:{repo,url}, confirmed:true}}` does next `p scan` load two `FileCorpus` and diff.
+  * Manual overrides auto; `p link list/status/remove`.
+* Checks 1-7 `Base URL, Route existence contract_diff, CORS httpx OPTIONS, Env parity, Auth wiring, Response shape spot-check, Realtime ws:// handshake` — simple wiring `base URL/CORS/proxy/env` fixed directly `FileChange`, code logic → `fix list` `what's broken: frontend call vs backend route, observed vs expected`.
+* Status `LINKED` vs `LINK_ISSUES_FOUND` explicit list, never `LINKED` while checklist unresolved. Findings `type: link_*` merged into `p scan` `scan_results` `Panel Findings` like other agents, no `--link` flag.
+* Not standalone: `Console Logging Agent` auto when `p test` active (`Group.TEST` background `Thread daemon page.on console/pageerror + app.log`), not `p scan`.
+
+---
+
+## 11. New Agents from separate specs
+
+* `LinkingAgent` `core/agents/linking_agent.py` `Group.SCANNER` `SCANNER` timeout 90
+* `ConsoleLoggingAgent` `core/agents/console_logging_agent.py` `Group.TEST` timeout 60 (background)
+
+---
+
+## 12. New Logging Before Escalate + Dynamic Port
+
+* **Log before escalate:** Every `P-Check` step logs `findings[] + log .patchi/launcher/install.log/build.log` before `status BLOCKED`; testers `result.data {pages_tested, issues, console_errors, screenshots, errors[]}` `trace_log` before `brain/verify.py` adds to `brain.json:errors`.
+* **Dynamic port:** `app_launcher _free_port() socket bind 0` + prefer `read_web_port(.patchi/config.json) → package.json dev -p → env PORT → StackInfo` `"{port}"` format — not `3000` hardcode, `url http://127.0.0.1:{port}` stored `.patchi/p_check_status.json`.
+

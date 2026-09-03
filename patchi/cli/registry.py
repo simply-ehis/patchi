@@ -681,6 +681,18 @@ COMMANDS: list[Command] = [
         ),
     ),
     Command(
+        "link",
+        "Link frontend + backend for separate repos (auto discovery + tag confirm)",
+        "patchi.cli.commands.link_cmd:run",
+        args=(
+            Arg("action", nargs="?", choices=("status", "add", "confirm", "remove", "list"), help="status|add|confirm|remove"),
+            Arg("--frontend", dest="frontend", default=None, help="Frontend repo path (for add)"),
+            Arg("--backend", dest="backend", default=None, help="Backend repo path (for add)"),
+            Arg("--frontend-url", dest="frontend_url", default=None, help="Frontend URL"),
+            Arg("--backend-url", dest="backend_url", default=None, help="Backend URL"),
+        ),
+    ),
+    Command(
         "report",
         "Generate a structured analysis report",
         "patchi.cli.commands.report_cmd:run",
