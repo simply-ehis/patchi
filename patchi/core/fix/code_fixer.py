@@ -125,7 +125,7 @@ class CodeFixer(BaseAgent):
                 Return the full corrected file inside triple backticks.
             """).strip()
 
-            ai_response = _call_ai(prompt, inp.config)
+            ai_response = _call_ai(prompt, inp.config, progress_callback=inp.on_ai_progress)
             if not ai_response:
                 continue
 

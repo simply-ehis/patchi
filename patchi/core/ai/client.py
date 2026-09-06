@@ -7,29 +7,28 @@ Supports:
   - Structured JSON output (with fallback parsing)
   - Automatic key rotation across configured providers
   - Offline fallback (returns None, never crashes)
+  - Retry with exponential backoff for transient failures
 """
 
 from __future__ import annotations
 
 import json
+import random
 
 # ── Public API ─────────────────────────────────────────────────────────────────
 import logging
 import os
 import re
 import time
+import urllib.error
 import urllib.request
 from pathlib import Path
+from typing import Callable, TypeVar
 
 from loguru import logger
 
 from patchi.core.ai.cost_tracker import estimate_tokens, track
 from patchi.core.constants import (
-    AI_HORDE_ANON_KEY,
-    AI_HORDE_BASE_URL,
-    AI_HORDE_MAX_POLL_RETRIES,
-    AI_HORDE_MAX_TOKENS,
-    AI_HORDE_POLL_INTERVAL_SEC,
     ANTHROPIC_API_VERSION,
     DEFAULT_MAX_TOKENS,
     DEFAULT_TEMPERATURE,
@@ -40,6 +39,100 @@ from patchi.core.constants import (
 )
 
 _log = logging.getLogger("patchi.core.client")
+
+# ── Retry configuration ─────────────────────────────────────────────────────────
+DEFAULT_MAX_RETRIES = 3
+DEFAULT_BASE_DELAY = 1.0  # seconds
+DEFAULT_MAX_DELAY = 30.0  # seconds
+DEFAULT_BACKOFF_MULTIPLIER = 2.0
+DEFAULT_JITTER = 0.1  # 10% jitter
+
+T = TypeVar("T")
+
+
+def _is_retryable_error(e: Exception) -> bool:
+    """Determine if an error is retryable (transient)."""
+    if isinstance(e, urllib.error.HTTPError):
+        # Retry on 429 (rate limit), 5xx (server errors)
+        return e.code in (429, 500, 502, 503, 504)
+    if isinstance(e, urllib.error.URLError):
+        # Retry on connection errors, timeouts
+        return True
+    if isinstance(e, TimeoutError):
+        return True
+    if isinstance(e, ConnectionError):
+        return True
+    return False
+
+
+def _retry_with_backoff(
+    func: Callable[[], T],
+    max_retries: int = DEFAULT_MAX_RETRIES,
+    base_delay: float = DEFAULT_BASE_DELAY,
+    max_delay: float = DEFAULT_MAX_DELAY,
+    backoff_multiplier: float = DEFAULT_BACKOFF_MULTIPLIER,
+    jitter: float = DEFAULT_JITTER,
+    timeout_remaining: Callable[[], float | None] | None = None,
+    progress_callback: Callable[[str], None] | None = None,
+) -> T | None:
+    """
+    Execute a function with exponential backoff retry logic.
+    
+    Args:
+        func: Function to execute (should return result or raise exception)
+        max_retries: Maximum number of retry attempts
+        base_delay: Initial delay between retries (seconds)
+        max_delay: Maximum delay between retries (seconds)
+        backoff_multiplier: Multiplier for exponential backoff
+        jitter: Random jitter factor (0.0-1.0) to prevent thundering herd
+        timeout_remaining: Optional callable returning remaining time budget
+        progress_callback: Optional callback for progress messages
+    
+    Returns:
+        Result of func() on success, None on all retries exhausted
+    """
+    def _progress(msg: str) -> None:
+        if progress_callback:
+            try:
+                progress_callback(msg)
+            except Exception:
+                pass
+    
+    last_exception = None
+    delay = base_delay
+    
+    for attempt in range(max_retries + 1):
+        # Check timeout budget
+        if timeout_remaining is not None:
+            remaining = timeout_remaining()
+            if remaining is not None and remaining <= 0:
+                logger.debug("Retry budget exhausted")
+                return None
+        
+        try:
+            return func()
+        except Exception as e:
+            last_exception = e
+            
+            if attempt < max_retries and _is_retryable_error(e):
+                # Calculate delay with jitter
+                jitter_amount = delay * jitter * (2 * random.random() - 1)
+                actual_delay = min(delay + jitter_amount, max_delay)
+                
+                _progress(f"Retrying in {actual_delay:.1f}s... (attempt {attempt + 2}/{max_retries + 1})")
+                logger.debug(
+                    f"Retryable error (attempt {attempt + 1}/{max_retries + 1}): {e}. "
+                    f"Retrying in {actual_delay:.1f}s..."
+                )
+                
+                time.sleep(actual_delay)
+                delay *= backoff_multiplier
+            else:
+                # Non-retryable error or max retries reached
+                logger.debug(f"Non-retryable error or max retries reached: {e}")
+                break
+    
+    return None
 
 
 def _ensure_env_loaded(root: str | None = None) -> None:
@@ -85,12 +178,13 @@ def call_ai(
     temperature: float = DEFAULT_TEMPERATURE,
     timeout: float | None = None,
     root: Path | None = None,
+    progress_callback: Callable[[str], None] | None = None,
 ) -> str | None:
     """
     Send a system+user prompt to the configured AI.
     Returns the response text, or None if no AI is available / call fails.
 
-    Priority: local Ollama → configured API keys → AI Horde fallback → None.
+    Priority: local Ollama → configured API keys → None.
 
     Honors PATCHI_OFFLINE=1 (set by `p scan --offline`): returns None without
     making ANY network call — the flag's documented "static analysis only, zero
@@ -99,6 +193,9 @@ def call_ai(
     `timeout` bounds the ENTIRE call (all providers tried, poll loops included),
     so a hung provider can never freeze a scan or leave a worker thread alive
     indefinitely. None = no overall deadline (per-request socket timeouts only).
+    
+    `progress_callback`: Optional callback(message) invoked during long-running
+    operations (e.g., "Contacting provider...", "Retrying in 2s...").
     """
     if os.environ.get("PATCHI_OFFLINE"):
         return None
@@ -112,6 +209,13 @@ def call_ai(
 
     _ensure_env_loaded()
     ai_config = config.get("ai", {})
+    
+    def _progress(msg: str) -> None:
+        if progress_callback:
+            try:
+                progress_callback(msg)
+            except Exception:
+                pass
 
     # ── Resolve root from tenant context if not provided ─────────────────
     if root is None:
@@ -149,7 +253,7 @@ def call_ai(
     local_model = ai_config.get("local_model_name")
     if local_model:
         result = _call_ollama(
-            local_model, system_prompt, user_prompt, max_tokens, temperature, _remaining()
+            local_model, system_prompt, user_prompt, max_tokens, temperature, _remaining(), _progress
         )
         if result:
             return result
@@ -171,7 +275,7 @@ def call_ai(
 
         if fmt == "anthropic":
             result = _call_anthropic(
-                api_key, base_url, model, system_prompt, user_prompt, max_tokens, _remaining()
+                api_key, base_url, model, system_prompt, user_prompt, max_tokens, _remaining(), _progress
             )
         else:
             result = _call_openai_compat(
@@ -183,28 +287,12 @@ def call_ai(
                 max_tokens,
                 temperature,
                 _remaining(),
+                _progress,
             )
 
         if result:
             logger.debug(f"AI call succeeded via {key_cfg.get('name', 'unknown')} ({model})")
             return result
-
-    # Free fallback — pollinations.ai (keyless, unlimited)
-    poll = PROVIDERS.get("pollinations", {})
-    poll_url = poll.get("base_url", "https://text.pollinations.ai/openai")
-    poll_model = poll.get("model", "openai")
-    result = _call_openai_compat(
-        "", poll_url, poll_model, system_prompt, user_prompt, max_tokens, temperature, _remaining()
-    )
-    if result:
-        return result
-
-    # Last resort — AI Horde community endpoint (free, keyless, always available)
-    if ai_config.get("horde_fallback"):
-        horde_key = ai_config.get("horde_key", AI_HORDE_ANON_KEY)
-        return _call_ai_horde(
-            horde_key, f"{system_prompt}\n\n{user_prompt}", max_tokens, _remaining()
-        )
 
     return None
 
@@ -215,12 +303,13 @@ def call_ai_structured(
     user_prompt: str,
     max_tokens: int = DEFAULT_MAX_TOKENS,
     temperature: float = 0.2,
+    progress_callback: Callable[[str], None] | None = None,
 ) -> dict | list | None:
     """
     Call AI and parse the response as JSON.
     Returns parsed JSON or None.
     """
-    raw = call_ai(config, system_prompt, user_prompt, max_tokens, temperature)
+    raw = call_ai(config, system_prompt, user_prompt, max_tokens, temperature, progress_callback=progress_callback)
     if not raw:
         return None
     return _parse_json_response(raw)
@@ -236,10 +325,13 @@ def _call_ollama(
     max_tokens: int,
     temperature: float = DEFAULT_TEMPERATURE,
     timeout: float | None = None,
+    progress_callback: Callable[[str], None] | None = None,
 ) -> str | None:
-    try:
+    def _do_call() -> str | None:
         if timeout is not None and timeout <= 0:
             return None
+        if progress_callback:
+            progress_callback(f"Contacting Ollama ({model})...")
         payload = json.dumps(
             {
                 "model": model,
@@ -263,9 +355,12 @@ def _call_ollama(
             ct = estimate_tokens(data.get("response", ""))
             track(model, pt, ct)
             return data.get("response", "")
-    except Exception as e:
-        logger.debug(f"Ollama call failed: {e}")
-        return None
+
+    return _retry_with_backoff(
+        _do_call, 
+        timeout_remaining=lambda: timeout,
+        progress_callback=progress_callback
+    )
 
 
 def _call_openai_compat(
@@ -277,10 +372,13 @@ def _call_openai_compat(
     max_tokens: int,
     temperature: float,
     timeout: float | None = None,
+    progress_callback: Callable[[str], None] | None = None,
 ) -> str | None:
-    try:
+    def _do_call() -> str | None:
         if timeout is not None and timeout <= 0:
             return None
+        if progress_callback:
+            progress_callback(f"Contacting API ({model})...")
         payload = json.dumps(
             {
                 "model": model,
@@ -315,9 +413,12 @@ def _call_openai_compat(
             )
             track(model, pt, ct)
             return data.get("choices", [{}])[0].get("message", {}).get("content", "")
-    except Exception as e:
-        logger.debug(f"OpenAI-compat call failed ({model}): {e}")
-        return None
+
+    return _retry_with_backoff(
+        _do_call, 
+        timeout_remaining=lambda: timeout,
+        progress_callback=progress_callback
+    )
 
 
 def _call_anthropic(
@@ -328,10 +429,13 @@ def _call_anthropic(
     user: str,
     max_tokens: int,
     timeout: float | None = None,
+    progress_callback: Callable[[str], None] | None = None,
 ) -> str | None:
-    try:
+    def _do_call() -> str | None:
         if timeout is not None and timeout <= 0:
             return None
+        if progress_callback:
+            progress_callback(f"Contacting Anthropic ({model})...")
         payload = json.dumps(
             {
                 "model": model,
@@ -362,80 +466,15 @@ def _call_anthropic(
             )
             track(model, pt, ct)
             return data.get("content", [{}])[0].get("text", "")
-    except Exception as e:
-        logger.debug(f"Anthropic call failed: {e}")
-        return None
 
-
-def _call_ai_horde(
-    api_key: str,
-    prompt: str,
-    max_tokens: int,
-    timeout: float | None = None,
-) -> str | None:
-    """
-    AI Horde community endpoint — always available, no account required.
-    Uses the anonymous key by default.
-    Slower than dedicated keys but always reachable.
-    """
-    try:
-        if timeout is not None and timeout <= 0:
-            return None
-        deadline = time.monotonic() + timeout if timeout is not None else None
-        payload = json.dumps(
-            {
-                "prompt": prompt,
-                "params": {
-                    "max_length": min(max_tokens, AI_HORDE_MAX_TOKENS),
-                    "temperature": DEFAULT_TEMPERATURE,
-                },
-                "models": ["mistralai/Mistral-7B-Instruct-v0.2"],
-                "trusted_workers": False,
-            }
-        ).encode()
-        req = urllib.request.Request(
-            f"{AI_HORDE_BASE_URL}/generate/text/async",
-            data=payload,
-            headers={"apikey": api_key, "Content-Type": "application/json"},
-            method="POST",
-        )
-        with urllib.request.urlopen(
-            req, timeout=timeout if timeout is not None else HTTP_REQUEST_TIMEOUT_SHORT
-        ) as resp:
-            data = json.loads(resp.read())
-            job_id = data.get("id")
-        if not job_id:
-            return None
-        for _ in range(AI_HORDE_MAX_POLL_RETRIES):
-            if deadline is not None and time.monotonic() >= deadline:
-                return None
-            time.sleep(AI_HORDE_POLL_INTERVAL_SEC)
-            if deadline is not None and time.monotonic() >= deadline:
-                return None
-            status_req = urllib.request.Request(
-                f"{AI_HORDE_BASE_URL}/generate/text/status/{job_id}",
-                headers={"apikey": api_key},
-            )
-            with urllib.request.urlopen(
-                status_req, timeout=timeout if timeout is not None else HTTP_REQUEST_TIMEOUT_SHORT
-            ) as resp:
-                status = json.loads(resp.read())
-            if status.get("done"):
-                generations = status.get("generations", [])
-                if generations:
-                    text = generations[0].get("text", "").strip()
-                    ct = estimate_tokens(text)
-                    track("mistralai/Mistral-7B-Instruct-v0.2", estimate_tokens(prompt), ct)
-                    return text
-                return None
-        return None
-    except Exception as e:
-        _log.warning("_call_ai_horde failed: %s", e)
-        return None
+    return _retry_with_backoff(
+        _do_call, 
+        timeout_remaining=lambda: timeout,
+        progress_callback=progress_callback
+    )
 
 
 # ── JSON parsing ──────────────────────────────────────────────────────────────
-
 
 def _parse_json_response(text: str) -> dict | list | None:
     """Extract and parse JSON from AI response text."""

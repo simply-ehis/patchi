@@ -901,18 +901,18 @@ class TestCICDGeneratorAgent:
 class TestRefactoringAgent:
     def test_interval_leak_detection(self):
         content = "const id = setInterval(() => {}, 1000);\n"
-        findings = _detect_interval_without_cleanup(content)
+        findings = _detect_interval_without_cleanup(content, "javascript")
         assert len(findings) == 1
         assert findings[0]["type"] == "setInterval"
 
     def test_file_handle_leak(self):
         content = "fs.createReadStream('/tmp/file');\n"
-        findings = _detect_file_handle_leaks(content)
+        findings = _detect_file_handle_leaks(content, "javascript")
         assert len(findings) == 1
 
     def test_modernization_candidates(self):
         content = "var x = 1;\n"
-        findings = _detect_modernization_candidates(content, ".js")
+        findings = _detect_modernization_candidates(content, ".js", "javascript")
         assert len(findings) >= 1
         assert findings[0]["type"] == "var_to_const_let"
 

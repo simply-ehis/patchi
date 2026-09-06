@@ -102,42 +102,6 @@ class TestAIClientFallback(unittest.TestCase):
                 result = call_ai(self.config, "system", "user prompt")
                 self.assertEqual(result, "Hello from API")
 
-    def test_horde_fallback(self):
-        self.config["ai"]["local_model_name"] = None
-        self.config["ai"]["keys"] = [
-            {
-                "env_var": "MISSING_KEY",
-                "format": "openai",
-                "base_url": "",
-                "model": "",
-                "status": "ok",
-            }
-        ]
-        self.config["ai"]["horde_fallback"] = True
-        self.config["ai"]["horde_key"] = "0000000000"
-
-        call_count = [0]
-
-        def side_effect(req, **kw):
-            call_count[0] += 1
-            # Call 1: pollinations fallback — return non-OpenAI response so it returns None
-            if call_count[0] == 1:
-                return self._mock_resp({"id": "poll_job"})
-            # Call 2: AI Horde job creation
-            if call_count[0] == 2:
-                return self._mock_resp({"id": "job1"})
-            # Calls 3-4: polling not done
-            if call_count[0] <= 4:
-                return self._mock_resp({"done": False})
-            return self._mock_resp({"done": True, "generations": [{"text": "Hello from Horde"}]})
-
-        from patchi.core.ai.client import call_ai
-
-        with patch("urllib.request.urlopen", side_effect=side_effect):
-            with patch("time.sleep", return_value=None):
-                result = call_ai(self.config, "system", "user prompt")
-                self.assertEqual(result, "Hello from Horde")
-
 
 class TestAIJsonParsing(unittest.TestCase):
     def test_direct_json(self):

@@ -299,6 +299,10 @@ def _run_fix_agents(findings: list[dict], root: Path) -> list[Patch]:
         lp.log(f"  {short_name}…")
         lp.update()
 
+        def ai_progress(msg: str):
+            lp.log(f"    [dim]{msg}[/dim]", "dim")
+            lp.update()
+
         inp_with_cb = AgentInput(
             root=inp.root,
             scope=inp.scope,
@@ -306,6 +310,7 @@ def _run_fix_agents(findings: list[dict], root: Path) -> list[Patch]:
             config=inp.config,
             extra=inp.extra,
             on_message=lambda n, msg, s: (lp.log(f"    {msg}", s), lp.update()),
+            on_ai_progress=ai_progress,
         )
         result = agent_cls().run(inp_with_cb)
         patch_count = len(result.data.get("patches", []))

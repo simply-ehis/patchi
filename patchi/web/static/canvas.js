@@ -17,6 +17,17 @@ var BrainMap = (() => {
   const ANT_R = 4;
   const VIEWPORT_MARGIN = 200;
   const MAX_RENDERED_NODES = 300;
+  // Toggleable render cap: when off (powerful machines) every node gets a
+  // full Konva group instead of a dim dot. Initialized from the dashboard's
+  // persisted preference (window._PATCHI_RENDER_CAP_OFF, set before these
+  // libs load); setRenderCap() flips it at runtime.
+  var _renderCap = !(window._PATCHI_RENDER_CAP_OFF === true);
+  // Adaptive cap: the GPU benchmark (brain-ui.js) picks a per-device limit
+  // (150 on software renderers, up to 1200 on high-end GPUs).
+  var _adaptiveCap = (window._PATCHI_RENDER_CAP || MAX_RENDERED_NODES);
+  function _nodeLimit(ns) {
+    return _renderCap ? _adaptiveCap : (ns ? ns.length : MAX_RENDERED_NODES);
+  }
   const MINIMAP_DEBOUNCE = 100;
 
   var _longPressActive = false;
@@ -172,8 +183,19 @@ var BrainMap = (() => {
     stage.container().style.cursor = 'grab';
     stage.container().style.userSelect = 'none';
 
-    // ── Pinch-to-zoom + rotate ──────────────────────────────
-    var _pinch = { active: false, startDist: 0, startScale: 1, cx: 0, cy: 0, startAngle: 0, startRot: 0 };
+    // ── Pinch-to-zoom + optional rotate ──────────────────────────
+    var _pinch = { 
+      active: false, 
+      startDist: 0, 
+      startScale: 1, 
+      cx: 0, 
+      cy: 0, 
+      startAngle: 0, 
+      startRot: 0,
+      // Rotation detection
+      isRotating: false,
+      rotationThreshold: 15 // degrees - minimum rotation to trigger rotate mode
+    };
 
     function _tDist(a, b) {
       var dx = b.clientX - a.clientX, dy = b.clientY - a.clientY;
@@ -192,6 +214,7 @@ var BrainMap = (() => {
         _pinch.startScale = stage.scaleX();
         _pinch.startAngle = _tAngle(t[0], t[1]);
         _pinch.startRot = _rotation;
+        _pinch.isRotating = false;
         var rect = stage.container().getBoundingClientRect();
         _pinch.cx = (t[0].clientX + t[1].clientX) / 2 - rect.left;
         _pinch.cy = (t[0].clientY + t[1].clientY) / 2 - rect.top;
@@ -210,10 +233,31 @@ var BrainMap = (() => {
         var mpt = { x: (_pinch.cx - stage.x()) / oldScale, y: (_pinch.cy - stage.y()) / oldScale };
         stage.scale({ x: newScale, y: newScale });
         stage.position({ x: _pinch.cx - mpt.x * newScale, y: _pinch.cy - mpt.y * newScale });
+        
+        // Check for rotation gesture
         var angle = _tAngle(t[0], t[1]);
-        _rotation = (_pinch.startRot + (angle - _pinch.startAngle) + 360) % 360;
-        stage.rotation(_rotation);
-        _updateAngleDisplay();
+        var angleDelta = angle - _pinch.startAngle;
+        
+        // Normalize angle delta to [-180, 180]
+        while (angleDelta > 180) angleDelta -= 360;
+        while (angleDelta < -180) angleDelta += 360;
+        
+        // Detect rotation gesture: significant rotation without much scale change
+        var scaleChange = Math.abs(ratio - 1);
+        var rotationSignificant = Math.abs(angleDelta) > _pinch.rotationThreshold;
+        
+        if (rotationSignificant && scaleChange < 0.3) {
+          // This is primarily a rotation gesture
+          _pinch.isRotating = true;
+          _rotation = (_pinch.startRot + angleDelta + 360) % 360;
+          stage.rotation(_rotation);
+          _updateAngleDisplay();
+        } else if (!_pinch.isRotating) {
+          // Pure pinch-to-zoom (no rotation)
+          // Keep rotation at start value
+          stage.rotation(_pinch.startRot);
+        }
+        
         _updateZoomDisplay();
         stage.batchDraw();
         _debounceMiniMap();
@@ -223,18 +267,23 @@ var BrainMap = (() => {
     stage.on('touchend', function() {
       if (_pinch.active) {
         _pinch.active = false;
+        _pinch.isRotating = false;
       }
     });
 
-    // ── Mouse wheel zoom ────────────────────────────────────
+    // ── Mouse wheel zoom (also handles touchpad two-finger scroll) ────────────────────────────────────
     stage.on('wheel', function(e) {
       e.evt.preventDefault();
       var oldScale = stage.scaleX();
       var pointer = stage.getPointerPosition();
       if (!pointer) return;
       var mpt = { x: (pointer.x - stage.x()) / oldScale, y: (pointer.y - stage.y()) / oldScale };
-      var newScale = e.evt.deltaY > 0 ? oldScale * 0.9 : oldScale * 1.1;
-      newScale = Math.max(0.05, Math.min(10, newScale));
+      
+      // Detect touchpad: small deltaY with deltaMode=0 typically indicates touchpad
+      var isTouchpad = Math.abs(e.evt.deltaY) < 100 && e.evt.deltaMode === 0;
+      var zoomFactor = isTouchpad ? (e.evt.deltaY > 0 ? 1.05 : 0.95) : (e.evt.deltaY > 0 ? 0.9 : 1.1);
+      
+      var newScale = Math.max(0.05, Math.min(10, oldScale * zoomFactor));
       stage.scale({ x: newScale, y: newScale });
       stage.position({ x: pointer.x - mpt.x * newScale, y: pointer.y - mpt.y * newScale });
       _updateZoomDisplay();
@@ -541,6 +590,11 @@ var BrainMap = (() => {
   function _zoom(factor) { _zoomCenter(factor); }
 
   // ── Data loading ────────────────────────────────────────────
+  function setRenderCap(on) {
+    _renderCap = !!on;
+    if (_lastNodes.length > 0) _renderGraph(_lastNodes, _lastEdges);
+  }
+
   function loadNodes(ns, edgesArr) {
     var useNodes = ns || _lastNodes || [];
     var useEdges = edgesArr || _lastEdges || [];
@@ -602,7 +656,7 @@ var BrainMap = (() => {
 
     // Add nodes (up to MAX_RENDERED_NODES)
     var added = 0;
-    for (var i = 0; i < ns.length && added < MAX_RENDERED_NODES; i++) {
+    for (var i = 0; i < ns.length && added < _nodeLimit(ns); i++) {
       var n = ns[i];
       var id = n.id || n.path;
       var pos = positions[id] || { x: W/2, y: H/2 };
@@ -612,7 +666,7 @@ var BrainMap = (() => {
     }
 
     // If we hit the cap, add the rest as lightweight data (for edges + minimap)
-    for (var j = MAX_RENDERED_NODES; j < ns.length; j++) {
+    for (var j = _nodeLimit(ns); j < ns.length; j++) {
       var nn = ns[j];
       var nid = nn.id || nn.path;
       var pp = positions[nid] || { x: W/2, y: H/2 };
@@ -650,6 +704,7 @@ var BrainMap = (() => {
     switch (_currentView) {
       case 'tree':   positions = _treeLayout(ns, edgesData, W, H); break;
       case 'spiral': positions = _spiralLayout(ns, W, H); break;
+      case 'helix':  positions = _helixLayout(ns, edgesData, W, H); break;
       case 'grid':   positions = _gridLayout(ns, W, H); break;
       case 'radial': positions = _radialLayout(ns, edgesData, W, H); break;
       case 'cluster':positions = _clusterLayout(ns, edgesData, W, H); break;
@@ -663,6 +718,13 @@ var BrainMap = (() => {
   // tween from where they are, nodes that left the rendered set fade out,
   // new nodes fade in. Edges redraw once everything has arrived.
   var _animGen = 0;
+  // Shared view-transition duration (ms) — set by the ⏱ slider in the map
+  // controls (window._PATCHI_VIEW_TRANSITION_MS), clamped to 200–2000ms.
+  function _viewMs() {
+    var v = window._PATCHI_VIEW_TRANSITION_MS;
+    return (typeof v === 'number' && v >= 200 && v <= 2000) ? v : 650;
+  }
+
   function _renderGraphAnimated(ns, edgesData) {
     _lastNodes = ns;
     _lastEdges = edgesData || [];
@@ -672,12 +734,32 @@ var BrainMap = (() => {
     var positions = layout.positions;
     var W = layout.W, H = layout.H;
 
-    // Edge lines and capped-node dots are stale during the glide — drop them
-    // now, redraw both on arrival. Collect first: destroying Konva children
-    // while iterating their live array skips every other item.
+    // Edge lines STRETCH with the gliding nodes instead of vanishing: the
+    // per-type batch lines are kept and their points tween to the new layout
+    // in sync with the node glide. Only capped dots (dim markers) redraw on
+    // arrival. Collect destroyables first: destroying Konva children while
+    // iterating their live array skips every other item.
     var stale = [];
     nodeLayer.getChildren().forEach(function(ch) {
-      if (ch.getAttr('_isEdgeLine') || ch.getAttr('_isCapDot')) stale.push(ch);
+      if (ch.getAttr && ch.getAttr('_isCapDot')) stale.push(ch);
+    });
+
+    // Target endpoints per edge-type batch — same filter/order as _drawEdges,
+    // so segment i of a batch maps 1:1 to the currently drawn batch.
+    var edgeTargets = _edgeBatchTargets(positions);
+    var edgeStretch = [];
+    var droppedEdges = false;
+    nodeLayer.getChildren().forEach(function(ch) {
+      if (!(ch.getAttr && ch.getAttr('_isEdgeLine'))) return;
+      var type = ch.getAttr('_edgeType');
+      var tp = (type && edgeTargets[type]) || null;
+      if (tp && tp.length === ch.points().length) {
+        edgeStretch.push({ line: ch, from: ch.points().slice(), to: tp });
+      } else {
+        // Segment set changed or unknown batch — fall back to redrawing all
+        // lines on arrival (never leaves half-updated batches behind).
+        droppedEdges = true;
+      }
     });
     stale.forEach(function(ch) { ch.destroy(); });
 
@@ -686,11 +768,34 @@ var BrainMap = (() => {
     var remaining = 0;
     var finished = false;
 
+    // Stretch the kept edge batches to their targets in sync with the glides.
+    if (edgeStretch.length > 0) {
+      var edgeT0 = performance.now();
+      (function _tickEdgeStretch(now) {
+        if (gen !== _animGen) return;  // superseded by a newer render
+        var p = Math.min((now - edgeT0) / _viewMs(), 1);
+        var e = p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;
+        for (var i = 0; i < edgeStretch.length; i++) {
+          var es = edgeStretch[i];
+          if (!es.line.getLayer()) continue;  // destroyed mid-flight
+          var cur = es.line.points();
+          for (var j = 0; j < cur.length; j++) {
+            cur[j] = es.from[j] + (es.to[j] - es.from[j]) * e;
+          }
+          es.line.points(cur);
+        }
+        if (p < 1) requestAnimationFrame(_tickEdgeStretch);
+        else nodeLayer.batchDraw();
+      })(performance.now());
+    }
+
     function finish() {
       if (finished || gen !== _animGen) return;
       finished = true;
       _drawCappedDots(ns);
-      _drawEdges();
+      // Kept edge batches already arrived at their final points — redraw only
+      // if a batch had to be dropped (its target set changed mid-switch).
+      if (droppedEdges) _drawEdges();
       if (!_showLabels) {
         nodeLayer.getChildren().forEach(function(g) {
           var txt = g.findOne && g.findOne('Text');
@@ -708,7 +813,7 @@ var BrainMap = (() => {
 
     // New rendered id set (capped exactly like the instant renderer)
     var newIds = [];
-    for (var i = 0; i < ns.length && newIds.length < MAX_RENDERED_NODES; i++) {
+    for (var i = 0; i < ns.length && newIds.length < _nodeLimit(ns); i++) {
       newIds.push(ns[i].id || ns[i].path);
     }
     var newIdSet = {};
@@ -728,7 +833,7 @@ var BrainMap = (() => {
         g.opacity(1);
         remaining++;
         g._tween = new Konva.Tween({
-          node: g, duration: 0.65, easing: Konva.Easings.EaseInOut,
+          node: g, duration: _viewMs() / 1000, easing: Konva.Easings.EaseInOut,
           x: pos.x, y: pos.y,
           onFinish: function() { g._tween = null; onDone(); }
         });
@@ -757,7 +862,7 @@ var BrainMap = (() => {
     // New nodes: fade in at their target positions
     _renderedSet.clear();
     var added = 0;
-    for (var j = 0; j < ns.length && added < MAX_RENDERED_NODES; j++) {
+    for (var j = 0; j < ns.length && added < _nodeLimit(ns); j++) {
       var n = ns[j];
       var id = n.id || n.path;
       var pos = positions[id] || { x: W/2, y: H/2 };
@@ -779,7 +884,7 @@ var BrainMap = (() => {
     }
 
     // Lightweight (beyond-cap) nodes — static positions, no animation
-    for (var k = MAX_RENDERED_NODES; k < ns.length; k++) {
+    for (var k = _nodeLimit(ns); k < ns.length; k++) {
       var nn = ns[k];
       var nid = nn.id || nn.path;
       var pp = positions[nid] || { x: W/2, y: H/2 };
@@ -787,6 +892,32 @@ var BrainMap = (() => {
     }
 
     if (remaining === 0) finish();
+  }
+
+  // Per-type edge segment targets for a layout (positionsById: id -> {x,y}).
+  // Mirrors _drawEdges' filter/order exactly so index i of a batch's points
+  // array refers to the same edge as the currently drawn batch, letting the
+  // animated renderer tween existing lines to their new endpoints.
+  function _edgeBatchTargets(positionsById) {
+    var out = {};
+    for (var i = 0; i < _lastEdges.length; i++) {
+      var e = _lastEdges[i];
+      var fromId = e.source || e.from;
+      var toId = e.target || e.to;
+      var from = nodes[fromId];
+      var to = nodes[toId];
+      if (!from || !to) continue;
+      var fromRendered = !!from.group;
+      var toRendered = !!to.group;
+      if (!fromRendered && !toRendered) continue;
+      var fp = positionsById[fromId];
+      var tp = positionsById[toId];
+      if (!fp || !tp) continue;
+      var t = e.type || 'dependency';
+      if (!out[t]) out[t] = [];
+      out[t].push(fp.x, fp.y, tp.x, tp.y);
+    }
+    return out;
   }
 
   // ── Edge drawing (batched) ──────────────────────────────────
@@ -843,6 +974,7 @@ var BrainMap = (() => {
         opacity: st.o,
         listening: false,
         _isEdgeLine: true,
+        _edgeType: t,
       });
       nodeLayer.add(line);
       line.moveToBottom();
@@ -861,7 +993,8 @@ var BrainMap = (() => {
       if (ch.getAttr && ch.getAttr('_isCapDot')) stale.push(ch);
     });
     stale.forEach(function(ch) { ch.destroy(); });
-    for (var j = MAX_RENDERED_NODES; j < (ns || []).length; j++) {
+    var lim = _nodeLimit(ns);
+    for (var j = lim; j < (ns || []).length; j++) {
       var n = ns[j];
       var id = n.id || n.path;
       var e = nodes[id];
@@ -870,13 +1003,66 @@ var BrainMap = (() => {
         x: e.x, y: e.y,
         radius: 2.2,
         fill: 'rgba(139,148,158,0.5)',
-        listening: false,
+        listening: true,
         _isCapDot: true,
         _capNodeId: id,
       });
+      // Hover reveals the file + its risk (capped files have no label sprite).
+      // NOTE: bind inside an IIFE — `n`/`id` are function-scoped `var`s in
+      // this loop, so a shared closure would show the LAST dot's file for
+      // every hover.
+      (function(capRec, capId) {
+        var dTip = capRec.label || capId;
+        if ((capRec.finding_count || 0) > 0) {
+          dTip += '\n\u26a0 ' + (capRec.finding_count || 0) + ' finding' +
+                  ((capRec.finding_count || 0) === 1 ? '' : 's') + ' · ' + (capRec.severity || 'info');
+        }
+        var dotHc = _healthColor(capRec.finding_count || 0, capRec.severity || 'info');
+        dot.on('mouseenter', function(ev) {
+          if (window.showBrainTooltip) window.showBrainTooltip(dTip, ev.evt.clientX, ev.evt.clientY, dotHc);
+        });
+        dot.on('mousemove', function(ev) {
+          if (window.showBrainTooltip) window.showBrainTooltip(dTip, ev.evt.clientX, ev.evt.clientY, dotHc);
+        });
+        dot.on('mouseleave', function() {
+          if (window.hideBrainTooltip) window.hideBrainTooltip();
+        });
+      })(n, id);
       nodeLayer.add(dot);
       dot.moveToBottom();
     }
+  }
+
+  // During search, capped dots at the end of a highlighted edge pop so the
+  // endpoint stays visible; unrelated dots fade out with the non-match nodes.
+  function _applyCapDotSearchDims() {
+    nodeLayer.getChildren().forEach(function(ch) {
+      if (!ch.getAttr || !ch.getAttr('_isCapDot')) return;
+      var did = ch.getAttr('_capNodeId');
+      if (!did) return;
+      var raised = false;
+      for (var i = 0; i < _lastEdges.length && !raised; i++) {
+        var e = _lastEdges[i];
+        var f = e.source || e.from, t = e.target || e.to;
+        if (f === did || t === did) {
+          var other = f === did ? t : f;
+          if (_searchMatches.indexOf(other) >= 0) raised = true;
+        }
+      }
+      if (raised) {
+        if (ch._origFill === undefined) ch._origFill = ch.fill();
+        ch.fill('rgba(232,146,10,0.95)');
+        ch.radius(2.8);
+        ch.opacity(1);
+        ch.shadowColor('#E8920A'); ch.shadowBlur(6); ch.shadowOpacity(0.8);
+      } else {
+        if (ch._origFill !== undefined) { ch.fill(ch._origFill); ch._origFill = undefined; }
+        ch.radius(2.2);
+        ch.opacity(_searchQuery ? 0.12 : 1);
+        ch.shadowBlur(0);
+      }
+    });
+    nodeLayer.batchDraw();
   }
 
   // ── Force layout (optimized: grid-sampled repulsion) ────────
@@ -1020,6 +1206,52 @@ var BrainMap = (() => {
     nodesList.forEach(function(node,i){
       var id=node.id||node.path, a=i*ga, r=mr*Math.sqrt(i/n);
       pos[id]={x:cx+r*Math.cos(a),y:cy+r*Math.sin(a)};
+    });
+    return pos;
+  }
+
+  function _helixLayout(nodesList, edgesList, W, H) {
+    // Unfolded double helix (DNA-style): nodes run along a horizontal axis in
+    // dependency order (roots → leaves, layer by layer) while alternating onto
+    // two intertwined sine strands. Edges between the layers form the rungs.
+    var pos = {}, n = nodesList.length;
+    if (!n) return pos;
+    var incoming = {}, adj = {};
+    nodesList.forEach(function (node) { adj[node.id || node.path] = []; });
+    edgesList.forEach(function (e) {
+      var f = e.from || e.source, t = e.to || e.target;
+      if (adj[f]) adj[f].push(t);
+      if (!incoming[t]) incoming[t] = [];
+      incoming[t].push(f);
+    });
+    var roots = nodesList.filter(function (node) { return !(incoming[node.id || node.path] || []).length; });
+    if (!roots.length) roots = [nodesList[0]];
+    var depth = {}, visited = {}, queue = [];
+    roots.forEach(function (node) { var id = node.id || node.path; depth[id] = 0; visited[id] = true; queue.push(id); });
+    while (queue.length) {
+      var curr = queue.shift();
+      (adj[curr] || []).forEach(function (child) {
+        if (!visited[child]) { visited[child] = true; depth[child] = (depth[curr] || 0) + 1; queue.push(child); }
+      });
+    }
+    nodesList.forEach(function (node) { var id = node.id || node.path; if (depth[id] === undefined) depth[id] = 0; });
+    // Axis order: stable by depth (roots on the left, leaves on the right).
+    var order = nodesList.slice().sort(function (a, b) {
+      return (depth[a.id || a.path] || 0) - (depth[b.id || b.path] || 0);
+    });
+    var padL = 90, padR = W - 90;
+    var midY = H / 2;
+    var band = Math.min(H, 640) * 0.30;   // how far a strand sits from center
+    var turns = 2.2;                      // wave cycles across the axis
+    order.forEach(function (node, i) {
+      var id = node.id || node.path;
+      var t = order.length > 1 ? i / (order.length - 1) : 0;
+      var x = padL + t * (padR - padL);
+      var strand = i % 2 === 0 ? 1 : -1;  // alternate the two strands
+      var theta = t * Math.PI * 2 * turns;
+      // Strands interlock: same frequency, opposite phase.
+      var wave = Math.sin(theta + (strand > 0 ? 0 : Math.PI));
+      pos[id] = { x: x, y: midY + strand * band * 0.62 + wave * band * 0.38 };
     });
     return pos;
   }
@@ -1190,13 +1422,18 @@ var BrainMap = (() => {
     })();
 
     // Hover tooltip — the drawn label is a truncated basename, so hovering
-    // shows the full filename (with directories) at the cursor.
+    // shows the full filename (with directories) at the cursor. Files with
+    // findings also show the count + top severity so risk is visible at a
+    // glance.
     var _tipFull = label || id;
+    if (fc > 0) {
+      _tipFull += '\n\u26a0 ' + fc + ' finding' + (fc === 1 ? '' : 's') + ' · ' + (sev || 'info');
+    }
     group.on('mouseenter', function(ev) {
-      if (window.showBrainTooltip) window.showBrainTooltip(_tipFull, ev.evt.clientX, ev.evt.clientY);
+      if (window.showBrainTooltip) window.showBrainTooltip(_tipFull, ev.evt.clientX, ev.evt.clientY, hc);
     });
     group.on('mousemove', function(ev) {
-      if (window.showBrainTooltip) window.showBrainTooltip(_tipFull, ev.evt.clientX, ev.evt.clientY);
+      if (window.showBrainTooltip) window.showBrainTooltip(_tipFull, ev.evt.clientX, ev.evt.clientY, hc);
     });
     group.on('mouseleave', function() {
       if (window.hideBrainTooltip) window.hideBrainTooltip();
@@ -1573,6 +1810,15 @@ var BrainMap = (() => {
       }
       _searchMatches = [];
       _selectedNodes = [];
+      // Restore capped dots to their base look (search pops/dims them).
+      _applyCapDotSearchDims();
+      // Search dims edges per line; clearing the query must undo that.
+      var staleEdges = [];
+      nodeLayer.getChildren().forEach(function(ch) {
+        if (ch.getAttr && ch.getAttr('_isEdgeLine')) staleEdges.push(ch);
+      });
+      staleEdges.forEach(function(ch) { ch.destroy(); });
+      _drawEdges();
       if (countEl) countEl.textContent = '';
       var dd = document.getElementById('brain-search-dropdown');
       if (dd) dd.style.display = 'none';
@@ -1632,6 +1878,9 @@ var BrainMap = (() => {
       }
     });
 
+    // Capped dots: pop the ones whose edges touch a match, dim the rest.
+    _applyCapDotSearchDims();
+
     if (countEl) {
       countEl.textContent = _searchMatches.length + ' found';
       countEl.style.color = _searchMatches.length > 0 ? 'var(--accent)' : 'var(--danger)';
@@ -1666,16 +1915,23 @@ var BrainMap = (() => {
       var sev = (dn && dn._severity) || 'info';
       var fc = (dn && dn._findings) || 0;
       var sevColor = sev === 'critical' ? '#FF4D6D' : sev === 'high' ? '#F97316' : sev === 'medium' ? '#FACC15' : '#4ADE80';
+      // Row hover shows the full path + risk at a glance (same treatment as
+      // the map node/dot tooltips).
+      var tipContent = did;
+      if (fc > 0) {
+        tipContent += '\n' + '\u26a0' + ' ' + fc + ' finding' + (fc === 1 ? '' : 's') +
+                      ' · ' + sev;
+      }
       var isActive = di === _searchIndex;
       var isSelected = _selectedNodes.indexOf(did) >= 0;
       var bgColor = isSelected ? 'rgba(88,166,255,0.1)' : (isActive ? 'rgba(88,166,255,0.15)' : '');
-      html += '<div class="sr-item" data-idx="' + di + '" data-id="' + did + '" style="padding:6px 10px;cursor:pointer;display:flex;align-items:center;gap:8px;border-bottom:1px solid rgba(255,255,255,0.05);transition:background 0.1s;background:' + bgColor + '" onmouseenter="if(!this.style.background)this.style.background=\'var(--bg-tertiary)\'" onmouseleave="this.style.background=\'' + bgColor.replace(/'/g, '') + '\'" onclick="BrainMap.searchSelect(' + di + ', event)" oncontextmenu="BrainMap.toggleSelect(\'' + did + '\');return false">';
+      html += '<div class="sr-item" data-idx="' + di + '" data-id="' + did + '" data-tooltip="' + tipContent + '" data-tt-color="' + sevColor + '" style="padding:6px 10px;cursor:pointer;display:flex;align-items:center;gap:8px;border-bottom:1px solid rgba(255,255,255,0.05);transition:background 0.1s;background:' + bgColor + '" onmouseenter="if(!this.style.background)this.style.background=\'var(--bg-tertiary)\'" onmouseleave="this.style.background=\'' + bgColor.replace(/'/g, '') + '\'" onclick="BrainMap.searchSelect(' + di + ', event)" oncontextmenu="BrainMap.toggleSelect(\'' + did + '\');return false">';
       // Checkbox for multi-select
       html += '<span style="display:inline-flex;width:14px;height:14px;border-radius:3px;border:1px solid ' + (isSelected ? 'var(--accent)' : 'var(--border)') + ';align-items:center;justify-content:center;flex-shrink:0;background:' + (isSelected ? 'var(--accent)' : 'transparent') + '">';
       if (isSelected) html += '<svg width="10" height="10" viewBox="0 0 10 10"><path d="M2 5l2.5 2.5L8 3" fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
       html += '</span>';
       html += '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:' + sevColor + ';flex-shrink:0"></span>';
-      html += '<span style="flex:1;font-size:12px;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap" data-tooltip="' + did + '">' + shortName + '</span>';
+      html += '<span style="flex:1;font-size:12px;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + shortName + '</span>';
       if (fc > 0) html += '<span style="font-size:10px;color:' + sevColor + ';font-weight:600;flex-shrink:0">' + fc + '</span>';
       html += '<span style="font-size:9px;color:var(--text-tertiary);flex-shrink:0;text-transform:uppercase">' + sev + '</span>';
       html += '</div>';
@@ -1879,6 +2135,7 @@ var BrainMap = (() => {
   return {
     init: init,
     setNodeState: setNodeState,
+    setRenderCap: setRenderCap,
     loadNodes: loadNodes,
     zoomIn: zoomIn,
     zoomOut: zoomOut,
@@ -1902,6 +2159,22 @@ var BrainMap = (() => {
     commitSearch: function() { commitSearch(); },
     clearHistory: function() { clearHistory(); },
     showHistoryOnFocus: function() { _showHistoryOnFocus(); },
+    // Audit/test hooks
+    getCapDotStates: function() {
+      var out = [];
+      nodeLayer.getChildren().forEach(function(ch) {
+        if (!ch.getAttr || !ch.getAttr('_isCapDot')) return;
+        out.push({ id: ch.getAttr('_capNodeId'), opacity: ch.opacity(), radius: ch.radius(), fill: ch.fill() });
+      });
+      return out;
+    },
+    getEdgeOpacities: function() {
+      var out = [];
+      nodeLayer.getChildren().forEach(function(ch) {
+        if (ch.getAttr && ch.getAttr('_isEdgeLine')) out.push(ch.opacity());
+      });
+      return out;
+    },
   };
 
   // Close search dropdown when clicking outside

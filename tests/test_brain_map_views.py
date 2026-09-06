@@ -271,6 +271,13 @@ def test_capped_dots_stable_across_view_switches():
             page.goto(base + "/", wait_until="domcontentloaded", timeout=60000)
             time.sleep(4)
 
+            # The render cap is adaptive: a quick WebGL benchmark in
+            # brain-ui.js picks a per-device limit (headless Chromium runs
+            # SwiftShader, so the low 150-node tier is expected here). All
+            # assertions below use the page's actual cap.
+            cap = page.evaluate("() => window._PATCHI_RENDER_CAP || 300")
+            capped_count = TOTAL_NODES - cap
+
             # Wait until the graph finished its first layout: exactly the cap
             # count of rendered nodes plus one dot per capped node.
             deadline = time.time() + 45
@@ -278,12 +285,12 @@ def test_capped_dots_stable_across_view_switches():
             while time.time() < deadline:
                 rendered = page.evaluate(RENDER_2D_JS)
                 dots_by_id = page.evaluate(CAPPED_2D_JS)
-                if len(rendered) >= MAX_RENDERED_NODES and len(dots_by_id) == CAP_COUNT:
+                if len(rendered) >= cap and len(dots_by_id) == capped_count:
                     rendered_count = len(rendered)
                     break
                 time.sleep(1)
-            assert rendered_count == MAX_RENDERED_NODES, (
-                f"expected {MAX_RENDERED_NODES} rendered nodes, got {rendered_count}"
+            assert rendered_count == cap, (
+                f"expected {cap} rendered nodes, got {rendered_count}"
             )
 
             # ── 2D: switch every view; the capped set must stay exactly
@@ -295,22 +302,22 @@ def test_capped_dots_stable_across_view_switches():
                 deadline = time.time() + 15
                 while time.time() < deadline:
                     dots_by_id = page.evaluate(CAPPED_2D_JS)
-                    if len(dots_by_id) == CAP_COUNT:
+                    if len(dots_by_id) == capped_count:
                         break
                     time.sleep(0.25)
                 rendered = page.evaluate(RENDER_2D_JS)
-                assert len(rendered) == MAX_RENDERED_NODES, (
-                    f"2D {vid}: expected {MAX_RENDERED_NODES} rendered nodes, got {len(rendered)}"
+                assert len(rendered) == cap, (
+                    f"2D {vid}: expected {cap} rendered nodes, got {len(rendered)}"
                 )
-                assert len(dots_by_id) == CAP_COUNT, (
-                    f"2D {vid}: expected {CAP_COUNT} capped dots, got {len(dots_by_id)}"
+                assert len(dots_by_id) == capped_count, (
+                    f"2D {vid}: expected {capped_count} capped dots, got {len(dots_by_id)}"
                 )
                 extra = [i for i, c in dots_by_id.items() if c != 1]
                 assert not extra, (
                     f"2D {vid}: {len(extra)} capped node(s) with != 1 dot "
                     f"(dot-multiplication regression) — {extra[:5]}"
                 )
-                expected_ids = {f"node{i:04d}" for i in range(MAX_RENDERED_NODES, TOTAL_NODES)}
+                expected_ids = {f"node{i:04d}" for i in range(cap, TOTAL_NODES)}
                 missing = expected_ids - set(dots_by_id)
                 assert not missing, (
                     f"2D {vid}: capped nodes missing dots — {sorted(missing)[:5]}"
@@ -341,16 +348,16 @@ def test_capped_dots_stable_across_view_switches():
                 stats = None
                 while time.time() < deadline:
                     stats = page.evaluate(CAPPED_3D_STATS_JS)
-                    if stats and stats["capped"] == CAP_COUNT:
+                    if stats and stats["capped"] == capped_count:
                         break
                     time.sleep(0.25)
                 assert stats is not None, f"3D {vid}: getStats() unavailable"
-                assert stats["capped"] == CAP_COUNT, (
-                    f"3D {vid}: expected {CAP_COUNT} capped dots, got {stats['capped']} "
+                assert stats["capped"] == capped_count, (
+                    f"3D {vid}: expected {capped_count} capped dots, got {stats['capped']} "
                     f"(stats={stats})"
                 )
-                assert stats["rendered"] == MAX_RENDERED_NODES, (
-                    f"3D {vid}: expected {MAX_RENDERED_NODES} rendered, got {stats['rendered']}"
+                assert stats["rendered"] == cap, (
+                    f"3D {vid}: expected {cap} rendered, got {stats['rendered']}"
                 )
                 # All 400 node ids must still be tracked (mesh + capped entries).
                 assert stats["total"] == TOTAL_NODES, (

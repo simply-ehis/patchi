@@ -299,6 +299,9 @@ class AgentInput:
     on_message: callable | None = (
         None  # callback for live progress streaming: fn(agent_name, message, style)
     )
+    on_ai_progress: callable | None = (
+        None  # callback for AI call progress: fn(message)
+    )
 
 
 # ── Agent result ───────────────────────────────────────────────────────────────

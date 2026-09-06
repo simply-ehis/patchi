@@ -153,10 +153,6 @@ class Coordinator:
                     return {"provider": "api", "config": self._config}
             return {"provider": "api", "config": self._config}
 
-        # Horde fallback
-        if ai_cfg.get("horde_fallback"):
-            return {"provider": "horde", "config": self._config}
-
         return None
 
     def reset_circuit_breaker(self, agent_name: str | None = None) -> list[str]:

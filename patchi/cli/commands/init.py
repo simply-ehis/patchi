@@ -9,7 +9,10 @@ from rich.table import Table
 
 from patchi.cli.console import con
 from patchi.core import config as cfg
-from patchi.core.constants import PROVIDERS, DeviceTier
+from patchi.core.constants import DeviceTier
+
+# Import providers from key_cmd to keep them in sync
+from patchi.cli.commands.key_cmd import PROVIDERS as KEY_PROVIDERS
 
 """
 `p init` - Initialize Patchi in the current project directory.
@@ -98,28 +101,43 @@ def run(no_logo: bool = False) -> None:
     )
     con.print()
 
+    # Show provider options dynamically from KEY_PROVIDERS
+    con.print("  [bold]Choose AI provider:[/bold]")
+    con.print()
+    for i, p in enumerate(KEY_PROVIDERS, 1):
+        con.print(f"  [bold]{i}[/bold]  {p['name']:<14} [dim]{p['docs']}[/dim]")
+    con.print()
+
     try:
-        choice = Prompt.ask("  Choose", choices=["1", "2", "3", "4"], default="4")
+        choice = Prompt.ask("  Provider number or name", default=str(len(KEY_PROVIDERS)))
     except (EOFError, OSError):
-        choice = "4"
-        con.print("  [dim]Non-interactive mode — using AI Horde fallback[/dim]")
+        choice = str(len(KEY_PROVIDERS))
+        con.print("  [dim]Non-interactive mode — using last provider[/dim]")
 
-    if choice == "1":
-        _setup_local_model(project_root)
-    elif choice == "2":
-        _setup_api_key(project_root)
-    elif choice == "3":
-        _show_free_key_links()
-        _setup_api_key(project_root)
+    # Handle provider choice
+    provider_data = None
+    if choice.isdigit():
+        idx = int(choice) - 1
+        if 0 <= idx < len(KEY_PROVIDERS):
+            provider_data = KEY_PROVIDERS[idx]
     else:
-        import patchi.core.config as _cfg
+        # Find by name (case-insensitive)
+        for p in KEY_PROVIDERS:
+            if p["name"].lower() == choice.lower():
+                provider_data = p
+                break
 
-        _c = _cfg.load(project_root)
-        ai_cfg = _c.setdefault("ai", {})
-        ai_cfg["horde_fallback"] = True
-        ai_cfg["horde_key"] = "0000000000"
-        _cfg.save(_c, project_root)
-        con.print("    [dim]Using AI Horde community fallback. Zero setup.[/dim]")
+    if not provider_data:
+        con.print(f"  [yellow]Unknown provider: {choice!r}, using Custom[/yellow]")
+        provider_data = KEY_PROVIDERS[-1]  # Custom
+
+    if provider_data["name"] == "Custom":
+        # Use the same flow as key_cmd for custom
+        _setup_custom_provider(project_root)
+    elif provider_data["name"] == "Ollama":
+        _setup_local_model(project_root)
+    else:
+        _setup_known_provider(project_root, provider_data)
 
     con.print()
 
@@ -158,8 +176,6 @@ def _show_complete_panel(root: Path) -> None:
         elif ai_cfg.get("keys"):
             count = len(ai_cfg["keys"])
             table.add_row("AI", f"{count} API key(s) configured")
-        elif ai_cfg.get("horde_fallback"):
-            table.add_row("AI", "Community fallback")
         else:
             table.add_row("AI", "[yellow]Not configured[/yellow]")
     except Exception as e:
@@ -263,58 +279,77 @@ def _setup_local_model(root: Path) -> None:
     )
 
 
-def _setup_api_key(root: Path) -> None:
+def _setup_custom_provider(root: Path) -> None:
+    """Set up a custom OpenAI-compatible provider (same as key_cmd flow)."""
     con.print()
-    con.print("[bold]  Supported providers:[/bold]")
-    con.print(
-        "  [dim]Pick a number, type a provider name, or 'custom' for any OpenAI-compatible API.[/dim]"
+    con.print("  [dim]Enter your provider's OpenAI-compatible API details.[/dim]")
+    
+    provider_name = Prompt.ask("  Provider name")
+    if not provider_name.strip():
+        con.print("[red]Provider name is required.[/red]")
+        return
+    
+    base_url = Prompt.ask("  Base URL", default="https://api.openai.com/v1")
+    if not base_url.strip():
+        con.print("[red]Base URL is required.[/red]")
+        return
+        
+    model = Prompt.ask("  Model name")
+    if not model.strip():
+        con.print("[red]Model name is required.[/red]")
+        return
+        
+    format_choices = ["openai", "anthropic", "google", "cohere"]
+    fmt = Prompt.ask("  API format", choices=format_choices, default="openai")
+
+    # Use secure key input that works in PowerShell
+    api_key = _secure_key_input("  Paste your API key")
+    if not api_key.strip():
+        con.print("[red]No key entered.[/red]")
+        return
+        
+    nickname = Prompt.ask("  Nickname for this key", default=provider_name)
+
+    _store_key(
+        root, provider=provider_name, base_url=base_url, model=model, api_key=api_key, fmt=fmt
     )
-    con.print()
-    con.print("  [bold]1[/bold]  Groq        [dim]console.groq.com (free tier)[/dim]")
-    con.print("  [bold]2[/bold]  OpenAI      [dim]platform.openai.com[/dim]")
-    con.print("  [bold]3[/bold]  Anthropic   [dim]console.anthropic.com[/dim]")
-    con.print("  [bold]4[/bold]  Google      [dim]aistudio.google.com (free)[/dim]")
-    con.print("  [bold]5[/bold]  Mistral     [dim]console.mistral.ai[/dim]")
-    con.print("  [bold]6[/bold]  OpenRouter  [dim]openrouter.ai (free credits)[/dim]")
-    con.print("  [bold]7[/bold]  DeepSeek    [dim]platform.deepseek.com[/dim]")
-    con.print("  [bold]custom[/bold]  Any OpenAI-compatible API [dim](enter URL + key)[/dim]")
-    con.print()
 
-    provider = Prompt.ask(
-        "  Provider",
-        default="Groq",
+
+def _setup_known_provider(root: Path, provider_data: dict) -> None:
+    """Set up a known provider from KEY_PROVIDERS list."""
+    api_key = _secure_key_input(f"  Paste your {provider_data['name']} API key")
+    if not api_key.strip():
+        con.print("[red]No key entered.[/red]")
+        return
+        
+    nickname = Prompt.ask("  Nickname for this key", default=provider_data["name"])
+
+    _store_key(
+        root,
+        provider=provider_data["name"],
+        base_url=provider_data["base"],
+        model=provider_data["model"],
+        api_key=api_key,
+        fmt=provider_data["format"],
     )
 
-    if provider.lower() == "custom":
-        con.print("  [dim]Enter your provider's OpenAI-compatible API details.[/dim]")
-        base_url = Prompt.ask("  Base URL", default="https://api.openai.com/v1")
-        model = Prompt.ask("  Model name", default="gpt-4o-mini")
-        api_key = Prompt.ask("  API key")
-        if not api_key.strip():
-            con.print("[red]No key entered.[/red]")
-            return
-        nickname = Prompt.ask("  Nickname for this key", default="custom")
 
-        _store_key(
-            root, provider=nickname, base_url=base_url, model=model, api_key=api_key, fmt="openai"
-        )
-    else:
-        # Auto-detect base URL and model for known providers
-        provider_info = PROVIDERS.get(provider.lower(), {})
-        base_url = provider_info.get("base_url", "https://api.openai.com/v1")
-        model = provider_info.get("model", "gpt-4o-mini")
-
-        api_key = Prompt.ask("  API key (sk-...)")
-        if not api_key.strip():
-            con.print("[red]No key entered.[/red]")
-            return
-        nickname = Prompt.ask("  Nickname for this key", default=provider)
-
-        _store_key(
-            root, provider=provider, base_url=base_url, model=model, api_key=api_key, fmt="openai"
-        )
-
-    con.print("    [dim]Key stored. Never leaves your machine.[/dim]")
+def _secure_key_input(prompt: str) -> str:
+    """
+    Securely read an API key from stdin, with support for pasting in PowerShell.
+    """
+    import sys
+    
+    try:
+        import getpass
+        return getpass.getpass(prompt + " ")
+    except Exception:
+        pass
+    
+    # Fallback: use rich's Prompt but without password masking
+    # This allows pasting in PowerShell - the key is stored securely in .env anyway
+    from rich.prompt import Prompt
+    return Prompt.ask(prompt)
 
 
 def _store_key(
@@ -361,23 +396,7 @@ def _store_key(
 
     cfg.set_value("ai.keys", existing_keys, root)
     con.print(f"    [dim]Env var: {env_var}[/dim]")
-
-
-def _show_free_key_links() -> None:
-    con.print()
-    con.print("[bold #F2EDD6]Free API keys - get one in 2 minutes:[/bold #F2EDD6]")
-    con.print()
-    links = [
-        ("Groq", "console.groq.com", "500 req/day free, fastest free tier"),
-        ("Google AI", "aistudio.google.com", "1M token context, very capable"),
-        ("OpenRouter", "openrouter.ai", "Routes to many models, free credits"),
-        ("Mistral", "console.mistral.ai", "Free tier available"),
-        ("Together AI", "api.together.xyz", "Free credits on signup"),
-        ("DeepSeek", "platform.deepseek.com", "Cheap + capable"),
-    ]
-    for name, url, note in links:
-        con.print(f"  [bold]{name:<14}[/bold] [dim]{url}[/dim]  [dim italic]{note}[/dim italic]")
-    con.print()
+    con.print("    [dim]Key stored. Never leaves your machine.[/dim]")
 
 
 # ── Gitignore helpers ──────────────────────────────────────────────────────────

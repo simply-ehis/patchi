@@ -6,6 +6,7 @@ import logging
 import os
 import re
 from pathlib import Path
+from typing import Callable
 
 from patchi.core.fix.patch import (
     FileChange,
@@ -19,7 +20,13 @@ from patchi.core.fix.patch import (
 _log = logging.getLogger("patchi.fix")
 
 
-def _call_ai(prompt: str, config: dict, max_tokens: int = 1500, system_prompt: str = "") -> str:
+def _call_ai(
+    prompt: str, 
+    config: dict, 
+    max_tokens: int = 1500, 
+    system_prompt: str = "",
+    progress_callback: Callable[[str], None] | None = None
+) -> str:
     if os.environ.get("PATCHI_OFFLINE"):
         return ""
     """
@@ -29,7 +36,7 @@ def _call_ai(prompt: str, config: dict, max_tokens: int = 1500, system_prompt: s
     from patchi.core.ai.client import call_ai
 
     sys_prompt = system_prompt or "You are a helpful coding assistant."
-    result = call_ai(config, sys_prompt, prompt, max_tokens)
+    result = call_ai(config, sys_prompt, prompt, max_tokens, progress_callback=progress_callback)
     return result or ""
 
 
@@ -310,6 +317,7 @@ def _generate_fix_with_ai(
     playbook: dict | None,
     config: dict,
     message: str = "",
+    progress_callback: Callable[[str], None] | None = None,
 ) -> FileChange | None:
     """Use AI to generate a fix for the vulnerability."""
     prompt = _build_fix_prompt(
@@ -323,7 +331,7 @@ def _generate_fix_with_ai(
     )
 
     try:
-        response = _call_ai(prompt, config, max_tokens=500, system_prompt=system_prompt)
+        response = _call_ai(prompt, config, max_tokens=500, system_prompt=system_prompt, progress_callback=progress_callback)
     except Exception as e:
         _log.warning("AI fix generation failed: %s", e)
         return None
@@ -361,6 +369,7 @@ def generate_fix(
     root: Path,
     finding_dict: dict,
     config: dict | None = None,
+    progress_callback: Callable[[str], None] | None = None,
 ) -> Patch | None:
     """Generate a fix patch for a finding.
 
@@ -407,6 +416,7 @@ def generate_fix(
         playbook,
         config,
         message,
+        progress_callback,
     )
     if ai_change:
         changes.append(ai_change)

@@ -7,7 +7,48 @@
   <div style="margin-top:16px;color:var(--text-secondary,#888);font-size:13px;font-family:Inter,sans-serif">Loading dashboard…</div>
   <div id="load-sub" style="margin-top:8px;color:var(--text-tertiary,#555);font-size:11px;font-family:Inter,sans-serif"></div>
 </div>
-<style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+<style>
+@keyframes spin{to{transform:rotate(360deg)}}
+.brain-fullscreen {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: 9999 !important;
+  border-radius: 0 !important;
+  background: var(--bg-primary) !important;
+}
+.brain-fullscreen #brain-map-3d {
+  width: 100vw !important;
+  height: 100vh !important;
+}
+.brain-fullscreen .brain-panel {
+  display: none !important;
+}
+.brain-fullscreen #views-3d {
+  position: fixed !important;
+  top: 12px !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  z-index: 10000 !important;
+  background: var(--bg-secondary) !important;
+  border-radius: var(--radius-md) !important;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4) !important;
+  padding: 8px 12px !important;
+  border: 1px solid var(--border) !important;
+}
+.brain-fullscreen #legend-toggle,
+.brain-fullscreen #legend-2d,
+.brain-fullscreen #legend-3d,
+.brain-fullscreen #brain-map-cap-note,
+.brain-fullscreen #brain-map-count-hint,
+.brain-fullscreen #brain-3d-fail {
+  display: none !important;
+}
+</style>
 <script>
 (function(){
   var el=document.getElementById('dashboard-loading');
@@ -51,7 +92,7 @@
       Brain Map
     </h2>
     <span class="brain-map-meta" id="brain-map-meta">
-      <span class="brain-map-count" id="brain-map-count">&mdash; nodes</span>
+      <span class="brain-map-count" id="brain-map-count" title="Node &amp; edge totals for the whole project graph — they stay constant while the layout name beside them changes"> &mdash; nodes</span>
       <span class="brain-map-desc" id="brain-map-desc">Force-directed layout &mdash; connected modules pulled together by shared references</span>
     </span>
     <div class="panel-actions">
@@ -69,6 +110,7 @@
         <button type="button" class="btn btn-sm is-on" onclick="BrainMap.switchView('graph')" id="view-graph">Graph</button>
         <button type="button" class="btn btn-sm" onclick="BrainMap.switchView('tree')" id="view-tree">Tree</button>
         <button type="button" class="btn btn-sm" onclick="BrainMap.switchView('spiral')" id="view-spiral">Spiral</button>
+        <button type="button" class="btn btn-sm" onclick="BrainMap.switchView('helix')" id="view-helix">Helix</button>
         <button type="button" class="btn btn-sm" onclick="BrainMap.switchView('grid')" id="view-grid">Grid</button>
         <button type="button" class="btn btn-sm" onclick="BrainMap.switchView('radial')" id="view-radial">Radial</button>
         <button type="button" class="btn btn-sm" onclick="BrainMap.switchView('cluster')" id="view-cluster">Cluster</button>
@@ -92,16 +134,27 @@
         <button type="button" class="btn btn-sm" onclick="BrainMap3D.toggleEdges()" id="btn-toggle-edges-3d">Hide Edges</button>
         <button type="button" class="btn btn-sm" onclick="BrainMap3D.toggleLabels()" id="btn-toggle-labels-3d">Hide Labels</button>
         <button type="button" class="btn btn-sm" onclick="BrainMap3D.resetCamera()" title="Reset camera">🎥 Reset</button>
-        <button type="button" class="btn btn-sm" onclick="BrainMap3D.exportPNG()" title="Export 3D render">📷 PNG</button>
-      </span>
+<button type="button" class="btn btn-sm" onclick="BrainMap3D.exportPNG()" title="Export 3D render">📷 PNG</button>
+        <button type="button" class="btn btn-sm" onclick="BrainMap3D.toggleFullscreen()" id="btn-toggle-fullscreen-3d" title="Toggle full-screen mode (F)">⛶ Fullscreen</button>
+</span>
       <span style="width:1px;height:16px;background:var(--border);margin:0 4px"></span>
+      <button type="button" class="btn btn-sm" onclick="toggleRenderCap()" id="btn-cap-toggle" title="Render every node (no 300-node cap) — heavier, for powerful machines">⚡ All Nodes</button>
       <button type="button" class="btn btn-sm" onclick="BrainMap.exportJSON()" title="Export data as JSON">💾 JSON</button>
+      <span class="brain-transition" title="View-switch animation speed (0.2s–2s) — applies to node glides, edge stretches and the 3D camera fit. Persisted.">
+        <span class="brain-transition-icon" aria-hidden="true">⏱</span>
+        <input type="range" id="brain-transition" min="0.2" max="2" step="0.05" value="0.8" aria-label="View transition speed">
+        <span class="brain-transition-val" id="brain-transition-val">0.8s</span>
+      </span>
     </div>
   </header>
   <!-- Render-cap caption: shown once nodes exceed MAX_RENDERED_NODES (300) -->
   <div id="brain-map-cap-note" class="brain-map-cap-note" hidden>
     <span class="brain-map-cap-dot" aria-hidden="true"></span>
-    <span>Files beyond the 300-node render cap appear as dim dots so the map stays fast &mdash; edges still connect to them.</span>
+    <span>Files beyond the <span id="brain-map-cap-num">300</span>-node render cap appear as dim dots so the map stays fast &mdash; edges still connect to them.</span>
+  </div>
+  <!-- Badge hint: explains the header node/edge count + layout name -->
+  <div id="brain-map-count-hint" class="brain-map-count-hint">
+    <span>Header badge = the graph's total nodes &amp; edges, plus the <b>active layout</b> name &mdash; it refreshes on every view switch.</span>
   </div>
   <!-- 3D engine unavailable banner (shown when the three.js chain fails to load) -->
   <div id="brain-3d-fail" class="brain-3d-fail" hidden>
@@ -211,13 +264,15 @@
         <span class="u-muted">Clean — small</span>
       </div>
       <div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--border-subtle);color:var(--text-muted);font-size:10px;line-height:1.4">
-        Drag to pan • Scroll to zoom • WASD/arrows: navigate<br>Right-click node for details • 0: fit view<br>Node size scales with findings — bigger = more issues
+        Drag to pan • Scroll to zoom • WASD/arrows: navigate<br>Right-click node for details • 0: fit view<br>Node size scales with findings — bigger = more issues<br>Header badge = the graph's total nodes · edges
       </div>
     </div>
     </div> <!-- close legend-2d -->
     <!-- 3D Legend (shown while 3D mode is active) -->
     <div id="legend-3d" onmouseenter="cancelHideBrainLegend()" onmouseleave="scheduleHideBrainLegend()" style="position:absolute;left:8px;top:40px;width:215px;max-height:calc(100% - 48px);border:1px solid var(--border-subtle);border-radius:var(--radius-md);box-shadow:0 6px 20px rgba(0,0,0,0.35);overflow-y:auto;font-size:11px;z-index:30;background:var(--bg-secondary);display:none">
       <div style="padding:12px;font-size:11px;background:var(--bg-secondary)">
+        <div class="u-fw600 u-ink u-mb8 u-fs12">Render Status</div>
+        <div id="legend-3d-stats" style="color:var(--text-secondary);margin-bottom:12px;font-size:10px;line-height:1.5">Rendering&hellip;</div>
         <div class="u-fw600 u-ink u-mb8 u-fs12">Node Color (3D)</div>
         <div class="u-flex u-aic u-gap8 u-mb6">
           <svg width="16" height="16"><circle cx="8" cy="8" r="7" fill="#FF4D6D" stroke="#ff6b8a" stroke-width="1.5"/></svg>
@@ -275,7 +330,8 @@
         <div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--border-subtle);color:var(--text-muted);font-size:10px;line-height:1.5">
           Drag &mdash; orbit &bull; Scroll / pinch &mdash; zoom<br>
           Two-finger &mdash; rotate &bull; Double-tap &mdash; reset camera<br>
-          Three-finger &mdash; preset views &bull; Arrows / WASD &mdash; pan
+          Three-finger &mdash; preset views &bull; Arrows / WASD &mdash; pan<br>
+          Header badge = the graph's total nodes &middot; edges (Render Status above shows this view's visible set)
         </div>
       </div>
     </div> <!-- close legend-3d -->
@@ -1278,6 +1334,7 @@
     graph: 'Force-directed layout — connected modules pulled together by shared references',
     tree: 'Hierarchical tree — dependencies flow top-down from root modules',
     spiral: 'Golden spiral — nodes layered outward by depth from the roots',
+    helix: 'Unfolded double helix — dependencies stream left to right on two intertwined strands',
     grid: 'Compact grid — evenly spaced nodes in a matrix',
     radial: 'Radial — root modules at the center, children in rings by depth',
     cluster: 'Cluster — groups formed by shared modules and dependency density',
@@ -1308,13 +1365,112 @@
       var e = (window._brainEdges || []).length;
       countEl.textContent = n + ' nodes · ' + e + ' edges';
     }
-    // Render-cap caption: shown only when files exceed MAX_RENDERED_NODES (300)
+    // Render-cap caption: shown only when files exceed the (adaptive) cap
+    // AND the cap is actually on (no dim dots otherwise).
     var capEl = document.getElementById('brain-map-cap-note');
-    if (capEl) capEl.hidden = (window._brainNodes || []).length <= 300;
+    var capNum = document.getElementById('brain-map-cap-num');
+    var capN = window._PATCHI_RENDER_CAP || 300;
+    if (capNum) capNum.textContent = capN;
+    if (capEl) capEl.hidden = window._renderCapOff || (window._brainNodes || []).length <= capN;
+    // Live rendered/total counts in the 3D legend (fresh after every render,
+    // view switch and cap toggle, since both renderers call this hook).
+    if (window._refresh3DLegendStats) window._refresh3DLegendStats();
+  };
+
+  // 3D legend "Render Status": rendered/total from BrainMap3D.getStats.
+  window._refresh3DLegendStats = function() {
+    var el = document.getElementById('legend-3d-stats');
+    if (!el) return;
+    if (!window._is3D || !window.BrainMap3D || !window.BrainMap3D.getStats) {
+      el.innerHTML = 'Rendering&hellip;';
+      return;
+    }
+    var st = null;
+    try { st = window.BrainMap3D.getStats(); } catch (e) { st = null; }
+    if (!st) { el.innerHTML = 'Rendering&hellip;'; return; }
+    var rendered = st.rendered | 0;
+    var total = st.nodes | 0;
+    var capped = st.capped | 0;
+    var html = '<b>' + rendered + '</b>/' + total + ' nodes rendered';
+    if (capped > 0) {
+      html += '<br>' + capped + ' dim dots &mdash; files beyond the render cap (edges still connect to them)';
+    } else if (total > 0) {
+      html += ' &mdash; no render cap';
+    }
+    el.innerHTML = html;
   };
 
   // (Styled hover tooltip + data-tooltip delegation now live in
   // /static/brain-ui.js, loaded on every page by base.html.)
+
+  // ── View transition speed (0.2s–2s), persisted ────────────────
+  // Both renderers read window._PATCHI_VIEW_TRANSITION_MS live whenever a
+  // view switch starts, so a mid-session change applies immediately.
+  window._PATCHI_VIEW_TRANSITION_MS = 800;
+  try {
+    var _tvInit = parseFloat(localStorage.getItem('patchi:view-transition-s') || '0.8');
+    if (!isNaN(_tvInit) && _tvInit >= 0.2 && _tvInit <= 2) {
+      window._PATCHI_VIEW_TRANSITION_MS = Math.round(_tvInit * 1000);
+    }
+  } catch (e) {}
+  function _syncTransitionUI() {
+    var input = document.getElementById('brain-transition');
+    var val = document.getElementById('brain-transition-val');
+    if (input) input.value = String(window._PATCHI_VIEW_TRANSITION_MS / 1000);
+    if (val) val.textContent = (window._PATCHI_VIEW_TRANSITION_MS / 1000).toFixed(2).replace(/0$/, '') + 's';
+  }
+  function _onTransitionInput() {
+    var input = document.getElementById('brain-transition');
+    if (!input) return;
+    var s = parseFloat(input.value);
+    if (isNaN(s)) return;
+    window._PATCHI_VIEW_TRANSITION_MS = Math.round(Math.min(2, Math.max(0.2, s)) * 1000);
+    try { localStorage.setItem('patchi:view-transition-s', String(window._PATCHI_VIEW_TRANSITION_MS / 1000)); } catch (e) {}
+    _syncTransitionUI();
+  }
+  (function initTransitionUI() {
+    var input = document.getElementById('brain-transition');
+    if (input) {
+      input.addEventListener('input', _onTransitionInput);
+      input.addEventListener('change', _onTransitionInput);
+    }
+    _syncTransitionUI();
+  })();
+
+  // Render-cap toggle: render every node (no 300-node cap) for powerful
+  // machines. The preference persists; renderers read it at load time via
+  // window._PATCHI_RENDER_CAP_OFF (set before the brain libs load).
+  window._renderCapOff = false;
+  try { window._renderCapOff = localStorage.getItem('patchi:render-cap-off') === '1'; }
+  catch (e) {}
+  window._PATCHI_RENDER_CAP_OFF = window._renderCapOff;
+  function _syncCapButton() {
+    var btn = document.getElementById('btn-cap-toggle');
+    if (!btn) return;
+    btn.classList.toggle('is-on', window._renderCapOff);
+    var capN = window._PATCHI_RENDER_CAP || 300;
+    var tier = window._PATCHI_GPU_TIER || 'auto';
+    btn.title = window._renderCapOff
+      ? 'Rendering every node — click to cap at ' + capN + ' for speed (GPU tier: ' + tier + ')'
+      : 'Render every node (no ' + capN + '-node cap) — heavier, for powerful machines (GPU tier: ' + tier + ')';
+  }
+  _syncCapButton();
+  // The GPU benchmark completes after defer scripts run; re-sync the
+  // button/caption once the adaptive cap is known (and on load as a fallback).
+  window.addEventListener('patchi:gpu-ready', _syncCapButton);
+  window.addEventListener('load', _syncCapButton);
+  window.toggleRenderCap = function() {
+    window._renderCapOff = !window._renderCapOff;
+    window._PATCHI_RENDER_CAP_OFF = window._renderCapOff;
+    try { localStorage.setItem('patchi:render-cap-off', window._renderCapOff ? '1' : '0'); } catch (e) {}
+    _syncCapButton();
+    if (window.BrainMap && window.BrainMap.setRenderCap) window.BrainMap.setRenderCap(!window._renderCapOff);
+    if (window.BrainMap3D && window.BrainMap3D.setRenderCap) window.BrainMap3D.setRenderCap(!window._renderCapOff);
+    if (window.updateBrainMapMeta) window.updateBrainMapMeta();
+    toast(window._renderCapOff
+      ? 'Rendering all ' + (window._brainNodes || []).length + ' nodes'
+      : 'Back to the ' + (window._PATCHI_RENDER_CAP || 300) + '-node render cap', 'info');
+  };
 
   // 3D toggle
   window._is3D = false;

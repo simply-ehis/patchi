@@ -358,7 +358,9 @@ body {
 .brain-map-count{ flex:0 0 auto; font-size:11px; font-weight:600; color:var(--accent); background:rgba(99,102,241,0.12); border:1px solid rgba(99,102,241,0.28); border-radius:99px; padding:2px 10px; white-space:nowrap; letter-spacing:0.01em; }
 .brain-map-desc{ font-size:11px; color:var(--text-secondary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:340px; }
 @media (max-width:1240px){ .brain-map-desc{ display:none; } }
-.brain-tooltip{ position:fixed; z-index:99999; max-width:460px; background:rgba(13,17,23,0.96); border:1px solid var(--border); border-radius:6px; padding:5px 10px; font-family:var(--font-mono); font-size:11px; color:var(--text-primary); pointer-events:none; box-shadow:0 4px 16px rgba(0,0,0,0.4); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:none; }
+.brain-tooltip{ position:fixed; z-index:99999; max-width:460px; background:rgba(13,17,23,0.96); border:1px solid var(--border); border-radius:6px; padding:5px 10px; font-family:var(--font-mono); font-size:11px; color:var(--text-primary); pointer-events:none; box-shadow:0 4px 16px rgba(0,0,0,0.4); white-space:pre-line; display:none; }
+.brain-tt-dot{ display:inline-block; width:7px; height:7px; border-radius:50%; margin-right:7px; vertical-align:middle; flex-shrink:0; }
+.brain-tt-body{ display:inline-block; max-width:440px; white-space:pre-line; vertical-align:middle; overflow-wrap:anywhere; }
 .badge{
   font-size:11px; font-weight:600; padding:2px 8px;
   background: var(--bg-tertiary); border:1px solid var(--border);
@@ -383,6 +385,11 @@ body {
 
 /* ── Brain Map header controls ─────────────────────────────────────── */
 .brain-toolbar{ display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+.brain-transition{ display:inline-flex; align-items:center; gap:5px; font-size:11px; color:var(--text-secondary);
+  cursor:pointer; user-select:none; }
+.brain-transition input[type=range]{ width:70px; height:14px; accent-color:var(--accent, #58a6ff); cursor:pointer; margin:0; }
+.brain-transition-val{ min-width:30px; font-variant-numeric:tabular-nums; color:var(--text-primary); }
+.brain-transition-icon{ font-size:11px; line-height:1; }
 .brain-search-wrap{ position:relative; display:inline-flex; align-items:center; }
 input.brain-search-input{ width:220px; padding:4px 24px 4px 8px; font-size:12px; }
 .brain-search-clear{ position:absolute; right:4px; width:22px; height:22px; font-size:12px; color:var(--text-secondary); padding:0; line-height:1; }
@@ -906,3 +913,11 @@ textarea:focus, input:focus{ outline:none; border-color: var(--accent-border); b
   flex:0 0 auto; width:8px; height:8px; border-radius:50%;
   background:var(--text-muted, #6b7280); opacity:0.45;
 }
+/* Always-visible hint explaining the header node/edge badge */
+.brain-map-count-hint{
+  display:flex; align-items:center; gap:6px;
+  padding:3px 16px; font-size:10px; color:var(--text-muted);
+  background:var(--bg-primary); border-bottom:1px solid var(--border-subtle);
+  line-height:1.5;
+}
+.brain-map-count-hint b{ color:var(--text-secondary); font-weight:600; }

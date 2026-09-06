@@ -4,7 +4,6 @@
 Subcommands:
   p ai status          — Show all configured AI keys and their status
   p ai test            — Send a test prompt to the active AI provider
-  p ai horde           — Test the AI Horde community endpoint (key 0000000000)
   p ai add             — Add a new API key interactively
   p ai remove <name>   — Remove an API key by name
 """
@@ -36,8 +35,6 @@ def run(args) -> None:
         run_status(root)
     elif ai_cmd == "test":
         run_test(root)
-    elif ai_cmd == "horde":
-        run_horde_test()
     elif ai_cmd == "add":
         run_add(root)
     elif ai_cmd == "remove":
@@ -107,8 +104,6 @@ def run_status(root: Path | None = None) -> None:
     config = cfg.load(_resolve_root(root))
     ai_cfg = config.get("ai", {})
     keys = ai_cfg.get("keys", [])
-    horde = ai_cfg.get("horde_fallback", False)
-    horde_key = ai_cfg.get("horde_key", "0000000000")
     local = ai_cfg.get("local_model_name")
 
     con.print()
@@ -145,12 +140,6 @@ def run_status(root: Path | None = None) -> None:
     else:
         con.print("  [dim]No API keys configured. Run: p ai add[/dim]")
 
-    # Horde
-    horde_text = (
-        f"[#4ADE80]enabled[/#4ADE80] (key: {horde_key})" if horde else "[dim]disabled[/dim]"
-    )
-    con.print()
-    con.print(f"  AI Horde fallback: {horde_text}")
     con.print()
 
 
@@ -175,28 +164,7 @@ def run_test(root: Path | None = None) -> None:
         con.print(f"  Response: [dim]{result[:120]}[/dim]")
     else:
         con.print("[#FACC15]No response[/#FACC15]")
-        con.print("  [dim]No AI configured or all keys failed. Try: p ai horde[/dim]")
-    con.print()
-
-
-def run_horde_test() -> None:
-    from patchi.core.ai.client import _call_ai_horde
-
-    con.print()
-    con.print("[bold #C8621A]Testing AI Horde (community key)[/bold #C8621A]")
-    con.print("  [dim]This may take 10–60 seconds depending on worker availability…[/dim]")
-    con.print()
-
-    t0 = time.monotonic()
-    result = _call_ai_horde("0000000000", _TEST_PROMPT, 30)
-    elapsed = (time.monotonic() - t0) * 1000
-
-    if result:
-        con.print(f"  [#4ADE80]✓ AI Horde is working[/#4ADE80] ({elapsed:.0f}ms)")
-        con.print(f"  Response: [dim]{result[:120]}[/dim]")
-    else:
-        con.print("  [#FACC15]⚠ AI Horde did not respond in time.[/#FACC15]")
-        con.print("  [dim]Try again — Horde workers may be busy.[/dim]")
+        con.print("  [dim]No AI configured or all keys failed.[/dim]")
     con.print()
 
 

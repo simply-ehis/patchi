@@ -1838,7 +1838,6 @@ async def get_model_status(request: Request) -> JSONResponse:
                 "ollama_running": ollama_running,
                 "ollama_models": ollama_models,
                 "active_keys": [k.get("nickname", k.get("name", "?")) for k in active_keys],
-                "horde_enabled": ai_cfg.get("horde_fallback", False),
             }
         )
     except Exception as e:

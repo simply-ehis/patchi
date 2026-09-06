@@ -192,7 +192,6 @@ def _run_status(root: Path, json_output: bool) -> None:
     ai_config = config.get("ai", {})
     local_model = ai_config.get("local_model_name")
     keys = ai_config.get("keys", [])
-    horde_fallback = ai_config.get("horde_fallback", False)
 
     if local_model:
         ai_line = f"[#4ADE80]Local:[/#4ADE80] {local_model}"
@@ -206,9 +205,6 @@ def _run_status(root: Path, json_output: bool) -> None:
         ai_detail = "  ".join(k.get("nickname", "?") for k in keys[:4])
         if len(keys) > 4:
             ai_detail += f" +{len(keys) - 4} more"
-    elif horde_fallback:
-        ai_line = "[yellow]Community fallback[/yellow]"
-        ai_detail = "AI Horde · slower but always works"
     else:
         ai_line = "[yellow]Not configured[/yellow]"
         ai_detail = "Run [bold]p key add[/bold] or [bold]p init[/bold]"

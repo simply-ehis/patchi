@@ -97,12 +97,41 @@ PROVIDERS: list[dict] = [
         "format": "openai",
         "docs": "openrouter.ai",
     },
+    {
+        "name": "Custom",
+        "base": "",
+        "model": "",
+        "format": "openai",
+        "docs": "Enter your own provider details",
+    },
 ]
 
 PROVIDER_NAMES = [p["name"] for p in PROVIDERS]
 
 
 _log = logging.getLogger("patchi.cli.key_cmd")
+
+
+def _secure_key_input(prompt: str) -> str:
+    """
+    Securely read an API key from stdin, with support for pasting in PowerShell.
+    
+    Uses getpass on Unix-like systems, but on Windows/PowerShell falls back to
+    a method that allows pasting (getpass blocks pasting in some PowerShell versions).
+    """
+    import sys
+    
+    # Try getpass first (works on most Unix, blocks paste in some PowerShell)
+    try:
+        import getpass
+        return getpass.getpass(prompt + " ")
+    except Exception:
+        pass
+    
+    # Fallback: use rich's Prompt but without password masking
+    # This allows pasting in PowerShell - the key is stored securely in .env anyway
+    from rich.prompt import Prompt
+    return Prompt.ask(prompt)
 
 
 def _provider_by_name(name: str) -> dict | None:
@@ -148,14 +177,38 @@ def run_add(root: Path | None = None) -> None:
 
     provider_name = provider_data["name"]
 
+    # Handle Custom provider - prompt for details
+    if provider_name == "Custom":
+        provider_name = Prompt.ask("[#F2EDD6]Provider name[/#F2EDD6]")
+        if not provider_name.strip():
+            con.print("[red]Provider name is required.[/red]")
+            return
+        base_url = Prompt.ask("[#F2EDD6]API base URL[/#F2EDD6]", default="https://api.example.com/v1")
+        if not base_url.strip():
+            con.print("[red]Base URL is required.[/red]")
+            return
+        model = Prompt.ask("[#F2EDD6]Model name[/#F2EDD6]")
+        if not model.strip():
+            con.print("[red]Model name is required.[/red]")
+            return
+        format_choices = ["openai", "anthropic", "google", "cohere"]
+        fmt = Prompt.ask("[#F2EDD6]API format[/#F2EDD6]", choices=format_choices, default="openai")
+        provider_data = {
+            "name": provider_name,
+            "base": base_url.strip(),
+            "model": model.strip(),
+            "format": fmt,
+            "docs": "custom",
+        }
+
     # Nickname
     nickname = Prompt.ask(
         "[#F2EDD6]Nickname for this key[/#F2EDD6]",
         default=provider_name,
     )
 
-    # Key input
-    key_value = Prompt.ask("[#F2EDD6]Paste your API key (sk-...)[/#F2EDD6]", password=True)
+    # Key input - use secure input that works in PowerShell
+    key_value = _secure_key_input("[#F2EDD6]Paste your API key[/#F2EDD6]")
     if not key_value.strip():
         con.print("[red]No key entered.[/red]")
         return

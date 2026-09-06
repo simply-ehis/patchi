@@ -7,6 +7,9 @@
 
 var BrainMap3D = (() => {
   let scene, camera, renderer, controls, nodeGroup, edgeGroup, dotGroup;
+  // Live edge lines: {a, b, line} for the currently-drawn set, so the glide
+  // can stretch their endpoints in place instead of rebuilding every frame.
+  let _edgeLines = [];
   let raycaster, mouse;
   let _nodes3d = {}, _edges3d = [];
   let _lastNodes = [], _lastEdges = [];
@@ -17,6 +20,13 @@ var BrainMap3D = (() => {
   // meshes + label textures; the rest are lightweight position-only entries so
   // edges still route through them without paying for geometry or textures.
   const MAX_RENDERED_NODES = 300;
+  // Toggleable render cap — same contract as the 2D renderer (see canvas.js).
+  var _renderCap3D = !(window._PATCHI_RENDER_CAP_OFF === true);
+  // Adaptive cap — same contract as the 2D renderer (see canvas.js).
+  var _adaptiveCap3D = (window._PATCHI_RENDER_CAP || MAX_RENDERED_NODES);
+  function _nodeLimit3D(ns) {
+    return _renderCap3D ? _adaptiveCap3D : (ns ? ns.length : MAX_RENDERED_NODES);
+  }
   let _nodeLabels = [];
   let _animFrame = null;
   let _initialized = false;
@@ -68,6 +78,8 @@ var BrainMap3D = (() => {
 
   // ── Touch gestures ────────────────────────────────────────
   let _rotateState = null; // {startAngle, startAzimuth, startPolar}
+  let _pinchState = null;  // {startDist, startZoom, center}
+  let _panState = null;    // {startX, startY, startTarget}
   let _threeFingerState = null; // {startX, startY, startTime}
   let _viewPresets = ['top', 'front', 'side'];
   let _currentPreset = -1; // index into _viewPresets, -1 = custom
@@ -80,6 +92,19 @@ var BrainMap3D = (() => {
 
   function _touchAngle(t1, t2) {
     return Math.atan2(t2.clientY - t1.clientY, t2.clientX - t1.clientX);
+  }
+
+  function _touchDist(t1, t2) {
+    var dx = t2.clientX - t1.clientX;
+    var dy = t2.clientY - t1.clientY;
+    return Math.sqrt(dx*dx + dy*dy);
+  }
+
+  function _touchCenter(t1, t2) {
+    return {
+      x: (t1.clientX + t2.clientX) / 2,
+      y: (t1.clientY + t2.clientY) / 2
+    };
   }
 
   function _animateCamera(targetPos, targetUp, duration) {
@@ -233,34 +258,116 @@ var BrainMap3D = (() => {
         _threeFingerState = { startX: cx, startY: cy, startTime: Date.now() };
         return;
       }
-      // Two-finger rotate
+      // Two fingers: init pinch/pan state (we handle zoom+pan manually, not via OrbitControls)
       if (e.touches.length === 2 && controls) {
-        var angle = _touchAngle(e.touches[0], e.touches[1]);
-        var offset = new THREE.Vector3().copy(camera.position).sub(controls.target);
-        var spherical = new THREE.Spherical().setFromVector3(offset);
-        _rotateState = {
-          startAngle: angle,
-          startAzimuth: spherical.theta,
-          startPolar: spherical.phi,
+        var t1 = e.touches[0], t2 = e.touches[1];
+        var dist = _touchDist(t1, t2);
+        var center = _touchCenter(t1, t2);
+        
+        // Check if this looks like a pinch (fingers moving apart/together) or pan
+        // We'll determine in touchmove based on distance change
+        _pinchState = {
+          startDist: dist,
+          startZoom: controls.getDistance ? controls.getDistance() : camera.position.distanceTo(controls.target),
+          center: center
         };
-        controls.touches.TWO = THREE.TOUCH.DOLLY_ROTATE;
+        _panState = null;
+        _rotateState = null;
+        
+        // Disable OrbitControls two-finger handling so we can handle pinch/pan ourselves
+        controls.touches.TWO = THREE.TOUCH.DOLLY_PAN; // This will be overridden by our manual handling
+        controls.enableRotate = false; // We'll handle rotation via rotate gesture
       }
-    }, { passive: true });
+    }, { passive: false }); // Need passive: false to preventDefault for pinch
 
     el.addEventListener('touchmove', function(e) {
-      // Two-finger rotate
-      if (e.touches.length === 2 && _rotateState && controls) {
-        var angle = _touchAngle(e.touches[0], e.touches[1]);
-        var delta = angle - _rotateState.startAngle;
-        var offset = new THREE.Vector3().copy(camera.position).sub(controls.target);
-        var spherical = new THREE.Spherical().setFromVector3(offset);
-        spherical.theta = _rotateState.startAzimuth + delta * 1.5;
-        spherical.phi = Math.max(0.1, Math.min(Math.PI - 0.1, spherical.phi));
-        offset.setFromSpherical(spherical);
-        camera.position.copy(controls.target).add(offset);
-        camera.lookAt(controls.target);
+      if (!controls) return;
+      
+      // Three-finger: do nothing (handled in touchend)
+      if (e.touches.length === 3) return;
+      
+      // Two fingers: handle pinch-to-zoom OR two-finger pan
+      if (e.touches.length === 2) {
+        var t1 = e.touches[0], t2 = e.touches[1];
+        var dist = _touchDist(t1, t2);
+        var center = _touchCenter(t1, t2);
+        
+        if (_pinchState) {
+          // Pinch-to-zoom: change camera distance
+          var zoomFactor = dist / _pinchState.startDist;
+          var newDistance = _pinchState.startZoom / zoomFactor; // Inverse: pinch out = zoom in
+          
+          // Clamp distance
+          var minDist = controls.minDistance || 50;
+          var maxDist = controls.maxDistance || 12000;
+          newDistance = Math.max(minDist, Math.min(maxDist, newDistance));
+          
+          // Apply zoom by moving camera along the view vector
+          var offset = new THREE.Vector3().copy(camera.position).sub(controls.target);
+          var currentDist = offset.length();
+          if (currentDist > 0.001) {
+            offset.normalize().multiplyScalar(newDistance);
+            camera.position.copy(controls.target).add(offset);
+          }
+          
+          // Also update OrbitControls internal state
+          if (controls._dollyControl) {
+            // This is a bit hacky but works
+          }
+          
+          // Check for pan: if fingers moved significantly without much distance change
+          var panDist = Math.hypot(center.x - _pinchState.center.x, center.y - _pinchState.center.y);
+          var zoomDistChange = Math.abs(dist - _pinchState.startDist);
+          
+          if (panDist > 10 && zoomDistChange < panDist * 0.5) {
+            // This is primarily a pan gesture
+            if (!_panState) {
+              _panState = {
+                startX: center.x,
+                startY: center.y,
+                startTarget: controls.target.clone()
+              };
+            }
+            // Pan the target
+            var dx = (center.x - _panState.startX) * 0.5;
+            var dy = (center.y - _panState.startY) * 0.5;
+            
+            // Convert screen-space pan to world-space pan
+            var panFactor = newDistance / 500; // Scale factor based on zoom
+            var right = new THREE.Vector3().crossVectors(camera.up, offset).normalize();
+            var up = camera.up.clone().normalize();
+            
+            controls.target.copy(_panState.startTarget)
+              .addScaledVector(right, -dx * panFactor)
+              .addScaledVector(up, dy * panFactor);
+          }
+        }
+        
+        // Two-finger rotate: if fingers rotate around each other
+        if (!_panState && _rotateState === null) {
+          var angle = _touchAngle(t1, t2);
+          var offset = new THREE.Vector3().copy(camera.position).sub(controls.target);
+          var spherical = new THREE.Spherical().setFromVector3(offset);
+          _rotateState = {
+            startAngle: angle,
+            startAzimuth: spherical.theta,
+            startPolar: spherical.phi,
+          };
+        }
+        
+        if (_rotateState && !_panState) {
+          var angle = _touchAngle(t1, t2);
+          var delta = angle - _rotateState.startAngle;
+          var offset = new THREE.Vector3().copy(camera.position).sub(controls.target);
+          var spherical = new THREE.Spherical().setFromVector3(offset);
+          spherical.theta = _rotateState.startAzimuth + delta * 1.5;
+          spherical.phi = Math.max(0.1, Math.min(Math.PI - 0.1, spherical.phi + (center.y - _pinchState.center.y) * 0.01));
+          offset.setFromSpherical(spherical);
+          camera.position.copy(controls.target).add(offset);
+          camera.lookAt(controls.target);
+        }
       }
-    }, { passive: true });
+    }, { passive: false });
 
     el.addEventListener('touchend', function(e) {
       // Three-finger swipe: detect horizontal direction
@@ -283,10 +390,17 @@ var BrainMap3D = (() => {
           _showPresetIndicator(presetName);
         }
       }
-      // Two-finger rotate cleanup
-      if (e.touches.length < 2 && _rotateState) {
-        _rotateState = null;
-        if (controls) controls.touches.TWO = THREE.TOUCH.DOLLY_PAN;
+      // Cleanup two-finger states
+      if (e.touches.length < 2) {
+        _pinchState = null;
+        _panState = null;
+        if (_rotateState) {
+          _rotateState = null;
+        }
+        if (controls) {
+          controls.enableRotate = true;
+          controls.touches.TWO = THREE.TOUCH.DOLLY_PAN;
+        }
       }
     }, { passive: true });
   }
@@ -370,6 +484,8 @@ var BrainMap3D = (() => {
       if (c.userData && c.userData.id !== id) _setMeshDim(c, true);
       else if (c.userData && c.userData.id === id) _setMeshDim(c, false);
     });
+    // Dots at the far end of a highlighted edge pop so endpoints stay visible.
+    _applyDotHighlight();
 
     // Connected edges stand out; unrelated ones are suppressed by _rebuildEdges.
     var sel = _selEdgesOf(id);
@@ -392,6 +508,7 @@ var BrainMap3D = (() => {
     if (dotGroup) dotGroup.children.forEach(function(c) {
       if (c.isMesh) _setMeshDim(c, false);
     });
+    _applyDotHighlight();  // re-raise dots for an active search, if any
     _clearChip();
     if (_showEdges) _rebuildEdges();
   }
@@ -435,7 +552,7 @@ var BrainMap3D = (() => {
     scene.background = new THREE.Color(0x0d1117);
 
     // Camera
-    camera = new THREE.PerspectiveCamera(60, W / H, 1, 10000);
+    camera = new THREE.PerspectiveCamera(60, W / H, 1, 25000);
     camera.position.set(0, 0, 800);
 
     // Renderer
@@ -459,7 +576,7 @@ var BrainMap3D = (() => {
       controls.zoomSpeed = 1.2;
       controls.panSpeed = 0.8;
       controls.minDistance = 50;
-      controls.maxDistance = 3000;
+      controls.maxDistance = 12000;
       // Custom angular velocity tracking for extra spin
       _setupMomentum(renderer.domElement);
       // Explicit touch configuration
@@ -471,10 +588,47 @@ var BrainMap3D = (() => {
       controls.enableZoom = true;
       controls.enablePan = true;
       controls.enableKeys = true;
+      // User interaction cancels a pending/active zoom-to-fit so the camera
+      // never fights the mouse/touch.
+      controls.addEventListener('start', _stopCameraFit);
       // Prevent default touch actions on the canvas
       renderer.domElement.style.touchAction = 'none';
       // Two-finger rotate gesture
       _setupTouchRotate(renderer.domElement);
+      
+      // Wheel event for touchpad zoom (two-finger scroll on trackpad)
+      renderer.domElement.addEventListener('wheel', function(e) {
+        // Check if this is a touchpad gesture (typically has deltaMode=0 and small deltaY)
+        // or a mouse wheel (larger deltaY, deltaMode=1 or 0)
+        var isTouchpad = Math.abs(e.deltaY) < 100 && e.deltaMode === 0;
+        
+        if (isTouchpad) {
+          // Smooth zoom for touchpad
+          var zoomFactor = e.deltaY > 0 ? 1.1 : 0.9; // scroll up = zoom in
+          var newDistance = controls.getDistance ? controls.getDistance() / zoomFactor : 
+                           camera.position.distanceTo(controls.target) / zoomFactor;
+          
+          var minDist = controls.minDistance || 50;
+          var maxDist = controls.maxDistance || 12000;
+          newDistance = Math.max(minDist, Math.min(maxDist, newDistance));
+          
+          var offset = new THREE.Vector3().copy(camera.position).sub(controls.target);
+          var currentDist = offset.length();
+          if (currentDist > 0.001) {
+            offset.normalize().multiplyScalar(newDistance);
+            camera.position.copy(controls.target).add(offset);
+          }
+          
+          // Pan with shift+wheel (horizontal pan)
+          if (e.shiftKey && Math.abs(e.deltaX) > 0) {
+            var panAmount = e.deltaX * 0.5;
+            var right = new THREE.Vector3().crossVectors(camera.up, offset).normalize();
+            controls.target.addScaledVector(right, -panAmount * (newDistance / 500));
+          }
+          
+          e.preventDefault();
+        }
+      }, { passive: false });
     }
 
     // Groups
@@ -523,13 +677,23 @@ var BrainMap3D = (() => {
         var ud = hits[i].object.userData;
         if (ud && ud.id) {
           // Dots are dim by design; prefix the tooltip so it's clear this is a
-          // capped file (no label sprite) vs a rendered node.
+          // capped file (no label sprite) vs a rendered node. When the file
+          // has findings, append the count + top severity so risk is visible
+          // at a glance. Rendered nodes carry findings/severity on userData;
+          // dots keep the full node record on userData.node.
+          var fc = ud.dot ? (ud.node && (ud.node.finding_count || 0)) : (ud.findings || 0);
+          var sev = ud.dot ? (ud.node && ud.node.severity) : ud.severity;
           hitLabel = (ud.dot ? 'capped · ' : '') + (ud.label || ud.id);
+          var hitColor = null;
+          if (fc > 0) {
+            hitLabel += '\n\u26a0 ' + fc + ' finding' + (fc === 1 ? '' : 's') + ' · ' + (sev || 'info');
+            hitColor = _healthColor(fc, sev);  // matches the node mesh's own color
+          }
           break;
         }
       }
       if (hitLabel) {
-        if (window.showBrainTooltip) window.showBrainTooltip(hitLabel, e.clientX, e.clientY);
+        if (window.showBrainTooltip) window.showBrainTooltip(hitLabel, e.clientX, e.clientY, hitColor);
       } else if (window.hideBrainTooltip) {
         window.hideBrainTooltip();
       }
@@ -543,8 +707,12 @@ var BrainMap3D = (() => {
     gridHelper.position.y = -300;
     scene.add(gridHelper);
 
-    // Resize handler
+    // Resize handler — window resize plus container size changes (e.g. the
+    // full-screen toggle, which swaps layout without resizing the window).
     window.addEventListener('resize', _onResize);
+    if (typeof ResizeObserver !== 'undefined' && container) {
+      try { new ResizeObserver(_onResize).observe(container); } catch (e) {}
+    }
 
     _initialized = true;
     _animate();
@@ -562,6 +730,7 @@ var BrainMap3D = (() => {
   function _animate() {
     _animFrame = requestAnimationFrame(_animate);
     _tickTransition();
+    _tickCameraFit();
     _applyMomentum();
     if (controls) controls.update();
     renderer.render(scene, camera);
@@ -658,14 +827,61 @@ var BrainMap3D = (() => {
     }
   }
 
-  function _edgeTouchesSelection(from, to) {
-    if (!_selectedId) return true;   // no selection: draw everything
-    return from === _selectedId || to === _selectedId;
+  function _dotHasHighlightedEdge(id) {
+    // True when the capped file's edges are highlighted: it IS the selected
+    // file, it shares an edge with the selected file, or (during search) one
+    // of its neighbors is a match.
+    if (_selectedId) {
+      if (id === _selectedId) return true;
+      for (var i = 0; i < _lastEdges.length; i++) {
+        var e = _lastEdges[i];
+        var f = e.source || e.from, t = e.target || e.to;
+        if ((f === id && t === _selectedId) || (t === id && f === _selectedId)) return true;
+      }
+      return false;
+    }
+    if (_searchActiveIds) {
+      for (var j = 0; j < _lastEdges.length; j++) {
+        var e2 = _lastEdges[j];
+        var f2 = e2.source || e2.from, t2 = e2.target || e2.to;
+        if ((f2 === id && _searchActiveIds[t2]) || (t2 === id && _searchActiveIds[f2])) return true;
+      }
+    }
+    return false;
+  }
+
+  function _applyDotHighlight() {
+    // Dots whose edges are highlighted pop to near-full opacity so the edge
+    // endpoint is visible. During selection every other dot stays dimmed at
+    // 0.10; otherwise (search / plain restore) dots return to their base.
+    if (!dotGroup) return;
+    dotGroup.children.forEach(function(c) {
+      if (!c.isMesh || !c.userData || !c.userData.id) return;
+      if (_dotHasHighlightedEdge(c.userData.id)) {
+        if (c._origOpacity === undefined) c._origOpacity = c.material.opacity;
+        c.material.opacity = 0.8;
+        c.material.transparent = true;
+      } else if (_selectedId) {
+        if (c._origOpacity === undefined) c._origOpacity = c.material.opacity;
+        c.material.opacity = 0.10;
+        c.material.transparent = true;
+      } else if (c._origOpacity !== undefined) {
+        c.material.opacity = c._origOpacity;
+      }
+    });
   }
 
   function _addEdge3D(from, to, type) {
     if (!_nodes3d[from] || !_nodes3d[to]) return;
-    if (!_edgeTouchesSelection(from, to)) return;  // suppress unrelated edges
+    // Highlight edges touching the selection/match; suppress unrelated edges
+    // during selection; fade non-match edges during search.
+    var highlighted = false;
+    if (_selectedId) {
+      highlighted = from === _selectedId || to === _selectedId;
+      if (!highlighted) return;  // suppress unrelated edges
+    } else if (_searchActiveIds) {
+      highlighted = !!(_searchActiveIds[from] || _searchActiveIds[to]);
+    }
     var fromPos = _nodes3d[from].position;
     var toPos = _nodes3d[to].position;
 
@@ -675,20 +891,24 @@ var BrainMap3D = (() => {
     else if (type === 'blast_radius') color = COLORS.edgeBlast;
 
     var geometry = new THREE.BufferGeometry().setFromPoints([fromPos, toPos]);
-    // Selected edges render brighter + more opaque so the file's role pops.
-    var selected = !!_selectedId;
+    // Highlighted edges render brighter + more opaque so the file's role pops.
     var material = new THREE.LineBasicMaterial({
       color: color,
       transparent: true,
-      opacity: selected ? 0.9 : 0.3,
+      opacity: highlighted ? 0.9 : (_searchActiveIds ? 0.15 : 0.3),
     });
     var line = new THREE.Line(geometry, material);
-    if (selected) {
+    if (highlighted) {
       line.material.linewidth = 2;  // best-effort (WebGL caps at 1 on most GPUs)
       // Slight bloom-ish boost: nothing more available without postprocessing,
       // so brightness comes from opacity + color already being vivid.
     }
     edgeGroup.add(line);
+    // Two-point lines: register for in-place endpoint updates during glides.
+    // Culling needs the geometry's bounding sphere, which goes stale once we
+    // move vertices in place — these lines span the scene anyway, so skip it.
+    line.frustumCulled = false;
+    _edgeLines.push({ a: from, b: to, line: line });
   }
 
   // ── Layout algorithms (3D-optimized) ──────────────────────
@@ -1002,6 +1222,94 @@ var BrainMap3D = (() => {
     return pos;
   }
 
+  // ── Camera zoom-to-fit (eased) ────────────────────────────
+  // After a view glide finishes, ease the camera out (or in) so the whole
+  // new layout fits the frame, instead of keeping the previous view's framing
+  // (which can crop a wide layout or make a compact one look tiny).
+  // Shared view-transition duration (ms) — set by the ⏱ slider in the map
+  // controls (window._PATCHI_VIEW_TRANSITION_MS), clamped to 200–2000ms.
+  function _viewMs() {
+    var v = window._PATCHI_VIEW_TRANSITION_MS;
+    return (typeof v === 'number' && v >= 200 && v <= 2000) ? v : 800;
+  }
+
+  var _pendingFit = null;
+  var _fitActive = false, _fitStart = 0, _fitDuration = 700;
+  var _fitFromPos = null, _fitToPos = null;
+  var _fitFromTgt = null, _fitToTgt = null;
+
+  function _boundsOf(positions) {
+    var minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    var minZ = Infinity, maxZ = -Infinity, n = 0;
+    Object.keys(positions || {}).forEach(function(id) {
+      var p = positions[id];
+      if (!p) return;
+      n++;
+      if (p.x < minX) minX = p.x; if (p.x > maxX) maxX = p.x;
+      if (p.y < minY) minY = p.y; if (p.y > maxY) maxY = p.y;
+      if (p.z < minZ) minZ = p.z; if (p.z > maxZ) maxZ = p.z;
+    });
+    if (n === 0) return { cx: 0, cy: 0, cz: 0, r: 0 };
+    var cx = (minX + maxX) / 2, cy = (minY + maxY) / 2, cz = (minZ + maxZ) / 2;
+    var r = 0.5 * Math.sqrt(Math.pow(maxX - minX, 2) +
+                            Math.pow(maxY - minY, 2) +
+                            Math.pow(maxZ - minZ, 2));
+    return { cx: cx, cy: cy, cz: cz, r: r };
+  }
+
+  function _fitDistanceFor(r) {
+    var el = document.getElementById('brain-map-3d');
+    var w = el ? el.clientWidth : 0, h = el ? el.clientHeight : 0;
+    var aspect = (w > 0 && h > 0) ? w / h : 1.6;
+    var halfV = (60 * Math.PI / 180) / 2;             // vertical half-fov
+    var halfH = Math.atan(Math.tan(halfV) * aspect);  // horizontal half-fov
+    var need = (r + 40) / Math.sin(Math.min(halfV, halfH)); // tighter axis
+    var maxD = (controls && controls.maxDistance) ? controls.maxDistance - 10 : 11990;
+    return Math.min(Math.max(need * 1.15, 150), maxD);
+  }
+
+  function _smoothFitTo(cx, cy, cz, r) {
+    if (!camera || !controls || !(r > 0)) return;
+    var fitDist = _fitDistanceFor(r);
+    var center = new THREE.Vector3(cx, cy, cz);
+    var dir = new THREE.Vector3().copy(camera.position).sub(controls.target);
+    if (dir.lengthSq() < 1e-8) dir.set(0, 0, 1);
+    dir.normalize();
+    var fromPos = camera.position.clone();
+    var fromTgt = controls.target.clone();
+    var toTgt = center.clone();
+    // Keep the user's viewing direction — pull back / push in to frame it.
+    var toPos = center.clone().addScaledVector(dir, fitDist);
+    if (fromPos.distanceTo(toPos) < 3 && fromTgt.distanceTo(toTgt) < 3) return;
+    _stopCameraFit();
+    _fitActive = true;
+    _fitStart = performance.now();
+    _fitDuration = _viewMs();
+    _fitFromPos = fromPos; _fitToPos = toPos;
+    _fitFromTgt = fromTgt; _fitToTgt = toTgt;
+  }
+
+  function _firePendingFit() {
+    if (!_pendingFit) return;
+    var f = _pendingFit; _pendingFit = null;
+    _smoothFitTo(f.cx, f.cy, f.cz, f.r);
+  }
+
+  function _stopCameraFit() {
+    _fitActive = false;
+    _pendingFit = null;
+  }
+
+  function _tickCameraFit() {
+    if (!_fitActive || !camera || !controls) return;
+    var t = Math.min((performance.now() - _fitStart) / _fitDuration, 1);
+    var e = _easeInOutCubic(t);
+    camera.position.lerpVectors(_fitFromPos, _fitToPos, e);
+    controls.target.lerpVectors(_fitFromTgt, _fitToTgt, e);
+    controls.update();
+    if (t >= 1) _fitActive = false;
+  }
+
   // ── Smooth Transition ─────────────────────────────────────
 
   function _easeInOutCubic(t) {
@@ -1037,8 +1345,8 @@ var BrainMap3D = (() => {
     // Update labels to follow their nodes
     _repositionLabels();
 
-    // Update edges to follow nodes
-    _rebuildEdges();
+    // Stretch live edge lines to follow the gliding nodes (no rebuild churn)
+    _stretchEdges();
 
     if (_animProgress >= 1) {
       // Snap to exact final positions
@@ -1048,9 +1356,11 @@ var BrainMap3D = (() => {
         if (mesh) { mesh.position.set(tgt.x, tgt.y, tgt.z); if (mesh.dot) mesh.dot.position.copy(mesh.position); }
       });
       _repositionLabels();
-      _rebuildEdges();
+      _stretchEdges();
       _animActive = false;
       _animTarget = null;
+      // Nodes have arrived — now ease the camera out to frame this layout.
+      _firePendingFit();
     }
     return _animActive;
   }
@@ -1079,8 +1389,25 @@ var BrainMap3D = (() => {
     });
   }
 
+  function _stretchEdges() {
+    if (_edgeLines.length === 0) return;
+    for (var i = 0; i < _edgeLines.length; i++) {
+      var r = _edgeLines[i];
+      var a = _nodes3d[r.a], b = _nodes3d[r.b];
+      if (!a || !b) continue;
+      var pa = a.position, pb = b.position;
+      var attr = r.line.geometry.attributes.position;
+      if (!attr) continue;
+      var arr = attr.array;
+      arr[0] = pa.x; arr[1] = pa.y; arr[2] = pa.z;
+      arr[3] = pb.x; arr[4] = pb.y; arr[5] = pb.z;
+      attr.needsUpdate = true;
+    }
+  }
+
   function _rebuildEdges() {
     while (edgeGroup.children.length > 0) edgeGroup.remove(edgeGroup.children[0]);
+    _edgeLines = [];
     if (_showEdges) {
       _lastEdges.forEach(function(e) {
         _addEdge3D(e.source || e.from, e.target || e.to, e.type || 'dependency');
@@ -1095,6 +1422,21 @@ var BrainMap3D = (() => {
     _lastEdges = edgesList || [];
     _render3D(_lastNodes, _lastEdges);
     if (window.updateBrainMapMeta) window.updateBrainMapMeta(_currentView);
+    // First frame: ease the camera to the freshly-drawn layout's bounds.
+    if (nodeGroup) {
+      var posMap = {};
+      Object.keys(_nodes3d).forEach(function(id) {
+        var en = _nodes3d[id];
+        if (en && en.position) posMap[id] = { x: en.position.x, y: en.position.y, z: en.position.z };
+      });
+      var bb = _boundsOf(posMap);
+      if (bb.r > 0) _smoothFitTo(bb.cx, bb.cy, bb.cz, bb.r);
+    }
+  }
+
+  function setRenderCap(on) {
+    _renderCap3D = !!on;
+    if (_lastNodes.length > 0) _render3D(_lastNodes, _lastEdges);
   }
 
   function _render3D(nodesList, edgesList) {
@@ -1102,6 +1444,7 @@ var BrainMap3D = (() => {
     // Clear previous
     while (nodeGroup.children.length > 0) nodeGroup.remove(nodeGroup.children[0]);
     while (edgeGroup.children.length > 0) edgeGroup.remove(edgeGroup.children[0]);
+    _edgeLines = [];
     if (dotGroup) while (dotGroup.children.length > 0) dotGroup.remove(dotGroup.children[0]);
     _nodes3d = {};
     _nodeLabels = [];
@@ -1121,7 +1464,7 @@ var BrainMap3D = (() => {
     nodesList.forEach(function(n, idx) {
       var id = n.id || n.path;
       var pos = positions[id] || { x: 0, y: 0, z: 0 };
-      if (idx < MAX_RENDERED_NODES) {
+      if (idx < _nodeLimit3D(nodesList)) {
         _addNode3D(id, n.label || n.path, n.type || 'default', pos.x, pos.y, pos.z, n.finding_count || 0, n.severity || 'info');
       } else {
         // Capped-out node: keep a position-only entry so edges route through
@@ -1160,6 +1503,7 @@ var BrainMap3D = (() => {
     if (dotGroup) dotGroup.children.forEach(function(c) {
       if (c.userData) _setMeshDim(c, c.userData.id !== id);
     });
+    _applyDotHighlight();
     _rebuildEdges();
     _clearChip();
     var en = _entry(id);
@@ -1188,8 +1532,12 @@ var BrainMap3D = (() => {
       case 'force3d': default: positions = _forceLayout3D(_lastNodes, _lastEdges); break;
     }
 
-    // Start smooth transition
-    _startTransition(positions, 800);
+    // Start smooth transition (duration comes from the ⏱ slider)
+    _startTransition(positions, _viewMs());
+    // Remember the FINAL layout bounds so the camera can ease out to frame
+    // the whole view once the glide completes (instead of snapping/cropping).
+    var b = _boundsOf(positions);
+    _pendingFit = { cx: b.cx, cy: b.cy, cz: b.cz, r: b.r };
   }
 
   function toggleEdges() {
@@ -1221,6 +1569,30 @@ var BrainMap3D = (() => {
     link.click();
   }
 
+  function toggleFullscreen() {
+    var container = document.getElementById('brain-map-3d');
+    if (!container) return;
+    var btn = document.getElementById('btn-toggle-fullscreen-3d');
+
+    if (!document.fullscreenElement) {
+      container.requestFullscreen().catch(function(err) {
+        console.warn('Fullscreen request failed:', err);
+      });
+      if (btn) btn.textContent = '⛶ Exit Fullscreen';
+      container.classList.add('brain-fullscreen');
+    } else {
+      document.exitFullscreen();
+      if (btn) btn.textContent = '⛶ Fullscreen';
+      container.classList.remove('brain-fullscreen');
+    }
+    // Trigger resize to fit the new dimensions
+    setTimeout(function() {
+      if (typeof BrainMap3D !== 'undefined' && BrainMap3D.resize) {
+        BrainMap3D.resize();
+      }
+    }, 100);
+  }
+
   function focusNode(nodeId) {
     var mesh = _nodes3d[nodeId];
     if (!mesh || !camera || !controls) return;
@@ -1233,13 +1605,15 @@ var BrainMap3D = (() => {
   function getStats() {
     // Audit hook: rendered = nodes with real meshes (the cap), labels = sprites.
     var meshes = 0;
-    nodeGroup.children.forEach(function(ch) {
+    // Groups exist only after init() — guard so the hook is safe pre-init
+    // (e.g. when toggle3D refreshes page meta before the engine is ready).
+    if (nodeGroup) nodeGroup.children.forEach(function(ch) {
       if (ch.isMesh) meshes++;
     });
     return {
       nodes: Object.keys(_nodes3d).length,
       rendered: meshes,
-      labels: _nodeLabels.length,
+      labels: _nodeLabels ? _nodeLabels.length : 0,
       capped: dotGroup ? dotGroup.children.length : 0,
       edges: _lastEdges.length,
       view: _currentView,
@@ -1255,6 +1629,7 @@ var BrainMap3D = (() => {
 
   // ── Node Search ───────────────────────────────────────────
   var _searchOrigColors = {};
+  var _searchActiveIds = null;  // matched node ids during an active search
 
   function searchNodes(query) {
     var q = (query || '').trim().toLowerCase();
@@ -1280,12 +1655,15 @@ var BrainMap3D = (() => {
           child.material.opacity = 0.8;
         }
       });
+      _searchActiveIds = null;
       _rebuildEdges();
+      _applyDotHighlight();
       if (countEl) countEl.textContent = '';
       return;
     }
 
     // Find and highlight matches
+    var matchIds = {};
     nodeGroup.children.forEach(function(child) {
       if (child.isMesh && child.userData && child.userData.id) {
         var id = child.userData.id;
@@ -1299,6 +1677,7 @@ var BrainMap3D = (() => {
         }
         if (isMatch) {
           matchCount++;
+          matchIds[id] = true;
           child.material.color.set(0xE8920A);
           child.material.emissive.set(new THREE.Color(0xE8920A).multiplyScalar(0.6));
           child.material.opacity = 1.0;
@@ -1313,7 +1692,9 @@ var BrainMap3D = (() => {
       }
     });
 
+    _searchActiveIds = matchIds;
     _rebuildEdges();
+    _applyDotHighlight();
     if (countEl) {
       countEl.textContent = matchCount + ' found';
       countEl.style.color = matchCount > 0 ? 'var(--accent)' : 'var(--danger)';
@@ -1333,19 +1714,68 @@ var BrainMap3D = (() => {
   return {
     init: init,
     loadNodes: loadNodes,
+    setRenderCap: setRenderCap,
     switchView: switchView,
     getPositions: getPositions,
     truncateLabel: _truncateLabel3D,
     toggleEdges: toggleEdges,
     toggleLabels: toggleLabels3D,
     resetCamera: resetCamera,
+    resize: _onResize,
     exportPNG: exportPNG3D,
+    toggleFullscreen: toggleFullscreen,
     focusNode: focusNode,
     getStats: getStats,
     destroy: destroy,
     searchNodes: searchNodes,
     selectNode: selectNode,
     clearSelection: clearSelection,
+    // Audit/test hook: camera + fit state for visual verification.
+    _camera: function() {
+      if (!camera || !controls) return null;
+      var el = document.getElementById('brain-map-3d');
+      var aspect = (el && el.clientWidth > 0 && el.clientHeight > 0) ? el.clientWidth / el.clientHeight : 1.6;
+      return {
+        px: camera.position.x, py: camera.position.y, pz: camera.position.z,
+        tx: controls.target.x, ty: controls.target.y, tz: controls.target.z,
+        ux: camera.up.x, uy: camera.up.y, uz: camera.up.z,
+        aspect: aspect,
+        fitting: _fitActive,
+      };
+    },
+    // Audit/test hook: live edge lines — geometry identity (proves the same
+    // line object is stretched in place during a glide) + endpoint sample.
+    _edges: function() {
+      var out = { count: _edgeLines.length, geoms: [], sample: null };
+      for (var i = 0; i < _edgeLines.length && i < 3; i++) {
+        var r = _edgeLines[i];
+        out.geoms.push(r.line.geometry.uuid);
+        if (i === 0) {
+          out.first = { a: r.a, b: r.b };
+          if (r.line.geometry.attributes.position) {
+            var arr = r.line.geometry.attributes.position.array;
+            out.sample = [arr[0], arr[1], arr[2], arr[3], arr[4], arr[5]];
+          }
+        }
+      }
+      return out;
+    },
+    // Audit/test hook: capped-dot opacity map (id -> opacity).
+    _dotStates: function() {
+      var out = {};
+      if (dotGroup) dotGroup.children.forEach(function(c) {
+        if (c.isMesh && c.userData && c.userData.id) out[c.userData.id] = c.material.opacity;
+      });
+      return out;
+    },
+    // Audit/test hook: edge line material opacities.
+    _edgeOpacities: function() {
+      var out = [];
+      if (edgeGroup) edgeGroup.children.forEach(function(c) {
+        if (c.isLine && c.material) out.push(c.material.opacity);
+      });
+      return out;
+    },
     // Audit/test hook: project a node's world position to screen coordinates.
     _project: function(id) {
       if (!camera || !renderer || !_entry(id)) return null;

@@ -47,8 +47,6 @@ def _default_config() -> dict:
             "local_model_path": None,
             "local_model_name": None,
             "keys": [],
-            "horde_fallback": True,
-            "horde_key": "0000000000",
             "cost_limit_enabled": False,
             "cost_limit": None,
             "cost_limit_per_run": None,
