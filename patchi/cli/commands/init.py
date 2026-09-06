@@ -311,7 +311,8 @@ def _setup_custom_provider(root: Path) -> None:
     nickname = Prompt.ask("  Nickname for this key", default=provider_name)
 
     _store_key(
-        root, provider=provider_name, base_url=base_url, model=model, api_key=api_key, fmt=fmt
+        root, provider=provider_name, base_url=base_url, model=model, api_key=api_key, fmt=fmt,
+        nickname=nickname,
     )
 
 
@@ -331,6 +332,7 @@ def _setup_known_provider(root: Path, provider_data: dict) -> None:
         model=provider_data["model"],
         api_key=api_key,
         fmt=provider_data["format"],
+        nickname=nickname,
     )
 
 
@@ -338,8 +340,6 @@ def _secure_key_input(prompt: str) -> str:
     """
     Securely read an API key from stdin, with support for pasting in PowerShell.
     """
-    import sys
-    
     try:
         import getpass
         return getpass.getpass(prompt + " ")
@@ -359,9 +359,10 @@ def _store_key(
     model: str,
     api_key: str,
     fmt: str = "openai",
+    nickname: str | None = None,
 ) -> None:
     """Store an API key in config and keys.json."""
-    nickname = provider
+    nickname = nickname or provider
     env_var = f"PATCHI_KEY_{nickname.upper().replace(' ', '_')}"
 
     existing_keys: list = cfg.load(root).get("ai", {}).get("keys", [])

@@ -77,15 +77,6 @@ def draw(console: Console | None = None, skip: bool = False) -> None:
         con.print(t, end="\n")
         return text.count("\n") + 1
 
-    def build_partial_art(partial_word: str) -> str:
-        if not partial_word:
-            return ""
-        max_col = max(_LETTER_COLS[ch][1] for ch in partial_word if ch in _LETTER_COLS)
-        lines = []
-        for art_line in _FULL_ART:
-            lines.append(art_line[:max_col].rstrip())
-        return "\n".join(lines)
-
     for target_ms, word in _ANIM_FRAMES:
         target_s = target_ms / 1000.0
         elapsed = time.monotonic() - start

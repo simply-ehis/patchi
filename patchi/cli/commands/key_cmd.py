@@ -119,8 +119,6 @@ def _secure_key_input(prompt: str) -> str:
     Uses getpass on Unix-like systems, but on Windows/PowerShell falls back to
     a method that allows pasting (getpass blocks pasting in some PowerShell versions).
     """
-    import sys
-    
     # Try getpass first (works on most Unix, blocks paste in some PowerShell)
     try:
         import getpass
@@ -183,7 +181,7 @@ def run_add(root: Path | None = None) -> None:
         if not provider_name.strip():
             con.print("[red]Provider name is required.[/red]")
             return
-        base_url = Prompt.ask("[#F2EDD6]API base URL[/#F2EDD6]", default="https://api.example.com/v1")
+        base_url = Prompt.ask("[#F2EDD6]API base URL[/#F2EDD6]", default="")
         if not base_url.strip():
             con.print("[red]Base URL is required.[/red]")
             return

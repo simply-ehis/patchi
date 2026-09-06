@@ -1,4 +1,4 @@
-# Patchi 0.7.0 — Smart Code Security & Quality Orchestrator
+# Patchi 0.7.2 — Smart Code Security & Quality Orchestrator
 
 > **⚠️ Pre-1.0.0 Development Preview** — Functional and usable, but still in active development.  
 > **Peak stable release is planned for `v1.0.0`** — ~0.4.0 of feature work remains. APIs, agent lists and hosted behavior may still evolve.  
@@ -21,15 +21,16 @@ pip install ".[web]"
 
 ---
 
-## ✨ What's New in 0.7.0
+## ✨ What's New in 0.7.2
 
-- **Unified Web UI** — one `p web` command serves everything: Dashboard, Brain Map (2D/3D), Findings, Assurance Heatmap, Live Tests, Hosted control plane. See [Web ↔ CLI Parity](docs/web-cli-parity.md).
-- **1:1 Project Selection** — `p web` serves the project your terminal is standing in (same walk-up as every `p <command>`). Switch projects live from the header dropdown (`GET /api/tenant/*`).
-- **License Noise Trimmed** — `p scan` is now focused by default. Heavy/compliance findings (license for every dep) are hidden unless you opt in: `p scan --with-license` or `p scan --with-extended`.
-- **Hosted → Experimental** — live log monitoring works but is flagged as preview (banner in CLI + UI).
-- **Smart fixes** — risk-gated `POST /api/fix/apply-all-safe` (only `ALLOW_AUTO` patches), cached `GET /api/security/report` (174s → 0.1s), self-improving checks fixed.
+- **BrainContext bridge** — all brain systems (enriched context, project reader, body tags, domain loader, reasoning) connected into a single injectable object
+- **800 security domains** with 2,955 playbooks from OWASP, CWE, NIST, SANS, and other frameworks
+- **Domain enrichment** — each finding now includes matching security domains, playbook references, and fix strategies
+- **Context-aware false-positive reduction** — test fixtures demoted for AI review, critical directory findings get confidence boost
+- **Unified Web UI** — Dashboard, Brain Map (2D/3D), Findings, Assurance Heatmap, Live Tests, Hosted control plane. See [Web ↔ CLI Parity](docs/web-cli-parity.md).
+- **Health endpoint** (`/health`) for load balancers and monitoring
 
-Full list → [PATCHI_V2_UPGRADE_PLAN.md](PATCHI_V2_UPGRADE_PLAN.md) and `AGENT_FEEDBACK.md`.
+Full list → [PATCHI_V2_UPGRADE_PLAN.md](docs/archive/PATCHI_V2_UPGRADE_PLAN.md) and `AGENT_FEEDBACK.md`.
 
 ---
 
@@ -51,10 +52,11 @@ p web --project ../other-repo --port 8000
 ```
 
 ---
+## CLI Commands
 
-## CLI Commands
+**54 commands.** Full reference → [COMMANDS.md](COMMANDS.md)
 
-50 registered commands. Major ones:
+Major commands:
 
 | Command | Purpose |
 |---------|---------|

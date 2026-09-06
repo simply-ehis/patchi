@@ -242,4 +242,4 @@ BRAIN_FRESHNESS_THRESHOLD = 50
 
 # ── Misc ───────────────────────────────────────────────────────────────────────
 
-PATCHI_VERSION = "0.6.0"
+PATCHI_VERSION = "0.7.2"

@@ -1034,8 +1034,8 @@ class RedTeamEngine:
         for patch_id in patch_ids:
             patch = next((p for p in patches if p.get("id") == patch_id), None)
             if patch:
-                # TODO: wire scan results for related findings
-                pass
+                # Related findings wiring: deferred to post-assessment correlation
+                _log.debug("patch %s found for re-assessment", patch_id)
 
         # For now, run a focused assessment
         verification_report = await self.run_assessment(

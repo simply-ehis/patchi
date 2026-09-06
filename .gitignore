@@ -112,3 +112,9 @@ verify_out.log
 _start_web.py
 _run_web.py
 _test_ws.py
+
+# Hypothesis / property-based testing
+.hypothesis/
+
+# Par test artifacts
+.par_test/

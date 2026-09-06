@@ -105,7 +105,7 @@ body {
 .header-left{ display:flex; align-items:center; gap:20px; flex-shrink:0; }
 
 .logo{ display:flex; align-items:center; gap:10px; text-decoration:none; color:var(--text-primary); }
-.logo-icon{ width:28px; height:28px; color:var(--accent); filter: drop-shadow(0 0 8px var(--accent-glow)); }
+.logo-icon{ width:28px; height:28px; border-radius:6px; object-fit:contain; }
 .logo-text{ font-weight:700; font-size:15px; letter-spacing:-0.02em; }
 .logo-badge{
   font-size:10px; font-weight:600; color:var(--accent);

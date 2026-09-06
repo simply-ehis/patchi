@@ -18,9 +18,6 @@ def route_to_team(root: Path, finding: dict) -> str:
 
 def leaderboard(root: Path) -> list[dict]:
     try:
-        from patchi.core import memory as mem
-        scans=mem.get_scan_results(root) or {}
-        fixes=mem.list_patches(root) if hasattr(mem, "list_patches") else []
         # count fixes per author via git log
         import subprocess
         out=subprocess.run(["git","log","--pretty=format:%an","--since=1.month.ago"], capture_output=True, text=True, timeout=5, cwd=str(root))

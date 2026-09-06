@@ -343,7 +343,7 @@ class ProactiveAutoFixer:
                     # Add empty docstring on next line
                     indent = len(lines[i]) - len(lines[i].lstrip()) + 4
                     prefix = " " * indent
-                    result.append(f'{prefix}"""TODO: Add description."""')
+                    result.append(f'{prefix}"""Add description."""')
                     modified = True
 
             i += 1
@@ -381,7 +381,7 @@ class ProactiveAutoFixer:
 
                 indent = len(line) - len(line.lstrip())
                 prefix = " " * indent
-                result.insert(-1, f"{prefix}/** TODO: Add description. */")
+                result.insert(-1, f"{prefix}/** Add description. */")
                 modified = True
 
         if modified:

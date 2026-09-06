@@ -33,9 +33,7 @@ from patchi.core.constants import (
     DEFAULT_MAX_TOKENS,
     DEFAULT_TEMPERATURE,
     HTTP_REQUEST_TIMEOUT,
-    HTTP_REQUEST_TIMEOUT_SHORT,
     OLLAMA_GENERATE_URL,
-    PROVIDERS,
 )
 
 _log = logging.getLogger("patchi.core.client")
@@ -98,7 +96,6 @@ def _retry_with_backoff(
             except Exception:
                 pass
     
-    last_exception = None
     delay = base_delay
     
     for attempt in range(max_retries + 1):
@@ -112,8 +109,6 @@ def _retry_with_backoff(
         try:
             return func()
         except Exception as e:
-            last_exception = e
-            
             if attempt < max_retries and _is_retryable_error(e):
                 # Calculate delay with jitter
                 jitter_amount = delay * jitter * (2 * random.random() - 1)

@@ -1,9 +1,9 @@
 [project]
 name = "patchi"
-version = "0.7.1"
+version = "0.7.2"
 description = "Patchi — AI-powered code security and quality agent colony (smart orchestrator, pre-1.0.0 dev preview)"
 readme = "README.md"
-license = {text = "Patchi Freemium — Free for personal & teams <3, enterprise contact idemudiaehis6@gmail.com"}
+license = {text = "Proprietary — Free for personal/education/open-source, enterprise contact idemudiaehis6@gmail.com"}
 requires-python = ">=3.11"
 dependencies = [
     "httpx>=0.27",

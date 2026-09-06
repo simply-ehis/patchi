@@ -269,8 +269,13 @@ def create_app(root: Path) -> FastAPI:
         )
 
     # Favicon
+    from fastapi.responses import FileResponse
+
     @app.get("/favicon.ico")
     async def favicon():
+        fav = static_dir / "favicon.ico"
+        if fav.exists():
+            return FileResponse(str(fav), media_type="image/x-icon")
         return HTMLResponse("")
 
     # Fast health endpoint — always responds in <10ms
