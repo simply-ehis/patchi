@@ -109,10 +109,10 @@ def run(no_logo: bool = False) -> None:
     con.print()
 
     try:
-        choice = Prompt.ask("  Provider number or name", default=str(len(KEY_PROVIDERS)))
+        choice = Prompt.ask("  Provider number or name", default="1")
     except (EOFError, OSError):
-        choice = str(len(KEY_PROVIDERS))
-        con.print("  [dim]Non-interactive mode — using last provider[/dim]")
+        choice = "1"
+        con.print("  [dim]Non-interactive mode — using first provider (Groq)[/dim]")
 
     # Handle provider choice
     provider_data = None

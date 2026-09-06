@@ -6,6 +6,7 @@ Subcommands:
   p ai test            — Send a test prompt to the active AI provider
   p ai add             — Add a new API key interactively
   p ai remove <name>   — Remove an API key by name
+  p ai profiles        — List configured AI provider profiles
 """
 
 from __future__ import annotations
@@ -17,10 +18,18 @@ from pathlib import Path
 from rich.table import Table
 from rich.text import Text
 
+from patchi.cli.commands.key_cmd import PROVIDERS as KEY_PROVIDERS, _secure_key_input, _write_env_var, _ensure_gitignore
 from patchi.cli.console import con
 from patchi.core.config import require_project_root
 
 _TEST_PROMPT = "Reply with exactly: PATCHI AI READY"
+
+
+def _provider_by_name(name: str) -> dict | None:
+    for p in KEY_PROVIDERS:
+        if p["name"].lower() == name.lower():
+            return p
+    return None
 
 
 def run(args) -> None:
@@ -179,33 +188,103 @@ def run_add(root: Path | None = None) -> None:
     con.print("[bold #C8621A]Add AI Key[/bold #C8621A]")
     con.print()
 
-    nickname = Prompt.ask("  Nickname (e.g. openrouter-main)")
-    base_url = Prompt.ask("  API base URL", default="https://openrouter.ai/api/v1")
-    model = Prompt.ask("  Model", default="mistralai/mistral-7b-instruct")
-    fmt = Prompt.ask("  Format", choices=["openai", "anthropic"], default="openai")
-    env_name = Prompt.ask(
-        "  Env var name (stores the key)", default=f"PATCHI_KEY_{nickname.upper()}"
+    # Show provider list (same as key add)
+    for i, p in enumerate(KEY_PROVIDERS, 1):
+        con.print(f"  [bold]{i:>2}.[/bold] {p['name']:<14} [dim]{p['docs']}[/dim]")
+    con.print()
+
+    # Provider pick
+    raw = Prompt.ask("[#F2EDD6]Provider number or name[/#F2EDD6]")
+    provider_data = None
+    if raw.isdigit():
+        idx = int(raw) - 1
+        if 0 <= idx < len(KEY_PROVIDERS):
+            provider_data = KEY_PROVIDERS[idx]
+    else:
+        provider_data = _provider_by_name(raw)
+
+    if not provider_data:
+        con.print(f"[red]Unknown provider: {raw!r}[/red]")
+        return
+
+    provider_name = provider_data["name"]
+
+    # Handle Custom provider - prompt for details
+    if provider_name == "Custom":
+        provider_name = Prompt.ask("[#F2EDD6]Provider name[/#F2EDD6]")
+        if not provider_name.strip():
+            con.print("[red]Provider name is required.[/red]")
+            return
+        base_url = Prompt.ask("[#F2EDD6]API base URL[/#F2EDD6]", default="https://api.openai.com/v1")
+        if not base_url.strip():
+            con.print("[red]Base URL is required.[/red]")
+            return
+        model = Prompt.ask("[#F2EDD6]Model name[/#F2EDD6]")
+        if not model.strip():
+            con.print("[red]Model name is required.[/red]")
+            return
+        format_choices = ["openai", "anthropic", "google", "cohere"]
+        fmt = Prompt.ask("[#F2EDD6]API format[/#F2EDD6]", choices=format_choices, default="openai")
+        provider_data = {
+            "name": provider_name,
+            "base": base_url.strip(),
+            "model": model.strip(),
+            "format": fmt,
+            "docs": "custom",
+        }
+
+    # Nickname
+    nickname = Prompt.ask(
+        "[#F2EDD6]Nickname for this key[/#F2EDD6]",
+        default=provider_name,
     )
 
+    # Key input - use secure input that works in PowerShell
+    key_value = _secure_key_input("[#F2EDD6]Paste your API key[/#F2EDD6]")
+    if not key_value.strip():
+        con.print("[red]No key entered.[/red]")
+        return
+
+    # Build env var name
+    env_var = f"PATCHI_KEY_{nickname.upper().replace(' ', '_').replace('-', '_')}"
+
+    # Write to .patchi/.env
+    env_file = r / ".patchi" / ".env"
+    _write_env_var(env_file, env_var, key_value.strip())
+
+    # Add to .gitignore
+    _ensure_gitignore(r)
+
+    # Save to config
     config = cfg.load(r)
-    ai_cfg = config.setdefault("ai", {})
-    keys = ai_cfg.setdefault("keys", [])
+    keys: list[dict] = config.get("ai", {}).get("keys", [])
+
+    # Replace if nickname already exists
+    keys = [k for k in keys if k.get("nickname") != nickname]
     keys.append(
         {
+            "provider": provider_name,
             "nickname": nickname,
-            "base_url": base_url,
-            "model": model,
-            "format": fmt,
-            "env_var": env_name,
-            "status": "ok",
+            "env_var": env_var,
+            "format": provider_data["format"],
+            "base_url": provider_data["base"],
+            "model": provider_data["model"],
+            "status": "untested",
         }
     )
-    cfg.save(config, r)
+    cfg.set_value("ai.keys", keys, r)
 
     con.print()
-    con.print("[#4ADE80]✓[/#4ADE80] Key added. Set the env var:")
-    con.print(f"  [bold]export {env_name}=your_api_key_here[/bold]")
+    con.print(
+        f"[#4ADE80]✓[/#4ADE80] Key [bold]{nickname}[/bold] saved.\n"
+        f"[dim]Env var: {env_var} · File: .patchi/.env[/dim]"
+    )
     con.print()
+
+    # Offer to test immediately
+    from rich.prompt import Confirm
+    if Confirm.ask("Test this key now?", default=True):
+        run_test(nickname, root=r)
 
 
 def run_remove(root: Path | None = None, name: str = "") -> None:
