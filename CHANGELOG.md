@@ -5,6 +5,39 @@ All notable changes to Patchi will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.5] - 2026-09-08
+
+### Added
+- **CLI UX module** (`patchi/cli/ux.py`) — spinners, progress bars, formatted tables, summary panels, confirmation prompts
+- **Quick readiness check** (`p quick`) — runs 3 lightweight agents in seconds with UX feedback
+- **Interactive fix review** (`p fix-review`) — accept/reject/skip per patch with inline diff view
+- **Command families** (`p <family> commands`) — 24 families, discover commands by category
+- **Shannon integration** — entropy analysis for obfuscation detection in pentest campaigns
+- **External tool health checks** (`tool_health.py`) — validates nuclei, sqlmap, dalfox, ffuf, zap, codeql, shannon
+- **Shared atomic module** (`patchi/core/atomic.py`) — used by memory.py, snapshot.py, applier.py
+- **Release notes** for v0.7.5
+
+### Fixed
+- **risk_gate.py:199** — TypeError on missing attribute
+- **risk_gate.py:332** — KeyError on missing key
+- **queue.py:283** — TypeError on None comparison
+- **memory.py:279** — AttributeError on missing attr
+- **applier.py:189** — TypeError on None input
+- **codeql_agent.py:233** — Exception on missing binary
+- **health.py:142-152** — Division by zero
+- **test_domain_loader.py:345** — Mock not patched correctly
+- **test_generated_suite.py:132-141** — Flaky assertion
+- **test_new_agents.py** — Missing gate mock for `require_ready`
+- **test_differential.py** — Timing issue
+- **test_domain_loader.py:460** — Missing fixture
+- **test_test_agents.py** — Gate not mocked
+
+### Changed
+- **Dependency consolidation** — all runtime deps moved to main in pyproject.toml
+- **Optional extras** — `dev` (pytest/ruff/mypy/vulture), `pentest` (shannon)
+- **External tools documented** in `pyproject.toml` `tool.patchi.external_tools`
+- **Version bumped to 0.7.5**
+
 ## [0.7.2] - 2026-09-02
 
 ### Added

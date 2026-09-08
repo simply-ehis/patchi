@@ -1,6 +1,6 @@
 # Patchi Architecture
 
-System design overview for Patchi v0.7.2.
+System design overview for Patchi v0.7.5.
 
 ---
 
@@ -12,14 +12,14 @@ Patchi is a **CLI agent colony + unified web UI** that scans, secures, tests, an
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│                    User Interface                     │
+│                   User Interface                     │
 ├──────────────────┬──────────────────────────────────┤
-│   CLI (50 cmds)  │   Web UI (FastAPI + Jinja2)      │
+│   CLI (60 cmds)  │   Web UI (FastAPI + Jinja2)      │
 ├──────────────────┴──────────────────────────────────┤
 │                   Core Engine                         │
 ├──────────┬──────────┬──────────┬────────────────────┤
 │  Brain   │  Agents  │  Fixer   │  Security          │
-│  (AST,   │  (54     │  (Risk   │  Orchestrator      │
+│  (AST,   │  (125    │  (Risk   │  Orchestrator      │
 │  graph,  │  agents) │  Gate)   │  (dedup, cross-    │
 │  langs)  │          │          │  agent correlation) │
 ├──────────┴──────────┴──────────┴────────────────────┤
@@ -38,10 +38,11 @@ Patchi is a **CLI agent colony + unified web UI** that scans, secures, tests, an
 patchi/
 ├── cli/                    # Command-line interface
 │   ├── main.py             # Root parser, lazy imports
-│   ├── framework.py        # Command registration framework
-│   ├── registry.py         # All 50 registered commands
+│   ├── framework.py        # Command registration + family routing
+│   ├── registry.py         # 60 registered commands
+│   ├── ux.py               # Spinners, progress bars, formatting
 │   ├── console.py          # Rich console output
-│   └── commands/           # One file per command (48 files)
+│   └── commands/           # One file per command (60 files)
 │
 ├── core/
 │   ├── brain/              # AST scanning, import graph, language detection
@@ -50,6 +51,7 @@ patchi/
 │   │   ├── languages.py    # Language support (20+ via tree-sitter)
 │   │   ├── layered_brain.py # Layered architecture analysis
 │   │   ├── charter.py      # Project guard rails
+│   │   ├── brain_context.py # Injectable context bridge
 │   │   └── ast_utils/      # AST manipulation utilities
 │   │
 │   ├── agents/             # Agent framework
@@ -58,12 +60,14 @@ patchi/
 │   │   ├── governor.py     # Phase-gated state machine
 │   │   └── cache.py        # Tree-sitter parse cache
 │   │
-│   ├── security/           # 54 security agents
+│   ├── security/           # 125 security agents
 │   │   ├── orchestrator.py # Cross-agent correlation
 │   │   ├── security_agents.py # Agent registry
-│   │   ├── injection_agent.py # SQLi, XSS, command injection
-│   │   ├── dast_agent.py   # Dynamic application testing
-│   │   └── ...             # 50+ specialized agents
+│   │   ├── pentest/        # Pentest toolkit
+│   │   │   ├── pentest_registry.py
+│   │   │   ├── shannon_adapter.py
+│   │   │   └── tool_delegator.py
+│   │   └── ...             # 100+ specialized agents
 │   │
 │   ├── ai/                 # AI integration
 │   │   ├── client.py       # Unified AI client (14 providers)
@@ -83,9 +87,9 @@ patchi/
 │   │
 │   ├── config.py           # Project configuration
 │   ├── constants.py        # Shared constants
-│   ├── memory.py           # Atomic persistent memory
+│   ├── memory.py           # Atomic persistent memory (shared atomic writes)
 │   ├── queue.py            # File-locked task queue
-│   ├── snapshot.py         # Atomic rollback
+│   ├── snapshot.py         # Atomic rollback (shared atomic writes)
 │   └── health.py           # Health scoring (0-100)
 │
 ├── web/                    # Unified web UI
@@ -95,7 +99,7 @@ patchi/
 │   ├── templates/          # Jinja2 HTML templates
 │   └── static/             # CSS, JS, brain map assets
 │
-└── tests/                  # 1,377 tests
+└── tests/                  # 1,000+ tests across ~70 files
 ```
 
 ---
@@ -108,7 +112,7 @@ patchi/
 p scan
   → Brain scans files (tree-sitter parsing)
   → Import graph built
-  → 54 security agents run in parallel
+  → 125 security agents run in parallel
   → Findings deduplicated by orchestrator
   → Cross-agent correlation (exploit chains)
   → Results stored in .patchi/memory/
@@ -149,8 +153,14 @@ The Brain is the central knowledge store. It:
 - Generates `BRAIN.md` with plain-English project summary
 - Tracks health scores across dimensions
 
+### BrainContext Bridge
+All brain systems connected into a single injectable object:
+- Enriched context, project reader, body tags
+- Domain loader (800 security domains, 2,955 playbooks)
+- Reasoning engine for context-aware analysis
+
 ### Agent Colony
-54 security agents run as independent workers:
+125 security agents run as independent workers:
 - Each agent specializes in one vulnerability class
 - Agents are lazy-loaded (only run when needed)
 - Circuit breakers prevent runaway agents
@@ -171,17 +181,23 @@ Project-specific guard rails:
 - Governor escalation prevents risky changes
 - Drift detection catches unauthorized modifications
 
+### Shannon Integration
+Advanced entropy analysis for obfuscation detection:
+- Detects base64, hex, and custom encoding in payloads
+- Identifies encrypted strings and obfuscated code
+- Integrates with pentest campaigns for deeper analysis
+
 ---
 
 ## Technology Stack
 
 | Layer | Technology |
 |-------|-----------|
-| CLI | argparse + Rich |
+| CLI | argparse + Rich + custom UX module |
 | Web framework | FastAPI + Jinja2 + HTMX |
 | Brain map | Konva.js (2D) + Three.js (3D) |
 | AST parsing | tree-sitter (20+ languages) |
-| Security tools | Semgrep CE, Gitleaks, OSV-Scanner, httpx |
+| Security tools | Semgrep CE, Gitleaks, OSV-Scanner, httpx, Shannon, CodeQL |
 | AI providers | OpenAI, Anthropic, Google, Groq, Mistral, + 10 more |
 | Testing | pytest + Playwright |
 | CI/CD | GitHub Actions |
@@ -195,7 +211,7 @@ Project-specific guard rails:
 - **Web:** Async FastAPI with WebSocket for real-time updates
 - **Agents:** Parallel execution with bounded concurrency
 - **Queue:** File-locked for crash-safe persistence
-- **Memory:** Atomic writes via temp file + rename
+- **Memory:** Atomic writes via temp file + rename (shared across memory.py, snapshot.py, applier.py)
 
 ---
 
@@ -206,3 +222,4 @@ Project-specific guard rails:
 - Tenant isolation via `tenant_context`
 - API endpoints require `X-API-Key` header
 - Pre-commit hook validates before every commit
+- External tools documented in `pyproject.toml` `tool.patchi.external_tools`

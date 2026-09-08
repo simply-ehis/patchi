@@ -1,6 +1,6 @@
 # Patchi — Real-World Testing Plan
 
-**Version:** 0.7.2
+**Version:** 0.7.5
 **Date:** June 28 2026
 **Scope:** All security phases (0-11), web UI, hosted mode, CLI
 

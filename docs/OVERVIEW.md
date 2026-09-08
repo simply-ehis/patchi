@@ -6,8 +6,8 @@ Patchi is an intelligent code quality agent that scans, fixes, secures, and moni
 
 **The core loop:**
 1. **Scan** — Parse every file using AST (tree-sitter), build import graph, detect framework, map routes, find dead code, detect secrets
-2. **Analyze** — 11 scanner agents run in parallel, each specializing in one area (dead code, dependencies, duplicates, env vars, types, comments, UI, routes, configs)
-3. **Fix** — 8 fix agents generate surgical patches using AI, scored by risk and confidence
+2. **Analyze** — 125 security agents run in parallel, each specializing in one area (injection, auth, crypto, secrets, supply chain, config, compliance, privacy, runtime, adversarial, governance)
+3. **Fix** — Fix agents generate surgical patches using AI, scored by risk and confidence
 4. **Review** — User reviews patches before applying (or autopilot mode applies automatically)
 5. **Guard** — Hosted mode monitors live applications with anomaly detection and auto-blocking
 
@@ -17,16 +17,43 @@ Patchi is an intelligent code quality agent that scans, fixes, secures, and moni
 
 The Brain is the orchestrator. Before any agent runs, the Brain:
 - Discovers all source files (respecting `.gitignore` and ignore patterns)
-- Parses each file with tree-sitter AST (Python, JS, TS, PHP)
+- Parses each file with tree-sitter AST (Python, JS, TS, PHP, Rust, Go, Java, and more)
 - Builds a complete import dependency graph
 - Detects the web framework (Django, Flask, FastAPI, Express, Next.js, etc.)
 - Maps all routes and their handlers
 - Infers the app contract (critical flows that must never break)
 - Saves everything to `.patchi/memory/brain.json`
 
+### BrainContext Bridge (`core/brain/brain_context.py`)
+
+All brain systems connected into a single injectable object:
+- Enriched context, project reader, body tags
+- Domain loader (800 security domains, 2,955 playbooks)
+- Reasoning engine for context-aware analysis
+
+### Security Agents (`core/security/`)
+
+125 registered agents across 11 categories:
+
+| Category | Agents | Covers |
+|----------|--------|--------|
+| Injection | 15+ | SQLi, XSS, command injection, SSRF, CSRF, path traversal |
+| Auth | 10+ | Missing auth, broken access control, JWT, SAML SSO |
+| Crypto | 8+ | Weak hashing, hardcoded keys, SSL/TLS misconfig |
+| Secrets | 8+ | Leaked credentials, API keys, connection strings |
+| Supply Chain | 12+ | CVEs, typosquatting, unpinned deps |
+| Config/IaC | 10+ | Debug mode, missing headers, CORS, Docker, K8s, Terraform |
+| Compliance | 8+ | SOC2, HIPAA, PCI-DSS, CIS policy enforcement |
+| Privacy | 5+ | PII handling |
+| Runtime | 8+ | Live app testing, anomaly detection |
+| Adversarial | 10+ | Attack surface analysis, exploit patterns |
+| Governance | 8+ | History, blast radius, drift detection |
+
+All agents are lazy-loaded — only run when needed. Circuit breakers prevent runaway agents.
+
 ### Scanner Agents (`core/agents/`)
 
-11 specialized agents run in parallel:
+11 specialized scanner agents run in parallel:
 
 | Agent | What It Finds |
 |-------|---------------|
@@ -46,7 +73,7 @@ All scanners filter `node_modules`, `.venv`, `__pycache__`, `dist`, `build` auto
 
 ### Fix Agents (`core/fix/`)
 
-8 AI-powered fix agents generate patches:
+AI-powered fix agents generate patches:
 
 | Agent | Skill |
 |-------|-------|
@@ -127,6 +154,13 @@ Tracks user accept/reject patterns:
 - Changelog generation from git log
 - Changed-since-last-scan detection
 
+### Shannon Integration (`core/security/pentest/shannon_adapter.py`)
+
+Advanced entropy analysis:
+- Detects base64, hex, and custom encoding in payloads
+- Identifies encrypted strings and obfuscated code
+- Integrates with pentest campaigns for deeper analysis
+
 ## Data Storage
 
 All persistent data lives in `.patchi/`:
@@ -162,6 +196,7 @@ All persistent data lives in `.patchi/`:
 - **Fix batching:** Different-file agents run in parallel, same-file sequential
 - **Incremental scans:** `git diff` detects changed files since last scan
 - **File locking:** Cross-platform (msvcrt/fcntl) prevents concurrent corruption
+- **Shared atomic writes:** memory.py, snapshot.py, applier.py use shared atomic module
 
 ## Security Model
 
@@ -171,3 +206,4 @@ All persistent data lives in `.patchi/`:
 - Risk gate blocks dangerous changes
 - Contract protection for critical flows
 - `node_modules` and sensitive directories auto-excluded
+- External tools documented in `pyproject.toml` `tool.patchi.external_tools`

@@ -1,6 +1,6 @@
 # Patchi CLI Reference
 
-Complete reference for all 50 registered Patchi commands.
+Complete reference for all 60 registered Patchi commands.
 
 ---
 
@@ -107,6 +107,14 @@ Apply AI-generated fixes (requires scan first).
 | `--all` | Fix all findings |
 | `--type <type>` | Fix specific finding type |
 
+### `p fix-review`
+Interactive fix review with accept/reject/skip and inline diff view.
+
+| Flag | Description |
+|------|-------------|
+| `--all` | Review all pending patches |
+| `--type <type>` | Filter by finding type |
+
 ### `p auto`
 Propose/apply safe fixes for changed files.
 
@@ -197,6 +205,12 @@ Inspect and manage agents.
 
 ### `p agent-stats`
 Agent profiling stats and learning state.
+
+### `p quick`
+Fast readiness check — runs 3 lightweight agents to validate project health.
+
+### `p ready`
+Full readiness check with UX — spinners, progress bars, summary panel.
 
 ---
 
@@ -316,6 +330,32 @@ Assurance campaigns — prove properties, record evidence.
 
 ---
 
+## Command Families
+
+List all commands in a family with `p <family> commands`.
+
+| Family | Purpose |
+|--------|---------|
+| `scan` | Scanning & analysis |
+| `fix` | Fixing & patching |
+| `test` | Testing |
+| `agent` | Agent management |
+| `ai` | AI configuration |
+| `config` | Configuration |
+| `web` | Web UI & reporting |
+| `charter` | Governance |
+| `notify` | Notifications |
+| `hosted` | Live monitoring |
+| `git` | Git integration |
+| `dev` | Developer tools |
+| `queue` | Task queue |
+| `brain` | Knowledge & planning |
+| `vr` | Visual regression |
+| `goal` | Autonomous mode |
+| `cross-repo` | Cross-repo intelligence |
+
+---
+
 ## Web & Dashboard
 
 ### `p web`
@@ -403,6 +443,9 @@ Live monitoring daemon — monitor live apps.
 
 ## Git Integration
 
+### `p status`
+Show Patchi project status (brain, queue, AI).
+
 ### `p blame <file>`
 Show git blame for a file.
 
@@ -412,6 +455,9 @@ Show git changelog.
 ---
 
 ## Commands Help
+
+### `p commands`
+List all commands.
 
 ### `p command`
 List all commands with tags and arguments.

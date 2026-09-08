@@ -1,108 +1,109 @@
-# Patchi 0.7.2 — Smart Code Security & Quality Orchestrator
+# Patchi v0.7.5
 
-> **⚠️ Pre-1.0.0 Development Preview** — Functional and usable, but still in active development.  
-> **Peak stable release is planned for `v1.0.0`** — ~0.4.0 of feature work remains. APIs, agent lists and hosted behavior may still evolve.  
-> **Feedback appreciated!** Open an issue, start a discussion, or email **idemudiaehis6@gmail.com**. Your reports directly shape the road to 1.0.
-
-A CLI agent colony + unified web UI that scans, secures, tests and fixes your codebase using static analysis and optional AI.  
-**1:1 CLI ↔ Web** — the web is a fancy wrapper; every screen maps to a command. Cross-platform (Windows, Linux, macOS).
-
-> **🚧 This project is in active development.** The current version is a preview — APIs, agents, and hosted behavior may evolve. Feedback and contributions are appreciated!
-
-```bash
-pip install .                # local dev
-# or
-pip install patchi            # from PyPI once published
-# with web UI:
-pip install ".[web]"
-```
+> AI-powered code security & quality orchestrator — CLI agent colony + unified web UI.
+> Scans, secures, tests, and fixes your codebase using static analysis and optional AI.
+> **1:1 CLI ↔ Web** — every screen maps to a command. Cross-platform (Windows, Linux, macOS).
 
 **Requires Python 3.11+**
 
 ---
 
-## ✨ What's New in 0.7.2
+## What's New in 0.7.5
 
-- **BrainContext bridge** — all brain systems (enriched context, project reader, body tags, domain loader, reasoning) connected into a single injectable object
-- **800 security domains** with 2,955 playbooks from OWASP, CWE, NIST, SANS, and other frameworks
-- **Domain enrichment** — each finding now includes matching security domains, playbook references, and fix strategies
-- **Context-aware false-positive reduction** — test fixtures demoted for AI review, critical directory findings get confidence boost
-- **Unified Web UI** — Dashboard, Brain Map (2D/3D), Findings, Assurance Heatmap, Live Tests, Hosted control plane. See [Web ↔ CLI Parity](docs/web-cli-parity.md).
-- **Health endpoint** (`/health`) for load balancers and monitoring
+- **CLI UX module** — spinners, progress bars, colored status, formatted tables, confirmation prompts across all commands
+- **Quick readiness check** — `p quick` runs 3 fast agents to validate project health in seconds
+- **Interactive fix review** — `p fix-review` presents patches with accept/reject/skip and inline diff view
+- **Command families** — `p <family> commands` lists all commands in a family (60 commands, 24 families)
+- **Shannon integration** — entropy analysis for advanced obfuscation detection in pentest campaigns
+- **Dependency consolidation** — all runtime deps now in main, dev/pentest in extras
+- **Security audit fixes** — 7 production bugs fixed (risk gate, queue, memory, applier, health)
+- **Version 0.7.5** — bug fixes, dependency updates, CLI UX improvements
 
-Full list → [PATCHI_V2_UPGRADE_PLAN.md](docs/archive/PATCHI_V2_UPGRADE_PLAN.md) and `AGENT_FEEDBACK.md`.
+Full changelog → [docs/archive/RELEASE-v0.7.5.md](docs/archive/RELEASE-v0.7.5.md)
 
 ---
 
 ## Quick Start
 
 ```bash
+# Install
+pip install .                # local dev
+pip install patchi           # from PyPI (once published)
+pip install ".[web]"         # with web UI
+
+# Initialize and scan
 cd your-project
 p init              # one-time setup
-p scan              # full scan (static analysis, no AI tokens)  — license findings hidden by default
-p scan --with-license   # include supply-chain license audit when you need it
+p scan              # full scan (static analysis, no AI tokens)
+p scan --with-license   # include supply-chain license audit
 p scan --deep       # with LLM analysis on changed files
 p scan --json       # JSON output for CI/CD
 p scan --offline    # static analysis only, no AI calls
+
+# Check and fix
+p quick             # fast readiness check (3 agents)
 p status            # brain health, mode, queue, AI status
 p fix               # apply AI-generated fixes (requires scan first)
 p fix --dry-run     # preview fixes without applying
-p web               # launch unified UI at http://127.0.0.1:1612  (--project <path> to pick a project, --open to launch browser)
-p web --project ../other-repo --port 8000
+p fix-review        # interactive review with diff view
+
+# Web UI
+p web               # launch at http://127.0.0.1:1612
+p web --open        # auto-open browser
 ```
 
 ---
-## CLI Commands
 
-**54 commands.** Full reference → [COMMANDS.md](COMMANDS.md)
+## Commands
 
-Major commands:
+**60 commands** across **24 families.** Full reference → [docs/CLI.md](docs/CLI.md)
 
-| Command | Purpose |
-|---------|---------|
-| `p init` | Initialize Patchi in the current project |
-| `p scan` | Scan for issues (`--json`, `--deep`, `--force`, `--offline`, `--with-license`) |
-| `p fix` | Apply AI-generated fixes (`--dry-run` to preview) |
-| `p test` | Run tests (unit, browser, stress, regression, api, e2e, visual) |
-| `p chat` | Interactive AI chat with Patchi (`--stream` for streaming) |
-| `p agents` | List/inspect registered agents (`list`, `status`, `reset`) |
-| `p deps` | Supply chain security scan |
-| `p audit` | Full project audit (scan + security + test + report) |
-| `p plan` | Prioritized fix list ranked by importance |
-| `p watch` | Auto-scan on file saves |
-| `p chains` | Show exploit chains and intent gaps |
-| `p findings` | View and manage security findings |
-| `p assure` | Assurance campaigns -- prove properties, record evidence |
-| `p charter` | Manage project charter and rules |
-| `p vr` | Visual regression baseline management |
-| `p notify` | Manage notification channels |
-| `p hosted` | **(Experimental)** Live monitoring daemon |
-| `p web` | Unified web UI -- dashboard, brain map, findings, assurance |
-| `p memory` | View or clear scan memory |
-| `p patch` | Manage individual patches (`list`, `show`, `apply`, `reject`) |
-| `p undo` / `p redo` | Undo/redo applied fixes |
-| `p doctor` | System health check -- stale commands, dependencies, config |
-| `p cleanup` | Clean stale `.patchi/` artifacts |
-| `p report` | Export scan reports |
-| `p settings` | View or modify configuration (`show`, `set`, `mode`) |
-| `p trend` | Health and quality trend over time |
-| `p blame` | Show git blame for a file |
-| `p log` | Show git changelog |
-| `p update` | Check for and apply updates |
-| `p verify` | Independently re-run tests+scan |
-| `p auto` | Propose/apply safe fixes for changed files |
-| `p impact` | Show change-impact / blast radius |
-| `p why` | Explain why a file matters |
-| `p restrict` | Manage file restrictions |
-| `p key` | Manage API keys |
-| `p ai` | AI configuration and status |
-| `p model` | Manage local Ollama model |
-| `p learn` | Learn project conventions |
-| `p agent-stats` | Agent profiling stats and learning state |
-| `p goal` | Autonomous mode -- loop until health target |
-| `p cross-repo` | Cross-repository dependency intelligence |
+### Command Families
 
-Run `p <command> --help` for flags.
+| Family | Purpose |
+|--------|---------|
+| `scan` | Scanning & analysis (`scan`, `security`, `deps`, `chains`, `findings`, `blast`, `impact`, `why`) |
+| `fix` | Fixing & patching (`fix`, `fix-review`, `auto`, `patch`, `undo`, `redo`, `rollback`) |
+| `test` | Testing (`test`, `verify`) |
+| `agent` | Agent management (`agents`, `agent-stats`, `quick`, `ready`) |
+| `ai` | AI configuration (`ai`, `chat`, `model`, `key`) |
+| `config` | Configuration (`settings`, `mode`, `memory`, `cleanup`, `doctor`) |
+| `web` | Web UI & reporting (`web`, `report`, `audit`) |
+| `charter` | Governance (`charter`, `rules`, `restrict`, `assure`) |
+| `notify` | Notifications (`notify`) |
+| `hosted` | Live monitoring (`hosted`) — experimental |
+| `git` | Git integration (`blame`, `log`, `status`) |
+| `dev` | Developer tools (`dev`, `update`, `watch`) |
+| `queue` | Task queue (`queue`) |
+| `brain` | Knowledge & planning (`brain`, `learn`, `plan`) |
+| `vr` | Visual regression (`vr`) |
+| `goal` | Autonomous mode (`goal`) |
+| `cross-repo` | Cross-repo intelligence (`cross-repo`) |
+
+Run `p <command> --help` for flags. Run `p <family> commands` to list all commands in a family.
+
+---
+
+## Security Agents
+
+**125 registered agents** across 11 categories (lazy-loaded).
+
+| Category | Covers |
+|----------|--------|
+| Injection | SQLi, XSS, command injection, SSRF, CSRF, path traversal |
+| Auth | Missing auth, broken access control, JWT, SAML SSO |
+| Crypto | Weak hashing, hardcoded keys, SSL/TLS misconfig |
+| Secrets | Leaked credentials, API keys, connection strings |
+| Supply Chain | CVEs, typosquatting, unpinned deps (license = opt-in via `--with-license`) |
+| Config/IaC | Debug mode, missing headers, CORS, Docker, K8s, Terraform |
+| Compliance | SOC2, HIPAA, PCI-DSS, CIS policy enforcement |
+| Privacy | PII handling |
+| Runtime | Live app testing, anomaly detection |
+| Adversarial | Attack surface analysis, exploit patterns |
+| Governance | History, blast radius, drift detection |
+
+Uses Semgrep CE, Gitleaks, OSV-Scanner, httpx, Shannon, and CodeQL under the hood.
+
 ---
 
 ## AI Setup (Optional)
@@ -121,29 +122,6 @@ Keys stored in `.patchi/keys.json`, never sent elsewhere.
 
 ---
 
-## Security Agents
-
-54 registered agents in `patchi/core/security/security_agents.py` (lazy-loaded).
-Categories:
-
-| Category | Covers |
-|----------|--------|
-| Injection | SQLi, XSS, command injection, SSRF, CSRF, path traversal |
-| Auth | Missing auth, broken access control, JWT, SAML SSO |
-| Crypto | Weak hashing, hardcoded keys, SSL/TLS misconfig |
-| Secrets | Leaked credentials, API keys, connection strings |
-| Supply Chain | CVEs, typosquatting, unpinned deps (**license = opt-in via `--with-license`**) |
-| Config/IaC | Debug mode, missing headers, CORS, Docker, K8s, Terraform |
-| Compliance | SOC2, HIPAA, PCI-DSS, CIS policy enforcement |
-| Privacy | PII handling |
-| Runtime | Live app testing, anomaly detection |
-| Adversarial | Attack surface analysis, exploit patterns |
-| Governance | History, blast radius, drift detection |
-
-Uses Semgrep CE, Gitleaks, OSV-Scanner, and httpx under the hood. Heavy compliance packs (license-for-every-dep) intentionally stay out of the default `p scan` — opt in when you need a full audit.
-
----
-
 ## Modes
 
 | Mode | Behaviour |
@@ -158,55 +136,94 @@ Uses Semgrep CE, Gitleaks, OSV-Scanner, and httpx under the hood. Heavy complian
 
 ```
 patchi/
-├── cli/              ← 43 command modules
-│   ├── main.py       ← Root parser
-│   └── commands/     ← One file per command
+├── cli/                    # Command-line interface
+│   ├── main.py             # Root parser, lazy imports
+│   ├── framework.py        # Command registration + family routing
+│   ├── registry.py         # 60 registered commands
+│   ├── ux.py               # Spinners, progress bars, formatting
+│   ├── console.py          # Rich console output
+│   └── commands/           # One file per command (60 files)
+│
 ├── core/
-│   ├── agents/       ← Scanner agents + governor
-│   ├── brain/        ← AST scanning, import graph, language detection
-│   ├── ai/           ← Unified AI client, 14 providers
-│   ├── fix/          ← Fix agents, risk gate, patch applier
-│   ├── testing/      ← Test agents (unit, browser, stress, etc.)
-│   ├── security/     ← 54 security agents, orchestrator, policies
-│   ├── hosted/       ← Anomaly detection, IP reputation, log parsers
-│   ├── notifications/← Channels, digest, escalation
-│   ├── export/       ← Report export (SARIF, JSON, text)
-│   ├── config.py
-│   ├── constants.py
-│   ├── memory.py     ← Atomic writes, persistent scan memory
-│   ├── queue.py      ← File-locked task queue
-│   ├── snapshot.py   ← Atomic rollback
-│   └── health.py     ← Health score (0–100, A–F)
-├── web/              ← Unified UI (Mission Control + API) — launch with p web
-├── install.sh        ← Linux/macOS installer
-├── install.ps1       ← Windows installer
-└── tests/            ← 1,300+ tests across ~70 files
+│   ├── brain/              # AST scanning, import graph, language detection
+│   │   ├── brain.py        # Brain class — main orchestrator
+│   │   ├── scanner.py      # File discovery and scanning
+│   │   ├── languages.py    # Language support (20+ via tree-sitter)
+│   │   ├── layered_brain.py # Layered architecture analysis
+│   │   ├── charter.py      # Project guard rails
+│   │   ├── brain_context.py # Injectable context bridge
+│   │   └── ast_utils/      # AST manipulation utilities
+│   │
+│   ├── agents/             # Agent framework
+│   │   ├── base.py         # BaseAgent, Finding, Severity, register()
+│   │   ├── coordinator.py  # Multi-agent orchestration
+│   │   ├── governor.py     # Phase-gated state machine
+│   │   └── cache.py        # Tree-sitter parse cache
+│   │
+│   ├── security/           # 125 security agents
+│   │   ├── orchestrator.py # Cross-agent correlation
+│   │   ├── security_agents.py # Agent registry
+│   │   ├── pentest/        # Pentest toolkit (shannon, metasploit, nuclei, sqlmap, dalfox, ffuf)
+│   │   └── ...             # 100+ specialized agents
+│   │
+│   ├── ai/                 # AI integration
+│   │   ├── client.py       # Unified AI client (14 providers)
+│   │   ├── model_router.py # Cost-aware model routing
+│   │   └── agent_profiler.py # Agent performance tracking
+│   │
+│   ├── fix/                # Fix application
+│   │   ├── base.py         # Fix generation with AI
+│   │   ├── risk_gate.py    # Risk assessment for fixes
+│   │   └── patch.py        # Patch management
+│   │
+│   ├── testing/            # Test execution
+│   │   ├── live_v2/        # Playwright browser testing
+│   │   │   ├── runner.py   # Browser test runner
+│   │   │   └── video_recorder.py # Video evidence capture
+│   │   └── ...             # Unit, stress, visual regression
+│   │
+│   ├── config.py           # Project configuration
+│   ├── constants.py        # Shared constants
+│   ├── memory.py           # Atomic persistent memory
+│   ├── queue.py            # File-locked task queue
+│   ├── snapshot.py         # Atomic rollback
+│   └── health.py           # Health scoring (0-100)
+│
+├── web/                    # Unified web UI
+│   ├── app.py              # FastAPI application
+│   ├── routes/             # Page routes (Jinja2 templates)
+│   ├── api/                # REST API endpoints
+│   ├── templates/          # Jinja2 HTML templates
+│   └── static/             # CSS, JS, brain map assets
+│
+└── tests/                  # 1,000+ tests across ~70 files
 ```
 
 ---
 
 ## Key Features
 
-- **Multi-language scanning** — Python, JS, TS, Rust, Go, Java, and more via tree-sitter
+- **Multi-language scanning** — Python, JS, TS, Rust, Go, Java, C, C++, Swift, Ruby, PHP, C#, Kotlin, Dart, SQL, HTML, CSS, Svelte, Bash, and more via tree-sitter
 - **Git-aware** — incremental scanning via git diff, blame integration
 - **Atomic writes + file locking** — crash-safe memory, queue, snapshots
 - **Learning brain** — tracks accept/reject patterns, stops suggesting rejected fix types
 - **Notifications** — Slack, Discord, email, webhook, Telegram
-- **Hosted mode (Experimental)** — live log monitoring, anomaly detection, IP reputation, auto-blocking — *preview, feedback welcome*
+- **Hosted mode (Experimental)** — live log monitoring, anomaly detection, IP reputation, auto-blocking
 - **Governor pipeline** — phase-gated state machine with crash recovery (via `p scan --governor`)
-- **Security orchestrator** — deduplication, cross-agent correlation, OWASP Top 10 mapping (CWE-aware, cached report: 174s → 0.1s)
+- **Security orchestrator** — deduplication, cross-agent correlation, OWASP Top 10 mapping
 - **Policy engine** — YAML/JSON policy enforcement with compliance packs
 - **Verify loop** — security fixes re-checked to confirm resolution
+- **CLI UX** — spinners, progress bars, formatted tables, confirmation prompts
 
 ---
 
 ## Running Tests
 
 ```bash
-python -m pytest tests/ -q -x
-python -m pytest tests/test_contract.py -q
-python tools/deep_audit_web.py   # href/fetch/template/WS/DOM/render/multi-project checks
-python tools/e2e_web_v2.py       # live server boot + all pages + APIs + WS
+python -m pytest tests/ -q -x           # full suite
+python -m pytest tests/test_contract.py -q  # contract tests
+python tools/deep_audit_web.py           # web UI audit
+python tools/e2e_web_v2.py              # end-to-end
 ```
 
 ---
@@ -215,23 +232,23 @@ python tools/e2e_web_v2.py       # live server boot + all pages + APIs + WS
 
 **Patchi Freemium Preview — see [LICENSE](LICENSE).**
 
-- **Free:** Personal use, education, research, open-source, and teams of **fewer than 3 users** (any purpose) — no contact required.
-- **Enterprise / teams ≥3:** Please contact **idemudiaehis6@gmail.com** for a license. Trial up to 30 days before contacting is fine.
-- **Donations & contributions appreciated** — they directly accelerate the road to **v1.0.0** (peak release).
-- Hosted mode is **EXPERIMENTAL** in this preview — not recommended for production use yet.
+- **Free:** Personal use, education, research, open-source, and teams of **fewer than 3 users** — no contact required.
+- **Enterprise / teams ≥ 3:** Contact **idemudiaehis6@gmail.com** for a license. Trial up to 30 days before contacting is fine.
+- **Donations & contributions appreciated** — they directly accelerate the road to **v1.0.0**.
+- Hosted mode is **EXPERIMENTAL** — not recommended for production use yet.
 
 ---
 
-## Feedback
-
-Patchi is in active development. If something is noisy, missing, or broken — please open an issue or email **idemudiaehis6@gmail.com**. Your reports directly shape the road to v1.0.0.
-
-> **Road to 1.0.0:** Peak stable release will lock APIs, ship the full domain taxonomy, and promote hosted out of experimental. Until then, pin `.patchi/` memory formats as best-effort forward-compatible.
-
 ## Contributing
 
-Donations and contributions are appreciated and help accelerate development:
+Donations and contributions are appreciated:
 - **GitHub Sponsors** — [link in repo](https://github.com/sponsors)
 - **Pull requests** — welcome and credited
 - **Bug reports** — open an issue or email **idemudiaehis6@gmail.com**
 
+---
+
+## Roadmap
+
+**v1.0.0** will lock APIs, ship the full domain taxonomy, and promote hosted out of experimental.
+Until then, pin `.patchi/` memory formats as best-effort forward-compatible.
