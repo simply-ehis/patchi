@@ -265,7 +265,7 @@ Run any single agent by name:
 | `p chat "what does this do?"` | Ask a question directly |
 | `p ai status` | Show AI provider status |
 | `p ai test` | Test AI connection |
-| `p ai horde` | Test AI Horde (free) connection |
+| `p ai` | AI status and test connection |
 | `p ai add` | Add a new API key |
 | `p ai remove <name>` | Remove an API key by name |
 

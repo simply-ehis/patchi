@@ -131,8 +131,8 @@ class Coordinator:
     def _build_llm(self) -> dict | None:
         """Build LLM config for deep scan analysis.
 
-        Returns ai config dict if an AI provider is available (Ollama, API key,
-        or horde fallback), or None if no provider is reachable.
+        Returns ai config dict if an AI provider is available (Ollama or API key),
+        or None if no provider is reachable.
 
         Used by scan_cmd.py --deep to get a ready-to-use LLM context.
         """
@@ -376,13 +376,9 @@ class Coordinator:
         try:
             from patchi.core.ai.client import call_ai
 
-            # Bounded call: an unreachable fallback provider (e.g. AI Horde
-            # DNS hang on Windows) must never freeze the scan. Time out and
-            # fall back to the original order. The daemon worker thread plus
-            # call_ai's own overall timeout mean even a hung provider can
-            # never keep the process alive past the 15s bound — not even at
-            # interpreter exit, when concurrent.futures joins every non-daemon
-            # worker.
+            # Bounded call: an unreachable fallback provider (e.g. DNS hang
+            # on Windows) must never freeze the scan. Time out and fall back
+            # to the original order.
             result = _run_ai_bounded(
                 lambda: call_ai(
                     self._config,

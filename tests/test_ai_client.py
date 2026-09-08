@@ -28,14 +28,13 @@ def _clear_offline_flag():
 
 
 class TestAIClientFallback(unittest.TestCase):
-    """Test the call_ai fallback priority: Ollama → keys → Horde → None."""
+    """Test the call_ai fallback priority: Ollama → keys → None."""
 
     def setUp(self):
         self.config = {
             "ai": {
                 "local_model_name": None,
                 "keys": [],
-                "horde_fallback": False,
             }
         }
 

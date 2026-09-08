@@ -348,7 +348,7 @@ def _show_cli_reference(con: Console) -> None:
         ("p restrict", "Add/remove path restrictions", "restrict_cmd.py (128 lines)"),
         ("p settings", "Show/edit settings", "inline in main.py"),
         ("p key", "Manage API keys (10 providers)", "key_cmd.py (505 lines)"),
-        ("p ai", "AI status, test, horde management", "ai_cmd.py (205 lines)"),
+        ("p ai", "AI status and test", "ai_cmd.py (205 lines)"),
         ("p model", "Set/list AI models", "model_cmd.py (205 lines)"),
         ("p access", "Manage dev access tokens", "inline in main.py"),
         ("p notify", "Notification channels", "notify_cmd.py (213 lines)"),

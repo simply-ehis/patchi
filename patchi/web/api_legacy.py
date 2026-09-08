@@ -2359,25 +2359,9 @@ async def test_ai(request: Request) -> JSONResponse:
     """Test AI provider connection."""
     try:
         body = await request.json()
-        provider = body.get("provider", "horde")
+        provider = body.get("provider", "ollama")
 
-        if provider == "horde":
-            from patchi.core.ai.client import _call_ai_horde
-            from patchi.core.constants import AI_HORDE_ANON_KEY
-
-            result = _call_ai_horde(
-                AI_HORDE_ANON_KEY, "Say 'Patchi AI Horde connection OK' in exactly 5 words.", 50
-            )
-            if result:
-                return JSONResponse({"ok": True, "message": result.strip()})
-            else:
-                return JSONResponse(
-                    {
-                        "ok": False,
-                        "message": "AI Horde did not respond. It may be under heavy load — try again in a moment.",
-                    }
-                )
-        elif provider == "ollama":
+        if provider == "ollama":
             from patchi.core.ai.client import _call_ollama
 
             cfg = cfg_mod.load(_root(request))
@@ -2394,7 +2378,7 @@ async def test_ai(request: Request) -> JSONResponse:
             return JSONResponse(
                 {
                     "ok": False,
-                    "message": f"Provider '{provider}' test not implemented. Try 'ollama' or 'horde'.",
+                    "message": f"Provider '{provider}' test not implemented. Try 'ollama'.",
                 }
             )
     except Exception as e:

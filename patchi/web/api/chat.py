@@ -199,7 +199,6 @@ async def chat_message(request: Request) -> JSONResponse:
     system = f"{BASE_PROMPT}\n\n{context}" if context else BASE_PROMPT
 
     # Skip AI call if no real providers configured — use instant local fallback.
-    # AI Horde is too slow for chat; only use it with a custom key, not the anon fallback.
     ai_cfg = config.get("ai", {})
     ai_keys = ai_cfg.get("keys", [])
     has_provider = (

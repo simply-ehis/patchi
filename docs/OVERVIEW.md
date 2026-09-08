@@ -112,7 +112,6 @@ Unified AI client supporting 14 providers:
 - **Ollama** (local, offline, free)
 - **OpenAI-compatible** (OpenAI, Groq, DeepSeek, xAI, Together, etc.)
 - **Anthropic** (Claude models)
-- **AI Horde** (community fallback, always available)
 
 Automatic key rotation, cost tracking, budget limits.
 
