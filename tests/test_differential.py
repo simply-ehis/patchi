@@ -19,6 +19,8 @@ def test_cli_help_is_functional():
         [sys.executable, "-m", "patchi.cli.main", "--help"],
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         timeout=10,
     )
     assert result.returncode == 0, f"CLI help failed: {result.stderr}"
@@ -27,6 +29,8 @@ def test_cli_help_is_functional():
         [sys.executable, "-m", "patchi.cli.main", "scan", "--help"],
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         timeout=10,
     )
     assert result.returncode == 0, f"Scan help failed: {result.stderr}"

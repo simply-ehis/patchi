@@ -18,6 +18,7 @@ from __future__ import annotations
 import logging
 
 from ..agents.base import (
+    AgentDomain,
     AgentGroup,
     AgentInput,
     AgentResult,
@@ -41,6 +42,7 @@ class UIButtonAgent(BaseAgent):
     """Interactive button and click-action testing."""
 
     group = AgentGroup.TEST
+    domain = AgentDomain.VISUAL
     name = "UIButtonAgent"
     description = "Button/click testing: clickability, handlers, JS errors, empty actions"
     timeout = 180

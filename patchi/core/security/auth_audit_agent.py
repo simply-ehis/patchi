@@ -30,6 +30,7 @@ from pathlib import Path
 from patchi.core.brain.languages import DEFAULT_IGNORE_DIRS, EXTENSION_MAP, Lang
 
 from ..agents.base import (
+    AgentDomain,
     AgentGroup,
     AgentInput,
     AgentResult,
@@ -180,6 +181,7 @@ class AuthenticationAuditAgent(BaseAgent):
     """Agent for auditing authentication and session security."""
 
     group = AgentGroup.SECURITY
+    domain = AgentDomain.SECURITY
     name = "AuthenticationAuditAgent"
     description = (
         "Auth security: CSRF, password hashing, session management, brute-force protection"

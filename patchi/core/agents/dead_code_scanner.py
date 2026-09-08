@@ -60,6 +60,58 @@ _SKIP_SEGMENTS = frozenset(
 _log = logging.getLogger("patchi.agents.dead_code_scanner")
 
 
+def _run_sglyon_deadcode(root: Path) -> list[dict] | None:
+    """Run sglyon/deadcode if installed; parses JSON output."""
+    import shutil
+    import subprocess
+    import json
+
+    # Try binary first, then python -m deadcode
+    candidates = []
+    if shutil.which("deadcode"):
+        candidates.append(["deadcode", "--format", "json", str(root)])
+    # sglyon/deadcode also provides `deadcode` entrypoint via pip; fallback to module
+    candidates.append([shutil.which("python") or "python", "-m", "deadcode", "--format", "json", str(root)])
+    for cmd in candidates:
+        if not cmd[0] or (cmd[0] not in ("python", "python3") and not shutil.which(cmd[0])):
+            continue
+        try:
+            proc = subprocess.run(cmd, capture_output=True, text=True, timeout=90)
+            if proc.returncode not in (0, 1):
+                continue
+            raw = proc.stdout.strip() or proc.stderr.strip()
+            if not raw:
+                continue
+            data = json.loads(raw)
+            # sglyon/deadcode JSON: [{file, line, symbol, kind}]
+            out: list[dict] = []
+            for item in data if isinstance(data, list) else data.get("results", []):
+                f = item.get("file") or item.get("filename") or ""
+                try:
+                    rel = Path(f).relative_to(root).as_posix() if f else ""
+                except ValueError:
+                    rel = f
+                if _should_skip(rel):
+                    continue
+                out.append(
+                    {
+                        "file": rel or f,
+                        "line": int(item.get("line", 0) or 0),
+                        "name": item.get("symbol") or item.get("name", ""),
+                        "type": item.get("kind") or item.get("type", "deadcode"),
+                        "message": f"sglyon/deadcode: {item.get('kind','unused')} {item.get('symbol','')}",
+                        "confidence": 90,
+                        "code": "",
+                    }
+                )
+            if out:
+                return out
+        except (subprocess.TimeoutExpired, json.JSONDecodeError, FileNotFoundError, OSError) as exc:
+            _log.debug("sglyon deadcode %s failed: %s", cmd[0], exc)
+            continue
+    return None
+
+
 @register
 class DeadCodeScanner(BaseAgent):
     """Dead code detection via vulture + import graph dual-signal."""
@@ -69,6 +121,29 @@ class DeadCodeScanner(BaseAgent):
     timeout = 120
 
     def _run(self, inp: AgentInput, result: AgentResult) -> None:
+        # 1. Try sglyon/deadcode first (unified JSON for Python/JS/TS/Go/Elixir)
+        sg = _run_sglyon_deadcode(inp.root)
+        if sg:
+            for item in sg:
+                result.findings.append(
+                    make_finding(
+                        severity=Severity.LOW,
+                        file=item.get("file", ""),
+                        line_start=item.get("line", 0),
+                        title=f"Dead code (sglyon): {item.get('name', '')}",
+                        description=item.get("message", ""),
+                        evidence=item.get("code", ""),
+                        finding_type="dead_code",
+                    )
+                )
+            result.data["orchestrator"] = "sglyon/deadcode"
+            result.data["sglyon_count"] = len(sg)
+            result.status = AgentStatus.SUCCEEDED
+            result.files_scanned = len({f.file for f in result.findings}) if result.findings else 0
+            result.data["total_findings"] = len(result.findings)
+            return
+
+        # 2. Fallback: existing dual-signal (import graph + vulture + per-language tools)
         # Build import graph — always available, no external tool needed
         try:
             graph = build_import_graph(inp.root)

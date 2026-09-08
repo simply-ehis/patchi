@@ -22,6 +22,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from patchi.core.agents.base import (
+    AgentDomain,
     AgentGroup,
     AgentInput,
     AgentResult,
@@ -32,6 +33,63 @@ from patchi.core.agents.base import (
 )
 
 _log = logging.getLogger("patchi.security.dast")
+
+# Additional XSS payloads from DASTScanner
+ADDITIONAL_XSS_PAYLOADS = [
+    "<img src=x onerror=alert(1)>",
+    "<svg onload=alert(1)>",
+    "'-alert(1)-'",
+]
+
+# Additional security headers from DASTScanner
+ADDITIONAL_HEADER_CHECKS = [
+    (
+        "x-content-type-options",
+        "nosniff",
+        "Missing X-Content-Type-Options header",
+        "medium",
+    ),
+    ("x-xss-protection", None, "Missing X-XSS-Protection header", "low"),
+]
+
+# Auth bypass keywords from DASTScanner
+AUTH_BYPASS_KEYWORDS = [
+    "dashboard",
+    "admin",
+    "settings",
+    "profile",
+    "logout",
+]
+
+# Info disclosure indicators from DASTScanner
+INFO_DISCLOSURE_INDICATORS = [
+    "traceback",
+    "stack trace",
+    "exception in",
+]
+
+# Open redirect payloads from DASTScanner
+OPEN_REDIRECT_PAYLOADS = [
+    "https://evil.com",
+    "//evil.com",
+    "/\\evil.com",
+]
+
+# Common endpoint paths from DASTScanner for discovery
+COMMON_ENDPOINT_PATHS = [
+    "/",
+    "/login",
+    "/admin",
+    "/api",
+    "/dashboard",
+    "/settings",
+    "/profile",
+    "/users",
+    "/health",
+    "/api/health",
+    "/api/status",
+    "/static/",
+]
 
 
 @dataclass
@@ -143,6 +201,50 @@ DAST_TESTS: list[DASTTest] = [
         test_fn="test_csrf_token",
         tags=["csrf", "forms"],
     ),
+    # Auth Bypass (from DASTScanner)
+    DASTTest(
+        name="auth_bypass",
+        description="Test for authentication bypass on protected pages",
+        category="auth_bypass",
+        severity=Severity.CRITICAL,
+        test_fn="test_auth_bypass",
+        tags=["auth", "bypass"],
+    ),
+    # Open Redirect (from DASTScanner)
+    DASTTest(
+        name="open_redirect",
+        description="Test for open redirect vulnerabilities",
+        category="open_redirect",
+        severity=Severity.HIGH,
+        test_fn="test_open_redirect",
+        tags=["redirect", "open_redirect"],
+    ),
+    # Additional Security Headers (from DASTScanner)
+    DASTTest(
+        name="missing_x_content_type_options",
+        description="Check for missing X-Content-Type-Options header",
+        category="header",
+        severity=Severity.MEDIUM,
+        test_fn="test_additional_headers",
+        tags=["headers", "x-content-type-options"],
+    ),
+    DASTTest(
+        name="missing_x_xss_protection",
+        description="Check for missing X-XSS-Protection header",
+        category="header",
+        severity=Severity.LOW,
+        test_fn="test_additional_headers",
+        tags=["headers", "x-xss-protection"],
+    ),
+    # Stack Trace Disclosure (from DASTScanner)
+    DASTTest(
+        name="stack_trace_disclosure",
+        description="Check if error pages reveal stack traces",
+        category="info_disclosure",
+        severity=Severity.HIGH,
+        test_fn="test_stack_trace_disclosure",
+        tags=["info", "stack_trace"],
+    ),
 ]
 
 
@@ -156,6 +258,7 @@ class DASTAgent(BaseAgent):
 
     name = "DASTAgent"
     group = AgentGroup.SECURITY
+    domain = AgentDomain.SECURITY
     timeout = 300  # 5 minutes for browser tests
 
     def _run(self, inp: AgentInput, result: AgentResult) -> None:
@@ -583,6 +686,147 @@ class DASTAgent(BaseAgent):
 
         except Exception as _exc:
             _log.warning('test_csrf_token failed: %s', _exc)
+
+        return False, ""
+
+    # ── Endpoint Discovery (from DASTScanner) ──────────────────────────────
+
+    async def _discover_endpoints(self, base_url: str) -> list[str]:
+        """Discover endpoints by crawling the app (from DASTScanner)."""
+        import socket
+        endpoints = set()
+        endpoints.add(base_url)
+
+        for path in COMMON_ENDPOINT_PATHS:
+            url = f"{base_url}{path}"
+            try:
+                # Quick TCP check first
+                try:
+                    with socket.create_connection(("127.0.0.1", 80), timeout=1):
+                        pass
+                except Exception:
+                    pass  # Can't check easily without page context
+
+                # Use page context for actual check
+                async with self._temp_page() as page:
+                    resp = await page.goto(url, wait_until="domcontentloaded", timeout=5000)
+                    if resp and resp.status < 400:
+                        endpoints.add(url)
+                        # Extract links from page
+                        links = await page.eval_on_selector_all(
+                            "a[href]",
+                            "els => els.map(e => e.href)",
+                        )
+                        for link in links:
+                            if link.startswith(base_url):
+                                endpoints.add(link)
+            except Exception as _exc:
+                _log.debug('_discover_endpoints failed: %s', _exc)
+
+        return list(endpoints)[:50]  # cap at 50 endpoints
+
+    async def _temp_page(self):
+        """Create a temporary page for endpoint discovery."""
+        from patchi.core.testing.live_v2.browser_pool import BrowserPool
+        pool = BrowserPool()
+        await pool.initialize()
+        page = await pool.get_page()
+        return page
+
+    # ── Auth Bypass Tests (from DASTScanner) ──────────────────────────────
+
+    async def test_auth_bypass(
+        self, page: Any, base_url: str, screenshot_mgr: Any
+    ) -> tuple[bool, str]:
+        """Test for authentication bypass on protected pages."""
+        try:
+            resp = await page.goto(base_url, wait_until="domcontentloaded", timeout=5000)
+            if not resp:
+                return False, ""
+
+            content = await page.content()
+            has_login = bool(await page.query_selector("input[type=password]"))
+            has_protected = any(
+                kw in content.lower()
+                for kw in AUTH_BYPASS_KEYWORDS
+            )
+
+            if has_protected and not has_login:
+                # Page has protected content but no login form — possible bypass
+                return True, f"Auth bypass: Protected content accessible without authentication at {base_url}"
+
+        except Exception as e:
+            _log.debug("Auth bypass test failed: %s", e)
+
+        return False, ""
+
+    # ── Open Redirect Tests (from DASTScanner) ──────────────────────────────
+
+    async def test_open_redirect(
+        self, page: Any, base_url: str, screenshot_mgr: Any
+    ) -> tuple[bool, str]:
+        """Test for open redirect vulnerabilities."""
+        for payload in OPEN_REDIRECT_PAYLOADS:
+            try:
+                test_url = f"{base_url}?redirect={payload}"
+                resp = await page.goto(test_url, wait_until="domcontentloaded", timeout=5000)
+                if resp and page.url.startswith("http"):
+                    current = page.url
+                    if "evil.com" in current:
+                        return True, f"Open redirect at {test_url}: Redirected to {current}"
+
+            except Exception:
+                continue
+
+        return False, ""
+
+    # ── Additional Security Headers (from DASTScanner) ──────────────────────
+
+    async def test_additional_headers(
+        self, page: Any, base_url: str, screenshot_mgr: Any
+    ) -> tuple[bool, str]:
+        """Check for additional missing security headers."""
+        try:
+            resp = await page.goto(base_url, wait_until="domcontentloaded")
+            if not resp:
+                return False, ""
+
+            headers = {k.lower(): v for k, v in resp.headers.items()}
+
+            for header, expected_value, message, severity in ADDITIONAL_HEADER_CHECKS:
+                if header not in headers:
+                    return True, message
+                elif expected_value and headers[header] != expected_value:
+                    return True, f"{header} = {headers[header]} (expected {expected_value})"
+
+        except Exception as e:
+            _log.debug("Additional headers test failed: %s", e)
+
+        return False, ""
+
+    # ── Info Disclosure Stack Trace (from DASTScanner) ──────────────────────
+
+    async def test_stack_trace_disclosure(
+        self, page: Any, base_url: str, screenshot_mgr: Any
+    ) -> tuple[bool, str]:
+        """Check if error pages reveal stack traces."""
+        try:
+            error_urls = [
+                f"{base_url}/nonexistent-page-12345",
+                f"{base_url}/api/nonexistent-endpoint",
+                f"{base_url}/?error=trigger",
+            ]
+
+            for url in error_urls:
+                await page.goto(url, wait_until="domcontentloaded")
+                content = await page.content()
+
+                for indicator in INFO_DISCLOSURE_INDICATORS:
+                    if indicator.lower() in content.lower():
+                        return True, f"Stack trace disclosure at {url}: {indicator}"
+
+        except Exception as _exc:
+            _log.warning('test_stack_trace_disclosure failed: %s', _exc)
 
         return False, ""
 

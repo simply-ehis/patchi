@@ -25,6 +25,7 @@ import subprocess
 from pathlib import Path
 
 from ..agents.base import (
+    AgentDomain,
     AgentGroup,
     AgentInput,
     AgentResult,
@@ -120,6 +121,7 @@ class EmailAuthenticationAgent(BaseAgent):
     """Agent for detecting email authentication and header security issues."""
 
     group = AgentGroup.SECURITY
+    domain = AgentDomain.SECURITY
     name = "EmailAuthenticationAgent"
     description = "Email authentication: SPF, DKIM, DMARC, header injection"
 

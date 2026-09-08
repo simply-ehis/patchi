@@ -22,6 +22,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from ..agents.base import (
+    AgentDomain,
     AgentGroup,
     AgentInput,
     AgentResult,
@@ -73,6 +74,7 @@ class InjectionAgent(BaseAgent):
     """Agent for detecting injection vulnerabilities."""
 
     group = AgentGroup.SECURITY
+    domain = AgentDomain.SECURITY
     name = "InjectionAgent"
     description = "SQLi, XSS, command injection, path traversal, LDAP, XPath"
 

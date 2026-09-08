@@ -521,6 +521,13 @@ class Coordinator:
             for r in run_results:
                 cache.put(r.agent_name, r)
 
+        # Invalidate health score cache so the next status call picks up fresh data
+        try:
+            from patchi.core.health import invalidate_cache
+            invalidate_cache()
+        except Exception:
+            pass
+
         return cached_results + run_results
 
 

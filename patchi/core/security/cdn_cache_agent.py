@@ -23,6 +23,7 @@ import subprocess
 from pathlib import Path
 
 from ..agents.base import (
+    AgentDomain,
     AgentGroup,
     AgentInput,
     AgentResult,
@@ -105,6 +106,7 @@ class CDNCacheSecurityAgent(BaseAgent):
     """Agent for detecting CDN and edge cache security issues."""
 
     group = AgentGroup.SECURITY
+    domain = AgentDomain.SECURITY
     name = "CDNCacheSecurityAgent"
     description = "CDN/edge cache security: cache poisoning, origin bypass, cache-key normalization"
 

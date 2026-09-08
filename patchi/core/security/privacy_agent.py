@@ -23,6 +23,7 @@ import re
 from pathlib import Path
 
 from ..agents.base import (
+    AgentDomain,
     AgentGroup,
     AgentInput,
     AgentResult,
@@ -41,6 +42,7 @@ class PrivacyAgent(BaseAgent):
     """Agent for detecting privacy and data protection issues."""
 
     group = AgentGroup.SECURITY
+    domain = AgentDomain.SECURITY
     name = "PrivacyAgent"
     description = "Privacy issues: personal data, anonymization, consent, retention, subject rights"
 

@@ -24,6 +24,7 @@ import subprocess
 from pathlib import Path
 
 from ..agents.base import (
+    AgentDomain,
     AgentGroup,
     AgentInput,
     AgentResult,
@@ -142,6 +143,7 @@ class PushNotificationAgent(BaseAgent):
     """Agent for detecting push notification security issues."""
 
     group = AgentGroup.SECURITY
+    domain = AgentDomain.SECURITY
     name = "PushNotificationAgent"
     description = "Push notification security: FCM/APNs credential storage, token handling, payload minimization"
 

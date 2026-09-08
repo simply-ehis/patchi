@@ -1,17 +1,55 @@
 [project]
 name = "patchi"
-version = "0.7.2"
+version = "0.7.5"
 description = "Patchi — AI-powered code security and quality agent colony (smart orchestrator, pre-1.0.0 dev preview)"
 readme = "README.md"
 license = {text = "Proprietary — Free for personal/education/open-source, enterprise contact idemudiaehis6@gmail.com"}
 requires-python = ">=3.11"
 dependencies = [
+    # Core
     "httpx>=0.27",
     "pyyaml>=6.0",
-    "ruff>=0.5",
-    "pytest>=8.0",
-    "pytest-timeout>=2.3",
-    "asyncio-mqtt>=0.11",
+    "rich>=13.0",
+    "loguru>=0.7",
+    "watchfiles>=0.21",
+    "psutil>=5.9",
+    # Web dashboard
+    "fastapi>=0.110",
+    "uvicorn>=0.29",
+    "jinja2>=3.1",
+    "websockets>=12.0",
+    # Testing
+    "playwright>=1.44",
+    "Pillow>=10.0",
+    "aiohttp>=3.9",
+    "pixelmatch>=0.3",
+    # AI/ML
+    "scikit-learn>=1.4",
+    # Security
+    "pymetasploit3>=1.0",
+    # AST parsing
+    "tree-sitter>=0.21",
+    "tree-sitter-python>=0.21",
+    "tree-sitter-javascript>=0.21",
+    "tree-sitter-typescript>=0.21",
+    "tree-sitter-rust>=0.21",
+    "tree-sitter-svelte>=0.1",
+    "tree-sitter-java>=0.21",
+    "tree-sitter-go>=0.21",
+    "tree-sitter-c>=0.21",
+    "tree-sitter-cpp>=0.21",
+    "tree-sitter-swift>=0.1",
+    "tree-sitter-ruby>=0.1",
+    "tree-sitter-php>=0.1",
+    "tree-sitter-c-sharp>=0.1",
+    "tree-sitter-kotlin>=0.1",
+    "tree-sitter-dart>=0.1",
+    "tree-sitter-bash>=0.1",
+    "tree-sitter-css>=0.1",
+    "tree-sitter-sql>=0.1",
+    "tree-sitter-html>=0.1",
+    # Testing framework
+    "pytest-xdist>=3.5",
 ]
 
 [project.optional-dependencies]
@@ -22,14 +60,22 @@ dev = [
     "pytest-asyncio>=0.23",
     "ruff>=0.5",
     "mypy>=1.10",
+    "vulture>=2.11",
 ]
-web = [
-    "fastapi>=0.110",
-    "uvicorn>=0.29",
-    "jinja2>=3.1",
-    "websockets>=12.0",
+pentest = [
+    "shannon>=0.1",
 ]
-all = ["dev", "web"]
+# External security tools (not Python packages — install separately)
+# These are used by pentest adapters when available
+external-tools = [
+    # "nuclei",       # CVE scanning — go install -v github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest
+    # "sqlmap",       # SQL injection — pip install sqlmap or docker pull paoloo/sqlmap
+    # "dalfox",       # XSS testing — go install github.com/hahwul/dalfox/v2@latest
+    # "ffuf",         # Directory fuzzing — go install github.com/ffuf/ffuf/v2@latest
+    # "zap",          # Web app security — docker pull ghcr.io/zaproxy/zaproxy:stable
+    # "codeql",       # SAST analysis — download from github.com/github/codeql-cli-binaries
+]
+all = ["dev", "pentest"]
 
 [build-system]
 requires = ["setuptools>=68", "wheel"]
@@ -112,3 +158,16 @@ ignore_missing_imports = true
 # NOTE: markers live in [tool.pytest.ini_options] above. A separate
 # [tool.pytest.*] table here makes newer pytest abort with
 # "both [tool.pytest] and [tool.pytest.ini_options]" — do not re-add.
+
+# External security tools reference
+# These are NOT Python packages — they are external binaries/tools
+# Install them separately for full pentest capabilities
+#
+# [tool.patchi.external_tools]
+# nuclei = { binary = "nuclei", install = "go install -v github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest", docker = "projectdiscovery/nuclei:latest", purpose = "CVE scanning" }
+# sqlmap = { binary = "sqlmap", install = "pip install sqlmap", docker = "paoloo/sqlmap:latest", purpose = "SQL injection testing" }
+# dalfox = { binary = "dalfox", install = "go install github.com/hahwul/dalfox/v2@latest", docker = "hahwul/dalfox:latest", purpose = "XSS testing" }
+# ffuf = { binary = "ffuf", install = "go install github.com/ffuf/ffuf/v2@latest", docker = "ffuf/ffuf:latest", purpose = "Directory fuzzing" }
+# zap = { binary = "zap.sh", install = "https://www.zaproxy.org/download/", docker = "ghcr.io/zaproxy/zaproxy:stable", purpose = "Web app security scanning" }
+# codeql = { binary = "codeql", install = "https://github.com/github/codeql-cli-binaries/releases", docker = "N/A", purpose = "SAST analysis" }
+# shannon = { binary = "npx @keygraph/shannon@latest", install = "npx @keygraph/shannon@latest", docker = "ghcr.io/keygraphhq/shannon-worker:latest", purpose = "Full chain security testing" }

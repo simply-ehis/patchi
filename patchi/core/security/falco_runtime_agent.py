@@ -19,6 +19,7 @@ import logging
 import re
 
 from ..agents.base import (
+    AgentDomain,
     AgentGroup,
     AgentInput,
     AgentResult,
@@ -38,6 +39,7 @@ class FalcoRuntimeAgent(BaseAgent):
     """Detect container escape risks and missing Falco runtime protection."""
 
     group = AgentGroup.SECURITY
+    domain = AgentDomain.SECURITY
     name = "FalcoRuntimeAgent"
     description = "Container escape detection & Falco runtime protection audit"
 

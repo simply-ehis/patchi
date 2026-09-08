@@ -10,6 +10,7 @@ from __future__ import annotations
 import re
 
 from patchi.core.agents.base import (
+    AgentDomain,
     AgentGroup,
     AgentInput,
     AgentResult,
@@ -27,6 +28,7 @@ class RedTeamAgent(BaseAgent):
 
     name = "RedTeamAgent"
     group = AgentGroup.SECURITY
+    domain = AgentDomain.SECURITY
     timeout = 120
 
     # Static-analysis hits mapped to the attack-scenario library

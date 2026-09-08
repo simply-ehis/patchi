@@ -22,6 +22,7 @@ import os
 import re
 
 from ..agents.base import (
+    AgentDomain,
     AgentGroup,
     AgentInput,
     AgentResult,
@@ -56,6 +57,7 @@ class SessionManagementAgent(BaseAgent):
     """Detects session management vulnerabilities."""
 
     group = AgentGroup.SECURITY
+    domain = AgentDomain.SECURITY
     name = "SessionManagementAgent"
     description = (
         "Session fixation, weak session IDs, missing cookie flags, insecure session storage"

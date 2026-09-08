@@ -19,6 +19,7 @@ from __future__ import annotations
 import re
 
 from ..agents.base import (
+    AgentDomain,
     AgentGroup,
     AgentInput,
     AgentResult,
@@ -35,6 +36,7 @@ class WebSocketSecurityAgent(BaseAgent):
     """Detects WebSocket security vulnerabilities."""
 
     group = AgentGroup.SECURITY
+    domain = AgentDomain.SECURITY
     name = "WebSocketSecurityAgent"
     description = "WebSocket injection, origin validation, unencrypted WS, message validation"
 

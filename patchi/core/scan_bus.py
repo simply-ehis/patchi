@@ -12,6 +12,7 @@ agent receives the full input and the bus is the single merge point.
 
 from __future__ import annotations
 
+import hashlib
 import queue
 import threading
 from collections.abc import Callable
@@ -52,8 +53,11 @@ class ScanBus:
         n = self.shard_count
         # shard by hash of path for even distribution
         buckets: list[list[FileInfo]] = [[] for _ in range(n)]
+        # Deterministic sharding via MD5 (Python's hash() is randomized across processes)
         for fi in file_infos:
-            buckets[hash(fi.path) % n].append(fi)
+            digest = hashlib.md5(fi.path.encode()).digest()
+            shard_id = int.from_bytes(digest[:4], "little") % n
+            buckets[shard_id].append(fi)
         return [ScanShard(idx=i, files=buckets[i], total_shards=n) for i in range(n)]
 
     def shard_paths(self, file_infos: list[FileInfo] | None = None) -> list[list[str]]:

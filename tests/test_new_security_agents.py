@@ -3,6 +3,7 @@
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
@@ -20,8 +21,8 @@ from patchi.core.security.orchestrator import (
 )
 from patchi.core.security.policy_engine import PolicyEngineAgent, _check_policy
 from patchi.core.security.red_team_agent import RedTeamAgent
-from patchi.core.security.secrets_guard import (
-    SecretsGuard,
+from patchi.core.security.secrets_runtime_agent import (
+    SecretsRuntimeAgent,
     gate_check_proposed_code,
     scan_code_for_secrets,
 )
@@ -92,7 +93,7 @@ class TestOrchestrator(unittest.TestCase):
 # ── Secrets Guard ─────────────────────────────────────────────────────────────
 
 
-class TestSecretsGuard(unittest.TestCase):
+class TestSecretsRuntimeAgent(unittest.TestCase):
     def test_detects_api_key(self):
         code = 'api_key = "AKIAIOSFODNN7EXAMPLE"\n'
         findings = scan_code_for_secrets(code, "test.py")
@@ -120,7 +121,7 @@ class TestSecretsGuard(unittest.TestCase):
     def test_runs_on_empty_project(self):
         with tempfile.TemporaryDirectory() as tmp:
             r = Path(tmp)
-            result = SecretsGuard().run(_inp(r))
+            result = SecretsRuntimeAgent().run(_inp(r))
             self.assertEqual(result.status, AgentStatus.DONE)
 
 
@@ -219,6 +220,16 @@ class TestCVEMonitor(unittest.TestCase):
 
 
 class TestRedTeam(unittest.TestCase):
+    def setUp(self):
+        self._gate_patcher = patch(
+            "patchi.core.testing.gate.require_ready",
+            return_value=(True, "http://fake", "READY_TO_SERVE"),
+        )
+        self._gate_patcher.start()
+
+    def tearDown(self):
+        self._gate_patcher.stop()
+
     def test_detects_eval(self):
         with tempfile.TemporaryDirectory() as tmp:
             r = Path(tmp)
@@ -244,6 +255,16 @@ class TestRedTeam(unittest.TestCase):
 
 
 class TestSecurityTestAgent(unittest.TestCase):
+    def setUp(self):
+        self._gate_patcher = patch(
+            "patchi.core.testing.gate.require_ready",
+            return_value=(True, "http://fake", "READY_TO_SERVE"),
+        )
+        self._gate_patcher.start()
+
+    def tearDown(self):
+        self._gate_patcher.stop()
+
     def test_generates_tests_for_routes(self):
         with tempfile.TemporaryDirectory() as tmp:
             r = Path(tmp)

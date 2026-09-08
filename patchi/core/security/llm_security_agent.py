@@ -21,6 +21,7 @@ import ast as py_ast
 import re
 
 from ..agents.base import (
+    AgentDomain,
     AgentGroup,
     AgentInput,
     AgentResult,
@@ -37,6 +38,7 @@ class LLMSecurityAgent(BaseAgent):
     """Detects LLM/agent security vulnerabilities."""
 
     group = AgentGroup.SECURITY
+    domain = AgentDomain.SECURITY
     name = "LLMSecurityAgent"
     description = "LLM prompt injection, insecure output handling, tool abuse, excessive agency"
 

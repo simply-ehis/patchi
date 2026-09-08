@@ -90,6 +90,10 @@ class TestAgentRegistration(unittest.TestCase):
         import patchi.core.testing.e2e_flow_agent  # noqa
         import patchi.core.testing.visual_regression_agent  # noqa
         import patchi.core.agents.attack_agent  # noqa
+        import patchi.core.agents.chaos_agent  # noqa
+        import patchi.core.agents.mutation_agent  # noqa
+        import patchi.core.agents.console_logging_agent  # noqa
+        import patchi.core.testing.ads_agent  # noqa
 
         agents = list_agents(AgentGroup.TEST)
         names = {a.name for a in agents}
@@ -100,7 +104,6 @@ class TestAgentRegistration(unittest.TestCase):
                 "BrowserTestAgent",
                 "StressTestAgent",
                 "RegressionAgent",
-                "AccessibilityAgent",
                 "APIContractAgent",
                 "UIButtonAgent",
                 "UIAccessibilityAgent",
@@ -110,9 +113,13 @@ class TestAgentRegistration(unittest.TestCase):
                 "SecurityTestAgent",
                 "FlakeDetectorAgent",
                 "AttackAgent",
-                # v2 live runner joins the TEST group (registered via
-                # patchi.core.testing.test_agents import)
                 "LiveTestRunnerV2Agent",
+                "AppDiscoveryAgent",
+                # Additional agents in TEST group
+                "ChaosAgent",
+                "MutationAgent",
+                "AdsAgent",
+                "ConsoleLoggingAgent",
             },
         )
 
@@ -130,8 +137,14 @@ class TestUnitTestAgent(unittest.TestCase):
     def setUp(self):
         self.tmpdir = tempfile.TemporaryDirectory()
         self.root = _setup(Path(self.tmpdir.name))
+        self._gate_patcher = patch(
+            "patchi.core.testing.gate.require_ready",
+            return_value=(True, "http://fake", "READY_TO_SERVE"),
+        )
+        self._gate_patcher.start()
 
     def tearDown(self):
+        self._gate_patcher.stop()
         self.tmpdir.cleanup()
 
     def test_skips_gracefully_when_no_runner(self):
@@ -307,108 +320,100 @@ class TestStressTestAgent(unittest.TestCase):
     def setUp(self):
         self.tmpdir = tempfile.TemporaryDirectory()
         self.root = _setup(Path(self.tmpdir.name))
+        self._gate_patcher = patch(
+            "patchi.core.testing.gate.require_ready",
+            return_value=(True, "http://fake", "READY_TO_SERVE"),
+        )
+        self._gate_patcher.start()
 
     def tearDown(self):
+        self._gate_patcher.stop()
         self.tmpdir.cleanup()
 
-    def test_skips_when_locust_not_installed(self):
-        with patch("shutil.which", return_value=None):
-            result = StressTestAgent().run(_inp(self.root))
+    def _make_report(
+        self,
+        error_rate_pct: float = 0.0,
+        p50_ms: float = 100,
+        p95_ms: float = 200,
+        p99_ms: float = 300,
+        total_requests: int = 1000,
+        total_failures: int = 0,
+        breakpoint_found: bool = False,
+        soak_stability: bool = True,
+    ) -> "StressTestReport":
+        from patchi.core.testing.live_v2.stress_orchestrator import (
+            StressConfig,
+            StressTestReport,
+        )
+
+        config = StressConfig(base_url="http://127.0.0.1:8000")
+        return StressTestReport(
+            config=config,
+            started_at="2024-01-01T00:00:00Z",
+            completed_at="2024-01-01T00:01:00Z",
+            duration_seconds=60.0,
+            total_requests=total_requests,
+            successful_requests=total_requests - total_failures,
+            failed_requests=total_failures,
+            requests_per_second=total_requests / 60.0,
+            latency={
+                "min": 10,
+                "max": 500,
+                "mean": 150,
+                "median": p50_ms,
+                "p50": p50_ms,
+                "p90": p95_ms * 0.9,
+                "p95": p95_ms,
+                "p99": p99_ms,
+            },
+            status_codes={"200": total_requests - total_failures, "500": total_failures},
+            errors={},
+            throughput_over_time=[],
+            latency_over_time=[],
+            user_sessions=10,
+            peak_users=10,
+            breakpoint_found=breakpoint_found,
+            breakpoint_users=0,
+            soak_stability=soak_stability,
+        )
+
+    def test_skips_when_no_target_found(self):
+        agent = StressTestAgent()
+        # Mock _detect_target to return None (no running server found)
+        with patch.object(agent, "_detect_target", return_value=None):
+            result = agent.run(_inp(self.root))
         self.assertEqual(result.status, AgentStatus.SKIPPED)
-
-    def test_writes_locustfile(self):
-        agent = StressTestAgent()
-        routes = ["/", "/api/users", "/api/posts"]
-        path = agent._write_locustfile(self.root, routes)
-        self.assertTrue(Path(path).exists())
-        content = Path(path).read_text()
-        self.assertIn("PatchiStressUser", content)
-        self.assertIn("/api/users", content)
-        Path(path).unlink()
-
-    def test_locustfile_caps_at_20_routes(self):
-        agent = StressTestAgent()
-        routes = [f"/route{i}" for i in range(30)]
-        path = agent._write_locustfile(self.root, routes)
-        content = Path(path).read_text()
-        # Count route entries
-        count = content.count('"/route')
-        self.assertLessEqual(count, 20)
-        Path(path).unlink()
 
     def test_findings_on_high_error_rate(self):
         agent = StressTestAgent()
-        # Inject mock stats
-        with patch.object(agent, "_write_locustfile", return_value="/tmp/dummy.py"):
-            with patch(
-                "patchi.core.testing.test_agents._run",
-                return_value={"returncode": 0, "stdout": "", "stderr": "", "timed_out": False},
-            ):
-                with patch.object(
-                    agent,
-                    "_parse_locust_csv",
-                    return_value={
-                        "error_rate_pct": 15,
-                        "p50_ms": 100,
-                        "p95_ms": 300,
-                        "p99_ms": 500,
-                        "req_per_sec": 50,
-                        "total_requests": 1000,
-                        "total_failures": 150,
-                    },
-                ):
-                    with patch("shutil.which", return_value="/usr/bin/locust"):
-                        result = agent.run(_inp(self.root))
+        report = self._make_report(error_rate_pct=15.0, total_requests=1000, total_failures=150)
+
+        with patch.object(agent, "_detect_target", return_value="http://127.0.0.1:8000"):
+            with patch.object(agent, "_run_stress", return_value=report):
+                result = agent.run(_inp(self.root))
         finding_types = [f.type for f in result.findings]
         self.assertIn("high_error_rate", finding_types)
 
     def test_findings_on_slow_p95(self):
         agent = StressTestAgent()
-        with patch.object(agent, "_write_locustfile", return_value="/tmp/dummy.py"):
-            with patch(
-                "patchi.core.testing.test_agents._run",
-                return_value={"returncode": 0, "stdout": "", "stderr": "", "timed_out": False},
-            ):
-                with patch.object(
-                    agent,
-                    "_parse_locust_csv",
-                    return_value={
-                        "error_rate_pct": 0,
-                        "p50_ms": 200,
-                        "p95_ms": 3500,
-                        "p99_ms": 5000,
-                        "req_per_sec": 100,
-                        "total_requests": 1000,
-                        "total_failures": 0,
-                    },
-                ):
-                    with patch("shutil.which", return_value="/usr/bin/locust"):
-                        result = agent.run(_inp(self.root))
+        report = self._make_report(p95_ms=3500, p99_ms=5000, total_requests=1000, total_failures=0)
+
+        with patch.object(agent, "_detect_target", return_value="http://127.0.0.1:8000"):
+            with patch.object(agent, "_run_stress", return_value=report):
+                result = agent.run(_inp(self.root))
         finding_types = [f.type for f in result.findings]
         self.assertIn("slow_p95", finding_types)
 
     def test_no_findings_when_healthy(self):
         agent = StressTestAgent()
-        with patch.object(agent, "_write_locustfile", return_value="/tmp/dummy.py"):
-            with patch(
-                "patchi.core.testing.test_agents._run",
-                return_value={"returncode": 0, "stdout": "", "stderr": "", "timed_out": False},
-            ):
-                with patch.object(
-                    agent,
-                    "_parse_locust_csv",
-                    return_value={
-                        "error_rate_pct": 0.5,
-                        "p50_ms": 80,
-                        "p95_ms": 400,
-                        "p99_ms": 600,
-                        "req_per_sec": 200,
-                        "total_requests": 2000,
-                        "total_failures": 10,
-                    },
-                ):
-                    with patch("shutil.which", return_value="/usr/bin/locust"):
-                        result = agent.run(_inp(self.root))
+        report = self._make_report(
+            error_rate_pct=0.5, p50_ms=80, p95_ms=400, p99_ms=600,
+            total_requests=2000, total_failures=10,
+        )
+
+        with patch.object(agent, "_detect_target", return_value="http://127.0.0.1:8000"):
+            with patch.object(agent, "_run_stress", return_value=report):
+                result = agent.run(_inp(self.root))
         self.assertEqual(result.finding_count, 0)
 
 
@@ -419,8 +424,14 @@ class TestRegressionAgent(unittest.TestCase):
     def setUp(self):
         self.tmpdir = tempfile.TemporaryDirectory()
         self.root = _setup(Path(self.tmpdir.name))
+        self._gate_patcher = patch(
+            "patchi.core.testing.gate.require_ready",
+            return_value=(True, "http://fake", "READY_TO_SERVE"),
+        )
+        self._gate_patcher.start()
 
     def tearDown(self):
+        self._gate_patcher.stop()
         self.tmpdir.cleanup()
 
     def _brain_with_baseline(self, passed: int, failed: int = 0) -> dict:

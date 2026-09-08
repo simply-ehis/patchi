@@ -20,6 +20,7 @@ import logging
 from pathlib import Path
 
 from ..agents.base import (
+    AgentDomain,
     AgentGroup,
     AgentInput,
     AgentResult,
@@ -49,6 +50,7 @@ class VisualRegressionAgent(BaseAgent):
     """Screenshot diff testing: baseline comparison, layout shifts, visual regressions."""
 
     group = AgentGroup.TEST
+    domain = AgentDomain.VISUAL
     name = "VisualRegressionAgent"
     description = "Screenshot diff testing: baseline comparison, layout shifts, visual regressions"
     timeout = 240

@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from patchi.core.agents.base import (
+    AgentDomain,
     AgentGroup,
     AgentInput,
     AgentResult,
@@ -34,6 +35,7 @@ class BanditAgent(BaseAgent):
     """
 
     group = AgentGroup.SECURITY
+    domain = AgentDomain.CODE_QUALITY
     name = "BanditAgent"
     description = "Bandit security linter for Python"
     timeout = 120

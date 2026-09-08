@@ -26,6 +26,7 @@ from pathlib import Path
 from patchi.core.constants import is_offline
 
 from ..agents.base import (
+    AgentDomain,
     AgentGroup,
     AgentInput,
     AgentResult,
@@ -50,6 +51,7 @@ class SemgrepAgent(BaseAgent):
     """
 
     group = AgentGroup.SECURITY
+    domain = AgentDomain.CODE_QUALITY
     name = "SemgrepAgent"
     description = "Deterministic pattern SAST using the bundled semgrep rule pack"
 

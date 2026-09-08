@@ -403,7 +403,7 @@ def compute_confidence(
     return min(100, max(0, score))
 
 
-# ── PatchApplier (for auto_fixer integration) ─────────────────────────────────
+# ── Standalone helpers (used by auto_fixer and red_team_engine) ────────────────
 
 
 def list_patches(root: Path) -> list[dict]:
@@ -442,38 +442,3 @@ def save_patch_state(root: Path, patch_id: str, state: PatchState) -> None:
             _log.warning('save_patch_state failed: %s', _exc)
 
 
-class PatchApplier:
-    """Apply patches to the codebase."""
-
-    def __init__(self, root: Path):
-        self.root = root
-
-    def apply(self, patch: Patch) -> dict:
-        """Apply all changes in a patch. Returns a result dict."""
-        applied = []
-        errors = []
-        for change in patch.changes:
-            try:
-                target = self.root / change.path
-                if not target.parent.is_dir():
-                    target.parent.mkdir(parents=True, exist_ok=True)
-                if change.original and target.is_file():
-                    content = target.read_text(encoding="utf-8", errors="ignore")
-                    if change.original in content:
-                        content = content.replace(change.original, change.proposed, 1)
-                        target.write_text(content, encoding="utf-8")
-                        applied.append(change.path)
-                    else:
-                        errors.append(f"Original text not found in {change.path}")
-                else:
-                    target.write_text(change.proposed, encoding="utf-8")
-                    applied.append(change.path)
-            except Exception as e:
-                errors.append(f"{change.path}: {e}")
-
-        # Save patch record
-        save_patch(self.root, patch)
-        if applied:
-            save_patch_state(self.root, patch.id, PatchState.APPLIED)
-
-        return {"applied": applied, "errors": errors, "patch_id": patch.id}

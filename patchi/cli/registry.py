@@ -44,6 +44,24 @@ COMMANDS: list[Command] = [
         ),
     ),
     Command(
+        "ready",
+        "Ship readiness check — is my code ready to ship?",
+        "patchi.cli.commands.ready_cmd:run",
+        args=(
+            Arg("--json", dest="json_output", action="store_true", help="Output as JSON"),
+            Arg("--quick", dest="quick", action="store_true", help="Fast check (subset of agents)"),
+            Arg("--ci", dest="ci", action="store_true", help="CI-friendly output (exit 1 on failure)"),
+        ),
+    ),
+    Command(
+        "quick",
+        "Fast readiness check — minimal agents for quick verification",
+        "patchi.cli.commands.quick_cmd:run",
+        args=(
+            Arg("--json", dest="json_output", action="store_true", help="Output as JSON"),
+        ),
+    ),
+    Command(
         "status",
         "Show Brain health, mode, queue state, and key status",
         "patchi.cli.commands.status_cmd:run",
@@ -365,6 +383,14 @@ COMMANDS: list[Command] = [
                 action="store_true",
                 help="Apply every non-blocked patch (AUTO + review), not just AUTO — test-only edits still queue",
             ),
+        ),
+    ),
+    Command(
+        "fix-review",
+        "Review and decide on proposed patches",
+        "patchi.cli.commands.fix_review_cmd:run",
+        args=(
+            Arg("--patch", dest="patch_id", help="Review a specific patch by ID"),
         ),
     ),
     Command("review", "Review pending changes", "patchi.cli.commands.review_cmd:run"),
@@ -1131,6 +1157,15 @@ COMMANDS: list[Command] = [
         namespace_handler=True,
         args=(
             Arg("args", nargs="*", help="Plugin subcommand and arguments"),
+        ),
+    ),
+    Command(
+        "commands",
+        "Show command families and subcommands",
+        "patchi.cli.commands.commands_cmd:run",
+        args=(
+            Arg("--flat", action="store_true", help="Alphabetical list of all commands"),
+            Arg("--search", dest="search", type=str, help="Search commands by name/description"),
         ),
     ),
 ]

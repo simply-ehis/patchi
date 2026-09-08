@@ -73,7 +73,6 @@ _AGENT_MODULES: dict[str, str] = {
     "RedTeamEngineAgent": ".red_team_engine",
     "RuntimeValidatorAgent": ".runtime_validator",
     "SamlSSOAgent": ".saml_sso_agent",
-    "SecretsGuard": ".secrets_guard",
     "SecretsRuntimeAgent": ".secrets_runtime_agent",
     "SecretScanner": ".security_taint",
     "SecurityProber": ".security_probe",

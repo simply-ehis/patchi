@@ -25,6 +25,7 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 from ..agents.base import (
+    AgentDomain,
     AgentGroup,
     AgentInput,
     AgentResult,
@@ -64,6 +65,7 @@ class SSRFProtectionAgent(BaseAgent):
     """Agent for detecting SSRF vulnerabilities."""
 
     group = AgentGroup.SECURITY
+    domain = AgentDomain.SECURITY
     name = "SSRFProtectionAgent"
     description = (
         "SSRF protection: unvalidated URLs, internal network access, metadata endpoint exposure"

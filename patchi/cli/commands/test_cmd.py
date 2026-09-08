@@ -206,6 +206,24 @@ def run(
     )
     con.print()
 
+    # Chain progress display
+    from patchi.cli.ux import format_step, status_icon, status_style
+
+    total_steps = len(to_run) + (2 if needs_run else 0)  # +2 for check and run if needed
+    current_step = 0
+
+    def show_step(step_name: str, status: str = "running"):
+        nonlocal current_step
+        current_step += 1
+        icon = status_icon(status)
+        style = status_style(status)
+        con.print(format_step(current_step, total_steps, f"[{style}]{icon} {step_name}[/{style}]"))
+
+    # Show chain steps
+    if needs_run:
+        show_step("P-Check gate verification", "done")
+        show_step("RunAgent — starting app", "done")
+
     # Run via coordinator (sequential for tests — order matters)
     results = []
     agent_names = ", ".join(a.name.replace("Agent", "") for a in to_run)
@@ -213,6 +231,7 @@ def run(
     lp.start()
     for agent_cls in to_run:
         short_name = agent_cls.name.replace("Agent", "")
+        show_step(f"Running {short_name}")
         lp.set_progress(len(results) + 1, len(to_run), short_name)
         lp.log(f"  {short_name}…")
         lp.update()

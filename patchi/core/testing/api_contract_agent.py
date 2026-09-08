@@ -28,6 +28,7 @@ from pathlib import Path
 from typing import Any
 
 from ..agents.base import (
+    AgentDomain,
     AgentGroup,
     AgentInput,
     AgentResult,
@@ -46,6 +47,7 @@ class APIContractAgent(BaseAgent):
     """Agent for running API contract tests."""
 
     group = AgentGroup.TEST
+    domain = AgentDomain.TESTING
     name = "APIContractAgent"
     description = "OpenAPI/JSON Schema compliance: response structure, types, status codes"
 

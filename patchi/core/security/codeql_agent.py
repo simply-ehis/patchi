@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any
 
 from patchi.core.agents.base import (
+    AgentDomain,
     AgentGroup,
     AgentInput,
     AgentResult,
@@ -35,6 +36,7 @@ class CodeqlAgent(BaseAgent):
     """
 
     group = AgentGroup.SECURITY
+    domain = AgentDomain.SECURITY
     name = "CodeqlAgent"
     description = "CodeQL semantic analysis for vulnerabilities"
     # Database build + QL compilation is genuinely slow (minutes even on tiny
@@ -229,5 +231,3 @@ class CodeqlAgent(BaseAgent):
         )
 
 
-# Register the agent
-register(CodeqlAgent)

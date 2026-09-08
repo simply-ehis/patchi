@@ -35,6 +35,7 @@ import re
 from pathlib import Path
 
 from patchi.core.agents.base import (
+    AgentDomain,
     AgentGroup,
     AgentInput,
     AgentResult,
@@ -281,6 +282,7 @@ class DependencyFixer(BaseAgent):
 
     name = "DependencyFixer"
     group = AgentGroup.FIX
+    domain = AgentDomain.CODE_QUALITY
     timeout = 60
 
     def _run(self, inp: AgentInput, result: AgentResult) -> None:

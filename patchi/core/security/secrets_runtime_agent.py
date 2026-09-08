@@ -8,6 +8,7 @@ import shutil
 import subprocess
 
 from ..agents.base import (
+    AgentDomain,
     AgentGroup,
     AgentInput,
     AgentResult,
@@ -51,7 +52,7 @@ SECRETS_PROVIDERS = {
     },
 }
 
-# Hardcoded secret patterns
+# Hardcoded secret patterns (merged from SecretsGuard)
 HARDCODED_SECRET_PATTERNS = [
     (r"(?:password|passwd|pwd)\s*=\s*[\"'][^\"']+[\"']", "Hardcoded password", Severity.CRITICAL),
     (
@@ -80,6 +81,22 @@ HARDCODED_SECRET_PATTERNS = [
         "Hardcoded connection string with password",
         Severity.HIGH,
     ),
+    # Extended patterns from SecretsGuard
+    (
+        re.compile(
+            r'(?:api[_-]?key|apikey|secret[_-]?key|access[_-]?key)\s*[:=]\s*["\'][A-Za-z0-9+/=_-]{16,}["\']',
+            re.I,
+        ),
+        Severity.CRITICAL,
+        "Hardcoded API key (extended)",
+    ),
+    (re.compile(r'(?:password|passwd|pwd)\s*[:=]\s*["\'][^"\']{4,}["\']', re.I), Severity.CRITICAL, "Hardcoded password (extended)"),
+    (re.compile(r'(?:secret|client[_-]?secret)\s*[:=]\s*["\'][A-Za-z0-9+/=_-]{8,}["\']', re.I), Severity.CRITICAL, "Hardcoded secret (extended)"),
+    (re.compile(r"AKIA[0-9A-Z]{16}"), Severity.CRITICAL, "AWS Access Key ID"),
+    (re.compile(r'["\']AIza[0-9A-Za-z_-]{35}["\']'), Severity.CRITICAL, "GCP API key"),
+    (re.compile(r"-----BEGIN\s+(?:RSA\s+)?PRIVATE\s+KEY-----", re.I), Severity.CRITICAL, "Private key"),
+    (re.compile(r"(?:mongodb|mysql|postgres|redis|amqp|smtp)://[^:]+:[^@]+@", re.I), Severity.HIGH, "Connection string with credentials"),
+    (re.compile(r'DATABASE_URL\s*[:=]\s*["\'][^"\']+:.*@', re.I), Severity.HIGH, "DATABASE_URL with password"),
 ]
 
 # Core dump and memory protection patterns
@@ -98,6 +115,62 @@ CONTROL_IDS = {
     "SECRETS-06": ("Secrets caching TTL misconfigured", Severity.MEDIUM),
 }
 
+# Config/CI file patterns from SecretsGuard
+CONFIG_CI_PATTERNS = [
+    ".env*",
+    "*.yml",
+    "*.yaml",
+    "*.toml",
+    "*.ini",
+    "*.cfg",
+    "Dockerfile*",
+    "docker-compose*.yml",
+    "*.conf",
+    "**/.github/**",
+    "**/.gitlab-ci*",
+    "**/Jenkinsfile*",
+]
+
+
+def scan_code_for_secrets(code: str, file_path: str) -> list[dict]:
+    """Scan a code string for secrets. Returns list of dicts with line, severity, message."""
+    findings = []
+    lines = code.splitlines()
+    for i, line in enumerate(lines, 1):
+        for pattern in HARDCODED_SECRET_PATTERNS:
+            if isinstance(pattern, tuple):
+                # Handle two formats: (regex, desc, severity) and (regex, severity, desc)
+                if len(pattern) == 3:
+                    p0, p1, p2 = pattern
+                    # If p1 is Severity enum, format is (regex, severity, desc)
+                    if isinstance(p1, Severity):
+                        regex, severity, desc = p0, p1, p2
+                    else:
+                        # Format is (regex, desc, severity)
+                        regex, desc, severity = p0, p1, p2
+                else:
+                    continue
+
+                if isinstance(regex, str):
+                    regex = re.compile(regex, re.I)
+                if regex.search(line):
+                    findings.append(
+                        {
+                            "line": i,
+                            "severity": severity.value,
+                            "message": desc,
+                            "evidence": line.strip()[:100],
+                            "file": file_path,
+                        }
+                    )
+    return findings
+
+
+def gate_check_proposed_code(proposed_code: str, file_path: str) -> tuple[bool, list[dict]]:
+    """Check if proposed code introduces new secrets. Returns (safe, findings)."""
+    findings = scan_code_for_secrets(proposed_code, file_path)
+    return len(findings) == 0, findings
+
 
 _log = logging.getLogger("patchi.security.secrets_runtime_agent")
 
@@ -106,6 +179,7 @@ _log = logging.getLogger("patchi.security.secrets_runtime_agent")
 class SecretsRuntimeAgent(BaseAgent):
     name = "SecretsRuntimeAgent"
     group = AgentGroup.SECURITY
+    domain = AgentDomain.SECURITY
     description = "Secrets runtime management: lease renewal, file-mount vs env var, dynamic secrets, caching TTL"
 
     def _run(self, inp: AgentInput, result: AgentResult) -> None:
@@ -265,31 +339,28 @@ class SecretsRuntimeAgent(BaseAgent):
                                 )
                             )
 
-            # Phase 2: Check configuration files
-            for fpath in safe_rglob(inp.root, "*.env"):
-                files_scanned += 1
-                try:
-                    content = fpath.read_text(encoding="utf-8", errors="replace")
-                except Exception as e:
-                    _log.warning("SecretsRuntimeAgent._run failed: %s", e)
-                    continue
-
-                rel = str(fpath.relative_to(inp.root))
-
-                # Check for hardcoded secrets in .env files
-                for pattern, desc, severity in HARDCODED_SECRET_PATTERNS:
-                    for m in re.finditer(pattern, content, re.IGNORECASE):
-                        line_no = content[: m.start()].count("\n") + 1
+            # Phase 2: Check configuration files (extended from SecretsGuard)
+            scanned = 0
+            for pattern in CONFIG_CI_PATTERNS:
+                for fpath in safe_rglob(inp.root, pattern):
+                    if not fpath.is_file():
+                        continue
+                    files_scanned += 1
+                    try:
+                        content = fpath.read_text(encoding="utf-8", errors="replace")
+                    except OSError:
+                        continue
+                    rel = fpath.relative_to(inp.root).as_posix()
+                    scanned += 1
+                    secrets = scan_code_for_secrets(content, rel)
+                    for s in secrets:
                         findings.append(
                             make_finding(
-                                severity,
-                                rel,
-                                line_no,
-                                f"SECRETS-01: {desc} in .env file",
-                                f"Found {desc.lower()} in .env file. Ensure this file is in .gitignore.",
-                                code_snippet=m.group()[:80]
-                                + ("..." if len(m.group()) > 80 else ""),
-                                suggestion="Add .env to .gitignore and use secrets manager for production secrets",
+                                Severity(s["severity"]),
+                                s["file"],
+                                s["line"],
+                                s["message"],
+                                code_snippet=s["evidence"],
                                 cwe="CWE-798",
                                 control_id="SECRETS-01",
                             )

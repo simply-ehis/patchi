@@ -8,6 +8,7 @@ import shutil
 import subprocess
 
 from ..agents.base import (
+    AgentDomain,
     AgentGroup,
     AgentInput,
     AgentResult,
@@ -96,6 +97,7 @@ _log = logging.getLogger("patchi.security.saml_sso_agent")
 class SamlSSOAgent(BaseAgent):
     name = "SamlSSOAgent"
     group = AgentGroup.SECURITY
+    domain = AgentDomain.SECURITY
     description = (
         "SAML/SSO security: XSW, XXE, algorithm enforcement, assertion replay, certificate trust"
     )

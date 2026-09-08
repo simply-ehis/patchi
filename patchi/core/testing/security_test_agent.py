@@ -19,6 +19,7 @@ import re
 from pathlib import Path
 
 from patchi.core.agents.base import (
+    AgentDomain,
     AgentGroup,
     AgentInput,
     AgentResult,
@@ -111,6 +112,7 @@ class SecurityTestAgent(BaseAgent):
 
     name = "SecurityTestAgent"
     group = AgentGroup.TEST
+    domain = AgentDomain.TESTING
     timeout = 120
 
     def _run(self, inp: AgentInput, result: AgentResult) -> None:

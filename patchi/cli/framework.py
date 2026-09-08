@@ -210,6 +210,25 @@ def dispatch(commands: list[Command], args: argparse.Namespace):
     to the legacy dispatch ladder during the incremental migration window).
     """
     cmd = resolve(commands, args)
+
+    # ── Handle `p <family> commands` ──────────────────────────────────────
+    # If the resolved command is a family (test, scan, fix, etc.) and the user
+    # typed `commands` as the subcommand, route to family commands display.
+    if cmd is not None:
+        top_name = getattr(args, "command", None)
+        sub_name = getattr(args, f"{top_name}_cmd", None)
+        if sub_name == "commands":
+            try:
+                from patchi.cli.command_families import get_family
+                from patchi.cli.commands.commands_cmd import run_family_commands
+
+                family = get_family(top_name)
+                if family:
+                    run_family_commands(top_name)
+                    return None, True
+            except Exception as e:
+                _log.debug("Family routing failed for %s: %s", top_name, e)
+
     if cmd is None:
         return None, False  # (result, handled) -- not handled, fall through
     fn = _lazy_import(cmd.handler)

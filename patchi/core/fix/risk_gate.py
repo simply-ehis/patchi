@@ -194,11 +194,12 @@ class RiskGate:
                     )
 
                 # Check convention rules (file size limits)
+                max_lines = 0
                 for rule in charter.rules:
                     if rule.type == RuleType.CONVENTION and rule.enabled:
                         if rule.max_value > 0 and rule.metric == "lines":
                             max_lines = rule.max_value
-                        if max_lines and max_lines > 0:
+                        if max_lines > 0:
                             for change in patch.changes:
                                 if change.path.endswith((".py", ".ts", ".js")):
                                     new_lines = (
@@ -330,7 +331,7 @@ class RiskGate:
             warnings.append("Quiet hours: auto-apply blocked. Patch queued for review.")
 
         return GateResult(
-            decision=GateDecision(decision),
+            decision=decision,
             reason=reason,
             patch_id=patch.id,
             risk_score=patch.risk_score,

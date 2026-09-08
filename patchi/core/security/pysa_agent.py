@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any
 
 from patchi.core.agents.base import (
+    AgentDomain,
     AgentGroup,
     AgentInput,
     AgentResult,
@@ -35,6 +36,7 @@ class PysaAgent(BaseAgent):
     """
 
     group = AgentGroup.SECURITY
+    domain = AgentDomain.CODE_QUALITY
     name = "PysaAgent"
     description = "Pysa static analyzer for Python security vulnerabilities"
     timeout = 120

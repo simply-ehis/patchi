@@ -155,6 +155,40 @@ class AgentGroup(StrEnum):
         }[self.value]
 
 
+class AgentDomain(StrEnum):
+    """User-facing domain categories for organizing agents by purpose."""
+
+    TESTING = "testing"  # Does my code work?
+    CODE_QUALITY = "code_quality"  # Is my code well-structured?
+    INTEGRATION = "integration"  # Is everything wired?
+    PERFORMANCE = "performance"  # Does it perform?
+    SECURITY = "security"  # Are there security holes?
+    VISUAL = "visual"  # Does it look right?
+    INFRASTRUCTURE = "infrastructure"  # Is the project set up?
+
+    def label(self) -> str:
+        return {
+            "testing": "Testing",
+            "code_quality": "Code Quality",
+            "integration": "Integration",
+            "performance": "Performance",
+            "security": "Security",
+            "visual": "Visual",
+            "infrastructure": "Infrastructure",
+        }[self.value]
+
+    def description(self) -> str:
+        return {
+            "testing": "Does my code work?",
+            "code_quality": "Is my code well-structured?",
+            "integration": "Is everything wired?",
+            "performance": "Does it perform?",
+            "security": "Are there security holes?",
+            "visual": "Does it look right?",
+            "infrastructure": "Is the project set up?",
+        }[self.value]
+
+
 # ── Agent status ───────────────────────────────────────────────────────────────
 
 
@@ -464,6 +498,7 @@ class BaseAgent(ABC):
     # Override these in subclasses
     name: str = "BaseAgent"
     group: AgentGroup = AgentGroup.SCANNER
+    domain: AgentDomain = AgentDomain.INFRASTRUCTURE
     timeout: int = 60  # seconds — coordinator enforces this
 
     def run(self, inp: AgentInput) -> AgentResult:

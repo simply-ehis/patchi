@@ -22,6 +22,7 @@ from __future__ import annotations
 import logging
 
 from ..agents.base import (
+    AgentDomain,
     AgentGroup,
     AgentInput,
     AgentResult,
@@ -72,6 +73,7 @@ class UIAccessibilityAgent(BaseAgent):
     """Real WCAG accessibility testing via Playwright + axe-core injection."""
 
     group = AgentGroup.TEST
+    domain = AgentDomain.VISUAL
     name = "UIAccessibilityAgent"
     description = "axe-core WCAG testing: contrast, alt text, labels, keyboard nav, ARIA"
     timeout = 180

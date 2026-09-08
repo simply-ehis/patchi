@@ -25,6 +25,7 @@ from pathlib import Path
 from patchi.core.brain.languages import DEFAULT_IGNORE_DIRS
 
 from ..agents.base import (
+    AgentDomain,
     AgentGroup,
     AgentInput,
     AgentResult,
@@ -130,6 +131,7 @@ class UnitTestAgent(BaseAgent):
     """Agent for running existing unit/integration tests."""
 
     group = AgentGroup.TEST
+    domain = AgentDomain.TESTING
     name = "UnitTestAgent"
     description = "Run existing test suites: pytest, unittest, jest, mocha, etc."
 

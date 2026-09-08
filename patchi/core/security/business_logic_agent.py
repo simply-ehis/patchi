@@ -20,6 +20,7 @@ from __future__ import annotations
 import re
 
 from ..agents.base import (
+    AgentDomain,
     AgentGroup,
     AgentInput,
     AgentResult,
@@ -88,6 +89,7 @@ class BusinessLogicAgent(BaseAgent):
     """Detects business logic abuse, mass assignment, IDOR, excessive data exposure."""
 
     group = AgentGroup.SECURITY
+    domain = AgentDomain.SECURITY
     name = "BusinessLogicAgent"
     description = (
         "Business logic abuse: mass assignment, IDOR, excessive data exposure, missing pagination"

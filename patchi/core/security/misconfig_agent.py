@@ -27,6 +27,7 @@ from pathlib import Path
 import yaml
 
 from ..agents.base import (
+    AgentDomain,
     AgentGroup,
     AgentInput,
     AgentResult,
@@ -45,6 +46,7 @@ class MisconfigAgent(BaseAgent):
     """Agent for detecting security misconfigurations."""
 
     group = AgentGroup.SECURITY
+    domain = AgentDomain.SECURITY
     name = "MisconfigAgent"
     description = (
         "Security misconfig: debug, CORS, headers, TLS, error handling, file upload, rate limiting"

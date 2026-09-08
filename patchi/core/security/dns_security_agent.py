@@ -24,6 +24,7 @@ import subprocess
 from pathlib import Path
 
 from ..agents.base import (
+    AgentDomain,
     AgentGroup,
     AgentInput,
     AgentResult,
@@ -112,6 +113,7 @@ class DNSSecurityAgent(BaseAgent):
     """Agent for detecting DNS security issues."""
 
     group = AgentGroup.SECURITY
+    domain = AgentDomain.SECURITY
     name = "DNSSecurityAgent"
     description = "DNS security: dangling records, zone transfer, DNSSEC, CAA records"
 

@@ -17,6 +17,7 @@ import uuid
 from pathlib import Path
 
 from ..agents.base import (
+    AgentDomain,
     AgentGroup,
     AgentInput,
     AgentResult,
@@ -209,6 +210,7 @@ class FlakeDetectorAgent(BaseAgent):
     """Detects flaky tests and duration regressions across multiple test runs."""
 
     group = AgentGroup.TEST
+    domain = AgentDomain.TESTING
     name = "FlakeDetectorAgent"
     description = (
         "Track test results across runs to detect flaky tests "

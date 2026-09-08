@@ -7,6 +7,7 @@ import tempfile
 from datetime import date, timedelta
 from pathlib import Path
 from unittest import mock
+from unittest.mock import patch
 
 from patchi.core.agents.base import AgentInput, AgentResult, AgentStatus, Finding, Severity
 from patchi.core.agents.build_tool_validator import BuildToolValidatorAgent
@@ -757,7 +758,8 @@ class TestFlakeDetectorAgent:
             assert len(outliers) == 1
             assert outliers[0]["test_name"] == "test_a"
 
-    def test_agent_returns_result(self):
+    @patch("patchi.core.testing.gate.require_ready", return_value=(True, "http://fake", "READY_TO_SERVE"))
+    def test_agent_returns_result(self, _mock_gate):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             cases = [
@@ -1146,7 +1148,7 @@ class TestFixAgentsParity:
         from patchi.core.fix import code_fixer
 
         captured = {}
-        with mock.patch.object(code_fixer, "_call_ai", lambda prompt, cfg: captured.setdefault("p", prompt) or "```\nprint('x')\n```"):
+        with mock.patch.object(code_fixer, "_call_ai", lambda prompt, cfg, **kwargs: captured.setdefault("p", prompt) or "```\nprint('x')\n```"):
             agent = CodeFixer()
             with tempfile.TemporaryDirectory() as tmp:
                 root = Path(tmp)

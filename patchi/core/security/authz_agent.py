@@ -24,6 +24,7 @@ import re
 from pathlib import Path
 
 from ..agents.base import (
+    AgentDomain,
     AgentGroup,
     AgentInput,
     AgentResult,
@@ -46,6 +47,7 @@ class AuthZAgent(BaseAgent):
     """Agent for detecting authorization vulnerabilities."""
 
     group = AgentGroup.SECURITY
+    domain = AgentDomain.SECURITY
     name = "AuthZAgent"
     description = "Authorization bypass, privilege escalation, IDOR, missing auth checks"
 

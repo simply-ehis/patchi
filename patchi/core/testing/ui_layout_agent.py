@@ -17,6 +17,7 @@ from __future__ import annotations
 import logging
 
 from ..agents.base import (
+    AgentDomain,
     AgentGroup,
     AgentInput,
     AgentResult,
@@ -48,6 +49,7 @@ class UILayoutAgent(BaseAgent):
     """Layout, responsive design, and visual structure testing."""
 
     group = AgentGroup.TEST
+    domain = AgentDomain.VISUAL
     name = "UILayoutAgent"
     description = "Responsive layout testing: viewports, overflow, overlap, grid collapse"
     timeout = 180

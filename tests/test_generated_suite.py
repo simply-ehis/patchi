@@ -129,18 +129,6 @@ class TestAiCmdTest:
         mock_con.print.assert_called()
 
 
-class TestAiCmdHordeTest:
-    """Tests for ai_cmd.run_horde_test."""
-
-    @patch("patchi.cli.commands.ai_cmd.con")
-    @patch("patchi.core.ai.client._call_ai_horde", return_value="PATCHI AI READY")
-    def test_run_horde_test(self, mock_horde, mock_con):
-        from patchi.cli.commands.ai_cmd import run_horde_test
-
-        run_horde_test()
-        mock_con.print.assert_called()
-
-
 class TestAiCmdAdd:
     """Tests for ai_cmd.run_add."""
 

@@ -21,6 +21,7 @@ from pathlib import Path
 from patchi.core.brain.languages import DEFAULT_IGNORE_DIRS
 
 from ..agents.base import (
+    AgentDomain,
     AgentGroup,
     AgentInput,
     AgentResult,
@@ -36,6 +37,7 @@ class E2EFlowAgent(BaseAgent):
     """AI-generated E2E tests for full user flows via Playwright."""
 
     group = AgentGroup.TEST
+    domain = AgentDomain.TESTING
     name = "E2EFlowAgent"
     description = "AI-generated Playwright E2E tests: login, checkout, forms, navigation"
     timeout = 300

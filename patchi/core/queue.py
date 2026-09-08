@@ -283,13 +283,15 @@ def is_paused(root: Path | None = None) -> bool:
 def skip_active(root: Path | None = None) -> str | None:
     """Mark the current active item as skipped. Returns its ID or None."""
     r = _root(root)
-    data = _read(r)
-    for item in data["items"]:
-        if item["state"] == QueueItemState.ACTIVE.value:
-            item["state"] = QueueItemState.SKIPPED.value
-            item["completed"] = _now()
-            _write(r, data)
-            return item["id"]
+    queue_path = r / QUEUE_FILE
+    with _file_lock(queue_path):
+        data = _read(r)
+        for item in data["items"]:
+            if item["state"] == QueueItemState.ACTIVE.value:
+                item["state"] = QueueItemState.SKIPPED.value
+                item["completed"] = _now()
+                _write(r, data)
+                return item["id"]
     return None
 
 

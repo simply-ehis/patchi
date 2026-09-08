@@ -23,6 +23,7 @@ from pathlib import Path
 from patchi.core.brain.languages import DEFAULT_IGNORE_DIRS
 
 from ..agents.base import (
+    AgentDomain,
     AgentGroup,
     AgentInput,
     AgentResult,
@@ -42,6 +43,7 @@ class SensitiveDataAgent(BaseAgent):
     """Agent for detecting PII and credential exposure in source code."""
 
     group = AgentGroup.SECURITY
+    domain = AgentDomain.SECURITY
     name = "SensitiveDataAgent"
     description = (
         "PII/credential exposure: API keys, passwords, emails, SSNs, connection strings in code"

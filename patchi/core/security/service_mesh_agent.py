@@ -9,6 +9,7 @@ import subprocess
 from pathlib import Path
 
 from ..agents.base import (
+    AgentDomain,
     AgentGroup,
     AgentInput,
     AgentResult,
@@ -122,6 +123,7 @@ _log = logging.getLogger("patchi.security.service_mesh_agent")
 class ServiceMeshAgent(BaseAgent):
     name = "ServiceMeshAgent"
     group = AgentGroup.SECURITY
+    domain = AgentDomain.SECURITY
     description = "Service mesh security: mTLS enforcement, sidecar injection, RBAC least privilege, authorization policies"
 
     def _run(self, inp: AgentInput, result: AgentResult) -> None:

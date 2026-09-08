@@ -14,7 +14,6 @@ import json
 
 # ── Low-level read/write ───────────────────────────────────────────────────────
 import logging
-import sys
 import threading
 import time
 import uuid
@@ -22,6 +21,7 @@ from datetime import UTC
 from pathlib import Path
 from typing import Any
 
+from patchi.core.atomic import atomic_replace
 from patchi.core.config import require_project_root
 from patchi.core.constants import (
     MEMORY_FILES,
@@ -48,22 +48,6 @@ def _read(category: MemoryCategory, root: Path) -> Any:
         return json.load(f)
 
 
-def _atomic_replace(src: Path, dst: Path, retries: int = 3) -> None:
-    """Replace dst with src atomically, with retries for Windows file-lock races."""
-    for attempt in range(retries):
-        try:
-            if sys.platform == "win32":
-                if dst.exists():
-                    dst.unlink()
-            src.replace(dst)
-            return
-        except PermissionError:
-            if attempt < retries - 1:
-                time.sleep(0.05 * (attempt + 1))
-                continue
-            raise
-
-
 def _write(category: MemoryCategory, data: Any, root: Path) -> None:
     with _WRITE_LOCK:
         path = _mem_path(category, root)
@@ -71,7 +55,7 @@ def _write(category: MemoryCategory, data: Any, root: Path) -> None:
         tmp = path.with_suffix(".tmp")
         with tmp.open("w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)
-        _atomic_replace(tmp, path)
+        atomic_replace(tmp, path)
 
 
 def _update(category: MemoryCategory, fn: Any, root: Path) -> Any:
@@ -280,22 +264,23 @@ def record_scan(summary: dict, root: Path | None = None) -> None:
     """Append a scan summary to history. Keeps only the last SCAN_HISTORY_MAX entries."""
     r = _root(root)
     path = r / SCAN_HISTORY_FILE
-    r.mkdir(parents=True, exist_ok=True)
-    history = []
-    if path.exists():
-        try:
-            with path.open("r", encoding="utf-8") as f:
-                history = json.load(f)
-        except Exception:
-            history = []
-    if not isinstance(history, list):
+    with _WRITE_LOCK:
+        r.mkdir(parents=True, exist_ok=True)
         history = []
-    history.insert(0, summary)
-    history = history[:SCAN_HISTORY_MAX]
-    tmp = path.with_suffix(".tmp")
-    with tmp.open("w", encoding="utf-8") as f:
-        json.dump(history, f, indent=2, default=str)
-    tmp.replace(path)
+        if path.exists():
+            try:
+                with path.open("r", encoding="utf-8") as f:
+                    history = json.load(f)
+            except Exception:
+                history = []
+        if not isinstance(history, list):
+            history = []
+        history.insert(0, summary)
+        history = history[:SCAN_HISTORY_MAX]
+        tmp = path.with_suffix(".tmp")
+        with tmp.open("w", encoding="utf-8") as f:
+            json.dump(history, f, indent=2, default=str)
+        atomic_replace(tmp, path)
 
 
 # ── Known issues ───────────────────────────────────────────────────────────────
@@ -370,7 +355,7 @@ def clear_all(root: "Path | None" = None) -> None:
                 tmp = f.with_suffix(".tmp")
                 with tmp.open("w", encoding="utf-8") as fh:
                     json.dump({}, fh)
-                _atomic_replace(tmp, f)
+                atomic_replace(tmp, f)
     except Exception as e:
         _log.warning("clear_all failed: %s", e)
 
@@ -403,7 +388,7 @@ def log_health_score(score: int, finding_count: int, root: "Path | None" = None)
     # Atomic write: tmp + rename
     tmp = path.with_suffix(".tmp")
     tmp.write_text(json.dumps(history, indent=2), encoding="utf-8")
-    _atomic_replace(tmp, path)
+    atomic_replace(tmp, path)
 
 
 def get_health_history(root: "Path | None" = None) -> list[dict]:
@@ -437,7 +422,7 @@ def record_rejection(finding_type: str, root: "Path | None" = None) -> int:
     # Atomic write: tmp + rename
     tmp = path.with_suffix(".tmp")
     tmp.write_text(json.dumps(counts, indent=2), encoding="utf-8")
-    _atomic_replace(tmp, path)
+    atomic_replace(tmp, path)
     return counts[finding_type]
 
 

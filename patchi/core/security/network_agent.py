@@ -22,6 +22,7 @@ import re
 from pathlib import Path
 
 from ..agents.base import (
+    AgentDomain,
     AgentGroup,
     AgentInput,
     AgentResult,
@@ -40,6 +41,7 @@ class NetworkAgent(BaseAgent):
     """Agent for detecting network security issues."""
 
     group = AgentGroup.SECURITY
+    domain = AgentDomain.SECURITY
     name = "NetworkAgent"
     description = "Network security: SSL/TLS, HTTPS redirects, cipher suites, security headers"
 

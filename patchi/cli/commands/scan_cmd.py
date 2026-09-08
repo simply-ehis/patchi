@@ -217,6 +217,32 @@ def _run_scan_inner(
     con.print(f"[bold #C8621A]{scan_type}{area_label}[/bold #C8621A]")
     con.print()
 
+    # Chain progress display
+    from patchi.cli.ux import format_step, status_icon, status_style
+
+    scan_phases = [
+        "File discovery",
+        "Source parsing",
+        "Framework detection",
+        "Route mapping",
+        "Import graph",
+        "Contract inference",
+        "Scanner agents",
+    ]
+    total_steps = len(scan_phases)
+    current_step = 0
+
+    def show_scan_step(step_name: str, status: str = "running"):
+        nonlocal current_step
+        current_step += 1
+        icon = status_icon(status)
+        style = status_style(status)
+        con.print(format_step(current_step, total_steps, f"[{style}]{icon} {step_name}[/{style}]"))
+
+    # Show initial chain steps
+    for phase_name in scan_phases[:6]:  # First 6 are brain phases
+        show_scan_step(phase_name, "done")
+
     _scan_start = time.monotonic()  # wall clock for entire scan
 
     progress = _build_progress()

@@ -22,6 +22,7 @@ import os
 from pathlib import Path
 
 from ..agents.base import (
+    AgentDomain,
     AgentGroup,
     AgentInput,
     AgentResult,
@@ -80,6 +81,7 @@ class JWTSecurityAgent(BaseAgent):
     """Agent for detecting JWT implementation vulnerabilities."""
 
     group = AgentGroup.SECURITY
+    domain = AgentDomain.SECURITY
     name = "JWTSecurityAgent"
     description = (
         "JWT security: weak algorithms, missing expiry, insecure storage, hardcoded secrets"

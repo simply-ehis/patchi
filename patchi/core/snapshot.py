@@ -21,6 +21,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from patchi.core.atomic import atomic_replace, atomic_write_json
 from patchi.core.config import require_project_root
 from patchi.core.constants import SNAPSHOT_DIR
 
@@ -229,11 +230,7 @@ def compute_diff(snapshot_id: str, root: Path | None = None) -> dict[str, str]:
 
 
 def _write_json(path: Path, data: Any) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_suffix(".tmp")
-    with tmp.open("w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2)
-    tmp.replace(path)
+    atomic_write_json(path, data)
 
 
 def _read_json(path: Path) -> Any:

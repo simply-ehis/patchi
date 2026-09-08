@@ -23,6 +23,7 @@ import re
 from pathlib import Path
 
 from ..agents.base import (
+    AgentDomain,
     AgentGroup,
     AgentInput,
     AgentResult,
@@ -41,6 +42,7 @@ class ComplianceAgent(BaseAgent):
     """Agent for detecting regulatory compliance issues."""
 
     group = AgentGroup.SECURITY
+    domain = AgentDomain.SECURITY
     name = "ComplianceAgent"
     description = "Compliance issues: PCI DSS, HIPAA, GDPR, SOX, audit trails, access controls"
 

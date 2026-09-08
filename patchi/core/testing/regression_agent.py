@@ -22,6 +22,7 @@ import time
 from pathlib import Path
 
 from ..agents.base import (
+    AgentDomain,
     AgentGroup,
     AgentInput,
     AgentResult,
@@ -39,6 +40,7 @@ class RegressionAgent(BaseAgent):
     """Agent for running regression tests with snapshots."""
 
     group = AgentGroup.TEST
+    domain = AgentDomain.TESTING
     name = "RegressionAgent"
     description = "Snapshot tests: visual, API, DB, FS, command output"
 

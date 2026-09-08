@@ -26,6 +26,7 @@ import time
 from pathlib import Path
 
 from ..agents.base import (
+    AgentDomain,
     AgentGroup,
     AgentInput,
     AgentResult,
@@ -46,6 +47,7 @@ class BrowserTestAgent(BaseAgent):
     """Agent for running browser tests with Playwright."""
 
     group = AgentGroup.TEST
+    domain = AgentDomain.TESTING
     name = "BrowserTestAgent"
     description = "Playwright tests for critical flows: login, checkout, forms, navigation"
 

@@ -27,7 +27,7 @@ from patchi.core.testing.live_v2.browser_pool import BrowserConfig, BrowserPool,
 from patchi.core.testing.live_v2.screenshot_manager import (
     ScreenshotConfig,
     ScreenshotManager,
-    VisualRegressionAgent,
+    _AsyncVisualRegressionAgent,
 )
 from patchi.core.testing.live_v2.stress_orchestrator import (
     StressConfig,
@@ -404,7 +404,7 @@ class LiveTestRunnerV2:
 
         self.on_progress("👁️ Running visual regression tests...")
 
-        agent = VisualRegressionAgent(
+        agent = _AsyncVisualRegressionAgent(
             self.root,
             {
                 "visual_threshold": config.visual_threshold,

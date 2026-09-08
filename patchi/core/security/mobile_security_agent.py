@@ -18,6 +18,7 @@ import re
 from pathlib import Path
 
 from ..agents.base import (
+    AgentDomain,
     AgentGroup,
     AgentInput,
     AgentResult,
@@ -37,6 +38,7 @@ class MobileSecurityAgent(BaseAgent):
     """Check mobile app code for OWASP MASVS compliance violations."""
 
     group = AgentGroup.SECURITY
+    domain = AgentDomain.SECURITY
     name = "MobileSecurityAgent"
     description = "OWASP MASVS L1/L2 compliance scanning"
 

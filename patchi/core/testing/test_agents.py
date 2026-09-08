@@ -7,10 +7,11 @@ Exports all test agent classes and shared test helper types.
 from __future__ import annotations
 
 from ..agents.base import register
-from .accessibility_agent import AccessibilityAgent
+from .app_discovery_agent import AppDiscoveryAgent  # noqa: F401
 from .api_contract_agent import APIContractAgent
 from .browser_test_agent import BrowserTestAgent
 from .e2e_flow_agent import E2EFlowAgent
+from .flake_detector_agent import FlakeDetectorAgent  # noqa: F401
 from .regression_agent import RegressionAgent
 from .security_test_agent import SecurityTestAgent
 from .stress_test_agent import StressTestAgent
@@ -29,10 +30,11 @@ except Exception as _e:  # pragma: no cover — playwright-less envs still work
     _logging.getLogger("patchi.testing").warning("LiveTestRunnerV2Agent unavailable: %s", _e)
 
 __all__ = [
-    "AccessibilityAgent",
+    "AppDiscoveryAgent",
     "APIContractAgent",
     "BrowserTestAgent",
     "E2EFlowAgent",
+    "FlakeDetectorAgent",
     "RegressionAgent",
     "SecurityTestAgent",
     "StressTestAgent",

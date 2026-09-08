@@ -140,7 +140,7 @@ def compute(root: Path | None = None) -> HealthScore:
         brain["test_coverage_pct"] = test_coverage_pct
         mem.save_brain(brain, root)
     except Exception as e:
-        _log.warning("compute failed: %s", e)
+        _log.warning("Failed to save health score to brain: %s", e)
 
     # Persist health score to scan history for trend charts (WIRE-07)
     if root is not None:
@@ -149,7 +149,7 @@ def compute(root: Path | None = None) -> HealthScore:
 
             patchi_record_scan(root, tool="health_compute", findings=[], health_score=total)
         except Exception as e:
-            _log.warning("compute failed: %s", e)
+            _log.warning("Failed to record health score to history: %s", e)
 
     with _health_lock:
         _health_cache[key] = (time.time(), score)

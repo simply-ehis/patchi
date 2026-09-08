@@ -350,6 +350,9 @@ class TestLazyScopedLoading:
         data = yaml.safe_load((dom / "web-frontend.yaml").read_text(encoding="utf-8"))
         data["component_type"] = "backend-api"
         (dom / "web-frontend.yaml").write_text(yaml.dump(data), encoding="utf-8")
+        # Force index invalidation — stat fingerprint may not change on NTFS
+        # within the same 100ns tick, so we clear the cached index explicitly.
+        loader._index = None
         assert loader.index_component_types("web-frontend") == frozenset({"backend-api"})
 
     def test_get_domain_out_of_scope_returns_none(self, multi_type_tree: Path):
@@ -459,6 +462,8 @@ class TestDomainLoaderCache:
         data = yaml.safe_load(domain_yaml.read_text(encoding="utf-8"))
         data["display_name"] = "Renamed In-Process"
         domain_yaml.write_text(yaml.dump(data), encoding="utf-8")
+        # Clear the module-level stat cache so _dirs_changed() re-stats the file
+        dl._stat_cache.clear()
         assert loader.get_domain("test-domain").display_name == "Renamed In-Process"
 
     def test_corrupt_cache_falls_back_to_parse(self, tmp_path, domain_yaml, playbook_yaml, cache_dir):

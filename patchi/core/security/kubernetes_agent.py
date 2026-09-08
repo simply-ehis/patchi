@@ -9,6 +9,7 @@ import subprocess
 from pathlib import Path
 
 from ..agents.base import (
+    AgentDomain,
     AgentGroup,
     AgentInput,
     AgentResult,
@@ -258,6 +259,7 @@ _log = logging.getLogger("patchi.security.kubernetes_agent")
 class KubernetesAgent(BaseAgent):
     name = "KubernetesAgent"
     group = AgentGroup.SECURITY
+    domain = AgentDomain.SECURITY
     description = (
         "Kubernetes cluster hardening: CIS Benchmark controls, RBAC, pod security, network policies"
     )

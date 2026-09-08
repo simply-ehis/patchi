@@ -34,6 +34,7 @@ from pathlib import Path
 
 from patchi.core import memory as mem
 from patchi.core import snapshot as snap
+from patchi.core.atomic import atomic_write_text
 from patchi.core.fix.patch import Patch, PatchState
 
 _log = logging.getLogger("patchi.fix.applier")
@@ -192,8 +193,7 @@ class PatchApplier:
                     if abs_path.exists():
                         abs_path.unlink()
                 else:
-                    abs_path.parent.mkdir(parents=True, exist_ok=True)
-                    abs_path.write_text(change.proposed, encoding="utf-8")
+                    atomic_write_text(abs_path, change.proposed)
                 written.append(change.path)
         except Exception as e:
             # Partial write — rollback immediately

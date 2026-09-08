@@ -29,6 +29,7 @@ from patchi.core.brain.ast_utils import find_calls, find_imports
 from patchi.core.brain.languages import EXTENSION_MAP, Lang
 
 from ..agents.base import (
+    AgentDomain,
     AgentGroup,
     AgentInput,
     AgentResult,
@@ -47,6 +48,7 @@ class InsecureRandomnessAgent(BaseAgent):
     """Agent for detecting insecure random number generation."""
 
     group = AgentGroup.SECURITY
+    domain = AgentDomain.SECURITY
     name = "InsecureRandomnessAgent"
     description = "Predictable RNG in security-sensitive contexts (tokens, passwords, keys)"
 

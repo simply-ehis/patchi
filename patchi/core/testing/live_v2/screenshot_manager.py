@@ -431,8 +431,8 @@ class ScreenshotManager:
         return diffs
 
 
-class VisualRegressionAgent:
-    """Agent for visual regression testing."""
+class _AsyncVisualRegressionAgent:
+    """Async wrapper for visual regression testing (used by LiveTestRunnerV2Agent)."""
 
     def __init__(self, root: Path, config: dict):
         self.root = root

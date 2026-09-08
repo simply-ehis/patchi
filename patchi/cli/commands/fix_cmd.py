@@ -99,9 +99,31 @@ def run(
         return
 
     # ── 3. Run fix agents sequentially ────────────────────────────────────────
+    from patchi.cli.ux import format_step, status_icon, status_style
+
+    fix_phases = [
+        "Finding analysis",
+        "Fix agent execution",
+        "Risk gate evaluation",
+        "Patch application",
+    ]
+    total_steps = len(fix_phases)
+    current_step = 0
+
+    def show_fix_step(step_name: str, status: str = "running"):
+        nonlocal current_step
+        current_step += 1
+        icon = status_icon(status)
+        style = status_style(status)
+        con.print(format_step(current_step, total_steps, f"[{style}]{icon} {step_name}[/{style}]"))
+
+    show_fix_step("Finding analysis", "done")
+    show_fix_step("Fix agent execution")
+
     patches = _run_fix_agents(fixable, r)
 
     if not patches:
+        show_fix_step("Fix agent execution", "failed")
         con.print("[dim]Fix agents produced no patches.[/dim]")
         con.print(
             "[dim]This may be because no AI key is configured. "
@@ -109,6 +131,9 @@ def run(
         )
         con.print()
         return
+
+    show_fix_step("Fix agent execution", "done")
+    show_fix_step("Risk gate evaluation")
 
     # ── 4. Risk gate + apply/queue ────────────────────────────────────────────
     gate = RiskGate(r)
@@ -220,8 +245,19 @@ def run(
     except Exception as e:
         con.print(f"[dim]Could not record fix pattern: {e}[/dim]")
 
+    show_fix_step("Risk gate evaluation", "done")
+    show_fix_step("Patch application", "done")
+
     # ── 6. Summary ────────────────────────────────────────────────────────────
     _show_summary(applied, queued, blocked)
+
+    # ── 7. Interactive review prompt ──────────────────────────────────────────
+    if queued and not dry_run:
+        from patchi.cli.ux import confirm
+        con.print()
+        if confirm("Review queued patches interactively?", default=False):
+            from patchi.cli.commands.fix_review_cmd import run as review_run
+            review_run(root=r)
 
 
 # ── Fix agents runner ──────────────────────────────────────────────────────────
