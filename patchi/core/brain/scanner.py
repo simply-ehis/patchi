@@ -462,7 +462,7 @@ class FileScanner:
         except OSError as e:
             return FileInfo(path=rel_path, language=lang, size_bytes=0, lines=0, error=str(e))
 
-        if quick_stat.st_size < 100:
+        if quick_stat.st_size < 10:
             try:
                 source = path.read_text(encoding="utf-8", errors="replace")
             except OSError:

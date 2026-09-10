@@ -105,13 +105,19 @@ class TestAttackAgentRun(unittest.TestCase):
         agent = AttackAgent()
         inp = AgentInput(root=self.root, scope=[], brain={}, config={}, extra={})
         result = AgentResult(agent_name="AttackAgent", agent_group="TEST")
-        # Removing pymetasploit3 from modules to simulate ImportError
-        saved = sys.modules.pop("pymetasploit3", None)
+        # Block pymetasploit3 import to simulate it not being installed
+        real_import = __builtins__.__import__ if hasattr(__builtins__, '__import__') else __import__
+        def mock_import(name, *args, **kwargs):
+            if name == "pymetasploit3" or name.startswith("pymetasploit3."):
+                raise ImportError("No module named 'pymetasploit3'")
+            return real_import(name, *args, **kwargs)
+        import builtins
+        saved_import = builtins.__import__
         try:
+            builtins.__import__ = mock_import
             agent._run(inp, result)
         finally:
-            if saved:
-                sys.modules["pymetasploit3"] = saved
+            builtins.__import__ = saved_import
         # Optional dependency missing → graceful SKIP, never a FAILED agent run.
         self.assertEqual(result.status, AgentStatus.SKIPPED)
         self.assertIn("pymetasploit3 not installed", result.data.get("skip_reason", ""))

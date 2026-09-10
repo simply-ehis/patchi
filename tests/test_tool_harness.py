@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import shutil
 import sys
 from pathlib import Path
 
@@ -218,6 +219,10 @@ class TestPerFindingBatch:
 # ── End-to-end consensus on the vulnerable sample ────────────────────────
 
 
+@pytest.mark.skipif(
+    not shutil.which("bandit") and not shutil.which("semgrep"),
+    reason="bandit and semgrep not installed",
+)
 class TestConsensusE2E:
     def test_bandit_and_semgrep_correlate(self, tmp_path: Path):
         """Both tools flag the same sink -> CorrelatedFinding with 2 confirmers."""
@@ -256,6 +261,10 @@ class TestConsensusE2E:
         )
 
 
+@pytest.mark.skipif(
+    not shutil.which("bandit") and not shutil.which("semgrep"),
+    reason="bandit and semgrep not installed",
+)
 class TestToolVerify:
     """The fix loop re-runs the same tools to prove the vuln is gone."""
 
@@ -426,6 +435,10 @@ class TestVerifyProactiveFixes:
         assert tv.verify_proactive_fixes(tmp_path, ["x.py"], {}) == []
 
 
+@pytest.mark.skipif(
+    not shutil.which("bandit") and not shutil.which("semgrep"),
+    reason="bandit and semgrep not installed",
+)
 class TestSastGate:
     """Pre-commit fast gate: exit 1 on high/critical, 0 when clean."""
 

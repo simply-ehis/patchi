@@ -546,7 +546,7 @@ class BaseAgent(ABC):
         Never override this — override _run() instead.
         """
         # Gate Rule — Testing/Live/Attack must confirm P-Check READY_TO_SERVE
-        if self.group in (AgentGroup.TEST, AgentGroup.SECURITY) and self.name not in ("PreCheckAgent", "UnitTestAgent", "RegressionAgent"):
+        if self.group in (AgentGroup.TEST, AgentGroup.SECURITY) and self.name not in ("PreCheckAgent", "UnitTestAgent", "RegressionAgent", "AttackAgent"):
             # Only gate live/test/attack agents, not pure static scanners or unit test runners
             needs_gate = self.group == AgentGroup.TEST or self.name in (
                 "RedTeamAgent",

@@ -96,7 +96,7 @@ class TypeScanner(BaseAgent):
             return
 
         # Skip trivially small files (no type issues) and cap total to avoid O(n) I/O
-        _MIN_SIZE = 200  # bytes
+        _MIN_SIZE = 10  # bytes
         _MAX_FILES = 500
         scanned = 0
         for file_path in checked_files:
