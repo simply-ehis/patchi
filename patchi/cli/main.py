@@ -136,6 +136,23 @@ def main() -> None:
     if sys.stderr.encoding != "utf-8":
         sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 
+    # Configure loguru: remove default handler and re-add without ANSI colors
+    # when stderr is not a terminal (piped output, pre-commit hooks, CI, etc.)
+    from loguru import logger as _loguru_logger
+
+    _loguru_logger.remove()
+    _loguru_logger.add(
+        sys.stderr,
+        colorize=sys.stderr.isatty(),
+        format=(
+            "<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | "
+            "<level>{level: <8}</level> | "
+            "<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - "
+            "<level>{message}</level>"
+        ),
+        level="DEBUG",
+    )
+
     parser = _build_parser()
     args = parser.parse_args()
 
