@@ -149,7 +149,7 @@ class DocClaimAgent(BaseAgent):
 
     group = AgentGroup.SCANNER
     name = "DocClaimAgent"
-    timeout = 120  # LLM calls can take time
+    timeout = 600  # 10 min — LLM calls on large docs can be slow
 
     def _run(self, inp: AgentInput, result: AgentResult) -> None:
         import os
@@ -186,6 +186,8 @@ class DocClaimAgent(BaseAgent):
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             future_to_doc = {}
             for doc_path in doc_files:
+                if not doc_path.is_file():
+                    continue
                 try:
                     text = doc_path.read_text(encoding="utf-8", errors="replace")
                 except Exception as e:
@@ -226,6 +228,8 @@ class DocClaimAgent(BaseAgent):
 
         for pattern in _DOC_PATTERNS:
             for path in root.glob(pattern):
+                if not path.is_file():
+                    continue
                 resolved = path.resolve()
                 if resolved in seen:
                     continue
@@ -329,8 +333,7 @@ class DocClaimAgent(BaseAgent):
                 return []
 
             if not response:
-                if attempt < max_retries - 1:
-                    continue
+                # Circuit breaker open or API down — don't retry, skip gracefully
                 return []
 
             claims = self._parse_claims(response, doc_path)

@@ -23,6 +23,7 @@ from .base import (
     AgentStatus,
     BaseAgent,
     Severity,
+    get_shard_files,
     make_finding,
     register,
     safe_rglob,
@@ -211,6 +212,8 @@ class DeadCodeHygieneAgent(BaseAgent):
     description = (
         "Detect unreachable code, feature flag archaeology, duplicate/outdated/suspicious deps"
     )
+    shardable = True
+    supported_languages = None
 
     def _run(self, inp: AgentInput, result: AgentResult) -> None:
         feature_flags: list[dict] = []
@@ -218,8 +221,18 @@ class DeadCodeHygieneAgent(BaseAgent):
         outdated_deps: list[dict] = []
         supply_chain: list[dict] = []
         files_scanned = 0
+        _MAX_FILES = 500
 
-        for file_path in safe_rglob(inp.root, "*"):
+        # Use shared corpus if available, else fall back to rglob
+        corpus = inp.extra.get("file_corpus")
+        if corpus and corpus.entries:
+            file_paths = [inp.root / k for k in corpus.entries]
+        else:
+            file_paths = list(get_shard_files(inp, "*"))
+
+        for file_path in file_paths:
+            if files_scanned >= _MAX_FILES:
+                break
             rel = file_path.relative_to(inp.root).as_posix()
             if any(seg in DEFAULT_IGNORE_DIRS for seg in Path(rel).parts):
                 continue

@@ -108,18 +108,19 @@ def _run(cmd: list[str], cwd: Path, timeout: int = 60) -> dict:
         return {"returncode": -1, "stdout": "", "stderr": "Command timed out", "timed_out": True}
     run_cwd = cwd if cwd.exists() else None
     try:
-        result = subprocess.run(cmd, cwd=run_cwd, capture_output=True, text=True, timeout=timeout)
+        result = subprocess.run(cmd, cwd=run_cwd, capture_output=True, text=True,
+                                encoding="utf-8", errors="replace", timeout=timeout)
         return {
             "returncode": result.returncode,
             "stdout": result.stdout,
             "stderr": result.stderr,
             "timed_out": False,
         }
-    except subprocess.TimeoutExpired:
+    except subprocess.TimeoutExpired as exc:
         return {
             "returncode": -1,
-            "stdout": "",
-            "stderr": "Command timed out",
+            "stdout": exc.stdout or "",
+            "stderr": exc.stderr or "",
             "timed_out": True,
         }
     except Exception as exc:
@@ -142,10 +143,13 @@ class UnitTestAgent(BaseAgent):
         if not test_runner:
             return
 
+        # Find the actual root where tests live (e.g. backend/ for monorepos)
+        test_root = self._find_test_root(inp.root, test_runner)
+
         suite = (
-            self._run_pytest(inp.root, inp.scope)
+            self._run_pytest(test_root, inp.scope)
             if test_runner == "pytest"
-            else self._suite_from_legacy(test_runner, inp.root)
+            else self._suite_from_legacy(test_runner, test_root)
         )
         result.data["suite"] = suite.to_dict()
         result.files_scanned = suite.total
@@ -183,21 +187,23 @@ class UnitTestAgent(BaseAgent):
 
     def _detect_test_runner(self, root: Path) -> str | None:
         """Detect which test runner is used in the project."""
-        # Python
-        for req_file in ["requirements.txt", "Pipfile", "pyproject.toml"]:
-            req_path = root / req_file
-            if req_path.exists():
-                content = req_path.read_text().lower()
-                if "pytest" in content:
-                    return "pytest"
-                if "unittest" in content and "test" in content:
-                    return "unittest"
-        if (root / "pytest.ini").exists() or (root / "tox.ini").exists():
-            return "pytest"
+        # Python — check root, then common subdirs (backend/, server/, api/, src/)
+        python_dirs = [root] + [root / d for d in ("backend", "server", "api", "src", "app")]
+        for d in python_dirs:
+            for req_file in ["requirements.txt", "Pipfile", "pyproject.toml"]:
+                req_path = d / req_file
+                if req_path.exists():
+                    content = req_path.read_text(encoding="utf-8", errors="ignore").lower()
+                    if "pytest" in content:
+                        return "pytest"
+                    if "unittest" in content and "test" in content:
+                        return "unittest"
+            if (d / "pytest.ini").exists() or (d / "tox.ini").exists():
+                return "pytest"
 
         # JS/TS
         if (root / "package.json").exists():
-            pkg_content = (root / "package.json").read_text()
+            pkg_content = (root / "package.json").read_text(encoding="utf-8", errors="ignore")
             pkg_data = json.loads(pkg_content) if pkg_content.strip() else {}
             scripts = pkg_data.get("scripts", {})
             pkg_lower = pkg_content.lower()
@@ -232,7 +238,7 @@ class UnitTestAgent(BaseAgent):
 
         # Ruby
         if (root / "Gemfile").exists():
-            gem_content = (root / "Gemfile").read_text().lower()
+            gem_content = (root / "Gemfile").read_text(encoding="utf-8", errors="ignore").lower()
             if "rspec" in gem_content:
                 return "rspec"
             return "minitest"
@@ -241,7 +247,7 @@ class UnitTestAgent(BaseAgent):
 
         # PHP
         if (root / "composer.json").exists():
-            composer_content = (root / "composer.json").read_text()
+            composer_content = (root / "composer.json").read_text(encoding="utf-8", errors="ignore")
             if "phpunit" in composer_content.lower():
                 return "phpunit"
 
@@ -271,6 +277,22 @@ class UnitTestAgent(BaseAgent):
                     return "phpunit"
 
         return None
+
+    def _find_test_root(self, root: Path, runner: str) -> Path:
+        """Find the directory that actually contains tests (for monorepos)."""
+        if runner == "pytest":
+            for subdir in ("backend", "server", "api", "src", "app"):
+                candidate = root / subdir
+                for cfg in ("requirements.txt", "pyproject.toml", "pytest.ini", "tox.ini"):
+                    if (candidate / cfg).exists():
+                        if list(candidate.rglob("test_*.py")):
+                            return candidate
+        elif runner in ("jest", "mocha"):
+            for subdir in ("frontend", "app", "web", "src"):
+                candidate = root / subdir
+                if (candidate / "package.json").exists():
+                    return candidate
+        return root
 
     def _run_tests(self, test_runner: str, root: Path) -> dict:
         """Run tests using the detected test runner (legacy dict-based)."""
@@ -318,10 +340,20 @@ class UnitTestAgent(BaseAgent):
 
     def _run_pytest(self, root: Path, scope: list[str] | None = None) -> TestSuite:
         """Run pytest tests."""
-        targets = self._find_test_files(root, scope or [])
-        cmd = [sys.executable, "-m", "pytest", "-q", "--tb=short"]
-        cmd.extend(targets or ["tests"])
-        proc = _run(cmd, root, timeout=120)
+        # If scope is empty, let pytest discover from test dirs (avoids arg list
+        # overflow and collection-error abort on one bad file killing all tests)
+        if scope:
+            targets = self._find_test_files(root, scope)
+        else:
+            targets = []
+            for d in ("tests", "test", "__tests__"):
+                if (root / d).is_dir():
+                    targets.append(d)
+            if not targets:
+                targets = ["tests"]
+        cmd = [sys.executable, "-m", "pytest", "-v", "--tb=short", "--continue-on-collection-errors", "--timeout=30"]
+        cmd.extend(targets)
+        proc = _run(cmd, root, timeout=90)
         output = f"{proc.get('stdout', '')}\n{proc.get('stderr', '')}"
         suite = self._parse_pytest_stdout(output, 0)
         suite.success = proc.get("returncode", 1) == 0 and suite.failed == 0 and suite.errors == 0
@@ -362,28 +394,41 @@ class UnitTestAgent(BaseAgent):
 
     def _parse_pytest_stdout(self, stdout: str, duration_ms: int) -> TestSuite:
         passed = failed = skipped = errors = 0
+        # Count verbose output lines (e.g. "tests/test_foo.py::test_bar PASSED [ 50%]")
         for line in stdout.splitlines():
-            if " passed" in line or " failed" in line or " skipped" in line or " error" in line:
-                passed = (
-                    int(re.search(r"(\d+) passed", line).group(1))
-                    if re.search(r"(\d+) passed", line)
-                    else passed
-                )
-                failed = (
-                    int(re.search(r"(\d+) failed", line).group(1))
-                    if re.search(r"(\d+) failed", line)
-                    else failed
-                )
-                skipped = (
-                    int(re.search(r"(\d+) skipped", line).group(1))
-                    if re.search(r"(\d+) skipped", line)
-                    else skipped
-                )
-                errors = (
-                    int(re.search(r"(\d+) error", line).group(1))
-                    if re.search(r"(\d+) error", line)
-                    else errors
-                )
+            stripped = line.strip()
+            if stripped.endswith(" PASSED") or " PASSED " in stripped:
+                passed += 1
+            elif stripped.endswith(" FAILED") or " FAILED " in stripped:
+                failed += 1
+            elif stripped.endswith(" SKIPPED") or " SKIPPED " in stripped:
+                skipped += 1
+            elif stripped.endswith(" ERROR") or " ERROR " in stripped:
+                errors += 1
+        # Fall back to summary line parsing if verbose counting found nothing
+        if passed + failed + skipped + errors == 0:
+            for line in stdout.splitlines():
+                if " passed" in line or " failed" in line or " skipped" in line or " error" in line:
+                    passed = (
+                        int(re.search(r"(\d+) passed", line).group(1))
+                        if re.search(r"(\d+) passed", line)
+                        else passed
+                    )
+                    failed = (
+                        int(re.search(r"(\d+) failed", line).group(1))
+                        if re.search(r"(\d+) failed", line)
+                        else failed
+                    )
+                    skipped = (
+                        int(re.search(r"(\d+) skipped", line).group(1))
+                        if re.search(r"(\d+) skipped", line)
+                        else skipped
+                    )
+                    errors = (
+                        int(re.search(r"(\d+) error", line).group(1))
+                        if re.search(r"(\d+) error", line)
+                        else errors
+                    )
         cases: list[TestCase] = []
         for line in stdout.splitlines():
             if line.startswith("FAILED "):
@@ -793,7 +838,7 @@ class UnitTestAgent(BaseAgent):
         """Run unittest tests."""
         try:
             cmd = [sys.executable, "-m", "unittest", "discover", "-s", ".", "-v"]
-            result = subprocess.run(cmd, cwd=root, capture_output=True, text=True, timeout=120)
+            result = subprocess.run(cmd, cwd=root, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=120)
 
             output = result.stdout + result.stderr
             return self._parse_unittest_output(output)
@@ -850,7 +895,7 @@ class UnitTestAgent(BaseAgent):
         """Run Jest tests."""
         try:
             cmd = ["npx", "jest", "--json", "--silent"]
-            result = subprocess.run(cmd, cwd=root, capture_output=True, text=True, timeout=120)
+            result = subprocess.run(cmd, cwd=root, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=120)
 
             if (
                 result.returncode == 0 or result.returncode == 1
@@ -887,7 +932,7 @@ class UnitTestAgent(BaseAgent):
             # npx not found, try with globally installed jest
             try:
                 cmd = ["jest", "--json", "--silent"]
-                result = subprocess.run(cmd, cwd=root, capture_output=True, text=True, timeout=120)
+                result = subprocess.run(cmd, cwd=root, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=120)
 
                 if result.returncode == 0 or result.returncode == 1:
                     try:
@@ -992,7 +1037,7 @@ class UnitTestAgent(BaseAgent):
         """Run Mocha tests."""
         try:
             cmd = ["npx", "mocha", "--reporter", "json"]
-            result = subprocess.run(cmd, cwd=root, capture_output=True, text=True, timeout=120)
+            result = subprocess.run(cmd, cwd=root, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=120)
 
             if (
                 result.returncode == 0 or result.returncode == 1
@@ -1028,7 +1073,7 @@ class UnitTestAgent(BaseAgent):
             # Try with globally installed mocha
             try:
                 cmd = ["mocha", "--reporter", "json"]
-                result = subprocess.run(cmd, cwd=root, capture_output=True, text=True, timeout=120)
+                result = subprocess.run(cmd, cwd=root, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=120)
 
                 if result.returncode == 0 or result.returncode == 1:
                     try:

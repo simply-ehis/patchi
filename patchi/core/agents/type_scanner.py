@@ -28,6 +28,7 @@ from .base import (
     BaseAgent,
     Finding,
     Severity,
+    get_shard_files,
     make_finding,
     register,
     safe_rglob,
@@ -73,6 +74,8 @@ class TypeScanner(BaseAgent):
     group = AgentGroup.SCANNER
     name = "TypeScanner"
     description = "Type issues: any/dynamic, missing types, unsafe assertions"
+    shardable = True
+    supported_languages = None
 
     def _run(self, inp: AgentInput, result: AgentResult) -> None:
         """Scan for type issues across all type-checked languages."""
@@ -80,7 +83,7 @@ class TypeScanner(BaseAgent):
         checked_files: list[Path] = []
 
         for pattern in TYPE_CHECKED_PATTERNS:
-            for file_path in safe_rglob(inp.root, pattern):
+            for file_path in get_shard_files(inp, pattern):
                 if file_path.is_file():
                     rel_path = file_path.relative_to(inp.root).as_posix()
                     if not self._should_skip_file(rel_path, inp):
@@ -92,10 +95,22 @@ class TypeScanner(BaseAgent):
             result.data.update({"needs_ai": False})
             return
 
+        # Skip trivially small files (no type issues) and cap total to avoid O(n) I/O
+        _MIN_SIZE = 200  # bytes
+        _MAX_FILES = 500
+        scanned = 0
         for file_path in checked_files:
+            if scanned >= _MAX_FILES:
+                break
+            try:
+                if file_path.stat().st_size < _MIN_SIZE:
+                    continue
+            except OSError:
+                continue
             rel_path = file_path.relative_to(inp.root).as_posix()
             lang = detect_language(file_path)
             findings.extend(self._scan_file(file_path, rel_path, lang))
+            scanned += 1
 
         result.status = AgentStatus.SUCCEEDED
         result.findings = findings

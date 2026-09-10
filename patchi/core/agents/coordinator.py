@@ -68,6 +68,52 @@ def _run_ai_bounded(func, timeout: float):
         return None
 
 
+# ── Agent sharding ─────────────────────────────────────────────────────────────
+# When an agent would process more than _SHARD_THRESHOLD files, split the file
+# list into _SHARD_COUNT chunks by top-level directory and run parallel copies.
+
+_SHARD_THRESHOLD = 500  # files per shard before splitting
+_SHARD_COUNT = 4  # number of parallel copies per shardable agent
+
+
+def _split_by_directory(files: list[str], n_chunks: int) -> list[list[str]]:
+    """Split files into n_chunks by directory first, then hash for overflow."""
+    import hashlib
+    groups: dict[str, list[str]] = {}
+    for f in files:
+        parts = Path(f).parts
+        key = "/".join(parts[:2]) if len(parts) > 2 else "/".join(parts[:1]) if len(parts) > 1 else "(root)"
+        groups.setdefault(key, []).append(f)
+    chunks: list[list[str]] = [[] for _ in range(n_chunks)]
+    for group in sorted(groups.values(), key=len, reverse=True):
+        if len(group) > _SHARD_THRESHOLD:
+            # Split large groups by filename hash for even distribution
+            for f in group:
+                h = int(hashlib.md5(f.encode()).hexdigest(), 16)
+                chunks[h % n_chunks].append(f)
+        else:
+            min_idx = min(range(n_chunks), key=lambda i: len(chunks[i]))
+            chunks[min_idx].extend(group)
+    return [c for c in chunks if c]
+
+
+def _merge_shard_results(shard_results: list[AgentResult], agent_name: str) -> AgentResult:
+    """Merge results from parallel shard copies into one AgentResult."""
+    merged = AgentResult(
+        agent_name=agent_name,
+        agent_group=AgentGroup.SCANNER,
+        status=AgentStatus.DONE,
+    )
+    for r in shard_results:
+        merged.findings.extend(r.findings)
+        merged.files_scanned += r.files_scanned
+        merged.errors.extend(r.errors)
+        merged.duration_ms = max(merged.duration_ms, r.duration_ms)
+        if r.status == AgentStatus.FAILED:
+            merged.status = AgentStatus.FAILED
+    return merged
+
+
 @dataclass
 class CoordinatorProgress:
     agent_name: str
@@ -313,12 +359,17 @@ class Coordinator:
     def _build_input(self, scope: list[str] | None, extra: dict | None) -> AgentInput:
         brain = self._brain or {}
         project_ctx = brain.get("project_context") or {}
+        merged_extra = dict(extra or {})
+        # Share the pre-built corpus with ScanBus to avoid rebuild
+        corpus = getattr(self, "_corpus", None)
+        if corpus is not None:
+            merged_extra.setdefault("file_corpus", corpus)
         return AgentInput(
             root=self.root,
             scope=scope or [],
             brain=brain,
             config=self._config,
-            extra=extra or {},
+            extra=merged_extra,
             purpose=brain.get("project_purpose", "") or project_ctx.get("purpose", ""),
             domain=brain.get("project_domain", "") or project_ctx.get("domain", ""),
             context=project_ctx,
@@ -385,9 +436,8 @@ class Coordinator:
                     "You are a project analysis coordinator.",
                     prompt,
                     max_tokens=200,
-                    timeout=15,
                 ),
-                timeout=15,
+                timeout=300,
             )
 
             if result:
@@ -424,11 +474,30 @@ class Coordinator:
             filtered.append(cls)
         agent_classes = filtered
 
+        # Filter agents by detected languages (skip JS-only agents on Python projects, etc.)
+        detected_languages = self._brain.get("languages", []) if self._brain else []
+        if detected_languages:
+            lang_filtered = []
+            for cls in agent_classes:
+                supported = getattr(cls, "supported_languages", None)
+                if supported is None or any(lang in detected_languages for lang in supported):
+                    lang_filtered.append(cls)
+                else:
+                    _log.debug("Skipping %s (languages %s not in project)", cls.name, supported)
+            agent_classes = lang_filtered
+
         # Init agent result cache
         cache = AgentCache(self.root)
         use_cache = not self._config.get("pipeline", {}).get("no_agent_cache", False)
 
         inp = self._build_input(scope, extra)
+
+        # Set the module-level fallback corpus so safe_rglob callers across
+        # all agents benefit from the pre-built index without explicit passing.
+        from patchi.core.agents.base import set_default_corpus
+
+        set_default_corpus(inp.extra.get("file_corpus"))
+
         total = len(agent_classes)
         completed = [0]
 
@@ -517,10 +586,25 @@ class Coordinator:
             for r in run_results:
                 cache.put(r.agent_name, r)
 
+        # Clear the module-level fallback corpus to avoid stale references
+        set_default_corpus(None)
+
         # Invalidate health score cache so the next status call picks up fresh data
         try:
             from patchi.core.health import invalidate_cache
             invalidate_cache()
+        except Exception:
+            pass
+
+        # Check if AI circuit breaker opened — warn user
+        try:
+            from patchi.core.ai.client import _circuit_open
+            if _circuit_open:
+                from rich.console import Console
+                Console().print(
+                    "\n[bold yellow]WARNING:[/bold yellow] AI provider unreachable. "
+                    "Findings have no AI explanations. Check your API key and network.\n"
+                )
         except Exception:
             pass
 
@@ -538,18 +622,103 @@ def _run_scan_bus(
     root: Path,
 ) -> list[AgentResult]:
     """ScanBus path: one shared corpus + FindingBus merge across shard workers.
-
-    Behavior-preserving vs _run_parallel: same agents, same full input, same
-    on_done (circuit breaker + save_scan_result). Fix agents never arrive here
-    (sequenced earlier); SEQUENTIAL/PROCESS modes bypass this branch.
-    """
+    Shardable agents get split across file subsets when corpus is large."""
+    from concurrent.futures import Future
     from patchi.core.scan_bus import QueueRunner, ScanBus
+    from patchi.core.agents.base import AgentGroup, AgentResult, AgentStatus
 
     sb = config.get("scan_bus", {})
-    runner = QueueRunner(ScanBus(root, shard_count=int(sb.get("shards", 4) or 4)))
+    corpus = inp.extra.get("file_corpus")
+    runner = QueueRunner(ScanBus(root, shard_count=int(sb.get("shards", 4) or 4), corpus=corpus))
     inp.extra["scan_bus"] = runner.scan_bus
     inp.extra["finding_bus"] = runner.finding_bus
-    return runner.run(agent_classes, lambda cls: _run_agent_safe(cls(), inp), on_done)
+
+    # Get file list for sharding decisions
+    all_files: list[str] = []
+    if corpus and hasattr(corpus, "entries"):
+        all_files = list(corpus.entries.keys())
+
+    results: list[AgentResult] = []
+    futures: dict[Future, str] = {}
+    timeout_map: dict[Future, int] = {}
+    shard_groups: dict[str, list[Future]] = {}
+
+    # Count total futures to submit for thread pool sizing
+    total_futures = 0
+    for cls in agent_classes:
+        should_shard = (
+            getattr(cls, "shardable", False)
+            and len(all_files) > _SHARD_THRESHOLD
+        )
+        total_futures += _SHARD_COUNT if should_shard else 1
+
+    with ThreadPoolExecutor(max_workers=max(runner.scan_bus.shard_count, total_futures)) as ex:
+        for cls in agent_classes:
+            agent_timeout = getattr(cls, "timeout", 120)
+            should_shard = (
+                getattr(cls, "shardable", False)
+                and len(all_files) > _SHARD_THRESHOLD
+            )
+
+            if should_shard:
+                chunks = _split_by_directory(all_files, _SHARD_COUNT)
+                shard_groups[cls.name] = []
+                for chunk in chunks:
+                    shard_inp = AgentInput(
+                        root=inp.root,
+                        scope=inp.scope,
+                        brain=inp.brain,
+                        config=inp.config,
+                        extra=dict(inp.extra),
+                        purpose=inp.purpose,
+                        domain=inp.domain,
+                        context=inp.context,
+                        active_domains=inp.active_domains,
+                        on_message=inp.on_message,
+                        on_ai_progress=inp.on_ai_progress,
+                        shard_files=chunk,
+                    )
+                    fut = ex.submit(runner._run_and_publish, lambda c=cls: _run_agent_safe(c(), shard_inp), cls)
+                    futures[fut] = cls.name
+                    timeout_map[fut] = agent_timeout
+                    shard_groups[cls.name].append(fut)
+            else:
+                fut = ex.submit(runner._run_and_publish, lambda c=cls: _run_agent_safe(c(), inp), cls)
+                futures[fut] = cls.name
+                timeout_map[fut] = agent_timeout
+
+        for fut in as_completed(futures):
+            try:
+                result = fut.result(timeout=timeout_map.get(fut, 120))
+            except Exception as e:
+                result = AgentResult(
+                    agent_name=futures[fut],
+                    agent_group=AgentGroup.SCANNER,
+                    status=AgentStatus.FAILED,
+                    errors=[f"QueueRunner caught: {e}"],
+                )
+            on_done(result)
+            results.append(result)
+
+    # Merge shard results
+    if shard_groups:
+        merged_names = set()
+        final_results = []
+        for r in results:
+            if r.agent_name in shard_groups and r.agent_name not in merged_names:
+                shard_futures = shard_groups[r.agent_name]
+                shard_results = [
+                    next((sr for sr in results if sr.agent_name == r.agent_name), r)
+                    for _ in shard_futures
+                ]
+                merged = _merge_shard_results(shard_results[:len(shard_futures)], r.agent_name)
+                final_results.append(merged)
+                merged_names.add(r.agent_name)
+            elif r.agent_name not in shard_groups:
+                final_results.append(r)
+        return final_results
+
+    return results
 
 
 def _run_parallel(
@@ -558,7 +727,8 @@ def _run_parallel(
     on_done: Callable[[AgentResult], None],
     config: dict,
 ) -> list[AgentResult]:
-    """ThreadPoolExecutor — I/O-bound agents benefit from threads."""
+    """ThreadPoolExecutor — I/O-bound agents benefit from threads.
+    Shardable agents get split across file subsets when corpus is large."""
     device_tier = config.get("device_tier", "mid")
     from patchi.core.constants import DeviceTier
 
@@ -567,31 +737,82 @@ def _run_parallel(
     except ValueError:
         max_workers = 8
 
+    # Get file list from corpus for sharding decisions
+    corpus = inp.extra.get("file_corpus")
+    all_files: list[str] = []
+    if corpus and hasattr(corpus, "entries"):
+        all_files = list(corpus.entries.keys())
+
     results: list[AgentResult] = []
     futures: dict[Future, str] = {}
-    # Per-agent timeouts from agent class attribute (LIMIT-04)
-    timeout_map: dict[Future, int] = {}
+    # Track shard groups: agent_name -> list of futures for merging
+    shard_groups: dict[str, list[Future]] = {}
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         for cls in agent_classes:
             agent_timeout = getattr(cls, "timeout", 120)
-            future = executor.submit(_run_agent_safe, cls(), inp)
-            futures[future] = cls.name
-            timeout_map[future] = agent_timeout
+            should_shard = (
+                getattr(cls, "shardable", False)
+                and len(all_files) > _SHARD_THRESHOLD
+            )
+
+            if should_shard:
+                chunks = _split_by_directory(all_files, _SHARD_COUNT)
+                shard_groups[cls.name] = []
+                for chunk in chunks:
+                    shard_inp = AgentInput(
+                        root=inp.root,
+                        scope=inp.scope,
+                        brain=inp.brain,
+                        config=inp.config,
+                        extra=dict(inp.extra),
+                        purpose=inp.purpose,
+                        domain=inp.domain,
+                        context=inp.context,
+                        active_domains=inp.active_domains,
+                        on_message=inp.on_message,
+                        on_ai_progress=inp.on_ai_progress,
+                        shard_files=chunk,
+                    )
+                    future = executor.submit(_run_agent_safe, cls(), shard_inp)
+                    futures[future] = cls.name
+                    shard_groups[cls.name].append(future)
+            else:
+                future = executor.submit(_run_agent_safe, cls(), inp)
+                futures[future] = cls.name
 
         for future in as_completed(futures):
-            agent_timeout = timeout_map.get(future, 120)
+            agent_name = futures[future]
             try:
                 result = future.result(timeout=agent_timeout)
             except Exception as e:
                 result = AgentResult(
-                    agent_name=futures[future],
+                    agent_name=agent_name,
                     agent_group=AgentGroup.SCANNER,
                     status=AgentStatus.FAILED,
                     errors=[f"Coordinator caught: {e}"],
                 )
             on_done(result)
             results.append(result)
+
+    # Merge shard results: replace individual shard results with merged result
+    if shard_groups:
+        merged_names = set()
+        final_results = []
+        for r in results:
+            if r.agent_name in shard_groups and r.agent_name not in merged_names:
+                shard_futures = shard_groups[r.agent_name]
+                shard_results = [
+                    next((sr for sr in results if sr.agent_name == r.agent_name), r)
+                    for _ in shard_futures
+                ]
+                # Deduplicate: only merge once per agent
+                merged = _merge_shard_results(shard_results[:len(shard_futures)], r.agent_name)
+                final_results.append(merged)
+                merged_names.add(r.agent_name)
+            elif r.agent_name not in shard_groups:
+                final_results.append(r)
+        return final_results
 
     return results
 

@@ -91,53 +91,72 @@ def run(no_logo: bool = False) -> None:
     # ── Step 4: AI setup ───────────────────────────────────────────────────────
     con.print(f"{STEP_ARROW} [bold]AI configuration...[/bold]")
     con.print()
-    con.print(
-        Panel(
-            "[bold]Patchi needs an AI model to generate fixes.[/bold]\n",
-            title="[bold #C8621A]AI Setup[/bold #C8621A]",
-            border_style="#C8621A",
-            padding=(1, 2),
+
+    # Check if AI keys already exist
+    existing_config = cfg.load(project_root)
+    existing_keys = existing_config.get("ai", {}).get("keys", [])
+    has_local_model = existing_config.get("ai", {}).get("local_model_name")
+
+    if existing_keys or has_local_model:
+        # Keys already configured — skip setup
+        if has_local_model:
+            con.print(f"{STEP_DONE} Local model already configured ({has_local_model})")
+        else:
+            key_count = len(existing_keys)
+            key_names = ", ".join(k.get("nickname", k.get("provider", "?")) for k in existing_keys[:3])
+            if key_count > 3:
+                key_names += f" +{key_count - 3} more"
+            con.print(f"{STEP_DONE} {key_count} API key(s) already configured: [dim]{key_names}[/dim]")
+        con.print("    [dim]Run [bold]p ai add[/bold] to add more keys, or [bold]p ai status[/bold] to check them[/dim]")
+    else:
+        # No keys — prompt for setup
+        con.print(
+            Panel(
+                "[bold]Patchi needs an AI model to generate fixes.[/bold]\n",
+                title="[bold #C8621A]AI Setup[/bold #C8621A]",
+                border_style="#C8621A",
+                padding=(1, 2),
+            )
         )
-    )
-    con.print()
+        con.print()
 
-    # Show provider options dynamically from KEY_PROVIDERS
-    con.print("  [bold]Choose AI provider:[/bold]")
-    con.print()
-    for i, p in enumerate(KEY_PROVIDERS, 1):
-        con.print(f"  [bold]{i}[/bold]  {p['name']:<14} [dim]{p['docs']}[/dim]")
-    con.print()
+        # Show provider options dynamically from KEY_PROVIDERS
+        con.print("  [bold]Choose AI provider:[/bold]")
+        con.print()
+        for i, p in enumerate(KEY_PROVIDERS, 1):
+            con.print(f"  [bold]{i}[/bold]  {p['name']:<14} [dim]{p['docs']}[/dim]")
+        con.print()
 
-    try:
-        choice = Prompt.ask("  Provider number or name", default="1")
-    except (EOFError, OSError):
-        choice = "1"
-        con.print("  [dim]Non-interactive mode — using first provider (Groq)[/dim]")
+        try:
+            choice = Prompt.ask("  Provider number or name", default="1")
+        except (EOFError, OSError):
+            choice = "1"
+            con.print("  [dim]Non-interactive mode — using first provider (Groq)[/dim]")
 
-    # Handle provider choice
-    provider_data = None
-    if choice.isdigit():
-        idx = int(choice) - 1
-        if 0 <= idx < len(KEY_PROVIDERS):
-            provider_data = KEY_PROVIDERS[idx]
-    else:
-        # Find by name (case-insensitive)
-        for p in KEY_PROVIDERS:
-            if p["name"].lower() == choice.lower():
-                provider_data = p
-                break
+        # Handle provider choice
+        provider_data = None
+        if choice.isdigit():
+            idx = int(choice) - 1
+            if 0 <= idx < len(KEY_PROVIDERS):
+                provider_data = KEY_PROVIDERS[idx]
+        else:
+            # Find by name (case-insensitive)
+            for p in KEY_PROVIDERS:
+                if p["name"].lower() == choice.lower():
+                    provider_data = p
+                    break
 
-    if not provider_data:
-        con.print(f"  [yellow]Unknown provider: {choice!r}, using Custom[/yellow]")
-        provider_data = KEY_PROVIDERS[-1]  # Custom
+        if not provider_data:
+            con.print(f"  [yellow]Unknown provider: {choice!r}, using Custom[/yellow]")
+            provider_data = KEY_PROVIDERS[-1]  # Custom
 
-    if provider_data["name"] == "Custom":
-        # Use the same flow as key_cmd for custom
-        _setup_custom_provider(project_root)
-    elif provider_data["name"] == "Ollama":
-        _setup_local_model(project_root)
-    else:
-        _setup_known_provider(project_root, provider_data)
+        if provider_data["name"] == "Custom":
+            # Use the same flow as key_cmd for custom
+            _setup_custom_provider(project_root)
+        elif provider_data["name"] == "Ollama":
+            _setup_local_model(project_root)
+        else:
+            _setup_known_provider(project_root, provider_data)
 
     con.print()
 

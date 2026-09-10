@@ -188,10 +188,16 @@ def build_graph(files: list[FileInfo], root: Path) -> ImportGraph:
         graph.nodes.add(fi.path)
         local_files.add(fi.path)
 
+    # Pre-build filename index for fast lookup: stem -> list of full paths
+    _filename_index: dict[str, list[str]] = {}
+    for fi in files:
+        stem = Path(fi.path).stem
+        _filename_index.setdefault(stem, []).append(fi.path)
+
     # Resolve each file's imports to local files
     for fi in files:
         for imp in fi.imports:
-            resolved = _resolve_to_local(imp.source, fi.path, local_files)
+            resolved = _resolve_to_local(imp.source, fi.path, local_files, _filename_index)
             if resolved and resolved != fi.path:
                 graph.add_edge(fi.path, resolved)
 
@@ -218,6 +224,7 @@ def _resolve_to_local(
     imp: str,
     from_file: str,
     local_files: set[str],
+    filename_index: dict[str, list[str]] | None = None,
 ) -> str | None:
     """
     Try to resolve an import string to a local project file path.
@@ -228,6 +235,7 @@ def _resolve_to_local(
       - Dotted module names (os.path, java.util.List)
       - Rust :: separators (std::collections::HashMap, crate::mod::fn)
       - Simple filenames (stdio.h, myheader.h, json)
+      - JS/TS path aliases (@/ -> src/, ~/ -> src/)
     """
     imp = imp.strip("\"'<>")
     if not imp:
@@ -235,41 +243,51 @@ def _resolve_to_local(
 
     source_dir = Path(from_file).parent
 
+    # Strategy 0: JS/TS path aliases (@/ -> src/, ~/ -> src/)
+    if imp.startswith("@/") or imp.startswith("~/"):
+        alias_target = imp[2:]  # strip @/ or ~/
+        # Try common alias roots: src/, app/src/, ./
+        for prefix in ("src/", "app/src/", ""):
+            candidate = (prefix + alias_target) if prefix else alias_target
+            result = _try_extensions(candidate, local_files, filename_index)
+            if result:
+                return result
+
     # Strategy 1: Relative path starting with . or /
     if imp.startswith(".") or imp.startswith("/"):
-        return _resolve_relative(imp, source_dir, local_files)
+        return _resolve_relative(imp, source_dir, local_files, filename_index)
 
     # Strategy 2: Path-style import (contains /)
     if "/" in imp:
-        return _resolve_path(imp, source_dir, local_files)
+        return _resolve_path(imp, source_dir, local_files, filename_index)
 
     # Strategy 3: Rust :: separator
     if "::" in imp:
         path_style = imp.replace("::", "/")
-        candidate = _resolve_path(path_style, source_dir, local_files)
+        candidate = _resolve_path(path_style, source_dir, local_files, filename_index)
         if candidate:
             return candidate
         for prefix in ("crate/", "self/", "super/"):
             if path_style.startswith(prefix):
                 sub = path_style[len(prefix) :]
-                r = _resolve_path(sub, source_dir, local_files)
+                r = _resolve_path(sub, source_dir, local_files, filename_index)
                 if r:
                     return r
         return None
 
     # Strategy 4: Dotted module (Python, Java)
     if "." in imp:
-        return _resolve_dotted(imp, source_dir, local_files)
+        return _resolve_dotted(imp, source_dir, local_files, filename_index)
 
     # Strategy 5: Bare name — try as file, then as dir/name
-    result = _try_extensions(imp, local_files)
+    result = _try_extensions(imp, local_files, filename_index)
     if result:
         return result
     candidate = (source_dir / imp).as_posix()
-    return _try_extensions(candidate, local_files)
+    return _try_extensions(candidate, local_files, filename_index)
 
 
-def _resolve_relative(imp: str, source_dir: Path, local_files: set[str]) -> str | None:
+def _resolve_relative(imp: str, source_dir: Path, local_files: set[str], filename_index: dict[str, list[str]] | None = None) -> str | None:
     """Resolve a relative import like .utils, ../helper, /src/foo."""
     if imp.startswith("."):
         level = 0
@@ -283,7 +301,7 @@ def _resolve_relative(imp: str, source_dir: Path, local_files: set[str]) -> str 
             candidate = (target_dir / remainder).as_posix()
         else:
             candidate = (target_dir / "__init__").as_posix()
-        return _try_extensions(candidate, local_files)
+        return _try_extensions(candidate, local_files, filename_index)
 
     if imp.startswith("/"):
         candidate = imp.lstrip("/")
@@ -292,11 +310,11 @@ def _resolve_relative(imp: str, source_dir: Path, local_files: set[str]) -> str 
     return None
 
 
-def _resolve_path(imp: str, source_dir: Path, local_files: set[str]) -> str | None:
+def _resolve_path(imp: str, source_dir: Path, local_files: set[str], filename_index: dict[str, list[str]] | None = None) -> str | None:
     """Resolve a path-style import relative to source file's directory."""
     # Try direct resolution relative to source directory
     candidate = (source_dir / imp).as_posix()
-    result = _try_extensions(candidate, local_files)
+    result = _try_extensions(candidate, local_files, filename_index)
     if result:
         return result
     # For module-prefixed paths (Go, etc.), strip leading components
@@ -306,26 +324,26 @@ def _resolve_path(imp: str, source_dir: Path, local_files: set[str]) -> str | No
         sub = "/".join(parts[start:])
         # Try relative to source directory
         candidate = (source_dir / sub).as_posix()
-        result = _try_extensions(candidate, local_files)
+        result = _try_extensions(candidate, local_files, filename_index)
         if result:
             return result
         # Try as absolute from project root
-        result = _try_extensions(sub, local_files)
+        result = _try_extensions(sub, local_files, filename_index)
         if result:
             return result
     return None
 
 
-def _resolve_dotted(imp: str, source_dir: Path, local_files: set[str]) -> str | None:
+def _resolve_dotted(imp: str, source_dir: Path, local_files: set[str], filename_index: dict[str, list[str]] | None = None) -> str | None:
     """Resolve a dotted module import (Python, Java)."""
     # Try the original string as a path first (handles "util.h", "theme.css", "db.php")
-    result = _resolve_path(imp, source_dir, local_files)
+    result = _resolve_path(imp, source_dir, local_files, filename_index)
     if result:
         return result
     parts = imp.split(".")
     for length in range(len(parts), 0, -1):
         candidate = "/".join(parts[:length])
-        result = _try_extensions(candidate, local_files)
+        result = _try_extensions(candidate, local_files, filename_index)
         if result:
             return result
     return None
@@ -333,7 +351,7 @@ def _resolve_dotted(imp: str, source_dir: Path, local_files: set[str]) -> str | 
 
 _JAVA_SRC_PREFIXES = ("src/main/java/", "src/test/java/", "src/main/kotlin/", "src/")
 
-def _try_extensions(base_path: str, local_files: set[str]) -> str | None:
+def _try_extensions(base_path: str, local_files: set[str], filename_index: dict[str, list[str]] | None = None) -> str | None:
     """Try appending each known extension and check if the file exists in local_files."""
     base = base_path.lstrip("/")
 
@@ -341,11 +359,41 @@ def _try_extensions(base_path: str, local_files: set[str]) -> str | None:
     if base in local_files:
         return base
 
-    # If the path already has a known extension, try it directly first
+    # Fast path: use filename index if available
+    if filename_index is not None:
+        basename = base.rsplit("/", 1)[-1] if "/" in base else base
+        candidates = filename_index.get(basename, [])
+        if candidates:
+            # Try exact path match first
+            for c in candidates:
+                if c == base or c.endswith("/" + base):
+                    return c
+            # Try with common extensions
+            for ext in (".py", ".js", ".ts", ".tsx", ".jsx", ".go", ".rs", ".java", ".c", ".cpp", ".h", ".hpp", ".rb", ".php", ".cs", ".swift", ".dart", ".kt"):
+                for c in candidates:
+                    if c == base + ext or c.endswith("/" + base + ext):
+                        return c
+            # Try __init__ for packages
+            for ext in (".py", ".js", ".ts", ".java", ".rb"):
+                init_name = basename + "/__init__" + ext if "/" not in base else base + "/__init__" + ext
+                for c in candidates:
+                    if c.endswith("/" + init_name) or c == init_name:
+                        return c
+            # Try directory convention (pkg/pkg.go)
+            last = basename
+            for ext in (".go", ".rs", ".py", ".js", ".ts"):
+                dir_name = base + "/" + last + ext
+                for c in candidates:
+                    if c == dir_name:
+                        return c
+            # Return first candidate as fallback
+            return candidates[0]
+        return None
+
+    # Fallback: brute-force extension search (no index)
     if any(base.endswith(ext) for ext in KNOWN_EXTENSIONS):
         if base in local_files:
             return base
-        # Also try under Java/Kotlin src prefixes for dotted com.example.Foo
         for pref in _JAVA_SRC_PREFIXES:
             if (pref + base) in local_files:
                 return pref + base
@@ -360,7 +408,6 @@ def _try_extensions(base_path: str, local_files: set[str]) -> str | None:
         init_candidate = base + "/__init__" + ext
         if init_candidate in local_files:
             return init_candidate
-        # Go/Rust directory convention: "pkg" → "pkg/pkg.go" or "pkg/mod.rs"
         last = base.rsplit("/", 1)[-1]
         dir_candidate = base + "/" + last + ext
         if dir_candidate in local_files:
@@ -464,7 +511,19 @@ def find_dead_files(
     - Files in internal package folders (cli/, core/, web/, tests/, ...)
     - Entry-point files (main.py, app.py, index.py, ...)
     - Test files (test_*.py, *_test.py)
+    - Config/manifest files (package.json, tsconfig.json, etc.)
+    - Static assets, shell scripts, dotfiles
     """
+    _CONFIG_STEMS = {
+        "package.json", "tsconfig.json", "tsconfig.node.json",
+        "vite.config", "vitest.config", "jest.config", "playwright.config",
+        "biome.json", "eslint.config", ".eslintrc",
+        "tailwind.config", "postcss.config", "components.json",
+        "railway.json", ".mcp.json", "check-env",
+    }
+    _CONFIG_EXTS = {".json", ".yaml", ".yml", ".toml", ".sh", ".env", ".lock"}
+    _CONFIG_PREFIXES = {".", "tsconfig", "vite.config", "vitest.config", "jest.config", "playwright.config"}
+
     dead: list[str] = []
     for fi in files:
         path = fi.path
@@ -476,8 +535,25 @@ def find_dead_files(
         stem = Path(path).stem
         if stem.startswith("test_") or stem.endswith("_test"):
             continue
+        if ".spec" in stem or ".test" in stem:
+            continue
+        if path.endswith(".d.ts"):
+            continue
 
         if stem in _ENTRY_POINT_STEMS:
+            continue
+
+        # Skip config/manifest files — they're never imported
+        fname = Path(path).name.lower()
+        if fname in _CONFIG_STEMS:
+            continue
+        if any(fname.startswith(p) for p in _CONFIG_PREFIXES):
+            continue
+        if Path(path).suffix.lower() in _CONFIG_EXTS:
+            continue
+
+        # Skip files in public/, static/, assets/, docs/ dirs — served, not imported
+        if any(seg in ("public", "static", "assets", "docs", "fixtures") for seg in parts):
             continue
 
         if not graph.reverse.get(path):

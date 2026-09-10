@@ -19,7 +19,7 @@ def is_tool_available(name: str) -> bool:
 def _run_process(cmd: list[str], timeout: int = 120) -> tuple[int, str, str]:
     """Run a subprocess command and return (returncode, stdout, stderr)."""
     try:
-        p = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+        p = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=timeout)
         return p.returncode, p.stdout, p.stderr
     except subprocess.TimeoutExpired as e:
         return 124, "", f"timeout: {str(e)}"

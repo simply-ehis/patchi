@@ -16,6 +16,7 @@ from patchi.core.agents.base import (
     AgentStatus,
     BaseAgent,
     Severity,
+    get_shard_files,
     make_finding,
     register,
     safe_rglob,
@@ -53,11 +54,13 @@ class I18nAgent(BaseAgent):
     name = "I18nAgent"
     description = "i18n audit §11.7 — hardcoded strings vs translation keys"
     timeout = 60
+    shardable = True
+    supported_languages = None
 
     def _run(self, inp: AgentInput, result: AgentResult) -> None:
         findings=[]
         for pat in ("*.jsx","*.tsx","*.vue","*.svelte"):
-            for fp in safe_rglob(inp.root, pat):
+            for fp in get_shard_files(inp, pat):
                 rel=fp.relative_to(inp.root).as_posix()
                 if "node_modules" in rel:
                     continue

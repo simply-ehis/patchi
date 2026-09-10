@@ -17,7 +17,7 @@ _log = logging.getLogger("patchi.agents.bug_predictor")
 
 def _churn(root: Path, rel: str) -> int:
     try:
-        out = subprocess.run(["git","log","--oneline","--",rel], capture_output=True, text=True, timeout=5, cwd=str(root))
+        out = subprocess.run(["git","log","--oneline","--",rel], capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=5, cwd=str(root))
         return len(out.stdout.splitlines()) if out.returncode==0 else 0
     except Exception: return 0
 
@@ -30,6 +30,9 @@ class BugPredictorAgent(BaseAgent):
     name = "BugPredictorAgent"
     description = "AI bug prediction churn×complexity §11.1"
     timeout = 60
+    shardable = True
+    supported_languages = None
+
     def _run(self, inp: AgentInput, result: AgentResult) -> None:
         findings=[]
         # simple heuristic model: score = churn*0.4 + complexity*0.3 + past_bug*0.3

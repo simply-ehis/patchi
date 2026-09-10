@@ -708,7 +708,7 @@ def run_tests(
     cmd = [c for c in cmd if c]
     _emit("test.suite.started", {"test_type": (test_types or ["unit"])[0], "test_count": 0})
     try:
-        proc = subprocess.run(cmd, capture_output=True, text=True, cwd=str(root), timeout=600)
+        proc = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=str(root), timeout=600)
     except subprocess.TimeoutExpired:
         _emit("test.suite.completed", {"passed": 0, "failed": 0, "coverage_pct": 0.0})
         return {"success": False, "error": "pytest timed out (600s)"}

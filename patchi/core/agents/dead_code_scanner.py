@@ -76,7 +76,7 @@ def _run_sglyon_deadcode(root: Path) -> list[dict] | None:
         if not cmd[0] or (cmd[0] not in ("python", "python3") and not shutil.which(cmd[0])):
             continue
         try:
-            proc = subprocess.run(cmd, capture_output=True, text=True, timeout=90)
+            proc = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=90)
             if proc.returncode not in (0, 1):
                 continue
             raw = proc.stdout.strip() or proc.stderr.strip()
@@ -144,30 +144,38 @@ class DeadCodeScanner(BaseAgent):
             return
 
         # 2. Fallback: existing dual-signal (import graph + vulture + per-language tools)
-        # Build import graph — always available, no external tool needed
+        # Build import graph — use corpus if available
+        corpus = inp.extra.get("file_corpus")
         try:
-            graph = build_import_graph(inp.root)
+            from ..brain.scanner import FileScanner
+            from ..brain.import_graph import build_graph
+
+            scanner = FileScanner(inp.root, ignore_paths=inp.config.get("ignore_paths", []), corpus=corpus)
+            all_files = scanner.scan()
+            # Cap graph building to first 500 files for speed
+            graph = build_graph(all_files[:500], inp.root)
         except Exception as exc:
             result.add_error(f"import graph failed: {exc}")
             graph = ImportGraph()
+            all_files = []
 
         # File-level dead code from graph alone
         try:
-            from ..brain.scanner import FileScanner
-
-            scanner = FileScanner(inp.root, ignore_paths=inp.config.get("ignore_paths", []))
-            all_files = scanner.scan()
             graph_dead_files = set(find_dead_files(all_files, graph))
         except Exception as e:
             _log.warning("DeadCodeScanner._run failed: %s", e)
             all_files = []
             graph_dead_files = set()
 
-        # Run vulture for symbol-level analysis (optional)
-        vulture_findings = _run_vulture(inp.root)
+        # Run vulture and per-language tools in parallel
+        skip_tools = set(inp.config.get("dead_code", {}).get("skip_tools", []))
+        from concurrent.futures import ThreadPoolExecutor, as_completed
 
-        # Run per-language dead code tools (ts-prune, cargo deadlinks, etc.)
-        tool_findings = _run_all_tools(inp.root)
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            vulture_future = pool.submit(_run_vulture, inp.root)
+            tools_future = pool.submit(_run_all_tools, inp.root, skip_tools)
+            vulture_findings = vulture_future.result()
+            tool_findings = tools_future.result()
         vulture_dead_files: set[str] = set()
         if vulture_findings is not None:
             for vf in vulture_findings:
@@ -336,6 +344,8 @@ def _run_tool(
             cmd,
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=timeout,
         )
     except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
@@ -666,24 +676,39 @@ TOOL_DISPATCH: dict[str, list[tuple[str, str, str]]] = {
 }
 
 
-def _run_all_tools(root: Path) -> list[dict]:
-    """Run all available dead code tools for the project's detected languages."""
-    all_findings: list[dict] = []
+def _run_all_tools(root: Path, skip_tools: set[str] | None = None) -> list[dict]:
+    """Run all available dead code tools in parallel for the project's detected languages."""
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
+    skip_tools = skip_tools or set()
     langs = _detect_project_langs(root)
+    tool_funcs: list[tuple[str, any]] = []
     for lang in langs:
         _, _, func_suffix = (TOOL_DISPATCH.get(lang) or [("", "", "")])[0]
         if not func_suffix:
             continue
+        if func_suffix in skip_tools:
+            _log.debug("Skipping dead code tool %s (in skip_tools)", func_suffix)
+            continue
         func_name = f"_run_{func_suffix}"
         func = globals().get(func_name)
-        if func is None:
-            continue
-        try:
-            findings = func(root)
-            if findings:
-                all_findings.extend(findings)
-        except Exception as e:
-            _log.warning("_run_all_tools failed: %s", e)
+        if func is not None:
+            tool_funcs.append((func_suffix, func))
+
+    if not tool_funcs:
+        return []
+
+    all_findings: list[dict] = []
+    with ThreadPoolExecutor(max_workers=min(4, len(tool_funcs))) as pool:
+        futures = {pool.submit(func, root): name for name, func in tool_funcs}
+        for future in as_completed(futures):
+            name = futures[future]
+            try:
+                findings = future.result()
+                if findings:
+                    all_findings.extend(findings)
+            except Exception as e:
+                _log.warning("Dead code tool %s failed: %s", name, e)
     return all_findings
 
 

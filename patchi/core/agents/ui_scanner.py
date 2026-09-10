@@ -28,6 +28,7 @@ from .base import (
     BaseAgent,
     Finding,
     Severity,
+    get_shard_files,
     make_finding,
     register,
     safe_rglob,
@@ -41,6 +42,8 @@ class UIScanner(BaseAgent):
     group = AgentGroup.SCANNER
     name = "UIScanner"
     description = "Frontend components, templates, static files"
+    shardable = True
+    supported_languages = ["JavaScript", "TypeScript"]
 
     def _mkf(self, *args, **kwargs) -> Finding:
         """Backwards-compatible finding helper for UIScanner."""
@@ -95,7 +98,7 @@ class UIScanner(BaseAgent):
         ]
 
         for pattern in ui_patterns:
-            for file_path in safe_rglob(inp.root, pattern):
+            for file_path in get_shard_files(inp, pattern):
                 if file_path.is_file():
                     rel_path = file_path.relative_to(inp.root).as_posix()
                     if not self._should_skip_file(rel_path, inp):

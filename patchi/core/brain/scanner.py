@@ -196,7 +196,7 @@ DEFAULT_IGNORE_EXTS = {
     ".min.js",  # minified — detected via endswith below
 }
 
-MAX_FILE_SIZE = 2 * 1024 * 1024  # 2MB — skip files larger than this
+MAX_FILE_SIZE = 500 * 1024  # 500KB — skip files larger than this
 
 
 # ── Parallel scanning support ──────────────────────────────────────────────────
@@ -214,9 +214,11 @@ def _load_ast_cache(root: Path) -> None:
             import json
 
             with open(cache_file, encoding="utf-8") as f:
-                _file_hash_cache = json.load(f)
+                loaded = json.load(f)
+            _file_hash_cache.clear()
+            _file_hash_cache.update(loaded)
         except (json.JSONDecodeError, OSError):
-            _file_hash_cache = {}
+            pass
 
 
 def _save_ast_cache(root: Path) -> None:
@@ -241,9 +243,25 @@ def _load_file_info_cache(root: Path) -> None:
             import json
 
             with open(cache_file, encoding="utf-8") as f:
-                _file_info_cache = json.load(f)
+                loaded = json.load(f)
+            _file_info_cache.clear()
+            _file_info_cache.update(loaded)
+            # Backfill mtime for old cache entries (first run after upgrade)
+            backfilled = 0
+            for rel, entry in _file_info_cache.items():
+                if "mtime" not in entry:
+                    try:
+                        full = root / rel
+                        st = full.stat()
+                        entry["mtime"] = st.st_mtime
+                        entry["size_bytes"] = st.st_size
+                        backfilled += 1
+                    except OSError:
+                        pass
+            if backfilled:
+                _save_file_info_cache(root)
         except (json.JSONDecodeError, OSError):
-            _file_info_cache = {}
+            pass
 
 
 def _save_file_info_cache(root: Path) -> None:
@@ -376,16 +394,25 @@ class FileScanner:
                     continue
 
             # Prune ignored dirs
+            def _safe_relative(p: Path) -> str | None:
+                try:
+                    return p.relative_to(self.root).as_posix()
+                except ValueError:
+                    return None
+
             dirnames[:] = [
                 d
                 for d in dirnames
                 if d not in self.ignore_dirs
-                and (current / d).relative_to(self.root).as_posix() not in self.ignore_paths
+                and (_safe_relative(current / d) not in self.ignore_paths)
             ]
 
             for fname in filenames:
                 fpath = current / fname
-                rel = fpath.relative_to(self.root)
+                try:
+                    rel = fpath.relative_to(self.root)
+                except ValueError:
+                    continue
 
                 # Skip ignored paths
                 if any(rel.as_posix().startswith(p) for p in self.ignore_paths):
@@ -429,25 +456,44 @@ class FileScanner:
         rel_path = path.relative_to(self.root).as_posix()
         lang = detect_language(path)
 
+        # Quick-skip: files under 100 bytes are trivial — skip hash + parse
+        try:
+            quick_stat = path.stat()
+        except OSError as e:
+            return FileInfo(path=rel_path, language=lang, size_bytes=0, lines=0, error=str(e))
+
+        if quick_stat.st_size < 100:
+            try:
+                source = path.read_text(encoding="utf-8", errors="replace")
+            except OSError:
+                source = ""
+            lines = source.rstrip("\n").count("\n") + 1 if source.strip() else 0
+            return FileInfo(
+                path=rel_path, language=lang, size_bytes=quick_stat.st_size, lines=lines
+            )
+
         # Incremental caching: skip re-parsing unchanged files (M-04)
+        # Uses mtime+size instead of content hash for speed (stat is ~100x faster)
         if use_cache:
             try:
-                content_hash = _file_content_hash(path)
-                if rel_path in _file_hash_cache and _file_hash_cache[rel_path] == content_hash:
-                    cached = _file_info_cache.get(rel_path)
-                    if cached and cached.get("language") == lang.value:
+                cached_entry = _file_info_cache.get(rel_path)
+                if cached_entry and cached_entry.get("language") == lang.value:
+                    # Quick check: if mtime and size match, file is unchanged
+                    cached_mtime = cached_entry.get("mtime", 0)
+                    cached_size = cached_entry.get("size_bytes", 0)
+                    if cached_mtime == quick_stat.st_mtime and cached_size == quick_stat.st_size:
                         return FileInfo(
-                            path=cached["path"],
-                            language=Lang(cached["language"]),
-                            size_bytes=cached["size_bytes"],
-                            lines=cached["lines"],
-                            imports=[ImportInfo(**i) for i in cached.get("imports", [])],
-                            exports=cached.get("exports", []),
-                            functions=[FunctionInfo(**f) for f in cached.get("functions", [])],
-                            classes=[ClassInfo(**c) for c in cached.get("classes", [])],
-                            is_entry_point=cached.get("is_entry_point", False),
-                            purpose=cached.get("purpose", ""),
-                            error=cached.get("error"),
+                            path=cached_entry["path"],
+                            language=Lang(cached_entry["language"]),
+                            size_bytes=cached_entry["size_bytes"],
+                            lines=cached_entry["lines"],
+                            imports=[ImportInfo(**i) for i in cached_entry.get("imports", [])],
+                            exports=cached_entry.get("exports", []),
+                            functions=[FunctionInfo(**f) for f in cached_entry.get("functions", [])],
+                            classes=[ClassInfo(**c) for c in cached_entry.get("classes", [])],
+                            is_entry_point=cached_entry.get("is_entry_point", False),
+                            purpose=cached_entry.get("purpose", ""),
+                            error=cached_entry.get("error"),
                         )
             except OSError:
                 pass
@@ -493,9 +539,10 @@ class FileScanner:
         # Cache the parsed result for incremental scanning (M-04)
         if use_cache:
             try:
-                content_hash = _file_content_hash(path)
-                _file_hash_cache[rel_path] = content_hash
-                _file_info_cache[rel_path] = info.to_dict()
+                stat = path.stat()
+                entry = info.to_dict()
+                entry["mtime"] = stat.st_mtime
+                _file_info_cache[rel_path] = entry
             except OSError:
                 pass
 
@@ -507,8 +554,35 @@ class FileScanner:
         on_progress(current, total, path) — called for each file if provided.
         Uses ProcessPoolExecutor for parallel parsing on large projects.
         """
-        # Load persisted hash cache for unchanged file detection
+        # Load persisted caches for unchanged file detection
+        _load_file_info_cache(self.root)
         _load_ast_cache(self.root)
+
+        # If corpus is provided and has entries, use it directly (no re-scan)
+        if self._corpus and self._corpus.entries:
+            paths = [Path(str(self.root / k)) for k in self._corpus.entries]
+            # Skip trivially small files (< 50 bytes) — no meaningful AST
+            _MIN_SIZE = 50
+            results: list[FileInfo] = []
+            for i, path in enumerate(paths):
+                if on_progress:
+                    on_progress(i + 1, len(paths), path)
+                try:
+                    if path.stat().st_size < _MIN_SIZE:
+                        rel = path.relative_to(self.root).as_posix()
+                        results.append(FileInfo(
+                            path=rel,
+                            language=detect_language(path),
+                            size_bytes=0,
+                            lines=0,
+                            error="trivially small",
+                        ))
+                        continue
+                except OSError:
+                    pass
+                fi = self.scan_file(path)
+                results.append(fi)
+            return results
 
         paths = self.discover(area)
         total = len(paths)
@@ -732,6 +806,16 @@ def _parse_js_ts(source: str, lang: Lang, info: FileInfo) -> None:
                     line=source[: m.start()].count("\n") + 1,
                 )
             )
+        # Dynamic import('...') — React.lazy, code splitting, etc.
+        for m in re.finditer(r"""import\(['"]([^'"]+)['"]\)""", source):
+            info.imports.append(
+                ImportInfo(
+                    source=m.group(1),
+                    names=["*"],
+                    is_relative=m.group(1).startswith("."),
+                    line=source[: m.start()].count("\n") + 1,
+                )
+            )
         return
 
     tree = parser.parse(source.encode("utf-8"))
@@ -816,17 +900,20 @@ def _js_import_names(node: Any, source: str) -> list[str]:
 
 
 def _extract_require(node: Any, source: str, info: FileInfo) -> None:
-    """Extract require('...') calls."""
+    """Extract require('...') and dynamic import('...') calls."""
     func = None
     args = []
     for child in node.children:
         if child.type == "identifier":
             func = source[child.start_byte : child.end_byte]
+        elif child.type == "import":
+            # Dynamic import() — tree-sitter parses 'import' as its own node type
+            func = "import"
         elif child.type == "arguments":
             for a in child.children:
                 if a.type in ("string", "template_string"):
                     args.append(source[a.start_byte : a.end_byte].strip("'\"` "))
-    if func == "require" and args:
+    if func in ("require", "import") and args:
         info.imports.append(
             ImportInfo(
                 source=args[0],

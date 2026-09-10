@@ -52,7 +52,8 @@ class CoreScanner(BaseAgent):
         """
         start_time = time.time()
 
-        scanner = FileScanner(root=inp.root, ignore_paths=inp.config.get("ignore_paths", []))
+        corpus = inp.extra.get("file_corpus")
+        scanner = FileScanner(root=inp.root, ignore_paths=inp.config.get("ignore_paths", []), corpus=corpus)
         try:
             infos = scanner.scan(area=None, on_progress=None)
         except Exception as e:

@@ -458,6 +458,9 @@ class AppLauncher:
             env=env,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
         )
 
         # Wait for health
@@ -502,6 +505,9 @@ class AppLauncher:
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             creationflags=creation_flags,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
         )
 
         target = AppTarget(
@@ -526,6 +532,9 @@ class AppLauncher:
             cwd=self.project.working_dir or self.root,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
         )
 
         target = AppTarget(

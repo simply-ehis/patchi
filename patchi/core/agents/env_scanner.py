@@ -36,6 +36,7 @@ from .base import (
     BaseAgent,
     Finding,
     Severity,
+    get_shard_files,
     make_finding,
     register,
     safe_rglob,
@@ -56,6 +57,8 @@ class EnvScanner(BaseAgent):
     group = AgentGroup.SCANNER
     name = "EnvScanner"
     description = "Secret/credential pattern detection"
+    shardable = True
+    supported_languages = None
 
     # Common secret patterns
     SECRET_PATTERNS = [
@@ -148,15 +151,35 @@ class EnvScanner(BaseAgent):
             "composer.json",
         ]
 
-        # Search for environment/config files
-        for pattern in env_patterns:
-            for file_path in safe_rglob(inp.root, pattern):
-                if file_path.is_file():
-                    rel_path = file_path.relative_to(inp.root).as_posix()
-                    if not scope_allows(inp, rel_path):
+        # Search for environment/config files — use corpus if available
+        corpus = inp.extra.get("file_corpus")
+        _MAX_FILES = 100
+        if corpus and corpus.entries:
+            env_exts = {".env", ".envrc", ".config", ".conf", ".ini", ".properties",
+                        ".json", ".yaml", ".yml", ".toml", ".py", ".js", ".ts", ".jsx", ".tsx",
+                        ".sh", ".bash", ".zsh", ".ps1", ".bat"}
+            count = 0
+            for rel_key in corpus.entries:
+                if count >= _MAX_FILES:
+                    break
+                p = Path(rel_key)
+                ext = p.suffix.lower()
+                name = p.name.lower()
+                if ext in env_exts or name.startswith("dockerfile") or name.startswith("docker-compose"):
+                    if not scope_allows(inp, rel_key):
                         continue
-                    if not self._should_skip_file(rel_path, inp):
-                        findings.extend(self._scan_env_file(file_path, rel_path))
+                    if not self._should_skip_file(rel_key, inp):
+                        findings.extend(self._scan_env_file(inp.root / rel_key, rel_key))
+                        count += 1
+        else:
+            for pattern in env_patterns:
+                for file_path in get_shard_files(inp, pattern):
+                    if file_path.is_file():
+                        rel_path = file_path.relative_to(inp.root).as_posix()
+                        if not scope_allows(inp, rel_path):
+                            continue
+                        if not self._should_skip_file(rel_path, inp):
+                            findings.extend(self._scan_env_file(file_path, rel_path))
 
         result.status = AgentStatus.SUCCEEDED
         result.findings = findings

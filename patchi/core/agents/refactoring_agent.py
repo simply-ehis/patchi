@@ -29,6 +29,7 @@ from .base import (
     AgentStatus,
     BaseAgent,
     Severity,
+    get_shard_files,
     make_finding,
     register,
     safe_rglob,
@@ -157,6 +158,8 @@ class RefactoringAgent(BaseAgent):
     group = AgentGroup.SCANNER
     name = "RefactoringAgent"
     description = "Resource leaks, React effect cleanup, file handles, modernization patterns"
+    shardable = True
+    supported_languages = None
 
     def _run(self, inp: AgentInput, result: AgentResult) -> None:
         interval_leaks: list[dict] = []
@@ -165,26 +168,24 @@ class RefactoringAgent(BaseAgent):
         modernization: list[dict] = []
         files_scanned = 0
 
-        for file_path in safe_rglob(inp.root, "*"):
-            rel = file_path.relative_to(inp.root).as_posix()
+        # Use corpus if available, else rglob
+        _REF_EXT = {".js", ".jsx", ".ts", ".tsx", ".py", ".rs", ".go", ".java",
+                    ".c", ".cpp", ".swift", ".rb", ".svelte"}
+        _MAX_FILES = 200
+        corpus = inp.extra.get("file_corpus")
+        if corpus and corpus.entries:
+            file_iter = ((inp.root / k, k) for k in corpus.entries)
+        else:
+            file_iter = ((fp, fp.relative_to(inp.root).as_posix()) for fp in get_shard_files(inp, "*"))
+
+        count = 0
+        for file_path, rel in file_iter:
+            if count >= _MAX_FILES:
+                break
             if any(seg in DEFAULT_IGNORE_DIRS for seg in Path(rel).parts):
                 continue
             ext = file_path.suffix.lower()
-            if ext not in (
-                ".js",
-                ".jsx",
-                ".ts",
-                ".tsx",
-                ".py",
-                ".rs",
-                ".go",
-                ".java",
-                ".c",
-                ".cpp",
-                ".swift",
-                ".rb",
-                ".svelte",
-            ):
+            if ext not in _REF_EXT:
                 continue
             files_scanned += 1
             try:
@@ -218,6 +219,7 @@ class RefactoringAgent(BaseAgent):
                 file_handle_leaks.extend(
                     {"file": rel, **f} for f in _detect_file_handle_leaks_legacy(content)
                 )
+            count += 1
 
         result.data["interval_leaks"] = interval_leaks
         result.data["effect_issues"] = effect_issues

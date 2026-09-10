@@ -135,9 +135,10 @@ class MutationAgent(BaseAgent):
         # 3. Heuristic: branch coverage deep-dive — flag files with complex branches but no test
         if not findings:
             try:
-                from patchi.core.brain.file_corpus import FileCorpus
-
-                corpus = FileCorpus(inp.root)
+                corpus = inp.extra.get("file_corpus")
+                if corpus is None:
+                    from patchi.core.brain.file_corpus import FileCorpus
+                    corpus = FileCorpus(inp.root)
                 for entry in corpus.files():
                     if "test" in entry.path.lower() or entry.path.startswith("tests/"):
                         continue

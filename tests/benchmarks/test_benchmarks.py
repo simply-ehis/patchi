@@ -196,6 +196,7 @@ def _make_duplicate_corpus(n_functions: int, n_clusters: int) -> list[dict]:
     return functions
 
 
+@pytest.mark.skip(reason="DuplicateScanner disabled — duplicate detection is noise in production code")
 class TestDuplicateScannerPerformance:
     """Measure duplicate detection scaling on large synthetic corpora."""
 

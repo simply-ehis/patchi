@@ -16,6 +16,7 @@ from patchi.core.agents.base import (
     AgentStatus,
     BaseAgent,
     Severity,
+    get_shard_files,
     make_finding,
     register,
     safe_rglob,
@@ -36,23 +37,30 @@ class ModernizationAgent(BaseAgent):
     name = "ModernizationAgent"
     description = "Codemods §7.1.4 var→const, then→await, require→import"
     timeout = 60
+    shardable = True
+    supported_languages = None
+
+    _MAX_FILES = 500
 
     def _run(self, inp: AgentInput, result: AgentResult) -> None:
-        findings=[]
-        for pat in ("*.js","*.jsx","*.ts","*.tsx"):
-            for fp in safe_rglob(inp.root, pat):
-                rel=fp.relative_to(inp.root).as_posix()
+        findings = []
+        files_scanned = 0
+        for pat in ("*.js", "*.jsx", "*.ts", "*.tsx"):
+            for fp in get_shard_files(inp, pat):
+                if files_scanned >= self._MAX_FILES:
+                    break
+                rel = fp.relative_to(inp.root).as_posix()
                 if "node_modules" in rel:
                     continue
                 try:
-                    txt=fp.read_text(encoding="utf-8", errors="replace")
+                    txt = fp.read_text(encoding="utf-8", errors="replace")
                 except OSError:
                     continue
                 lang = lang_for_file(rel)
                 tree = parse_js(txt, lang)
                 if tree is None:
                     continue
-                events: list[tuple[int, str]] = []
+                events = []
                 for kind, line in js_var_kinds(tree, lang):
                     if kind == "var":
                         events.append((line, "var"))
@@ -78,7 +86,8 @@ class ModernizationAgent(BaseAgent):
                         break
                 if len(findings) >= 40:
                     break
-            if len(findings) >= 40:
+                files_scanned += 1
+            if files_scanned >= self._MAX_FILES:
                 break
         result.status=AgentStatus.SUCCEEDED
         result.findings=findings[:40]

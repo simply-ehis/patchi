@@ -27,7 +27,7 @@ def filter_since(findings: list[dict], since_ref: str, root: Path) -> list[dict]
     """Filter findings to files changed since git ref."""
     try:
         import subprocess
-        out = subprocess.run(["git","diff","--name-only", since_ref], capture_output=True, text=True, timeout=5, cwd=str(root))
+        out = subprocess.run(["git","diff","--name-only", since_ref], capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=5, cwd=str(root))
         if out.returncode != 0:
             return findings
         changed = set(out.stdout.splitlines())

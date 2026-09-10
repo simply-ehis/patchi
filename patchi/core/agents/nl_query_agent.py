@@ -59,10 +59,12 @@ class NLQueryAgent(BaseAgent):
             _log.debug("nl parse failed: %s", exc)
         # Simple keyword search over routes
         try:
-            from patchi.core.brain.file_corpus import FileCorpus
             from patchi.core.brain.framework import FrameworkDetector
             from patchi.core.brain.route_mapper import RouteMapper
-            corpus=FileCorpus(inp.root)
+            corpus = inp.extra.get("file_corpus")
+            if corpus is None:
+                from patchi.core.brain.file_corpus import FileCorpus
+                corpus = FileCorpus(inp.root)
             routes=RouteMapper(inp.root, FrameworkDetector(inp.root, corpus=corpus).detect()).extract([])
             # Heuristic: auth-related routes without rate limiting middleware
             for r in routes:

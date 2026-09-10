@@ -25,18 +25,19 @@ from patchi.cli.console import con
 from patchi.cli.ux import format_header, colored_status
 
 
-def run(args=None):
+def run(args=None, flat: bool = False, search: str | None = None, **_kwargs):
     """Handle the commands command."""
     if args is None:
         args = sys.argv[1:]
 
-    # Parse arguments
-    flat = "--flat" in args
-    search = None
-    for i, arg in enumerate(args):
-        if arg == "--search" and i + 1 < len(args):
-            search = args[i + 1]
-            break
+    # Parse arguments (fallback for direct CLI invocation)
+    if not flat:
+        flat = "--flat" in args
+    if not search:
+        for i, arg in enumerate(args):
+            if arg == "--search" and i + 1 < len(args):
+                search = args[i + 1]
+                break
 
     if flat:
         _print_flat_commands()

@@ -45,6 +45,17 @@ DEFAULT_MAX_DELAY = 30.0  # seconds
 DEFAULT_BACKOFF_MULTIPLIER = 2.0
 DEFAULT_JITTER = 0.1  # 10% jitter
 
+# ── Circuit breaker lock ──────────────────────────────────────────────────────────
+# Protects circuit breaker state updates
+_ai_call_lock = __import__("threading").Lock()
+
+# ── Circuit breaker ─────────────────────────────────────────────────────────────
+# Stops AI calls entirely after N consecutive failures (saves time on dead APIs).
+_CIRCUIT_BREAKER_THRESHOLD = 3  # consecutive failures before opening
+_circuit_failures: int = 0
+_circuit_open: bool = False
+_circuit_skip_count: int = 0  # rate-limit circuit breaker debug spam
+
 T = TypeVar("T")
 
 
@@ -63,6 +74,37 @@ def _is_retryable_error(e: Exception) -> bool:
     return False
 
 
+def _record_ai_success() -> None:
+    """Record a successful AI call, reset circuit breaker."""
+    global _circuit_failures, _circuit_open
+    with _ai_call_lock:
+        _circuit_failures = 0
+        _circuit_open = False
+
+
+def _record_ai_failure() -> bool:
+    """Record a failure. Returns True if circuit is now open (stop calling)."""
+    global _circuit_failures, _circuit_open
+    with _ai_call_lock:
+        _circuit_failures += 1
+        if _circuit_failures >= _CIRCUIT_BREAKER_THRESHOLD:
+            _circuit_open = True
+            logger.warning(
+                "AI circuit breaker OPEN after {} consecutive failures — "
+                "skipping remaining AI calls this scan",
+                _circuit_failures,
+            )
+        return _circuit_open
+
+
+def reset_ai_circuit_breaker() -> None:
+    """Reset the circuit breaker. Call at the start of each new scan."""
+    global _circuit_failures, _circuit_open
+    with _ai_call_lock:
+        _circuit_failures = 0
+        _circuit_open = False
+
+
 def _retry_with_backoff(
     func: Callable[[], T],
     max_retries: int = DEFAULT_MAX_RETRIES,
@@ -75,19 +117,7 @@ def _retry_with_backoff(
 ) -> T | None:
     """
     Execute a function with exponential backoff retry logic.
-    
-    Args:
-        func: Function to execute (should return result or raise exception)
-        max_retries: Maximum number of retry attempts
-        base_delay: Initial delay between retries (seconds)
-        max_delay: Maximum delay between retries (seconds)
-        backoff_multiplier: Multiplier for exponential backoff
-        jitter: Random jitter factor (0.0-1.0) to prevent thundering herd
-        timeout_remaining: Optional callable returning remaining time budget
-        progress_callback: Optional callback for progress messages
-    
-    Returns:
-        Result of func() on success, None on all retries exhausted
+    Respects the global circuit breaker.
     """
     def _progress(msg: str) -> None:
         if progress_callback:
@@ -95,8 +125,17 @@ def _retry_with_backoff(
                 progress_callback(msg)
             except Exception:
                 pass
+
+    # Circuit breaker: stop immediately if API is dead
+    if _circuit_open:
+        global _circuit_skip_count
+        _circuit_skip_count += 1
+        if _circuit_skip_count <= 1 or _circuit_skip_count % 100 == 0:
+            logger.debug("AI circuit breaker open — skipping call (x%d)", _circuit_skip_count)
+        return None
     
     delay = base_delay
+    last_error = None
     
     for attempt in range(max_retries + 1):
         # Check timeout budget
@@ -107,26 +146,32 @@ def _retry_with_backoff(
                 return None
         
         try:
-            return func()
+            result = func()
+            if result is not None:
+                _record_ai_success()
+            return result
         except Exception as e:
+            last_error = e
+            
             if attempt < max_retries and _is_retryable_error(e):
-                # Calculate delay with jitter
                 jitter_amount = delay * jitter * (2 * random.random() - 1)
                 actual_delay = min(delay + jitter_amount, max_delay)
                 
                 _progress(f"Retrying in {actual_delay:.1f}s... (attempt {attempt + 2}/{max_retries + 1})")
                 logger.debug(
-                    f"Retryable error (attempt {attempt + 1}/{max_retries + 1}): {e}. "
-                    f"Retrying in {actual_delay:.1f}s..."
+                    "Retryable error (attempt {}/{}): {}. Retrying in {:.1f}s...",
+                    attempt + 1, max_retries + 1, e, actual_delay,
                 )
                 
                 time.sleep(actual_delay)
                 delay *= backoff_multiplier
             else:
                 # Non-retryable error or max retries reached
-                logger.debug(f"Non-retryable error or max retries reached: {e}")
+                logger.debug("Non-retryable error or max retries reached: {}", e)
                 break
     
+    # Record failure for circuit breaker
+    _record_ai_failure()
     return None
 
 
@@ -193,6 +238,14 @@ def call_ai(
     operations (e.g., "Contacting provider...", "Retrying in 2s...").
     """
     if os.environ.get("PATCHI_OFFLINE"):
+        return None
+
+    # Circuit breaker: skip entirely if API is dead
+    if _circuit_open:
+        global _circuit_skip_count
+        _circuit_skip_count += 1
+        if _circuit_skip_count <= 1 or _circuit_skip_count % 100 == 0:
+            logger.debug("AI circuit breaker open — skipping call (x%d)", _circuit_skip_count)
         return None
 
     deadline = time.monotonic() + timeout if timeout is not None else None

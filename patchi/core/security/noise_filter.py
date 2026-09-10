@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import fnmatch
 import logging
+import re
 from dataclasses import dataclass, field
 from pathlib import PurePosixPath
 
@@ -112,6 +113,11 @@ _TEST_DIR_MARKERS = frozenset(
     }
 )
 
+# Pre-compiled patterns for fast matching
+_COMPILED_GENERATED = [(re.compile(fnmatch.translate(p)), p) for p in _GENERATED_PATTERNS]
+_COMPILED_DOCS = [(re.compile(fnmatch.translate(p)), p) for p in _DOC_PATTERNS]
+_COMPILED_TESTS = [(re.compile(fnmatch.translate(p)), p) for p in _TEST_FILE_PATTERNS]
+
 
 def classify(path: str) -> str | None:
     """Return the noise category for a path, or None if it looks like source.
@@ -122,23 +128,23 @@ def classify(path: str) -> str | None:
     p = PurePosixPath(path.replace("\\", "/"))
     name = p.name
 
-    # 1. Lockfiles — exact name match anywhere in the tree
+    # 1. Lockfiles — exact name match anywhere in the tree (fastest path)
     if name in _LOCKFILE_NAMES:
         return "lockfile"
 
-    # 2. Generated/minified — pattern match on filename
-    for pat in _GENERATED_PATTERNS:
-        if "/" not in pat and fnmatch.fnmatch(name, pat):
+    # 2. Generated/minified — pattern match on filename (pre-compiled)
+    for compiled, pat in _COMPILED_GENERATED:
+        if "/" not in pat and compiled.match(name) is not None:
             return "generated"
 
-    # 3. Docs — extension-based
-    for pat in _DOC_PATTERNS:
-        if fnmatch.fnmatch(name, pat):
+    # 3. Docs — extension-based (pre-compiled)
+    for compiled, _ in _COMPILED_DOCS:
+        if compiled.match(name) is not None:
             return "docs"
 
-    # 4. Tests — filename pattern OR directory marker in path
-    for pat in _TEST_FILE_PATTERNS:
-        if fnmatch.fnmatch(name, pat):
+    # 4. Tests — filename pattern OR directory marker in path (pre-compiled)
+    for compiled, _ in _COMPILED_TESTS:
+        if compiled.match(name) is not None:
             return "tests"
     parts = {seg.lower() for seg in p.parts[:-1]}
     if parts & _TEST_DIR_MARKERS:

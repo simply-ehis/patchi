@@ -91,7 +91,7 @@ def format_header(title: str, subtitle: str | None = None) -> Panel:
 
 def format_step(step: int, total: int, description: str) -> Text:
     """Format a step indicator."""
-    return Text(f"  [{step}/{total}] {description}", style="cyan")
+    return Text.from_markup(f"  [{step}/{total}] {description}", style="cyan")
 
 
 def format_success(message: str) -> Panel:

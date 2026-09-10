@@ -32,6 +32,8 @@ def run_vulture(root: Path, min_confidence: int = 60) -> list[dict]:
             ["vulture", str(root), "--min-confidence", str(min_confidence), "--json"],
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=30,
         )
         if proc.returncode not in (0, 1):
@@ -68,6 +70,8 @@ def run_ruff_unused_imports(root: Path) -> list[dict]:
             ["ruff", "check", str(root), "--select=F401", "--output-format=json"],
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=30,
         )
         results = []
@@ -108,6 +112,8 @@ def run_ts_prune(root: Path) -> list[dict]:
             ["npx", "--yes", "ts-prune", "--json"],
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=60,
             cwd=str(root),
         )

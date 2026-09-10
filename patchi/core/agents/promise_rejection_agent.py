@@ -20,6 +20,7 @@ from patchi.core.agents.base import (
     AgentStatus,
     BaseAgent,
     Severity,
+    get_shard_files,
     make_finding,
     register,
     safe_rglob,
@@ -39,13 +40,20 @@ class PromiseRejectionTrackerAgent(BaseAgent):
     name = "PromiseRejectionTrackerAgent"
     description = "Unhandled promise rejections / missing catch — §5.1.1"
     timeout = 60
+    shardable = True
+    supported_languages = ["JavaScript", "TypeScript"]
+
+    _MAX_FILES = 500
 
     def _run(self, inp: AgentInput, result: AgentResult) -> None:
         findings = []
+        files_scanned = 0
         # Check for missing global handlers in entry points
         entry_has_handler = False
         for pattern in ("*.js", "*.ts", "*.tsx"):
-            for fp in safe_rglob(inp.root, pattern):
+            for fp in get_shard_files(inp, pattern):
+                if files_scanned >= self._MAX_FILES:
+                    break
                 if fp.name in ("app.js", "server.js", "index.js", "main.js") or "entry" in fp.name.lower():
                     try:
                         txt = fp.read_text(encoding="utf-8", errors="replace")
@@ -53,9 +61,12 @@ class PromiseRejectionTrackerAgent(BaseAgent):
                             entry_has_handler = True
                     except OSError:
                         continue
+                files_scanned += 1
 
         for pattern in ("*.js", "*.ts", "*.tsx", "*.jsx"):
-            for fp in safe_rglob(inp.root, pattern):
+            for fp in get_shard_files(inp, pattern):
+                if files_scanned >= self._MAX_FILES:
+                    break
                 rel = fp.relative_to(inp.root).as_posix()
                 if "tests" in rel or "node_modules" in rel:
                     continue
@@ -80,7 +91,10 @@ class PromiseRejectionTrackerAgent(BaseAgent):
                     )
                     if len(findings) >= 30:
                         break
-            if len(findings) >= 30:
+                if len(findings) >= 30:
+                    break
+                files_scanned += 1
+            if files_scanned >= self._MAX_FILES:
                 break
 
         if not entry_has_handler:

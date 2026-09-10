@@ -30,6 +30,7 @@ from .base import (
     BaseAgent,
     Finding,
     Severity,
+    get_shard_files,
     make_finding,
     register,
     safe_rglob,
@@ -45,6 +46,8 @@ class TestScanner(BaseAgent):
     group = AgentGroup.SCANNER
     name = "TestScanner"
     description = "Test file discovery, coverage mapping"
+    shardable = True
+    supported_languages = None
 
     def _run(self, inp: AgentInput, result: AgentResult) -> None:
         """Scan for test files and map coverage."""
@@ -101,14 +104,29 @@ class TestScanner(BaseAgent):
             "tests/**/*.rs",
         ]
 
-        # Search for test files
+        # Search for test files — use corpus if available
+        _MAX_FILES = 500
         test_files = set()
-        for pattern in test_patterns:
-            for file_path in safe_rglob(inp.root, pattern):
-                if file_path.is_file():
-                    rel_path = file_path.relative_to(inp.root).as_posix()
-                    if not self._should_skip_file(rel_path, inp):
-                        test_files.add(rel_path)
+        corpus = inp.extra.get("file_corpus")
+        count = 0
+        if corpus and corpus.entries:
+            import fnmatch
+            for rel_key in corpus.entries:
+                if count >= _MAX_FILES:
+                    break
+                for pat in test_patterns:
+                    if fnmatch.fnmatch(rel_key, pat) or fnmatch.fnmatch(Path(rel_key).name, pat):
+                        if not self._should_skip_file(rel_key, inp):
+                            test_files.add(rel_key)
+                        break
+                count += 1
+        else:
+            for pattern in test_patterns:
+                for file_path in get_shard_files(inp, pattern):
+                    if file_path.is_file():
+                        rel_path = file_path.relative_to(inp.root).as_posix()
+                        if not self._should_skip_file(rel_path, inp):
+                            test_files.add(rel_path)
 
         # Map test files to source files
         test_mappings = self._map_tests_to_source(test_files, inp)
@@ -308,11 +326,14 @@ class TestScanner(BaseAgent):
                                 potential_matches.append(str(src_file))
 
                 # Look for source in src directory
-                src_alt = (
-                    Path("src") / test_path.relative_to(test_dir).parent / f"{clean_test_name}{ext}"
-                )
-                if (inp.root / src_alt).exists():
-                    potential_matches.append(str(src_alt))
+                try:
+                    src_alt = (
+                        Path("src") / test_path.relative_to(test_dir).parent / f"{clean_test_name}{ext}"
+                    )
+                    if (inp.root / src_alt).exists():
+                        potential_matches.append(str(src_alt))
+                except ValueError:
+                    pass  # test_path not relative to test_dir (cross-project)
 
             # Also look for imports/requires in the test file that might indicate covered sources
             try:
@@ -354,7 +375,10 @@ class TestScanner(BaseAgent):
                     import_path = match.group(1)
                     # Resolve relative path
                     resolved_path = Path(test_file).parent / import_path
-                    resolved_path = resolved_path.resolve().relative_to(inp.root.resolve())
+                    try:
+                        resolved_path = resolved_path.resolve().relative_to(inp.root.resolve())
+                    except ValueError:
+                        continue  # cross-project path, skip
                     source_path = str(resolved_path).replace("\\", "/")
 
                     # Check if it exists and is not another test file
@@ -431,7 +455,7 @@ class TestScanner(BaseAgent):
         all_files = set()
 
         for ext in source_extensions:
-            for file_path in safe_rglob(inp.root, f"*{ext}"):
+            for file_path in get_shard_files(inp, f"*{ext}"):
                 if file_path.is_file():
                     rel_path = file_path.relative_to(inp.root).as_posix()
                     if not self._is_test_file(rel_path) and not self._should_skip_file(

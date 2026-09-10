@@ -32,11 +32,19 @@ from .base import (
     BaseAgent,
     Finding,
     Severity,
+    get_shard_files,
     make_finding,
     register,
     safe_rglob,
     scope_allows,
 )
+
+# Extensions that may contain comments
+_COMMENT_EXTENSIONS = frozenset({
+    ".js", ".jsx", ".ts", ".tsx", ".py", ".java", ".php", ".rb",
+    ".go", ".rs", ".cpp", ".cxx", ".cc", ".c", ".h", ".hpp",
+    ".cs", ".scala", ".kt", ".swift", ".dart",
+})
 
 
 @register
@@ -46,6 +54,8 @@ class CommentScanner(BaseAgent):
     group = AgentGroup.SCANNER
     name = "CommentScanner"
     description = "TODO/FIXME/HACK technical debt markers"
+    shardable = True
+    supported_languages = None
 
     # Technical debt patterns with severity levels.
     # Comment markers are hygiene, never vulnerabilities: capped at MEDIUM
@@ -94,15 +104,33 @@ class CommentScanner(BaseAgent):
             "*.dart",
         ]
 
-        # Search for files
-        for pattern in patterns:
-            for file_path in safe_rglob(inp.root, pattern):
+        # Search for files — use corpus if available, else rglob per pattern
+        corpus = inp.extra.get("file_corpus")
+        _MAX_FILES = 500
+        if corpus and corpus.entries:
+            count = 0
+            for rel_key in corpus.entries:
+                if count >= _MAX_FILES:
+                    break
+                file_path = inp.root / rel_key
                 if file_path.is_file():
-                    rel_path = file_path.relative_to(inp.root).as_posix()
-                    if not scope_allows(inp, rel_path):
+                    if not scope_allows(inp, rel_key):
                         continue
-                    if not self._should_skip_file(rel_path, inp):
-                        findings.extend(self._scan_file_comments(file_path, rel_path))
+                    ext = file_path.suffix.lower()
+                    if ext not in _COMMENT_EXTENSIONS:
+                        continue
+                    if not self._should_skip_file(rel_key, inp):
+                        findings.extend(self._scan_file_comments(file_path, rel_key))
+                        count += 1
+        else:
+            for pattern in patterns:
+                for file_path in get_shard_files(inp, pattern):
+                    if file_path.is_file():
+                        rel_path = file_path.relative_to(inp.root).as_posix()
+                        if not scope_allows(inp, rel_path):
+                            continue
+                        if not self._should_skip_file(rel_path, inp):
+                            findings.extend(self._scan_file_comments(file_path, rel_path))
 
         # Add summary when technical debt markers exist
         debt_findings = [

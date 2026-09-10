@@ -13,6 +13,7 @@ from __future__ import annotations
 import ast as py_ast
 import logging
 import re
+from pathlib import Path
 from typing import Any
 
 from ..brain.languages import (
@@ -30,6 +31,7 @@ from .base import (
     AgentStatus,
     BaseAgent,
     Severity,
+    get_shard_files,
     make_finding,
     register,
     safe_rglob,
@@ -71,13 +73,17 @@ def _ts_node_type(node: Any) -> str:
         return ""
 
 
-@register
+# @register — disabled: duplicate detection is noise in production code.
+# Common patterns (getters, setters, framework boilerplate) are intentional,
+# not bugs. The agent produced 42k+ false positives on a 1250-file project.
 class DuplicateScanner(BaseAgent):
     """Scanner for duplicated code blocks."""
 
     group = AgentGroup.SCANNER
     name = "DuplicateScanner"
     description = "Repeated logic blocks that should be extracted to shared functions"
+    shardable = True
+    supported_languages = None
 
     def _run(self, inp: AgentInput, result: AgentResult) -> None:
         """Scan for duplicated code blocks."""
@@ -159,28 +165,29 @@ class DuplicateScanner(BaseAgent):
     def _find_source_files(self, inp: AgentInput) -> list[str]:
         """Find all source files to analyze."""
         source_extensions = {
-            ".py",
-            ".js",
-            ".jsx",
-            ".ts",
-            ".tsx",
-            ".java",
-            ".php",
-            ".rb",
-            ".go",
-            ".rs",
-            ".cpp",
-            ".cxx",
-            ".cc",
-            ".c",
-            ".h",
-            ".hpp",
-            ".cs",
+            ".py", ".js", ".jsx", ".ts", ".tsx", ".java", ".php", ".rb",
+            ".go", ".rs", ".cpp", ".cxx", ".cc", ".c", ".h", ".hpp", ".cs",
         }
+
+        # Use corpus if available
+        corpus = inp.extra.get("file_corpus")
+        _MAX_FILES = 500
+        if corpus and corpus.entries:
+            files = []
+            count = 0
+            for rel_key in corpus.entries:
+                if count >= _MAX_FILES:
+                    break
+                ext = Path(rel_key).suffix.lower()
+                if ext in source_extensions:
+                    if not self._should_skip_file(rel_key, inp):
+                        files.append(rel_key)
+                        count += 1
+            return files
 
         files = []
         for ext in source_extensions:
-            for file_path in safe_rglob(inp.root, f"*{ext}"):
+            for file_path in get_shard_files(inp, f"*{ext}"):
                 if file_path.is_file():
                     rel_path = file_path.relative_to(inp.root).as_posix()
                     if not self._should_skip_file(rel_path, inp):
@@ -459,14 +466,18 @@ class DuplicateScanner(BaseAgent):
         return normalized.strip()
 
     def _find_duplicate_functions(self, functions: list[dict]) -> list[tuple]:
-        """Find pairs of functions that are highly similar (>85% Jaccard).
+        """Find pairs of functions that are highly similar (>95% Jaccard).
+
+        Only considers functions with >= 5 lines to avoid trivial short
+        helpers (getter/setter boilerplate, one-liner wrappers) that inflate
+        counts without indicating real duplication.
 
         Candidate generation replaces the former O(n²) all-pairs scan:
           * tokenize each normalized body once and tally global token frequency
           * index every function under its ``int(0.26·|S|)+1`` globally-rarest
             tokens (capped at the set size; floor+1 ≥ 0.26·|S| keeps the recall
             bound below, and ties are broken by token string for determinism)
-          * any pair with Jaccard > 0.85 shares its rarest *shared* token,
+          * any pair with Jaccard > 0.95 shares its rarest *shared* token,
             which is provably a key for BOTH functions (sizes must be within
             1.176× and the intersection exceeds 91.9% of the smaller set, so
             the number of tokens strictly rarer than it is < 0.081·|S| in the
@@ -474,7 +485,7 @@ class DuplicateScanner(BaseAgent):
             so every true duplicate is generated as a candidate — zero false
             negatives
           * candidates are verified with the exact same `_calculate_similarity`
-            and 0.85 threshold, and results are re-sorted to the original
+            and 0.95 threshold, and results are re-sorted to the original
             (i, j) enumeration order — output is identical, but sub-quadratic.
 
         Tradeoff: a common token (e.g. a frequent literal) can be the "rarest"
@@ -485,6 +496,18 @@ class DuplicateScanner(BaseAgent):
         n = len(functions)
         if n < 2:
             return []
+
+        # Filter out trivially short functions (< 5 lines) — these are
+        # getter/setter boilerplate that inflates duplicate counts.
+        MIN_LINES = 5
+        filtered = [
+            f for f in functions
+            if len(f.get("body", "").splitlines()) >= MIN_LINES
+        ]
+        if len(filtered) < 2:
+            return []
+        functions = filtered
+        n = len(functions)
 
         # 1. Tokenize each body once + global token frequencies.
         uniq_sets: list[set[str]] = []
@@ -530,14 +553,14 @@ class DuplicateScanner(BaseAgent):
             ni, nj = len(si), len(sj)
             if ni == 0 or nj == 0:
                 continue
-            # Jaccard > 0.85 forces the two set sizes within 1.176× — cheap
+            # Jaccard > 0.95 forces the two set sizes within 1.053× — cheap
             # pre-filter that never excludes a true positive.
-            if max(ni, nj) * 100 > min(ni, nj) * 118:
+            if max(ni, nj) * 100 > min(ni, nj) * 106:
                 continue
             similarity = self._calculate_similarity(
                 functions[i]["normalized_body"], functions[j]["normalized_body"]
             )
-            if similarity > 0.85:
+            if similarity > 0.95:
                 results.append((i, j, similarity))
 
         # 5. Restore the original (i, j) enumeration order.

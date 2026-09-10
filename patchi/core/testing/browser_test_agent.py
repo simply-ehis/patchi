@@ -400,7 +400,7 @@ class BrowserTestAgent(BaseAgent):
                 + ["-v"]
             )
             result = subprocess.run(
-                cmd, cwd=root, capture_output=True, text=True, timeout=300
+                cmd, cwd=root, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=300
             )  # 5 min timeout
 
             if result.returncode in [0, 1]:  # 0 = all passed, 1 = some failed
@@ -443,7 +443,7 @@ class BrowserTestAgent(BaseAgent):
 
             targets = [str(tf.relative_to(root)) for tf in test_files]
             cmd = [sys.executable, "-m", "pytest"] + targets + ["-v", "--tb=short"]
-            proc = subprocess.run(cmd, cwd=root, capture_output=True, text=True, timeout=300)
+            proc = subprocess.run(cmd, cwd=root, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=300)
             output = f"{proc.stdout}\n{proc.stderr}"
             passed = failed = 0
             for line in output.splitlines():

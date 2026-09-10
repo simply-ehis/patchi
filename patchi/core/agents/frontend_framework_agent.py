@@ -22,6 +22,7 @@ from patchi.core.agents.base import (
     AgentStatus,
     BaseAgent,
     Severity,
+    get_shard_files,
     make_finding,
     register,
     safe_rglob,
@@ -49,11 +50,20 @@ class FrontendFrameworkAgent(BaseAgent):
     name = "FrontendFrameworkAgent"
     description = "React/Vue/Svelte/Angular/Solid framework checks §8.1.1-5"
     timeout = 60
+    shardable = True
+    supported_languages = ["JavaScript", "TypeScript"]
 
     def _run(self, inp: AgentInput, result: AgentResult) -> None:
         findings=[]
+        _MIN_SIZE = 200
+        _MAX_FILES = 500
+        scanned = 0
         for pat in ("*.jsx","*.tsx","*.js","*.ts","*.vue","*.svelte"):
-            for fp in safe_rglob(inp.root, pat):
+            for fp in get_shard_files(inp, pat):
+                if scanned >= _MAX_FILES:
+                    break
+                if fp.stat().st_size < _MIN_SIZE:
+                    continue
                 rel=fp.relative_to(inp.root).as_posix()
                 if "node_modules" in rel or "tests" in rel:
                     continue
@@ -61,6 +71,7 @@ class FrontendFrameworkAgent(BaseAgent):
                     txt=fp.read_text(encoding="utf-8", errors="replace")
                 except OSError:
                     continue
+                scanned += 1
                 lang = lang_for_file(rel)
                 tree = parse_js(txt, lang)
                 if tree is None:

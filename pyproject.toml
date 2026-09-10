@@ -77,6 +77,10 @@ external-tools = [
 ]
 all = ["dev", "pentest"]
 
+[project.scripts]
+p = "patchi.cli.main:main"
+patchi = "patchi.cli.main:main"
+
 [build-system]
 requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"

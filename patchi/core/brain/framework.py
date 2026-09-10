@@ -56,6 +56,7 @@ class StackInfo:
     has_docker: bool = False
     has_ci: bool = False  # any CI config found
     detected_files: list[str] = field(default_factory=list)
+    language_breakdown: dict[str, int] = field(default_factory=dict)
 
     def to_dict(self) -> dict:
         return {
@@ -68,6 +69,7 @@ class StackInfo:
             "has_docker": self.has_docker,
             "has_ci": self.has_ci,
             "detected_files": self.detected_files,
+            "language_breakdown": self.language_breakdown,
         }
 
 
@@ -87,6 +89,38 @@ class FrameworkDetector:
         self.root = root
         self._corpus = corpus
 
+    def compute_language_breakdown(self) -> dict[str, int]:
+        """Count files per language from corpus (fast, no parsing needed)."""
+        if not self._corpus:
+            return {}
+        ext_to_lang = {
+            ".py": "Python", ".js": "JavaScript", ".jsx": "JavaScript",
+            ".ts": "TypeScript", ".tsx": "TypeScript",
+            ".java": "Java", ".cs": "C#", ".go": "Go", ".rs": "Rust",
+            ".php": "PHP", ".rb": "Ruby", ".swift": "Swift",
+            ".kt": "Kotlin", ".scala": "Scala",
+            ".cpp": "C++", ".cc": "C++", ".cxx": "C++", ".c": "C",
+            ".h": "C/C++", ".hpp": "C++",
+            ".pl": "Perl", ".pm": "Perl", ".lua": "Lua", ".r": "R",
+            ".m": "Objective-C", ".mm": "Objective-C++",
+            ".sh": "Shell", ".bash": "Shell", ".zsh": "Shell",
+            ".ps1": "PowerShell",
+            ".yaml": "YAML", ".yml": "YAML", ".json": "JSON",
+            ".toml": "TOML", ".xml": "XML",
+            ".html": "HTML", ".htm": "HTML",
+            ".css": "CSS", ".scss": "SCSS", ".sass": "Sass",
+            ".vue": "Vue", ".svelte": "Svelte",
+        }
+        counts: dict[str, int] = {}
+        for ext, lang in ext_to_lang.items():
+            try:
+                files = self._corpus.by_ext(ext)
+                if files:
+                    counts[lang] = counts.get(lang, 0) + len(files)
+            except Exception:
+                pass
+        return counts
+
     def _rglob(self, pattern: str) -> list[Path]:
         """Like Path.rglob, using pre-built corpus when available."""
         if self._corpus:
@@ -104,12 +138,25 @@ class FrameworkDetector:
         if pkg_json.exists():
             self._detect_node(pkg_json, stack)
 
-        # Python
-        for pyconf in ["pyproject.toml", "setup.py", "setup.cfg", "requirements.txt"]:
+        # Python — search root and common subdirs (backend/*, server/*)
+        pyconf_candidates = ["pyproject.toml", "setup.py", "setup.cfg", "requirements.txt"]
+        python_found = False
+        for pyconf in pyconf_candidates:
             path = self.root / pyconf
             if path.exists():
                 self._detect_python(path, stack)
+                python_found = True
                 break
+        if not python_found:
+            for sub in ["backend", "server", "api", "src"]:
+                for pyconf in pyconf_candidates:
+                    candidate = self.root / sub / pyconf
+                    if candidate.exists():
+                        self._detect_python(candidate, stack)
+                        python_found = True
+                        break
+                if python_found:
+                    break
 
         # PHP
         composer = self.root / "composer.json"

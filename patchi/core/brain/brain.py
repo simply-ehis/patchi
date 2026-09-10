@@ -197,6 +197,13 @@ class Brain:
         area: optional path/description to limit scope.
         Returns a BrainReport with everything the Brain now knows.
         """
+        # Reset AI circuit breaker at the start of each scan
+        try:
+            from patchi.core.ai.client import reset_ai_circuit_breaker
+            reset_ai_circuit_breaker()
+        except Exception:
+            pass
+
         start_time = time.monotonic()
         report = BrainReport(
             scanned_at=datetime.now(UTC).isoformat(),
@@ -270,6 +277,7 @@ class Brain:
             learner = None
 
         corpus = FileCorpus(self.root, exclude_noise=True, ignore_learner=learner)
+        self.corpus = corpus  # share with Coordinator/ScanBus
 
         # Second pass: composition analysis needs the discovered file list.
         # Tool-owned data dirs (YAML rule packs, changelog dirs, ...) found
@@ -291,6 +299,19 @@ class Brain:
             max_depth=max_depth,
             corpus=corpus,
         )
+
+        # ── Stack detection (fast — runs before parsing) ────────────────────────
+        self._emit(ScanProgress(phase="stack_detect", message="Detecting framework and stack…"))
+        detector = FrameworkDetector(self.root, corpus=corpus)
+        stack = detector.detect()
+        stack.language_breakdown = detector.compute_language_breakdown()
+        report.stack = stack
+        report.language_breakdown = stack.language_breakdown
+        brain_mem["languages"] = list(stack.language_breakdown.keys())
+        brain_mem["primary_language"] = stack.primary_language
+        if stack.frameworks:
+            fw_names = ", ".join(f.name for f in stack.frameworks[:3])
+            self._emit(ScanProgress(phase="stack_detect", message=f"Detected: {fw_names}"))
 
         all_paths = scanner.discover(area)
         total = len(all_paths)
@@ -317,15 +338,7 @@ class Brain:
 
         report.file_infos = file_infos
         report.file_count = len(file_infos)
-        report.language_breakdown = _count_languages(file_infos)
-        self._emit(ScanProgress(phase="framework", message="Detecting framework and stack…"))
-        detector = FrameworkDetector(self.root, corpus=corpus)
-        stack = detector.detect()
-        report.stack = stack
 
-        if stack.frameworks:
-            fw_names = ", ".join(f.name for f in stack.frameworks[:3])
-            self._emit(ScanProgress(phase="framework", message=f"Detected: {fw_names}"))
         self._emit(ScanProgress(phase="routes", message="Mapping routes and endpoints…"))
         mapper = RouteMapper(self.root, stack)
         routes = mapper.extract(file_infos)

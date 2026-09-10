@@ -42,6 +42,7 @@ from .base import (
     BaseAgent,
     Finding,
     Severity,
+    get_shard_files,
     make_finding,
     register,
     safe_rglob,
@@ -57,72 +58,78 @@ class RouteGraphScanner(BaseAgent):
     group = AgentGroup.SCANNER
     name = "RouteGraphScanner"
     description = "Framework-aware route extraction"
+    shardable = True
+    supported_languages = None
 
     def _run(self, inp: AgentInput, result: AgentResult) -> None:
         """Scan for routes in web framework files."""
         findings = []
 
-        # Define route file patterns
-        route_patterns = [
-            # JavaScript/TypeScript (Express, Next.js, etc.)
-            "*.js",
-            "*.jsx",
-            "*.ts",
-            "*.tsx",
-            "**/routes/**",
-            "**/api/**",
-            "**/pages/**",
-            "**/app/**",
-            # Python (FastAPI, Flask, Django)
-            "*.py",
-            "**/urls.py",
-            "**/views.py",
-            "**/routes.py",
-            "**/api/**",
-            # Java (Spring Boot)
-            "*.java",
-            # Ruby (Rails)
-            "*.rb",
-            "routes.rb",
-            # PHP (Laravel, Symfony)
-            "*.php",
-            # C# (ASP.NET)
-            "*.cs",
-        ]
+        # Route-relevant extensions
+        _ROUTE_EXTS = frozenset({".js", ".jsx", ".ts", ".tsx", ".py", ".java", ".rb", ".php", ".cs"})
+        _ROUTE_DIRS = frozenset({"routes", "api", "pages", "app"})
 
-        # Search for route files and avoid scanning the same file twice
-        scanned_files = set()
-        # ponytail: rglob traverses node_modules (30k+ files). Walk with pruning.
-        import fnmatch
-        import os
-
-        for dirpath, dirnames, filenames in os.walk(inp.root):
-            dirnames[:] = [d for d in dirnames if d not in _SKIP_DIRS]
-            rel_dir = Path(dirpath).relative_to(inp.root).as_posix()
-            for fname in filenames:
-                if fname in _SKIP_FILES:
+        # Use corpus if available (fast), else fall back to os.walk
+        _MAX_FILES = 500
+        corpus = inp.extra.get("file_corpus")
+        scanned_files: set[str] = set()
+        count = 0
+        if corpus is not None:
+            for entry in corpus.files():
+                if count >= _MAX_FILES:
+                    break
+                p = Path(entry.path)
+                ext = p.suffix.lower()
+                # Match by extension OR by directory path containing route dirs
+                in_route_dir = any(seg in _ROUTE_DIRS for seg in p.parts)
+                if ext not in _ROUTE_EXTS and not in_route_dir:
                     continue
-                for pattern in route_patterns:
-                    if "**" in pattern:
-                        parts = pattern.split("/")
-                        if len(parts) == 1:
-                            if fnmatch.fnmatch(fname, parts[0]):
-                                break
+                rel_path = entry.path
+                if rel_path in scanned_files:
+                    continue
+                if self._should_skip_file(rel_path, inp):
+                    continue
+                scanned_files.add(rel_path)
+                file_path = inp.root / rel_path
+                findings.extend(self._scan_route_file(file_path, rel_path))
+                count += 1
+        else:
+            import fnmatch
+            import os
+
+            route_patterns = [
+                "*.js", "*.jsx", "*.ts", "*.tsx",
+                "**/routes/**", "**/api/**", "**/pages/**", "**/app/**",
+                "*.py", "**/urls.py", "**/views.py", "**/routes.py",
+                "*.java", "*.rb", "routes.rb", "*.php", "*.cs",
+            ]
+            for dirpath, dirnames, filenames in os.walk(inp.root):
+                dirnames[:] = [d for d in dirnames if d not in _SKIP_DIRS]
+                rel_dir = Path(dirpath).relative_to(inp.root).as_posix()
+                for fname in filenames:
+                    if fname in _SKIP_FILES:
+                        continue
+                    for pattern in route_patterns:
+                        if "**" in pattern:
+                            parts = pattern.split("/")
+                            if len(parts) == 1:
+                                if fnmatch.fnmatch(fname, parts[0]):
+                                    break
+                            else:
+                                mid = parts[1] if len(parts) > 2 else None
+                                if mid and mid in rel_dir.split("/"):
+                                    break
                         else:
-                            mid = parts[1] if len(parts) > 2 else None
-                            if mid and mid in rel_dir.split("/"):
+                            if fnmatch.fnmatch(fname, pattern):
                                 break
                     else:
-                        if fnmatch.fnmatch(fname, pattern):
-                            break
-                else:
-                    continue
-                file_path = Path(dirpath) / fname
-                rel_path = f"{rel_dir}/{fname}" if rel_dir != "." else fname
-                if rel_path not in scanned_files:
-                    scanned_files.add(rel_path)
-                    if not self._should_skip_file(rel_path, inp):
-                        findings.extend(self._scan_route_file(file_path, rel_path))
+                        continue
+                    file_path = Path(dirpath) / fname
+                    rel_path = f"{rel_dir}/{fname}" if rel_dir != "." else fname
+                    if rel_path not in scanned_files:
+                        scanned_files.add(rel_path)
+                        if not self._should_skip_file(rel_path, inp):
+                            findings.extend(self._scan_route_file(file_path, rel_path))
 
         # Get only the route findings
         route_findings = [f for f in findings if f.type.startswith("route_")]
@@ -488,7 +495,7 @@ class RouteGraphScanner(BaseAgent):
 
         for framework, indicators in framework_indicators.items():
             for indicator in indicators:
-                if (inp.root / indicator).exists() or any(safe_rglob(inp.root, indicator)):
+                if (inp.root / indicator).exists() or any(get_shard_files(inp, indicator)):
                     return framework
 
         return "unknown"

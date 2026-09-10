@@ -122,9 +122,15 @@ class FileCorpus:
 
             classify = _classify
 
+        root_str = str(root)
         for dirpath, dirnames, filenames in os.walk(root):
             dirnames[:] = [d for d in dirnames if d not in skip_dirs]
-            rel_dir = Path(dirpath).relative_to(root).as_posix()
+            # Fast relative path: string replace instead of Path.relative_to()
+            abs_dir = dirpath
+            if abs_dir.startswith(root_str):
+                rel_dir = abs_dir[len(root_str):].replace("\\", "/").lstrip("/")
+            else:
+                rel_dir = Path(dirpath).relative_to(root).as_posix()
             if rel_dir == ".":
                 rel_dir = ""
 

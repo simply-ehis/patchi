@@ -106,6 +106,8 @@ def run_tests(root: Path, command: str | None = None) -> TestRun:
             cwd=str(root),
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=600,
         )
     except Exception as e:  # pragma: no cover - environment dependent

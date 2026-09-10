@@ -37,6 +37,8 @@ def _get_git_churn(root: Path, max_files: int = 100) -> dict[str, int]:
             cwd=root,
             capture_output=True,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             timeout=30,
         )
         for line in result.stdout.splitlines():

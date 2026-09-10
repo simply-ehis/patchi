@@ -71,19 +71,22 @@ class ApiFuzzerAgent(BaseAgent):
         # Routes from brain (RouteMapper) or live scan
         routes: list[RouteInfo] = []
         try:
-            from patchi.core.brain.file_corpus import FileCorpus
             from patchi.core.brain.framework import FrameworkDetector
             from patchi.core.brain.route_mapper import RouteMapper
 
-            corpus = FileCorpus(inp.root)
+            corpus = inp.extra.get("file_corpus")
+            if corpus is None:
+                from patchi.core.brain.file_corpus import FileCorpus
+                corpus = FileCorpus(inp.root)
             stack = FrameworkDetector(inp.root, corpus=corpus).detect()
             mapper = RouteMapper(inp.root, stack)
             # Use inp.brain routes if present to avoid re-parse
             if inp.brain.get("routes"):
                 routes = [RouteInfo(**r) if isinstance(r, dict) else r for r in inp.brain.get("routes", [])]
             else:
-                from patchi.core.brain.scanner import FileScanner
-                routes = mapper.extract(FileScanner(inp.root).scan())
+                # Use corpus file list instead of FileScanner (avoids ProcessPoolExecutor hang on Windows)
+                all_files = [str(inp.root / e.path) for e in corpus.files()]
+                routes = mapper.extract(all_files)
         except Exception as exc:  # noqa: BLE001
             _log.debug("route extract failed: %s", exc)
             routes = []

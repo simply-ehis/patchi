@@ -35,8 +35,8 @@ class RouteInfo:
 
 _LANG_FW_MAP: dict[str, set[str]] = {
     "python": {"FastAPI", "Flask", "Django", "Starlette"},
-    "javascript": {"Express", "Fastify", "Next.js", "Nuxt", "SvelteKit"},
-    "typescript": {"Express", "Fastify", "Next.js", "Nuxt", "SvelteKit"},
+    "javascript": {"Express", "Fastify", "Next.js", "Nuxt", "SvelteKit", "React", "Vue", "Angular"},
+    "typescript": {"Express", "Fastify", "Next.js", "Nuxt", "SvelteKit", "React", "Vue", "Angular"},
     "java": {"Spring Boot"},
     "go": {"Gin", "Echo", "Fiber"},
     "rust": {"Actix Web", "Axum", "Rocket"},

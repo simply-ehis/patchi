@@ -133,15 +133,17 @@ class LinkingAgent(BaseAgent):
                 # Actually extract via file_infos from scanner for each
                 from patchi.core.brain.scanner import FileScanner
 
-                front_fis_real = FileScanner(front_root).scan()
-                back_fis_real = FileScanner(back_root).scan()
+                corpus = inp.extra.get("file_corpus")
+                front_fis_real = FileScanner(front_root, corpus=corpus).scan()[:500]
+                back_fis_real = FileScanner(back_root, corpus=corpus).scan()[:500]
                 frontend_calls = extract_frontend_calls(front_fis_real, front_root)
                 back_routes = RouteMapper(back_root, FrameworkDetector(back_root).detect()).extract(back_fis_real)
                 backend_routes = back_routes
             else:
                 from patchi.core.brain.scanner import FileScanner
 
-                fis = FileScanner(root).scan()
+                corpus = inp.extra.get("file_corpus")
+                fis = FileScanner(root, corpus=corpus).scan()[:500]
                 frontend_calls = extract_frontend_calls(fis, root)
                 backend_routes = RouteMapper(root, FrameworkDetector(root).detect()).extract(fis)
         except Exception as exc:  # noqa: BLE001

@@ -36,6 +36,17 @@ _SKIP_FILES = frozenset(
     {"package-lock.json", "yarn.lock", "pnpm-lock.yaml", "composer.lock", "Gemfile.lock"}
 )
 
+# Module-level fallback corpus set by Coordinator before running agents.
+# safe_rglob uses this when no explicit corpus is passed — avoids touching
+# 60+ call sites across agents.
+_default_corpus: FileCorpus | None = None
+
+
+def set_default_corpus(corpus: FileCorpus | None) -> None:
+    """Set the module-level fallback corpus for safe_rglob."""
+    global _default_corpus
+    _default_corpus = corpus
+
 
 def _skip_asset(fname: str, skip_files: frozenset[str]) -> bool:
     """True when a filename is user-skipped or a minified/bundled asset."""
@@ -71,10 +82,13 @@ def safe_rglob(
 ):
     """Yield Path objects matching `pattern` without entering node_modules etc.
 
-    When `corpus` is provided, uses the pre-built FileCorpus index instead of
-    walking the filesystem — avoids redundant directory traversal across
-    the 60+ callers that each independently walk the tree.
+    When `corpus` is provided (or the module-level ``_default_corpus`` is set),
+    uses the pre-built FileCorpus index instead of walking the filesystem —
+    avoids redundant directory traversal across the 60+ callers that each
+    independently walk the tree.
     """
+    if corpus is None:
+        corpus = _default_corpus
     if corpus is not None:
         for entry in corpus.by_glob(pattern):
             if _skip_asset(entry.path, skip_files) or _skip_asset(
@@ -122,6 +136,18 @@ def safe_rglob(
                     continue
                 if fnmatch.fnmatch(fname, file_part):
                     yield Path(dirpath) / fname
+
+
+def get_shard_files(inp: "AgentInput", pattern: str) -> list[Path]:
+    """Return files for this agent's shard, filtered by pattern.
+
+    In shard mode (inp.shard_files is set), returns only those files.
+    In normal mode, delegates to safe_rglob (uses corpus if available).
+    """
+    if inp.shard_files is not None:
+        root = inp.root
+        return [root / f for f in inp.shard_files if Path(f).match(pattern)]
+    return list(safe_rglob(inp.root, pattern))
 
 
 # ── Agent groups ───────────────────────────────────────────────────────────────
@@ -336,6 +362,9 @@ class AgentInput:
     on_ai_progress: callable | None = (
         None  # callback for AI call progress: fn(message)
     )
+    shard_files: list[str] | None = (
+        None  # files for this shard (None = all files via safe_rglob)
+    )
 
 
 # ── Agent result ───────────────────────────────────────────────────────────────
@@ -500,6 +529,7 @@ class BaseAgent(ABC):
     group: AgentGroup = AgentGroup.SCANNER
     domain: AgentDomain = AgentDomain.INFRASTRUCTURE
     timeout: int = 60  # seconds — coordinator enforces this
+    shardable: bool = False  # can be sharded across file subsets
 
     def run(self, inp: AgentInput) -> AgentResult:
         """
@@ -516,8 +546,8 @@ class BaseAgent(ABC):
         Never override this — override _run() instead.
         """
         # Gate Rule — Testing/Live/Attack must confirm P-Check READY_TO_SERVE
-        if self.group in (AgentGroup.TEST, AgentGroup.SECURITY) and self.name not in ("PreCheckAgent",):
-            # Only gate live/test/attack agents, not pure static scanners
+        if self.group in (AgentGroup.TEST, AgentGroup.SECURITY) and self.name not in ("PreCheckAgent", "UnitTestAgent", "RegressionAgent"):
+            # Only gate live/test/attack agents, not pure static scanners or unit test runners
             needs_gate = self.group == AgentGroup.TEST or self.name in (
                 "RedTeamAgent",
                 "RedTeamEngineAgent",

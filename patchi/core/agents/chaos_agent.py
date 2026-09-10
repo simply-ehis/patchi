@@ -17,6 +17,7 @@ from patchi.core.agents.base import (
     AgentStatus,
     BaseAgent,
     Severity,
+    get_shard_files,
     make_finding,
     register,
     safe_rglob,
@@ -73,16 +74,23 @@ class ChaosAgent(BaseAgent):
     name = "ChaosAgent"
     description = "Race duplicate requests + Chaos missing retry/backoff §5.3.3-4"
     timeout = 60
+    shardable = True
+    supported_languages = None
+
+    _MAX_FILES = 500
 
     def _run(self, inp: AgentInput, result: AgentResult) -> None:
-        findings=[]
-        for pat in ("*.py","*.js","*.ts"):
-            for fp in safe_rglob(inp.root, pat):
-                rel=fp.relative_to(inp.root).as_posix()
+        findings = []
+        files_scanned = 0
+        for pat in ("*.py", "*.js", "*.ts"):
+            for fp in get_shard_files(inp, pat):
+                if files_scanned >= self._MAX_FILES:
+                    break
+                rel = fp.relative_to(inp.root).as_posix()
                 if "tests" in rel or "node_modules" in rel:
                     continue
                 try:
-                    txt=fp.read_text(encoding="utf-8", errors="replace")
+                    txt = fp.read_text(encoding="utf-8", errors="replace")
                 except OSError:
                     continue
                 if fp.suffix == ".py":
@@ -124,10 +132,10 @@ class ChaosAgent(BaseAgent):
                         description="Add retry with backoff + circuit breaker for chaos resilience",
                         finding_type="chaos_no_retry",
                     ))
-                    break
+                files_scanned += 1
                 if len(findings) >= 20:
                     break
-            if len(findings) >= 20:
+            if files_scanned >= self._MAX_FILES:
                 break
         result.status=AgentStatus.SUCCEEDED
         result.findings=findings[:20]

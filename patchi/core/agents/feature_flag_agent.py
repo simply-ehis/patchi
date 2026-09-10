@@ -19,6 +19,7 @@ from patchi.core.agents.base import (
     AgentStatus,
     BaseAgent,
     Severity,
+    get_shard_files,
     make_finding,
     register,
     safe_rglob,
@@ -54,13 +55,20 @@ class FeatureFlagArchaeologyAgent(BaseAgent):
     name = "FeatureFlagArchaeologyAgent"
     description = "Hardcoded boolean flags (feature flag archaeology) — §2.1.4"
     timeout = 60
+    shardable = True
+    supported_languages = None
 
     def _run(self, inp: AgentInput, result: AgentResult) -> None:
         findings = []
+        _MAX_FILES = 300
+        _count = 0
         for pattern in ("*.py", "*.js", "*.ts", "*.tsx", "*.go", "*.java"):
-            for fp in safe_rglob(inp.root, pattern):
+            for fp in get_shard_files(inp, pattern):
+                if _count >= _MAX_FILES:
+                    break
                 if not fp.is_file():
                     continue
+                _count += 1
                 rel = fp.relative_to(inp.root).as_posix()
                 try:
                     txt = fp.read_text(encoding="utf-8", errors="replace")

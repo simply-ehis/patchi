@@ -82,6 +82,11 @@ def run(
         con.print(f"[red]{e}[/red]")
         return 2
 
+    # If area is an absolute path, treat it as the project root
+    if area and Path(area).is_absolute():
+        r = Path(area)
+        area = None
+
     # ── Set tenant context so profiler records the correct project root ────
     from patchi.core.tenant import get_tenant_manager, tenant_context
 
@@ -222,8 +227,8 @@ def _run_scan_inner(
 
     scan_phases = [
         "File discovery",
+        "Stack detection",
         "Source parsing",
-        "Framework detection",
         "Route mapping",
         "Import graph",
         "Contract inference",
@@ -250,8 +255,8 @@ def _run_scan_inner(
 
     phases = {
         "discovery": "Discovering files",
+        "stack_detect": "Detecting stack",
         "parsing": "Parsing source files",
-        "framework": "Detecting framework",
         "routes": "Mapping routes",
         "graph": "Building import graph",
         "contract": "Inferring app contract",
@@ -350,6 +355,15 @@ def _run_scan_inner(
                     )
 
                 coord = Coordinator(r, on_progress=on_agent_progress)
+                # Share the pre-built corpus from Brain to avoid rebuilding
+                if hasattr(brain, "corpus") and brain.corpus is not None:
+                    coord._corpus = brain.corpus
+                # Refresh brain memory so language filter uses current scan's languages
+                try:
+                    from patchi.core import memory as _mem
+                    coord._brain = _mem.get_brain(r)
+                except Exception:
+                    pass
                 scope = list(report.import_graph.nodes) if report.import_graph else []
 
                 # ── On-demand domain activation from git diff ────────────
@@ -1564,8 +1578,13 @@ def _show_agent_findings_summary(agent_results: list, root: Path | None = None) 
     """Show a condensed findings table from all scanner agents.
 
     Headline counts run through the NoiseFilter first: findings from
-    tests/lockfiles/generated/docs are severity-capped (or discarded) so
+    tests/lockfiles/generated/docs are severity-caps (or discarded) so
     the summary reflects signal, not fixture noise.
+
+    Noisy scanners (DuplicateScanner, TypeScanner, DeadCodeScanner, TestScanner,
+    UIScanner, ContractDiff) produce thousands of low-value medium/low/info
+    findings that drown real issues. Their findings are stored in memory for
+    drill-down but excluded from the summary table by default.
     """
     from patchi.core.agents.coordinator import merge_results
 
@@ -1593,9 +1612,35 @@ def _show_agent_findings_summary(agent_results: list, root: Path | None = None) 
                         f"  [dim]Noise muted: {nfr.capped} capped, "
                         f"{nfr.discarded} discarded" + (f" ({cats})" if cats else "") + "[/dim]"
                     )
-            findings = kept
+                findings = kept
         except Exception as _exc:  # noqa: BLE001 — display must never crash on filter bugs
             _log.warning('_show_agent_findings_summary failed: %s', _exc)
+
+    # ── Suppress noisy scanner medium/low/info findings ──────────────────
+    # These agents produce thousands of low-value findings. Keep their
+    # data in memory for `p findings --json` but exclude from the summary.
+    _NOISY_AGENTS = {
+        "TypeScanner", "DeadCodeScanner", "TestScanner",
+        "UIScanner", "ContractDiff", "RefactoringAgent", "DeadCodeHygieneAgent",
+        "SideFileScanner", "CommentScanner", "CoreScanner",
+    }
+    _suppressed = 0
+    _kept_findings = []
+    for f in findings:
+        agent = f.get("agent", "")
+        sev = f.get("severity", "info")
+        # Only suppress low-value (medium/low/info) from noisy agents
+        # Keep high/critical from ALL agents always
+        if agent in _NOISY_AGENTS and sev in ("medium", "low", "info"):
+            _suppressed += 1
+            continue
+        _kept_findings.append(f)
+    findings = _kept_findings
+    if _suppressed:
+        noise_line = (
+            (noise_line + "  " if noise_line else "  ")
+            + f"[dim]Suppressed {_suppressed} low-value findings from noisy scanners[/dim]"
+        )
 
     merged["findings"] = findings
     total = len(findings)
@@ -1614,25 +1659,33 @@ def _show_agent_findings_summary(agent_results: list, root: Path | None = None) 
         by_sev[sev] = by_sev.get(sev, 0) + 1
 
     con.print()
+    # Show severity summary — only high/critical by default (the rest are noise)
+    _ALL_SEVS = ("critical", "high", "medium", "low", "info")
+    _ACTIONABLE_SEVS = ("critical", "high")
+    _COLORS = {
+        "critical": "#FF4D6D",
+        "high": "#FF8C42",
+        "medium": "#FACC15",
+        "low": "#4ADE80",
+        "info": "#B8A898",
+    }
+    _actionable = [(sev, by_sev.get(sev, 0)) for sev in _ACTIONABLE_SEVS if by_sev.get(sev, 0)]
+    _noise = [(sev, by_sev.get(sev, 0)) for sev in _ALL_SEVS[2:] if by_sev.get(sev, 0)]
+
     sev_parts: list[str] = []
-    for sev in ("critical", "high", "medium", "low", "info"):
-        count = by_sev.get(sev, 0)
-        if count:
-            colors = {
-                "critical": "#FF4D6D",
-                "high": "#FF8C42",
-                "medium": "#FACC15",
-                "low": "#4ADE80",
-                "info": "#B8A898",
-            }
-            sev_parts.append(f"[{colors[sev]}]{count} {sev}[/{colors[sev]}]")
+    for sev, count in _actionable:
+        sev_parts.append(f"[{_COLORS[sev]}]{count} {sev}[/{_COLORS[sev]}]")
+    # Dim the rest — they're noise
+    if _noise:
+        noise_counts = " + ".join(f"{count} {sev}" for sev, count in _noise)
+        sev_parts.append(f"[dim]{noise_counts}[/dim]")
 
     sev_str = "  ".join(sev_parts)
     con.print(f"[bold #F2EDD6]Agent Findings:[/bold #F2EDD6]  {sev_str}")
     if noise_line:
         con.print(noise_line)
 
-    # Show agent-by-agent summary
+    # Show agent-by-agent summary (hide noisy scanners, show only useful agents)
     con.print()
     table = Table(show_header=True, header_style="dim", box=None, pad_edge=False)
     table.add_column("Agent", style="bold #F2EDD6", width=26)
@@ -1640,7 +1693,15 @@ def _show_agent_findings_summary(agent_results: list, root: Path | None = None) 
     table.add_column("Status", width=10)
     table.add_column("ms", justify="right", width=8)
 
+    _NOISY_AGENTS_TABLE = {
+        "TypeScanner", "DeadCodeScanner", "TestScanner",
+        "UIScanner", "ContractDiff", "RefactoringAgent", "DeadCodeHygieneAgent",
+        "SideFileScanner", "CommentScanner", "CoreScanner",
+    }
     for r in sorted(agent_results, key=lambda x: -x.finding_count):
+        # Skip noisy agents with 0 findings after filtering
+        if r.agent_name in _NOISY_AGENTS_TABLE and (r.finding_count or 0) == 0:
+            continue
         status_colors = {
             "done": "#4ADE80",
             "failed": "#FF4D6D",
@@ -1648,9 +1709,12 @@ def _show_agent_findings_summary(agent_results: list, root: Path | None = None) 
             "running": "#C8621A",
         }
         color = status_colors.get(r.status.value, "dim")
+        # Dim the noisy agents' finding counts
+        finding_style = "dim" if r.agent_name in _NOISY_AGENTS_TABLE else ""
+        ftext = Text(str(r.finding_count) if r.finding_count else "—", style=finding_style)
         table.add_row(
             r.agent_name,
-            str(r.finding_count) if r.finding_count else "—",
+            ftext,
             Text(r.status.value, style=color),
             str(r.duration_ms),
         )

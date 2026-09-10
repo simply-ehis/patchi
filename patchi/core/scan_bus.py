@@ -35,9 +35,9 @@ class ScanShard:
 class ScanBus:
     """Shard-aware FileCorpus wrapper. Build once, reuse across agents."""
 
-    def __init__(self, root: Path, shard_count: int = 4):
+    def __init__(self, root: Path, shard_count: int = 4, corpus: FileCorpus | None = None):
         self.root = root
-        self.corpus = FileCorpus(root)
+        self.corpus = corpus or FileCorpus(root)
         self.shard_count = max(1, shard_count)
         self._shards: list[ScanShard] | None = None
 

@@ -253,7 +253,7 @@ def run(
 
         # Per-test result lines
         suite = result.data.get("suite", {})
-        for t in suite.get("tests", []):
+        for t in suite.get("cases", []):
             label = t.get("name", t.get("label", "?"))
             passed = t.get("passed", t.get("status")) in (True, "passed", "ok")
             icon = "[#4ADE80]v[/#4ADE80]" if passed else "[#FF4D6D]x[/#FF4D6D]"
@@ -276,7 +276,7 @@ def run(
         except Exception as e:
             _log.warning("run failed: %s", e)
 
-    total_tests = sum(len(r.data.get("suite", {}).get("tests", [])) for r in results)
+    total_tests = sum(r.data.get("suite", {}).get("total", 0) for r in results)
     total_passed = sum(r.data.get("suite", {}).get("passed", 0) for r in results)
     total_failed = sum(r.data.get("suite", {}).get("failed", 0) for r in results)
     lp.stop(summary=f"{total_tests} tests - {total_passed} passed, {total_failed} failed")

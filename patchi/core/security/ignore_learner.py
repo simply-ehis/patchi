@@ -31,6 +31,7 @@ import fnmatch
 import json
 import logging
 import os
+import re
 import time
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
@@ -155,6 +156,7 @@ class IgnoreLearner:
 
         self.entries: list[IgnoreEntry] = []
         self._match_cache: dict[str, IgnoreEntry | None] = {}
+        self._compiled: list[tuple[re.Pattern, str, IgnoreEntry]] = []  # (regex, pattern, entry)
 
     # ── Build ───────────────────────────────────────────────────────────────
 
@@ -176,7 +178,40 @@ class IgnoreLearner:
             self._composition_rules(file_paths)
 
         self._merge_global_and_user()
+        self._compile_patterns()
         return self.entries
+
+    def _compile_patterns(self) -> None:
+        """Pre-compile glob patterns for fast matching.
+
+        Splits patterns into:
+          - prefix_patterns: dir/** style (fast string prefix check)
+          - glob_patterns: fnmatch style (compiled regex)
+        """
+        self._prefix_patterns: list[tuple[str, IgnoreEntry]] = []
+        self._glob_patterns: list[tuple[re.Pattern, str, IgnoreEntry]] = []
+
+        for e in self.entries:
+            pat = e.pattern
+            if pat.endswith("/**"):
+                # dir/** or **/dir/** -> extract prefix for fast startswith
+                base = pat[:-3]
+                if base.startswith("**/"):
+                    # **/dir/** -> match any dir named 'dir'
+                    self._glob_patterns.append((re.compile(fnmatch.translate(pat)), pat, e))
+                else:
+                    # dir/** -> fast prefix check
+                    self._prefix_patterns.append((base + "/", e))
+            else:
+                # Regular glob -> compile regex
+                try:
+                    compiled = re.compile(fnmatch.translate(pat))
+                    self._glob_patterns.append((compiled, pat, e))
+                except re.error:
+                    pass
+
+        # Keep legacy _compiled for backward compat
+        self._compiled = [(c, p, e) for c, p, e in self._glob_patterns]
 
     # ── Layer 1: static ─────────────────────────────────────────────────────
 
@@ -371,17 +406,19 @@ class IgnoreLearner:
         p = rel_path.replace("\\", "/")
         best: IgnoreEntry | None = None
         best_len = -1
-        for e in self.entries:
-            pat = e.pattern
-            if pat.endswith("/**"):
-                base = pat[:-3]  # strip trailing /** -> "dir" or "**/dir"
-                # fnmatch '*' crosses '/', so '**/build/**' hits nested too;
-                # startswith covers plain 'dir/**' prefixes exactly.
-                hit = fnmatch.fnmatch(p, pat) or p.startswith(base + "/")
-            else:
-                hit = fnmatch.fnmatch(p, pat)
-            if hit and len(pat) > best_len:
-                best, best_len = e, len(pat)
+
+        # Fast path: prefix checks (dir/**) — no regex needed
+        for prefix, e in self._prefix_patterns:
+            if p.startswith(prefix) or p == prefix[:-1]:
+                if len(e.pattern) > best_len:
+                    best, best_len = e, len(e.pattern)
+
+        # Slow path: regex globs (only if no prefix match or for ** patterns)
+        if best is None:
+            for compiled, pat, e in self._glob_patterns:
+                if compiled.match(p) is not None:
+                    if len(pat) > best_len:
+                        best, best_len = e, len(pat)
 
         self._match_cache[rel_path] = best
         return best

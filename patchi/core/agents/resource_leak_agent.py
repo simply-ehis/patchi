@@ -15,6 +15,7 @@ from patchi.core.agents.base import (
     AgentStatus,
     BaseAgent,
     Severity,
+    get_shard_files,
     make_finding,
     register,
     safe_rglob,
@@ -34,23 +35,30 @@ class ResourceLeakAgent(BaseAgent):
     name = "ResourceLeakAgent"
     description = "Resource leak §7.3 setInterval/EventEmitter/useEffect/stream without cleanup"
     timeout = 60
+    shardable = True
+    supported_languages = None
+
+    _MAX_FILES = 500
 
     def _run(self, inp: AgentInput, result: AgentResult) -> None:
-        findings=[]
-        for pat in ("*.js","*.jsx","*.ts","*.tsx"):
-            for fp in safe_rglob(inp.root, pat):
-                rel=fp.relative_to(inp.root).as_posix()
+        findings = []
+        files_scanned = 0
+        for pat in ("*.js", "*.jsx", "*.ts", "*.tsx"):
+            for fp in get_shard_files(inp, pat):
+                if files_scanned >= self._MAX_FILES:
+                    break
+                rel = fp.relative_to(inp.root).as_posix()
                 if "node_modules" in rel or "tests" in rel:
                     continue
                 try:
-                    txt=fp.read_text(encoding="utf-8", errors="replace")
+                    txt = fp.read_text(encoding="utf-8", errors="replace")
                 except OSError:
                     continue
-                tree=parse_js(txt, lang_for_file(rel))
+                tree = parse_js(txt, lang_for_file(rel))
                 if tree is None:
                     continue
-                calls=js_calls(tree, lang_for_file(rel))
-                names={c.name for c in calls}
+                calls = js_calls(tree, lang_for_file(rel))
+                names = {c.name for c in calls}
                 by_name: dict[str, list] = {}
                 for c in calls:
                     by_name.setdefault(c.name, []).append(c)
@@ -80,12 +88,14 @@ class ResourceLeakAgent(BaseAgent):
                 # useEffect without cleanup
                 if no_cleanup_lines and has_interval:
                     findings.append(make_finding(severity=Severity.LOW, file=rel, line_start=no_cleanup_lines[0], title="useEffect with interval but no cleanup return", description="Return () => clearInterval in useEffect", finding_type="resource_leak_effect"))
-                # Stream not closed
-                if has_stream and not has_close and stream_call is not None:
-                    findings.append(make_finding(severity=Severity.LOW, file=rel, line_start=stream_call.line, title="Stream without close/destroy", description="Ensure fs stream closed/destroyed", finding_type="resource_leak_stream"))
-                if len(findings) >= 40:
-                    break
+                files_scanned += 1
+            if files_scanned >= self._MAX_FILES:
+                break
+            # Stream not closed
+            if has_stream and not has_close and stream_call is not None:
+                findings.append(make_finding(severity=Severity.LOW, file=rel, line_start=stream_call.line, title="Stream without close/destroy", description="Ensure fs stream closed/destroyed", finding_type="resource_leak_stream"))
             if len(findings) >= 40:
                 break
-        result.status=AgentStatus.SUCCEEDED
-        result.findings=findings[:40]
+        result.status = AgentStatus.SUCCEEDED
+        result.findings = findings[:40]
+        result.files_scanned = files_scanned
