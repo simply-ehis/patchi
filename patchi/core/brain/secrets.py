@@ -256,12 +256,13 @@ def scan_secrets(root: Path, paths: list[str] | None = None) -> list[SecretHit]:
                 text=True,
                 timeout=120,
             )
-            # gitleaks exits 1 when leaks found; parse JSON report from stderr/stdout.
-            text = proc.stdout or proc.stderr
+            # gitleaks exits 1 when leaks found; parse JSON report from stdout.
+            # On Windows, stdout can be empty while stderr contains ANSI escape
+            # codes — only parse stdout to avoid "Expecting value" JSON errors.
             import json
 
             try:
-                data = json.loads(text)
+                data = json.loads(proc.stdout or "[]")
                 return [
                     SecretHit(
                         path=d.get("file", "?"),

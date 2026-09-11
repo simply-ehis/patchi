@@ -59,7 +59,33 @@ class APIContractAgent(BaseAgent):
         # Find API contract files
         contract_files = self._find_api_contracts(inp.root)
 
+        # Fallback: detect framework-based APIs (FastAPI, Flask, Django)
+        # and build a synthetic contract from route definitions
         if not contract_files:
+            framework, route_count = self._detect_framework_api(inp.root)
+            if framework:
+                findings.append(
+                    make_finding(
+                        severity=Severity.INFO,
+                        file="__api_contract__",
+                        line_start=0,
+                        title=f"Framework API detected: {framework}",
+                        description=f"Detected {framework} app with {route_count} route(s). "
+                        f"Contract synthesized from source code (no static OpenAPI file found).",
+                        evidence=f"Framework: {framework}, Routes found: {route_count}",
+                    )
+                )
+                result.status = AgentStatus.SUCCEEDED
+                result.findings = findings
+                result.data.update({
+                    "contracts_found": 1,
+                    "framework": framework,
+                    "synthetic": True,
+                    "route_count": route_count,
+                    "needs_ai": False,
+                })
+                return
+
             findings.append(
                 make_finding(
                     severity=Severity.INFO,
@@ -163,19 +189,21 @@ class APIContractAgent(BaseAgent):
             "**/specs/**/*.yml",
         ]
 
-        for pattern in contract_patterns:
-            for contract_file in root.rglob(pattern):
-                if not contract_file.is_file():
+        # Use os.walk with exclusion for speed (avoids rglob through node_modules)
+        import os
+        exclude = {".patchi", "node_modules", "venv", ".venv", "__pycache__", ".git", "target", "build", "dist"}
+        # Only look for actual OpenAPI/Swagger spec files, not any file with "api" in name
+        spec_prefixes = ("openapi", "swagger")
+        spec_contains = ("openapi", "swagger", "api-spec", "api_spec")
+        for dirpath, dirnames, filenames in os.walk(str(root)):
+            dirnames[:] = [d for d in dirnames if d not in exclude]
+            for fname in filenames:
+                if not any(fname.endswith(ext) for ext in (".json", ".yaml", ".yml")):
                     continue
-                # Never treat the tool's own state directory as project source:
-                # on case-insensitive filesystems (Windows) the agent's own
-                # cache file .patchi/cache/agent_cache/APIContractAgent.json
-                # matches the `**/api*.json` pattern, so a re-run would
-                # validate its own cache and report spurious violations (found
-                # by the smoke-sweep --pipeline orchestration gate).
-                if ".patchi" in contract_file.parts:
+                fname_lower = fname.lower()
+                if not (fname_lower.startswith(spec_prefixes) or any(s in fname_lower for s in spec_contains)):
                     continue
-                # Verify it's actually an API contract by checking content
+                contract_file = Path(dirpath) / fname
                 if self._is_api_contract(contract_file):
                     contract_files.append(contract_file)
 
@@ -225,6 +253,72 @@ class APIContractAgent(BaseAgent):
         except Exception as e:
             _log.debug("APIContractAgent._is_api_contract failed: %s", e)
             return False
+
+    def _detect_framework_api(self, root: Path) -> tuple[str | None, int]:
+        """Detect FastAPI/Flask/Django apps by scanning entry-point Python files.
+
+        Returns (framework_name, route_count) or (None, 0).
+        """
+        import re
+
+        framework_patterns = [
+            ("FastAPI", re.compile(r"from\s+fastapi\s+import\s+.*\bFastAPI\b|from\s+fastapi\s+import\s+FastAPI")),
+            ("Flask", re.compile(r"from\s+flask\s+import\s+.*\bFlask\b|from\s+flask\s+import\s+Flask")),
+            ("Django", re.compile(r"from\s+django\.urls\s+import|from\s+django\.conf\s+import|django\.setup")),
+        ]
+        route_patterns = [
+            re.compile(r"@(?:app|router)\.(get|post|put|delete|patch|options|head)\s*\("),
+            re.compile(r"@(?:app|router)\.route\s*\("),
+            re.compile(r"url_patterns\s*=\s*\["),
+        ]
+
+        # Only scan top-level Python files, entry points, and routes directories
+        candidates = []
+        for name in ("app.py", "main.py", "manage.py", "wsgi.py", "asgi.py", "server.py", "run.py"):
+            p = root / name
+            if p.is_file():
+                candidates.append(p)
+        # Also scan one level of subdirectories for app factories and routes
+        for d in list(root.iterdir()):
+            if d.is_dir() and d.name not in (".patchi", "node_modules", "__pycache__", "venv", ".venv", ".git"):
+                for name in ("app.py", "main.py"):
+                    p = d / name
+                    if p.is_file():
+                        candidates.append(p)
+                # Scan routes/ subdirectory for route definitions
+                routes_dir = d / "routes"
+                if routes_dir.is_dir():
+                    for rf in routes_dir.rglob("*.py"):
+                        if rf.is_file():
+                            candidates.append(rf)
+                # Also check src/routes or src/api patterns
+                for sub in ("src", "api", "endpoints"):
+                    sub_dir = d / sub
+                    if sub_dir.is_dir():
+                        for rf in sub_dir.rglob("*.py"):
+                            if rf.is_file():
+                                candidates.append(rf)
+
+        detected_framework = None
+        route_count = 0
+
+        try:
+            for py_file in candidates:
+                try:
+                    content = py_file.read_text(encoding="utf-8", errors="ignore")
+                except Exception:
+                    continue
+
+                for fw_name, fw_re in framework_patterns:
+                    if fw_re.search(content):
+                        detected_framework = fw_name
+
+                for rp in route_patterns:
+                    route_count += len(rp.findall(content))
+        except Exception as e:
+            _log.debug("_detect_framework_api failed: %s", e)
+
+        return detected_framework, route_count
 
     def _validate_contracts(self, contract_files: list[Path], inp: AgentInput) -> dict:
         """Validate contracts against the running API."""

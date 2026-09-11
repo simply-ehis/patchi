@@ -53,43 +53,16 @@ SECRETS_PROVIDERS = {
 }
 
 # Hardcoded secret patterns (merged from SecretsGuard)
+# Each entry is a 3-tuple: (compiled_pattern, severity, description)
 HARDCODED_SECRET_PATTERNS = [
-    (r"(?:password|passwd|pwd)\s*=\s*[\"'][^\"']+[\"']", "Hardcoded password", Severity.CRITICAL),
-    (
-        r"(?:api[_-]?key|apikey)\s*=\s*[\"'][A-Za-z0-9_\-]{16,}[\"']",
-        "Hardcoded API key",
-        Severity.CRITICAL,
-    ),
-    (
-        r"(?:secret|token)\s*=\s*[\"'][A-Za-z0-9_\-]{16,}[\"']",
-        "Hardcoded secret/token",
-        Severity.CRITICAL,
-    ),
-    (
-        r"(?:aws[_-]?access[_-]?key[_-]?id)\s*=\s*[\"']AKIA[0-9A-Z]{16}[\"']",
-        "Hardcoded AWS access key",
-        Severity.CRITICAL,
-    ),
-    (
-        r"(?:aws[_-]?secret[_-]?access[_-]?key)\s*=\s*[\"'][0-9a-zA-Z/+=]{40}[\"']",
-        "Hardcoded AWS secret key",
-        Severity.CRITICAL,
-    ),
-    (r"(?:private[_-]?key)\s*=\s*[\"']-----BEGIN", "Hardcoded private key", Severity.CRITICAL),
-    (
-        r"(?:connection[_-]?string|dsn)\s*=\s*[\"'][^\"']*(?:password|pwd)=[^\"']+[\"']",
-        "Hardcoded connection string with password",
-        Severity.HIGH,
-    ),
-    # Extended patterns from SecretsGuard
-    (
-        re.compile(
-            r'(?:api[_-]?key|apikey|secret[_-]?key|access[_-]?key)\s*[:=]\s*["\'][A-Za-z0-9+/=_-]{16,}["\']',
-            re.I,
-        ),
-        Severity.CRITICAL,
-        "Hardcoded API key (extended)",
-    ),
+    (re.compile(r"(?:password|passwd|pwd)\s*=\s*[\"'][^\"']+[\"']", re.I), Severity.CRITICAL, "Hardcoded password"),
+    (re.compile(r"(?:api[_-]?key|apikey)\s*=\s*[\"'][A-Za-z0-9_\-]{16,}[\"']", re.I), Severity.CRITICAL, "Hardcoded API key"),
+    (re.compile(r"(?:secret|token)\s*=\s*[\"'][A-Za-z0-9_\-]{16,}[\"']", re.I), Severity.CRITICAL, "Hardcoded secret/token"),
+    (re.compile(r"(?:aws[_-]?access[_-]?key[_-]?id)\s*=\s*[\"']AKIA[0-9A-Z]{16}[\"']", re.I), Severity.CRITICAL, "Hardcoded AWS access key"),
+    (re.compile(r"(?:aws[_-]?secret[_-]?access[_-]?key)\s*=\s*[\"'][0-9a-zA-Z/+=]{40}[\"']", re.I), Severity.CRITICAL, "Hardcoded AWS secret key"),
+    (re.compile(r"(?:private[_-]?key)\s*=\s*[\"']-----BEGIN", re.I), Severity.CRITICAL, "Hardcoded private key"),
+    (re.compile(r"(?:connection[_-]?string|dsn)\s*=\s*[\"'][^\"']*(?:password|pwd)=[^\"']+[\"']", re.I), Severity.HIGH, "Hardcoded connection string with password"),
+    (re.compile(r'(?:api[_-]?key|apikey|secret[_-]?key|access[_-]?key)\s*[:=]\s*["\'][A-Za-z0-9+/=_-]{16,}["\']', re.I), Severity.CRITICAL, "Hardcoded API key (extended)"),
     (re.compile(r'(?:password|passwd|pwd)\s*[:=]\s*["\'][^"\']{4,}["\']', re.I), Severity.CRITICAL, "Hardcoded password (extended)"),
     (re.compile(r'(?:secret|client[_-]?secret)\s*[:=]\s*["\'][A-Za-z0-9+/=_-]{8,}["\']', re.I), Severity.CRITICAL, "Hardcoded secret (extended)"),
     (re.compile(r"AKIA[0-9A-Z]{16}"), Severity.CRITICAL, "AWS Access Key ID"),
@@ -137,32 +110,17 @@ def scan_code_for_secrets(code: str, file_path: str) -> list[dict]:
     findings = []
     lines = code.splitlines()
     for i, line in enumerate(lines, 1):
-        for pattern in HARDCODED_SECRET_PATTERNS:
-            if isinstance(pattern, tuple):
-                # Handle two formats: (regex, desc, severity) and (regex, severity, desc)
-                if len(pattern) == 3:
-                    p0, p1, p2 = pattern
-                    # If p1 is Severity enum, format is (regex, severity, desc)
-                    if isinstance(p1, Severity):
-                        regex, severity, desc = p0, p1, p2
-                    else:
-                        # Format is (regex, desc, severity)
-                        regex, desc, severity = p0, p1, p2
-                else:
-                    continue
-
-                if isinstance(regex, str):
-                    regex = re.compile(regex, re.I)
-                if regex.search(line):
-                    findings.append(
-                        {
-                            "line": i,
-                            "severity": severity.value,
-                            "message": desc,
-                            "evidence": line.strip()[:100],
-                            "file": file_path,
-                        }
-                    )
+        for compiled_re, severity, desc in HARDCODED_SECRET_PATTERNS:
+            if compiled_re.search(line):
+                findings.append(
+                    {
+                        "line": i,
+                        "severity": severity.value,
+                        "message": desc,
+                        "evidence": line.strip()[:100],
+                        "file": file_path,
+                    }
+                )
     return findings
 
 
@@ -199,8 +157,8 @@ class SecretsRuntimeAgent(BaseAgent):
                 rel = str(fpath.relative_to(inp.root))
 
                 # Detect hardcoded secrets
-                for pattern, desc, severity in HARDCODED_SECRET_PATTERNS:
-                    for m in re.finditer(pattern, content, re.IGNORECASE):
+                for compiled_re, severity, desc in HARDCODED_SECRET_PATTERNS:
+                    for m in compiled_re.finditer(content):
                         line_no = content[: m.start()].count("\n") + 1
                         # Skip if it's in a test file or comment
                         if re.search(

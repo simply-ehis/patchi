@@ -55,6 +55,7 @@ class MisconfigAgent(BaseAgent):
     def _run(self, inp: AgentInput, result: AgentResult) -> None:
         """Run security misconfiguration detection."""
         findings = []
+        files_scanned = 0
 
         # Define configuration file patterns to scan
         config_patterns = [
@@ -93,6 +94,7 @@ class MisconfigAgent(BaseAgent):
                 if file_path.is_file():
                     rel_path = file_path.relative_to(inp.root).as_posix()
                     if not self._should_skip_file(rel_path, inp):
+                        files_scanned += 1
                         findings.extend(self._scan_config_file_misconfig(file_path, rel_path))
 
         # Also scan source files for misconfigurations
@@ -121,9 +123,11 @@ class MisconfigAgent(BaseAgent):
                 if file_path.is_file():
                     rel_path = file_path.relative_to(inp.root).as_posix()
                     if not self._should_skip_file(rel_path, inp):
+                        files_scanned += 1
                         findings.extend(self._scan_source_file_misconfig(file_path, rel_path))
 
         result.status = AgentStatus.SUCCEEDED
+        result.files_scanned = files_scanned
         result.findings = findings
         result.data.update(
             {

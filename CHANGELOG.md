@@ -5,6 +5,16 @@ All notable changes to Patchi will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.8] - 2026-09-11
+
+### Fixed
+- **secrets.py:259** — `scan_secrets` crash on Windows: Gitleaks returns empty stdout when leaks found (exit code 1), causing `json.loads()` to parse ANSI-laden stderr. Fixed to only parse `proc.stdout`, fall back to `"[]"` if empty.
+- **secrets_runtime_agent.py:57** — `SecretsRuntimeAgent` crash: `HARDCODED_SECRET_PATTERNS` had mixed tuple formats — compiled regex passed to `re.finditer()` which expects string. Normalized all 15 patterns to `(compiled_re, severity, description)`.
+- **misconfig_agent.py** — `MisconfigAgent` reported 0 files scanned: `result.files_scanned` was never set. Added counter.
+- **api_contract_agent.py** — `APIContractAgent` silently skipped FastAPI/Flask/Django projects because it only looked for static OpenAPI files on disk. Added framework detection that scans entry points and route directories for framework imports and route decorators. Now reports synthetic contract info (framework name, route count).
+- **api_contract_agent.py** — `rglob` through `node_modules` caused 60s+ hangs. Replaced with `os.walk` with directory exclusion for speed.
+- **base.py:549** — `APIContractAgent` added to gate bypass list so it can run without requiring `p check` first.
+
 ## [0.7.5] - 2026-09-08
 
 ### Added
