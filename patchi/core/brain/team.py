@@ -7,12 +7,13 @@ from __future__ import annotations
 from pathlib import Path
 
 def route_to_team(root: Path, finding: dict) -> str:
-    co=root/".github/CODEOWNERS"
+    co = root / ".github/CODEOWNERS"
     if co.exists():
         for line in co.read_text(encoding="utf-8", errors="replace").splitlines():
-            if line.strip().startswith("#") or not line.strip(): continue
-            parts=line.split()
-            if len(parts)>=2 and finding.get("file","").startswith(parts[0].lstrip("/")):
+            if line.strip().startswith("#") or not line.strip():
+                continue
+            parts = line.split()
+            if len(parts) >= 2 and finding.get("file", "").startswith(parts[0].lstrip("/")):
                 return parts[-1]
     return "unassigned"
 

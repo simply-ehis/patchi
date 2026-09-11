@@ -115,7 +115,7 @@ _log = logging.getLogger("patchi.cli.key_cmd")
 def _secure_key_input(prompt: str) -> str:
     """
     Securely read an API key from stdin, with support for pasting in PowerShell.
-    
+
     Uses getpass on Unix-like systems, but on Windows/PowerShell falls back to
     a method that allows pasting (getpass blocks pasting in some PowerShell versions).
     """
@@ -125,7 +125,7 @@ def _secure_key_input(prompt: str) -> str:
         return getpass.getpass(prompt + " ")
     except Exception:
         pass
-    
+
     # Fallback: use rich's Prompt but without password masking
     # This allows pasting in PowerShell - the key is stored securely in .env anyway
     from rich.prompt import Prompt

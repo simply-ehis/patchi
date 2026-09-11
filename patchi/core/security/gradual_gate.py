@@ -30,5 +30,6 @@ def ratchet_check(root: Path, current_count: int, weekly_reduction: int = 5) -> 
 def set_baseline(root: Path, count: int) -> None:
     p=root/_GATE_FILE
     p.parent.mkdir(parents=True, exist_ok=True)
-    import time, json
+    import time
+    import json
     p.write_text(json.dumps({"baseline": count, "target": count, "ts": time.time()}, indent=2), encoding="utf-8")

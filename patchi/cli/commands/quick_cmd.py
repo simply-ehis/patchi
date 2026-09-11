@@ -25,7 +25,6 @@ from patchi.cli.console import con
 from patchi.cli.ux import (
     format_error,
     format_header,
-    format_step,
     spinner,
     status_icon,
     status_style,

@@ -22,7 +22,6 @@ from patchi.core.agents.base import (
     get_shard_files,
     make_finding,
     register,
-    safe_rglob,
 )
 
 _log = logging.getLogger("patchi.agents.feature_flag")

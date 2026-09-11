@@ -16,13 +16,11 @@ from rich.table import Table
 
 from patchi.cli.command_families import (
     FAMILIES,
-    format_all_families,
-    format_family_help,
     get_family,
     list_families,
 )
 from patchi.cli.console import con
-from patchi.cli.ux import format_header, colored_status
+from patchi.cli.ux import format_header
 
 
 def run(args=None, flat: bool = False, search: str | None = None, **_kwargs):

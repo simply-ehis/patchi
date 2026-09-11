@@ -133,10 +133,9 @@ def _retry_with_backoff(
         if _circuit_skip_count <= 1 or _circuit_skip_count % 100 == 0:
             logger.debug("AI circuit breaker open — skipping call (x%d)", _circuit_skip_count)
         return None
-    
+
     delay = base_delay
-    last_error = None
-    
+
     for attempt in range(max_retries + 1):
         # Check timeout budget
         if timeout_remaining is not None:
@@ -144,32 +143,30 @@ def _retry_with_backoff(
             if remaining is not None and remaining <= 0:
                 logger.debug("Retry budget exhausted")
                 return None
-        
+
         try:
             result = func()
             if result is not None:
                 _record_ai_success()
             return result
         except Exception as e:
-            last_error = e
-            
             if attempt < max_retries and _is_retryable_error(e):
                 jitter_amount = delay * jitter * (2 * random.random() - 1)
                 actual_delay = min(delay + jitter_amount, max_delay)
-                
+
                 _progress(f"Retrying in {actual_delay:.1f}s... (attempt {attempt + 2}/{max_retries + 1})")
                 logger.debug(
                     "Retryable error (attempt {}/{}): {}. Retrying in {:.1f}s...",
                     attempt + 1, max_retries + 1, e, actual_delay,
                 )
-                
+
                 time.sleep(actual_delay)
                 delay *= backoff_multiplier
             else:
                 # Non-retryable error or max retries reached
                 logger.debug("Non-retryable error or max retries reached: {}", e)
                 break
-    
+
     # Record failure for circuit breaker
     _record_ai_failure()
     return None
@@ -233,7 +230,7 @@ def call_ai(
     `timeout` bounds the ENTIRE call (all providers tried, poll loops included),
     so a hung provider can never freeze a scan or leave a worker thread alive
     indefinitely. None = no overall deadline (per-request socket timeouts only).
-    
+
     `progress_callback`: Optional callback(message) invoked during long-running
     operations (e.g., "Contacting provider...", "Retrying in 2s...").
     """
@@ -257,7 +254,7 @@ def call_ai(
 
     _ensure_env_loaded()
     ai_config = config.get("ai", {})
-    
+
     def _progress(msg: str) -> None:
         if progress_callback:
             try:
@@ -405,7 +402,7 @@ def _call_ollama(
             return data.get("response", "")
 
     return _retry_with_backoff(
-        _do_call, 
+        _do_call,
         timeout_remaining=lambda: timeout,
         progress_callback=progress_callback
     )
@@ -463,7 +460,7 @@ def _call_openai_compat(
             return data.get("choices", [{}])[0].get("message", {}).get("content", "")
 
     return _retry_with_backoff(
-        _do_call, 
+        _do_call,
         timeout_remaining=lambda: timeout,
         progress_callback=progress_callback
     )
@@ -516,7 +513,7 @@ def _call_anthropic(
             return data.get("content", [{}])[0].get("text", "")
 
     return _retry_with_backoff(
-        _do_call, 
+        _do_call,
         timeout_remaining=lambda: timeout,
         progress_callback=progress_callback
     )

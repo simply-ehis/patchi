@@ -21,7 +21,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from patchi.core.atomic import atomic_replace, atomic_write_json
+from patchi.core.atomic import atomic_write_json
 from patchi.core.config import require_project_root
 from patchi.core.constants import SNAPSHOT_DIR
 

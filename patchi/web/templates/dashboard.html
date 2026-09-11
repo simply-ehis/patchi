@@ -1490,9 +1490,10 @@
       if (btn3d) btn3d.classList.add('is-on');
       window.updateBrainMapMeta && window.updateBrainMapMeta();
       window.hideBrainTooltip && window.hideBrainTooltip();
-      // 3D libs may still be loading (or retrying after a stall):
-      // init once BrainMap3D is defined, else re-trigger the loader.
-      window._loadBrainLibs && window._loadBrainLibs();
+      // 3D libs load on first toggle only (607KB three.js stays out of
+      // the initial page): init once BrainMap3D is defined.
+      if (window._load3D) window._load3D();
+      else if (window._loadBrainLibs) window._loadBrainLibs();
       var _3dInitAttempts = 0;
       (function _tryInit3D() {
         if (window.BrainMap3D) {
@@ -1561,7 +1562,7 @@
     st.busy = true;
     var btn = document.getElementById('brain-3d-fail-retry');
     if (btn) { btn.disabled = true; btn.textContent = 'Retrying…'; }
-    (window._loadBrainLibs ? window._loadBrainLibs() : Promise.resolve({ canvas: false, brain3d: false })).then(function() {
+    (window._load3D ? window._load3D() : window._loadBrainLibs ? window._loadBrainLibs() : Promise.resolve(false)).then(function() {
       st.busy = false;
       if (btn) { btn.disabled = false; btn.textContent = '↻ Retry'; }
       if (window.BrainMap3D) {
@@ -1727,11 +1728,13 @@
     ]).then(function(res){
       window._brainNodes = res[0].nodes || [];
       window._brainEdges = res[1].edges || [];
-      // Lazy-load brain map libs then init
-      window._loadBrainLibs();
+      // Lazy-load the 2D libs only (three.js waits for the 🔮 toggle):
+      // data was just fetched above, so autofetch:false skips the internal
+      // fetch — 2 requests total instead of 4.
+      (window._load2D ? window._load2D() : window._loadBrainLibs());
       var _tryInit = function() {
         if (window.BrainMap) {
-          BrainMap.init('brain-map');
+          BrainMap.init('brain-map', {autofetch: false});
           BrainMap.loadNodes(window._brainNodes, window._brainEdges);
         } else {
           setTimeout(_tryInit, 100);
@@ -1739,7 +1742,7 @@
       };
       _tryInit();
     }).catch(function(){
-      window._loadBrainLibs();
+      (window._load2D ? window._load2D() : window._loadBrainLibs());
       var _tryInit2 = function() {
         if (window.BrainMap) { BrainMap.init('brain-map'); }
         else { setTimeout(_tryInit2, 100); }

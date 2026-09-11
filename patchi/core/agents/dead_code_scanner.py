@@ -19,12 +19,13 @@ import subprocess
 from pathlib import Path
 
 from ..brain.ast_utils import find_dead_symbols
-from ..brain.import_graph import ImportGraph, build_import_graph, find_dead_files
+from ..brain.import_graph import ImportGraph, find_dead_files
 from ..brain.languages import EXTENSION_MAP, Lang
 from .base import (
     AgentGroup,
     AgentInput,
     AgentResult,
+    AgentStatus,
     BaseAgent,
     Severity,
     make_finding,
@@ -169,7 +170,7 @@ class DeadCodeScanner(BaseAgent):
 
         # Run vulture and per-language tools in parallel
         skip_tools = set(inp.config.get("dead_code", {}).get("skip_tools", []))
-        from concurrent.futures import ThreadPoolExecutor, as_completed
+        from concurrent.futures import ThreadPoolExecutor
 
         with ThreadPoolExecutor(max_workers=2) as pool:
             vulture_future = pool.submit(_run_vulture, inp.root)

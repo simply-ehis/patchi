@@ -302,22 +302,22 @@ def _setup_custom_provider(root: Path) -> None:
     """Set up a custom OpenAI-compatible provider (same as key_cmd flow)."""
     con.print()
     con.print("  [dim]Enter your provider's OpenAI-compatible API details.[/dim]")
-    
+
     provider_name = Prompt.ask("  Provider name")
     if not provider_name.strip():
         con.print("[red]Provider name is required.[/red]")
         return
-    
+
     base_url = Prompt.ask("  Base URL", default="https://api.openai.com/v1")
     if not base_url.strip():
         con.print("[red]Base URL is required.[/red]")
         return
-        
+
     model = Prompt.ask("  Model name")
     if not model.strip():
         con.print("[red]Model name is required.[/red]")
         return
-        
+
     format_choices = ["openai", "anthropic", "google", "cohere"]
     fmt = Prompt.ask("  API format", choices=format_choices, default="openai")
 
@@ -326,7 +326,7 @@ def _setup_custom_provider(root: Path) -> None:
     if not api_key.strip():
         con.print("[red]No key entered.[/red]")
         return
-        
+
     nickname = Prompt.ask("  Nickname for this key", default=provider_name)
 
     _store_key(
@@ -341,7 +341,7 @@ def _setup_known_provider(root: Path, provider_data: dict) -> None:
     if not api_key.strip():
         con.print("[red]No key entered.[/red]")
         return
-        
+
     nickname = Prompt.ask("  Nickname for this key", default=provider_data["name"])
 
     _store_key(
@@ -364,7 +364,7 @@ def _secure_key_input(prompt: str) -> str:
         return getpass.getpass(prompt + " ")
     except Exception:
         pass
-    
+
     # Fallback: use rich's Prompt but without password masking
     # This allows pasting in PowerShell - the key is stored securely in .env anyway
     from rich.prompt import Prompt

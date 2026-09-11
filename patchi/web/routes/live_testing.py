@@ -11,10 +11,19 @@ router = APIRouter()
 _templates = Jinja2Templates(directory=str(Path(__file__).parent.parent / "templates"))
 
 
-@router.get("/live-tests")
+@router.get("/live-tests", include_in_schema=False)
 async def live_tests_page(request: Request):
-    """Render the live testing dashboard."""
-    return _templates.TemplateResponse("live_testing.html", {"request": request})
+    """Render the live testing dashboard (canonical; dashboard.py duplicate removed)."""
+    root = request.app.state.root
+    try:
+        from patchi.core import memory as mem
+
+        test_data = (mem.get_scan_results(root) or {}).get("TestRunner", {})
+    except Exception:
+        test_data = {}
+    return _templates.TemplateResponse(
+        request, "live_testing.html", {"request": request, "test_data": test_data}
+    )
 
 
 @router.get("/live-testing")

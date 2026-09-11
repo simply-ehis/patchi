@@ -15,19 +15,16 @@ Returns a Target object with:
 
 from __future__ import annotations
 
-import asyncio
 import logging
 import os
 import re
-import shutil
 import socket
 import subprocess
 import sys
-import tempfile
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Callable, Optional
+from typing import Callable, Optional
 
 from ..agents.base import (
     AgentDomain,
@@ -36,8 +33,6 @@ from ..agents.base import (
     AgentResult,
     AgentStatus,
     BaseAgent,
-    Severity,
-    make_finding,
     register,
 )
 from ..brain.trace_log import trace_agent
@@ -408,7 +403,6 @@ class FrameworkDetector:
         """Extract port from command like '--port 3000' or '-p 3000'."""
         if not cmd:
             return None
-        import re
         match = re.search(r'[-\-]p(?:ort)?\s+(\d+)', cmd)
         if match:
             return int(match.group(1))

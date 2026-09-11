@@ -77,15 +77,26 @@ class MemoryProfilerAgent(BaseAgent):
                         findings.append(make_finding(severity=Severity.LOW, file="package.json", line_start=0, title=f"Startup/build slow: {dur:.1f}s", description="Cold start >30s — consider caching, incremental builds", finding_type="startup_slow"))
                     break
 
-        # 5.2.1-3 Heuristic: check JS files for setInterval without clearInterval, addEventListener without remove
+        # 5.2.1-3 Heuristic: check JS files for setInterval without clearInterval
         for fp in root.rglob("*.js"):
-            if "node_modules" in str(fp) or "tests" in str(fp): continue
+            if "node_modules" in str(fp) or "tests" in str(fp):
+                continue
             try:
-                txt=fp.read_text(encoding="utf-8", errors="replace")
-            except OSError: continue
+                txt = fp.read_text(encoding="utf-8", errors="replace")
+            except OSError:
+                continue
             if "setInterval" in txt and "clearInterval" not in txt:
-                findings.append(make_finding(severity=Severity.LOW, file=str(fp.relative_to(root)), line_start=txt[:txt.index("setInterval")].count("\n")+1, title="Possible interval leak — setInterval without clearInterval", finding_type="interval_leak"))
-                if len(findings)>=20: break
+                findings.append(
+                    make_finding(
+                        severity=Severity.LOW,
+                        file=str(fp.relative_to(root)),
+                        line_start=txt[: txt.index("setInterval")].count("\n") + 1,
+                        title="Possible interval leak — setInterval without clearInterval",
+                        finding_type="interval_leak",
+                    )
+                )
+                if len(findings) >= 20:
+                    break
             if "addEventListener" in txt and "removeEventListener" not in txt and "addEventListener" in txt:
                 # only flag if >3 listeners
                 if txt.count("addEventListener")>3:

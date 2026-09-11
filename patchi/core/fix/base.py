@@ -21,9 +21,9 @@ _log = logging.getLogger("patchi.fix")
 
 
 def _call_ai(
-    prompt: str, 
-    config: dict, 
-    max_tokens: int = 1500, 
+    prompt: str,
+    config: dict,
+    max_tokens: int = 1500,
     system_prompt: str = "",
     progress_callback: Callable[[str], None] | None = None
 ) -> str:

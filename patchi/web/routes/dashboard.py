@@ -205,18 +205,6 @@ async def attack_timeline_page(request: Request):
     )
 
 
-@router.get("/live-tests", response_class=HTMLResponse)
-async def live_tests_page(request: Request):
-    """Live test session monitor."""
-    root = request.app.state.root
-    from patchi.core import memory as mem
-    scan_results = mem.get_scan_results(root)
-    test_data = scan_results.get("TestRunner", {})
-    return templates.TemplateResponse(
-        request, "live_testing.html", {"request": request, "test_data": test_data}
-    )
-
-
 @router.get("/hosted", response_class=HTMLResponse)
 async def hosted_page(request: Request):
     """Hosted mode dashboard (experimental)."""

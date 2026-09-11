@@ -213,23 +213,53 @@ var BrainMap3D = (() => {
   }
 
   function _applyMomentum() {
-    if (!_momentum.active || !camera || !controls) return;
-    // Convert screen-space velocity to orbit rotation
-    var factor = 0.003;
-    var offset = new THREE.Vector3().copy(camera.position).sub(controls.target);
-    var spherical = new THREE.Spherical().setFromVector3(offset);
-    spherical.theta -= _momentum.vx * factor;
-    spherical.phi = Math.max(0.1, Math.min(Math.PI - 0.1, spherical.phi + _momentum.vy * factor));
-    offset.setFromSpherical(spherical);
-    camera.position.copy(controls.target).add(offset);
-    camera.lookAt(controls.target);
-    // Decay velocity
-    _momentum.vx *= 0.95;
-    _momentum.vy *= 0.95;
-    // Stop when velocity is negligible
+    // OrbitControls with enableDamping already provides inertia. The old
+    // manual spherical-rotation here fought OrbitControls (double-rotate per
+    // frame), so it is now a no-op that just decays the tracked velocity
+    // used for click-vs-drag detection.
+    if (!_momentum.active) return;
+    _momentum.vx *= 0.9;
+    _momentum.vy *= 0.9;
     if (Math.abs(_momentum.vx) < 0.01 && Math.abs(_momentum.vy) < 0.01) {
       _momentum.active = false;
     }
+  }
+
+  function _setupKeyboardNav(el) {
+    // Arrows/WASD pan, +/- zoom, 0 reset — mirrors the 2D map's keyboard.
+    if (!el || el._kbdWired) return;
+    el._kbdWired = true;
+    el.tabIndex = el.tabIndex || 0;
+    el.addEventListener('keydown', function(e) {
+      if (!camera || !controls) return;
+      var step = camera.position.distanceTo(controls.target) * 0.08;
+      var fwd = new THREE.Vector3().copy(camera.position).sub(controls.target).normalize();
+      var right = new THREE.Vector3().crossVectors(fwd, camera.up).normalize();
+      var up = new THREE.Vector3().crossVectors(right, fwd).normalize();
+      var moved = true;
+      switch (e.key) {
+        case 'ArrowLeft': case 'a': case 'A':
+          controls.target.addScaledVector(right, -step); break;
+        case 'ArrowRight': case 'd': case 'D':
+          controls.target.addScaledVector(right, step); break;
+        case 'ArrowUp': case 'w': case 'W':
+          controls.target.addScaledVector(up, step); break;
+        case 'ArrowDown': case 's': case 'S':
+          controls.target.addScaledVector(up, -step); break;
+        case '+': case '=':
+          camera.position.addScaledVector(fwd, -step); break;
+        case '-': case '_':
+          camera.position.addScaledVector(fwd, step); break;
+        case '0':
+          resetCamera(); break;
+        default: moved = false;
+      }
+      if (moved) {
+        e.preventDefault();
+        _stopCameraFit();
+        controls.update();
+      }
+    });
   }
 
   function _setupTouchRotate(el) {
@@ -258,116 +288,20 @@ var BrainMap3D = (() => {
         _threeFingerState = { startX: cx, startY: cy, startTime: Date.now() };
         return;
       }
-      // Two fingers: init pinch/pan state (we handle zoom+pan manually, not via OrbitControls)
-      if (e.touches.length === 2 && controls) {
-        var t1 = e.touches[0], t2 = e.touches[1];
-        var dist = _touchDist(t1, t2);
-        var center = _touchCenter(t1, t2);
-        
-        // Check if this looks like a pinch (fingers moving apart/together) or pan
-        // We'll determine in touchmove based on distance change
-        _pinchState = {
-          startDist: dist,
-          startZoom: controls.getDistance ? controls.getDistance() : camera.position.distanceTo(controls.target),
-          center: center
-        };
+      // Two fingers: let OrbitControls handle pinch-zoom + pan natively
+      // (the old manual pinch/pan/rotate here double-applied every gesture).
+      if (e.touches.length === 2) {
+        _pinchState = null;
         _panState = null;
         _rotateState = null;
-        
-        // Disable OrbitControls two-finger handling so we can handle pinch/pan ourselves
-        controls.touches.TWO = THREE.TOUCH.DOLLY_PAN; // This will be overridden by our manual handling
-        controls.enableRotate = false; // We'll handle rotation via rotate gesture
       }
     }, { passive: false }); // Need passive: false to preventDefault for pinch
 
     el.addEventListener('touchmove', function(e) {
-      if (!controls) return;
-      
-      // Three-finger: do nothing (handled in touchend)
+      // Two-finger gestures are handled natively by OrbitControls
+      // (TWO: DOLLY_PAN). No manual handling — it used to double-zoom.
       if (e.touches.length === 3) return;
-      
-      // Two fingers: handle pinch-to-zoom OR two-finger pan
-      if (e.touches.length === 2) {
-        var t1 = e.touches[0], t2 = e.touches[1];
-        var dist = _touchDist(t1, t2);
-        var center = _touchCenter(t1, t2);
-        
-        if (_pinchState) {
-          // Pinch-to-zoom: change camera distance
-          var zoomFactor = dist / _pinchState.startDist;
-          var newDistance = _pinchState.startZoom / zoomFactor; // Inverse: pinch out = zoom in
-          
-          // Clamp distance
-          var minDist = controls.minDistance || 50;
-          var maxDist = controls.maxDistance || 12000;
-          newDistance = Math.max(minDist, Math.min(maxDist, newDistance));
-          
-          // Apply zoom by moving camera along the view vector
-          var offset = new THREE.Vector3().copy(camera.position).sub(controls.target);
-          var currentDist = offset.length();
-          if (currentDist > 0.001) {
-            offset.normalize().multiplyScalar(newDistance);
-            camera.position.copy(controls.target).add(offset);
-          }
-          
-          // Also update OrbitControls internal state
-          if (controls._dollyControl) {
-            // This is a bit hacky but works
-          }
-          
-          // Check for pan: if fingers moved significantly without much distance change
-          var panDist = Math.hypot(center.x - _pinchState.center.x, center.y - _pinchState.center.y);
-          var zoomDistChange = Math.abs(dist - _pinchState.startDist);
-          
-          if (panDist > 10 && zoomDistChange < panDist * 0.5) {
-            // This is primarily a pan gesture
-            if (!_panState) {
-              _panState = {
-                startX: center.x,
-                startY: center.y,
-                startTarget: controls.target.clone()
-              };
-            }
-            // Pan the target
-            var dx = (center.x - _panState.startX) * 0.5;
-            var dy = (center.y - _panState.startY) * 0.5;
-            
-            // Convert screen-space pan to world-space pan
-            var panFactor = newDistance / 500; // Scale factor based on zoom
-            var right = new THREE.Vector3().crossVectors(camera.up, offset).normalize();
-            var up = camera.up.clone().normalize();
-            
-            controls.target.copy(_panState.startTarget)
-              .addScaledVector(right, -dx * panFactor)
-              .addScaledVector(up, dy * panFactor);
-          }
-        }
-        
-        // Two-finger rotate: if fingers rotate around each other
-        if (!_panState && _rotateState === null) {
-          var angle = _touchAngle(t1, t2);
-          var offset = new THREE.Vector3().copy(camera.position).sub(controls.target);
-          var spherical = new THREE.Spherical().setFromVector3(offset);
-          _rotateState = {
-            startAngle: angle,
-            startAzimuth: spherical.theta,
-            startPolar: spherical.phi,
-          };
-        }
-        
-        if (_rotateState && !_panState) {
-          var angle = _touchAngle(t1, t2);
-          var delta = angle - _rotateState.startAngle;
-          var offset = new THREE.Vector3().copy(camera.position).sub(controls.target);
-          var spherical = new THREE.Spherical().setFromVector3(offset);
-          spherical.theta = _rotateState.startAzimuth + delta * 1.5;
-          spherical.phi = Math.max(0.1, Math.min(Math.PI - 0.1, spherical.phi + (center.y - _pinchState.center.y) * 0.01));
-          offset.setFromSpherical(spherical);
-          camera.position.copy(controls.target).add(offset);
-          camera.lookAt(controls.target);
-        }
-      }
-    }, { passive: false });
+    }, { passive: true });
 
     el.addEventListener('touchend', function(e) {
       // Three-finger swipe: detect horizontal direction
@@ -390,17 +324,11 @@ var BrainMap3D = (() => {
           _showPresetIndicator(presetName);
         }
       }
-      // Cleanup two-finger states
+      // Cleanup two-finger states (OrbitControls owns the gesture now)
       if (e.touches.length < 2) {
         _pinchState = null;
         _panState = null;
-        if (_rotateState) {
-          _rotateState = null;
-        }
-        if (controls) {
-          controls.enableRotate = true;
-          controls.touches.TWO = THREE.TOUCH.DOLLY_PAN;
-        }
+        _rotateState = null;
       }
     }, { passive: true });
   }
@@ -588,6 +516,9 @@ var BrainMap3D = (() => {
       controls.enableZoom = true;
       controls.enablePan = true;
       controls.enableKeys = true;
+      try {
+        if (controls.listenToKeyEvents) controls.listenToKeyEvents(renderer.domElement);
+      } catch (_) {}
       // User interaction cancels a pending/active zoom-to-fit so the camera
       // never fights the mouse/touch.
       controls.addEventListener('start', _stopCameraFit);
@@ -595,40 +526,9 @@ var BrainMap3D = (() => {
       renderer.domElement.style.touchAction = 'none';
       // Two-finger rotate gesture
       _setupTouchRotate(renderer.domElement);
-      
-      // Wheel event for touchpad zoom (two-finger scroll on trackpad)
-      renderer.domElement.addEventListener('wheel', function(e) {
-        // Check if this is a touchpad gesture (typically has deltaMode=0 and small deltaY)
-        // or a mouse wheel (larger deltaY, deltaMode=1 or 0)
-        var isTouchpad = Math.abs(e.deltaY) < 100 && e.deltaMode === 0;
-        
-        if (isTouchpad) {
-          // Smooth zoom for touchpad
-          var zoomFactor = e.deltaY > 0 ? 1.1 : 0.9; // scroll up = zoom in
-          var newDistance = controls.getDistance ? controls.getDistance() / zoomFactor : 
-                           camera.position.distanceTo(controls.target) / zoomFactor;
-          
-          var minDist = controls.minDistance || 50;
-          var maxDist = controls.maxDistance || 12000;
-          newDistance = Math.max(minDist, Math.min(maxDist, newDistance));
-          
-          var offset = new THREE.Vector3().copy(camera.position).sub(controls.target);
-          var currentDist = offset.length();
-          if (currentDist > 0.001) {
-            offset.normalize().multiplyScalar(newDistance);
-            camera.position.copy(controls.target).add(offset);
-          }
-          
-          // Pan with shift+wheel (horizontal pan)
-          if (e.shiftKey && Math.abs(e.deltaX) > 0) {
-            var panAmount = e.deltaX * 0.5;
-            var right = new THREE.Vector3().crossVectors(camera.up, offset).normalize();
-            controls.target.addScaledVector(right, -panAmount * (newDistance / 500));
-          }
-          
-          e.preventDefault();
-        }
-      }, { passive: false });
+      // NOTE: wheel zoom is handled by OrbitControls itself. A custom wheel
+      // handler here used to double-zoom every scroll, so it was removed.
+      _setupKeyboardNav(renderer.domElement);
     }
 
     // Groups
@@ -780,24 +680,25 @@ var BrainMap3D = (() => {
     var hc = _healthColor(findingCount, severity);
     if (hc) color = hc;
 
-    // Scale node size by finding count: more findings = bigger node
-    // Base radius 5, max ~18 for nodes with many findings
+    // Scale node size by finding count: more findings = bigger node.
+    // Kept small on purpose — the old 5 + fc*0.65 growth made dense graphs
+    // collapse into one emissive blob.
     var fc = findingCount || 0;
-    var radius = 5 + Math.min(fc, 20) * 0.65;
+    var radius = 4 + Math.min(fc, 20) * 0.35;
     // Severity boosts size further
-    if (severity === 'critical') radius *= 1.4;
-    else if (severity === 'high') radius *= 1.2;
+    if (severity === 'critical') radius *= 1.25;
+    else if (severity === 'high') radius *= 1.12;
     // Resolution scales with size for smooth look
-    var segments = radius > 12 ? 24 : 16;
-    var geometry = new THREE.SphereGeometry(radius, segments, segments);
+    var segments = radius > 10 ? 24 : 16;
+    var geometry = new THREE.SphereGeometry(radius, segments, Math.max(12, segments - 4));
     // Emissive intensity scales with findings for glow effect
-    var emissiveStrength = 0.2 + Math.min(fc, 15) * 0.04;
+    var emissiveStrength = 0.12 + Math.min(fc, 15) * 0.025;
     var material = new THREE.MeshPhongMaterial({
       color: color,
       emissive: new THREE.Color(color).multiplyScalar(emissiveStrength),
       shininess: 40 + Math.min(fc, 15) * 3,
       transparent: true,
-      opacity: 0.85 + Math.min(fc, 10) * 0.01,
+      opacity: 0.78 + Math.min(fc, 10) * 0.008,
     });
     var mesh = new THREE.Mesh(geometry, material);
     mesh.position.set(x, y, z);
@@ -871,8 +772,16 @@ var BrainMap3D = (() => {
     });
   }
 
+  function _isDotEntry(entry) {
+    return !!(entry && entry.dot);
+  }
+
   function _addEdge3D(from, to, type) {
     if (!_nodes3d[from] || !_nodes3d[to]) return;
+    // Skip edges where BOTH endpoints are capped dots (mirrors the 2D
+    // renderer's `if (!fromRendered && !toRendered) continue`) — otherwise
+    // faint lines float between near-invisible dots.
+    if (_isDotEntry(_nodes3d[from]) && _isDotEntry(_nodes3d[to])) return;
     // Highlight edges touching the selection/match; suppress unrelated edges
     // during selection; fade non-match edges during search.
     var highlighted = false;
@@ -882,15 +791,31 @@ var BrainMap3D = (() => {
     } else if (_searchActiveIds) {
       highlighted = !!(_searchActiveIds[from] || _searchActiveIds[to]);
     }
-    var fromPos = _nodes3d[from].position;
-    var toPos = _nodes3d[to].position;
+    var fromEntry = _nodes3d[from];
+    var toEntry = _nodes3d[to];
+    var fromPos = fromEntry.position;
+    var toPos = toEntry.position;
 
     var color = COLORS.edge;
     if (type === 'route_connection') color = COLORS.edgeRoute;
     else if (type === 'test_coverage') color = COLORS.edgeTest;
     else if (type === 'blast_radius') color = COLORS.edgeBlast;
 
-    var geometry = new THREE.BufferGeometry().setFromPoints([fromPos, toPos]);
+    // Offset endpoints by the source/target mesh radius so lines start at the
+    // sphere surface instead of piercing through the node center.
+    var a = fromPos.clone ? fromPos.clone() : new THREE.Vector3(fromPos.x, fromPos.y, fromPos.z);
+    var b = toPos.clone ? toPos.clone() : new THREE.Vector3(toPos.x, toPos.y, toPos.z);
+    var dir = new THREE.Vector3().subVectors(b, a);
+    var len = dir.length();
+    if (len > 1e-6) {
+      dir.normalize();
+      var ra = (fromEntry.userData && fromEntry.userData.radius) || 0;
+      var rb = (toEntry.userData && toEntry.userData.radius) || 0;
+      if (ra > 0 && len > ra + 1) a.addScaledVector(dir, Math.min(ra * 0.9, len * 0.4));
+      if (rb > 0 && len > rb + 1) b.addScaledVector(dir, -Math.min(rb * 0.9, len * 0.4));
+    }
+
+    var geometry = new THREE.BufferGeometry().setFromPoints([a, b]);
     // Highlighted edges render brighter + more opaque so the file's role pops.
     var material = new THREE.LineBasicMaterial({
       color: color,
@@ -916,11 +841,13 @@ var BrainMap3D = (() => {
   function _forceLayout3D(nodesList, edgesList) {
     var pos = {}, n = nodesList.length;
     if (n === 0) return pos;
+    // Scale the spawn sphere with graph size so large graphs don't start
+    // as one overlapping blob.
+    var r = 350 * Math.max(1, Math.cbrt(n / 120));
     // Initialize in fibonacci sphere for even distribution
     nodesList.forEach(function(node, i) {
       var phi = Math.acos(1 - 2 * (i + 0.5) / n);
       var theta = Math.PI * (1 + Math.sqrt(5)) * i;
-      var r = 350;
       pos[node.id || node.path] = {
         x: r * Math.cos(theta) * Math.sin(phi),
         y: r * Math.sin(theta) * Math.sin(phi),
@@ -1269,7 +1196,8 @@ var BrainMap3D = (() => {
   }
 
   function _smoothFitTo(cx, cy, cz, r) {
-    if (!camera || !controls || !(r > 0)) return;
+    if (!camera || !controls) return;
+    if (!(r > 0)) r = 30; // single node / degenerate bounds: frame a default radius
     var fitDist = _fitDistanceFor(r);
     var center = new THREE.Vector3(cx, cy, cz);
     var dir = new THREE.Vector3().copy(camera.position).sub(controls.target);
@@ -1470,7 +1398,7 @@ var BrainMap3D = (() => {
         // Capped-out node: keep a position-only entry so edges route through
         // it, but ALSO render a tiny dim dot so the edge endpoint is visible
         // instead of a line floating into empty space.
-        var dotGeom = new THREE.SphereGeometry(2.2, 8, 8);
+        var dotGeom = new THREE.SphereGeometry(2.2, 16, 12);
         var dotMat = new THREE.MeshBasicMaterial({ color: 0x8b949e, transparent: true, opacity: 0.35, depthWrite: false });
         var dot = new THREE.Mesh(dotGeom, dotMat);
         dot.position.set(pos.x, pos.y, pos.z);
@@ -1630,6 +1558,29 @@ var BrainMap3D = (() => {
   // ── Node Search ───────────────────────────────────────────
   var _searchOrigColors = {};
   var _searchActiveIds = null;  // matched node ids during an active search
+  var _searchMatchList = [];
+  var _searchIdx = -1;
+
+  function _focusSearchIdx() {
+    if (!_searchMatchList.length) return;
+    _searchIdx = ((_searchIdx % _searchMatchList.length) + _searchMatchList.length) % _searchMatchList.length;
+    var id = _searchMatchList[_searchIdx];
+    if (id) focusNode(id);
+    var countEl = document.getElementById('brain-search-count');
+    if (countEl) countEl.textContent = (_searchIdx + 1) + ' / ' + _searchMatchList.length + ' found';
+  }
+
+  function searchNext() {
+    if (!_searchMatchList.length) return;
+    _searchIdx++;
+    _focusSearchIdx();
+  }
+
+  function searchPrev() {
+    if (!_searchMatchList.length) return;
+    _searchIdx--;
+    _focusSearchIdx();
+  }
 
   function searchNodes(query) {
     var q = (query || '').trim().toLowerCase();
@@ -1641,6 +1592,8 @@ var BrainMap3D = (() => {
 
     // Restore all nodes if query is empty
     if (!q) {
+      _searchMatchList = [];
+      _searchIdx = -1;
       nodeGroup.children.forEach(function(child) {
         if (child.isMesh && child.userData && child.userData.id) {
           var id = child.userData.id;
@@ -1693,6 +1646,8 @@ var BrainMap3D = (() => {
     });
 
     _searchActiveIds = matchIds;
+    _searchMatchList = Object.keys(matchIds);
+    _searchIdx = _searchMatchList.length ? 0 : -1;
     _rebuildEdges();
     _applyDotHighlight();
     if (countEl) {
@@ -1728,6 +1683,8 @@ var BrainMap3D = (() => {
     getStats: getStats,
     destroy: destroy,
     searchNodes: searchNodes,
+    searchNext: searchNext,
+    searchPrev: searchPrev,
     selectNode: selectNode,
     clearSelection: clearSelection,
     // Audit/test hook: camera + fit state for visual verification.

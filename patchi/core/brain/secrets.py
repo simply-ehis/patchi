@@ -259,20 +259,23 @@ def scan_secrets(root: Path, paths: list[str] | None = None) -> list[SecretHit]:
             # gitleaks exits 1 when leaks found; parse JSON report from stdout.
             # On Windows, stdout can be empty while stderr contains ANSI escape
             # codes — only parse stdout to avoid "Expecting value" JSON errors.
+            # Empty stdout means no usable report: fall through to the regex
+            # sweep below instead of returning [] (which would hide real leaks).
             import json
 
             try:
-                data = json.loads(proc.stdout or "[]")
-                return [
-                    SecretHit(
-                        path=d.get("file", "?"),
-                        line=int(d.get("line", 0)),
-                        rule=d.get("rule", "gitleaks"),
-                        snippet=(d.get("match") or "")[:120],
-                    )
-                    for d in data
-                    if isinstance(d, dict)
-                ]
+                data = json.loads(proc.stdout) if proc.stdout.strip() else None
+                if data:
+                    return [
+                        SecretHit(
+                            path=d.get("file", "?"),
+                            line=int(d.get("line", 0)),
+                            rule=d.get("rule", "gitleaks"),
+                            snippet=(d.get("match") or "")[:120],
+                        )
+                        for d in data
+                        if isinstance(d, dict)
+                    ]
             except Exception as e:
                 _log.warning("scan_secrets failed: %s", e)
         except Exception as e:

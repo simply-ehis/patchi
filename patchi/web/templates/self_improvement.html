@@ -76,7 +76,7 @@
               {% else %}<span class="u-muted">n/a</span>{% endif %}
             </td>
             <td class="u-tar u-mono">${{ "%.4f"|format(p.total_cost_usd) }}</td>
-            <td class="u-fs12 u-muted">{{ p.most_used_model or 'â€”' }}</td>
+            <td class="u-fs12 u-muted">{{ p.most_used_model or '—' }}</td>
           </tr>
           {% endfor %}
         </tbody>

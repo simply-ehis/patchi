@@ -623,7 +623,6 @@ def _run_scan_bus(
 ) -> list[AgentResult]:
     """ScanBus path: one shared corpus + FindingBus merge across shard workers.
     Shardable agents get split across file subsets when corpus is large."""
-    from concurrent.futures import Future
     from patchi.core.scan_bus import QueueRunner, ScanBus
     from patchi.core.agents.base import AgentGroup, AgentResult, AgentStatus
 

@@ -11,7 +11,6 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from pathlib import Path
 
 from ..agents.base import (
     AgentDomain,
@@ -28,7 +27,6 @@ from ..testing.live_v2.stress_orchestrator import (
     StressConfig,
     StressOrchestrator,
     StressTestReport,
-    run_stress_test,
 )
 
 _log = logging.getLogger("patchi.testing.stress_test_agent")

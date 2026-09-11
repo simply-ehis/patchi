@@ -33,8 +33,6 @@ from .base import (
     Severity,
     get_shard_files,
     make_finding,
-    register,
-    safe_rglob,
 )
 
 _log = logging.getLogger("patchi.agents.duplicate_scanner")

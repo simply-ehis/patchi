@@ -173,22 +173,6 @@ class APIContractAgent(BaseAgent):
         """Find API contract files (OpenAPI/Swagger/JSON Schema)."""
         contract_files = []
 
-        # Look for common API contract file patterns
-        contract_patterns = [
-            "**/openapi*.json",
-            "**/openapi*.yaml",
-            "**/openapi*.yml",
-            "**/swagger*.json",
-            "**/swagger*.yaml",
-            "**/swagger*.yml",
-            "**/api*.json",  # Might contain OpenAPI spec
-            "**/*.schema.json",  # JSON Schema files
-            "**/schemas/**/*.json",  # Schema directory
-            "**/specs/**/*.json",  # Spec directory
-            "**/specs/**/*.yaml",
-            "**/specs/**/*.yml",
-        ]
-
         # Use os.walk with exclusion for speed (avoids rglob through node_modules)
         import os
         exclude = {".patchi", "node_modules", "venv", ".venv", "__pycache__", ".git", "target", "build", "dist"}

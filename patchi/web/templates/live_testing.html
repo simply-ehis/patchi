@@ -95,6 +95,11 @@
     <h3>🌐 Browser Pool</h3>
     <p class="u-muted u-fs13">Status of the shared browser instance pool.</p>
     <div id="pool-info" style="font-family:monospace;font-size:13px;color:var(--text-secondary)">Loading...</div>
+    <div id="browser-install-wrap" style="display:none;margin-top:12px">
+      <p class="u-fs13" style="color:var(--warning)">Browsers not installed — Live Tests can't run yet.</p>
+      <button type="button" class="btn-test btn-stress" onclick="installBrowsers()" id="btn-install">Install Chromium (~120MB, one click)</button>
+      <div class="result-box" id="install-result" style="display:none"></div>
+    </div>
   </div>
 </div>
 
@@ -463,8 +468,36 @@ async function loadPoolStats() {
     const data = await resp.json();
     document.getElementById('pool-info').textContent = JSON.stringify(data, null, 2);
     document.getElementById('pool-active').textContent = data.active_browsers || 0;
+    // Show the one-click installer when browsers are missing
+    const wrap = document.getElementById('browser-install-wrap');
+    if (wrap) wrap.style.display = (data.playwright_installed === false || (data.error && /not installed|Executable doesn't exist/i.test(data.error))) ? 'block' : 'none';
   } catch(e) {
     document.getElementById('pool-info').textContent = 'Error loading stats';
+  }
+}
+
+async function installBrowsers() {
+  const btn = document.getElementById('btn-install');
+  const box = document.getElementById('install-result');
+  btn.disabled = true;
+  btn.textContent = 'Installing… (may take a few minutes)';
+  box.style.display = 'block';
+  box.textContent = 'Downloading Chromium… watch here for progress.';
+  try {
+    const resp = await fetch('/api/live-testing/install-browsers', {method: 'POST'});
+    const data = await resp.json();
+    box.textContent = JSON.stringify(data, null, 2);
+    if (data.ok) {
+      btn.textContent = 'Installed ✓';
+      loadPoolStats();
+    } else {
+      btn.disabled = false;
+      btn.textContent = 'Retry Install';
+    }
+  } catch(e) {
+    box.textContent = 'Error: ' + e.message;
+    btn.disabled = false;
+    btn.textContent = 'Retry Install';
   }
 }
 

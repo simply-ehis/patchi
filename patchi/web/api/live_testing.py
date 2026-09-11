@@ -32,6 +32,7 @@ class SmokeTestRequest(BaseModel):
 # ── State ────────────────────────────────────────────────────────────────────
 
 _stress_state = {"running": False, "last_result": None, "task": None, "cancelled": False}
+_install_state = {"running": False, "last_result": None, "log": []}
 _audit_state = {
     "running": False,
     "progress": {"current": 0, "total": 0, "route": ""},
@@ -96,11 +97,11 @@ def _run_audit_sync(base_url: str, root: Path, routes: list[str] | None = None) 
 
                     # Collect page metrics
                     metrics = page.evaluate(
-                        "() => ({dom_nodes: document.querySelector('*').length, "
-                        "images: document.querySelector('img').length, "
-                        "links: document.querySelector('a').length, "
-                        "scripts: document.querySelector('script').length, "
-                        "stylesheets: document.querySelector('link[rel=stylesheet]').length, "
+                        "() => ({dom_nodes: document.querySelectorAll('*').length, "
+                        "images: document.querySelectorAll('img').length, "
+                        "links: document.querySelectorAll('a').length, "
+                        "scripts: document.querySelectorAll('script').length, "
+                        "stylesheets: document.querySelectorAll('link[rel=stylesheet]').length, "
                         "title: document.title || '', "
                         "has_viewport_meta: !!document.querySelector('meta[name=viewport]'), "
                         "has_h1: !!document.querySelector('h1')})"
@@ -235,14 +236,36 @@ def _severity_for_page(session, broken_images: list, empty_links: int) -> str:
 # ── Endpoints ────────────────────────────────────────────────────────────────
 
 
+def _playwright_error_message(exc: Exception) -> str:
+    """Human-readable hint when Playwright or its browsers are missing."""
+    msg = str(exc)
+    if "No module named 'playwright'" in msg or "No module named \"playwright\"" in msg:
+        return "Playwright not installed — run: pip install playwright && playwright install chromium"
+    if "Executable doesn't exist" in msg or "playwright install" in msg.lower():
+        return "Playwright browsers not installed — run: playwright install chromium"
+    if "Host system is missing dependencies" in msg:
+        return "Playwright OS deps missing — run: playwright install-deps chromium"
+    return msg
+
+
 @router.get("/status")
 async def status(request: Request):
     """Get live testing status."""
     root: Path = request.app.state.root
+    has_pool = True
+    pool_hint = ""
+    try:
+        from patchi.core.testing.live_v2.browser_pool import _browser_pool
+
+        has_pool = bool(_browser_pool and _browser_pool._initialized)
+    except Exception as exc:
+        has_pool = False
+        pool_hint = str(exc)
     return {
         "stress_running": _stress_state["running"],
         "evidence_dir": str(root / ".patchi" / "evidence"),
-        "has_browser_pool": True,
+        "has_browser_pool": has_pool,
+        "pool_hint": pool_hint,
     }
 
 
@@ -255,11 +278,13 @@ async def smoke_test(req: SmokeTestRequest, request: Request):
 
         runner = BrowserTestRunner(root, base_url=req.url)
         result = await runner.run_smoke_test(req.url)
-        return result.to_dict()
+        data = result.to_dict()
+        data.setdefault("ok", data.get("failed", 1) == 0)
+        return data
     except Exception as e:
         return JSONResponse(
             status_code=500,
-            content={"error": str(e)},
+            content={"ok": False, "error": _playwright_error_message(e)},
         )
 
 
@@ -288,15 +313,20 @@ async def stress_test(req: StressTestRequest, request: Request):
             ramp_up_seconds=req.ramp_up_seconds,
         )
         orchestrator = StressOrchestrator(config)
+        _stress_state["task"] = asyncio.current_task()
         report = await orchestrator.run()
         if _stress_state["cancelled"]:
             return JSONResponse({"ok": False, "message": "Stress test was cancelled"})
         _stress_state["last_result"] = report.to_dict()
-        return report.to_dict()
+        data = report.to_dict()
+        data.setdefault("ok", True)
+        return data
     except asyncio.CancelledError:
         return JSONResponse({"ok": False, "message": "Stress test was cancelled"})
     except Exception as e:
-        return JSONResponse(status_code=500, content={"error": str(e)})
+        return JSONResponse(
+            status_code=500, content={"ok": False, "error": _playwright_error_message(e)}
+        )
     finally:
         _stress_state["running"] = False
         _stress_state["task"] = None
@@ -389,11 +419,27 @@ async def capture_screenshot(req: SmokeTestRequest, request: Request):
         try:
             await page.goto(req.url, wait_until="domcontentloaded")
             ss_result = await screenshot_mgr.capture(page, req.url, name="manual_screenshot")
-            return {"success": True, "path": ss_result.image_path, "size": ss_result.file_size}
+            # image_path is absolute; expose the servable filename + relative path
+            from pathlib import Path as _P
+
+            p = _P(str(ss_result.image_path))
+            try:
+                rel = str(p.relative_to(root))
+            except ValueError:
+                rel = p.name
+            return {
+                "success": True,
+                "ok": True,
+                "path": rel,
+                "filename": p.name,
+                "size": ss_result.file_size,
+            }
         finally:
             await pool.release_page(page)
     except Exception as e:
-        return JSONResponse(status_code=500, content={"error": str(e)})
+        return JSONResponse(
+            status_code=500, content={"ok": False, "error": _playwright_error_message(e)}
+        )
 
 
 @router.get("/browser-pool-stats")
@@ -403,9 +449,85 @@ async def browser_pool_stats():
         from patchi.core.testing.live_v2.browser_pool import get_browser_pool
 
         pool = await get_browser_pool()
-        return pool.get_stats()
+        stats = pool.get_stats()
+        # Back-compat alias: frontend expects `active_browsers`
+        stats.setdefault("active_browsers", stats.get("current_active", 0))
+        stats["playwright_installed"] = True
+        return stats
     except Exception as e:
-        return {"error": str(e)}
+        return {
+            "error": _playwright_error_message(e),
+            "active_browsers": 0,
+            "playwright_installed": False,
+            "install_url": "/api/live-testing/install-browsers",
+        }
+
+
+def _run_playwright_install() -> dict:
+    """Run `playwright install chromium` synchronously (called via to_thread)."""
+    import subprocess
+    import sys
+
+    _install_state["log"].append("Running: playwright install chromium")
+    try:
+        proc = subprocess.run(
+            [sys.executable, "-m", "playwright", "install", "chromium"],
+            capture_output=True,
+            text=True,
+            timeout=600,
+        )
+        tail = (proc.stdout + "\n" + proc.stderr).strip().splitlines()
+        _install_state["log"].extend(tail[-20:])
+        ok = proc.returncode == 0
+        result = {
+            "ok": ok,
+            "returncode": proc.returncode,
+            "log": _install_state["log"][-20:],
+        }
+        if not ok:
+            result["error"] = f"playwright install exited {proc.returncode}"
+        # Reset the global pool so the next call re-initializes with browsers
+        try:
+            import patchi.core.testing.live_v2.browser_pool as _bp
+
+            _bp._browser_pool = None
+        except Exception:
+            pass
+        return result
+    except Exception as e:
+        _install_state["log"].append(f"FAILED: {e}")
+        return {"ok": False, "error": str(e), "log": _install_state["log"][-20:]}
+
+
+@router.post("/install-browsers")
+async def install_browsers():
+    """One-click Playwright browser install (chromium). Long-running."""
+    if _install_state["running"]:
+        return JSONResponse(
+            status_code=409,
+            content={"ok": False, "message": "Install already running", "log": _install_state["log"][-20:]},
+        )
+    _install_state["running"] = True
+    _install_state["log"] = []
+    try:
+        result = await asyncio.to_thread(_run_playwright_install)
+        _install_state["last_result"] = result
+        if result.get("ok"):
+            return result
+        return JSONResponse(status_code=500, content=result)
+    finally:
+        _install_state["running"] = False
+
+
+@router.get("/install-browsers")
+async def install_browsers_status():
+    """Install status: running flag + last result + log tail."""
+    return {
+        "ok": True,
+        "running": _install_state["running"],
+        "last_result": _install_state["last_result"],
+        "log": _install_state["log"][-20:],
+    }
 
 
 def _ads_dirs(root: Path) -> list[Path]:
@@ -529,12 +651,23 @@ async def run_visual_regression(request: Request):
 async def list_screenshots(request: Request):
     """List visual regression screenshots and diff images."""
     root: Path = request.app.state.root
-    evidence_dir = root / ".patchi" / "evidence" / "screenshots" / "visual_regression"
+    shot_base = root / ".patchi" / "evidence" / "screenshots"
+    evidence_dirs = [
+        shot_base / "visual_regression",
+        shot_base / "current",
+        shot_base,
+    ]
     baseline_dir = root / ".patchi" / "visual_baselines"
 
     screenshots = []
-    if evidence_dir.is_dir():
+    seen: set[str] = set()
+    for evidence_dir in evidence_dirs:
+        if not evidence_dir.is_dir():
+            continue
         for f in sorted(evidence_dir.glob("*.png"), key=lambda x: x.stat().st_mtime, reverse=True):
+            if f.name in seen:
+                continue
+            seen.add(f.name)
             try:
                 stat = f.stat()
                 is_diff = "_diff" in f.stem
@@ -567,31 +700,37 @@ async def serve_screenshot(filename: str, request: Request):
     """Serve a screenshot file."""
     root: Path = request.app.state.root
     evidence_dir = root / ".patchi" / "evidence" / "screenshots"
-    file_path = evidence_dir / filename
+    candidates = [
+        evidence_dir / filename,
+        evidence_dir / "current" / filename,
+        evidence_dir / "visual_regression" / filename,
+    ]
 
-    if not file_path.suffix == ".png":
+    if not filename.endswith(".png"):
         return JSONResponse({"error": "Only .png files allowed"}, status_code=403)
-    try:
-        file_path.resolve().relative_to(evidence_dir.resolve())
-    except ValueError:
-        return JSONResponse({"error": "Access denied"}, status_code=403)
 
-    if not file_path.exists():
-        # Fall back to ads gallery viewport subdirs
-        for ads_dir in _ads_dirs(root):
-            cand = ads_dir / filename
-            try:
-                cand.resolve().relative_to(ads_dir.resolve())
-            except ValueError:
-                return JSONResponse({"error": "Access denied"}, status_code=403)
-            if cand.is_file():
-                file_path = cand
-                break
-        else:
-            return JSONResponse({"error": "Screenshot not found"}, status_code=404)
+    for file_path in candidates:
+        try:
+            file_path.resolve().relative_to(evidence_dir.resolve())
+        except ValueError:
+            return JSONResponse({"error": "Access denied"}, status_code=403)
+        if file_path.is_file():
+            from starlette.responses import FileResponse
 
-    from starlette.responses import FileResponse
-    return FileResponse(file_path, media_type="image/png")
+            return FileResponse(file_path, media_type="image/png")
+
+    # Fall back to ads gallery viewport subdirs
+    for ads_dir in _ads_dirs(root):
+        cand = ads_dir / filename
+        try:
+            cand.resolve().relative_to(ads_dir.resolve())
+        except ValueError:
+            return JSONResponse({"error": "Access denied"}, status_code=403)
+        if cand.is_file():
+            from starlette.responses import FileResponse
+
+            return FileResponse(cand, media_type="image/png")
+    return JSONResponse({"error": "Screenshot not found"}, status_code=404)
 
 
 @router.get("/ads-gallery")

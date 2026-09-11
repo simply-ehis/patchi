@@ -18,7 +18,6 @@ import time
 from contextlib import contextmanager
 from typing import Any, Callable, Generator
 
-from rich.console import Group
 from rich.live import Live
 from rich.panel import Panel
 from rich.progress import (
@@ -169,7 +168,9 @@ def spinner(
     from rich.status import Status
 
     status = Status(message, console=con, spinner="dots")
-    update_fn = lambda msg: status.update(msg)
+
+    def update_fn(msg):
+        status.update(msg)
 
     try:
         status.start()
@@ -350,24 +351,6 @@ def summary_panel(
         border_style=border,
         padding=(0, 1),
     )
-
-
-# ── Status Style Helper ────────────────────────────────────────────────────────
-
-def status_style(status: str) -> str:
-    """Get Rich style for status."""
-    styles = {
-        "done": "green",
-        "passed": "green",
-        "success": "green",
-        "running": "cyan",
-        "pending": "dim",
-        "skipped": "yellow",
-        "failed": "red",
-        "error": "red",
-        "warning": "yellow",
-    }
-    return styles.get(status.lower(), "white")
 
 
 # ── Result Table ──────────────────────────────────────────────────────────────

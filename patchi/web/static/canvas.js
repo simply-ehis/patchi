@@ -61,6 +61,12 @@ var BrainMap = (() => {
   // ── State ──────────────────────────────────────────────────
   var stage, nodeLayer, antLayer, nodes = {}, ants = {}, edges = [];
   var _onWsMessage = null, _initialized = false;
+  // Module-scope keyboard/resize bindings so re-init can remove the old
+  // listeners instead of stacking duplicates (double-pan / double-fetch).
+  var _keyState = {};
+  var _panSpeed = 40;
+  var _panInterval = null;
+  var _boundKeyDown = null, _boundKeyUp = null, _boundResize = null, _resizeObs = null;
   var scale = 1, offsetX = 0, offsetY = 0;
   var _currentView = 'graph';
   var _lastNodes = [], _lastEdges = [];
@@ -70,11 +76,22 @@ var BrainMap = (() => {
   var _minimapTimer = null;
 
   // ── Init ───────────────────────────────────────────────────
-  function init(containerId) {
+  function init(containerId, opts) {
     var el = document.getElementById(containerId);
     if (!el) return;
+    opts = opts || {};
 
     if (_initialized) {
+      // Tear down previous listeners first — otherwise every re-init
+      // (e.g. fullscreen toggle) stacks another document keydown/keyup pair
+      // with a stale stage closure → double-pan and duplicate fetches.
+      if (_boundKeyDown) document.removeEventListener('keydown', _boundKeyDown);
+      if (_boundKeyUp) document.removeEventListener('keyup', _boundKeyUp);
+      if (_boundResize) window.removeEventListener('resize', _boundResize);
+      if (_resizeObs) { try { _resizeObs.disconnect(); } catch (_) {} }
+      _boundKeyDown = _boundKeyUp = _boundResize = _resizeObs = null;
+      _stopKeyPan();
+      _keyState = {};
       if (stage) stage.destroy();
       stage = null; nodeLayer = null; antLayer = null;
       nodes = {}; ants = {}; edges = [];
@@ -105,14 +122,26 @@ var BrainMap = (() => {
     });
 
     _bindWsEvents();
-    setTimeout(function() { _onResize(); _loadNodes(); }, 100);
+    // The dashboard template usually fetches nodes/edges itself and calls
+    // loadNodes() — pass {autofetch:false} to skip this internal fetch and
+    // avoid 4 requests (2 template + 2 internal) on every load.
+    if (opts.autofetch !== false) {
+      setTimeout(function() { _onResize(); _loadNodes(); }, 100);
+    } else {
+      setTimeout(function() { _onResize(); }, 100);
+    }
 
     _addControls();
-    window.addEventListener('resize', _onResize);
+    _boundResize = _onResize;
+    window.addEventListener('resize', _boundResize);
     if (typeof ResizeObserver !== 'undefined') {
-      new ResizeObserver(_onResize).observe(el);
+      try {
+        _resizeObs = new ResizeObserver(_onResize);
+        _resizeObs.observe(el);
+      } catch (_) { _resizeObs = null; }
     }
     _addMiniMap();
+    _bindKeyboard();
 
     // ── Mouse/touch gesture state ──────────────────────────
     var _isPanning = false;
@@ -291,51 +320,63 @@ var BrainMap = (() => {
       _debounceMiniMap();
     });
 
-    // ── Keyboard: WASD, arrows, +/-, 0 ──────────────────────
-    var _keyState = {};
-    var _panSpeed = 40;
-    var _panInterval = null;
+  } // end init()
 
-    function _startKeyPan(dx, dy) {
-      if (_panInterval) clearInterval(_panInterval);
+  // ── Keyboard: WASD, arrows, +/-, 0 (module scope — one binding per init)
+  function _startKeyPan(dx, dy) {
+    if (!stage) return;
+    if (_panInterval) clearInterval(_panInterval);
+    stage.position({ x: stage.x() + dx, y: stage.y() + dy });
+    stage.batchDraw();
+    _debounceMiniMap();
+    _panInterval = setInterval(function() {
+      if (!stage) { _stopKeyPan(); return; }
       stage.position({ x: stage.x() + dx, y: stage.y() + dy });
       stage.batchDraw();
       _debounceMiniMap();
-      _panInterval = setInterval(function() {
-        stage.position({ x: stage.x() + dx, y: stage.y() + dy });
-        stage.batchDraw();
-        _debounceMiniMap();
-      }, 30);
+    }, 30);
+  }
+  function _stopKeyPan() {
+    if (_panInterval) { clearInterval(_panInterval); _panInterval = null; }
+  }
+  function _onKeyDown(e) {
+    if (!stage) return;
+    var t = e.target;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+    if (_keyState[e.key]) return;
+    _keyState[e.key] = true;
+    var dx = 0, dy = 0;
+    switch(e.key) {
+      case 'w': case 'W': case 'ArrowUp':    dy = _panSpeed; break;
+      case 's': case 'S': case 'ArrowDown':  dy = -_panSpeed; break;
+      case 'a': case 'A': case 'ArrowLeft':  dx = _panSpeed; break;
+      case 'd': case 'D': case 'ArrowRight': dx = -_panSpeed; break;
+      case '+': case '=': _zoomCenter(1.2); return;
+      case '-': case '_': _zoomCenter(0.8); return;
+      case '0': _zoomToFit(); return;
+      default: return;
     }
-    function _stopKeyPan() {
-      if (_panInterval) { clearInterval(_panInterval); _panInterval = null; }
+    e.preventDefault();
+    _startKeyPan(dx, dy);
+  }
+  function _onKeyUp(e) {
+    delete _keyState[e.key];
+    var hasPan = Object.keys(_keyState).some(function(k) {
+      return 'wasdWASD'.indexOf(k) >= 0 || k.indexOf('Arrow') === 0;
+    });
+    if (!hasPan) _stopKeyPan();
+  }
+  function _bindKeyboard() {
+    _boundKeyDown = _onKeyDown;
+    _boundKeyUp = _onKeyUp;
+    document.addEventListener('keydown', _boundKeyDown);
+    document.addEventListener('keyup', _boundKeyUp);
+    // Missed keyup (alt-tab while panning) used to leave the 30ms interval
+    // running forever — blur always stops it.
+    if (!_bindKeyboard._blurWired) {
+      _bindKeyboard._blurWired = true;
+      window.addEventListener('blur', function() { _keyState = {}; _stopKeyPan(); });
     }
-
-    document.addEventListener('keydown', function(e) {
-      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) return;
-      if (_keyState[e.key]) return;
-      _keyState[e.key] = true;
-      var dx = 0, dy = 0;
-      switch(e.key) {
-        case 'w': case 'W': case 'ArrowUp':    dy = _panSpeed; break;
-        case 's': case 'S': case 'ArrowDown':  dy = -_panSpeed; break;
-        case 'a': case 'A': case 'ArrowLeft':  dx = _panSpeed; break;
-        case 'd': case 'D': case 'ArrowRight': dx = -_panSpeed; break;
-        case '+': case '=': _zoomCenter(1.2); return;
-        case '-': case '_': _zoomCenter(0.8); return;
-        case '0': _zoomToFit(); return;
-        default: return;
-      }
-      e.preventDefault();
-      _startKeyPan(dx, dy);
-    });
-    document.addEventListener('keyup', function(e) {
-      delete _keyState[e.key];
-      var hasPan = Object.keys(_keyState).some(function(k) {
-        return 'wasdWASD'.indexOf(k) >= 0 || k.indexOf('Arrow') === 0;
-      });
-      if (!hasPan) _stopKeyPan();
-    });
   }
 
   // ── Resize ──────────────────────────────────────────────────
@@ -566,6 +607,9 @@ var BrainMap = (() => {
     var w = bounds.maxX - bounds.minX + 2*pad;
     var h = bounds.maxY - bounds.minY + 2*pad;
     var s = Math.min(stage.width()/w, stage.height()/h);
+    // Clamp: a single node (w=h=100) on a big monitor otherwise zooms to
+    // ~10x. Matches _zoomToNode's 2.5x framing.
+    s = Math.max(0.05, Math.min(s, 2.5));
     var cx = (bounds.minX + bounds.maxX) / 2;
     var cy = (bounds.minY + bounds.maxY) / 2;
     stage.scale({ x: s, y: s });

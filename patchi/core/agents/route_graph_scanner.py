@@ -45,7 +45,6 @@ from .base import (
     get_shard_files,
     make_finding,
     register,
-    safe_rglob,
 )
 
 _log = logging.getLogger("patchi.agents.route_graph_scanner")

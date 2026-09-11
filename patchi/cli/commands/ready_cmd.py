@@ -19,14 +19,11 @@ import sys
 import time
 from pathlib import Path
 
-from rich.panel import Panel
 from rich.table import Table
 
 from patchi.cli.console import con
 from patchi.cli.ux import (
     format_header,
-    format_step,
-    progress_bar,
     spinner,
     status_icon,
     status_style,
@@ -104,7 +101,6 @@ def _check_security(root: Path, brain: dict, config: dict) -> dict:
     """Run security agents and return results."""
     from patchi.core.security.secrets_runtime_agent import SecretsRuntimeAgent
     from patchi.core.security.misconfig_agent import MisconfigAgent
-    from patchi.core.agents.base import list_agents, AgentGroup
 
     results = {}
 

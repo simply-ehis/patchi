@@ -18,7 +18,6 @@ from patchi.core.agents.base import (
     get_shard_files,
     make_finding,
     register,
-    safe_rglob,
 )
 from patchi.core.brain.code_query import (
     js_calls,

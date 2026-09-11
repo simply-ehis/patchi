@@ -39,7 +39,6 @@ from .base import (
     get_shard_files,
     make_finding,
     register,
-    safe_rglob,
     scope_allows,
 )
 

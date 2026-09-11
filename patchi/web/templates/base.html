@@ -64,15 +64,15 @@
       canvas:['/static/canvas.js?v=28'],
       three:[
         '/static/three.min.js',
-        'https://unpkg.com/three@0.160.0/build/three.min.js',
-        'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js'
+        'https://unpkg.com/three@0.147.0/build/three.min.js',
+        'https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js'
       ],
       orbit:[
         '/static/OrbitControls.js',
-        'https://unpkg.com/three@0.160.0/examples/js/controls/OrbitControls.js',
-        'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/js/controls/OrbitControls.js'
+        'https://unpkg.com/three@0.147.0/examples/js/controls/OrbitControls.js',
+        'https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/controls/OrbitControls.js'
       ],
-      brain3d:['/static/brain3d.js?v=21']
+      brain3d:['/static/brain3d.js?v=22']
     };
     function _log(msg){try{console.log('[loader] '+msg);}catch(_){}};
     function _warn(msg){try{console.warn('[loader] '+msg);}catch(_){}};
@@ -206,32 +206,53 @@
       });
     }
     function _cfg(){return window._brainLibsCfg||{};}
-    /* ── 2D/3D brain-map chains (loaded on demand) ─────────────────── */
+    /* ── 2D/3D brain-map chains (loaded on demand) ───────────────────
+       three.js (607KB) loads ONLY when the user opens the 3D tab — the 2D
+       map (konva+canvas) never pays for it. */
     window._brainLibsLoaded=false;
     window._brainLibsLoading=false;
     window._brainLibsPromise=null;
+    window._2dPromise=null;
+    window._3dPromise=null;
+    function _libCfg(){
+      var cfg=_cfg();
+      if(cfg.sources)for(var k in cfg.sources)if(cfg.sources[k])SRC[k]=cfg.sources[k];
+      return {TIMEOUT:cfg.timeout||12000,ATTEMPTS:cfg.attempts||2};
+    }
+    // 2D only: konva + canvas (~264KB). Used by dashboard init.
+    window._load2D=function(){
+      if(window._2dPromise)return window._2dPromise;
+      var c=_libCfg();
+      window._2dPromise=_loadStage('konva',SRC.konva,c.TIMEOUT,c.ATTEMPTS).then(function(ok){
+        return ok?_loadStage('canvas',SRC.canvas,c.TIMEOUT,c.ATTEMPTS):false;
+      });
+      return window._2dPromise;
+    };
+    // 3D only: three + orbit + brain3d (~703KB). Called on first 🔮 toggle.
+    window._load3D=function(){
+      if(window._3dPromise)return window._3dPromise;
+      var c=_libCfg();
+      window._3dPromise=_loadStage('three',SRC.three,c.TIMEOUT,c.ATTEMPTS).then(function(ok){
+        return ok?_loadStage('orbit',SRC.orbit,c.TIMEOUT,c.ATTEMPTS):false;
+      }).then(function(ok){
+        return ok?_loadStage('brain3d',SRC.brain3d,c.TIMEOUT,c.ATTEMPTS):false;
+      }).then(function(ok){
+        if(ok)document.dispatchEvent(new CustomEvent('brainlibs:3dready'));
+        else document.dispatchEvent(new CustomEvent('brainlibs:3dfailed',{detail:{attempted:true}}));
+        return ok;
+      });
+      return window._3dPromise;
+    };
     window._loadBrainLibs=function(){
       if(window._brainLibsLoading)return window._brainLibsPromise;
       window._brainLibsLoading=true;
-      var cfg=_cfg();
-      var TIMEOUT=cfg.timeout||12000;
-      var ATTEMPTS=cfg.attempts||2;
-      if(cfg.sources)for(var k in cfg.sources)if(cfg.sources[k])SRC[k]=cfg.sources[k];
       // 2D chain
-      var canvasP=_loadStage('konva',SRC.konva,TIMEOUT,ATTEMPTS).then(function(ok){
-        return ok?_loadStage('canvas',SRC.canvas,TIMEOUT,ATTEMPTS):false;
-      });
+      var canvasP=window._load2D();
       // 3D chain (independent of 2D — a stalled 3D dep never blocks 2D)
-      var brain3dP=_loadStage('three',SRC.three,TIMEOUT,ATTEMPTS).then(function(ok){
-        return ok?_loadStage('orbit',SRC.orbit,TIMEOUT,ATTEMPTS):false;
-      }).then(function(ok){
-        return ok?_loadStage('brain3d',SRC.brain3d,TIMEOUT,ATTEMPTS):false;
-      });
+      var brain3dP=window._load3D();
       window._brainLibsPromise=Promise.all([canvasP,brain3dP]).then(function(res){
         window._brainLibsLoading=false;
         window._brainLibsLoaded=true;
-        if(res[1])document.dispatchEvent(new CustomEvent('brainlibs:3dready'));
-        else document.dispatchEvent(new CustomEvent('brainlibs:3dfailed',{detail:{attempted:true}}));
         return {canvas:res[0],brain3d:res[1]};
       }).catch(function(err){
         window._brainLibsLoading=false;
@@ -315,6 +336,13 @@
           <div class="health-score" id="topbar-health">—</div>
           <div class="health-label">Health</div>
         </div>
+        <div class="project-indicator" style="margin-left:16px;min-width:0">
+          <select id="projectSelect" title="Active project"
+            style="max-width:280px;background:var(--bg-tertiary);color:var(--text-primary);border:1px solid var(--border);border-radius:6px;padding:4px 8px;font-size:12px">
+            <option>Loading…</option>
+          </select>
+          <div class="health-label" id="projectPath" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:280px">—</div>
+        </div>
       </div>
       <div class="header-right">
         <span class="ws-status" id="ws-status">Connecting…</span>
@@ -328,6 +356,8 @@
       <div class="status-item"><span class="status-dot online" id="connectionStatus"></span><span>Connected</span></div>
       <div class="status-divider"></div>
       <div class="status-item"><span class="scan-badge" id="topbar-scan">Ready</span></div>
+      <div class="status-divider"></div>
+      <div class="status-item" style="min-width:0"><span id="status-project" style="font-size:11px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">—</span></div>
     </div>
     <main class="main-content" role="main">
       <div class="content" id="main-content">
@@ -364,13 +394,18 @@
     function handleWSEvent(event,data){if(event==='status.update'&&data.health_score!==undefined){var h=document.getElementById('topbar-health');if(h){h.textContent=data.health_score;h.style.color=data.health_score>=80?'var(--success)':data.health_score>=50?'var(--warning)':'var(--danger)';}}if(event==='scan.started'){var s=document.getElementById('topbar-scan');if(s){s.textContent='Scanning…';s.className='scan-badge scanning';}var sp=document.getElementById('scan-progress');if(sp)sp.style.display='block';var sl=document.getElementById('scan-progress-label');if(sl)sl.textContent='Starting '+(data.agent_count||0)+' agents…';var sc=document.getElementById('scan-progress-count');if(sc)sc.textContent='0/'+(data.agent_count||0);var sb=document.getElementById('scan-progress-bar');if(sb)sb.style.width='0%';}if(event==='scan.progress'){var phase=data.phase||'';var current=data.current||0;var total=data.total||1;var pct=Math.round((current/total)*100);var sb=document.getElementById('scan-progress-bar');if(sb)sb.style.width=pct+'%';var sc=document.getElementById('scan-progress-count');if(sc)sc.textContent=current+'/'+total;var sl=document.getElementById('scan-progress-label');if(sl){sl.textContent=phase==='scanning'?'Scanning…':phase==='done'?'Completed':phase;sl.style.color=phase==='scanning'?'var(--accent)':'var(--text-secondary)';}var sa=document.getElementById('scan-progress-agent');if(sa)sa.textContent=data.agent||'';}if(event==='scan.complete'){var s2=document.getElementById('topbar-scan');if(s2){s2.textContent=(data.total_findings||0)+' findings';s2.className='scan-badge complete';}var sb=document.getElementById('scan-progress-bar');if(sb){sb.style.width='100%';sb.style.background='var(--success)';}var sl=document.getElementById('scan-progress-label');if(sl){sl.textContent='Scan complete — '+(data.total_findings||0)+' findings';sl.style.color='var(--success)';}var sa=document.getElementById('scan-progress-agent');if(sa)sa.textContent='';setTimeout(function(){var sp=document.getElementById('scan-progress');if(sp)sp.style.display='none';var sb2=document.getElementById('scan-progress-bar');if(sb2){sb2.style.background='var(--accent)';sb2.style.width='0%';}},4000);}if((event==='scan.finding')&&(data.severity==='critical'||data.severity==='high')){window.toast(data.severity.toUpperCase()+': '+data.message,data.severity);}if(window.BrainMap&&window.BrainMap.handleEvent)window.BrainMap.handleEvent(event,data);}
     connectWS();
     document.body.addEventListener('htmx:beforeRequest',function(evt){var elt=evt.detail.elt;var trig=(elt&&elt.getAttribute&&elt.getAttribute('hx-trigger'))||'';if(trig.indexOf('every')<0){var target=evt.detail.target;if(target&&target.closest('.content'))target.closest('.content').classList.add('loading');}var btn=elt;if(btn&&btn.classList&&btn.classList.contains('btn')){btn.classList.add('loading');btn.setAttribute('aria-busy','true');}});
-    document.body.addEventListener('htmx:afterSettle',function(evt){var content=document.querySelector('.content');if(content)content.classList.remove('loading');document.querySelectorAll('.btn.loading').forEach(function(b){b.classList.remove('loading');b.removeAttribute('aria-busy');});if(evt.detail.target&&evt.detail.target.querySelector&&evt.detail.target.querySelector('#brain-map')){window._loadBrainLibs();setTimeout(function(){if(window.BrainMap)window.BrainMap.init('brain-map');},200);}});
+    document.body.addEventListener('htmx:afterSettle',function(evt){var content=document.querySelector('.content');if(content)content.classList.remove('loading');document.querySelectorAll('.btn.loading').forEach(function(b){b.classList.remove('loading');b.removeAttribute('aria-busy');});if(evt.detail.target&&evt.detail.target.querySelector&&evt.detail.target.querySelector('#brain-map')){(window._load2D?window._load2D():window._loadBrainLibs());setTimeout(function(){if(window.BrainMap)window.BrainMap.init('brain-map');},200);}});
     document.body.addEventListener('htmx:responseError',function(evt){var d=evt.detail;if(d.xhr&&d.xhr.status)window.toast('Error '+d.xhr.status+': '+d.xhr.statusText,'high');});
     document.body.addEventListener('htmx:afterSwap',function(evt){if(evt.detail.requestConfig&&evt.detail.requestConfig.path){var path=evt.detail.requestConfig.path.replace(/\/$/,'')||'/';document.querySelectorAll('.main-tabs .tab').forEach(function(tab){var href=tab.getAttribute('href').replace(/\/$/,'')||'/';tab.classList.toggle('active',href===path);});}});
     var paletteModal=document.getElementById('commandPaletteModal');var paletteInput=document.getElementById('paletteInput');var paletteResults=document.getElementById('paletteResults');
     function openPalette(){if(paletteModal){paletteModal.hidden=false;if(paletteInput){paletteInput.value='';paletteInput.focus();}renderPalette('');}}
     function closePalette(){if(paletteModal)paletteModal.hidden=true;}
-    function renderPalette(q){if(!paletteResults)return;q=(q||'').toLowerCase().trim();var cmds=[{n:'Scan Project',a:'scan',c:'Security'},{n:'Fix Safe Issues',a:'fix',c:'Fix'},{n:'Dev Check',a:'devcheck',c:'Quality'},{n:'Assurance Check',a:'assurance',c:'Security'},{n:'DAST Scan',a:'dast',c:'Security'},{n:'Open Brain Map',h:'/brain',c:'Nav'},{n:'Open Chat',h:'/chat',c:'Nav'},{n:'Open Findings',h:'/findings',c:'Nav'},{n:'Open Charter',h:'/charter',c:'Nav'},{n:'View History',h:'/history',c:'Nav'},{n:'Settings',h:'/settings',c:'Nav'}];var f=cmds.filter(function(c){return!q||c.n.toLowerCase().indexOf(q)>=0;});paletteResults.innerHTML=f.map(function(c){return '<div style="display:flex;justify-content:space-between;padding:10px 12px;border-radius:6px;cursor:pointer" onmouseenter="this.style.background=\'var(--bg-tertiary)\'" onmouseleave="this.style.background=\'none\'" data-action="'+(c.a||'')+'" data-href="'+(c.h||'')+'"><span style="font-family:var(--font-mono);font-size:13px">'+c.n+'</span><span style="font-size:11px;color:var(--text-muted)">'+c.c+'</span></div>';}).join('')||'<div class="feed-empty">No matching commands</div>';}
+    function renderPalette(q){if(!paletteResults)return;q=(q||'').toLowerCase().trim();var cmds=[{n:'Scan Project',a:'scan',c:'Security'},{n:'Quick Scan',a:'quick',c:'Security'},{n:'Fix Safe Issues',a:'fix',c:'Fix'},{n:'Dev Check',a:'devcheck',c:'Quality'},{n:'Assurance Check',a:'assurance',c:'Security'},{n:'DAST Scan',a:'dast',c:'Security'},{n:'Run Unit Tests',a:'test',c:'Test'},{n:'Ship Readiness (p ready)',a:'ready',c:'Test'},{n:'Smoke Test (browser)',a:'smoke',c:'Test'},{n:'Open Brain Map',h:'/brain',c:'Nav'},{n:'Open Chat',h:'/chat',c:'Nav'},{n:'Open Findings',h:'/findings',c:'Nav'},{n:'Open Live Tests',h:'/live-tests',c:'Nav'},{n:'Open Charter',h:'/charter',c:'Nav'},{n:'View History',h:'/history',c:'Nav'},{n:'Settings',h:'/settings',c:'Nav'}];var f=cmds.filter(function(c){return!q||c.n.toLowerCase().indexOf(q)>=0;});paletteResults.innerHTML=f.map(function(c){return '<div style="display:flex;justify-content:space-between;padding:10px 12px;border-radius:6px;cursor:pointer" onmouseenter="this.style.background=\'var(--bg-tertiary)\'" onmouseleave="this.style.background=\'none\'" data-action="'+(c.a||'')+'" data-href="'+(c.h||'')+'"><span style="font-family:var(--font-mono);font-size:13px">'+c.n+'</span><span style="font-size:11px;color:var(--text-muted)">'+c.c+'</span></div>';}).join('')||'<div class="feed-empty">No matching commands</div>';}
+    async function runPaletteAction(a){try{if(a==='scan'){window.toast('Scan started','info');await fetch('/api/scan',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});}else if(a==='quick'){window.toast('Quick scan started','info');await fetch('/api/scan/quick',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});}else if(a==='fix'){await fetch('/api/fix/apply-all-safe',{method:'POST'});window.toast('Safe fixes applied','info');}else if(a==='devcheck'){await fetch('/api/dev-check',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});window.toast('Dev check started','info');}else if(a==='assurance'){window.location.href='/assurance';}else if(a==='dast'){await fetch('/api/scan/dast',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});window.toast('DAST started','info');}else if(a==='test'){await fetch('/api/action/test',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});window.toast('Unit tests started','info');}else if(a==='ready'){await fetch('/api/ready',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});window.toast('Readiness check started','info');}else if(a==='smoke'){await fetch('/api/live-testing/smoke-test',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});window.toast('Smoke test started','info');}}catch(e){window.toast('Action failed: '+e.message,'high');}}
+    document.body.addEventListener('palette:action',function(e){if(e.detail&&e.detail.action)runPaletteAction(e.detail.action);});
+    async function refreshProject(){try{var r=await fetch('/api/tenant/active');var j=await r.json();var proj=j.project||j;var name=proj?(proj.name||proj.root||'—'):'—';var root=proj?(proj.root||proj.path||'') :'';var sel=document.getElementById('projectSelect');var pp=document.getElementById('projectPath');var sp=document.getElementById('status-project');if(pp)pp.textContent=root||name;if(sp)sp.textContent=name+(root&&root!==name?' — '+root:'');document.title='Patchi — '+name;if(sel){var lr=await fetch('/api/tenant/list');var lj=await lr.json();var list=lj.projects||[];sel.innerHTML='';if(!list.length&&proj)list=[proj];list.forEach(function(p){var o=document.createElement('option');o.value=p.root||p.path||'';o.textContent=p.name||o.value;if(root&&(p.root===root||p.path===root))o.selected=true;sel.appendChild(o);});}}catch(e){}}
+    var _ps=document.getElementById('projectSelect');if(_ps)_ps.addEventListener('change',async function(e){try{var r=await fetch('/api/tenant/switch',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({path:e.target.value})});var j=await r.json();if(j.success||j.project){window.toast('Switched project','info');refreshProject();if(window.BrainMap&&window.BrainMap.reload)window.BrainMap.reload();}else window.toast(j.error||'Switch failed','high');}catch(err){window.toast('Switch failed: '+err.message,'high');}});
+    refreshProject();setInterval(refreshProject,30000);
     if(paletteInput)paletteInput.addEventListener('input',function(e){renderPalette(e.target.value);});
     if(paletteResults)paletteResults.addEventListener('click',function(e){var item=e.target.closest('[data-action],[data-href]');if(!item)return;closePalette();if(item.dataset.href)window.location.href=item.dataset.href;else if(item.dataset.action)document.body.dispatchEvent(new CustomEvent('palette:action',{detail:{action:item.dataset.action}}));});
     var cmdBtn=document.getElementById('commandPalette');if(cmdBtn)cmdBtn.addEventListener('click',openPalette);

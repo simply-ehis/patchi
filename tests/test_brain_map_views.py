@@ -225,6 +225,17 @@ def _count_dupes(items: list) -> list:
     return dupes
 
 
+def _launch_browser(p):
+    """Launch headless Chromium, skipping when browsers are not installed."""
+    try:
+        return p.chromium.launch(headless=True)
+    except Exception as exc:
+        msg = str(exc)
+        if "Executable doesn't exist" in msg or "playwright install" in msg.lower():
+            pytest.skip(f"Playwright browsers not installed: {msg[:120]}")
+        raise
+
+
 def test_capped_dots_stable_across_view_switches():
     """400-node graph: exactly MAX_RENDERED_NODES full shapes + the rest as
     capped dim dots, with the dot set stable across every 2D/3D view switch.
@@ -262,7 +273,7 @@ def test_capped_dots_stable_across_view_switches():
             pytest.fail("server did not become healthy in 90s")
 
         with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
+            browser = _launch_browser(p)
             page = browser.new_page(viewport={"width": 1500, "height": 950})
             page_errors = []
             page.on("pageerror", lambda e: page_errors.append(str(e)))
@@ -410,7 +421,7 @@ def test_all_brain_map_views_render_without_overlaps():
             pytest.fail("server did not become healthy in 90s")
 
         with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
+            browser = _launch_browser(p)
             page = browser.new_page(viewport={"width": 1500, "height": 950})
             page_errors = []
             page.on("pageerror", lambda e: page_errors.append(str(e)))
