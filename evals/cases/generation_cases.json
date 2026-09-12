@@ -1,0 +1,29 @@
+[
+  {
+    "id": "t01",
+    "label": "SQLi sink gets a regression test referencing the sink",
+    "target_file": "src/db.py",
+    "target_symbol": "get_user",
+    "seed": "def get_user(user_id):\n    query = \"SELECT * FROM users WHERE id = \" + user_id\n    return db.execute(query)\n",
+    "must_reference": ["get_user"],
+    "prompt_version": "gen-v1"
+  },
+  {
+    "id": "t02",
+    "label": "Auth bypass branch gets a test referencing the branch",
+    "target_file": "src/auth.py",
+    "target_symbol": "is_admin",
+    "seed": "def is_admin(user):\n    if user.get(\"role\") == \"admin\":\n        return True\n    return False\n",
+    "must_reference": ["is_admin"],
+    "prompt_version": "gen-v1"
+  },
+  {
+    "id": "t03",
+    "label": "Exec sink gets a test referencing the sink",
+    "target_file": "src/legacy.py",
+    "target_symbol": "run_task",
+    "seed": "def run_task(name):\n    exec(open(name).read())\n",
+    "must_reference": ["run_task"],
+    "prompt_version": "gen-v1"
+  }
+]

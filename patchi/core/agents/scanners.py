@@ -12,7 +12,7 @@ This file has been split into separate modules for better maintainability:
 - route_graph_scanner.py
 - type_scanner.py
 - comment_scanner.py
-- duplicate_scanner.py
+- (duplicate_scanner.py DELETED — clone detection was noise, not signal)
 
 Each agent inherits BaseAgent, implements _run(), and is registered
 via the @register decorator so the coordinator can find it by name.
@@ -29,7 +29,6 @@ from .coverage_prioritizer import CoveragePrioritizerAgent
 from .dead_code_hygiene import DeadCodeHygieneAgent
 from .dead_code_scanner import DeadCodeScanner
 from .dependency_scanner import DependencyScanner
-from .duplicate_scanner import DuplicateScanner
 from .env_scanner import EnvScanner
 from .license_compliance import LicenseComplianceAgent
 from .refactoring_agent import RefactoringAgent
@@ -62,6 +61,5 @@ __all__ = [
     "RouteGraphScanner",
     "TypeScanner",
     "CommentScanner",
-    "DuplicateScanner",
     "register",
 ]

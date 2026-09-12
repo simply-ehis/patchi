@@ -545,8 +545,16 @@ class BaseAgent(ABC):
 
         Never override this — override _run() instead.
         """
-        # Gate Rule — Testing/Live/Attack must confirm P-Check READY_TO_SERVE
-        if self.group in (AgentGroup.TEST, AgentGroup.SECURITY) and self.name not in ("PreCheckAgent", "UnitTestAgent", "RegressionAgent", "AttackAgent", "APIContractAgent"):
+        # Gate Rule — Testing/Live/Attack must confirm P-Check READY_TO_SERVE.
+        # Exemptions (static-only, no live target — §7 audit):
+        #   PreCheckAgent  produces P-Check itself; gating it would deadlock.
+        #   UnitTestAgent / RegressionAgent run local pytest, no live target.
+        #   APIContractAgent is exempt ONLY for its static framework-synthesis
+        #   path; its live-probe branch calls require_ready() itself (see
+        #   api_contract_agent.py). AttackAgent was REMOVED from this list —
+        #   it probes 127.0.0.1 via Metasploit and must never run blind.
+        gate_url: str | None = None
+        if self.group in (AgentGroup.TEST, AgentGroup.SECURITY) and self.name not in ("PreCheckAgent", "UnitTestAgent", "RegressionAgent", "APIContractAgent"):
             # Only gate live/test/attack agents, not pure static scanners or unit test runners
             needs_gate = self.group == AgentGroup.TEST or self.name in (
                 "RedTeamAgent",
@@ -581,11 +589,10 @@ class BaseAgent(ABC):
                         result.data["gate_status"] = st
                         result.errors.append(msg)
                         return result
-                    # Inject url for agents that need it
-                    if url and not inp.extra.get("base_url"):
-                        safe_extra = dict(inp.extra)
-                        safe_extra["base_url"] = url
-                        safe_extra["live_probe"] = True
+                    # Remember the P-Check URL for injection AFTER the input
+                    # rebuild below (the old code injected into a dict that
+                    # was discarded two lines later — agents never got it).
+                    gate_url = url
                 except Exception as e:
                     _log.debug("gate check failed: %s", e)
 
@@ -596,6 +603,11 @@ class BaseAgent(ABC):
         # when multiple agents share the same AgentInput object in parallel runs.
         safe_extra = dict(inp.extra)
         safe_extra["skill_context"] = self._skill_context
+        # Gate URL injection (see above): the P-Check server URL + live-probe
+        # flag reach the agent through the REBUILT input, not the discarded one.
+        if gate_url and not safe_extra.get("base_url"):
+            safe_extra["base_url"] = gate_url
+            safe_extra["live_probe"] = True
         inp = AgentInput(
             root=inp.root,
             scope=inp.scope,

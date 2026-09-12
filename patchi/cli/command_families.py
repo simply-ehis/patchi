@@ -29,7 +29,7 @@ FAMILIES: dict[str, CommandFamily] = {
         name="test",
         description="Testing — unit, e2e, visual, stress, regression",
         default_command="test",
-        commands=["unit", "e2e", "visual", "stress", "generate", "report", "config", "regression"],
+        commands=["unit", "e2e", "visual", "stress", "generate", "report", "config", "regression", "eval"],
         agent_domain="testing",
     ),
     "scan": CommandFamily(

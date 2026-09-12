@@ -74,6 +74,9 @@ class TestSuite:
     success: bool = False
     duration_ms: int = 0
     cases: list[TestCase] = field(default_factory=list)
+    # §6 coverage-guided prioritization: test files for hot/untested sources,
+    # run first (same set, better order). Empty when no coverage data.
+    prioritized_tests: list[str] = field(default_factory=list)
 
     def __post_init__(self):
         if self.total == 0:
@@ -92,6 +95,7 @@ class TestSuite:
             "success": self.success,
             "duration_ms": self.duration_ms,
             "cases": [case.to_dict() for case in self.cases if not case.passed],
+            "prioritized_tests": list(self.prioritized_tests),
         }
 
 
@@ -338,10 +342,40 @@ class UnitTestAgent(BaseAgent):
                 "test_details": [],
             }
 
+    def _hot_test_first(self, root: Path, targets: list[str]) -> list[str]:
+        """Coverage-guided prioritization (§6): run tests covering hot,
+        untested files FIRST by prepending their test files to pytest args.
+
+        Same set, better order — pytest dedupes collection, so nothing runs
+        twice and nothing is skipped. Best-effort: any failure here returns
+        targets unchanged. The prioritized list is exposed via
+        ``prioritized_tests`` on the caller for evidence.
+        """
+        try:
+            from patchi.core import memory as _mem
+
+            scan = _mem.get_scan_results(root) or {}
+            cov = scan.get("CoveragePrioritizerAgent", {}) or {}
+            cov_data = cov.get("data", cov) if isinstance(cov, dict) else {}
+            hot = cov_data.get("hot_untested") or []
+            if not hot:
+                return []
+            ordered: list[str] = []
+            for src in hot:
+                if not isinstance(src, str):
+                    continue
+                for tf in self._find_test_files(root, [src]):
+                    if tf not in ordered and tf not in targets:
+                        ordered.append(tf)
+            return ordered
+        except Exception:
+            return []
+
     def _run_pytest(self, root: Path, scope: list[str] | None = None) -> TestSuite:
         """Run pytest tests."""
         # If scope is empty, let pytest discover from test dirs (avoids arg list
         # overflow and collection-error abort on one bad file killing all tests)
+        prioritized: list[str] = []
         if scope:
             targets = self._find_test_files(root, scope)
         else:
@@ -351,12 +385,16 @@ class UnitTestAgent(BaseAgent):
                     targets.append(d)
             if not targets:
                 targets = ["tests"]
+            # Coverage-guided: hot files' tests run first (same set, no skips)
+            prioritized = self._hot_test_first(root, targets)
+            targets = prioritized + targets
         cmd = [sys.executable, "-m", "pytest", "-v", "--tb=short", "--continue-on-collection-errors", "--timeout=30"]
         cmd.extend(targets)
         proc = _run(cmd, root, timeout=90)
         output = f"{proc.get('stdout', '')}\n{proc.get('stderr', '')}"
         suite = self._parse_pytest_stdout(output, 0)
         suite.success = proc.get("returncode", 1) == 0 and suite.failed == 0 and suite.errors == 0
+        suite.prioritized_tests = prioritized
         return suite
 
     def _suite_from_legacy(self, runner: str, root: Path) -> TestSuite:

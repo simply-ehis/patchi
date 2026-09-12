@@ -48,6 +48,33 @@ def _read_status(root: Path) -> dict | None:
         return None
 
 
+def _url_reachable(url: str, timeout: float = 3.0) -> tuple[bool, str]:
+    """Quick liveness probe for the P-Check URL (§7: re-validate at check time).
+
+    Any HTTP response (even 404/500) proves the server is bound; only
+    connection-level failures mean "not serving".
+    """
+    import urllib.error
+    import urllib.request
+
+    try:
+        req = urllib.request.Request(url, method="HEAD")
+        with urllib.request.urlopen(req, timeout=timeout):
+            return True, ""
+    except urllib.error.HTTPError:
+        return True, ""  # server answered — bound and serving
+    except Exception as e:  # noqa: BLE001 — connection refused/timeout/DNS
+        try:
+            req = urllib.request.Request(url, method="GET")
+            with urllib.request.urlopen(req, timeout=timeout):
+                return True, ""
+        except urllib.error.HTTPError:
+            return True, ""
+        except Exception as e2:  # noqa: BLE001
+            return False, f"{type(e2).__name__}: {e2}"
+        return False, f"{type(e).__name__}: {e}"
+
+
 def is_ready(root: Path) -> tuple[bool, dict | None]:
     """Gate Rule helper: returns (ready, status_dict)."""
     st = _read_status(root)
@@ -55,10 +82,18 @@ def is_ready(root: Path) -> tuple[bool, dict | None]:
         return False, None
     if st.get("status") != "READY_TO_SERVE":
         return False, st
-    # optional TTL: 1 hour? For now no expiry, but check url still reachable?
     if not st.get("url"):
         return False, st
-    # check timestamp within 1 hour or still running?
+    # §7: a stale READY_TO_SERVE (server died since `p check`) must not pass
+    # the gate. Re-validate the URL is actually bound right now.
+    ok, err = _url_reachable(st["url"])
+    if not ok:
+        stale = dict(st)
+        stale["error"] = (
+            f"READY_TO_SERVE is stale — {st['url']} unreachable ({err}). "
+            "Re-run `p check` to rebuild and re-serve the app."
+        )
+        return False, stale
     return True, st
 
 

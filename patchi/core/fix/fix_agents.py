@@ -1,5 +1,6 @@
 """
-All 8 fix agents for Patchi.
+All 7 fix agents for Patchi (RefactorAgent deleted with DuplicateScanner —
+nothing can produce duplicate_function findings anymore).
 
 Fix agents use AI to generate surgical patches for findings from scanner agents.
 Each fix agent:
@@ -20,8 +21,7 @@ Agents:
   4. DependencyFixer  — version bumps, lockfile fixes, Dependabot setup
   5. EnvFixer         — .env.example generation, secret removal from source
   6. TypeFixer        — TypeScript type errors, unsafe casts (TS only)
-  7. RefactorAgent    — extracts duplicated logic to shared functions
-  8. UnitTestRunner   — generates test skeletons for uncovered functions
+  7. UnitTestRunner   — generates test skeletons for uncovered functions
 
 Fix agents are registered in the same registry as scanner agents.
 The coordinator runs them sequentially (not in parallel — spec is explicit).
@@ -564,118 +564,7 @@ class TypeFixer(BaseAgent):
         result.ai_calls_made = len(patches)
 
 
-# ── 7. RefactorAgent ──────────────────────────────────────────────────────────
-
-
-@register
-class RefactorAgent(BaseAgent):
-    """
-    Extracts duplicated logic into shared functions.
-    Only runs after DuplicateScanner confirms high similarity (>= 85%).
-    """
-
-    name = "RefactorAgent"
-    group = AgentGroup.FIX
-    timeout = 120
-
-    def _run(self, inp: AgentInput, result: AgentResult) -> None:
-        dup_findings = [
-            f
-            for f in inp.extra.get("findings", [])
-            if f.get("type") == "duplicate_function" and f.get("fix_agent") == self.name
-        ]
-
-        patches: list[Patch] = []
-
-        for finding in dup_findings[:5]:
-            file1 = finding.get("file", "")
-            file2 = finding.get("similar_to", "").split(":")[0] if finding.get("similar_to") else ""
-
-            if not file1 or not file2:
-                continue
-
-            orig1 = _read_file(inp.root / file1)
-            orig2 = _read_file(inp.root / file2)
-            if not orig1 or not orig2:
-                continue
-
-            score = finding.get("similarity_score", 0)
-
-            system = get_system_prompt(Skill.REFACTOR)
-            user_prompt = build_prompt(
-                Skill.REFACTOR,
-                {
-                    "file1_path": file1,
-                    "file1_content": orig1[:2000],
-                    "file2_path": file2,
-                    "file2_content": orig2[:2000],
-                    "similarity_score": str(score),
-                    "language": _detect_language(file1),
-                },
-            )
-
-            # Log AI call for audit trail (WIRE-04)
-            try:
-                from patchi.core.security.governance import patchi_action_log
-
-                patchi_action_log(inp.root, "ai_call", f"{file1}, {file2}", agent="RefactorAgent")
-            except Exception as e:
-                _log.warning(
-                    "Failed to write AI-call audit log entry for %s, %s: %s", file1, file2, e
-                )
-
-            response = call_ai(inp.config, system, user_prompt, max_tokens=3000)
-            if not response:
-                continue
-
-            blocks = re.findall(
-                r"(?://|#)?\s*FILE:\s*([^\n]+)\n```(?:\w+)?\n(.*?)```",
-                response,
-                re.DOTALL,
-            )
-            if not blocks:
-                blocks = re.findall(
-                    r"FILE:\s*([^\n]+)\n```(?:\w+)?\n(.*?)```",
-                    response,
-                    re.DOTALL,
-                )
-            if len(blocks) < 2:
-                continue
-
-            changes: list[FileChange] = []
-            for fname, proposed_code in blocks:
-                fname = fname.strip()
-                if fname == file1:
-                    changes.append(FileChange(path=file1, original=orig1, proposed=proposed_code))
-                elif fname == file2:
-                    changes.append(FileChange(path=file2, original=orig2, proposed=proposed_code))
-
-            if not changes:
-                continue
-
-            br1 = compute_blast_radius(file1, inp.root)
-            br2 = compute_blast_radius(file2, inp.root)
-            blast_radius = max(br1, br2)
-
-            patch = _make_patch(
-                agent_name=self.name,
-                patch_type=PatchType.REFACTOR,
-                changes=changes,
-                description=f"Extract shared logic from {file1} and {file2}",
-                ai_explanation=f"Functions are {int(score * 100)}% similar. Extracted to shared utility.",
-                finding_id=finding.get("type", ""),
-                blast_radius=blast_radius,
-                agent_certainty=0.8,
-                has_test_coverage=False,
-            )
-            patches.append(patch)
-            result.data.setdefault("patches", []).append(patch.to_dict())
-
-        result.data["patch_count"] = len(patches)
-        result.ai_calls_made = len(patches)
-
-
-# ── 8. UnitTestRunner ─────────────────────────────────────────────────────────
+# ── 7. UnitTestRunner ─────────────────────────────────────────────────────────
 
 
 @register

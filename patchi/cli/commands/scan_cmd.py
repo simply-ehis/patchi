@@ -468,6 +468,24 @@ def _run_scan_inner(
                 except Exception as _exc:
                     _log.debug("confidence gate skipped: %s", _exc)
 
+                # ── Eval validation §5/§8 — prove the gate that just filtered
+                # is calibrated: "validated, found nothing" vs "ran, found
+                # nothing" must look different. Fast + offline + deterministic.
+                try:
+                    from patchi.core.evals.runner import eval_all as _eval_all
+
+                    _ev = _eval_all(r)
+                    _eg, _en = _ev["suites"]["gate"], _ev["suites"]["noise"]
+                    if not quiet:
+                        _mark = "PASS" if _ev["ok"] else "FAIL"
+                        con.print(
+                            f"[dim] eval: gate {_eg['passed']}/{_eg['cases']} · "
+                            f"noise {_en['passed']}/{_en['cases']} · {_mark} "
+                            f"(recall={_eg.get('vuln_recall')})[/dim]"
+                        )
+                except Exception as _exc:
+                    _log.debug("eval validation skipped: %s", _exc)
+
                 # ── --since: keep only findings in files changed since git ref
                 if since:
                     try:
@@ -1113,6 +1131,29 @@ def _run_scan_inner(
                     f"  {pr.phase.value}: [bold {status_style}]{pr.status.value}[/bold {status_style}]"
                     f"  [dim]{pr.duration_ms}ms  {pr.findings_count} findings  {pr.agents_run} agents[/dim]"
                 )
+                # §8: every phase-pass shows its evidence, not just a verdict.
+                ev = (pr.data or {}).get("evidence") or {}
+                verdict = (pr.data or {}).get("verdict", "?")
+                if ev:
+                    partial = ""
+                    if verdict == "partial":
+                        reasons = ev.get("partial_reasons", [])
+                        partial = f"  [yellow]partial: {'; '.join(reasons[:2])}[/yellow]"
+                    con.print(
+                        f"    [dim]verdict={verdict}"
+                        + (
+                            f"  eval_acc={ev['eval'].get('routing_accuracy')}"
+                            if isinstance(ev.get("eval"), dict) and ev["eval"].get("routing_accuracy") is not None
+                            else ""
+                        )
+                        + (
+                            f"  tests={ev['test_totals']}"
+                            if ev.get("test_totals")
+                            else ""
+                        )
+                        + "[/dim]"
+                        + partial
+                    )
                 if pr.errors:
                     for err in pr.errors[:3]:
                         con.print(f"    [dim]  {err}[/dim]")
@@ -1581,10 +1622,12 @@ def _show_agent_findings_summary(agent_results: list, root: Path | None = None) 
     tests/lockfiles/generated/docs are severity-caps (or discarded) so
     the summary reflects signal, not fixture noise.
 
-    Noisy scanners (DuplicateScanner, TypeScanner, DeadCodeScanner, TestScanner,
-    UIScanner, ContractDiff) produce thousands of low-value medium/low/info
-    findings that drown real issues. Their findings are stored in memory for
+    Noisy scanners (TypeScanner, DeadCodeScanner, TestScanner, UIScanner,
+    ContractDiff) produce thousands of low-value medium/low/info findings
+    that drown real issues. Their findings are stored in memory for
     drill-down but excluded from the summary table by default.
+    (DuplicateScanner was deleted — function-level clone detection never
+    produced signal worth its noise.)
     """
     from patchi.core.agents.coordinator import merge_results
 

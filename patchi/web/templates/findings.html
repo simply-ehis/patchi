@@ -88,6 +88,7 @@
             <th>Line</th>
             <th>Message</th>
             <th>Agent</th>
+            <th>Gate</th>
             <th>Evidence</th>
             <th>Chain</th>
           </tr>
@@ -108,6 +109,13 @@
               <span style="color:#ef4444;font-size:11px;font-weight:600">🔒 DAST</span>
               {% else %}
               <span class="u-muted u-fs11">{{ f.agent }}</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if f.gate_tier %}
+              <span class="badge badge-{{ f.severity }}" data-tooltip="{{ f.gate_reason|default('') }} (score {{ f.gate_score|default('?') }})">{{ f.gate_tier }}/{{ f.gate_routing }}</span>
+              {% else %}
+              <span class="u-muted u-fs11" data-tooltip="Ran without gate validation">—</span>
               {% endif %}
             </td>
             <td>

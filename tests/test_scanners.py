@@ -1,10 +1,8 @@
-"""Unit tests for all 11 scanner agents in patchi.core.agents.scanners"""
+"""Unit tests for all 10 scanner agents in patchi.core.agents.scanners"""
 
 import tempfile
 import unittest
 from pathlib import Path
-
-import pytest
 
 from patchi.core import config as cfg
 from patchi.core.agents.base import AgentInput, AgentStatus, Severity
@@ -13,7 +11,6 @@ from patchi.core.agents.scanners import (
     CoreScanner,
     DeadCodeScanner,
     DependencyScanner,
-    DuplicateScanner,
     EnvScanner,
     RouteGraphScanner,
     SideFileScanner,
@@ -545,168 +542,9 @@ class TestCommentScanner(unittest.TestCase):
         self.assertEqual(result.finding_count, 0)
 
 
-# ── 11. DuplicateScanner ──────────────────────────────────────────────────────
-
-
-@pytest.mark.skip(reason="DuplicateScanner disabled — 42k+ false positives in production")
-class TestDuplicateScanner(unittest.TestCase):
-    def setUp(self):
-        self.tmpdir = tempfile.TemporaryDirectory()
-        self.root = _setup(Path(self.tmpdir.name))
-
-    def tearDown(self):
-        self.tmpdir.cleanup()
-
-    _LONG_FUNC = "\n".join([f"    line_{i} = {i}" for i in range(15)])
-
-    def test_runs_successfully(self):
-        _write(self.root, "src/app.py", "def simple(): pass\n")
-        result = DuplicateScanner().run(_inp(self.root))
-        self.assertEqual(result.status, AgentStatus.DONE)
-
-    def test_detects_identical_python_functions(self):
-        src_a = f"def process_data(items):\n{self._LONG_FUNC}\n    return items\n"
-        src_b = f"def handle_data(stuff):\n{self._LONG_FUNC}\n    return stuff\n"
-        _write(self.root, "src/module_a.py", src_a)
-        _write(self.root, "src/module_b.py", src_b)
-        result = DuplicateScanner().run(_inp(self.root))
-        # Should detect high similarity
-        pairs = result.data.get("duplicate_pairs", [])
-        self.assertGreater(len(pairs), 0)
-
-    def test_short_functions_not_flagged(self):
-        _write(self.root, "src/a.py", "def tiny(): return 1\n")
-        _write(self.root, "src/b.py", "def tiny2(): return 2\n")
-        result = DuplicateScanner().run(_inp(self.root))
-        pairs = result.data.get("duplicate_pairs", [])
-        self.assertEqual(len(pairs), 0)
-
-    def test_functions_scanned_count(self):
-        long_fn = "def big_func():\n" + "\n".join(f"    x_{i} = {i}" for i in range(15)) + "\n"
-        _write(self.root, "src/big.py", long_fn)
-        result = DuplicateScanner().run(_inp(self.root))
-        self.assertGreaterEqual(result.data.get("functions_scanned", 0), 1)
-
-
-# ── DuplicateScanner: hashed candidate generation parity ──────────────────────
-
-
-@pytest.mark.skip(reason="DuplicateScanner disabled — 42k+ false positives in production")
-class TestDuplicateScannerParity(unittest.TestCase):
-    """The rarest-token bucket optimization must return EXACTLY the same
-    duplicate pairs as the former O(n²) all-pairs comparison.
-
-    The optimized `_find_duplicate_functions` is guaranteed recall-complete
-    (zero false negatives) for the 0.85 Jaccard threshold, and verifies every
-    candidate with the same similarity metric — so results must be identical.
-    """
-
-    def _brute_force(self, functions):
-        """Reference implementation of the original pairwise algorithm."""
-        scanner = DuplicateScanner()
-        duplicates = []
-        for i, func1 in enumerate(functions):
-            for j, func2 in enumerate(functions[i + 1 :], i + 1):
-                similarity = scanner._calculate_similarity(
-                    func1["normalized_body"], func2["normalized_body"]
-                )
-                if similarity > 0.95:
-                    duplicates.append((i, j, round(similarity, 6)))
-        return duplicates
-
-    def _func(self, name, line, body):
-        # _find_duplicate_functions requires bodies with >= 5 lines
-        lines = body.split("\n") if "\n" in body else body.split(" ")
-        multi_line = "\n".join(lines)
-        return {
-            "file": "src/a.py",
-            "name": name,
-            "line": line,
-            "body": multi_line,
-            "normalized_body": multi_line,
-        }
-
-    def test_identical_to_brute_force_on_mixed_corpus(self):
-        """Near-identical, distinct, and shared-token-but-different functions
-        must produce the same pair set as the O(n²) reference."""
-        common = " ".join(f"t{i}" for i in range(20))
-        functions = [
-            # Exact duplicates (identical bodies)
-            self._func("dup1", 1, common),
-            self._func("dup2", 2, common),
-            # Near-duplicates (differ by 1 token of 20)
-            self._func("near1", 3, f"{common} extra_a"),
-            self._func("near2", 4, f"{common} extra_b"),
-            # Distinct bodies
-            self._func("uniq1", 5, "alpha beta gamma delta"),
-            self._func("uniq2", 6, "zeta eta theta iota"),
-            # Bodies sharing one common token but otherwise different
-            self._func("share1", 7, f"common {common[:40]}"),
-            self._func("share2", 8, f"common {common[40:]}"),
-            # Very short bodies (edge case for tiny token sets)
-            self._func("tiny1", 9, "return 1"),
-            self._func("tiny2", 10, "return 2"),
-            self._func("tiny_dup", 11, "return 3"),
-            self._func("tiny_dup2", 12, "return 3"),
-        ]
-
-        optimized = DuplicateScanner()._find_duplicate_functions(functions)
-
-        # Map optimized results back to (i, j) pairs via object identity.
-        # Note: optimized returns similarity × 100; normalize to 0–1 to match
-        # the brute-force reference scale.
-        opt_map = {}
-        for fi, fj, sim in optimized:
-            i = functions.index(fi)
-            j = functions.index(fj)
-            opt_map[(i, j)] = round(sim / 100.0, 6)
-
-        expected = self._brute_force(functions)
-        exp_map = {(i, j): sim for i, j, sim in expected}
-
-        self.assertEqual(sorted(opt_map.items()), sorted(exp_map.items()))
-
-    def test_identical_on_random_corpus(self):
-        """Property-style check: on random function bodies with a fixed seed,
-        optimized output must match brute force exactly."""
-        import random
-
-        rng = random.Random(1234)
-        tokens = [f"tok{i}" for i in range(40)]
-        functions = []
-        for k in range(60):
-            n_tokens = rng.randint(1, 12)
-            # 30% chance to clone the previous body (guaranteed duplicates)
-            if k > 0 and rng.random() < 0.3:
-                body = functions[-1]["normalized_body"]
-            else:
-                body = " ".join(rng.choice(tokens) for _ in range(n_tokens))
-            functions.append(self._func(f"f{k}", k + 1, body))
-
-        scanner = DuplicateScanner()
-        optimized = scanner._find_duplicate_functions(functions)
-        expected = self._brute_force(functions)
-
-        opt_map = {}
-        for fi, fj, sim in optimized:
-            opt_map[(functions.index(fi), functions.index(fj))] = round(sim / 100.0, 6)
-        exp_map = {(i, j): sim for i, j, sim in expected}
-        self.assertEqual(sorted(opt_map.items()), sorted(exp_map.items()))
-
-    def test_pair_order_matches_enumeration(self):
-        """Results must be returned in the original (i, j) order."""
-        common = " ".join(f"x{i}" for i in range(15))
-        functions = [
-            self._func("a", 1, f"{common} aa"),
-            self._func("b", 2, common),
-            self._func("c", 3, f"{common} cc"),
-            self._func("d", 4, "totally different body here"),
-        ]
-        optimized = DuplicateScanner()._find_duplicate_functions(functions)
-        pairs = [
-            (functions.index(fi), functions.index(fj)) for fi, fj, _ in optimized
-        ]
-        self.assertEqual(pairs, sorted(pairs))
+# ── DuplicateScanner deleted ──────────────────────────────────────────────────
+# (section intentionally removed with the scanner — clone detection was
+# noise, not signal; RefactorAgent went with it.)
 
 
 if __name__ == "__main__":

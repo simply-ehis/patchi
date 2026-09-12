@@ -1,0 +1,339 @@
+[
+  {
+    "id": "g01",
+    "label": "SQLi critical, 2 agents, CWE+snippet — must defend",
+    "kind": "vuln",
+    "finding": {
+      "agent": "TaintAgent",
+      "type": "sql_injection",
+      "severity": "critical",
+      "file": "src/db.py",
+      "line": 42,
+      "message": "Tainted user_id flows into SQL query",
+      "code_snippet": "query = \"SELECT * FROM users WHERE id = \" + user_id  # tainted",
+      "cwe": "CWE-89",
+      "confirmed_by": ["TaintAgent", "SemgrepAgent"],
+      "composite_score": 80.0
+    },
+    "ai_confidence": null,
+    "seed_known_fp": false,
+    "noise_category": null,
+    "expect_routing": "defend"
+  },
+  {
+    "id": "g02",
+    "label": "Secret high, orphan (0 agents) — consensus floor to ai_analyze",
+    "kind": "vuln",
+    "finding": {
+      "agent": "SecretAgent",
+      "type": "hardcoded_secret",
+      "severity": "high",
+      "file": "src/api_keys.py",
+      "line": 7,
+      "message": "Possible hardcoded API key",
+      "code_snippet": "api_key = request.headers.get('X-Key'); authenticate(api_key)",
+      "cwe": "",
+      "confirmed_by": [],
+      "composite_score": 0.0
+    },
+    "ai_confidence": null,
+    "seed_known_fp": false,
+    "noise_category": null,
+    "expect_routing": "ai_analyze"
+  },
+  {
+    "id": "g03",
+    "label": "XSS medium, CWE but no snippet — AST path to ai_analyze",
+    "kind": "vuln",
+    "finding": {
+      "agent": "SemgrepAgent",
+      "type": "xss",
+      "severity": "medium",
+      "file": "src/render.py",
+      "line": 19,
+      "message": "Unescaped template variable",
+      "code_snippet": "",
+      "cwe": "CWE-79",
+      "confirmed_by": ["SemgrepAgent"],
+      "composite_score": 0.0
+    },
+    "ai_confidence": null,
+    "seed_known_fp": false,
+    "noise_category": null,
+    "expect_routing": "ai_analyze"
+  },
+  {
+    "id": "g04",
+    "label": "Info file-level, no evidence — must discard",
+    "kind": "clean",
+    "finding": {
+      "agent": "TypeScanner",
+      "type": "missing_type",
+      "severity": "info",
+      "file": "src/util.py",
+      "line": 0,
+      "message": "Untyped helper",
+      "code_snippet": "",
+      "cwe": "",
+      "confirmed_by": ["TypeScanner"],
+      "composite_score": 0.0
+    },
+    "ai_confidence": null,
+    "seed_known_fp": false,
+    "noise_category": null,
+    "expect_routing": "discard"
+  },
+  {
+    "id": "g05",
+    "label": "Critical without snippet — medium score to ai_analyze",
+    "kind": "vuln",
+    "finding": {
+      "agent": "SemgrepAgent",
+      "type": "auth_bypass",
+      "severity": "critical",
+      "file": "src/auth.py",
+      "line": 88,
+      "message": "Auth check may be bypassable",
+      "code_snippet": "",
+      "cwe": "",
+      "confirmed_by": ["SemgrepAgent"],
+      "composite_score": 0.0
+    },
+    "ai_confidence": null,
+    "seed_known_fp": false,
+    "noise_category": null,
+    "expect_routing": "ai_analyze"
+  },
+  {
+    "id": "g06",
+    "label": "Critical orphan file-level, no evidence — human_review, never discard",
+    "kind": "vuln",
+    "finding": {
+      "agent": "BanditAgent",
+      "type": "exec_used",
+      "severity": "critical",
+      "file": "src/legacy.py",
+      "line": 0,
+      "message": "exec() in legacy module",
+      "code_snippet": "",
+      "cwe": "",
+      "confirmed_by": [],
+      "composite_score": 0.0
+    },
+    "ai_confidence": null,
+    "seed_known_fp": false,
+    "noise_category": null,
+    "expect_routing": "human_review"
+  },
+  {
+    "id": "g07",
+    "label": "Test fixture that looks critical — capped, never defend",
+    "kind": "clean",
+    "finding": {
+      "agent": "TaintAgent",
+      "type": "sql_injection",
+      "severity": "critical",
+      "file": "tests/test_auth.py",
+      "line": 12,
+      "message": "Tainted value in query (fixture payload)",
+      "code_snippet": "query = \"SELECT * FROM t WHERE x = \" + payload  # fixture data",
+      "cwe": "CWE-89",
+      "confirmed_by": ["TaintAgent", "SemgrepAgent"],
+      "composite_score": 80.0
+    },
+    "ai_confidence": null,
+    "seed_known_fp": false,
+    "noise_category": "tests",
+    "expect_routing": "ai_analyze"
+  },
+  {
+    "id": "g08",
+    "label": "Analyst-marked false positive — auto-discard sticks",
+    "kind": "clean",
+    "finding": {
+      "agent": "TaintAgent",
+      "type": "sql_injection",
+      "severity": "critical",
+      "file": "src/db.py",
+      "line": 99,
+      "message": "Looks tainted, analyst says safe",
+      "code_snippet": "query = \"SELECT * FROM users WHERE id = \" + user_id  # reviewed",
+      "cwe": "CWE-89",
+      "confirmed_by": ["TaintAgent", "SemgrepAgent"],
+      "composite_score": 80.0
+    },
+    "ai_confidence": null,
+    "seed_known_fp": true,
+    "noise_category": null,
+    "expect_routing": "discard"
+  },
+  {
+    "id": "g09",
+    "label": "Test payload with injection shape — heuristic penalty to human_review",
+    "kind": "clean",
+    "finding": {
+      "agent": "BanditAgent",
+      "type": "command_injection",
+      "severity": "high",
+      "file": "tests/test_payloads.py",
+      "line": 5,
+      "message": "Shell metachars in test",
+      "code_snippet": "run('cat ' + user_input)",
+      "cwe": "",
+      "confirmed_by": ["BanditAgent"],
+      "composite_score": 0.0
+    },
+    "ai_confidence": null,
+    "seed_known_fp": false,
+    "noise_category": null,
+    "expect_routing": "human_review"
+  },
+  {
+    "id": "g10",
+    "label": "Minified bundle quality hit — must discard",
+    "kind": "clean",
+    "finding": {
+      "agent": "SemgrepAgent",
+      "type": "code_quality",
+      "severity": "low",
+      "file": "static/app.min.js",
+      "line": 1,
+      "message": "Suspicious pattern in bundle",
+      "code_snippet": "",
+      "cwe": "",
+      "confirmed_by": ["SemgrepAgent"],
+      "composite_score": 0.0
+    },
+    "ai_confidence": null,
+    "seed_known_fp": false,
+    "noise_category": null,
+    "expect_routing": "discard"
+  },
+  {
+    "id": "g11",
+    "label": "5-agent confirmation — bonus caps at +0.3, defend",
+    "kind": "vuln",
+    "finding": {
+      "agent": "TaintAgent",
+      "type": "ssrf",
+      "severity": "high",
+      "file": "src/routes.py",
+      "line": 31,
+      "message": "User URL fetched server-side with redirect handling logic",
+      "code_snippet": "",
+      "cwe": "",
+      "confirmed_by": ["A1", "A2", "A3", "A4", "A5"],
+      "composite_score": 0.0
+    },
+    "ai_confidence": null,
+    "seed_known_fp": false,
+    "noise_category": null,
+    "expect_routing": "ai_analyze"
+  },
+  {
+    "id": "g12",
+    "label": "AI blend lifts borderline 0.40 to ai_analyze",
+    "kind": "vuln",
+    "finding": {
+      "agent": "SemgrepAgent",
+      "type": "auth_bypass",
+      "severity": "high",
+      "file": "src/auth.py",
+      "line": 55,
+      "message": "Weak auth branch",
+      "code_snippet": "",
+      "cwe": "",
+      "confirmed_by": ["SemgrepAgent"],
+      "composite_score": 0.0
+    },
+    "ai_confidence": 0.9,
+    "seed_known_fp": false,
+    "noise_category": null,
+    "expect_routing": "ai_analyze"
+  },
+  {
+    "id": "g13",
+    "label": "TODO crypto marker — not a vuln yet, human_review",
+    "kind": "clean",
+    "finding": {
+      "agent": "SemgrepAgent",
+      "type": "crypto_weak",
+      "severity": "high",
+      "file": "src/crypto.py",
+      "line": 3,
+      "message": "Weak crypto mention",
+      "code_snippet": "# TODO: use proper crypto here",
+      "cwe": "",
+      "confirmed_by": ["SemgrepAgent"],
+      "composite_score": 0.0
+    },
+    "ai_confidence": null,
+    "seed_known_fp": false,
+    "noise_category": null,
+    "expect_routing": "human_review"
+  },
+  {
+    "id": "g14",
+    "label": "Auto-generated fallback secret — medium to ai_analyze",
+    "kind": "clean",
+    "finding": {
+      "agent": "SecretAgent",
+      "type": "hardcoded_secret",
+      "severity": "high",
+      "file": "src/keys.py",
+      "line": 2,
+      "message": "Embedded token",
+      "code_snippet": "token = \"ghp_xxx\"  # auto-generated fallback for local dev only.",
+      "cwe": "",
+      "confirmed_by": ["SecretAgent"],
+      "composite_score": 0.0
+    },
+    "ai_confidence": null,
+    "seed_known_fp": false,
+    "noise_category": null,
+    "expect_routing": "ai_analyze"
+  },
+  {
+    "id": "g15",
+    "label": "Consensus-floor kill: min_agents_to_keep=2 drops single-agent medium",
+    "kind": "config",
+    "gate_config": {"min_agents_to_keep": 2},
+    "finding": {
+      "agent": "SemgrepAgent",
+      "type": "xss",
+      "severity": "medium",
+      "file": "src/render2.py",
+      "line": 19,
+      "message": "Unescaped template variable",
+      "code_snippet": "",
+      "cwe": "CWE-79",
+      "confirmed_by": ["SemgrepAgent"],
+      "composite_score": 0.0
+    },
+    "ai_confidence": null,
+    "seed_known_fp": false,
+    "noise_category": null,
+    "expect_routing": "discard"
+  },
+  {
+    "id": "g16",
+    "label": "Downward AI blend: hostile model verdict demotes high to medium",
+    "kind": "config",
+    "finding": {
+      "agent": "SemgrepAgent",
+      "type": "hook_abuse",
+      "severity": "high",
+      "file": "src/hook.py",
+      "line": 0,
+      "message": "Suspicious hook",
+      "code_snippet": "hook = register_hook(on_event, handler_reference_longer)",
+      "cwe": "",
+      "confirmed_by": ["SemgrepAgent"],
+      "composite_score": 0.0
+    },
+    "ai_confidence": 0.0,
+    "seed_known_fp": false,
+    "noise_category": null,
+    "expect_routing": "ai_analyze"
+  }
+]

@@ -131,7 +131,8 @@ class TestScoreFixCandidate(_GovTestCase):
             agent_group="FIX",
             status=AgentStatus.DONE,
         )
-        score = self.gov._score_fix_candidate(r)
+        # §2 composite returns {"score", "breakdown"} — invariants unchanged
+        score = self.gov._score_fix_candidate(r)["score"]
         self.assertGreater(score, 0.5)
 
     def test_failed_status_scores_low(self):
@@ -144,7 +145,7 @@ class TestScoreFixCandidate(_GovTestCase):
             status=AgentStatus.FAILED,
             findings=findings,
         )
-        score = self.gov._score_fix_candidate(r)
+        score = self.gov._score_fix_candidate(r)["score"]
         self.assertLess(score, 0.5)
 
     def test_many_findings_reduces_score(self):
@@ -154,8 +155,8 @@ class TestScoreFixCandidate(_GovTestCase):
         findings = [Finding(agent="scan", type="bug", severity=Severity.HIGH, file=f"x{i}.py") for i in range(25)]
         r2 = AgentResult(agent_name="B", agent_group="FIX", status=AgentStatus.DONE, findings=findings)
         self.assertGreater(
-            self.gov._score_fix_candidate(r1),
-            self.gov._score_fix_candidate(r2),
+            self.gov._score_fix_candidate(r1)["score"],
+            self.gov._score_fix_candidate(r2)["score"],
         )
 
 

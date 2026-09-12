@@ -1,0 +1,12 @@
+[
+  {"id": "n01", "label": "pytest file in cap mode stays but capped", "file": "tests/test_auth.py", "mode": "cap", "expect": "capped"},
+  {"id": "n02", "label": "pytest file in discard mode is removed", "file": "tests/test_auth.py", "mode": "discard", "expect": "discarded"},
+  {"id": "n03", "label": "lockfile in cap mode is capped", "file": "package-lock.json", "mode": "cap", "expect": "capped"},
+  {"id": "n04", "label": "lockfile in discard mode is removed", "file": "poetry.lock", "mode": "discard", "expect": "discarded"},
+  {"id": "n05", "label": "minified bundle in cap mode is capped", "file": "static/bundle.min.js", "mode": "cap", "expect": "capped"},
+  {"id": "n06", "label": "docs in discard mode are removed", "file": "docs/README.md", "mode": "discard", "expect": "discarded"},
+  {"id": "n07", "label": "real source in cap mode is kept untouched", "file": "src/app.py", "mode": "cap", "expect": "kept"},
+  {"id": "n08", "label": "real source in discard mode is kept untouched", "file": "src/app.py", "mode": "discard", "expect": "kept"},
+  {"id": "n09", "label": "skip_tests=false keeps test files", "file": "tests/test_a.py", "mode": "cap", "filter_config": {"skip_tests": false}, "expect": "kept"},
+  {"id": "n10", "label": "disabled filter keeps lockfiles", "file": "package-lock.json", "mode": "discard", "filter_config": {"enabled": false}, "expect": "kept"}
+]

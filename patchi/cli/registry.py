@@ -62,6 +62,17 @@ COMMANDS: list[Command] = [
         ),
     ),
     Command(
+        "eval",
+        "Score the pipeline against the standing eval set (spec §5)",
+        "patchi.cli.commands.eval_cmd:run",
+        args=(
+            Arg("suite", nargs="?", default="all", help="Suite to run: gate, noise, gen, or all"),
+            Arg("--json", dest="json_output", action="store_true", help="Output as JSON"),
+            Arg("--ci", dest="ci", action="store_true", help="Exit 1 when any suite fails"),
+            Arg("--gen", dest="gen", action="store_true", help="Include model-backed generation eval (spends tokens)"),
+        ),
+    ),
+    Command(
         "status",
         "Show Brain health, mode, queue state, and key status",
         "patchi.cli.commands.status_cmd:run",

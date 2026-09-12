@@ -358,13 +358,38 @@ def run_generate(test_type: str | None = None, root: Path | None = None) -> None
         return
 
     from patchi.core import config as cfg
-    from patchi.core.ai.client import call_ai
 
     try:
         config = cfg.load(r)
     except Exception as e:
         _log.warning("run_generate failed: %s", e)
         config = {}
+
+    # Contract tests are deterministic (static route extraction) — no AI needed.
+    if (test_type or "").lower() == "contract":
+        from patchi.core.testing.api_contract_agent import generate_contract_tests
+        from patchi.core.testing.gate import require_ready
+
+        base = None
+        try:
+            ready, url, _st = require_ready(r)
+            if ready and url:
+                base = url
+        except Exception as e:
+            _log.debug("contract generate gate check failed: %s", e)
+        summary = generate_contract_tests(r, base)
+        if not summary["written"]:
+            con.print("[yellow]No static routes detected — nothing to generate.[/yellow]")
+            return
+        con.print(
+            f"[green]Generated {summary['routes']} contract smoke tests → "
+            f"{summary['path']}[/green]"
+        )
+        con.print(f"[dim]Base URL: {summary['base_url']} (override with PATCHI_CONTRACT_BASE_URL)[/dim]")
+        con.print(f"[dim]Run: pytest {summary['path']} (needs the app serving)[/dim]")
+        return
+
+    from patchi.core.ai.client import call_ai
 
     # Quick availability check
     test_response = call_ai(config, "Reply with OK", "test", max_tokens=5)

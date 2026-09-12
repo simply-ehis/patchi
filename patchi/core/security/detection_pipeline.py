@@ -77,7 +77,6 @@ class DetectionPipeline:
             )
             self._sigma_set = SigmaRuleSet.load_directory(sigma_dir)
             if self._sigma_set.count > 0:
-                import logging
 
                 logging.getLogger("patchi.detection").info(
                     "Loaded %d Sigma rules from %s", self._sigma_set.count, sigma_dir
@@ -132,7 +131,6 @@ class DetectionPipeline:
             else:
                 gated_list = [self.gate.gate(cf) for cf in report.findings]
         except Exception as e:
-            import logging
 
             logging.getLogger("patchi.detection").warning(
                 "Noise filter failed (non-fatal, scanning all): %s", e
@@ -168,7 +166,6 @@ class DetectionPipeline:
                         gf.playbook_ref = playbook.control_id
                         gf.fix_strategy = playbook.fix_strategy
         except Exception as e:
-            import logging
 
             logging.getLogger("patchi.detection").warning(
                 "Domain taxonomy enrichment failed: %s", e
@@ -261,13 +258,11 @@ class DetectionPipeline:
         try:
             learned = self.gate.learn_from_dismissed(GatedReport(findings=discarded, stats={}))
             if learned:
-                import logging
 
                 logging.getLogger("patchi.detection").info(
                     "Learned %d new false positive(s) from rejected findings", learned
                 )
         except Exception as e:
-            import logging
 
             logging.getLogger("patchi.detection").warning(
                 "FP learning loop failed (non-fatal): %s", e
@@ -283,7 +278,88 @@ class DetectionPipeline:
         if noise_stats is not None:
             stats["noise"] = noise_stats
 
-        return GatedReport(
+        # §8: stamp tier + routing + reason back onto the underlying findings
+        # so CLI and web show *why* each finding survived, not just that it
+        # did. Finding.to_dict() spreads `extra`, dict-findings take keys
+        # directly — either way the data reaches scan memory.
+        for gf in gated_list:
+            stamp = {
+                "gate_tier": gf.confidence_tier,
+                "gate_routing": gf.routing,
+                "gate_reason": (gf.routing_reason or "")[:200],
+                "gate_score": round(gf.confidence_score, 3),
+            }
+            try:
+                if isinstance(gf.finding, dict):
+                    gf.finding.update(stamp)
+                else:
+                    extra = getattr(gf.finding, "extra", None)
+                    if isinstance(extra, dict):
+                        extra.update(stamp)
+            except Exception:
+                pass
+
+        result = GatedReport(
             findings=high + [g for g in medium if g.routing == "ai_analyze"] + low + discarded,
             stats=stats,
         )
+        # Discard audit trail (§3): persist per-layer counts + every discarded
+        # finding's key/reason + the exact gate config, so a future
+        # "user says N, gate kept M" dispute is diffable in one command
+        # instead of ending in "may need tuning".
+        try:
+            self._write_gate_audit(
+                raw_in=len(report.findings),
+                noise_stats=noise_stats,
+                gated=result,
+            )
+        except Exception as e:
+
+            logging.getLogger("patchi.detection").warning(
+                "Gate audit write failed (non-fatal): %s", e
+            )
+        return result
+
+    def _write_gate_audit(
+        self,
+        raw_in: int,
+        noise_stats: dict | None,
+        gated: GatedReport,
+    ) -> None:
+        """Persist `.patchi/gate_audit.json` — the §3 dispute resolver."""
+        import time
+
+        from patchi.core.atomic import atomic_write_json
+
+        discarded = [
+            {
+                "file": g.finding.file,
+                "type": g.finding.type,
+                "line": g.finding.line,
+                "severity": str(getattr(g.finding.severity, "value", g.finding.severity)),
+                "score": round(g.confidence_score, 3),
+                "tier": g.confidence_tier,
+                "reason": (g.routing_reason or "")[:200],
+            }
+            for g in gated.discarded[:500]
+        ]
+        audit = {
+            "ts": time.time(),
+            "raw_in": raw_in,
+            "noise": noise_stats or {},
+            "routing": dict(gated.stats),
+            "kept": gated.stats.get("defend", 0)
+            + gated.stats.get("ai_analyze", 0)
+            + gated.stats.get("human_review", 0),
+            "gate_config": {
+                "min_agents_for_defend": self.gate.min_agents_for_defend,
+                "min_agents_to_keep": self.gate.min_agents_to_keep,
+                "ai_weight": self.gate.ai_weight,
+                "fp_penalty": self.gate.fp_penalty,
+                "noise_penalty": self.gate.noise_penalty,
+                "fp_auto_discard": self.gate.fp_auto_discard,
+            },
+            "discarded_truncated": len(gated.discarded) > 500,
+            "discarded": discarded,
+        }
+        atomic_write_json(self.root / ".patchi" / "gate_audit.json", audit)

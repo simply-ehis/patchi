@@ -50,7 +50,7 @@ def _inp(root: Path, findings: list | None = None, extra: dict | None = None) ->
 
 
 class TestFixAgentRegistration(unittest.TestCase):
-    def test_all_8_fix_agents_registered(self):
+    def test_all_7_fix_agents_registered(self):
         fix_agents = list_agents(AgentGroup.FIX)
         names = {a.name for a in fix_agents}
         expected = {
@@ -60,7 +60,6 @@ class TestFixAgentRegistration(unittest.TestCase):
             "DependencyFixer",
             "EnvFixer",
             "TypeFixer",
-            "RefactorAgent",
             "UnitTestRunner",
         }
         self.assertEqual(names, expected)

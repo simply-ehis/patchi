@@ -218,6 +218,15 @@ class PhaseCriteria:
     max_high_findings: int = 10
     min_agents_run: int = 1
     require_zero_errors: bool = True
+    # §2 evidence gates (spec: every "done" needs evidence, not a clean run).
+    # False by default except where DEFAULT_CRITERIA opts in — the mechanism
+    # is always on (evidence is always collected), the hard blocks are policy.
+    require_eval_pass: bool = False
+    require_no_failed_tests: bool = False
+    require_evidence_keys: tuple = ()
+    # §6: flake-rate gate. None = record-only; int = hard ceiling on
+    # flaky tests in TEST_EXECUTION ("passing" suites that flake are lies).
+    max_flaky_tests: int | None = None
 
 
 DEFAULT_CRITERIA: dict[PipelinePhase, PhaseCriteria] = {
@@ -226,6 +235,9 @@ DEFAULT_CRITERIA: dict[PipelinePhase, PhaseCriteria] = {
         max_critical_findings=200,
         max_high_findings=1000,
         min_agents_run=1,
+        # §2/§5: SCAN "done" means the standing eval set passes — detection
+        # and FP rates measured, not assumed. Fast + offline + deterministic.
+        require_eval_pass=True,
     ),
     PipelinePhase.GRAPH_UPDATE: PhaseCriteria(
         max_errors=1,
@@ -240,6 +252,10 @@ DEFAULT_CRITERIA: dict[PipelinePhase, PhaseCriteria] = {
         max_critical_findings=200,
         max_high_findings=1000,
         min_agents_run=0,
+        # §2: a failing test hard-blocks progression to FIX_GENERATION.
+        require_no_failed_tests=True,
+        # §6: flaky suites fail the phase — a "pass" that flakes is not a pass.
+        max_flaky_tests=0,
     ),
     PipelinePhase.FIX_GENERATION: PhaseCriteria(
         max_errors=3,
@@ -396,7 +412,202 @@ class Governor:
             ),
         )
 
-    def _check_criteria(self, phase: PipelinePhase, results: list[AgentResult]) -> list[str]:
+    def _collect_evidence(
+        self, phase: PipelinePhase, results: list[AgentResult]
+    ) -> dict:
+        """Build the §2 evidence dict for a phase transition.
+
+        Every phase reports WHAT was checked, against WHAT baseline, with WHAT
+        measured rate. A phase with no measurable evidence is marked partial —
+        never silently "done".
+        """
+        evidence: dict = {
+            "agents_run": len(results),
+            "findings_count": sum(r.finding_count for r in results),
+            "errors": sum(1 for r in results if r.status == AgentStatus.FAILED),
+            "complete": True,
+            "partial_reasons": [],
+        }
+
+        def _partial(reason: str) -> None:
+            evidence["complete"] = False
+            evidence["partial_reasons"].append(reason)
+
+        if phase == PipelinePhase.SCAN:
+            # §2/§5: detection + FP rates measured against the eval set.
+            try:
+                from patchi.core.evals.runner import eval_all
+
+                ev = eval_all(self.root)
+                gate, noise = ev["suites"]["gate"], ev["suites"]["noise"]
+                evidence["eval"] = {
+                    "routing_accuracy": gate.get("routing_accuracy"),
+                    "vuln_recall": gate.get("vuln_recall"),
+                    "clean_defend_escapes": gate.get("clean_defend_escapes"),
+                    "noise_accuracy": noise.get("accuracy"),
+                    "eval_ok": bool(ev["ok"]),
+                }
+                if not ev["ok"]:
+                    _partial(f"eval set failing: {gate.get('failures', [])[:3]}")
+            except Exception as e:
+                evidence["eval"] = {"error": str(e)[:200]}
+                _partial(f"eval set could not run: {e}")
+            # §3 audit presence: is the last scan's discard trail on disk?
+            audit = self.root / ".patchi" / "gate_audit.json"
+            evidence["gate_audit_present"] = audit.exists()
+            if not audit.exists():
+                _partial("no .patchi/gate_audit.json — discard layers unaccounted")
+
+        elif phase == PipelinePhase.TEST_GENERATION:
+            # Hallucination rate needs a model + prompt version; offline runs
+            # cannot measure it — recorded as partial, honestly.
+            measured = [
+                r.agent_name
+                for r in results
+                if isinstance(r.data, dict)
+                and ("hallucination_rate" in r.data or "generation_eval" in r.data)
+            ]
+            if measured:
+                evidence["hallucination"] = {
+                    "measured_by": measured,
+                    "status": "measured",
+                }
+            else:
+                evidence["hallucination"] = {
+                    "status": "not-measured",
+                    "note": "no model run attached hallucination numbers",
+                }
+                _partial("hallucination rate not measured (no model run)")
+
+        elif phase == PipelinePhase.TEST_EXECUTION:
+            suites = [
+                r.data.get("suite", {})
+                for r in results
+                if isinstance(r.data, dict) and isinstance(r.data.get("suite"), dict)
+            ]
+            totals = {
+                k: sum(int(s.get(k, 0) or 0) for s in suites)
+                for k in ("passed", "failed", "skipped", "errors")
+            }
+            evidence["test_totals"] = totals
+            evidence["suites_reported"] = len(suites)
+            # §6 flake depth: history-based flake counts gate the phase.
+            flake_total = 0
+            flakes: list[dict] = []
+            for r in results:
+                if isinstance(r.data, dict) and r.data.get("flaky_tests"):
+                    try:
+                        n = int(r.data["flaky_tests"])
+                    except (TypeError, ValueError):
+                        n = 0
+                    flake_total += n
+                    flakes.append({r.agent_name: n})
+            evidence["flaky_total"] = flake_total
+            if flakes:
+                evidence["flaky_tests"] = flakes
+            # §6 mutation depth: survived mutants = tests that assert nothing.
+            mutation: dict = {}
+            for r in results:
+                if not isinstance(r.data, dict):
+                    continue
+                for key in ("total_survived", "universalmutator", "cargo_mutants"):
+                    if r.data.get(key) is not None:
+                        mutation.setdefault(key, 0)
+                        try:
+                            mutation[key] += int(r.data[key])
+                        except (TypeError, ValueError):
+                            pass
+            evidence["mutation"] = mutation or {"measured": False}
+            if not mutation:
+                _partial("no mutation data — test strength unproven")
+            # §6 contract depth: API/schema drift breaks clients silently.
+            contracts = [
+                {
+                    "agent": r.agent_name,
+                    "contracts_found": r.data.get("contracts_found"),
+                    "framework": r.data.get("framework"),
+                    "synthetic": bool(r.data.get("synthetic")),
+                    "gate_blocked": bool(r.data.get("gate_blocked")),
+                }
+                for r in results
+                if isinstance(r.data, dict) and "contracts_found" in r.data
+            ]
+            evidence["contracts"] = contracts or {"measured": False}
+            if not contracts:
+                _partial("no contract validation ran")
+            # §6 coverage depth: did we test the part that changed?
+            try:
+                from patchi.core import memory as _mem
+
+                scan_results = _mem.get_scan_results(self.root) or {}
+                cov = scan_results.get("CoveragePrioritizerAgent", {})
+                cov_data = cov.get("data", cov) if isinstance(cov, dict) else {}
+                evidence["coverage"] = {
+                    "low_coverage_files": cov_data.get("total_low_coverage"),
+                    "hot_untested": cov_data.get("total_hot_untested"),
+                }
+                if (
+                    cov_data.get("total_low_coverage") is None
+                    and cov_data.get("total_hot_untested") is None
+                ):
+                    _partial("no coverage prioritization data in scan memory")
+            except Exception as e:
+                evidence["coverage"] = {"error": str(e)[:120]}
+                _partial(f"coverage data unreadable: {e}")
+            if not suites:
+                _partial("no agent reported test outcomes (clean run, no assertions)")
+            if totals["failed"] or totals["errors"]:
+                evidence["failing_tests"] = True
+
+        elif phase == PipelinePhase.FIX_GENERATION:
+            # Scores live on the phase (run_fix_generation attaches the full
+            # per-candidate breakdown, not just the winner's).
+            cands = getattr(self, "_last_candidates", None) or []
+            evidence["candidates_scored"] = [
+                {
+                    "agent": c.get("agent_name"),
+                    "score": c.get("score"),
+                    "breakdown": c.get("breakdown"),
+                }
+                for c in cands
+            ]
+            if not cands:
+                _partial("no candidate scores logged (winner-only selection?)")
+            if any(
+                (c.get("breakdown") or {}).get("mutation") == "unmeasured"
+                for c in cands
+            ):
+                _partial("mutation subset not measured on candidate diffs")
+
+        elif phase == PipelinePhase.SANDBOX_REVERIFY:
+            markers = [
+                r.agent_name
+                for r in results
+                if isinstance(r.data, dict)
+                and any(k in r.data for k in ("rescan", "retest", "reverify", "loopback"))
+            ]
+            evidence["loopback_markers"] = markers
+            if not markers:
+                _partial("no loop-back re-scan/re-test markers found")
+
+        elif phase == PipelinePhase.SCORE_SELECT:
+            auto = [
+                r.agent_name
+                for r in results
+                if isinstance(r.data, dict) and r.data.get("autonomous") is not None
+            ]
+            evidence["autonomy_marked"] = auto
+            if not auto:
+                _partial("no autonomous-domain marking on selections")
+
+        return evidence
+
+    def _check_criteria(
+        self,
+        phase: PipelinePhase,
+        results: list[AgentResult],
+        evidence: dict | None = None,
+    ) -> list[str]:
         """Check acceptance criteria for a phase. Returns list of violations."""
         violations: list[str] = []
         crit = self.criteria.get(phase, DEFAULT_CRITERIA[PipelinePhase.SCAN])
@@ -421,6 +632,33 @@ class Governor:
         if len(results) < crit.min_agents_run:
             violations.append(f"Not enough agents ran: {len(results)} < {crit.min_agents_run}")
 
+        # §2 evidence gates
+        ev = evidence or {}
+        if crit.require_eval_pass:
+            eval_ev = ev.get("eval", {}) if isinstance(ev, dict) else {}
+            if not eval_ev.get("eval_ok"):
+                violations.append(
+                    f"Standing eval set not passing: {eval_ev or 'no eval evidence'}"
+                )
+        if crit.require_no_failed_tests:
+            totals = (ev.get("test_totals", {}) or {}) if isinstance(ev, dict) else {}
+            if int(totals.get("failed", 0) or 0) > 0 or int(totals.get("errors", 0) or 0) > 0:
+                violations.append(
+                    f"Failing tests block progression: "
+                    f"{totals.get('failed', 0)} failed, {totals.get('errors', 0)} errors"
+                )
+        # §6: flaky suites fail the phase.
+        if crit.max_flaky_tests is not None and isinstance(ev, dict):
+            flakes = int(ev.get("flaky_total", 0) or 0)
+            if flakes > crit.max_flaky_tests:
+                violations.append(
+                    f"Flaky tests block progression: "
+                    f"{flakes} flaky > {crit.max_flaky_tests} allowed"
+                )
+        for key in crit.require_evidence_keys:
+            if not isinstance(ev, dict) or key not in ev:
+                violations.append(f"Missing required evidence: {key}")
+
         return violations
 
     def _transition_to(self, target: PipelinePhase, results: list[AgentResult]) -> PhaseResult:
@@ -435,7 +673,10 @@ class Governor:
                 f"Skipping ordering check."
             )
 
-        violations = self._check_criteria(target, results)
+        # §2: evidence is collected BEFORE the verdict so "done" always
+        # carries what was checked, against what baseline, with what rate.
+        evidence = self._collect_evidence(target, results)
+        violations = self._check_criteria(target, results, evidence)
         duration_ms = sum(r.duration_ms for r in results)
         findings_count = sum(r.finding_count for r in results)
 
@@ -448,11 +689,13 @@ class Governor:
                 duration_ms=duration_ms,
                 findings_count=findings_count,
                 agents_run=len(results),
+                data={"evidence": evidence, "verdict": "failed"},
             )
             self.current_phase = PipelinePhase.FAILED
             self._record_phase(phase_result)
             return phase_result
 
+        verdict = "done" if evidence.get("complete") else "partial"
         phase_result = PhaseResult(
             phase=target,
             status=AgentStatus.DONE,
@@ -460,6 +703,7 @@ class Governor:
             duration_ms=duration_ms,
             findings_count=findings_count,
             agents_run=len(results),
+            data={"evidence": evidence, "verdict": verdict},
         )
         self.current_phase = target
         self._record_phase(phase_result)
@@ -838,13 +1082,24 @@ class Governor:
             errors.append(f"Graph update failed: {e}")
 
         duration_ms = int((time.monotonic() - start) * 1000)
+        evidence = self._collect_evidence(PipelinePhase.GRAPH_UPDATE, [])
+        evidence["graph_built"] = built
+        if not built:
+            evidence["complete"] = False
+            evidence["partial_reasons"].append("symbol graph not built")
         result = PhaseResult(
             phase=PipelinePhase.GRAPH_UPDATE,
             status=AgentStatus.DONE if not errors else AgentStatus.FAILED,
             errors=errors,
             duration_ms=duration_ms,
             agents_run=1 if built else 0,
+            data={
+                "evidence": evidence,
+                "verdict": "done" if evidence.get("complete") else "partial",
+            },
         )
+        if result.status == AgentStatus.FAILED:
+            result.data["verdict"] = "failed"
         self._record_phase(result)
         self.current_phase = PipelinePhase.GRAPH_UPDATE
         return result
@@ -884,10 +1139,15 @@ class Governor:
         affected_symbols = self._affected_symbols_from_scan()
         if not affected_symbols:
             logger.info("Test generation: no affected symbols, skipping")
+            # §2: DONE with zero work is partial, not done.
+            evidence = self._collect_evidence(PipelinePhase.TEST_GENERATION, [])
+            evidence["complete"] = False
+            evidence["partial_reasons"].append("no affected symbols — nothing generated")
             result = PhaseResult(
                 phase=PipelinePhase.TEST_GENERATION,
                 status=AgentStatus.DONE,
                 duration_ms=int((time.monotonic() - start) * 1000),
+                data={"evidence": evidence, "verdict": "partial"},
             )
             self._record_phase(result)
             return result
@@ -896,10 +1156,14 @@ class Governor:
         neighborhood = self._build_graph_neighborhood(affected_symbols, radius=1)
         if not neighborhood:
             logger.info("Test generation: no graph context, skipping")
+            evidence = self._collect_evidence(PipelinePhase.TEST_GENERATION, [])
+            evidence["complete"] = False
+            evidence["partial_reasons"].append("no graph context — nothing generated")
             result = PhaseResult(
                 phase=PipelinePhase.TEST_GENERATION,
                 status=AgentStatus.DONE,
                 duration_ms=int((time.monotonic() - start) * 1000),
+                data={"evidence": evidence, "verdict": "partial"},
             )
             self._record_phase(result)
             return result
@@ -929,6 +1193,8 @@ class Governor:
         duration_ms = int((time.monotonic() - start) * 1000)
         findings_count = sum(r.finding_count for r in agent_results)
 
+        evidence = self._collect_evidence(PipelinePhase.TEST_GENERATION, agent_results)
+        verdict = "done" if evidence.get("complete") else "partial"
         result = PhaseResult(
             phase=PipelinePhase.TEST_GENERATION,
             status=AgentStatus.DONE if not errors else AgentStatus.FAILED,
@@ -937,7 +1203,10 @@ class Governor:
             duration_ms=duration_ms,
             findings_count=findings_count,
             agents_run=len(agent_results),
+            data={"evidence": evidence, "verdict": verdict},
         )
+        if result.status == AgentStatus.FAILED:
+            result.data["verdict"] = "failed"
         self._record_phase(result)
         self.current_phase = PipelinePhase.TEST_GENERATION
         return result
@@ -970,15 +1239,18 @@ class Governor:
         # patches for human review. Outcomes land in result.data["verify"].
         verify = self._verify_fix_patches(results, dry_run=dry_run)
 
-        # Score candidates (store for SCORE_SELECT phase)
+        # Score candidates on the §2 composite (store for SCORE_SELECT;
+        # every candidate's full breakdown lands on the phase result).
         scored_candidates = []
         for r in results:
+            scored = self._score_fix_candidate(r, verify)
             candidate = {
                 "agent_name": r.agent_name,
                 "status": r.status.value,
                 "findings": r.finding_count,
                 "duration_ms": r.duration_ms,
-                "score": self._score_fix_candidate(r),
+                "score": scored["score"],
+                "breakdown": scored["breakdown"],
             }
             scored_candidates.append(candidate)
         self._last_candidates = scored_candidates
@@ -987,26 +1259,58 @@ class Governor:
         duration_ms = int((time.monotonic() - start) * 1000)
         result = self._transition_to(PipelinePhase.FIX_GENERATION, results)
         result.data["verify"] = verify
+        result.data["candidates"] = scored_candidates
         result.duration_ms = duration_ms
         return result
 
-    def _score_fix_candidate(self, result: AgentResult) -> float:
-        """Score a fix candidate on 0-1 scale.
+    def _score_fix_candidate(
+        self, result: AgentResult, verify: dict | None = None
+    ) -> dict:
+        """Score a fix candidate on the §2 composite (0-1), all parts logged.
 
-        Factors:
-        - Agent completed without errors (0.4)
-        - Finding count (lower = better, 0.3)
-        - Has fix data (0.2)
-        - Fast runtime (0.1)
+        Components (spec §2 FIX_GENERATION Done column):
+        - tests_pass 0.4 — verified patches / produced patches (verify_loop).
+        - findings_free 0.3 — no residual findings on the candidate.
+        - blast_radius 0.2 — max affected-file count across its patches
+          (compute_blast_radius scale: files; 10+ → 0).
+        - completed 0.1 — agent finished without errors.
+        - mutation — RECORDED, not scored: no fix agent currently reports
+          mutant kills on its diff (partial by construction, see evidence).
+
+        Returns {"score": float, "breakdown": {...}} — every candidate's full
+        breakdown is stored on the phase (not just the winner's).
         """
-        score = 0.0
-        if result.status == AgentStatus.DONE:
-            score += 0.4
-        score += max(0, 0.3 - (result.finding_count * 0.02))
-        if result.data:
-            score += 0.2
-        score += max(0, 0.1 - (result.duration_ms * 0.00001))
-        return min(1.0, max(0.0, score))
+        data = result.data if isinstance(result.data, dict) else {}
+        patches = data.get("patches", []) or []
+        verify = verify or {}
+        verified_ids = set(verify.get("verified", []) or [])
+
+        mine = [p.get("id") for p in patches if isinstance(p, dict) and p.get("id")]
+        tests_pass = (
+            sum(1 for pid in mine if pid in verified_ids) / len(mine) if mine else 0.0
+        )
+        findings_free = max(0.0, 1.0 - result.finding_count * 0.1)
+        try:
+            max_br = max(int(p.get("blast_radius", 0) or 0) for p in patches) if patches else 0
+        except (TypeError, ValueError):
+            max_br = 0
+        blast = max(0.0, 1.0 - max_br / 10.0)
+        completed = 1.0 if result.status == AgentStatus.DONE else 0.0
+
+        score = 0.4 * tests_pass + 0.3 * findings_free + 0.2 * blast + 0.1 * completed
+        return {
+            "score": round(min(1.0, max(0.0, score)), 3),
+            "breakdown": {
+                "tests_pass": round(tests_pass, 3),
+                "verified": sum(1 for pid in mine if pid in verified_ids),
+                "patches": len(mine),
+                "findings_free": round(findings_free, 3),
+                "blast": round(blast, 3),
+                "max_blast_radius": max_br,
+                "completed": completed,
+                "mutation": "unmeasured",
+            },
+        }
 
     def run_sandbox_reverify(self) -> PhaseResult:
         """Phase 6: Sandbox reverification with loop-back scan + test re-run.
@@ -1028,10 +1332,15 @@ class Governor:
 
         if not fix_results:
             logger.info("Sandbox reverify: no fix candidates to verify")
+            # §2: a "done" with zero verification is partial, not done.
+            evidence = self._collect_evidence(PipelinePhase.SANDBOX_REVERIFY, [])
+            evidence["complete"] = False
+            evidence["partial_reasons"].append("no fix candidates — nothing reverified")
             result = PhaseResult(
                 phase=PipelinePhase.SANDBOX_REVERIFY,
                 status=AgentStatus.DONE,
                 duration_ms=int((time.monotonic() - start) * 1000),
+                data={"evidence": evidence, "verdict": "partial"},
             )
             self._record_phase(result)
             return result
@@ -1070,6 +1379,21 @@ class Governor:
             )
 
         duration_ms = int((time.monotonic() - start) * 1000)
+        # §2: same evidence machinery as every other phase — including the
+        # scoped-retest report (reverify re-runs the exact applied-patch
+        # tests, not just the full groups) and the loop-back scan markers.
+        evidence = self._collect_evidence(PipelinePhase.SANDBOX_REVERIFY, all_results)
+        evidence["scoped_retest"] = {
+            "rechecked": reverify.get("rechecked", 0),
+            "passed": reverify.get("passed", []),
+            "regressed": reverify.get("regressed", []),
+            "unrunnable": reverify.get("unrunnable", []),
+        }
+        if not reverify.get("rechecked"):
+            evidence["complete"] = False
+            evidence["partial_reasons"].append(
+                "no scoped retest ran (only full-group re-runs)"
+            )
         result = PhaseResult(
             phase=PipelinePhase.SANDBOX_REVERIFY,
             status=AgentStatus.DONE,
@@ -1078,13 +1402,20 @@ class Governor:
             duration_ms=duration_ms,
             findings_count=total_findings,
             agents_run=len(all_results),
-            data={"reverify": reverify},
+            data={
+                "reverify": reverify,
+                "evidence": evidence,
+                "verdict": "done" if evidence.get("complete") else "partial",
+            },
         )
 
-        violations = self._check_criteria(PipelinePhase.SANDBOX_REVERIFY, all_results)
+        violations = self._check_criteria(
+            PipelinePhase.SANDBOX_REVERIFY, all_results, evidence
+        )
         if violations:
             result.status = AgentStatus.FAILED
             result.errors.extend(violations)
+            result.data["verdict"] = "failed"
 
         self._record_phase(result)
         if result.status == AgentStatus.DONE:
@@ -1107,11 +1438,13 @@ class Governor:
 
         if not candidates:
             errors.append("No fix candidates to score")
+            evidence = self._collect_evidence(PipelinePhase.SCORE_SELECT, fix_results)
             result = PhaseResult(
                 phase=PipelinePhase.SCORE_SELECT,
                 status=AgentStatus.FAILED,
                 errors=errors,
                 duration_ms=int((time.monotonic() - start) * 1000),
+                data={"evidence": evidence, "verdict": "failed"},
             )
             self._record_phase(result)
             return result
@@ -1146,13 +1479,44 @@ class Governor:
 
         # If any candidate passes, phase passes
         any_pass = any(w["decision"] == "auto_apply" for w in winners)
+        # §2 evidence: every candidate + decision on the phase (not just the
+        # winner), plus whether the autonomy rule engaged.
+        evidence = self._collect_evidence(PipelinePhase.SCORE_SELECT, fix_results)
+        evidence["selection"] = [
+            {
+                "agent": w["candidate"].get("agent_name"),
+                "score": w["candidate"].get("score"),
+                "breakdown": w["candidate"].get("breakdown"),
+                "decision": w["decision"],
+                "reason": w["reason"],
+            }
+            for w in winners
+        ]
+        auto = sum(1 for w in winners if w["decision"] == "auto_apply")
+        esc = sum(1 for w in winners if w["decision"] == "escalate")
+        evidence["autonomy"] = {"auto_apply": auto, "escalated": esc}
+        if not any(
+            "risk_gate" in (w["reason"] or "") and w["decision"] == "escalate"
+            for w in winners
+        ):
+            # No candidate tripped the autonomy rule — recorded honestly so a
+            # future seeded high-criticality case can prove the rule engages.
+            evidence["autonomy"]["rule_engaged"] = False
+        else:
+            evidence["autonomy"]["rule_engaged"] = True
         result = PhaseResult(
             phase=PipelinePhase.SCORE_SELECT,
             status=AgentStatus.DONE if any_pass or not errors else AgentStatus.FAILED,
             errors=errors,
             duration_ms=duration_ms,
             agents_run=len(candidates),
+            data={
+                "evidence": evidence,
+                "verdict": "done" if evidence.get("complete") else "partial",
+            },
         )
+        if result.status == AgentStatus.FAILED:
+            result.data["verdict"] = "failed"
         if any_pass:
             self.current_phase = PipelinePhase.COMPLETE
         self._record_phase(result)
@@ -1162,6 +1526,11 @@ class Governor:
         """Decide whether a candidate is auto-applied or escalated.
 
         Returns {"action": "auto_apply"|"escalate"|"discard", "reason": str}.
+
+        §2 autonomy rule: a candidate auto-applies ONLY if every one of its
+        patches passes the existing risk_gate (ALLOW_AUTO) — the project's
+        criticality taxonomy. Anything the gate would review or block
+        escalates here instead of auto-applying on score alone.
         """
         score = candidate["score"]
 
@@ -1171,6 +1540,37 @@ class Governor:
 
         if candidate["findings"] > 0:
             return {"action": "escalate", "reason": f"{candidate['findings']} findings remain"}
+
+        # Autonomy rule — risk_gate is the taxonomy, not the score.
+        data = result.data if isinstance(result.data, dict) else {}
+        patches = data.get("patches", []) or []
+        if patches:
+            try:
+                from patchi.core.fix.patch import Patch
+                from patchi.core.fix.risk_gate import RiskGate
+
+                gate = RiskGate(self.root)
+                for p in patches:
+                    if not isinstance(p, dict) or not p.get("id"):
+                        continue
+                    try:
+                        patch = Patch.from_dict(p)
+                    except Exception:
+                        continue
+                    decision = gate.evaluate(patch)
+                    if decision.is_blocked:
+                        return {
+                            "action": "escalate",
+                            "reason": f"risk_gate BLOCKs patch {p.get('id')}: "
+                            + "; ".join(decision.blocks[:2]),
+                        }
+                    if decision.needs_review:
+                        return {
+                            "action": "escalate",
+                            "reason": f"risk_gate REQUIRE_REVIEW on patch {p.get('id')}",
+                        }
+            except Exception as e:
+                logger.debug("Autonomy check failed open to score rules: %s", e)
 
         # Score thresholds
         if score >= 0.8:
