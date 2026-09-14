@@ -84,15 +84,14 @@ scan_err.txt
 scan_out.txt
 scan_output.txt
 
-# Root-level temp scripts
-check_*.py
-!patchi/cli/commands/check_cmd.py
-find_*.py
-fix_*.py
-show_*.py
-search_*.py
-scan_*.py
-!patchi/core/scan_bus.py
+# Root-level temp scripts (anchored: do not match at arbitrary depth —
+# unanchored glob silently excluded tracked files like scan_cmd.py from ruff)
+/check_*.py
+/find_*.py
+/fix_*.py
+/show_*.py
+/search_*.py
+/scan_*.py
 begin.txt
 ctx.txt
 help_out.txt

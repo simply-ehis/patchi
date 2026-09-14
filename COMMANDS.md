@@ -303,6 +303,7 @@ Configuration management.
 |------------|-------------|
 | `p settings show` | Show all settings |
 | `p settings set <key> <value>` | Set a config value |
+| `p settings mode [mode]` | View or set operating mode (`confirm`/`auto`/`autopilot`) |
 
 ### `p settings mode [mode]`
 Set fix mode.

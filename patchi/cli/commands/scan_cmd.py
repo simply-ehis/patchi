@@ -176,7 +176,7 @@ def _run_scan_inner(
         import os
 
         os.environ["PATCHI_OFFLINE"] = "1"
-        if not quiet:
+        if not quiet and not json_output:
             con.print(
                 "[bold #C8621A]OFFLINE MODE[/bold #C8621A] — Static analysis only. Zero API calls."
             )
@@ -201,6 +201,9 @@ def _run_scan_inner(
         return 0
 
     # ── Check freshness first ─────────────────────────────────────────────────
+    # In JSON mode the freshness early-return is bypassed: that path renders
+    # the human summary only and has no JSON document at all, and machine
+    # consumers always want fresh data.
     freshness = check_freshness(r)
     if (
         not freshness["is_stale"]
@@ -209,6 +212,7 @@ def _run_scan_inner(
         and not force
         and not deep
         and not contract
+        and not json_output
     ):
         con.print()
         con.print(
@@ -227,6 +231,19 @@ def _run_scan_inner(
     scan_type = "Deep" if deep else "Scanning"
     con.print(f"[bold #C8621A]{scan_type}{area_label}[/bold #C8621A]")
     con.print()
+
+    # ── JSON mode: silence the shared console for the run phase ───────────────
+    # Everything between here and the final JSON document is human UI
+    # (progress chain, phase evidence, tables, panels) — and core modules
+    # print through this same shared `con`, so gating hundreds of call sites
+    # individually is hopeless. Swap the console to a null sink instead and
+    # restore it just before the JSON document (and on the error paths).
+    _saved_con_file = None
+    if json_output:
+        import io as _io
+
+        _saved_con_file = con.file
+        con.file = _io.StringIO()
 
     # Chain progress display
     from patchi.cli.ux import format_step, status_icon, status_style
@@ -329,7 +346,9 @@ def _run_scan_inner(
             _ctypes.append("frontend-web")
         if any((_root / f).exists() for f in ("requirements.txt", "pyproject.toml", "setup.py")):
             _ctypes.append("backend-api")
-        if any((_root / d).exists() for d in ("docker", "k8s", "kubernetes", ".github")) or (_root / "Dockerfile").exists():
+        if any(
+            (_root / d).exists() for d in ("docker", "k8s", "kubernetes", ".github")
+        ) or (_root / "Dockerfile").exists():
             _ctypes.append("infra")
     except Exception as _exc:
         _log.debug("component type detect skipped: %s", _exc)
@@ -486,6 +505,9 @@ def _run_scan_inner(
     if error:
         # Phase failures already printed their evidence above; only a hard
         # crash (traceback) prints here.
+        if _saved_con_file is not None:
+            con.file = _saved_con_file
+            _saved_con_file = None
         if "\n" in error:
             con.print(f"\n[red]Scan failed:[/red] {error}")
             return 2
@@ -497,6 +519,9 @@ def _run_scan_inner(
         _run_deep_scan_analysis(r, report, agent_results)
 
     if report is None:
+        if _saved_con_file is not None:
+            con.file = _saved_con_file
+            _saved_con_file = None
         con.print("\n[red]Scan returned no results.[/red]")
         return 2
 
@@ -974,7 +999,8 @@ def _run_scan_inner(
                     if d.action == "applied":
                         adapter_name = type(d.defense_action).__name__ if d.defense_action else "?"
                         con.print(
-                            f"    [green]✓[/green] {d.defense_action.type} → {d.defense_action.target} (via {adapter_name})"
+                            f"    [green]✓[/green] {d.defense_action.type} → "
+                            f"{d.defense_action.target} (via {adapter_name})"
                         )
                     elif d.action == "queued":
                         con.print(
@@ -1001,9 +1027,9 @@ def _run_scan_inner(
                 con.print(
                     f"  [green]✓[/green] Scheduler started with {len(scheduler._agents)} security agents"
                 )
-                con.print(
-                    f"  [dim]Default interval: {cfg.load(r).get('pipeline', {}).get('scheduler', {}).get('intervals', {}).get('default', '1h')}[/dim]"
-                )
+                _pipe = cfg.load(r).get("pipeline", {})
+                _interval = _pipe.get("scheduler", {}).get("intervals", {}).get("default", "1h")
+                con.print(f"  [dim]Default interval: {_interval}[/dim]")
                 con.print(
                     "  [dim]Use [bold]p hosted daemon[/bold] for production daemon mode[/dim]"
                 )
@@ -1085,6 +1111,11 @@ def _run_scan_inner(
     if json_output:
         import json
 
+        # Restore the real console before emitting the document.
+        if _saved_con_file is not None:
+            con.file = _saved_con_file
+            _saved_con_file = None
+
         from patchi.core.agents.coordinator import merge_results
 
         merged = (
@@ -1113,16 +1144,39 @@ def _run_scan_inner(
         circular_deps = [cd.short_label for cd in (report.circular_dependencies or [])]
         languages = dict(report.language_breakdown) if report.language_breakdown else {}
 
+        # Part 3 §2.5: skipped agents ship in the JSON with their reason so
+        # machine consumers can distinguish "clean" from "did not run".
+        skipped = []
+        for _r in agent_results or []:
+            if getattr(_r.status, "value", "") != "skipped":
+                continue
+            _d = _r.data if isinstance(_r.data, dict) else {}
+            skipped.append(
+                {
+                    "agent": _r.agent_name,
+                    "tool_missing": _d.get("tool_missing"),
+                    "reason": (
+                        _d.get("skip_reason")
+                        or _d.get("gate_reason")
+                        or (_r.errors[0] if _r.errors else None)
+                        or "skipped"
+                    ),
+                }
+            )
+
         result = {
             "file_count": report.file_count,
             "route_count": report.route_count,
             "health_score": health_score,
             "findings": findings,
+            "skipped": skipped,
             "languages": languages,
             "dead_files": dead_files,
             "circular_deps": circular_deps,
         }
-        con.print(json.dumps(result, indent=2))
+        # Plain print, not con.print: Rich soft-wraps at the console width
+        # (80 when piped), which corrupts JSON string values mid-line.
+        print(json.dumps(result, indent=2))
         from patchi.core import ci_bundle as _ci
 
         return _ci.exit_code_for(findings, fail_on)
@@ -1221,7 +1275,11 @@ def _run_file_scan(root: Path, file_path: str, deep: bool = False) -> None:
             lang = "python" if file_path.endswith(".py") else "javascript"
 
             system_prompt = SYSTEM_PROMPTS.get(Skill.DEEP_ANALYSIS, "You are a code analyst.")
-            user_prompt = f"Analyse this {lang} file:\n\nFILE: {file_path}\n\n```\n{content[:6000]}\n```\n\nReturn a JSON object with: purpose, functions (with issues), issues (with line numbers), and architecture notes."
+            user_prompt = (
+                f"Analyse this {lang} file:\n\nFILE: {file_path}\n\n```\n{content[:6000]}\n```\n\n"
+                "Return a JSON object with: purpose, functions (with issues), "
+                "issues (with line numbers), and architecture notes."
+            )
 
             result = call_ai(config, system_prompt, user_prompt, max_tokens=2000)
             if result:
@@ -1433,6 +1491,19 @@ def _show_report_summary(
 
     table.add_row("Scan duration", duration)
 
+    # Part 3 §2.5: the headline numbers must distinguish "checked and clean"
+    # from "never ran" — tool-missing skips are called out in the count.
+    if agent_results:
+        _skipped = [r for r in agent_results if getattr(r.status, "value", "") == "skipped"]
+        if _skipped:
+            n_tool = sum(
+                1 for r in _skipped if isinstance(r.data, dict) and r.data.get("tool_missing")
+            )
+            label = f"{len(_skipped)} agent(s) skipped"
+            if n_tool:
+                label += f" ({n_tool} tool-missing)"
+            table.add_row("Skipped", Text(label, style="yellow"))
+
     con.print(
         Panel(
             table,
@@ -1601,6 +1672,10 @@ def _show_agent_findings_summary(agent_results: list, root: Path | None = None) 
             "running": "#C8621A",
         }
         color = status_colors.get(r.status.value, "dim")
+        # Part 3 §2.5: a tool-missing skip is actionable (install hint), not
+        # noise — give it its own color so it never reads as a clean zero.
+        if r.status.value == "skipped" and isinstance(r.data, dict) and r.data.get("tool_missing"):
+            color = "#FF8C42"
         # Dim the noisy agents' finding counts
         finding_style = "dim" if r.agent_name in _NOISY_AGENTS_TABLE else ""
         ftext = Text(str(r.finding_count) if r.finding_count else "—", style=finding_style)
@@ -1612,6 +1687,38 @@ def _show_agent_findings_summary(agent_results: list, root: Path | None = None) 
         )
 
     con.print(table)
+
+    # Part 3 §2.5: skipped agents are printed with their reason, inline in the
+    # summary — "0 findings" from a never-run tool must be explainable in the
+    # same view as the findings themselves. Tool-missing skips come first
+    # (they carry an install hint); gate blocks follow.
+    skips: list[tuple[bool, str, str]] = []
+    for r in agent_results:
+        if getattr(r.status, "value", "") != "skipped":
+            continue
+        d = r.data if isinstance(r.data, dict) else {}
+        reason = (
+            d.get("skip_reason")
+            or d.get("gate_reason")
+            or (r.errors[0] if r.errors else None)
+            or "skipped"
+        )
+        skips.append((bool(d.get("tool_missing")), r.agent_name, str(reason)))
+    if skips:
+        skips.sort(key=lambda s: (not s[0], s[1]))  # tool-missing first, then name
+        n_tool = sum(1 for s in skips if s[0])
+        con.print()
+        head = f"[bold #FACC15]Skipped agents ({len(skips)})[/bold #FACC15]"
+        if n_tool:
+            head += f" — [bold #FF8C42]{n_tool} tool-missing[/bold #FF8C42]"
+        con.print(head)
+        for is_tool, name, reason in skips[:10]:
+            style = "#FF8C42" if is_tool else "dim"
+            con.print(f"  [{style}]○ {name}[/{style}] [dim]— {reason[:100]}[/dim]")
+        if len(skips) > 10:
+            con.print(f"  [dim]… and {len(skips) - 10} more[/dim]")
+        if n_tool:
+            con.print("[dim]Install missing tools with `p doctor --install`.[/dim]")
 
     # Show top critical/high findings
     top = [f for f in merged["findings"] if f.get("severity") in ("critical", "high")][:5]
@@ -1720,7 +1827,8 @@ def _show_changed_dry_run(root: Path, commits: int) -> None:
         return
 
     con.print(
-        f"  [bold]Changed files:[/bold] {len(diff_result.changed_files)} (from last {commits} commit{'s' if commits > 1 else ''})"
+        f"  [bold]Changed files:[/bold] {len(diff_result.changed_files)} "
+        f"(from last {commits} commit{'s' if commits > 1 else ''})"
     )
     con.print()
 
