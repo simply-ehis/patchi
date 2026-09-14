@@ -5,8 +5,7 @@ from __future__ import annotations
 import time
 from pathlib import Path
 
-from patchi.core.brain.doc_gaps import DocGap, detect_doc_gaps
-
+from patchi.core.brain.doc_gaps import detect_doc_gaps
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
 

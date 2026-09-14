@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from patchi.core.agents.sbom_generator import _build_cyclonedx, _MAX_DEPS
+from patchi.core.agents.sbom_generator import _MAX_DEPS, _build_cyclonedx
 
 
 class TestSBOMTruncation:

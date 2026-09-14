@@ -1,4 +1,4 @@
-"""Tests for new security agents: orchestrator, secrets guard, supply chain, IaC, policy, CVE monitor, red team, security test agent."""
+"""Tests for new security agents: orchestrator, secrets guard, supply chain, IaC, policy, CVE monitor, red team."""
 
 import tempfile
 import unittest

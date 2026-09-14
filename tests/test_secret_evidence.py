@@ -63,4 +63,6 @@ def test_public_key_not_secret():
 
 def test_pem_header_needs_body():
     assert not private_key_body_present("-----BEGIN RSA PRIVATE KEY-----\nsee docs\n-----END RSA PRIVATE KEY-----")
-    assert private_key_body_present("-----BEGIN RSA PRIVATE KEY-----\n" + "MIIB" * 40 + "\n-----END RSA PRIVATE KEY-----")
+    assert private_key_body_present(
+        "-----BEGIN RSA PRIVATE KEY-----\n" + "MIIB" * 40 + "\n-----END RSA PRIVATE KEY-----"
+    )

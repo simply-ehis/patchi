@@ -234,6 +234,167 @@ Keys stored in `.patchi/keys.json`, never sent elsewhere.
 
 ## Architecture
 
+<!-- BEGIN GENERATED: architecture-diagrams -->
+### Module dependency map
+
+Auto-generated from the live import graph — the highest fan-in core modules (22 shown of 511 Python modules).
+
+```mermaid
+---
+title: Patchi core module dependencies
+---
+flowchart LR
+    subgraph agents [agents]
+        agents_base_py["agents/base"]
+        agents_tool_health_py["tool_health"]
+    end
+    subgraph ai [ai]
+        ai_client_py["client"]
+    end
+    subgraph assurance [assurance]
+        assurance_graph_py["graph"]
+    end
+    subgraph brain [brain]
+        brain_languages_py["languages"]
+        brain_scanner_py["scanner"]
+        brain_brain_py["brain"]
+        brain_file_corpus_py["file_corpus"]
+        brain_import_graph_py["import_graph"]
+        brain_route_detector_base_py["route_detector/base"]
+        brain_route_mapper_py["route_mapper"]
+        brain_ast_utils_helpers_py["helpers"]
+        brain_route_detector_registry_py["registry"]
+        brain_type_checker_base_py["type_checker/base"]
+    end
+    subgraph cli [cli]
+        cli_console_py["console"]
+    end
+    subgraph fix [fix]
+        fix_patch_py["patch"]
+        fix_risk_gate_py["risk_gate"]
+    end
+    subgraph root [root]
+        config_py["config"]
+        constants_py["constants"]
+        health_py["health"]
+        tenant_py["tenant"]
+    end
+    subgraph security [security]
+        security_defenders_base_py["defenders/base"]
+    end
+    agents_base_py --> agents_tool_health_py
+    agents_base_py --> brain_file_corpus_py
+    agents_base_py --> brain_languages_py
+    config_py --> constants_py
+    ai_client_py --> config_py
+    ai_client_py --> constants_py
+    ai_client_py --> tenant_py
+    fix_patch_py --> constants_py
+    brain_scanner_py --> brain_file_corpus_py
+    brain_scanner_py --> brain_languages_py
+    brain_brain_py --> agents_base_py
+    brain_brain_py --> ai_client_py
+    brain_brain_py --> brain_file_corpus_py
+    brain_brain_py --> brain_import_graph_py
+    brain_brain_py --> brain_route_mapper_py
+    brain_brain_py --> brain_scanner_py
+    brain_brain_py --> config_py
+    brain_brain_py --> constants_py
+    brain_brain_py --> health_py
+    brain_file_corpus_py --> brain_languages_py
+    brain_import_graph_py --> brain_scanner_py
+    security_defenders_base_py --> agents_base_py
+    security_defenders_base_py --> fix_patch_py
+    security_defenders_base_py --> fix_risk_gate_py
+    brain_route_mapper_py --> brain_scanner_py
+    fix_risk_gate_py --> constants_py
+    fix_risk_gate_py --> fix_patch_py
+    health_py --> agents_base_py
+    tenant_py --> config_py
+    brain_ast_utils_helpers_py --> brain_languages_py
+    brain_route_detector_registry_py --> brain_route_detector_base_py
+```
+
+### Web dashboard routes
+
+Auto-generated route map — 210 endpoints in the bundled web UI.
+
+```mermaid
+---
+title: Patchi web dashboard routes
+---
+flowchart LR
+    subgraph method_get [GET]
+        GET_status["/status"]
+        GET_config["/config"]
+        GET_queue["/queue"]
+        GET_findings["/findings"]
+        GET_brain_nodes["/brain/nodes"]
+        GET_ants["/ants"]
+        GET_review["/review"]
+        GET_history["/history"]
+        GET_security["/security"]
+        GET_security_report["/security/report"]
+        GET_tests["/tests"]
+        GET_memory["/memory"]
+        GET_memory_brain["/memory/brain"]
+        GET_memory_patches["/memory/patches"]
+        GET_memory_issues["/memory/issues"]
+        GET_memory_failed["/memory/failed"]
+        GET_memory_scans["/memory/scans"]
+        GET_memory_restrictions["/memory/restrictions"]
+        GET_memory_tokens["/memory/tokens"]
+        GET_health_breakdown["/health-breakdown"]
+        GET_report_markdown["/report/markdown"]
+        GET_guard["/guard"]
+        GET_keys["/keys"]
+        GET_notifications["/notifications"]
+        GET_doctor["/doctor"]
+        GET_model_status["/model/status"]
+        GET_agents["/agents"]
+        GET_test_agents["/test-agents"]
+        GET_restrict["/restrict"]
+        GET_explain["/explain"]
+    end
+    subgraph method_post [POST]
+        POST_queue_pause["/queue/pause"]
+        POST_queue_resume["/queue/resume"]
+        POST_fix_accept["/fix/accept"]
+        POST_fix_reject["/fix/reject"]
+        POST_security_quick_scan["/security/quick-scan"]
+        POST_security_full_scan["/security/full-scan"]
+        POST_tests_create_suite["/tests/create-suite"]
+        POST_patch_apply["/patch/apply"]
+        POST_patch_reject["/patch/reject"]
+        POST_patch_delete["/patch/delete"]
+        POST_issue_resolve["/issue/resolve"]
+        POST_scan_start["/scan/start"]
+        POST_scan_stop["/scan/stop"]
+        POST_action_scan["/action/scan"]
+        POST_action_scan_deep["/action/scan-deep"]
+        POST_action_fix["/action/fix"]
+        POST_action_security["/action/security"]
+        POST_action_test["/action/test"]
+        POST_queue_clear["/queue/clear"]
+        POST_memory_clear["/memory/clear"]
+        POST_config["/config"]
+        POST_keys_add["/keys/add"]
+        POST_keys_remove["/keys/remove"]
+        POST_undo["/undo"]
+        POST_redo["/redo"]
+        POST_notifications_add["/notifications/add"]
+        POST_notifications_test["/notifications/test"]
+        POST_notifications_remove["/notifications/remove"]
+        POST_model_set["/model/set"]
+        POST_watch_start["/watch/start"]
+    end
+    subgraph method_delete [DELETE]
+        DELETE_tokens_token_id["/tokens/{token_id}"]
+        DELETE_webhooks_hook_id["/webhooks/{hook_id}"]
+    end
+```
+<!-- END GENERATED: architecture-diagrams -->
+
 ```
 patchi/
 ├── cli/                    # Command-line interface

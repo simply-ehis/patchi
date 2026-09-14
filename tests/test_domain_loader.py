@@ -287,7 +287,9 @@ class TestLazyScopedLoading:
             encoding="utf-8",
         )
         (pb / "auth-session.playbook.yaml").write_text(
-            yaml.dump({"playbooks": [{"control_id": "AUTH-01", "fix_strategy": "manual-only", "verification_checks": []}]}),
+            yaml.dump(
+                {"playbooks": [{"control_id": "AUTH-01", "fix_strategy": "manual-only", "verification_checks": []}]}
+            ),
             encoding="utf-8",
         )
         monkeypatch.setattr(

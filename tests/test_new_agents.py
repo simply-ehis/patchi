@@ -374,7 +374,11 @@ class TestAuthenticationAudit:
             inp = AgentInput(root=root, scope=[], brain={}, config={}, extra={}, domain="web", purpose="web")
             result = agent.run(inp)
             assert result.status.value != "skipped"
-            secret = [f for f in result.findings if "secret" in f.message.lower() or "session_secret" in f.code_snippet.lower()]
+            secret = [
+                f
+                for f in result.findings
+                if "secret" in f.message.lower() or "session_secret" in f.code_snippet.lower()
+            ]
             assert len(secret) >= 1
 
     def test_multilang_scanning(self):
@@ -1204,7 +1208,11 @@ class TestFixAgentsParity:
         from patchi.core.fix import code_fixer
 
         captured = {}
-        with mock.patch.object(code_fixer, "_call_ai", lambda prompt, cfg, **kwargs: captured.setdefault("p", prompt) or "```\nprint('x')\n```"):
+        with mock.patch.object(
+            code_fixer,
+            "_call_ai",
+            lambda prompt, cfg, **kwargs: captured.setdefault("p", prompt) or "```\nprint('x')\n```",
+        ):
             agent = CodeFixer()
             with tempfile.TemporaryDirectory() as tmp:
                 root = Path(tmp)

@@ -196,10 +196,14 @@ class TestJavaIntegrationScan(unittest.TestCase):
         pkg_dir = self._root / "src" / "main" / "java" / "com" / "example"
         pkg_dir.mkdir(parents=True, exist_ok=True)
         (pkg_dir / "Greeter.java").write_text(
-            "package com.example;\n\npublic class Greeter {\n\tpublic String greet(String name) {\n\t\treturn \"Hello, \" + name;\n\t}\n}\n"
+            "package com.example;\n\npublic class Greeter {\n"
+            "\tpublic String greet(String name) {\n\t\treturn \"Hello, \" + name;\n\t}\n"
+            "}\n"
         )
         (pkg_dir / "App.java").write_text(
-            "package com.example;\n\npublic class App {\n\tpublic static void main(String[] args) {\n\t\tGreeter g = new Greeter();\n\t\tSystem.out.println(g.greet(\"world\"));\n\t}\n}\n"
+            "package com.example;\n\npublic class App {\n"
+            "\tpublic static void main(String[] args) {\n\t\tGreeter g = new Greeter();\n"
+            "\t\tSystem.out.println(g.greet(\"world\"));\n\t}\n}\n"
         )
 
     def tearDown(self):

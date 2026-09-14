@@ -74,21 +74,24 @@ def dependency_diagram(
     Nodes beyond *max_nodes* are truncated (the highest fan-in nodes
     are kept first, per Part 4 §1).
     """
-    nodes = sorted(graph.nodes)[:max_nodes]
+    # Rank by fan-in across the WHOLE graph first, then truncate. Ranking
+    # after truncation would keep the first *max_nodes* alphabetically and
+    # silently drop the actual hubs (and with them most edges).
+    all_nodes = sorted(graph.nodes)
+    fan_in: dict[str, int] = {n: len(graph.reverse.get(n, set())) for n in all_nodes}
+    nodes = sorted(all_nodes, key=lambda n: fan_in.get(n, 0), reverse=True)[:max_nodes]
     node_set = set(nodes)
-
-    # Compute fan-in (how many other files import this one).
-    fan_in: dict[str, int] = {}
-    for n in nodes:
-        fan_in[n] = len(graph.reverse.get(n, set()) & node_set)
-
-    # Sort by fan-in descending — keep the most-depended-on nodes.
-    nodes = sorted(nodes, key=lambda n: fan_in.get(n, 0), reverse=True)[:max_nodes]
 
     lines = ["---", f"title: {title}", "---", "flowchart LR"]
 
     # Group nodes by top-level directory.
     groups = _group_by_dir(nodes)
+
+    # Disambiguate colliding stems (e.g. several base.py) by prefixing the
+    # parent directory — same-text boxes read as the same module otherwise.
+    from collections import Counter
+
+    stem_counts = Counter(_short_label(m) for m in nodes)
 
     for dir_name, members in sorted(groups.items()):
         sub_id = _safe_id(dir_name)
@@ -96,6 +99,9 @@ def dependency_diagram(
         for m in members:
             nid = _safe_id(m)
             label = _short_label(m)
+            if stem_counts[label] > 1:
+                parent = PurePosixPath(m.replace("\\", "/")).parent.name
+                label = html.escape(f"{parent}/{label}")
             lines.append(f'        {nid}["{label}"]')
         lines.append("    end")
 

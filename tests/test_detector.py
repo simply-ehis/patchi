@@ -135,8 +135,12 @@ class TestEventBus(IsolatedAsyncioTestCase):
 
         bus.subscribe(handler, min_severity=EventSeverity.HIGH)
 
-        low = Event(source=EventSource.AGENT, technique_id=TechniqueID.UNKNOWN, summary="Low", severity=EventSeverity.LOW)
-        high = Event(source=EventSource.AGENT, technique_id=TechniqueID.UNKNOWN, summary="High", severity=EventSeverity.HIGH)
+        low = Event(
+            source=EventSource.AGENT, technique_id=TechniqueID.UNKNOWN, summary="Low", severity=EventSeverity.LOW
+        )
+        high = Event(
+            source=EventSource.AGENT, technique_id=TechniqueID.UNKNOWN, summary="High", severity=EventSeverity.HIGH
+        )
 
         await bus.publish(low)
         await bus.publish(high)

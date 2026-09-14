@@ -327,7 +327,9 @@ class TestTypeChecking:
         assert isinstance(issues, list)
 
     def test_java_type_issues(self):
-        source = (FIXTURES / "java" / "src" / "main" / "java" / "com" / "example" / "demo" / "UserService.java").read_text()
+        source = (
+            FIXTURES / "java" / "src" / "main" / "java" / "com" / "example" / "demo" / "UserService.java"
+        ).read_text()
         issues = check_types(source, Lang.JAVA, "UserService.java")
         assert isinstance(issues, list)
 

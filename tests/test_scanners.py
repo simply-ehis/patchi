@@ -181,7 +181,8 @@ class TestUIScanner(unittest.TestCase):
         _write(
             self.root,
             "src/Header.tsx",
-            "interface Props { title: string; }\nexport default function Header({ title }: Props) { return <h1>{title}</h1>; }\n",
+            "interface Props { title: string; }\n"
+            "export default function Header({ title }: Props) { return <h1>{title}</h1>; }\n",
         )
         result = UIScanner().run(_inp(self.root))
         ct = result.data.get("component_tree", {})
@@ -191,7 +192,8 @@ class TestUIScanner(unittest.TestCase):
         _write(
             self.root,
             "src/Card.tsx",
-            "interface CardProps { title: string; }\nexport default function Card(props: CardProps) { return <div/>; }\n",
+            "interface CardProps { title: string; }\n"
+            "export default function Card(props: CardProps) { return <div/>; }\n",
         )
         result = UIScanner().run(_inp(self.root))
         entry = result.data["component_tree"].get("src/Card.tsx", {})

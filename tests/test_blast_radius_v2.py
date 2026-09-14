@@ -36,7 +36,9 @@ class MockSymbolGraph:
         self._dependencies: dict[int, list[MockSymbolNode]] = {}
         self._next_id = 1
 
-    def add_symbol(self, name: str, file: str, kind: str = "function", line: int = 1, exported: bool = False) -> MockSymbolNode:
+    def add_symbol(
+        self, name: str, file: str, kind: str = "function", line: int = 1, exported: bool = False
+    ) -> MockSymbolNode:
         sym = MockSymbolNode(
             id=self._next_id,
             name=name,

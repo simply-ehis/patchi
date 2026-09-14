@@ -146,7 +146,10 @@ class TestParseClaims(unittest.TestCase):
         self.assertEqual(claims[0]["claim"], "uses Redis")
 
     def test_parse_json_embedded_in_text(self):
-        claims = self._parse('Some text before\n[{"claim": "CLI tool", "category": "feature", "evidence_hints": []}]\ntext after')
+        claims = self._parse(
+            'Some text before\n[{"claim": "CLI tool", "category": "feature", "evidence_hints": []}]'
+            "\ntext after"
+        )
         self.assertEqual(len(claims), 1)
 
     def test_parse_empty_array(self):

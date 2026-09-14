@@ -40,7 +40,12 @@ def test_attached_waf_silences_missing():
 
 def test_geo_restriction_present_is_info_not_missing():
     res = _run(
-        {"waf.tf": 'resource "aws_wafv2_web_acl" "x" {\n  rule {\n    action {\n      block {}\n    }\n    statement {\n      geo_match_statement {\n        country_codes = ["US"]\n      }\n    }\n  }\n}\n'}
+        {
+            "waf.tf": 'resource "aws_wafv2_web_acl" "x" {\n'
+            '  rule {\n    action {\n      block {}\n    }\n'
+            '    statement {\n      geo_match_statement {\n        country_codes = ["US"]\n'
+            '      }\n    }\n  }\n}\n'
+        }
     )
     assert ("waf_geo_ip_restriction", Severity.INFO) in _types(res)
     assert not [f for f in res.findings if f.type == "no_ip_restriction_admin"]

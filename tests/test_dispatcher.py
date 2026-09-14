@@ -74,9 +74,27 @@ class TestDispatcher(TestCase):
 
     def test_dispatch_batch(self):
         events = [
-            Event(source=EventSource.AGENT, technique_id=TechniqueID.INJECTION, summary="E1", severity=EventSeverity.HIGH, confidence=0.7),
-            Event(source=EventSource.HEARTBEAT, technique_id=TechniqueID.NONE, summary="E2", severity=EventSeverity.INFO, confidence=0.1),
-            Event(source=EventSource.SECRET_SCAN, technique_id=TechniqueID.SECRETS_FROM_STORE, summary="E3", severity=EventSeverity.CRITICAL, confidence=0.9),
+            Event(
+                source=EventSource.AGENT,
+                technique_id=TechniqueID.INJECTION,
+                summary="E1",
+                severity=EventSeverity.HIGH,
+                confidence=0.7,
+            ),
+            Event(
+                source=EventSource.HEARTBEAT,
+                technique_id=TechniqueID.NONE,
+                summary="E2",
+                severity=EventSeverity.INFO,
+                confidence=0.1,
+            ),
+            Event(
+                source=EventSource.SECRET_SCAN,
+                technique_id=TechniqueID.SECRETS_FROM_STORE,
+                summary="E3",
+                severity=EventSeverity.CRITICAL,
+                confidence=0.9,
+            ),
         ]
         results = self.dispatcher.dispatch_batch(events)
         # Heartbeat should be filtered out

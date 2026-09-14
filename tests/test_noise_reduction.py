@@ -20,7 +20,7 @@ from patchi.core.security.noise_filter import (
 )
 from patchi.core.security.orchestrator import CorrelatedFinding, Finding
 
-# â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# -- Helpers --
 
 
 def make_finding(
@@ -48,7 +48,7 @@ def make_cf(**kwargs) -> CorrelatedFinding:
     return CorrelatedFinding(finding=make_finding(**kwargs), confirmed_by=["a1"])
 
 
-# â”€â”€ classify(): path â†’ category â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# -- classify(): path -> category --
 
 
 class TestClassify:
@@ -90,7 +90,7 @@ class TestClassify:
         assert classify("src\\tests\\test_x.py") == "tests"
 
 
-# â”€â”€ NoiseFilter.apply() â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# -- NoiseFilter.apply() --
 
 
 class TestNoiseFilterDicts:
@@ -201,7 +201,7 @@ class TestNoiseFilterApply:
         assert "noise_category" and True  # cap survives scoring
 
 
-# â”€â”€ ConfidenceGate: FP memory â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# -- ConfidenceGate: FP memory --
 
 
 class TestFalsePositiveMemory:
@@ -274,7 +274,7 @@ class TestFalsePositiveMemory:
         assert penalized < baseline
 
 
-# â”€â”€ ConfidenceGate: consensus enforcement â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# -- ConfidenceGate: consensus enforcement --
 
 
 class TestAgentConsensus:
@@ -326,7 +326,7 @@ class TestAgentConsensus:
         assert gate.gate(cf).routing == "defend"
 
 
-# â”€â”€ ConfidenceGate: AI calibration â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# -- ConfidenceGate: AI calibration --
 
 
 class TestAICalibration:
@@ -364,7 +364,7 @@ class TestAICalibration:
         assert 0.0 <= s_neg <= 1.0 and 0.0 <= s_big <= 1.0
 
 
-# â”€â”€ Integration: pipeline stage ordering â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# -- Integration: pipeline stage ordering --
 
 
 class TestPipelineIntegration:

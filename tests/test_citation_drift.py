@@ -3,8 +3,6 @@
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-import pytest
-
 from patchi.core.brain.doc_validator import (
     DriftIssue,
     _build_symbol_index,
@@ -15,7 +13,6 @@ from patchi.core.brain.doc_validator import (
 )
 from patchi.core.brain.languages import Lang
 from patchi.core.brain.scanner import ClassInfo, FileInfo, FunctionInfo
-
 
 # ── Helpers ──────────────────────────────────────────────────────────────────────
 
