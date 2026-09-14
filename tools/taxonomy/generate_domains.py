@@ -3,9 +3,21 @@
 Patchi Security Domain Generator — Creates 800 comprehensive security domains
 and their matching playbooks from OWASP, CWE, NIST, SANS, MITRE ATT&CK,
 CIS, PCI DSS, HIPAA, SOC 2, GDPR, ISO 27001, and technology-specific sources.
+
+Outputs:
+  <patchi-root>/core/security/domains/<id>.yaml
+  <patchi-root>/core/security/fix-playbooks/<id>.playbook.yaml
+
+Usage (from anywhere):
+  python tools/taxonomy/generate_domains.py               # regenerate in-repo
+  python tools/taxonomy/generate_domains.py --out DEST    # write into DEST
+
+DEST defaults to the repository root (parent of tools/). Inside DEST the
+patchi/core/security/{domains,fix-playbooks} layout is created. When neither
+exists yet (e.g. a DEST scratch dir), the files land directly under
+DEST/domains and DEST/fix-playbooks.
 """
 from pathlib import Path
-import textwrap
 
 DOMAINS_DIR = Path("patchi/core/security/domains")
 PLAYBOOKS_DIR = Path("patchi/core/security/fix-playbooks")
@@ -942,7 +954,7 @@ def _gen_activation_signals(did, ctype, source, name):
     """Generate meaningful activation signals based on domain characteristics."""
     signals = []
     excluded = []
-    
+
     # Component-type based signals
     ctype_map = {
         'backend-api': ['route_handler_detected', 'api_endpoint_present', 'server_side_code_detected'],
@@ -959,7 +971,7 @@ def _gen_activation_signals(did, ctype, source, name):
     }
     base_signals = ctype_map.get(ctype.split(',')[0].strip(), ['code_detected'])
     signals.extend(base_signals)
-    
+
     # Technology-specific signals from domain_id
     tech_patterns = {
         'django': ['django_project_detected'], 'flask': ['flask_app_detected'],
@@ -993,7 +1005,7 @@ def _gen_activation_signals(did, ctype, source, name):
         if key in did.lower():
             signals.extend(pats)
             break
-    
+
     # OWASP/framework-specific signals
     if 'owasp' in did or 'asvs' in did:
         signals.append('web_application_detected')
@@ -1023,11 +1035,11 @@ def _gen_activation_signals(did, ctype, source, name):
         signals.append('security_monitoring_active')
     if 'threat' in did:
         signals.append('threat_modeling_active')
-    
+
     # Ensure at least 3 signals
     if len(signals) < 3:
         signals.append('code_in_scope')
-    
+
     # Deduplicate while preserving order
     seen = set()
     unique = []
@@ -1035,9 +1047,9 @@ def _gen_activation_signals(did, ctype, source, name):
         if s not in seen:
             seen.add(s)
             unique.append(s)
-    
+
     excluded.append(f'no_relevant_code_for_{ctype.split(",")[0].strip()}')
-    
+
     return unique[:5], excluded  # max 5 signals per domain
 
 
@@ -1154,10 +1166,36 @@ def generate_playbook_yaml(did, name, source, sev):
     return header + "\n".join(controls) + "\n"
 
 
-def main():
+def _resolve_output_dirs(dest: Path) -> tuple[Path, Path]:
+    """Resolve (domains_dir, playbooks_dir) under ``dest``.
+
+    Default (repo root): patchi/core/security/{domains,fix-playbooks},
+    matching the in-repo taxonomy location. Scratch destinations without a
+    patchi/ package get a flat <dest>/{domains,fix-playbooks} layout.
+    """
+    if (dest / "patchi").is_dir():
+        return dest / DOMAINS_DIR, dest / PLAYBOOKS_DIR
+    return dest / "domains", dest / "fix-playbooks"
+
+
+def main() -> None:
+    import argparse
     import os
-    os.makedirs(DOMAINS_DIR, exist_ok=True)
-    os.makedirs(PLAYBOOKS_DIR, exist_ok=True)
+
+    parser = argparse.ArgumentParser(
+        description="Regenerate the Patchi security domain + playbook YAML taxonomy."
+    )
+    parser.add_argument(
+        "--out",
+        type=Path,
+        default=Path(__file__).resolve().parent.parent.parent,
+        help="Output root (defaults to this repository's root directory)",
+    )
+    args = parser.parse_args()
+
+    domains_dir, playbooks_dir = _resolve_output_dirs(args.out)
+    os.makedirs(domains_dir, exist_ok=True)
+    os.makedirs(playbooks_dir, exist_ok=True)
 
     count = 0
     seen_ids = set()
@@ -1169,16 +1207,16 @@ def main():
         domain_yaml = generate_domain_yaml(did, name, source, ctype, weight, clause, desc, sev, check)
         playbook_yaml = generate_playbook_yaml(did, name, source, sev)
 
-        domain_file = DOMAINS_DIR / f"{did}.yaml"
-        playbook_file = PLAYBOOKS_DIR / f"{did}.playbook.yaml"
+        domain_file = domains_dir / f"{did}.yaml"
+        playbook_file = playbooks_dir / f"{did}.playbook.yaml"
 
         domain_file.write_text(domain_yaml, encoding="utf-8")
         playbook_file.write_text(playbook_yaml, encoding="utf-8")
 
         count += 1
 
-    print(f"Generated {count} domain YAMLs in {DOMAINS_DIR}")
-    print(f"Generated {count} playbook YAMLs in {PLAYBOOKS_DIR}")
+    print(f"Generated {count} domain YAMLs in {domains_dir}")
+    print(f"Generated {count} playbook YAMLs in {playbooks_dir}")
     print(f"Total controls: {count * 5}")
 
 

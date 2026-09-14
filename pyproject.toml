@@ -108,7 +108,9 @@ select = [
 ignore = []
 # NOTE: TOML inline tables are single-line only (v1.0)
 # T201 ignored for CLI commands and dev scripts: print() IS the user-facing output there.
-per-file-ignores = { "tests/*" = ["S101", "T201", "T203"], "patchi/core/security/domain_loader.py" = ["E501"], "patchi/cli/commands/*" = ["T201"], "tools/*" = ["T201"] }
+# generate_domains.py: the 800 domain-definition data rows are long by nature
+# (full control descriptions); wrapping them would corrupt the data tables.
+per-file-ignores = { "tests/*" = ["S101", "T201", "T203"], "patchi/core/security/domain_loader.py" = ["E501"], "patchi/cli/commands/*" = ["T201"], "tools/*" = ["T201"], "tools/taxonomy/generate_domains.py" = ["E501"] }
 
 [tool.ruff.format]
 indent-style = "space"
