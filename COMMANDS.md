@@ -574,6 +574,10 @@ Clean stale `.patchi/` artifacts.
 ### `p why <path>`
 Explain why a file matters (dependency analysis, risk score, findings).
 
+| Flag | Effect |
+|------|--------|
+| `--mermaid` | Emit the explanation path as Mermaid sequence diagrams (dependents + call flow) |
+
 ### `p impact [files..]` (alias: `p blast`)
 Show change impact / blast radius.
 

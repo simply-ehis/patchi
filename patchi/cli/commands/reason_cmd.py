@@ -2,6 +2,7 @@
 `p why` / `p impact` — Reasoning Engine views (restored).
 
   p why src/auth/login.py                   — why a file matters (dependents)
+  p why src/auth/login.py --mermaid         — the same answer as Mermaid diagrams
   p impact src/api/routes.py                — change-impact / blast radius report
   p impact --all                            — blast-radius map for every file
 
@@ -38,12 +39,18 @@ from patchi.core.config import require_project_root
 _log = logging.getLogger("patchi.cli.commands.reason_cmd")
 
 
-def run_why(path: str, root: Path | None = None) -> None:
+def run_why(path: str, root: Path | None = None, mermaid: bool = False) -> None:
     """p why <file> — why a file matters."""
     try:
         r = root or require_project_root()
     except RuntimeError as e:
         con.print(f"[red]{e}[/red]")
+        return
+
+    # --mermaid needs only the import graph, not the layered brain, so it
+    # stays useful even when layers are stale or absent.
+    if mermaid:
+        _emit_mermaid(r, path)
         return
 
     engine = ReasoningEngine(r)
@@ -71,6 +78,63 @@ def run_why(path: str, root: Path | None = None) -> None:
         )
     )
     con.print()
+
+
+def _cached_graph(root: Path):
+    """ImportGraph from cached brain memory (no raw-source reads — `p why`
+    stays instant and offline-safe). Returns None when no scan data exists."""
+    from patchi.core import memory as mem
+    from patchi.core.brain.import_graph import ImportGraph
+
+    data = (mem.get_brain(root) or {}).get("import_graph") or {}
+    if not data.get("nodes"):
+        return None
+    graph = ImportGraph()
+    for n in data["nodes"]:
+        graph.nodes.add(n)
+    for src, targets in (data.get("edges") or {}).items():
+        for tgt in targets:
+            graph.add_edge(src, tgt)
+    return graph
+
+
+def _emit_mermaid(root: Path, path: str) -> None:
+    """--mermaid: the explanation path as Mermaid sequence diagrams.
+
+    Two walks over the cached import graph, reusing brain/mermaid.py:
+      1. dependents — who calls this file (why it matters)
+      2. call flow  — what this file leans on (what changes drag in)
+    The target is synthesized as a pseudo-route so sequence_diagram's
+    handler walk starts at the file itself.
+    """
+    from patchi.core.brain.mermaid import sequence_diagram
+    from patchi.core.brain.route_mapper import RouteInfo
+
+    graph = _cached_graph(root)
+    if graph is None:
+        con.print("[yellow]No import graph data. Run `p scan` first, then re-run with --mermaid.[/yellow]")
+        return
+
+    route = RouteInfo(method="USE", path=path, handler=Path(path).stem, file=path, line=1)
+
+    reversed_graph = type(graph)()
+    for n in graph.nodes:
+        reversed_graph.nodes.add(n)
+    for src, targets in graph.edges.items():
+        for tgt in targets:
+            reversed_graph.add_edge(tgt, src)  # dependents become the walk
+
+    blocks = [
+        ("Dependents — who calls this file", reversed_graph),
+        ("Call flow — what this file leans on", graph),
+    ]
+    con.print()
+    for title, g in blocks:
+        con.print(f"[bold]{title}[/bold]")
+        con.print("```mermaid")
+        con.print(sequence_diagram([route], g, entry=path, title=f"p why — {path}"))
+        con.print("```")
+        con.print()
 
 
 def run_impact(

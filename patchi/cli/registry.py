@@ -467,7 +467,15 @@ COMMANDS: list[Command] = [
         "why",
         "Explain why a file matters",
         "patchi.cli.commands.reason_cmd:run_why",
-        args=(Arg("path", help="File path to explain"),),
+        args=(
+            Arg("path", help="File path to explain"),
+            Arg(
+                "--mermaid",
+                dest="mermaid",
+                action="store_true",
+                help="Emit the explanation path as Mermaid sequence diagrams",
+            ),
+        ),
     ),
     Command(
         "impact",
