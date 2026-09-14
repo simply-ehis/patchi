@@ -43,8 +43,18 @@ async def run_dev_check(request: Request, strict: bool = False, fast: bool = Fal
     # Gate 1: Ruff
     gate1 = await _run_gate(
         "Ruff Lint",
-        ["python", "-m", "ruff", "check", "patchi/",
-         "--select", "E,F,W", "--ignore", "E501,E402,E741", "--quiet"],
+        [
+            "python",
+            "-m",
+            "ruff",
+            "check",
+            "patchi/",
+            "--select",
+            "E,F,W",
+            "--ignore",
+            "E501,E402,E741",
+            "--quiet",
+        ],
         root,
         timeout=30,
     )
@@ -54,66 +64,109 @@ async def run_dev_check(request: Request, strict: bool = False, fast: bool = Fal
 
     # Gate 2: Pytest — stable test files only
     _STABLE = [
-        "tests/test_config.py", "tests/test_charter.py", "tests/test_contract.py",
-        "tests/test_base.py", "tests/test_memory.py",
-        "tests/test_web.py", "tests/test_assurance.py",
-        "tests/test_risk_gate.py", "tests/test_scanner.py", "tests/test_detector.py",
-        "tests/test_secrets.py", "tests/test_security_config.py",
-        "tests/test_sigma_engine.py", "tests/test_blast_radius_v2.py",
+        "tests/test_config.py",
+        "tests/test_charter.py",
+        "tests/test_contract.py",
+        "tests/test_base.py",
+        "tests/test_memory.py",
+        "tests/test_web.py",
+        "tests/test_assurance.py",
+        "tests/test_risk_gate.py",
+        "tests/test_scanner.py",
+        "tests/test_detector.py",
+        "tests/test_secrets.py",
+        "tests/test_security_config.py",
+        "tests/test_sigma_engine.py",
+        "tests/test_blast_radius_v2.py",
         "tests/test_chain_engine.py",
-        "tests/test_language_support.py", "tests/test_ast_utils.py",
+        "tests/test_language_support.py",
+        "tests/test_ast_utils.py",
         "tests/test_import_graph.py",
-        "tests/test_hosted_mode.py", "tests/test_hosted_tokens.py",
-        "tests/test_hosted_audit_log.py", "tests/test_hosted_ip_reputation.py",
-        "tests/test_hosted_log_parsers.py", "tests/test_hosted_watchlist.py",
+        "tests/test_hosted_mode.py",
+        "tests/test_hosted_tokens.py",
+        "tests/test_hosted_audit_log.py",
+        "tests/test_hosted_ip_reputation.py",
+        "tests/test_hosted_log_parsers.py",
+        "tests/test_hosted_watchlist.py",
         "tests/test_hosted_anomaly.py",
-        "tests/test_new_agents.py", "tests/test_p3_agents.py",
-        "tests/test_v2_agent_audit.py", "tests/test_v2_smoke.py",
-        "tests/test_attack_agent.py", "tests/test_doc_claim_agent.py",
-        "tests/test_fix_agents.py", "tests/test_scanners.py",
+        "tests/test_new_agents.py",
+        "tests/test_p3_agents.py",
+        "tests/test_v2_agent_audit.py",
+        "tests/test_v2_smoke.py",
+        "tests/test_attack_agent.py",
+        "tests/test_doc_claim_agent.py",
+        "tests/test_fix_agents.py",
+        "tests/test_scanners.py",
         "tests/test_smart_agent.py",
-        "tests/test_governor_v2.py", "tests/test_governor_integration.py",
-        "tests/test_layered_brain.py", "tests/test_brain_watcher.py",
+        "tests/test_governor_v2.py",
+        "tests/test_governor_integration.py",
+        "tests/test_layered_brain.py",
+        "tests/test_brain_watcher.py",
         "tests/test_rebuilt_modules.py",
-        "tests/test_reasoning.py", "tests/test_noise_reduction.py",
-        "tests/test_ignore_learner.py", "tests/test_corpus_noise.py",
-        "tests/test_ai_client.py", "tests/test_debug_capture.py",
-        "tests/test_debug_codelldb.py", "tests/test_debug_node.py",
+        "tests/test_reasoning.py",
+        "tests/test_noise_reduction.py",
+        "tests/test_ignore_learner.py",
+        "tests/test_corpus_noise.py",
+        "tests/test_ai_client.py",
+        "tests/test_debug_capture.py",
+        "tests/test_debug_codelldb.py",
+        "tests/test_debug_node.py",
         "tests/test_debug_powershell.py",
-        "tests/test_freshness.py", "tests/test_patch.py",
-        "tests/test_proactive.py", "tests/test_proactive_phase5.py",
-        "tests/test_snapshot.py", "tests/test_verify.py",
-        "tests/test_verify_loop.py", "tests/test_generated_suite.py",
-        "tests/test_app_profile.py", "tests/test_audit.py",
+        "tests/test_freshness.py",
+        "tests/test_patch.py",
+        "tests/test_proactive.py",
+        "tests/test_proactive_phase5.py",
+        "tests/test_snapshot.py",
+        "tests/test_verify.py",
+        "tests/test_verify_loop.py",
+        "tests/test_generated_suite.py",
+        "tests/test_app_profile.py",
+        "tests/test_audit.py",
         "tests/test_framework.py",
-        "tests/test_new_features.py", "tests/test_route_mapper.py",
-        "tests/test_applier.py", "tests/test_dispatcher.py",
-        "tests/test_notifications.py", "tests/test_queue.py",
-        "tests/test_scheduler.py", "tests/test_domain_loader.py",
+        "tests/test_new_features.py",
+        "tests/test_route_mapper.py",
+        "tests/test_applier.py",
+        "tests/test_dispatcher.py",
+        "tests/test_notifications.py",
+        "tests/test_queue.py",
+        "tests/test_scheduler.py",
+        "tests/test_domain_loader.py",
     ]
     _CORE = [
-        "tests/test_config.py", "tests/test_charter.py", "tests/test_contract.py",
-        "tests/test_base.py", "tests/test_memory.py", "tests/test_web.py",
-        "tests/test_risk_gate.py", "tests/test_scanner.py", "tests/test_detector.py",
-        "tests/test_secrets.py", "tests/test_language_support.py", "tests/test_ast_utils.py",
-        "tests/test_import_graph.py", "tests/test_ai_client.py",
-        "tests/test_freshness.py", "tests/test_framework.py",
+        "tests/test_config.py",
+        "tests/test_charter.py",
+        "tests/test_contract.py",
+        "tests/test_base.py",
+        "tests/test_memory.py",
+        "tests/test_web.py",
+        "tests/test_risk_gate.py",
+        "tests/test_scanner.py",
+        "tests/test_detector.py",
+        "tests/test_secrets.py",
+        "tests/test_language_support.py",
+        "tests/test_ast_utils.py",
+        "tests/test_import_graph.py",
+        "tests/test_ai_client.py",
+        "tests/test_freshness.py",
+        "tests/test_framework.py",
     ]
     _ptests = _CORE if fast else _STABLE
     # Use xdist only on 4+ CPU machines
     _ptargs = ["python", "-m", "pytest"]
     import os as _os
+
     if _os.cpu_count() and _os.cpu_count() >= 4:
         try:
             import xdist  # noqa: F401
+
             _ptargs += ["-n", "auto", "--dist", "loadscope"]
         except ImportError:
             pass
     gate2 = await _run_gate(
-        "Pytest", _ptargs + _ptests + [
-         "-q", "--tb=no"],
-         root,
-         timeout=360,
+        "Pytest",
+        _ptargs + _ptests + ["-q", "--tb=no"],
+        root,
+        timeout=360,
     )
     results["gates"].append(gate2)
     if gate2["status"] != "PASS":
@@ -122,8 +175,7 @@ async def run_dev_check(request: Request, strict: bool = False, fast: bool = Fal
     # Gate 3: Security Scan (changed files)
     gate3 = await _run_gate(
         "Security Scan",
-        ["python", "-m", "patchi.cli.main", "scan",
-         "--changed", "--quiet", "--json"],
+        ["python", "-m", "patchi.cli.main", "scan", "--changed", "--quiet", "--json"],
         root,
         timeout=60,
     )
@@ -155,8 +207,9 @@ async def _run_gate(
         # Use temp files to avoid pipe deadlock on Windows when
         # pytest subprocess tests keep pipe handles open.
         import tempfile
-        tmp_out = tempfile.NamedTemporaryFile(mode='wb', suffix='.out', delete=False)
-        tmp_err = tempfile.NamedTemporaryFile(mode='wb', suffix='.err', delete=False)
+
+        tmp_out = tempfile.NamedTemporaryFile(mode="wb", suffix=".out", delete=False)
+        tmp_err = tempfile.NamedTemporaryFile(mode="wb", suffix=".err", delete=False)
         try:
             proc = await asyncio.create_subprocess_exec(
                 *cmd,
@@ -170,15 +223,17 @@ async def _run_gate(
             tmp_err.close()
         elapsed = time.time() - start
         try:
-            output = open(tmp_out.name, 'rb').read().decode('utf-8', errors='replace') + open(tmp_err.name, 'rb').read().decode('utf-8', errors='replace')
+            output = open(tmp_out.name, "rb").read().decode("utf-8", errors="replace") + open(
+                tmp_err.name, "rb"
+            ).read().decode("utf-8", errors="replace")
         except Exception:
-            output = ''
+            output = ""
         # Cleanup
         try:
             os.unlink(tmp_out.name)
             os.unlink(tmp_err.name)
         except Exception as _exc:
-            _log.warning('_run_gate failed: %s', _exc)
+            _log.warning("_run_gate failed: %s", _exc)
 
         # Parse output for specific gate info
         parsed = _parse_gate_output(name, output)
@@ -234,11 +289,13 @@ def _record_history(root: Path, results: dict) -> None:
             "gates": [],
         }
         for g in results.get("gates", []):
-            entry["gates"].append({
-                "name": g.get("name", "?"),
-                "status": g.get("status", "?"),
-                "elapsed": g.get("elapsed", 0),
-            })
+            entry["gates"].append(
+                {
+                    "name": g.get("name", "?"),
+                    "status": g.get("status", "?"),
+                    "elapsed": g.get("elapsed", 0),
+                }
+            )
         entry["total_time"] = sum(g["elapsed"] for g in entry["gates"])
 
         history.append(entry)

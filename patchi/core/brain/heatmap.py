@@ -74,13 +74,24 @@ def build_heatmap(root: Path) -> dict:
         churn = _git_churn(root, rel) if cnt else 0
         size_kb = size_map.get(rel, 0) / 1024
         score = cnt * 10 + churn * 2 + size_kb / 10
-        cur[leaf] = {"_value": round(score, 1), "_severity": sev_max.get(rel, "low"), "_findings": cnt}
+        cur[leaf] = {
+            "_value": round(score, 1),
+            "_severity": sev_max.get(rel, "low"),
+            "_findings": cnt,
+        }
 
     def to_children(d: dict, name: str = "root") -> dict:
         children = []
         for k, v in sorted(d.items()):
             if isinstance(v, dict) and "_value" in v:
-                children.append({"name": k, "value": v["_value"], "severity": v["_severity"], "findings": v["_findings"]})
+                children.append(
+                    {
+                        "name": k,
+                        "value": v["_value"],
+                        "severity": v["_severity"],
+                        "findings": v["_findings"],
+                    }
+                )
             elif isinstance(v, dict):
                 sub = to_children(v, k)
                 if sub["children"]:
@@ -103,4 +114,8 @@ def build_heatmap(root: Path) -> dict:
 
     collect(root_node)
     flat.sort(key=lambda x: -x[1])
-    return {"tree": root_node, "hotspots": [{"file": p, "score": s, "severity": sev} for p, s, sev in flat[:20]], "total_files": len(per_file)}
+    return {
+        "tree": root_node,
+        "hotspots": [{"file": p, "score": s, "severity": sev} for p, s, sev in flat[:20]],
+        "total_files": len(per_file),
+    }

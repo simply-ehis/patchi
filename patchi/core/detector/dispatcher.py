@@ -218,22 +218,14 @@ class Dispatcher:
         sigma_matches: list | None,
     ) -> tuple[str, float, str]:
         """Determine the best technique_id, confidence, and suggested_agent."""
-        tid = (
-            event.technique_id.value
-            if isinstance(event.technique_id, TechniqueID)
-            else event.technique_id
-        )
+        tid = event.technique_id.value if isinstance(event.technique_id, TechniqueID) else event.technique_id
         confidence = event.confidence
         suggested_agent = event.suggested_agent or ""
 
         # If Sigma matched, boost confidence and use Sigma's technique_id
         if sigma_matches:
             best = sigma_matches[0]
-            tid = (
-                best.technique_id.value
-                if isinstance(best.technique_id, TechniqueID)
-                else str(best.technique_id)
-            )
+            tid = best.technique_id.value if isinstance(best.technique_id, TechniqueID) else str(best.technique_id)
             confidence = max(confidence, best.confidence)
             if best.target_agent:
                 suggested_agent = best.target_agent
@@ -257,11 +249,7 @@ class Dispatcher:
                 return DispatchUrgency.SYNC_INVESTIGATE
             return DispatchUrgency.ASYNC_PRIORITY
         if severity == EventSeverity.MEDIUM:
-            return (
-                DispatchUrgency.ASYNC_PRIORITY
-                if confidence >= 0.5
-                else DispatchUrgency.ASYNC_NORMAL
-            )
+            return DispatchUrgency.ASYNC_PRIORITY if confidence >= 0.5 else DispatchUrgency.ASYNC_NORMAL
         return DispatchUrgency.ASYNC_NORMAL
 
     def stats(self) -> dict:

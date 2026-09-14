@@ -340,7 +340,7 @@ class TestStressTestAgent(unittest.TestCase):
         total_failures: int = 0,
         breakpoint_found: bool = False,
         soak_stability: bool = True,
-    ) -> "StressTestReport":
+    ):
         from patchi.core.testing.live_v2.stress_orchestrator import (
             StressConfig,
             StressTestReport,

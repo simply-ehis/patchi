@@ -198,11 +198,7 @@ class ScreenshotManager:
         # Get dimensions
         if selector:
             box = await element.bounding_box()
-            dimensions = (
-                {"width": box["width"], "height": box["height"]}
-                if box
-                else {"width": 0, "height": 0}
-            )
+            dimensions = {"width": box["width"], "height": box["height"]} if box else {"width": 0, "height": 0}
         else:
             dimensions = await page.evaluate(
                 "() => ({ width: document.documentElement.scrollWidth, height: document.documentElement.scrollHeight })"
@@ -303,9 +299,7 @@ class ScreenshotManager:
         if pixelmatch == "PIL":
             return await self._compare_pil(baseline_bytes, current_bytes, threshold, name)
         elif pixelmatch:
-            return await self._compare_pixelmatch(
-                baseline_bytes, current_bytes, threshold, name, pixelmatch
-            )
+            return await self._compare_pixelmatch(baseline_bytes, current_bytes, threshold, name, pixelmatch)
         else:
             # Fallback: simple hash comparison
             return self._compare_hash(baseline_bytes, current_bytes, threshold, name)
@@ -331,9 +325,7 @@ class ScreenshotManager:
 
         # Calculate difference
         diff = ImageChops.difference(baseline_img, current_img)
-        diff_pixels = sum(
-            1 for pixel in diff.getdata() if pixel[3] > 0
-        )  # Alpha > 0 means different
+        diff_pixels = sum(1 for pixel in diff.getdata() if pixel[3] > 0)  # Alpha > 0 means different
         total_pixels = baseline_img.width * baseline_img.height
         difference_percent = diff_pixels / total_pixels
 
@@ -442,9 +434,7 @@ class _AsyncVisualRegressionAgent:
             threshold=config.get("visual_threshold", 0.1),
         )
 
-    async def run(
-        self, urls: list[str], base_url: str = None, update_baselines: bool = False
-    ) -> dict:
+    async def run(self, urls: list[str], base_url: str = None, update_baselines: bool = False) -> dict:
         """Run visual regression test on URLs."""
         from patchi.core.testing.live_v2.browser_pool import BrowserConfig, get_browser_pool
 

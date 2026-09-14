@@ -169,11 +169,7 @@ class TriageAgent(BaseAgent):
         stats.last_seen = time.monotonic()
 
         # Track seen technique IDs
-        tid = (
-            event.technique_id.value
-            if isinstance(event.technique_id, TechniqueID)
-            else event.technique_id
-        )
+        tid = event.technique_id.value if isinstance(event.technique_id, TechniqueID) else event.technique_id
         stats.technique_ids.add(tid)
 
         # Update rate meter (increment by 1)
@@ -195,7 +191,8 @@ class TriageAgent(BaseAgent):
                     event,
                     source_key,
                     "rate_spike",
-                    f"Event rate from {source_key} is {ratio:.1f}x above baseline ({stats.rate_meter.mean:.1f} vs {stats.rate_meter.current_value:.1f})",
+                    f"Event rate from {source_key} is {ratio:.1f}x above baseline ({stats.rate_meter.mean:.1f} vs"
+                    f" {stats.rate_meter.current_value:.1f})",
                 )
 
         # Check: z-score severity anomaly
@@ -228,7 +225,8 @@ class TriageAgent(BaseAgent):
                         file="",
                         line=0,
                         message=f"Source {source_key} has been silent for {elapsed:.0f}s (last seen: {last_seen_str})",
-                        suggestion="Check if the detector pipeline is healthy or if this source was intentionally removed",
+                        suggestion="Check if the detector pipeline is healthy or if this source was intentionally"
+                        " removed",
                     )
                 )
         return findings

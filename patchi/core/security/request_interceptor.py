@@ -57,9 +57,7 @@ class RequestInterceptor:
         self.enabled = interceptor_cfg.get("enabled", False)
         self.block_threshold = interceptor_cfg.get("block_threshold", 0.7)
         self.rate_limit = interceptor_cfg.get("rate_limit", 100)  # per minute
-        self.exclude_paths = set(
-            interceptor_cfg.get("exclude_paths", ["/health", "/metrics", "/static"])
-        )
+        self.exclude_paths = set(interceptor_cfg.get("exclude_paths", ["/health", "/metrics", "/static"]))
 
         # Rate limit tracking
         self._window_start = time.monotonic()
@@ -118,11 +116,7 @@ class RequestInterceptor:
             }
 
         findings = []
-        ip = (
-            headers.get("x-forwarded-for", headers.get("remote-addr", "unknown"))
-            .split(",")[0]
-            .strip()
-        )
+        ip = headers.get("x-forwarded-for", headers.get("remote-addr", "unknown")).split(",")[0].strip()
 
         # 1. Known malicious IP check
         if ip in self._threat_ips:
@@ -258,9 +252,7 @@ class RequestInterceptor:
             await send(
                 {
                     "type": "http.response.body",
-                    "body": json.dumps(
-                        {"error": "Request blocked", "reason": result["reason"]}
-                    ).encode(),
+                    "body": json.dumps({"error": "Request blocked", "reason": result["reason"]}).encode(),
                 }
             )
             return

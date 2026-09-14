@@ -67,11 +67,7 @@ def run_list(root: Path | None = None) -> None:
         rtype = r.get("type", "no_touch")
         color = _TYPE_COLORS.get(rtype, "white")
         label = _TYPE_LABELS.get(rtype, rtype)
-        status = (
-            Text("active", style="#4ADE80")
-            if r.get("enabled", True)
-            else Text("disabled", style="dim")
-        )
+        status = Text("active", style="#4ADE80") if r.get("enabled", True) else Text("disabled", style="dim")
 
         table.add_row(
             r["path"],

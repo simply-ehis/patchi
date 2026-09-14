@@ -51,9 +51,7 @@ _CADDY_RE = re.compile(
     r'.*?"status":(?P<status>\d+).*?"remote_ip":"(?P<ip>[^"]+)"'
 )
 
-_UVICORN_RE = re.compile(
-    r'(?P<ip>\S+):(?:\d+) - "(?P<method>\w+) (?P<path>\S+) [^"]*" (?P<status>\d+)'
-)
+_UVICORN_RE = re.compile(r'(?P<ip>\S+):(?:\d+) - "(?P<method>\w+) (?P<path>\S+) [^"]*" (?P<status>\d+)')
 
 _GUNICORN_RE = re.compile(
     r"(?P<ip>\S+) \S+ \S+ \[(?P<time>[^\]]+)\] "

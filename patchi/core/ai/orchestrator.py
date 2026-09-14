@@ -35,8 +35,10 @@ _log = logging.getLogger("patchi.ai.orchestrator")
 
 # ── Pydantic Models ───────────────────────────────────────────────────
 
+
 class ToolCall(BaseModel):
     """A single tool invocation with validated parameters."""
+
     tool: str
     params: dict[str, Any] = Field(default_factory=dict)
     reason: str = ""
@@ -45,6 +47,7 @@ class ToolCall(BaseModel):
 
 class StepResult(BaseModel):
     """Result of executing a single step."""
+
     tool: str
     success: bool
     result: Any = None
@@ -55,6 +58,7 @@ class StepResult(BaseModel):
 
 class Plan(BaseModel):
     """A multi-step execution plan."""
+
     goal: str
     steps: list[ToolCall] = Field(default_factory=list)
     reasoning: str = ""  # LLM's reasoning for why these steps
@@ -63,6 +67,7 @@ class Plan(BaseModel):
 
 class PlanResult(BaseModel):
     """Complete result of executing a plan."""
+
     plan: Plan
     steps: list[StepResult] = Field(default_factory=list)
     success: bool = False
@@ -73,6 +78,7 @@ class PlanResult(BaseModel):
 
 class IntentType(StrEnum):
     """Types of intent — but this is just for categorization, not routing."""
+
     CHAT = "chat"  # General conversation
     ACTION = "action"  # User wants to DO something
     QUESTION = "question"  # User wants to KNOW something
@@ -81,6 +87,7 @@ class IntentType(StrEnum):
 
 class Intent(BaseModel):
     """Parsed user intent — determined by LLM, not keywords."""
+
     type: IntentType
     goal: str  # What the user wants to achieve
     needs_tools: bool = False  # Whether tools are needed
@@ -90,6 +97,7 @@ class Intent(BaseModel):
 
 
 # ── Brain: The Core Intelligence ──────────────────────────────────────
+
 
 class Brain:
     """
@@ -170,17 +178,20 @@ class Brain:
         try:
             if agent_type == "security":
                 from patchi.core.security.orchestrator import SecurityOrchestrator
+
                 orchestrator = SecurityOrchestrator(self.root)
                 result = orchestrator.run()
                 return {"success": True, "result": result}
 
             elif agent_type == "scanner":
                 from patchi.core.scanner import scan_project
+
                 result = scan_project(self.root)
                 return {"success": True, "result": result}
 
             elif agent_type == "proactive":
                 from patchi.core.brain.proactive import run_proactive
+
                 files = kwargs.get("files", [])
                 apply = kwargs.get("apply", False)
                 result = run_proactive(self.root, files, apply=apply)
@@ -206,6 +217,7 @@ class Brain:
 
             elif agent_type == "smart":
                 from patchi.core.ai.smart import run_smart_agent
+
                 result = run_smart_agent(
                     self.root,
                     kwargs.get("goal", ""),
@@ -224,11 +236,13 @@ class Brain:
     def get_brain_state(self) -> dict:
         """Get the current brain/memory state."""
         from patchi.core import memory as mem
+
         return mem.get_brain(self.root)
 
     def get_findings(self, severity: str | None = None) -> list[dict]:
         """Get security findings."""
         from patchi.core import memory as mem
+
         results = mem.get_scan_results(self.root)
         findings = []
         for agent_name, data in results.items():
@@ -242,6 +256,7 @@ class Brain:
     def get_layers(self) -> dict:
         """Get the layered brain data."""
         from patchi.core import memory as mem
+
         return mem.get_layers(self.root)
 
     # ── Tool Execution ────────────────────────────────────────────────
@@ -290,7 +305,10 @@ class Brain:
 
         if tool == "scan_vulnerabilities":
             sev = data.get("by_severity", {})
-            return f"{data.get('agent_count', 0)} agents, {data.get('total_findings', 0)} findings (C={sev.get('critical', 0)} H={sev.get('high', 0)} M={sev.get('medium', 0)})"
+            return (
+            f"{data.get('agent_count', 0)} agents, {data.get('total_findings', 0)} findings"
+            f" (C={sev.get('critical', 0)} H={sev.get('high', 0)} M={sev.get('medium', 0)})"
+            )
         elif tool == "run_tests":
             return f"passed={data.get('passed', 0)} failed={data.get('failed', 0)}"
         elif tool == "attack_simulate":
@@ -305,6 +323,7 @@ class Brain:
 
 
 # ── LLM-Powered Intent Parser ─────────────────────────────────────────
+
 
 def parse_intent_llm(message: str, brain: Brain, config: dict) -> Intent:
     """
@@ -322,7 +341,8 @@ def parse_intent_llm(message: str, brain: Brain, config: dict) -> Intent:
     # Build the parsing prompt
     system_prompt = """You are Patchi's intent parser. Analyze the user's message and determine:
 
-1. intent_type: "chat" (general conversation), "action" (user wants to DO something), "question" (user wants to KNOW something), or "complex" (multi-step task)
+1. intent_type: "chat" (general conversation), "action" (user wants to DO something), "question" (user wants to KNOW
+something), or "complex" (multi-step task)
 2. goal: What the user wants to achieve (one sentence)
 3. needs_tools: Whether tool execution is needed (scan, test, fix, etc.)
 4. needs_files: Whether file reading/writing is needed
@@ -383,11 +403,35 @@ def _parse_intent_fallback(message: str) -> Intent:
     msg = message.lower().strip()
 
     # Action words
-    action_words = ["scan", "test", "fix", "run", "execute", "build", "create", "write", "generate", "attack", "stress"]
+    action_words = [
+        "scan",
+        "test",
+        "fix",
+        "run",
+        "execute",
+        "build",
+        "create",
+        "write",
+        "generate",
+        "attack",
+        "stress",
+    ]
     is_action = any(w in msg for w in action_words)
 
     # Question words
-    question_words = ["what", "how", "why", "where", "which", "who", "when", "is", "are", "does", "do"]
+    question_words = [
+        "what",
+        "how",
+        "why",
+        "where",
+        "which",
+        "who",
+        "when",
+        "is",
+        "are",
+        "does",
+        "do",
+    ]
     is_question = any(msg.startswith(w) for w in question_words)
 
     # Multi-step indicators
@@ -406,6 +450,7 @@ def _parse_intent_fallback(message: str) -> Intent:
 
 # ── LLM-Powered Planner ───────────────────────────────────────────────
 
+
 def plan_with_llm(intent: Intent, brain: Brain, config: dict) -> Plan:
     """
     Use the LLM to create an execution plan.
@@ -417,6 +462,7 @@ def plan_with_llm(intent: Intent, brain: Brain, config: dict) -> Plan:
     # Get available tools
     try:
         from patchi.core.ai.tools.registry import get_tool_registry
+
         registry = get_tool_registry()
         tools = [t.name for t in registry.list_tools()]
     except Exception:
@@ -428,7 +474,7 @@ def plan_with_llm(intent: Intent, brain: Brain, config: dict) -> Plan:
 
     system_prompt = f"""You are Patchi's planner. Given a user goal, create an execution plan.
 
-Available tools: {', '.join(tools)}
+Available tools: {", ".join(tools)}
 
 For each step, specify:
 - tool: tool name from the available list
@@ -506,6 +552,7 @@ def _plan_fallback(intent: Intent) -> Plan:
 
 # ── Orchestrator ───────────────────────────────────────────────────────
 
+
 class Orchestrator:
     """
     The central brain of Patchi.
@@ -531,6 +578,7 @@ class Orchestrator:
         """Lazy-load config."""
         if self._config is None:
             from patchi.core import config as cfg
+
             self._config = cfg.load(self.root)
         return self._config
 
@@ -554,19 +602,21 @@ class Orchestrator:
         plan = plan_with_llm(intent, self.brain, self.config)
         plan.steps = plan.steps[:max_steps]
 
-        self.on_event({
-            "event": "orchestrator.planned",
-            "data": {
-                "goal": intent.goal,
-                "steps": len(plan.steps),
-                "reasoning": plan.reasoning,
-            },
-        })
+        self.on_event(
+            {
+                "event": "orchestrator.planned",
+                "data": {
+                    "goal": intent.goal,
+                    "steps": len(plan.steps),
+                    "reasoning": plan.reasoning,
+                },
+            }
+        )
 
         # Step 3: Execute plan
         plan_result = PlanResult(plan=plan)
         for i, step in enumerate(plan.steps):
-            self.on_progress(f"Step {i+1}/{len(plan.steps)}: {step.tool}")
+            self.on_progress(f"Step {i + 1}/{len(plan.steps)}: {step.tool}")
             result = self.brain.execute_tool(step.tool, step.params)
             plan_result.steps.append(result)
 
@@ -579,15 +629,17 @@ class Orchestrator:
         plan_result.success = successes == len(plan_result.steps)
         plan_result.summary = f"{successes}/{len(plan_result.steps)} steps succeeded"
 
-        self.on_event({
-            "event": "orchestrator.completed",
-            "data": {
-                "goal": intent.goal,
-                "steps": len(plan_result.steps),
-                "success": plan_result.success,
-                "findings": plan_result.findings_count,
-            },
-        })
+        self.on_event(
+            {
+                "event": "orchestrator.completed",
+                "data": {
+                    "goal": intent.goal,
+                    "steps": len(plan_result.steps),
+                    "success": plan_result.success,
+                    "findings": plan_result.findings_count,
+                },
+            }
+        )
 
         return plan_result
 
@@ -619,6 +671,7 @@ class Orchestrator:
         """Get all available tools."""
         try:
             from patchi.core.ai.tools.registry import get_tool_registry
+
             registry = get_tool_registry()
             return [t.to_schema() for t in registry.list_tools()]
         except Exception:

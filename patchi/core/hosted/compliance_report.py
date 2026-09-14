@@ -97,8 +97,7 @@ def generate_report(root: Path, standard: str = "owasp-asvs") -> dict:
             elif counts.get("critical", 0) or counts.get("high", 0):
                 status = "fail"
                 evidence = (
-                    f"{counts.get('critical', 0)} critical / {counts.get('high', 0)} high "
-                    f"finding(s) from {agent}"
+                    f"{counts.get('critical', 0)} critical / {counts.get('high', 0)} high finding(s) from {agent}"
                 )
             elif findings:
                 status = "pass_with_notes"

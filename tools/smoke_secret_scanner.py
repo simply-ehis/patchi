@@ -1,4 +1,5 @@
 """Functional smoke for the regex-free SecretScanner detection core."""
+
 import sys
 from pathlib import Path
 
@@ -16,11 +17,21 @@ scanner = SecretScanner.__new__(SecretScanner)  # classification helpers only
 CASES = [
     # (name, value, expect_verdict_or_None, min_severity)
     ("api_key", "AKIAIOSFODNN7EXAMPLE", "provider-prefix", "critical"),
-    ("token", "sk-ant-api03-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA", "provider-prefix", "critical"),
+    (
+        "token",
+        "sk-ant-api03-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+        "provider-prefix",
+        "critical",
+    ),
     ("slack", "xoxb-FAKE-TOKEN-REPLACED", "provider-prefix", "critical"),
     ("api_key", "wJalrXUtnFEMI-K7MDENGbPxRfiCYEXAMPLEKEY123", "credential-assignment", "critical"),
     ("db_password", "Tr0ub4dor&3CorrectHorse", "credential-assignment", "critical"),
-    ("config_value", "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08", "high-entropy", "medium"),
+    (
+        "config_value",
+        "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+        "high-entropy",
+        "medium",
+    ),
     ("password", "changeme", None, None),
     ("api_key", "<your-api-key-here>", None, None),
     ("note", "aaaaaaaaaaaaaaaaaaaa", None, None),  # repeated char = not a secret

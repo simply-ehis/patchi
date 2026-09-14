@@ -86,7 +86,7 @@ def _run_audit_sync(base_url: str, root: Path, routes: list[str] | None = None) 
                         page.reload(wait_until="load", timeout=15000)
                         page.wait_for_timeout(500)
                     except Exception as _exc:
-                        _log.warning('_run_audit_sync failed: %s', _exc)
+                        _log.warning("_run_audit_sync failed: %s", _exc)
                     perf_end = page.evaluate("() => performance.now()")
                     load_time_ms = round(perf_end - perf_start, 1)
 
@@ -121,44 +121,48 @@ def _run_audit_sync(base_url: str, root: Path, routes: list[str] | None = None) 
                         ".length"
                     )
 
-                    results.append({
-                        "route": route,
-                        "status": page_session.status,
-                        "status_label": _status_label(page_session.status),
-                        "load_time_ms": load_time_ms,
-                        "console_errors": page_session.console_errors,
-                        "console_error_count": len(page_session.console_errors),
-                        "page_errors": page_session.page_errors,
-                        "page_error_count": len(page_session.page_errors),
-                        "screenshot": screenshot_file,
-                        "metrics": metrics,
-                        "broken_images": broken_images,
-                        "broken_image_count": len(broken_images),
-                        "empty_links": empty_links,
-                        "severity": _severity_for_page(page_session, broken_images, empty_links),
-                    })
+                    results.append(
+                        {
+                            "route": route,
+                            "status": page_session.status,
+                            "status_label": _status_label(page_session.status),
+                            "load_time_ms": load_time_ms,
+                            "console_errors": page_session.console_errors,
+                            "console_error_count": len(page_session.console_errors),
+                            "page_errors": page_session.page_errors,
+                            "page_error_count": len(page_session.page_errors),
+                            "screenshot": screenshot_file,
+                            "metrics": metrics,
+                            "broken_images": broken_images,
+                            "broken_image_count": len(broken_images),
+                            "empty_links": empty_links,
+                            "severity": _severity_for_page(page_session, broken_images, empty_links),
+                        }
+                    )
                 except Exception as e:
-                    results.append({
-                        "route": route,
-                        "status": -1,
-                        "status_label": "ERROR",
-                        "load_time_ms": 0,
-                        "console_errors": [str(e)],
-                        "console_error_count": 1,
-                        "page_errors": [],
-                        "page_error_count": 0,
-                        "screenshot": None,
-                        "metrics": {},
-                        "broken_images": [],
-                        "broken_image_count": 0,
-                        "empty_links": 0,
-                        "severity": "critical",
-                    })
+                    results.append(
+                        {
+                            "route": route,
+                            "status": -1,
+                            "status_label": "ERROR",
+                            "load_time_ms": 0,
+                            "console_errors": [str(e)],
+                            "console_error_count": 1,
+                            "page_errors": [],
+                            "page_error_count": 0,
+                            "screenshot": None,
+                            "metrics": {},
+                            "broken_images": [],
+                            "broken_image_count": 0,
+                            "empty_links": 0,
+                            "severity": "critical",
+                        }
+                    )
                 finally:
                     try:
                         page.close()
                     except Exception as _exc:
-                        _log.warning('_run_audit_sync failed: %s', _exc)
+                        _log.warning("_run_audit_sync failed: %s", _exc)
         finally:
             browser.close()
 
@@ -239,7 +243,7 @@ def _severity_for_page(session, broken_images: list, empty_links: int) -> str:
 def _playwright_error_message(exc: Exception) -> str:
     """Human-readable hint when Playwright or its browsers are missing."""
     msg = str(exc)
-    if "No module named 'playwright'" in msg or "No module named \"playwright\"" in msg:
+    if "No module named 'playwright'" in msg or 'No module named "playwright"' in msg:
         return "Playwright not installed — run: pip install playwright && playwright install chromium"
     if "Executable doesn't exist" in msg or "playwright install" in msg.lower():
         return "Playwright browsers not installed — run: playwright install chromium"
@@ -324,9 +328,7 @@ async def stress_test(req: StressTestRequest, request: Request):
     except asyncio.CancelledError:
         return JSONResponse({"ok": False, "message": "Stress test was cancelled"})
     except Exception as e:
-        return JSONResponse(
-            status_code=500, content={"ok": False, "error": _playwright_error_message(e)}
-        )
+        return JSONResponse(status_code=500, content={"ok": False, "error": _playwright_error_message(e)})
     finally:
         _stress_state["running"] = False
         _stress_state["task"] = None
@@ -381,12 +383,19 @@ async def list_operations():
     # Check scan state
     try:
         from patchi.web.api.scan import _scan_state
+
         if _scan_state.get("running"):
             ops.append({"type": "scan", "label": "Security Scan", "cancel_url": "/api/scan/cancel"})
     except Exception as _exc:
-        _log.warning('list_operations failed: %s', _exc)
+        _log.warning("list_operations failed: %s", _exc)
     if _stress_state["running"]:
-        ops.append({"type": "stress", "label": "Stress Test", "cancel_url": "/api/live-testing/stress-cancel"})
+        ops.append(
+            {
+                "type": "stress",
+                "label": "Stress Test",
+                "cancel_url": "/api/live-testing/stress-cancel",
+            }
+        )
     if _dast_state["running"]:
         ops.append({"type": "dast", "label": "DAST Scan", "cancel_url": "/api/live-testing/dast-cancel"})
     if _smoke_state["running"]:
@@ -395,10 +404,11 @@ async def list_operations():
         ops.append({"type": "audit", "label": "Browser Audit", "cancel_url": ""})
     try:
         from patchi.web.api.smart import _current_task
+
         if _current_task and not _current_task.done():
             ops.append({"type": "smart", "label": "Smart Agent", "cancel_url": "/api/smart/cancel"})
     except Exception as _exc:
-        _log.warning('list_operations failed: %s', _exc)
+        _log.warning("list_operations failed: %s", _exc)
     return JSONResponse({"ok": True, "operations": ops, "count": len(ops)})
 
 
@@ -437,9 +447,7 @@ async def capture_screenshot(req: SmokeTestRequest, request: Request):
         finally:
             await pool.release_page(page)
     except Exception as e:
-        return JSONResponse(
-            status_code=500, content={"ok": False, "error": _playwright_error_message(e)}
-        )
+        return JSONResponse(status_code=500, content={"ok": False, "error": _playwright_error_message(e)})
 
 
 @router.get("/browser-pool-stats")
@@ -505,7 +513,11 @@ async def install_browsers():
     if _install_state["running"]:
         return JSONResponse(
             status_code=409,
-            content={"ok": False, "message": "Install already running", "log": _install_state["log"][-20:]},
+            content={
+                "ok": False,
+                "message": "Install already running",
+                "log": _install_state["log"][-20:],
+            },
         )
     _install_state["running"] = True
     _install_state["log"] = []
@@ -563,25 +575,29 @@ async def list_videos(request: Request):
                 if f.name in seen_names:
                     continue
                 seen_names.add(f.name)
-                videos.append({
-                    "name": f.stem,
-                    "filename": f.name,
-                    "path": str(f.relative_to(root)),
-                    "size_bytes": stat.st_size,
-                    "size_kb": round(stat.st_size / 1024, 1),
-                    "timestamp": datetime.fromtimestamp(stat.st_mtime, UTC).isoformat(),
-                })
+                videos.append(
+                    {
+                        "name": f.stem,
+                        "filename": f.name,
+                        "path": str(f.relative_to(root)),
+                        "size_bytes": stat.st_size,
+                        "size_kb": round(stat.st_size / 1024, 1),
+                        "timestamp": datetime.fromtimestamp(stat.st_mtime, UTC).isoformat(),
+                    }
+                )
             except Exception as _exc:
-                _log.warning('list_videos failed: %s', _exc)
+                _log.warning("list_videos failed: %s", _exc)
     # Sort all videos by mtime descending
     videos.sort(key=lambda v: v["timestamp"], reverse=True)
 
-    return JSONResponse({
-        "ok": True,
-        "videos": videos[:50],
-        "total": len(videos),
-        "total_size_kb": sum(v["size_kb"] for v in videos),
-    })
+    return JSONResponse(
+        {
+            "ok": True,
+            "videos": videos[:50],
+            "total": len(videos),
+            "total_size_kb": sum(v["size_kb"] for v in videos),
+        }
+    )
 
 
 @router.get("/video/{filename}")
@@ -597,7 +613,8 @@ async def serve_video(filename: str, request: Request):
 
     # Security: only allow .webm files
     import re as _re
-    if not _re.match(r'^[a-zA-Z0-9_@.\-]+\.webm$', filename):
+
+    if not _re.match(r"^[a-zA-Z0-9_@.\-]+\.webm$", filename):
         return JSONResponse({"error": "Invalid filename"}, status_code=403)
 
     for video_dir in video_dirs:
@@ -608,6 +625,7 @@ async def serve_video(filename: str, request: Request):
             except ValueError:
                 return JSONResponse({"error": "Access denied"}, status_code=403)
             from starlette.responses import FileResponse
+
             return FileResponse(file_path, media_type="video/webm")
 
     return JSONResponse({"error": "Video not found"}, status_code=404)
@@ -671,28 +689,32 @@ async def list_screenshots(request: Request):
             try:
                 stat = f.stat()
                 is_diff = "_diff" in f.stem
-                screenshots.append({
-                    "name": f.stem,
-                    "filename": f.name,
-                    "path": str(f.relative_to(root)),
-                    "size_kb": round(stat.st_size / 1024, 1),
-                    "timestamp": datetime.fromtimestamp(stat.st_mtime, UTC).isoformat(),
-                    "is_diff": is_diff,
-                })
+                screenshots.append(
+                    {
+                        "name": f.stem,
+                        "filename": f.name,
+                        "path": str(f.relative_to(root)),
+                        "size_kb": round(stat.st_size / 1024, 1),
+                        "timestamp": datetime.fromtimestamp(stat.st_mtime, UTC).isoformat(),
+                        "is_diff": is_diff,
+                    }
+                )
             except Exception as _exc:
-                _log.warning('list_screenshots failed: %s', _exc)
+                _log.warning("list_screenshots failed: %s", _exc)
 
     baseline_count = 0
     if baseline_dir.is_dir():
         baseline_count = len(list(baseline_dir.rglob("*.png")))
 
-    return JSONResponse({
-        "ok": True,
-        "screenshots": screenshots[:100],
-        "total": len(screenshots),
-        "baselines": baseline_count,
-        "total_size_kb": round(sum(s["size_kb"] for s in screenshots), 1),
-    })
+    return JSONResponse(
+        {
+            "ok": True,
+            "screenshots": screenshots[:100],
+            "total": len(screenshots),
+            "baselines": baseline_count,
+            "total_size_kb": round(sum(s["size_kb"] for s in screenshots), 1),
+        }
+    )
 
 
 @router.get("/screenshot/{filename}")
@@ -778,8 +800,12 @@ async def run_full_audit(req: FullAuditRequest, request: Request):
     _audit_state["running"] = True
     try:
         import asyncio
+
         result = await asyncio.to_thread(
-            _run_audit_sync, req.url, root, req.routes,
+            _run_audit_sync,
+            req.url,
+            root,
+            req.routes,
         )
         return result
     except Exception as e:
@@ -804,7 +830,7 @@ async def get_full_audit(request: Request):
         try:
             return json.loads(audit_file.read_text(encoding="utf-8"))
         except Exception as _exc:
-            _log.warning('get_full_audit failed: %s', _exc)
+            _log.warning("get_full_audit failed: %s", _exc)
 
     return {"ok": False, "message": "No audit results yet. Run a full-page audit first."}
 
@@ -835,4 +861,5 @@ async def serve_audit_screenshot(filename: str, request: Request):
         return JSONResponse({"error": "Screenshot not found"}, status_code=404)
 
     from starlette.responses import FileResponse
+
     return FileResponse(file_path, media_type="image/png")

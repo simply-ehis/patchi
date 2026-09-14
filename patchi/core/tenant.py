@@ -128,9 +128,7 @@ class TenantManager:
             return True
         return False
 
-    def discover_projects(
-        self, near: Path | None = None, max_depth: int = 2, limit: int = 25
-    ) -> list[Path]:
+    def discover_projects(self, near: Path | None = None, max_depth: int = 2, limit: int = 25) -> list[Path]:
         """Find Patchi projects on disk near a reference directory.
 
         Search bases (deduplicated):
@@ -167,7 +165,7 @@ class TenantManager:
 
             roots_to_scan = [r for r in roots_to_scan if not _in_temp(r)]
         except Exception as _exc:
-            _log.warning('discover_projects failed: %s', _exc)
+            _log.warning("discover_projects failed: %s", _exc)
 
         for scan_root in roots_to_scan:
             try:

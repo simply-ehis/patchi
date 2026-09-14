@@ -115,12 +115,9 @@ def run_show(patch_id: str, root: Path | None = None, json_output: bool = False)
     risk_color = risk_colors.get(patch.risk_level, "white")
 
     con.print()
+    con.print(f"[bold #F2EDD6]Patch {patch.id}[/bold #F2EDD6]  [{state_color}]{state}[/{state_color}]")
     con.print(
-        f"[bold #F2EDD6]Patch {patch.id}[/bold #F2EDD6]  [{state_color}]{state}[/{state_color}]"
-    )
-    con.print(
-        f"[dim]Agent: {patch.agent}  ·  Type: {patch.patch_type.value}  ·  "
-        f"Proposed: {patch.proposed_at[:19]}[/dim]"
+        f"[dim]Agent: {patch.agent}  ·  Type: {patch.patch_type.value}  ·  Proposed: {patch.proposed_at[:19]}[/dim]"
     )
     con.print()
     con.print(f"  {patch.description}")
@@ -138,8 +135,7 @@ def run_show(patch_id: str, root: Path | None = None, json_output: bool = False)
         if not change.diff.strip():
             continue
         con.print(
-            f"[bold #B8A898]{change.path}[/bold #B8A898]  "
-            f"[dim]+{change.lines_added} -{change.lines_removed}[/dim]"
+            f"[bold #B8A898]{change.path}[/bold #B8A898]  [dim]+{change.lines_added} -{change.lines_removed}[/dim]"
         )
         con.print(Syntax(change.diff, "diff", theme="monokai", padding=1))
 

@@ -111,9 +111,7 @@ def _add_actor_claim(graph: AssuranceGraph, actor: str) -> None:
     )
 
 
-def _add_endpoint_claim(
-    graph: AssuranceGraph, path: str, methods: list, auth_required: bool
-) -> None:
+def _add_endpoint_claim(graph: AssuranceGraph, path: str, methods: list, auth_required: bool) -> None:
     claim_id = f"endpoint-{path.replace('/', '_').strip('_')}"
     graph.upsert_claim(
         claim_id,

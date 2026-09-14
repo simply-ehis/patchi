@@ -10,6 +10,7 @@ Supports:
 
 All data stored locally in .patchi/hosted/ip_reputation.json.
 """
+
 from __future__ import annotations
 
 import json

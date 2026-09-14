@@ -49,10 +49,7 @@ class SecurityFixer(BaseAgent):
             blast_radius = 0
             if hasattr(inp, "extra") and "brain_report" in inp.extra:
                 brain_report = inp.extra["brain_report"]
-                if (
-                    hasattr(brain_report, "blast_radius_map")
-                    and fpath in brain_report.blast_radius_map
-                ):
+                if hasattr(brain_report, "blast_radius_map") and fpath in brain_report.blast_radius_map:
                     blast_radius = len(brain_report.blast_radius_map[fpath].all_dependents)
             else:
                 blast_radius = compute_blast_radius(fpath, inp.root)

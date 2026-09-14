@@ -42,7 +42,10 @@ class ContractDiff:
             "orphan_endpoints": self.orphan_endpoints,
             "method_mismatch": self.method_mismatch,
             "param_drift": self.param_drift,
-            "total": len(self.missing_routes) + len(self.orphan_endpoints) + len(self.method_mismatch) + len(self.param_drift),
+            "total": len(self.missing_routes)
+            + len(self.orphan_endpoints)
+            + len(self.method_mismatch)
+            + len(self.param_drift),
         }
 
 
@@ -75,6 +78,7 @@ def extract_frontend_calls(file_infos: list[FileInfo], root: Path) -> list[dict]
             if raw.startswith("http"):
                 try:
                     from urllib.parse import urlparse
+
                     raw = urlparse(raw).path or "/"
                 except Exception:
                     continue
@@ -83,7 +87,15 @@ def extract_frontend_calls(file_infos: list[FileInfo], root: Path) -> list[dict]
             mm = _METHOD_RE.search(content[max(0, m.start() - 200) : m.start() + 50])
             if mm:
                 method = mm.group(1).upper()
-            calls.append({"method": method, "path": _normalize(raw), "raw": m.group(1), "file": fi.path, "line": line})
+            calls.append(
+                {
+                    "method": method,
+                    "path": _normalize(raw),
+                    "raw": m.group(1),
+                    "file": fi.path,
+                    "line": line,
+                }
+            )
     return calls
 
 
@@ -102,7 +114,13 @@ def diff_contract(frontend_calls: list[dict], backend_routes: list[RouteInfo]) -
             diff.missing_routes.append(c)
         elif key not in backend_set:
             # same path different method
-            diff.method_mismatch.append({"frontend": c, "backend": backend_set.get((c["path"], "GET")) or next((r for (p, _), r in backend_set.items() if p == c["path"]), None)})
+            diff.method_mismatch.append(
+                {
+                    "frontend": c,
+                    "backend": backend_set.get((c["path"], "GET"))
+                    or next((r for (p, _), r in backend_set.items() if p == c["path"]), None),
+                }
+            )
 
     # 3.1.5 Orphan endpoints: backend never called
     for r in backend_routes:
@@ -120,7 +138,11 @@ def diff_contract(frontend_calls: list[dict], backend_routes: list[RouteInfo]) -
 
 
 def _is_health_or_static(path: str) -> bool:
-    return path in ("/health", "/healthz", "/ready", "/metrics", "/static", "/favicon.ico") or path.startswith("/static/") or path.endswith((".css", ".js", ".png"))
+    return (
+        path in ("/health", "/healthz", "/ready", "/metrics", "/static", "/favicon.ico")
+        or path.startswith("/static/")
+        or path.endswith((".css", ".js", ".png"))
+    )
 
 
 def _param_drift(a: str, b: str) -> bool:
@@ -136,7 +158,8 @@ def _param_drift(a: str, b: str) -> bool:
         for x, y in zip(sa, sb, strict=True):
             if x != y and x.rstrip("s") != y.rstrip("s") and x != ":param" and y != ":param":
                 return False
-        # check if param name drift :id vs :userId (both become :param so not drift) — actually normalized, so drift only plural
+        # check if param name drift :id vs :userId (both become :param so not drift) — actually normalized, so
+        #   drift only plural
         return any(abs(len(x) - len(y)) <= 1 for x, y in zip(sa, sb, strict=True) if x != y)
     return False
 

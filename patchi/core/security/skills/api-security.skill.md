@@ -19,6 +19,7 @@ def get_order(order_id):
     order = db.query(Order).filter_by(id=order_id).first()
     return jsonify(order)
 
+
 # SAFE — ownership check present
 @route("/api/orders/{order_id}")
 def get_order(order_id):
@@ -66,14 +67,13 @@ Check route decorators: absence of `@ratelimit` or `@throttle` on POST/PUT/DELET
 ```python
 # DANGEROUS — no admin check
 @route("/api/admin/users")
-def admin_users():
-    ...
+def admin_users(): ...
+
 
 # SAFE — role check present
 @route("/api/admin/users")
 @requires_role("admin")
-def admin_users():
-    ...
+def admin_users(): ...
 ```
 **Pattern**: Routes containing `/admin/` or `/internal/` without role/permission decorator.
 
@@ -130,12 +130,13 @@ if not item:
 ### Add Rate Limiting
 ```python
 from flask_limiter import Limiter
+
 limiter = Limiter(app, key_func=lambda: current_user.id)
+
 
 @route("/api/orders")
 @limiter.limit("30/minute")
-def create_order():
-    ...
+def create_order(): ...
 ```
 
 ## Multi-Agent Cross-Correlation

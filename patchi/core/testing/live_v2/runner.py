@@ -2,6 +2,7 @@
 Live Test Runner v2 — Enhanced test orchestration with browser automation,
 visual regression, stress testing, and video recording.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -44,9 +45,7 @@ class LiveTestConfigV2:
     """Enhanced configuration for live test runs."""
 
     # Base config
-    test_types: list[str] = field(
-        default_factory=lambda: ["unit", "regression", "browser", "visual"]
-    )
+    test_types: list[str] = field(default_factory=lambda: ["unit", "regression", "browser", "visual"])
     area: str | None = None
     base_url: str | None = None
     parallel: bool = False
@@ -281,9 +280,7 @@ class LiveTestRunnerV2:
 
         return scenarios
 
-    async def _run_browser_scenario(
-        self, page: Any, scenario: dict, config: LiveTestConfigV2
-    ) -> dict:
+    async def _run_browser_scenario(self, page: Any, scenario: dict, config: LiveTestConfigV2) -> dict:
         """Run a single browser test scenario."""
         start_time = time.time()
         result = {
@@ -425,9 +422,7 @@ class LiveTestRunnerV2:
                 update_baselines=config.update_baselines,
             )
 
-            self.on_progress(
-                f"  Visual regression: {result['passed']} passed, {result['failed']} failed"
-            )
+            self.on_progress(f"  Visual regression: {result['passed']} passed, {result['failed']} failed")
             self.on_event("visual_regression_completed", result)
 
             return result
@@ -473,9 +468,7 @@ class LiveTestRunnerV2:
 
             for url in urls:
                 try:
-                    result = await self.screenshot_manager.capture(
-                        page, url, config=config.screenshot_config
-                    )
+                    result = await self.screenshot_manager.capture(page, url, config=config.screenshot_config)
                     screenshots.append(
                         {
                             "url": url,
@@ -611,6 +604,7 @@ class LiveTestRunnerV2Agent(BaseAgent):
                     )
 
         if test_result.stress_test and test_result.stress_test.failed_requests > 0:
+            _sf = test_result.stress_test
             result.add_finding(
                 Finding(
                     agent="LiveTestRunnerV2Agent",
@@ -618,8 +612,8 @@ class LiveTestRunnerV2Agent(BaseAgent):
                     severity=Severity.HIGH,
                     file="",
                     line=0,
-                    message=f"Stress test failures: {test_result.stress_test.failed_requests}/{test_result.stress_test.total_requests} requests failed",
-                    detail=f"Error rate: {test_result.stress_test.failed_requests / test_result.stress_test.total_requests * 100:.1f}%",
+                    message=f"Stress test failures: {_sf.failed_requests}/{_sf.total_requests} requests failed",
+                    detail=f"Error rate: {_sf.failed_requests / _sf.total_requests * 100:.1f}%",
                 )
             )
 

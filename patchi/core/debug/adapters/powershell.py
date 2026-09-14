@@ -26,9 +26,7 @@ class PowerShellDebugAdapter:
 
         harness_code = _build_harness(self._script, self._args)
 
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".ps1", delete=False, encoding="utf-8"
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".ps1", delete=False, encoding="utf-8") as f:
             f.write(harness_code)
             tmp_path = Path(f.name)
 
@@ -178,7 +176,9 @@ def _build_harness(script: Path, args: list[str] | None) -> str:
         foreach ($__v in $__vars) {{
             $__n = $__v.Name
             # Skip internal harness vars (__*), automatic vars, preference vars, and regex match vars
-            if ($__n -notlike '__*' -and $__n -notlike '*Preference' -and $__n -notin $__skip -and $__n -notin @('foreach','switch','Error','ErrorView','MyInvocation','PSBoundParameters','PSVersionTable','PSCulture','PSUICulture','PSEdition','ShellId','HOME','PID','IsCoreCLR','IsWindows','IsLinux','IsMacOS','PSCommandPath','PSScriptRoot','PSHOME','PSModulePath','EnabledExperimentalFeatures','ErrorActionPreference','ProgressPreference','VerbosePreference','DebugPreference','WarningPreference','InformationPreference','ConfirmPreference','WhatIfPreference','NestedPromptLevel','FormatEnumerationLimit','MaximumHistoryCount','OutputEncoding','PSDefaultParameterValues','PSEmailServer','PSNativeCommandArgumentPassing','PSNativeCommandUseErrorActionPreference','PSSessionApplicationName','PSSessionConfigurationName','PSSessionOption','PSStyle','PWD','PROFILE','StackTrace','PSItem','?','_','args','input','true','false','null','$','^','Host','ExecutionContext','matches')) {{
+if ($__n -notlike '__*' -and $__n -notlike '*Preference' -and $__n -notin $__skip -and $__n -notin
+            @('foreach','switch','Error','ErrorView','MyInvocation','PSBoundParameters','PSVersionTable','PSCulture','PSUICulture','PSEdition','ShellId','HOME','PID','IsCoreCLR','IsWindows','IsLinux','IsMacOS','PSCommandPath','PSScriptRoot','PSHOME','PSModulePath','EnabledExperimentalFeatures','ErrorActionPreference','ProgressPreference','VerbosePreference','DebugPreference','WarningPreference','InformationPreference','ConfirmPreference','WhatIfPreference','NestedPromptLevel','FormatEnumerationLimit','MaximumHistoryCount','OutputEncoding','PSDefaultParameterValues','PSEmailServer','PSNativeCommandArgumentPassing','PSNativeCommandUseErrorActionPreference','PSSessionApplicationName','PSSessionConfigurationName','PSSessionOption','PSStyle','PWD','PROFILE','StackTrace','PSItem','?','_','args','input','true','false','null','$','^','Host','ExecutionContext','matches'))
+            {{
                 try {{
                     if ($null -ne $__v.Value) {{
                         $__val = "$($__v.Value)"

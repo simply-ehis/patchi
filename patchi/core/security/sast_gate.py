@@ -28,7 +28,6 @@ from patchi.core.agents.base import AgentInput, Severity
 _log = logging.getLogger("patchi.core.security.sast_gate")
 
 
-
 def _gather(tool_name: str, files: list[Path]) -> list:
     """Run one tool over the given files; return normalized findings."""
     import patchi.core.security.security_agents  # noqa: F401  (registers agents)
@@ -51,7 +50,7 @@ def _gather(tool_name: str, files: list[Path]) -> list:
             try:
                 finding.file = str(f)
             except Exception as _exc:  # pragma: no cover - defensive
-                _log.warning('_gather failed: %s', _exc)
+                _log.warning("_gather failed: %s", _exc)
             findings.append(finding)
     return findings
 

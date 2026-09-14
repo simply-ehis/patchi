@@ -202,27 +202,59 @@ def _classify_text(text: str) -> RuleType:
     lower = text.lower()
 
     # Boundary: must/must not/cannot import, never import
-    boundary_words = ["must not import", "cannot import", "never import",
-                      "should not import", "must not use", "cannot use"]
+    boundary_words = [
+        "must not import",
+        "cannot import",
+        "never import",
+        "should not import",
+        "must not use",
+        "cannot use",
+    ]
     if any(w in lower for w in boundary_words):
         return RuleType.BOUNDARY
 
     # Convention: limits, naming, tests
-    convention_words = ["under", "below", "less than", "max", "maximum",
-                        "must have", "requires tests", "need tests",
-                        "all files must", "every file", "snake_case", "camelCase"]
+    convention_words = [
+        "under",
+        "below",
+        "less than",
+        "max",
+        "maximum",
+        "must have",
+        "requires tests",
+        "need tests",
+        "all files must",
+        "every file",
+        "snake_case",
+        "camelCase",
+    ]
     if any(w in lower for w in convention_words):
         return RuleType.CONVENTION
 
     # Security: secrets, eval, pickle
-    security_words = ["no secrets", "no hardcoded", "no eval", "no pickle",
-                      "no marshal", "no debug", "use https", "parameterized"]
+    security_words = [
+        "no secrets",
+        "no hardcoded",
+        "no eval",
+        "no pickle",
+        "no marshal",
+        "no debug",
+        "use https",
+        "parameterized",
+    ]
     if any(w in lower for w in security_words):
         return RuleType.SECURITY
 
     # Stack: languages, frameworks
-    stack_words = ["only python", "only javascript", "use go", "use rust",
-                   "frameworks allowed", "languages allowed", "stack is"]
+    stack_words = [
+        "only python",
+        "only javascript",
+        "use go",
+        "use rust",
+        "frameworks allowed",
+        "languages allowed",
+        "stack is",
+    ]
     if any(w in lower for w in stack_words):
         return RuleType.STACK
 
@@ -238,8 +270,14 @@ def _parse_boundary(text: str) -> CharterRule:
     to_pattern = ""
 
     # Try to find the pattern: "X must not import Y" or "X cannot import Y"
-    for sep in ["must not import", "cannot import", "never import",
-                "should not import", "must not use", "cannot use"]:
+    for sep in [
+        "must not import",
+        "cannot import",
+        "never import",
+        "should not import",
+        "must not use",
+        "cannot use",
+    ]:
         if sep in lower:
             parts = lower.split(sep)
             if len(parts) == 2:
@@ -251,9 +289,9 @@ def _parse_boundary(text: str) -> CharterRule:
     # Remove leading articles/determiners
     for prefix in ["the ", "a ", "an "]:
         if from_pattern.startswith(prefix):
-            from_pattern = from_pattern[len(prefix):]
+            from_pattern = from_pattern[len(prefix) :]
         if to_pattern.startswith(prefix):
-            to_pattern = to_pattern[len(prefix):]
+            to_pattern = to_pattern[len(prefix) :]
 
     return CharterRule(
         id="b-001",
@@ -283,8 +321,16 @@ def _parse_convention(text: str) -> CharterRule:
         if "lines" in lower:
             metric = "lines"
             # Extract scope
-            for s in ["file", "files", "function", "functions",
-                      "class", "classes", "service", "services"]:
+            for s in [
+                "file",
+                "files",
+                "function",
+                "functions",
+                "class",
+                "classes",
+                "service",
+                "services",
+            ]:
                 if s in lower:
                     scope = s + "s" if not s.endswith("s") else s
                     break
@@ -358,8 +404,13 @@ def _parse_stack(text: str) -> CharterRule:
     # Extract allowed languages
     allowed_languages = []
     lang_keywords = {
-        "python": "python", "javascript": "javascript", "typescript": "typescript",
-        "go": "go", "rust": "rust", "java": "java", "c#": "csharp",
+        "python": "python",
+        "javascript": "javascript",
+        "typescript": "typescript",
+        "go": "go",
+        "rust": "rust",
+        "java": "java",
+        "c#": "csharp",
     }
     for kw, lang in lang_keywords.items():
         if kw in lower:
@@ -404,8 +455,7 @@ def check_boundary_violations(
 ) -> list[CharterViolation]:
     """Check if import edges violate boundary rules using structured matching."""
     violations: list[CharterViolation] = []
-    boundary_rules = [r for r in charter.rules
-                      if r.type == RuleType.BOUNDARY and r.enabled]
+    boundary_rules = [r for r in charter.rules if r.type == RuleType.BOUNDARY and r.enabled]
 
     for rule in boundary_rules:
         from_pat = rule.from_pattern.lower()
@@ -421,14 +471,16 @@ def check_boundary_violations(
 
             # Match using prefix matching (structured, not regex)
             if from_pat in src_lower and to_pat in dst_lower:
-                violations.append(CharterViolation(
-                    rule_id=rule.id,
-                    rule_description=rule.description,
-                    severity=rule.severity.value,
-                    file_path=src,
-                    message=f"'{src}' imports '{dst}' — violates boundary rule",
-                    suggestion=f"Remove import of {to_pat} from {from_pat}",
-                ))
+                violations.append(
+                    CharterViolation(
+                        rule_id=rule.id,
+                        rule_description=rule.description,
+                        severity=rule.severity.value,
+                        file_path=src,
+                        message=f"'{src}' imports '{dst}' — violates boundary rule",
+                        suggestion=f"Remove import of {to_pat} from {from_pat}",
+                    )
+                )
 
     return violations
 
@@ -439,8 +491,7 @@ def check_convention_violations(
 ) -> list[CharterViolation]:
     """Check files against convention rules using structured matching."""
     violations: list[CharterViolation] = []
-    conv_rules = [r for r in charter.rules
-                  if r.type == RuleType.CONVENTION and r.enabled]
+    conv_rules = [r for r in charter.rules if r.type == RuleType.CONVENTION and r.enabled]
 
     for rule in conv_rules:
         if rule.max_value > 0 and rule.metric == "lines":
@@ -449,14 +500,16 @@ def check_convention_violations(
                 if path.endswith((".py", ".ts", ".js", ".go", ".java", ".rs")):
                     line_count = getattr(fi, "line_count", 0)
                     if line_count and line_count > rule.max_value:
-                        violations.append(CharterViolation(
-                            rule_id=rule.id,
-                            rule_description=rule.description,
-                            severity=rule.severity.value,
-                            file_path=path,
-                            message=f"{path} is {line_count} lines (max {rule.max_value})",
-                            suggestion=f"Split into modules under {rule.max_value} lines",
-                        ))
+                        violations.append(
+                            CharterViolation(
+                                rule_id=rule.id,
+                                rule_description=rule.description,
+                                severity=rule.severity.value,
+                                file_path=path,
+                                message=f"{path} is {line_count} lines (max {rule.max_value})",
+                                suggestion=f"Split into modules under {rule.max_value} lines",
+                            )
+                        )
 
     return violations
 

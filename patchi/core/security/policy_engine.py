@@ -156,9 +156,7 @@ def _check_policy(check_type: str, content: str, findings: list[Finding]) -> lis
             violations.append("Weak cryptographic algorithm detected")
 
     elif check_type == "no_hardcoded_secrets":
-        if re.search(
-            r'(?:api[_-]?key|secret|password)\s*[:=]\s*["\'][^"\']{8,}["\']', content, re.I
-        ):
+        if re.search(r'(?:api[_-]?key|secret|password)\s*[:=]\s*["\'][^"\']{8,}["\']', content, re.I):
             violations.append("Hardcoded secret detected")
 
     elif check_type == "no_sql_injection":

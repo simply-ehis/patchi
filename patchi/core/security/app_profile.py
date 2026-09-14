@@ -55,9 +55,7 @@ class DomainActivation:
 
 @dataclass
 class ComponentProfile:
-    component_type: (
-        str  # cli-binary | backend-api | frontend-web | library | mobile | embedded | unknown
-    )
+    component_type: str  # cli-binary | backend-api | frontend-web | library | mobile | embedded | unknown
     display_name: str = ""
     frameworks: list[str] = field(default_factory=list)
     languages: list[str] = field(default_factory=list)
@@ -187,9 +185,7 @@ class AppProfileBuilder:
         # Frameworks from brain
         fw_raw = brain.get("frameworks", brain.get("framework", ""))
         if isinstance(fw_raw, list):
-            profile.frameworks = [
-                f if isinstance(f, str) else (f.get("name", "") or "") for f in fw_raw
-            ]
+            profile.frameworks = [f if isinstance(f, str) else (f.get("name", "") or "") for f in fw_raw]
         elif isinstance(fw_raw, dict):
             profile.frameworks = [fw_raw.get("name", "")] if fw_raw.get("name") else []
         elif isinstance(fw_raw, str):
@@ -202,9 +198,7 @@ class AppProfileBuilder:
 
         # Component type inference
         profile.component_type = self._infer_component_type(profile)
-        profile.display_name = (
-            brain.get("project_purpose", brain.get("project_name", "")) or profile.component_type
-        )
+        profile.display_name = brain.get("project_purpose", brain.get("project_name", "")) or profile.component_type
 
         profile.has_database = profile.detection_signals.get("has_database", False)
         profile.has_authentication = profile.detection_signals.get("has_authentication", False)
@@ -375,18 +369,14 @@ class AppProfileScorer:
 
         # Both axes: component-type match AND explicit domain ids (e.g. a
         # backend-api profile always loads the web-frontend domain).
-        self._loader.set_component_scope(
-            component_types=[profile.component_type], domain_ids=explicit
-        )
+        self._loader.set_component_scope(component_types=[profile.component_type], domain_ids=explicit)
 
         all_domains = self._loader.list_domains()
         for d in all_domains:
             if d not in explicit:
                 domain = self._loader.get_domain(d)
                 if domain and domain.component_type:
-                    comp_types = [
-                        self._normalize_type(ct.strip()) for ct in domain.component_type.split(",")
-                    ]
+                    comp_types = [self._normalize_type(ct.strip()) for ct in domain.component_type.split(",")]
                     if profile_type in comp_types:
                         explicit.append(d)
 

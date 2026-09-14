@@ -479,7 +479,10 @@ FILE CONTENT:
 ```
 {debug_context}
 
-Return ONLY the corrected file inside a code block. If the file content shows a context window (lines X-Y), return ONLY the corrected lines in that window, prefixed with line numbers like "42: fixed_code". If the full file is shown, return the full corrected file. Make the MINIMAL change — 1-5 lines max. Do NOT refactor, rename, or change anything unrelated to this issue.
+Return ONLY the corrected file inside a code block. If the file content shows a context window (lines X-Y), return ONLY
+the corrected lines in that window, prefixed with line numbers like "42: fixed_code". If the full file is shown, return
+the full corrected file. Make the MINIMAL change — 1-5 lines max. Do NOT refactor, rename, or change anything unrelated
+to this issue.
 
 FRAMEWORK-SPECIFIC GUIDANCE — if a framework is listed above, apply its conventions:
 - Flask: prefer @app.after_request, url_for(), make_response()
@@ -506,7 +509,9 @@ FILE CONTENT:
 {file_content}
 ```
 
-Apply the OWASP-appropriate fix pattern. If the file content shows a context window (lines X-Y), return ONLY the corrected lines prefixed with line numbers. If the full file is shown, return the full corrected file. Make the MINIMAL change — 1-5 lines max.
+Apply the OWASP-appropriate fix pattern. If the file content shows a context window (lines X-Y), return ONLY the
+corrected lines prefixed with line numbers. If the full file is shown, return the full corrected file. Make the MINIMAL
+change — 1-5 lines max.
 
 FRAMEWORK-SPECIFIC SECURITY GUIDANCE — if a framework is listed above, watch for:
 - Flask: render_template_string SSTI, @app.before_request global guards

@@ -30,6 +30,7 @@ from patchi.core.brain.code_query import (
 
 _log = logging.getLogger("patchi.agents.modernization")
 
+
 @register
 class ModernizationAgent(BaseAgent):
     group = AgentGroup.SCANNER
@@ -74,13 +75,49 @@ class ModernizationAgent(BaseAgent):
                 events.sort()
                 for line, kind in events:
                     if kind == "var":
-                        findings.append(make_finding(severity=Severity.LOW, file=rel, line_start=line, title="var → const/let", description="jscodeshift var-to-const: replace var with const/let", finding_type="modernization_var"))
+                        findings.append(
+                            make_finding(
+                                severity=Severity.LOW,
+                                file=rel,
+                                line_start=line,
+                                title="var → const/let",
+                                description="jscodeshift var-to-const: replace var with const/let",
+                                finding_type="modernization_var",
+                            )
+                        )
                     elif kind == "then":
-                        findings.append(make_finding(severity=Severity.LOW, file=rel, line_start=line, title=".then() → async/await", description="Codemod .then() chain to async/await for readability", finding_type="modernization_then"))
+                        findings.append(
+                            make_finding(
+                                severity=Severity.LOW,
+                                file=rel,
+                                line_start=line,
+                                title=".then() → async/await",
+                                description="Codemod .then() chain to async/await for readability",
+                                finding_type="modernization_then",
+                            )
+                        )
                     elif kind == "require":
-                        findings.append(make_finding(severity=Severity.LOW, file=rel, line_start=line, title="require() → import", description="Migrate to ESM import via jscodeshift", finding_type="modernization_require"))
+                        findings.append(
+                            make_finding(
+                                severity=Severity.LOW,
+                                file=rel,
+                                line_start=line,
+                                title="require() → import",
+                                description="Migrate to ESM import via jscodeshift",
+                                finding_type="modernization_require",
+                            )
+                        )
                     elif kind == "class":
-                        findings.append(make_finding(severity=Severity.LOW, file=rel, line_start=line, title="Class component → functional", description="Codemod React class to functional + hooks", finding_type="modernization_class"))
+                        findings.append(
+                            make_finding(
+                                severity=Severity.LOW,
+                                file=rel,
+                                line_start=line,
+                                title="Class component → functional",
+                                description="Codemod React class to functional + hooks",
+                                finding_type="modernization_class",
+                            )
+                        )
                     if len(findings) >= 40:
                         break
                 if len(findings) >= 40:
@@ -88,5 +125,5 @@ class ModernizationAgent(BaseAgent):
                 files_scanned += 1
             if files_scanned >= self._MAX_FILES:
                 break
-        result.status=AgentStatus.SUCCEEDED
-        result.findings=findings[:40]
+        result.status = AgentStatus.SUCCEEDED
+        result.findings = findings[:40]

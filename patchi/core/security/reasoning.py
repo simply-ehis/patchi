@@ -57,6 +57,7 @@ def _load_layers(root: Path) -> dict[str, Layer]:
         data = {}
         with open(path, encoding="utf-8") as f:
             import json
+
             data = json.load(f)
         return layers_from_dict(data)
     except Exception:
@@ -303,12 +304,14 @@ def _answer_hotspots(root: Path, layers: dict[str, Layer]) -> ReasoningResult:
             reasons.append("accepts external input")
 
         if risk_score > 0:
-            hotspots.append({
-                "name": name,
-                "risk_score": risk_score,
-                "reasons": reasons,
-                "summary": layer.summary[:100],
-            })
+            hotspots.append(
+                {
+                    "name": name,
+                    "risk_score": risk_score,
+                    "reasons": reasons,
+                    "summary": layer.summary[:100],
+                }
+            )
 
     hotspots.sort(key=lambda h: -h["risk_score"])
 
@@ -408,7 +411,15 @@ def answer_question(question: str, root: Path | None = None) -> ReasoningResult:
         module_name = ""
         words = q.split()
         for i, word in enumerate(words):
-            if word in ("imports", "import", "uses", "use", "depends", "depend", "on") and i + 1 < len(words):
+            if word in (
+                "imports",
+                "import",
+                "uses",
+                "use",
+                "depends",
+                "depend",
+                "on",
+            ) and i + 1 < len(words):
                 next_word = words[i + 1]
                 if next_word not in ("the", "a", "an"):
                     module_name = next_word

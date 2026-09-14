@@ -35,10 +35,7 @@ class GoTypeChecker(BaseTypeChecker):
             result = self._child_by_type(node, "result")
             if result is not None:
                 for child in result.children:
-                    if (
-                        child.type == "type_identifier"
-                        and _node_text(source, child) == "interface{}"
-                    ):
+                    if child.type == "type_identifier" and _node_text(source, child) == "interface{}":
                         findings.append(
                             make_finding(
                                 finding_type="empty_interface",

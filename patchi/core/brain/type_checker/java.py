@@ -32,9 +32,7 @@ class JavaTypeChecker(BaseTypeChecker):
             line = node.start_point[0] + 1
             name_node = self._child_by_type(node, "identifier")
             name = _node_text(source, name_node) if name_node else ""
-            return_type_node = self._child_by_type(node, "type_identifier") or self._child_by_type(
-                node, "generic_type"
-            )
+            return_type_node = self._child_by_type(node, "type_identifier") or self._child_by_type(node, "generic_type")
             if return_type_node and _node_text(source, return_type_node) == "Object":
                 findings.append(
                     make_finding(
@@ -51,9 +49,9 @@ class JavaTypeChecker(BaseTypeChecker):
             if params:
                 for child in params.children:
                     if child.type == "formal_parameter":
-                        ptype = self._child_by_type(
-                            child, "type_identifier"
-                        ) or self._child_by_type(child, "generic_type")
+                        ptype = self._child_by_type(child, "type_identifier") or self._child_by_type(
+                            child, "generic_type"
+                        )
                         if ptype and _node_text(source, ptype) == "Object":
                             findings.append(
                                 make_finding(

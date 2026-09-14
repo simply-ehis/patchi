@@ -7,7 +7,12 @@ Checks:
   3. API key configuration
   4. .patchi/ size warnings
   5. Config validation
+  6. External security tooling — the full unified registry (Part 3 §2),
+     every tool any agent may use, present/broken/missing with the exact
+     install command. `p doctor --install` attempts the pip/npm-installable
+     ones automatically and prints the manual command for the rest.
 """
+
 from __future__ import annotations
 
 import importlib
@@ -15,6 +20,7 @@ import logging
 import pathlib
 import re
 import shutil
+import subprocess
 import sys
 
 from rich.panel import Panel
@@ -24,6 +30,128 @@ from rich.text import Text
 from patchi.cli.console import con
 
 _log = logging.getLogger("patchi.cli.doctor")
+
+# ── Tool installer (Part 3 §2.4) ─────────────────────────────────────────────
+
+_AUTO_TIMEOUT_S = 600  # pip/npm/go installs can be slow; go builds slower still
+
+
+def _run_installer(cmd: list[str]) -> tuple[bool, str]:
+    """Run one install command. Returns (ok, tail-of-output). Never raises."""
+    try:
+        proc = subprocess.run(  # noqa: S603 — fixed argv, no shell
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=_AUTO_TIMEOUT_S,
+        )
+    except subprocess.TimeoutExpired:
+        return False, f"timed out after {_AUTO_TIMEOUT_S}s"
+    except OSError as e:
+        return False, str(e)
+    out = ((proc.stdout or "") + (proc.stderr or "")).strip()
+    tail = "\n".join(out.splitlines()[-3:]) if out else ""
+    return proc.returncode == 0, tail
+
+
+def _auto_install_tools() -> int:
+    """`p doctor --install` — attempt the installable tools, print the rest.
+
+    Returns a process exit code: 0 = everything available afterwards,
+    1 = some tools still missing/broken (each with its manual command).
+    """
+    from patchi.core.agents.tool_health import check_tool, list_tools
+
+    still_manual: list[tuple[str, str]] = []  # (tool, manual command)
+    attempted = 0
+    installed = 0
+
+    con.print()
+    con.print("[bold #C8621A]Tooling install[/bold #C8621A]  [dim]auto-install what I can, print the rest[/dim]")
+    con.print()
+
+    for tool in list_tools():
+        st = check_tool(tool["name"])
+        if st["status"] == "ok":
+            ver = f" ({st['version']})" if st["version"] else ""
+            con.print(f"  [#4ADE80]✓[/#4ADE80] {tool['name']}[dim]{ver} — already present[/dim]")
+            continue
+
+        how = tool.get("auto")
+        _pkg = tool.get("pkg") or tool.get("go_pkg") or tool["name"]
+        # Windows: npm/go are .cmd shims — spawn fails with WinError 2 unless
+        # resolved to their full path via shutil.which. And when the installer
+        # itself is absent (no Go toolchain), classify as manual instead of
+        # attempting a spawn that can only fail.
+        _npm = shutil.which("npm")
+        _go = shutil.which("go")
+        _pw_module = importlib.util.find_spec("playwright") is not None
+        _installer_present = {
+            "pip": True,  # always available via sys.executable -m pip
+            "npm": _npm is not None,
+            "go": _go is not None,
+            "playwright": _pw_module,  # browser binaries need the pip package
+        }.get(how or "", False)
+        cmd_map = {
+            "pip": [sys.executable, "-m", "pip", "install", _pkg],
+            "npm": [(_npm or "npm"), "install", "-g", _pkg],
+            "go": [(_go or "go"), "install", tool["go_pkg"]] if tool.get("go_pkg") else None,
+            "playwright": [sys.executable, "-m", "playwright", "install", "chromium"],
+        }
+        cmd = cmd_map.get(how) if how else None
+        if cmd is not None and not _installer_present:
+            still_manual.append((tool["name"], tool["install"]))
+            _why = {
+                "npm": "npm not found",
+                "go": "Go toolchain not found",
+                "playwright": "playwright package not installed",
+            }.get(how or "", "installer unavailable")
+            con.print(f"  [dim]— {tool['name']}: manual ({_why}) — {tool['install']}[/dim]")
+            continue
+
+        if cmd is None:
+            still_manual.append((tool["name"], tool["install"]))
+            con.print(f"  [dim]— {tool['name']}: manual — {tool['install']}[/dim]")
+            continue
+
+        attempted += 1
+        con.print(f"  [#C8621A]…[/#C8621A] installing [bold]{tool['name']}[/bold] [dim]({' '.join(cmd)})[/dim]")
+        ok, tail = _run_installer(cmd)
+        if ok and check_tool(tool["name"])["status"] == "ok":
+            installed += 1
+            con.print(f"  [#4ADE80]✓[/#4ADE80] {tool['name']} installed")
+        else:
+            still_manual.append((tool["name"], tool["install"]))
+            _fail_note = " — " + tail if tail else ""
+            con.print(f"  [#FF4D6D]✗[/#FF4D6D] {tool['name']} failed{_fail_note}")
+            con.print(f"      [dim]try manually: {tool['install']}[/dim]")
+
+    # Playwright browser binaries when the package is present but browsers are not
+    pw = check_tool("playwright")
+    if pw["status"] == "broken" and "binaries missing" in pw["hint"]:
+        attempted += 1
+        con.print(
+            "  [#C8621A]…[/#C8621A] installing [bold]playwright browser binaries[/bold] (playwright install chromium)"
+        )
+        ok, tail = _run_installer([sys.executable, "-m", "playwright", "install", "chromium"])
+        if ok and check_tool("playwright")["status"] == "ok":
+            installed += 1
+            con.print("  [#4ADE80]✓[/#4ADE80] playwright browser binaries installed")
+        else:
+            _pw_fail_note = " — " + tail if tail else ""
+            con.print(f"  [#FF4D6D]✗[/#FF4D6D] playwright browsers failed{_pw_fail_note}")
+            con.print("      [dim]try manually: playwright install chromium[/dim]")
+
+    con.print()
+    if attempted:
+        con.print(f"  Attempted [bold]{attempted}[/bold] auto-install(s); [bold]{installed}[/bold] succeeded.")
+    if still_manual:
+        con.print(f"  [#FACC15]{len(still_manual)} tool(s) need manual installation:[/#FACC15]")
+        for name, hint in still_manual:
+            con.print(f"    · {name}: [dim]{hint}[/dim]")
+        return 1
+    con.print("[#4ADE80]All registered tools available.[/#4ADE80]")
+    return 0
 
 
 # ── Stale reference auto-fixer ───────────────────────────────────────
@@ -43,9 +171,7 @@ def _build_replacement_patterns(
         # Handles: "p brain", "p brain ", "p brain\n", "p brain'"
         # Also handles: "patchi brain", "python -m patchi brain"
         pat = re.compile(
-            r"(\b)(?:p|patchi|python\s+-m\s+patchi)\s+"
-            + re.escape(name)
-            + r"(\s|\'|\"|$)",
+            r"(\b)(?:p|patchi|python\s+-m\s+patchi)\s+" + re.escape(name) + r"(\s|\'|\"|$)",
             re.MULTILINE,
         )
         patterns.append((pat, replacement))
@@ -115,12 +241,31 @@ def _fix_stale_references(
 def _is_text_file(fpath: pathlib.Path) -> bool:
     """Check if a file is likely a text file (not binary)."""
     text_exts = {
-        ".sh", ".bash", ".zsh", ".bat", ".cmd", ".ps1",
-        ".py", ".js", ".ts", ".jsx", ".tsx",
-        ".yml", ".yaml", ".toml", ".cfg", ".ini", ".conf",
-        ".md", ".rst", ".txt",
-        "Makefile", "Dockerfile", ".dockerfile",
-        ".mk", ".cmake",
+        ".sh",
+        ".bash",
+        ".zsh",
+        ".bat",
+        ".cmd",
+        ".ps1",
+        ".py",
+        ".js",
+        ".ts",
+        ".jsx",
+        ".tsx",
+        ".yml",
+        ".yaml",
+        ".toml",
+        ".cfg",
+        ".ini",
+        ".conf",
+        ".md",
+        ".rst",
+        ".txt",
+        "Makefile",
+        "Dockerfile",
+        ".dockerfile",
+        ".mk",
+        ".cmake",
     }
     if fpath.name in text_exts or fpath.suffix in text_exts:
         return True
@@ -156,8 +301,14 @@ def run(
     verbose: bool = False,
     json_output: bool = False,
     fix: bool = False,
+    install: bool = False,
 ) -> None:
     """Entry point for `p doctor`."""
+    if install:
+        # §2.4: the real install path — attempts pip/npm/go/playwright
+        # installs, prints manual commands for the rest, exits non-zero when
+        # anything is still missing so agents/CI can react.
+        raise SystemExit(_auto_install_tools())
     if not json_output:
         con.print()
         con.print("[bold #C8621A]Patchi Doctor[/bold #C8621A]  [dim]system health check[/dim]")
@@ -334,9 +485,7 @@ def run(
     ]
     for cmd, import_name, pip_name, desc in _OPTIONAL_TEST:
         try:
-            present = (shutil.which(cmd) is not None) or (
-                import_name and importlib.import_module(import_name)
-            )
+            present = (shutil.which(cmd) is not None) or (import_name and importlib.import_module(import_name))
         except ImportError:
             present = False
         status = "✓" if present else "—"
@@ -344,32 +493,33 @@ def run(
         note = desc if present else f"Optional — {pip_name}"
         checks.append((f"[dim]opt:[/dim] {cmd}", status, note, color))
 
-    # ── 7. Optional: security tooling ────────────────────────────────────────
+    # ── 7. Security tooling: full registry (Part 3 §2) ─────────────────────
+    # Every tool any agent may use, whether present, and the exact install
+    # command when missing — not just the two that happened to be checked.
     try:
-        from patchi.core.agents.tool_health import check_tool
+        from patchi.core.agents.tool_health import check_tool, list_tools
 
-        _OPTIONAL_SECURITY = [
-            ("bandit", "bandit", "bandit", "Python security linter"),
-            ("semgrep", "", "semgrep", "Multi-language SAST scanner"),
-        ]
-        for cmd, _import_name, pip_name, desc in _OPTIONAL_SECURITY:
+        _last_group = ""
+        _tools = sorted(
+            (t for t in list_tools() if t["group"] not in ("platform", "ai")),
+            key=lambda t: (t["group"], t["name"]),
+        )
+        for tool in _tools:
+            if tool["group"] != _last_group:
+                _last_group = tool["group"]
+                checks.append((f"[bold]— {tool['group']} —[/bold]", "", "", "#6B7280"))
             try:
-                st = check_tool(cmd)
+                st = check_tool(tool["name"])
                 if st["status"] == "ok":
-                    note = f"{desc} ({st['version']})"
-                    checks.append((f"[dim]opt:[/dim] {cmd}", "✓", note, "#4ADE80"))
+                    ver = f" ({st['version']})" if st["version"] else ""
+                    checks.append((f"[dim]opt:[/dim] {tool['name']}", "✓", f"{tool['desc']}{ver}", "#4ADE80"))
                 elif st["status"] == "broken":
-                    hint = st["hint"]
-                    checks.append(
-                        (f"[dim]opt:[/dim] {cmd}", "✗", f"Broken: {hint}", "#FF4D6D")
-                    )
+                    checks.append((f"[dim]opt:[/dim] {tool['name']}", "✗", f"Broken: {st['hint']}", "#FF4D6D"))
                     errors += 1
                 else:
-                    note = f"Optional — {pip_name}"
-                    checks.append((f"[dim]opt:[/dim] {cmd}", "—", note, "#6B7280"))
+                    checks.append((f"[dim]opt:[/dim] {tool['name']}", "—", tool["install"], "#6B7280"))
             except Exception:
-                note = f"Optional — {pip_name}"
-                checks.append((f"[dim]opt:[/dim] {cmd}", "—", note, "#6B7280"))
+                checks.append((f"[dim]opt:[/dim] {tool['name']}", "—", tool["install"], "#6B7280"))
     except ImportError:
         pass
 
@@ -396,7 +546,7 @@ def run(
                 info_msg = f"{size_str} ({total_files} files)"
                 checks.append((".patchi/ size", "✓", info_msg, "#4ADE80"))
         except Exception as _exc:
-            _log.warning('run failed: %s', _exc)
+            _log.warning("run failed: %s", _exc)
 
     # ── Render results ────────────────────────────────────────────────────────
     if json_output:

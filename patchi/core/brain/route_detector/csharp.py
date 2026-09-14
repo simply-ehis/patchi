@@ -59,9 +59,7 @@ class CSharpRouteDetector(BaseRouteDetector):
         for child in getattr(node, "children", []):
             self._walk(child, content, file_path, routes)
 
-    def _check_method(
-        self, method_node: object, content: str, file_path: str, routes: list[dict]
-    ) -> None:
+    def _check_method(self, method_node: object, content: str, file_path: str, routes: list[dict]) -> None:
         http_method = None
         route_suffix = ""
         method_auth = False
@@ -88,11 +86,7 @@ class CSharpRouteDetector(BaseRouteDetector):
         class_prefix, class_auth = self._enclosing_class_context(method_node, content)
         path = self._combine_path(class_prefix, route_suffix)
 
-        name_node = (
-            method_node.child_by_field_name("name")
-            if hasattr(method_node, "child_by_field_name")
-            else None
-        )
+        name_node = method_node.child_by_field_name("name") if hasattr(method_node, "child_by_field_name") else None
         handler = self._node_text(name_node, content) if name_node else ""
         line = getattr(method_node, "start_point", (0, 0))[0] + 1
 
@@ -142,11 +136,7 @@ class CSharpRouteDetector(BaseRouteDetector):
         return "/" + "/".join(parts) if parts else ""
 
     def _attr_name(self, attr_node: object, content: str) -> str:
-        name_node = (
-            attr_node.child_by_field_name("name")
-            if hasattr(attr_node, "child_by_field_name")
-            else None
-        )
+        name_node = attr_node.child_by_field_name("name") if hasattr(attr_node, "child_by_field_name") else None
         return self._node_text(name_node, content) if name_node else ""
 
     def _attr_string_arg(self, attr_node: object, content: str) -> str:

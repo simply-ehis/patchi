@@ -76,7 +76,8 @@ class TestSuiteResult:
             "screenshots_dir": self.screenshots_dir,
             "videos": [
                 {"test": r.name, "path": r.video_path, "duration_ms": r.video_duration_ms}
-                for r in self.results if r.video_path
+                for r in self.results
+                if r.video_path
             ],
             "findings": [f.to_dict() for f in self.findings],
         }
@@ -123,9 +124,7 @@ class BrowserTestRunner:
         recording_instance = None
 
         try:
-            context, recording_instance = await pool.get_browser_for_recording(
-                video_dir=str(video_dir)
-            )
+            context, recording_instance = await pool.get_browser_for_recording(video_dir=str(video_dir))
             page = await context.new_page()
             page.set_default_timeout(30000)
             self.on_progress(f"🧪 Running test: {name}")
@@ -144,7 +143,7 @@ class BrowserTestRunner:
                         if ss_result and ss_result.image_path:
                             result.screenshots.append(ss_result.image_path)
                     except Exception as _exc:
-                        _log.warning('run_test failed: %s', _exc)
+                        _log.warning("run_test failed: %s", _exc)
                     break
 
         except Exception as e:
@@ -156,14 +155,14 @@ class BrowserTestRunner:
                 try:
                     await context.close()
                 except Exception as _exc:
-                    _log.warning('run_test failed: %s', _exc)
+                    _log.warning("run_test failed: %s", _exc)
             # Clean up recording browser instance from pool
             if recording_instance and recording_instance.id in pool._browsers:
                 try:
                     browser_inst = pool._browsers.pop(recording_instance.id)
                     await browser_inst._browser.close()
                 except Exception as _exc:
-                    _log.warning('run_test failed: %s', _exc)
+                    _log.warning("run_test failed: %s", _exc)
 
             # Find the recorded video file (Playwright saves it on context.close)
             try:
@@ -188,8 +187,7 @@ class BrowserTestRunner:
         self.on_progress(
             f"{'✅' if result.passed else '❌'} {name}: "
             f"{result.steps_completed}/{result.steps_total} steps "
-            f"({result.duration_ms}ms)"
-            + (f" 📹 {result.video_path}" if result.video_path else "")
+            f"({result.duration_ms}ms)" + (f" 📹 {result.video_path}" if result.video_path else "")
         )
         return result
 
@@ -224,9 +222,7 @@ class BrowserTestRunner:
         elif step.action == "assert_text":
             text = await page.text_content(step.target)
             if step.value not in (text or ""):
-                raise AssertionError(
-                    f"Expected '{step.value}' in text, got: '{(text or '')[:100]}'"
-                )
+                raise AssertionError(f"Expected '{step.value}' in text, got: '{(text or '')[:100]}'")
             self.on_progress("  ✅ Assert text passed")
 
         elif step.action == "assert_visible":
@@ -283,9 +279,7 @@ class BrowserTestRunner:
                     self.on_progress(f"  📸 {ss}")
 
         suite.duration_ms = int((time.monotonic() - start) * 1000)
-        self.on_progress(
-            f"🏁 Test suite: {suite.passed}/{suite.total_tests} passed ({suite.duration_ms}ms)"
-        )
+        self.on_progress(f"🏁 Test suite: {suite.passed}/{suite.total_tests} passed ({suite.duration_ms}ms)")
         return suite
 
     async def run_smoke_test(self, url: str = None) -> TestSuiteResult:

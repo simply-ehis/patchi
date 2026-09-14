@@ -106,13 +106,9 @@ class WatchlistTracker:
         data[ip] = entry
 
         # Check escalation before saving so we use in-memory data (no re-read race)
-        should_escalate_critical = new_score >= _ESCALATE_CRITICAL and not entry.get(
-            "escalated_critical"
-        )
+        should_escalate_critical = new_score >= _ESCALATE_CRITICAL and not entry.get("escalated_critical")
         should_escalate_high = (
-            new_score >= _ESCALATE_HIGH
-            and not should_escalate_critical
-            and not entry.get("escalated_high")
+            new_score >= _ESCALATE_HIGH and not should_escalate_critical and not entry.get("escalated_high")
         )
 
         if should_escalate_critical:

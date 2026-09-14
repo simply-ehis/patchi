@@ -35,9 +35,7 @@ class CSharpTypeChecker(BaseTypeChecker):
                 if self._child_by_type(node, "identifier")
                 else ""
             )
-            return_type = self._child_by_type(node, "predefined_type") or self._child_by_type(
-                node, "identifier"
-            )
+            return_type = self._child_by_type(node, "predefined_type") or self._child_by_type(node, "identifier")
             if return_type and _node_text(source, return_type) in ("object", "dynamic"):
                 findings.append(
                     make_finding(
@@ -45,7 +43,8 @@ class CSharpTypeChecker(BaseTypeChecker):
                         file=file_path,
                         line=line,
                         title=f"Method returns '{_node_text(source, return_type)}'",
-                        description=f"Method '{name}' returns untyped '{_node_text(source, return_type)}' — consider a specific type",
+                        description=f"Method '{name}' returns untyped '{_node_text(source, return_type)}' — consider a"
+                        f" specific type",
                         severity="medium",
                     )
                 )

@@ -117,19 +117,11 @@ class FileChange:
 
     @property
     def lines_added(self) -> int:
-        return sum(
-            1
-            for line in self.diff.splitlines()
-            if line.startswith("+") and not line.startswith("+++")
-        )
+        return sum(1 for line in self.diff.splitlines() if line.startswith("+") and not line.startswith("+++"))
 
     @property
     def lines_removed(self) -> int:
-        return sum(
-            1
-            for line in self.diff.splitlines()
-            if line.startswith("-") and not line.startswith("---")
-        )
+        return sum(1 for line in self.diff.splitlines() if line.startswith("-") and not line.startswith("---"))
 
     @property
     def lines_changed(self) -> int:
@@ -348,9 +340,7 @@ def compute_risk_score(
     for change in changes:
         diff_lines = change.diff.splitlines()
         modified = [
-            line[1:]
-            for line in diff_lines
-            if line.startswith(("+", "-")) and not line.startswith(("+++", "---"))
+            line[1:] for line in diff_lines if line.startswith(("+", "-")) and not line.startswith(("+++", "---"))
         ]
         if any(error_pattern.search(line) for line in modified):
             score += 15
@@ -439,6 +429,4 @@ def save_patch_state(root: Path, patch_id: str, state: PatchState) -> None:
             data["state"] = state.value
             path.write_text(json.dumps(data, indent=2), encoding="utf-8")
         except Exception as _exc:
-            _log.warning('save_patch_state failed: %s', _exc)
-
-
+            _log.warning("save_patch_state failed: %s", _exc)

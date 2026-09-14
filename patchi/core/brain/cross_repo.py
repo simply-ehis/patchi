@@ -13,16 +13,19 @@ from pathlib import Path
 
 _log = logging.getLogger("patchi.brain.cross_repo")
 
+
 def index_repos(roots: list[Path]) -> dict:
-    idx={}
+    idx = {}
     for r in roots:
         try:
             from patchi.core.brain.file_corpus import FileCorpus
-            corpus=FileCorpus(r)
-            idx[str(r)]={"files": len(list(corpus.files())), "deps": _deps(r)}
+
+            corpus = FileCorpus(r)
+            idx[str(r)] = {"files": len(list(corpus.files())), "deps": _deps(r)}
         except Exception:
-            idx[str(r)]={"files":0,"deps":{}}
+            idx[str(r)] = {"files": 0, "deps": {}}
     return idx
+
 
 def _deps(root: Path) -> dict:
     """Parsed {package: version} per manifest (not raw text)."""
@@ -86,8 +89,9 @@ def _deps(root: Path) -> dict:
         _log.debug("Cargo.toml parse failed: %s", _exc)
     return deps
 
+
 def drift_report(roots: list[Path]) -> dict:
-    idx=index_repos(roots)
+    idx = index_repos(roots)
     # real version drift: same package, different versions across repos
     seen: dict[str, dict[str, list]] = {}
     for r, data in idx.items():
@@ -96,9 +100,8 @@ def drift_report(roots: list[Path]) -> dict:
                 continue
             for name, ver in pkgs.items():
                 seen.setdefault(name, {}).setdefault(str(ver), []).append(r)
-    drift=[]
+    drift = []
     for name, versions in seen.items():
         if len(versions) > 1:
-            drift.append({"package": name[:80],
-                          "versions": {v: rs[:3] for v, rs in versions.items()}})
+            drift.append({"package": name[:80], "versions": {v: rs[:3] for v, rs in versions.items()}})
     return {"index": idx, "drift": drift[:10]}

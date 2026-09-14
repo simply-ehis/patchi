@@ -34,9 +34,7 @@ from patchi.core.config import require_project_root
 _log = logging.getLogger("patchi.cli.trend_cmd")
 
 
-def run(
-    metric: str | None = None, last_n: int = 20, root: Path | None = None, json_output: bool = False
-) -> None:
+def run(metric: str | None = None, last_n: int = 20, root: Path | None = None, json_output: bool = False) -> None:
     """Entry point for `p trend`."""
     try:
         r = root or require_project_root()
@@ -58,9 +56,7 @@ def run(
 
             con.print(_json.dumps({"trend": [], "note": "no scan history yet"}))
         else:
-            con.print(
-                "[dim]No scan history yet. Run `p scan` a few times to build trend data.[/dim]"
-            )
+            con.print("[dim]No scan history yet. Run `p scan` a few times to build trend data.[/dim]")
         return
 
     if json_output:
@@ -179,8 +175,7 @@ def _show_health_trend(trend_data: list[dict], last_n: int) -> None:
         sparkline = _sparkline(findings_series)
         con.print(f"\n  Findings: {sparkline}")
         con.print(
-            f"  [dim]Latest: {findings_series[-1]} findings "
-            f"(avg: {sum(findings_series) // len(findings_series)})[/dim]"
+            f"  [dim]Latest: {findings_series[-1]} findings (avg: {sum(findings_series) // len(findings_series)})[/dim]"
         )
     con.print()
 

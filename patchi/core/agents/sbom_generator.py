@@ -7,6 +7,7 @@ Covers §11.5:
 
 Language-agnostic: supports npm, pip, cargo, go, bundler, composer ecosystems.
 """
+
 from __future__ import annotations
 
 import json
@@ -175,7 +176,14 @@ class SBOMGeneratorAgent(BaseAgent):
 
         # cdxgen: npx @cyclonedx/cdxgen -o /tmp/sbom.json
         for cmd in (
-            ["npx", "--yes", "@cyclonedx/cdxgen", "-o", str(inp.root / ".patchi" / "sbom.cdxgen.json"), "--no-recurse"],
+            [
+                "npx",
+                "--yes",
+                "@cyclonedx/cdxgen",
+                "-o",
+                str(inp.root / ".patchi" / "sbom.cdxgen.json"),
+                "--no-recurse",
+            ],
             ["syft", str(inp.root), "-o", "cyclonedx-json"],
         ):
             if not shutil.which(cmd[0]):
@@ -206,7 +214,11 @@ class SBOMGeneratorAgent(BaseAgent):
                 sbom_path.write_text(json.dumps(sbom, indent=2), encoding="utf-8")
                 result.findings.append(
                     make_finding(
-                        self.name, "sbom_generated", Severity.INFO, str(sbom_path.relative_to(inp.root)), f"SBOM (external) {total} components"
+                        self.name,
+                        "sbom_generated",
+                        Severity.INFO,
+                        str(sbom_path.relative_to(inp.root)),
+                        f"SBOM (external) {total} components",
                     )
                 )
             except Exception as e:

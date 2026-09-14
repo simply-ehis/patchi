@@ -19,6 +19,7 @@ from patchi.core.agents.base import (
 
 _log = logging.getLogger("patchi.agents.side.build")
 
+
 @register
 class BuildAgent(BaseAgent):
     group = AgentGroup.SCANNER
@@ -51,7 +52,16 @@ class BuildAgent(BaseAgent):
                 proc = subprocess.run(cmd, capture_output=True, text=True, timeout=60, cwd=str(root))
                 logs.append(f"$ {' '.join(cmd)}\n{proc.stdout[:500]}{proc.stderr[:500]}")
                 if proc.returncode != 0:
-                    findings.append(make_finding(severity=Severity.HIGH, file=file, line_start=0, title=f"Build failed: {' '.join(cmd)}", description=(proc.stdout + proc.stderr)[:600], finding_type="build_failed"))
+                    findings.append(
+                        make_finding(
+                            severity=Severity.HIGH,
+                            file=file,
+                            line_start=0,
+                            title=f"Build failed: {' '.join(cmd)}",
+                            description=(proc.stdout + proc.stderr)[:600],
+                            finding_type="build_failed",
+                        )
+                    )
             except Exception as exc:  # noqa: BLE001
                 _log.debug("build %s failed: %s", cmd, exc)
         result.status = AgentStatus.SUCCEEDED

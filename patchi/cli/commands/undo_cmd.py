@@ -52,9 +52,7 @@ def run_undo(patch_id: str | None = None, root: Path | None = None) -> None:
 
     if result.success:
         _mark_undone(patch.id, r)
-        con.print(
-            f"[#4ADE80]✓ Undone.[/#4ADE80]  [dim]Files restored from snapshot {snapshot_id}[/dim]"
-        )
+        con.print(f"[#4ADE80]✓ Undone.[/#4ADE80]  [dim]Files restored from snapshot {snapshot_id}[/dim]")
     else:
         con.print(f"[red]✗ Undo failed.[/red]  [dim]{result.error}[/dim]")
 
@@ -91,8 +89,7 @@ def run_redo(patch_id: str | None = None, root: Path | None = None) -> None:
     if result.success:
         _mark_applied(patch.id, r)
         con.print(
-            f"[#4ADE80]✓ Re-applied.[/#4ADE80]  "
-            f"[dim]Tests: {'passed' if result.test_passed else 'skipped'}[/dim]"
+            f"[#4ADE80]✓ Re-applied.[/#4ADE80]  [dim]Tests: {'passed' if result.test_passed else 'skipped'}[/dim]"
         )
     else:
         con.print(f"[red]✗ Failed.[/red]  [dim]{result.error}[/dim]")
@@ -125,9 +122,7 @@ def run_rollback(patch_id: str, root: Path | None = None) -> None:
     try:
         target_idx = next(i for i, p in enumerate(applied_patches) if p.get("id") == patch_id)
     except StopIteration:
-        con.print(
-            f"[yellow]Patch {patch_id} was not applied (state: {target.get('state')})[/yellow]"
-        )
+        con.print(f"[yellow]Patch {patch_id} was not applied (state: {target.get('state')})[/yellow]")
         return
 
     patches_to_undo = applied_patches[target_idx:]

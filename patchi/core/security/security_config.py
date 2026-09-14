@@ -49,7 +49,6 @@ def _semgrep_config_value(root: Path) -> str | None:
     return None if is_offline() else "p/owasp-top-ten"
 
 
-
 def _run(
     cmd: list[str],
     cwd: Path,
@@ -210,9 +209,9 @@ class ConfigAuditAgent(BaseAgent):
 
     def _run(self, inp: AgentInput, result: AgentResult) -> None:
         if not shutil.which("semgrep"):
-            result.data["tool_missing"] = "semgrep"
-            result.data["install_hint"] = "pip install semgrep"
-            self.skip(result, "semgrep not installed")
+            # Part 3 §2.5: registry-backed tool-missing skip (carries the
+            # install hint and the tool_missing marker for reports/health).
+            self.skip_for_tool(result, "semgrep")
             return
 
         root = inp.root
@@ -247,9 +246,7 @@ class ConfigAuditAgent(BaseAgent):
                     message=f.get("extra", {}).get("message", "Semgrep finding"),
                     code_snippet=lines[:120],
                     detail=f.get("check_id", ""),
-                    suggestion=meta.get(
-                        "fix", meta.get("references", [""])[0] if meta.get("references") else ""
-                    ),
+                    suggestion=meta.get("fix", meta.get("references", [""])[0] if meta.get("references") else ""),
                     cwe=meta.get("cwe", [""])[0] if meta.get("cwe") else "",
                     fix_agent="SecurityFixer",
                     rule_id=f.get("check_id", ""),

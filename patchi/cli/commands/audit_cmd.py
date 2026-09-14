@@ -58,8 +58,7 @@ def run(
             + "."
         )
         con.print(
-            f"  Findings at plan time: {saved['total_findings']}; "
-            f"charter violations: {saved['charter_violations']}"
+            f"  Findings at plan time: {saved['total_findings']}; charter violations: {saved['charter_violations']}"
         )
         con.print("[dim]Now build. Later run [bold]p audit[/bold] to detect drift.[/dim]")
         return
@@ -158,11 +157,7 @@ def _print_full_audit(report: dict, test_run) -> None:
         status = "ON PLAN ✅" if drift.get("clean") else "DRIFT DETECTED ⚠️"
         lines.append(
             f"Plan-vs-Built: {status}"
-            + (
-                f" — {drift.get('new_findings', 0)} new findings"
-                if drift.get("new_findings")
-                else ""
-            )
+            + (f" — {drift.get('new_findings', 0)} new findings" if drift.get("new_findings") else "")
             + (
                 f", {drift.get('new_charter_violations', 0)} new charter violations"
                 if drift.get("new_charter_violations")
@@ -175,15 +170,9 @@ def _print_full_audit(report: dict, test_run) -> None:
             lines.append(f"  - missing vs plan: {', '.join(drift['layers_removed'])}")
         sd = drift.get("scope_diff") or {}
         if sd.get("added_files"):
-            lines.append(
-                f"  + files added ({sd['added_count']}): "
-                + ", ".join(f for f in sd["added_files"][:8])
-            )
+            lines.append(f"  + files added ({sd['added_count']}): " + ", ".join(f for f in sd["added_files"][:8]))
         if sd.get("removed_files"):
-            lines.append(
-                f"  - files removed ({sd['removed_count']}): "
-                + ", ".join(f for f in sd["removed_files"][:8])
-            )
+            lines.append(f"  - files removed ({sd['removed_count']}): " + ", ".join(f for f in sd["removed_files"][:8]))
         if sd.get("modified_files"):
             lines.append(f"  ~ files changed ({sd['modified_count']}):")
             for m in sd["modified_files"][:8]:
@@ -196,13 +185,9 @@ def _print_full_audit(report: dict, test_run) -> None:
                     bits.append("content changed")
                 lines.append(f"      • {m['file']}  ({', '.join(bits)})")
     else:
-        lines.append(
-            "[dim]Tip: run [bold]p audit --plan[/bold] to set a baseline, then re-audit for drift.[/dim]"
-        )
+        lines.append("[dim]Tip: run [bold]p audit --plan[/bold] to set a baseline, then re-audit for drift.[/dim]")
 
-    con.print(
-        Panel("\n".join(lines), title="[bold #C8621A]Audit[/bold #C8621A]", border_style="#2A3D28")
-    )
+    con.print(Panel("\n".join(lines), title="[bold #C8621A]Audit[/bold #C8621A]", border_style="#2A3D28"))
     con.print()
 
 
@@ -236,14 +221,10 @@ def _write_html(path: Path, report: dict) -> None:
             extra.append("beyond plan: " + ", ".join(drift["layers_added"]))
         if drift.get("layers_removed"):
             extra.append("missing: " + ", ".join(drift["layers_removed"]))
-        rows.append(
-            f"<tr><td>Plan-vs-Built</td><td>{status}</td>"
-            f"<td>{_esc('; '.join(extra) or 'no drift')}</td></tr>"
-        )
+        rows.append(f"<tr><td>Plan-vs-Built</td><td>{status}</td><td>{_esc('; '.join(extra) or 'no drift')}</td></tr>")
     else:
         rows.append(
-            "<tr><td>Plan-vs-Built</td><td>n/a</td>"
-            "<td>run <code>p audit --plan</code> to set a baseline</td></tr>"
+            "<tr><td>Plan-vs-Built</td><td>n/a</td><td>run <code>p audit --plan</code> to set a baseline</td></tr>"
         )
 
     html = f"""<!doctype html>

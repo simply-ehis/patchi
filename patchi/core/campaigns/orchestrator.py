@@ -120,9 +120,7 @@ class CampaignOrchestrator:
         """Run a specific campaign by name."""
         cls = CAMPAIGN_REGISTRY.get(name)
         if cls is None:
-            raise ValueError(
-                f"Unknown campaign: {name}. Available: {list(CAMPAIGN_REGISTRY.keys())}"
-            )
+            raise ValueError(f"Unknown campaign: {name}. Available: {list(CAMPAIGN_REGISTRY.keys())}")
 
         campaign = cls(self._graph)
         steps = campaign.run()

@@ -49,8 +49,6 @@ def run(
         con.print()
         con.print(f'[bold]Claim:[/bold] "{claim}"  →  holds: {verdict}')
         if not ok:
-            con.print(
-                "[dim]Do not report this as done. Fix and re-run [bold]p verify[/bold].[/dim]"
-            )
+            con.print("[dim]Do not report this as done. Fix and re-run [bold]p verify[/bold].[/dim]")
 
     con.print()

@@ -29,9 +29,7 @@ class TypeScriptChecker(BaseTypeChecker):
 
         return findings
 
-    def _walk(
-        self, node: Any, buf: bytes, source: str, file_path: str, findings: list[dict]
-    ) -> None:
+    def _walk(self, node: Any, buf: bytes, source: str, file_path: str, findings: list[dict]) -> None:
         ntype = node.type
 
         if ntype in ("function_declaration", "method_definition"):
@@ -57,9 +55,7 @@ class TypeScriptChecker(BaseTypeChecker):
         for child in node.named_children if hasattr(node, "named_children") else node.children:
             self._walk(child, buf, source, file_path, findings)
 
-    def _check_function(
-        self, node: Any, buf: bytes, source: str, file_path: str, findings: list[dict]
-    ) -> None:
+    def _check_function(self, node: Any, buf: bytes, source: str, file_path: str, findings: list[dict]) -> None:
         line = node.start_point[0] + 1
 
         # Check return type annotation
@@ -101,9 +97,7 @@ class TypeScriptChecker(BaseTypeChecker):
         if params:
             self._check_parameter_list(params, buf, source, file_path, findings)
 
-    def _check_arrow_function(
-        self, node: Any, buf: bytes, source: str, file_path: str, findings: list[dict]
-    ) -> None:
+    def _check_arrow_function(self, node: Any, buf: bytes, source: str, file_path: str, findings: list[dict]) -> None:
         line = node.start_point[0] + 1
 
         return_type = self._child_by_field(node, "return_type")
@@ -141,9 +135,7 @@ class TypeScriptChecker(BaseTypeChecker):
         if params:
             self._check_parameter_list(params, buf, source, file_path, findings)
 
-    def _check_variable(
-        self, node: Any, buf: bytes, source: str, file_path: str, findings: list[dict]
-    ) -> None:
+    def _check_variable(self, node: Any, buf: bytes, source: str, file_path: str, findings: list[dict]) -> None:
         line = node.start_point[0] + 1
         name_node = self._child_by_field(node, "name")
         name = _node_text(source, name_node) if name_node else ""
@@ -184,9 +176,7 @@ class TypeScriptChecker(BaseTypeChecker):
                     )
                 )
 
-    def _check_parameter(
-        self, node: Any, buf: bytes, source: str, file_path: str, findings: list[dict]
-    ) -> None:
+    def _check_parameter(self, node: Any, buf: bytes, source: str, file_path: str, findings: list[dict]) -> None:
         line = node.start_point[0] + 1
         name_node = self._child_by_field(node, "name")
         name = _node_text(source, name_node) if name_node else ""
@@ -210,11 +200,7 @@ class TypeScriptChecker(BaseTypeChecker):
     def _check_parameter_list(
         self, params_node: Any, buf: bytes, source: str, file_path: str, findings: list[dict]
     ) -> None:
-        for child in (
-            params_node.named_children
-            if hasattr(params_node, "named_children")
-            else params_node.children
-        ):
+        for child in params_node.named_children if hasattr(params_node, "named_children") else params_node.children:
             if child.type == "required_parameter":
                 self._check_parameter(child, buf, source, file_path, findings)
             elif child.type == "optional_parameter":
@@ -247,9 +233,7 @@ class TypeScriptChecker(BaseTypeChecker):
                 _log.warning("TypeScriptChecker._child_text_by_field failed: %s", e)
         return ""
 
-    def _check_as_cast(
-        self, node: Any, buf: bytes, source: str, file_path: str, findings: list[dict]
-    ) -> None:
+    def _check_as_cast(self, node: Any, buf: bytes, source: str, file_path: str, findings: list[dict]) -> None:
         line = node.start_point[0] + 1
         type_node = self._child_by_field(node, "type")
         type_name = "unknown"
@@ -267,9 +251,7 @@ class TypeScriptChecker(BaseTypeChecker):
             )
         )
 
-    def _check_comment(
-        self, node: Any, buf: bytes, source: str, file_path: str, findings: list[dict]
-    ) -> None:
+    def _check_comment(self, node: Any, buf: bytes, source: str, file_path: str, findings: list[dict]) -> None:
         line = node.start_point[0] + 1
         text = _node_text(source, node)
         if "@ts-ignore" in text:

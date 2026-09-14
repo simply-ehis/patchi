@@ -41,7 +41,6 @@ p fix                 # apply fixes for known issues
 p scan --deep --file src/auth.py   # deep analysis on one file
 p scan --no-side                   # fast source-only scan
 p scan --pipeline                  # full scan + auto-defense (ConfidenceGate + DefenseLayer)
-p scan --governor                  # full v2 pipeline with state machine + crash recovery
 p security                         # run all 40 security agents
 p security injection               # run specific agent
 p security --json                  # structured JSON output
@@ -153,7 +152,6 @@ p notify test
 | Review app contract | `p scan --contract` |
 | JSON output for CI | `p scan --json` |
 | Offline (no AI calls) | `p scan --offline` |
-| Governor v2 pipeline | `p scan --governor` |
 
 ### Contract Flow Inference
 

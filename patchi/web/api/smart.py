@@ -20,9 +20,7 @@ from pydantic import BaseModel
 
 _log = logging.getLogger("patchi.web.smart")
 
-_templates = Jinja2Templates(
-    directory=str(Path(__file__).resolve().parent.parent / "templates")
-)
+_templates = Jinja2Templates(directory=str(Path(__file__).resolve().parent.parent / "templates"))
 
 router = APIRouter()
 
@@ -42,23 +40,25 @@ async def smart_run(req: SmartRunRequest, request: Request):
 
     def on_event(payload: dict) -> None:
         try:
-            asyncio.run_coroutine_threadsafe(
-                manager.broadcast(payload["event"], payload["data"]), loop
-            )
+            asyncio.run_coroutine_threadsafe(manager.broadcast(payload["event"], payload["data"]), loop)
         except Exception as e:
             _log.debug("ws broadcast failed: %s", e)
 
     def on_progress(msg: str) -> None:
         try:
             asyncio.run_coroutine_threadsafe(
-                manager.broadcast("agent.progress", {
-                    "agent": "orchestrator",
-                    "progress_pct": 0,
-                    "current_file": msg,
-                }), loop
+                manager.broadcast(
+                    "agent.progress",
+                    {
+                        "agent": "orchestrator",
+                        "progress_pct": 0,
+                        "current_file": msg,
+                    },
+                ),
+                loop,
             )
         except Exception as _exc:
-            _log.warning('on_progress failed: %s', _exc)
+            _log.warning("on_progress failed: %s", _exc)
 
     async def _run() -> None:
         from patchi.core.ai.orchestrator import Orchestrator
@@ -72,10 +72,12 @@ async def smart_run(req: SmartRunRequest, request: Request):
             await orchestrator.run(req.goal, max_steps=req.max_steps)
         except Exception as e:
             _log.error("Orchestrator run failed: %s", e)
-            on_event({
-                "event": "agent.error",
-                "data": {"agent": "orchestrator", "error": str(e)},
-            })
+            on_event(
+                {
+                    "event": "agent.error",
+                    "data": {"agent": "orchestrator", "error": str(e)},
+                }
+            )
 
     global _current_task
     _current_task = asyncio.create_task(_run())

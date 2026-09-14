@@ -33,10 +33,7 @@ class AuthMiddlewareAdapter(BaseAdapter):
 
         changes = []
         if "flask" in content.lower() or "from flask" in content:
-            if (
-                "from flask_login import login_required" not in content
-                and "from flask_login import" not in content
-            ):
+            if "from flask_login import login_required" not in content and "from flask_login import" not in content:
                 lines = content.splitlines()
                 insert_at = 0
                 for i, line in enumerate(lines):
@@ -53,8 +50,7 @@ class AuthMiddlewareAdapter(BaseAdapter):
                     FileChange(
                         path=str(fpath),
                         original=content,
-                        proposed="from django.contrib.auth.decorators import login_required\n"
-                        + content,
+                        proposed="from django.contrib.auth.decorators import login_required\n" + content,
                     )
                 )
         elif "fastapi" in content.lower() or "from fastapi" in content:
@@ -63,8 +59,7 @@ class AuthMiddlewareAdapter(BaseAdapter):
                     FileChange(
                         path=str(fpath),
                         original=content,
-                        proposed="from fastapi import Depends\nfrom .auth import get_current_user\n"
-                        + content,
+                        proposed="from fastapi import Depends\nfrom .auth import get_current_user\n" + content,
                     )
                 )
 

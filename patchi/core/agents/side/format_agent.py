@@ -19,6 +19,7 @@ from patchi.core.agents.base import (
 
 _log = logging.getLogger("patchi.agents.side.format")
 
+
 @register
 class FormatAgent(BaseAgent):
     group = AgentGroup.SCANNER
@@ -42,7 +43,16 @@ class FormatAgent(BaseAgent):
                 if proc.returncode != 0 and proc.stdout.strip():
                     # only first 3 lines to avoid flood
                     snippet = "\n".join(proc.stdout.splitlines()[:3])[:400]
-                    findings.append(make_finding(severity=Severity.LOW, file="", line_start=0, title=f"Format: {name} failed", description=snippet, finding_type="format_error"))
+                    findings.append(
+                        make_finding(
+                            severity=Severity.LOW,
+                            file="",
+                            line_start=0,
+                            title=f"Format: {name} failed",
+                            description=snippet,
+                            finding_type="format_error",
+                        )
+                    )
                     break  # one format failure enough
             except Exception as exc:  # noqa: BLE001
                 _log.debug("format %s failed: %s", name, exc)

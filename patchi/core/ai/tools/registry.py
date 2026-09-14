@@ -97,7 +97,8 @@ class ToolRegistry:
         self.register(
             ToolDefinition(
                 name="scan_project",
-                description="Run a full brain scan on the project (or a subdirectory). Returns comprehensive project knowledge.",
+                description="Run a full brain scan on the project (or a subdirectory). Returns comprehensive project"
+                " knowledge.",
                 parameters=[
                     ToolParameter(
                         "area",
@@ -105,9 +106,7 @@ class ToolRegistry:
                         "Optional subdirectory to scan (relative to project root)",
                         required=False,
                     ),
-                    ToolParameter(
-                        "depth", "integer", "Maximum directory depth to scan", required=False
-                    ),
+                    ToolParameter("depth", "integer", "Maximum directory depth to scan", required=False),
                     ToolParameter(
                         "incremental",
                         "boolean",
@@ -128,9 +127,7 @@ class ToolRegistry:
                 name="explain_layer",
                 description="Get detailed explanation of a brain layer (module, subsystem, or project).",
                 parameters=[
-                    ToolParameter(
-                        "layer_name", "string", "Name of the layer to explain", required=True
-                    ),
+                    ToolParameter("layer_name", "string", "Name of the layer to explain", required=True),
                     ToolParameter(
                         "depth",
                         "integer",
@@ -203,11 +200,10 @@ class ToolRegistry:
         self.register(
             ToolDefinition(
                 name="scan_vulnerabilities",
-                description="Run security scan with all relevant agents. Auto-activates domains based on project signals.",
+                description="Run security scan with all relevant agents. Auto-activates domains based on project"
+                " signals.",
                 parameters=[
-                    ToolParameter(
-                        "area", "string", "Optional subdirectory to scan", required=False
-                    ),
+                    ToolParameter("area", "string", "Optional subdirectory to scan", required=False),
                     ToolParameter(
                         "domains",
                         "array",
@@ -274,7 +270,8 @@ class ToolRegistry:
                 returns="AttackSimulationReport with findings, exploitability, detection signatures",
                 category="security",
                 requires_confirmation=True,
-                side_effects="May send HTTP requests to target_url if provided; with use_shannon runs external Shannon worker via npx/docker",
+                side_effects="May send HTTP requests to target_url if provided; with use_shannon runs external Shannon"
+                " worker via npx/docker",
                 examples=[{"scenarios": ["sqli", "xss", "ssrf"], "safe_mode": True}],
             ),
             self._handle_attack_simulate,
@@ -343,17 +340,14 @@ class ToolRegistry:
                     ToolParameter(
                         "test_types",
                         "array",
-                        "Test types: 'unit', 'integration', 'e2e', 'browser', 'stress', 'visual', 'accessibility', 'api', 'smoke', 'full'",
+                        "Test types: 'unit', 'integration', 'e2e', 'browser', 'stress', 'visual', 'accessibility',"
+                        " 'api', 'smoke', 'full'",
                         required=False,
                         items={"type": "string"},
                         default=["unit", "regression"],
                     ),
-                    ToolParameter(
-                        "area", "string", "Optional subdirectory to test", required=False
-                    ),
-                    ToolParameter(
-                        "base_url", "string", "Base URL for browser/e2e tests", required=False
-                    ),
+                    ToolParameter("area", "string", "Optional subdirectory to test", required=False),
+                    ToolParameter("base_url", "string", "Base URL for browser/e2e tests", required=False),
                     ToolParameter(
                         "parallel",
                         "boolean",
@@ -421,15 +415,9 @@ class ToolRegistry:
                         required=False,
                         default="load",
                     ),
-                    ToolParameter(
-                        "users", "integer", "Concurrent virtual users", required=False, default=10
-                    ),
-                    ToolParameter(
-                        "duration_seconds", "integer", "Test duration", required=False, default=60
-                    ),
-                    ToolParameter(
-                        "ramp_up_seconds", "integer", "Ramp up period", required=False, default=10
-                    ),
+                    ToolParameter("users", "integer", "Concurrent virtual users", required=False, default=10),
+                    ToolParameter("duration_seconds", "integer", "Test duration", required=False, default=60),
+                    ToolParameter("ramp_up_seconds", "integer", "Ramp up period", required=False, default=10),
                 ],
                 returns="StressTestReport with latency percentiles, throughput, error rate, bottlenecks",
                 category="testing",
@@ -466,9 +454,7 @@ class ToolRegistry:
                         required=False,
                         default=True,
                     ),
-                    ToolParameter(
-                        "wait_for", "string", "Wait for selector before capture", required=False
-                    ),
+                    ToolParameter("wait_for", "string", "Wait for selector before capture", required=False),
                 ],
                 returns="Screenshot image (base64) + metadata",
                 category="testing",
@@ -489,9 +475,7 @@ class ToolRegistry:
                         "Playwright-style test script or natural language steps",
                         required=True,
                     ),
-                    ToolParameter(
-                        "base_url", "string", "Base URL for relative navigation", required=False
-                    ),
+                    ToolParameter("base_url", "string", "Base URL for relative navigation", required=False),
                     ToolParameter(
                         "headless",
                         "boolean",
@@ -510,11 +494,7 @@ class ToolRegistry:
                 returns="BrowserTestResult with steps, screenshots, console logs, network logs, video",
                 category="testing",
                 side_effects="Launches browser, executes script",
-                examples=[
-                    {
-                        "script": "goto('/login'); fill('#user', 'test'); click('#submit'); expect('#dashboard')"
-                    }
-                ],
+                examples=[{"script": "goto('/login'); fill('#user', 'test'); click('#submit'); expect('#dashboard')"}],
             ),
             self._handle_browser_test,
         )
@@ -550,11 +530,23 @@ class ToolRegistry:
         self.register(
             ToolDefinition(
                 name="read_file",
-                description="Read a source file slice (max 500 lines) — LLM may request at most 3 calls per validation/fix with reason.",
+                description="Read a source file slice (max 500 lines) — LLM may request at most 3 calls per"
+                " validation/fix with reason.",
                 parameters=[
-                    ToolParameter("path", "string", "Relative path from repo root, validated ≤2MB", required=True),
+                    ToolParameter(
+                        "path",
+                        "string",
+                        "Relative path from repo root, validated ≤2MB",
+                        required=True,
+                    ),
                     ToolParameter("start", "integer", "Start line 1-indexed", required=False, default=1),
-                    ToolParameter("end", "integer", "End line inclusive (start+500 max)", required=False, default=500),
+                    ToolParameter(
+                        "end",
+                        "integer",
+                        "End line inclusive (start+500 max)",
+                        required=False,
+                        default=500,
+                    ),
                 ],
                 returns="File content slice with line numbers",
                 category="memory",
@@ -570,9 +562,7 @@ class ToolRegistry:
                 name="generate_fix",
                 description="Generate a fix for a specific finding or vulnerability.",
                 parameters=[
-                    ToolParameter(
-                        "finding_id", "string", "ID of the finding to fix", required=True
-                    ),
+                    ToolParameter("finding_id", "string", "ID of the finding to fix", required=True),
                     ToolParameter(
                         "strategy",
                         "string",
@@ -638,9 +628,7 @@ class ToolRegistry:
                 name="rollback_patch",
                 description="Roll back a previously applied patch.",
                 parameters=[
-                    ToolParameter(
-                        "patch_id", "string", "ID of the patch to rollback", required=True
-                    ),
+                    ToolParameter("patch_id", "string", "ID of the patch to rollback", required=True),
                     ToolParameter(
                         "snapshot_id",
                         "string",
@@ -683,9 +671,7 @@ class ToolRegistry:
                 description="Update Patchi configuration.",
                 parameters=[
                     ToolParameter("key", "string", "Config key (dot notation)", required=True),
-                    ToolParameter(
-                        "value", "string", "New value (JSON-serializable)", required=True
-                    ),
+                    ToolParameter("value", "string", "New value (JSON-serializable)", required=True),
                 ],
                 returns="Updated configuration",
                 category="config",
@@ -708,17 +694,13 @@ class ToolRegistry:
                         "Restriction type: 'no_touch', 'no_scan', 'read_only'",
                         required=True,
                     ),
-                    ToolParameter(
-                        "reason", "string", "Reason for restriction", required=False, default=""
-                    ),
+                    ToolParameter("reason", "string", "Reason for restriction", required=False, default=""),
                 ],
                 returns="Updated restrictions list",
                 category="config",
                 requires_confirmation=True,
                 side_effects="Modifies project restrictions",
-                examples=[
-                    {"path": "src/legacy", "type": "no_touch", "reason": "Deprecated module"}
-                ],
+                examples=[{"path": "src/legacy", "type": "no_touch", "reason": "Deprecated module"}],
             ),
             self._handle_add_restriction,
         )
@@ -768,9 +750,7 @@ class ToolRegistry:
                 name="get_scan_results",
                 description="Get results from previous security/test scans.",
                 parameters=[
-                    ToolParameter(
-                        "scanner", "string", "Optional: specific scanner name", required=False
-                    ),
+                    ToolParameter("scanner", "string", "Optional: specific scanner name", required=False),
                 ],
                 returns="Scan results from memory",
                 category="memory",
@@ -793,9 +773,7 @@ class ToolRegistry:
                     ToolParameter("type", "string", "Filter by finding type", required=False),
                     ToolParameter("file", "string", "Filter by file path", required=False),
                     ToolParameter("agent", "string", "Filter by agent name", required=False),
-                    ToolParameter(
-                        "limit", "integer", "Max results (default 50)", required=False, default=50
-                    ),
+                    ToolParameter("limit", "integer", "Max results (default 50)", required=False, default=50),
                 ],
                 returns="Filtered list of findings",
                 category="memory",
@@ -860,9 +838,7 @@ class ToolRegistry:
                 name="p_scan",
                 description="Run 'p scan' — full or targeted brain scan of the project.",
                 parameters=[
-                    ToolParameter(
-                        "area", "string", "Subdirectory to scan (relative to root)", required=False
-                    ),
+                    ToolParameter("area", "string", "Subdirectory to scan (relative to root)", required=False),
                     ToolParameter(
                         "deep",
                         "boolean",
@@ -877,9 +853,7 @@ class ToolRegistry:
                         required=False,
                         default=False,
                     ),
-                    ToolParameter(
-                        "json_output", "boolean", "Output as JSON", required=False, default=False
-                    ),
+                    ToolParameter("json_output", "boolean", "Output as JSON", required=False, default=False),
                 ],
                 returns="ScanReport with findings, agents run, duration",
                 category="cli",
@@ -909,9 +883,7 @@ class ToolRegistry:
                         required=False,
                         default=False,
                     ),
-                    ToolParameter(
-                        "json_output", "boolean", "Output as JSON", required=False, default=False
-                    ),
+                    ToolParameter("json_output", "boolean", "Output as JSON", required=False, default=False),
                 ],
                 returns="Security report with correlated findings",
                 category="cli",
@@ -962,9 +934,7 @@ class ToolRegistry:
                 name="p_test",
                 description="Run 'p test' — run the test suite.",
                 parameters=[
-                    ToolParameter(
-                        "area", "string", "Specific test file or directory", required=False
-                    ),
+                    ToolParameter("area", "string", "Specific test file or directory", required=False),
                     ToolParameter(
                         "type",
                         "string",
@@ -972,9 +942,7 @@ class ToolRegistry:
                         required=False,
                         default="all",
                     ),
-                    ToolParameter(
-                        "json_output", "boolean", "Output as JSON", required=False, default=False
-                    ),
+                    ToolParameter("json_output", "boolean", "Output as JSON", required=False, default=False),
                 ],
                 returns="Test results with pass/fail counts",
                 category="cli",
@@ -1009,9 +977,7 @@ class ToolRegistry:
                         required=False,
                         default=False,
                     ),
-                    ToolParameter(
-                        "json_output", "boolean", "Output as JSON", required=False, default=False
-                    ),
+                    ToolParameter("json_output", "boolean", "Output as JSON", required=False, default=False),
                 ],
                 returns="Assurance report with claims, attackers, campaigns",
                 category="cli",
@@ -1025,9 +991,7 @@ class ToolRegistry:
                 name="p_deps",
                 description="Run 'p deps' — dependency analysis.",
                 parameters=[
-                    ToolParameter(
-                        "json_output", "boolean", "Output as JSON", required=False, default=False
-                    ),
+                    ToolParameter("json_output", "boolean", "Output as JSON", required=False, default=False),
                 ],
                 returns="Dependency report with vulnerabilities, outdated packages",
                 category="cli",
@@ -1049,9 +1013,7 @@ class ToolRegistry:
                         default="list",
                     ),
                     ToolParameter("severity", "string", "Filter by severity", required=False),
-                    ToolParameter(
-                        "json_output", "boolean", "Output as JSON", required=False, default=False
-                    ),
+                    ToolParameter("json_output", "boolean", "Output as JSON", required=False, default=False),
                 ],
                 returns="Findings list or summary",
                 category="cli",
@@ -1065,9 +1027,7 @@ class ToolRegistry:
                 name="p_dev_check",
                 description="Run 'p dev check' — ruff + pytest gate for CI.",
                 parameters=[
-                    ToolParameter(
-                        "json_output", "boolean", "Output as JSON", required=False, default=False
-                    ),
+                    ToolParameter("json_output", "boolean", "Output as JSON", required=False, default=False),
                 ],
                 returns="Check results with ruff and pytest status",
                 category="cli",
@@ -1123,9 +1083,7 @@ class ToolRegistry:
 
     # ── Tool Handlers ───────────────────────────────────────────────────────────
 
-    def _handle_scan_project(
-        self, root: Path, area: str = None, depth: int = None, incremental: bool = True
-    ) -> dict:
+    def _handle_scan_project(self, root: Path, area: str = None, depth: int = None, incremental: bool = True) -> dict:
         brain = Brain(root)
         report = brain.scan(area)
         return {
@@ -1163,9 +1121,7 @@ class ToolRegistry:
         domains: list[str] = None,
         include_red_team: bool = False,
     ) -> dict:
-        return _realize.scan_vulnerabilities(
-            root, area=area, domains=domains, include_red_team=include_red_team
-        )
+        return _realize.scan_vulnerabilities(root, area=area, domains=domains, include_red_team=include_red_team)
 
     def _handle_attack_simulate(
         self,
@@ -1177,7 +1133,12 @@ class ToolRegistry:
         use_shannon: bool = False,
     ) -> dict:
         return _realize.attack_simulate(
-            root, scenarios=scenarios, target_url=target_url, safe_mode=safe_mode, use_real_tools=use_real_tools, use_shannon=use_shannon
+            root,
+            scenarios=scenarios,
+            target_url=target_url,
+            safe_mode=safe_mode,
+            use_real_tools=use_real_tools,
+            use_shannon=use_shannon,
         )
 
     def _handle_red_team(self, root: Path, scope: str = "full", intensity: str = "active") -> dict:
@@ -1194,16 +1155,12 @@ class ToolRegistry:
         base_url: str = None,
         parallel: bool = False,
     ) -> dict:
-        return _realize.run_tests(
-            root, test_types=test_types, area=area, base_url=base_url, parallel=parallel
-        )
+        return _realize.run_tests(root, test_types=test_types, area=area, base_url=base_url, parallel=parallel)
 
     def _handle_generate_tests(
         self, root: Path, target_files: list[str], test_type: str = "unit", framework: str = None
     ) -> dict:
-        return _realize.generate_tests(
-            root, target_files=target_files, test_type=test_type, framework=framework
-        )
+        return _realize.generate_tests(root, target_files=target_files, test_type=test_type, framework=framework)
 
     def _handle_read_file(self, root: Path, path: str, start: int = 1, end: int = 500) -> dict:
         return _realize.read_file(root, path=path, start=start, end=end)
@@ -1234,9 +1191,7 @@ class ToolRegistry:
         full_page: bool = True,
         wait_for: str = None,
     ) -> dict:
-        return _realize.screenshot(
-            root, url=url, selector=selector, full_page=full_page, wait_for=wait_for
-        )
+        return _realize.screenshot(root, url=url, selector=selector, full_page=full_page, wait_for=wait_for)
 
     def _handle_browser_test(
         self,
@@ -1250,14 +1205,10 @@ class ToolRegistry:
             root, script=script, base_url=base_url, headless=headless, record_video=record_video
         )
 
-    def _handle_visual_regression(
-        self, root: Path, urls: list[str], threshold: float = 0.1
-    ) -> dict:
+    def _handle_visual_regression(self, root: Path, urls: list[str], threshold: float = 0.1) -> dict:
         return _realize.visual_regression(root, urls=urls, threshold=threshold)
 
-    def _handle_generate_fix(
-        self, root: Path, finding_id: str, strategy: str = "llm-template"
-    ) -> dict:
+    def _handle_generate_fix(self, root: Path, finding_id: str, strategy: str = "llm-template") -> dict:
         return {
             "success": True,
             "message": f"Fix generation for {finding_id} initiated.",
@@ -1356,9 +1307,7 @@ class ToolRegistry:
 
         return {"success": True, "findings": all_findings[:limit], "total": len(all_findings)}
 
-    def _handle_start_web_server(
-        self, root: Path, port: int = 8000, host: str = "127.0.0.1"
-    ) -> dict:
+    def _handle_start_web_server(self, root: Path, port: int = 8000, host: str = "127.0.0.1") -> dict:
         return _realize.start_web_server(root, port=port, host=host)
 
     def _handle_get_dashboard_data(self, root: Path, include_charts: bool = True) -> dict:
@@ -1443,9 +1392,7 @@ class ToolRegistry:
                 args.extend(["--id", fid])
         return self._run_cli(root, args)
 
-    def _handle_p_test(
-        self, root: Path, area: str = None, type: str = "all", json_output: bool = False
-    ) -> dict:
+    def _handle_p_test(self, root: Path, area: str = None, type: str = "all", json_output: bool = False) -> dict:
         args = ["test"]
         if area:
             args.append(area)
@@ -1518,7 +1465,13 @@ class ToolRegistry:
                 parameters=[
                     ToolParameter("path", "string", "File path (relative to project root)", required=True),
                     ToolParameter("content", "string", "File content to write", required=True),
-                    ToolParameter("create_dirs", "boolean", "Create parent directories if missing", required=False, default=True),
+                    ToolParameter(
+                        "create_dirs",
+                        "boolean",
+                        "Create parent directories if missing",
+                        required=False,
+                        default=True,
+                    ),
                 ],
                 returns="WriteResult with path and size",
                 category="code",
@@ -1535,20 +1488,45 @@ class ToolRegistry:
                 description="Generate Python code for a module, class, or function.",
                 parameters=[
                     ToolParameter("description", "string", "What to generate", required=True),
-                    ToolParameter("target_files", "array", "Target file paths", required=True, items={"type": "string"}),
-                    ToolParameter("language", "string", "Language (default: python)", required=False, default="python"),
-                    ToolParameter("include_tests", "boolean", "Also generate test files", required=False, default=False),
+                    ToolParameter(
+                        "target_files",
+                        "array",
+                        "Target file paths",
+                        required=True,
+                        items={"type": "string"},
+                    ),
+                    ToolParameter(
+                        "language",
+                        "string",
+                        "Language (default: python)",
+                        required=False,
+                        default="python",
+                    ),
+                    ToolParameter(
+                        "include_tests",
+                        "boolean",
+                        "Also generate test files",
+                        required=False,
+                        default=False,
+                    ),
                 ],
                 returns="Generated files with content",
                 category="code",
                 side_effects="Creates files in the project",
-                examples=[{"description": "Add rate limiter middleware", "target_files": ["src/middleware/rate_limit.py"], "include_tests": True}],
+                examples=[
+                    {
+                        "description": "Add rate limiter middleware",
+                        "target_files": ["src/middleware/rate_limit.py"],
+                        "include_tests": True,
+                    }
+                ],
             ),
             self._handle_generate_code,
         )
 
     def _handle_write_file(self, root: Path, path: str, content: str, create_dirs: bool = True) -> dict:
         from pathlib import Path as P
+
         target = P(path)
         if not target.is_absolute():
             target = root / target
@@ -1557,11 +1535,24 @@ class ToolRegistry:
         target.write_text(content, encoding="utf-8")
         return {"success": True, "path": str(target), "size": len(content)}
 
-    def _handle_generate_code(self, root: Path, description: str, target_files: list, language: str = "python", include_tests: bool = False) -> dict:
+    def _handle_generate_code(
+        self,
+        root: Path,
+        description: str,
+        target_files: list,
+        language: str = "python",
+        include_tests: bool = False,
+    ) -> dict:
         from patchi.core.ai.orchestrator import CodeGenerator, CodeRequest
+
         gen = CodeGenerator(root)
-        req = CodeRequest(description=description, target_files=target_files, language=language, include_tests=include_tests)
-        gen.generate_code(req) if hasattr(gen, 'generate_code') else None
+        req = CodeRequest(
+            description=description,
+            target_files=target_files,
+            language=language,
+            include_tests=include_tests,
+        )
+        gen.generate_code(req) if hasattr(gen, "generate_code") else None
         return {"success": True, "files": target_files, "description": description}
 
 

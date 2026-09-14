@@ -97,9 +97,7 @@ _SUBDOMAIN_TAKEOVER_PATTERNS = [
         "Potential dangling CNAME to third-party service",
     ),
     (
-        re.compile(
-            r"ALIAS\s+\S+\.(amazonaws\.com|azurewebsites\.net|herokuapp\.com)", re.IGNORECASE
-        ),
+        re.compile(r"ALIAS\s+\S+\.(amazonaws\.com|azurewebsites\.net|herokuapp\.com)", re.IGNORECASE),
         "Potential dangling ALIAS to third-party service",
     ),
 ]
@@ -151,8 +149,7 @@ class DNSSecurityAgent(BaseAgent):
             {
                 "dns_findings": len(findings),
                 "dig_available": shutil.which("dig") is not None,
-                "dnsreaper_available": shutil.which("dnsReaper") is not None
-                or shutil.which("dnsreaper") is not None,
+                "dnsreaper_available": shutil.which("dnsReaper") is not None or shutil.which("dnsreaper") is not None,
             }
         )
         return
@@ -184,7 +181,8 @@ class DNSSecurityAgent(BaseAgent):
                                 file=rel,
                                 line_start=0,
                                 title="DNS-04: No CAA Records Found",
-                                description="No CAA (Certification Authority Authorization) records found in zone file.",
+                                description="No CAA (Certification Authority Authorization) records found in zone"
+                                " file.",
                                 suggestion="Add CAA records to restrict certificate issuance to authorized CAs.",
                             )
                         )
@@ -207,9 +205,7 @@ class DNSSecurityAgent(BaseAgent):
                     for i, line in enumerate(lines, 1):
                         for rx, desc in _ZONE_TRANSFER_PATTERNS:
                             if rx.search(line):
-                                severity = (
-                                    Severity.HIGH if "any" in line.lower() else Severity.MEDIUM
-                                )
+                                severity = Severity.HIGH if "any" in line.lower() else Severity.MEDIUM
                                 findings.append(
                                     make_finding(
                                         severity=severity,
@@ -238,9 +234,7 @@ class DNSSecurityAgent(BaseAgent):
                 try:
                     content = fp.read_text(encoding="utf-8", errors="replace")
                     has_dnssec = any(rx.search(content) for rx in _DNSSEC_PATTERNS)
-                    if not has_dnssec and any(
-                        k in content.lower() for k in ("zone", "dns", "route53")
-                    ):
+                    if not has_dnssec and any(k in content.lower() for k in ("zone", "dns", "route53")):
                         findings.append(
                             make_finding(
                                 severity=Severity.MEDIUM,
@@ -275,7 +269,8 @@ class DNSSecurityAgent(BaseAgent):
                                     file=rel,
                                     line_start=0,
                                     title="DNS-04: No CAA Records",
-                                    description="DNS zone configuration has no CAA records to restrict certificate issuance.",
+                                    description="DNS zone configuration has no CAA records to restrict certificate"
+                                    " issuance.",
                                     suggestion='Add CAA records (e.g., 0 issue "letsencrypt.org").',
                                 )
                             )
@@ -355,7 +350,8 @@ class DNSSecurityAgent(BaseAgent):
                                         title="DNS-02: Potential Subdomain Takeover",
                                         description=desc,
                                         evidence=line.strip(),
-                                        suggestion="Verify the target service is claimed and not vulnerable to takeover.",
+                                        suggestion="Verify the target service is claimed and not vulnerable to"
+                                        " takeover.",
                                     )
                                 )
                 except Exception as e:
@@ -485,7 +481,8 @@ class DNSSecurityAgent(BaseAgent):
                                     file="(dnsreaper)",
                                     line_start=0,
                                     title="DNS-06: Subdomain Takeover Vulnerability",
-                                    description=f"Subdomain {record.get('subdomain', 'unknown')} is vulnerable to takeover.",
+                                    description=f"Subdomain {record.get('subdomain', 'unknown')} is vulnerable to"
+                                    f" takeover.",
                                     evidence=str(record)[:200],
                                     suggestion="Remove the dangling record or claim the target resource.",
                                 )

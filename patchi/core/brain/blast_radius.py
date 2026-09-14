@@ -146,9 +146,7 @@ def calculate_symbol_blast_radius(
 
     # Downstream: dependents
     downstream_set: dict[str, dict] = {}
-    queue: list[tuple[str, str, int]] = [
-        (s.name, s.file, 1) for s in symbol_graph.get_dependents(symbol_name, file)
-    ]
+    queue: list[tuple[str, str, int]] = [(s.name, s.file, 1) for s in symbol_graph.get_dependents(symbol_name, file)]
     visited: set[int] = {target.id}
     direct_downstream: list[dict] = []
 
@@ -231,8 +229,7 @@ def calculate_file_symbol_blast_radius(
     """Compute symbol-level blast radius for all symbols in a file."""
     symbols = symbol_graph.get_symbols_in_file(file_path)
     return [
-        calculate_symbol_blast_radius(s.name, s.file, symbol_graph, test_coverage, criticality_tags)
-        for s in symbols
+        calculate_symbol_blast_radius(s.name, s.file, symbol_graph, test_coverage, criticality_tags) for s in symbols
     ]
 
 

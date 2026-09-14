@@ -77,9 +77,7 @@ def patchi_lint_check(root: Path, language: str = "python") -> list[dict]:
         except FileNotFoundError:
             import logging
 
-            logging.getLogger("patchi.prechecks").warning(
-                "ruff not installed — skipping Python lint check"
-            )
+            logging.getLogger("patchi.prechecks").warning("ruff not installed — skipping Python lint check")
         except (subprocess.TimeoutExpired, Exception):
             pass
 
@@ -140,20 +138,36 @@ class PreCheckAgent(BaseAgent):
     timeout = 15
 
     def _run(self, inp: AgentInput, result: AgentResult) -> None:
-        # 1. Banned API checks
+        # 1. Banned API checks. Part 7: a project-wide COUNT with no
+        # location is not a CRITICAL — emit per-occurrence file:line
+        # findings (capped) so each one is reviewable.
+
         for pattern, msg in _BANNED_APIS:
-            count = patchi_pattern_count(inp.root, pattern.pattern)
-            if count > 0:
-                result.add_finding(
-                    Finding(
-                        agent=self.name,
-                        type="banned_api",
-                        severity=Severity.CRITICAL,
-                        file="",
-                        message=f"{msg} — {count} occurrence(s) found",
-                        cwe="CWE-94",
+            shown = 0
+            for fpath in safe_rglob(inp.root, "*.py"):
+                if not fpath.is_file() or shown >= 20:
+                    continue
+                try:
+                    content = fpath.read_text(encoding="utf-8", errors="ignore")
+                except OSError:
+                    continue
+                rel = fpath.relative_to(inp.root).as_posix()
+                for m in pattern.finditer(content):
+                    line_no = content[: m.start()].count("\n") + 1
+                    result.add_finding(
+                        Finding(
+                            agent=self.name,
+                            type="banned_api",
+                            severity=Severity.HIGH,
+                            file=rel,
+                            line=line_no,
+                            message=msg,
+                            cwe="CWE-94",
+                        )
                     )
-                )
+                    shown += 1
+                    if shown >= 20:
+                        break
 
         # 2. Quick lint check
         violations = patchi_lint_check(inp.root, "python")

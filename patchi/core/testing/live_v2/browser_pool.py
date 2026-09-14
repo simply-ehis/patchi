@@ -101,10 +101,7 @@ class BrowserPool:
             self._initialized = True
             _log.info(f"Browser pool initialized ({self.config.browser_type})")
         except ImportError:
-            _log.error(
-                "Playwright not installed. "
-                "Install with: pip install playwright && playwright install"
-            )
+            _log.error("Playwright not installed. Install with: pip install playwright && playwright install")
             raise
         except Exception as e:
             _log.error(f"Failed to initialize browser pool: {e}")
@@ -293,7 +290,7 @@ class BrowserPool:
                     await instance._context.close()
                     await instance._browser.close()
                 except Exception as _exc:
-                    _log.warning('cleanup_idle failed: %s', _exc)
+                    _log.warning("cleanup_idle failed: %s", _exc)
                 _log.debug(f"Cleaned up idle browser: {instance_id}")
 
     async def shutdown(self):
@@ -304,7 +301,7 @@ class BrowserPool:
                     await instance._context.close()
                     await instance._browser.close()
                 except Exception as _exc:
-                    _log.warning('shutdown failed: %s', _exc)
+                    _log.warning("shutdown failed: %s", _exc)
 
             self._browsers.clear()
 

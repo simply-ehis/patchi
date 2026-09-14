@@ -48,7 +48,6 @@ Full codebase scan. Runs all security agents, brain analysis, and import graph.
 | `--red-team` | Full red team assessment |
 | `--dast` | Dynamic application security testing (Playwright) |
 | `--pipeline` | Governor pipeline mode (phase-gated) |
-| `--governor` | Alias for --pipeline |
 | `--daemon` | Background scan mode |
 | `--no-side` | Skip side-effect agents |
 

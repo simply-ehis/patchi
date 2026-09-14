@@ -362,33 +362,68 @@ class TestEnvScanner(unittest.TestCase):
     def tearDown(self):
         self.tmpdir.cleanup()
 
+    _REAL_AWS_KEY = "AKIAIOSFODNN7XKQ9MWB2DT8FV4HJ6"
+
     def test_detects_aws_key(self):
-        _write(self.root, "src/config.py", "AWS_KEY = 'AKIAIOSFODNN7EXAMPLE'\n")
+        _write(self.root, "src/config.py", f"AWS_KEY = '{self._REAL_AWS_KEY}'\n")
         result = EnvScanner().run(_inp(self.root))
         self.assertGreater(result.finding_count, 0)
         types = [f.type for f in result.findings]
         self.assertIn("hardcoded_secret", types)
 
+    def test_docs_example_key_not_a_finding(self):
+        # Part 7: the AWS documentation example key is a placeholder, not a
+        # leak — it must never verify as a real secret.
+        _write(self.root, "src/config.py", "AWS_KEY = 'AKIAIOSFODNN7EXAMPLE'\n")
+        result = EnvScanner().run(_inp(self.root))
+        self.assertEqual(result.finding_count, 0)
+
     def test_detects_openai_key(self):
         _write(
             self.root,
             "src/ai.py",
-            "client = OpenAI(api_key='sk-abcdefghijklmnopqrstuvwxyz123456')\n",
+            "client = OpenAI(api_key='sk-q7ZmK2vX9pL4wN8cR3tY6uI1oP5aS0dF')\n",
         )
         result = EnvScanner().run(_inp(self.root))
         self.assertGreater(result.finding_count, 0)
 
     def test_secret_value_not_in_output(self):
-        _write(self.root, "src/config.py", "SECRET = 'AKIAIOSFODNN7EXAMPLE'\n")
+        _write(self.root, "src/config.py", f"SECRET = '{self._REAL_AWS_KEY}'\n")
         result = EnvScanner().run(_inp(self.root))
         output_str = str(result.to_dict())
-        self.assertNotIn("AKIAIOSFODNN7EXAMPLE", output_str)
+        self.assertNotIn(self._REAL_AWS_KEY, output_str)
 
     def test_critical_severity_for_api_keys(self):
-        _write(self.root, "src/config.py", "KEY = 'AKIAIOSFODNN7EXAMPLE'\n")
+        _write(self.root, "src/config.py", f"KEY = '{self._REAL_AWS_KEY}'\n")
         result = EnvScanner().run(_inp(self.root))
         severities = [f.severity for f in result.findings]
         self.assertIn(Severity.CRITICAL, severities)
+
+    def test_weak_keyword_value_not_a_finding(self):
+        # Part 7: keyword + weak value ("abc") is a name guess, not evidence.
+        _write(self.root, "src/config.py", 'password = "abc"\n')
+        result = EnvScanner().run(_inp(self.root))
+        self.assertEqual(result.finding_count, 0)
+
+    def test_public_key_is_info_not_secret(self):
+        # Part 7: published-by-design material must not be CRITICAL secret.
+        _write(
+            self.root,
+            "src/keys.py",
+            "PUB = 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC7'\n",
+        )
+        result = EnvScanner().run(_inp(self.root))
+        self.assertTrue(all(f.severity != Severity.CRITICAL for f in result.findings))
+
+    def test_fixture_secrets_not_flagged(self):
+        # Part 7: fixtures intentionally look dangerous.
+        _write(
+            self.root,
+            "tests/test_auth.py",
+            f"TOKEN = '{self._REAL_AWS_KEY}'\n",
+        )
+        result = EnvScanner().run(_inp(self.root))
+        self.assertEqual(result.finding_count, 0)
 
     def test_clean_file_no_findings(self):
         _write(self.root, "src/clean.py", "import os\nAPI_KEY = os.environ['API_KEY']\n")

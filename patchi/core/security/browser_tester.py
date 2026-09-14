@@ -138,7 +138,8 @@ def _test_auth_bypass(page, url: str) -> list[dict]:
                                 {
                                     "type": "auth_bypass",
                                     "severity": "critical",
-                                    "message": f"Possible auth bypass with credentials: {payload['username']}/{payload['password']}",
+                                    "message": f"Possible auth bypass with credentials:"
+                                    f" {payload['username']}/{payload['password']}",
                                     "cwe": "CWE-287",
                                 }
                             )
@@ -251,7 +252,8 @@ def _test_sqli_in_forms(page, url: str, app_map: dict | None) -> list[dict]:
                                     {
                                         "type": "sql_injection_error",
                                         "severity": "critical",
-                                        "message": f"SQL error pattern '{pattern}' after injecting '{payload}' in field '{name}' at {page_url}",
+                                        "message": f"SQL error pattern '{pattern}' after injecting '{payload}' in"
+                                        f" field '{name}' at {page_url}",
                                         "cwe": "CWE-89",
                                         "evidence": pattern,
                                     }
@@ -278,11 +280,7 @@ class BrowserTesterAgent(BaseAgent):
     timeout = 120
 
     def _run(self, inp: AgentInput, result: AgentResult) -> None:
-        app_url = (
-            inp.brain.get("app_url", "")
-            or inp.config.get("app_url", "")
-            or inp.extra.get("app_url", "")
-        )
+        app_url = inp.brain.get("app_url", "") or inp.config.get("app_url", "") or inp.extra.get("app_url", "")
 
         if not app_url:
             result.add_finding(
@@ -320,9 +318,7 @@ class BrowserTesterAgent(BaseAgent):
                 Finding(
                     agent=self.name,
                     type=tr.get("type", "browser_finding"),
-                    severity=Severity(sev)
-                    if sev in ("critical", "high", "medium", "low", "info")
-                    else Severity.MEDIUM,
+                    severity=Severity(sev) if sev in ("critical", "high", "medium", "low", "info") else Severity.MEDIUM,
                     file="",
                     message=tr.get("message", ""),
                     cwe=tr.get("cwe", ""),

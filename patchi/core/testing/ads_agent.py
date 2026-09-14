@@ -111,10 +111,7 @@ class AdsAgent(BaseAgent):
                     finding_type="ads_gallery",
                     severity=Severity.INFO,
                     file="(gallery)",
-                    message=(
-                        f"Marketing gallery: {len(shots)} shots + {len(videos)} videos "
-                        f"(.patchi/evidence/ads/)"
-                    ),
+                    message=(f"Marketing gallery: {len(shots)} shots + {len(videos)} videos (.patchi/evidence/ads/)"),
                 )
             )
         if error_pages:

@@ -88,7 +88,9 @@ def _detect_file_handle_leaks(content: str, lang: str) -> list[dict]:
     if tree is None:
         return findings
     names = js_call_names(tree, lang)
-    opened = [c for c in js_calls(tree, lang) if c.name in ("createReadStream", "createWriteStream") or c.full == "fs.open"]
+    opened = [
+        c for c in js_calls(tree, lang) if c.name in ("createReadStream", "createWriteStream") or c.full == "fs.open"
+    ]
     if opened and not names & {"close", "destroy", "end"}:
         first = opened[0]
         findings.append({"line": first.line, "resource": first.full or first.name, "type": "file_handle"})
@@ -168,8 +170,21 @@ class RefactoringAgent(BaseAgent):
         files_scanned = 0
 
         # Use corpus if available, else rglob
-        _REF_EXT = {".js", ".jsx", ".ts", ".tsx", ".py", ".rs", ".go", ".java",
-                    ".c", ".cpp", ".swift", ".rb", ".svelte"}
+        _REF_EXT = {
+            ".js",
+            ".jsx",
+            ".ts",
+            ".tsx",
+            ".py",
+            ".rs",
+            ".go",
+            ".java",
+            ".c",
+            ".cpp",
+            ".swift",
+            ".rb",
+            ".svelte",
+        }
         _MAX_FILES = 200
         corpus = inp.extra.get("file_corpus")
         if corpus and corpus.entries:
@@ -195,29 +210,18 @@ class RefactoringAgent(BaseAgent):
 
             if ext in (".js", ".jsx", ".ts", ".tsx", ".svelte"):
                 lang = lang_for_file(rel)
-                interval_leaks.extend(
-                    {"file": rel, **f} for f in _detect_interval_without_cleanup(content, lang)
-                )
-                effect_issues.extend(
-                    {"file": rel, **f} for f in _detect_effect_without_cleanup(content, lang)
-                )
-                modernization.extend(
-                    {"file": rel, **f} for f in _detect_modernization_candidates(content, ext, lang)
-                )
+                interval_leaks.extend({"file": rel, **f} for f in _detect_interval_without_cleanup(content, lang))
+                effect_issues.extend({"file": rel, **f} for f in _detect_effect_without_cleanup(content, lang))
+                modernization.extend({"file": rel, **f} for f in _detect_modernization_candidates(content, ext, lang))
 
             if ext in (".js", ".jsx", ".ts", ".tsx"):
                 file_handle_leaks.extend(
-                    {"file": rel, **f}
-                    for f in _detect_file_handle_leaks(content, lang_for_file(rel))
+                    {"file": rel, **f} for f in _detect_file_handle_leaks(content, lang_for_file(rel))
                 )
             elif ext == ".py":
-                file_handle_leaks.extend(
-                    {"file": rel, **f} for f in _detect_py_file_handle_leaks(content)
-                )
+                file_handle_leaks.extend({"file": rel, **f} for f in _detect_py_file_handle_leaks(content))
             elif ext in (".rs", ".go", ".java", ".c", ".cpp"):
-                file_handle_leaks.extend(
-                    {"file": rel, **f} for f in _detect_file_handle_leaks_legacy(content)
-                )
+                file_handle_leaks.extend({"file": rel, **f} for f in _detect_file_handle_leaks_legacy(content))
             count += 1
 
         result.data["interval_leaks"] = interval_leaks

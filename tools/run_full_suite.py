@@ -1,4 +1,5 @@
 """Blocking full-suite runner (no shell quoting pitfalls). Prints summary."""
+
 import sys
 from pathlib import Path
 

@@ -112,11 +112,7 @@ class RecoveryAnalyzer:
             except OSError:
                 continue
 
-            rel = (
-                str(py_file.relative_to(self._root))
-                if self._root in py_file.parents
-                else str(py_file)
-            )
+            rel = str(py_file.relative_to(self._root)) if self._root in py_file.parents else str(py_file)
 
             # Check for network calls without retry
             if re.search(r"requests\.(get|post|put|delete)\(", content):

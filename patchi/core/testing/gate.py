@@ -27,5 +27,12 @@ def gate_message(status: dict | None) -> str:
     if not status:
         return "P-Check has not run — request `p check` and wait for READY_TO_SERVE. Do not run/test/attack anything."
     if status.get("status") != "READY_TO_SERVE":
-        return f"P-Check is {status.get('status')} ({status.get('error','')}) — request `p check` re-run and let it escalate to Brain. Stay idle."
+        return (
+        f"P-Check is {status.get('status')} ({status.get('error', '')}) — request `p check` re-run and let it"
+        f" escalate to Brain. Stay idle."
+        )
+    # READY_TO_SERVE but the re-validation failed (is_ready attaches an error):
+    # saying "confirmed" here would green-light agents against a dead server.
+    if status.get("error"):
+        return f"READY_TO_SERVE is STALE — {status['error']}"
     return "READY_TO_SERVE confirmed"

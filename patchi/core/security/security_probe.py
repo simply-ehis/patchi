@@ -184,12 +184,8 @@ class CORSAuditor(BaseAgent):
     timeout = 60
 
     _WILDCARD_RE = re.compile(r"""['"]\*['"]""")
-    _CREDENTIALS_RE = re.compile(
-        r"""credentials\s*[:=]\s*true|allow_credentials\s*=\s*True""", re.IGNORECASE
-    )
-    _CORS_CONFIG_RE = re.compile(
-        r"""cors|CORSMiddleware|allow_origins|Access-Control""", re.IGNORECASE
-    )
+    _CREDENTIALS_RE = re.compile(r"""credentials\s*[:=]\s*true|allow_credentials\s*=\s*True""", re.IGNORECASE)
+    _CORS_CONFIG_RE = re.compile(r"""cors|CORSMiddleware|allow_origins|Access-Control""", re.IGNORECASE)
 
     def _run(self, inp: AgentInput, result: AgentResult) -> None:
         root = inp.root
@@ -237,7 +233,17 @@ class CORSAuditor(BaseAgent):
             elif has_wildcard and self._CORS_CONFIG_RE.search(content):
                 # Only flag wildcard if it's allow_origins with "*" — not allow_headers or detector examples
                 # Skip known detector/fix files that contain wildcard as example
-                if any(x in rel_path for x in ("security_probe.py", "misconfig_agent.py", "linking_agent.py", "fix/base.py", "security_test_agent.py", "realize.py")):
+                if any(
+                    x in rel_path
+                    for x in (
+                        "security_probe.py",
+                        "misconfig_agent.py",
+                        "linking_agent.py",
+                        "fix/base.py",
+                        "security_test_agent.py",
+                        "realize.py",
+                    )
+                ):
                     cors_files.append(rel_path)
                     continue
                 # Check for actual allow_origins wildcard, not just any headers wildcard
@@ -263,13 +269,27 @@ class CORSAuditor(BaseAgent):
 
             cors_files.append(rel_path)
 
-        # Dynamic probe: check live server if available (skipped in offline mode)
+        # Dynamic probe: check live server if available (skipped in offline
+        # mode). §7 audit: the static findings above are always kept; only
+        # the LIVE probe needs P-Check (same split as APIContractAgent).
         base_url = inp.config.get("cors_audit_base_url", "http://localhost:8000")
         origin = "https://evil.example.com"
         if is_offline():
             reflected_origin, error = "", "offline: dynamic probe skipped"
         else:
-            reflected_origin, error = self._probe_cors(base_url, origin)
+            try:
+                from patchi.core.testing.gate import gate_message, require_ready
+
+                _ready, _url, _st = require_ready(inp.root)
+                if not _ready:
+                    reflected_origin, error = "", f"gate: {gate_message(_st)}"
+                    result.data["live_probe_blocked"] = True
+                else:
+                    if _url:
+                        base_url = _url
+                    reflected_origin, error = self._probe_cors(base_url, origin)
+            except Exception as _ge:
+                reflected_origin, error = "", f"gate check failed: {_ge}"
 
         if error:
             result.data["dynamic_probe_error"] = error
@@ -279,9 +299,7 @@ class CORSAuditor(BaseAgent):
                 make_finding(
                     agent=self.name,
                     finding_type="cors_reflection",
-                    severity=Severity.CRITICAL
-                    if allow_credentials.lower() == "true"
-                    else Severity.HIGH,
+                    severity=Severity.CRITICAL if allow_credentials.lower() == "true" else Severity.HIGH,
                     file=".",
                     message="Server accepts arbitrary origins (dynamic CORS misconfiguration).",
                     detail=f"Server reflected origin: {allow_origin}",
@@ -379,11 +397,7 @@ class DependencyCVEChecker(BaseAgent):
         ]
 
         # Add specific flags for different project types
-        if (
-            (root / "requirements.txt").exists()
-            or (root / "Pipfile").exists()
-            or (root / "pyproject.toml").exists()
-        ):
+        if (root / "requirements.txt").exists() or (root / "Pipfile").exists() or (root / "pyproject.toml").exists():
             cmd.extend(["--python", str(root)])
         elif (root / "package.json").exists():
             cmd.extend(["--js", str(root)])
@@ -426,8 +440,10 @@ class DependencyCVEChecker(BaseAgent):
                                 finding_type="vulnerable_dependency",
                                 severity=severity,
                                 file=pkg_info.get("source", {}).get("path", "dependency"),
-                                message=f"{pkg.get('name', 'unknown')} has known vulnerability: {vuln.get('summary', 'Vulnerability found')}",
-                                detail=f"CVE: {cve_id}\nAffected versions: {vuln.get('affected', 'N/A')}\nSeverity: {severity_str}",
+                                message=f"{pkg.get('name', 'unknown')} has known vulnerability:"
+                                f" {vuln.get('summary', 'Vulnerability found')}",
+                                detail=f"CVE: {cve_id}\nAffected versions: {vuln.get('affected', 'N/A')}\nSeverity:"
+                                f" {severity_str}",
                                 suggestion=vuln.get("summary", "Update to a patched version"),
                                 cwe=cve_id,
                                 fix_agent="DependencyFixer",
@@ -525,9 +541,7 @@ class DependencyCVEChecker(BaseAgent):
                 data = json.loads(pkg.read_text(encoding="utf-8"))
                 for section in ("dependencies", "devDependencies"):
                     for name, version in data.get(section, {}).items():
-                        deps.append(
-                            (name, self._clean_version(str(version)), "npm", "package.json")
-                        )
+                        deps.append((name, self._clean_version(str(version)), "npm", "package.json"))
             except Exception as e:
                 _log.warning("DependencyCVEChecker._collect_deps failed: %s", e)
         composer = root / "composer.json"
@@ -682,9 +696,7 @@ class SecurityProber(BaseAgent):
 
         return payloads
 
-    def _probe_route(
-        self, base_url: str, path: str, method: str, payloads: list[dict]
-    ) -> list[dict]:
+    def _probe_route(self, base_url: str, path: str, method: str, payloads: list[dict]) -> list[dict]:
         """Send payloads to route and analyze responses."""
         findings = []
         if is_offline():
@@ -711,11 +723,7 @@ class SecurityProber(BaseAgent):
                     # Analyze response for signs of vulnerability
                     response_text = resp.text.lower()
 
-                    if (
-                        payload_type == "xss"
-                        and "<script>" in response_text
-                        and "alert(1)" in response_text
-                    ):
+                    if payload_type == "xss" and "<script>" in response_text and "alert(1)" in response_text:
                         findings.append(
                             {
                                 "type": "reflected_xss",
@@ -727,8 +735,7 @@ class SecurityProber(BaseAgent):
                             }
                         )
                     elif payload_type == "sqli" and any(
-                        indicator in response_text
-                        for indicator in ["sql", "mysql", "sqlite", "syntax", "error"]
+                        indicator in response_text for indicator in ["sql", "mysql", "sqlite", "syntax", "error"]
                     ):
                         findings.append(
                             {

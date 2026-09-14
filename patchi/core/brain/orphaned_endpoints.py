@@ -5,6 +5,7 @@ Finds:
 - Backend routes never called from frontend code ("orphaned endpoints")
 - Frontend HTTP calls that don't match any backend route ("dead calls")
 """
+
 from __future__ import annotations
 
 import logging
@@ -30,13 +31,9 @@ _FRONTEND_PATTERNS: list[re.Pattern] = [
     # ky.get/post('/path')
     re.compile(r"""ky\.(?:get|post|put|delete|patch)\s*\(\s*['"`]([^'"`]+)['"`]"""),
     # new XMLHttpRequest() with .open('GET', '/path')
-    re.compile(
-        r"""\.open\s*\(\s*['"`](?:GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS)['"`]\s*,\s*['"`]([^'"`]+)['"`]"""
-    ),
+    re.compile(r"""\.open\s*\(\s*['"`](?:GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS)['"`]\s*,\s*['"`]([^'"`]+)['"`]"""),
     # urql / graphql-request — useQuery/useMutation with string URL
-    re.compile(
-        r"""(?:useQuery|useMutation|client\.query|client\.mutation)\s*\(.*?['"`]([^'"`]+\/api\/[^'"`]+)['"`]"""
-    ),
+    re.compile(r"""(?:useQuery|useMutation|client\.query|client\.mutation)\s*\(.*?['"`]([^'"`]+\/api\/[^'"`]+)['"`]"""),
     # TanStack / React Query — queryKey or url in object
     re.compile(r"""url\s*:\s*['"`]([^'"`]+)['"`]"""),
     # app Router server action imports

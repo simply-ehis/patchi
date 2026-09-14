@@ -67,6 +67,7 @@ def _has_race_words(words: set[str]) -> bool:
 def _has_retry_words(words: set[str]) -> bool:
     return any(any(rw in w for w in words) for rw in _RETRY_WORDS)
 
+
 @register
 class ChaosAgent(BaseAgent):
     group = AgentGroup.TEST
@@ -95,9 +96,7 @@ class ChaosAgent(BaseAgent):
                 if fp.suffix == ".py":
                     _, words, calls = _py_tokens(txt)
                     open_lines = [ln for n, ln in calls if n == "open"]
-                    net_lines = [
-                        ln for n, ln in calls if n in ("get", "post", "request", "urlopen")
-                    ]
+                    net_lines = [ln for n, ln in calls if n in ("get", "post", "request", "urlopen")]
                 else:
                     lang = lang_for_file(rel)
                     tree = parse_js(txt, lang)
@@ -107,34 +106,38 @@ class ChaosAgent(BaseAgent):
                     words |= {s.lower() for s, _ in js_string_literals(tree, lang)}
                     js_call_list = js_calls(tree, lang)
                     open_lines = [c.line for c in js_call_list if c.name == "open"]
-                    net_lines = [
-                        c.line for c in js_call_list
-                        if c.full == "fetch" or c.full.startswith("axios.")
-                    ]
+                    net_lines = [c.line for c in js_call_list if c.full == "fetch" or c.full.startswith("axios.")]
                 # Race: file write without lock/atomic
                 if open_lines and not words & {"lock", "atomic", "mutex"}:
                     if _has_race_words(words):
-                        findings.append(make_finding(
-                            severity=Severity.MEDIUM, file=rel, line_start=open_lines[0],
-                            title="Possible race — file write without lock",
-                            description=(
-                                "Concurrent requests may duplicate records; "
-                                "use atomic write or DB transaction"
-                            ),
-                            finding_type="race_file_write",
-                        ))
+                        findings.append(
+                            make_finding(
+                                severity=Severity.MEDIUM,
+                                file=rel,
+                                line_start=open_lines[0],
+                                title="Possible race — file write without lock",
+                                description=(
+                                    "Concurrent requests may duplicate records; use atomic write or DB transaction"
+                                ),
+                                finding_type="race_file_write",
+                            )
+                        )
                 # Chaos: fetch without retry
                 if len(net_lines) > 2 and not _has_retry_words(words):
-                    findings.append(make_finding(
-                        severity=Severity.LOW, file=rel, line_start=0,
-                        title="No retry/backoff on network calls",
-                        description="Add retry with backoff + circuit breaker for chaos resilience",
-                        finding_type="chaos_no_retry",
-                    ))
+                    findings.append(
+                        make_finding(
+                            severity=Severity.LOW,
+                            file=rel,
+                            line_start=0,
+                            title="No retry/backoff on network calls",
+                            description="Add retry with backoff + circuit breaker for chaos resilience",
+                            finding_type="chaos_no_retry",
+                        )
+                    )
                 files_scanned += 1
                 if len(findings) >= 20:
                     break
             if files_scanned >= self._MAX_FILES:
                 break
-        result.status=AgentStatus.SUCCEEDED
-        result.findings=findings[:20]
+        result.status = AgentStatus.SUCCEEDED
+        result.findings = findings[:20]

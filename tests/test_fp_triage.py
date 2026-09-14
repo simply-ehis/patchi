@@ -43,8 +43,9 @@ def test_env_scanner_skips_fixtures(tmp_path: Path):
 
 
 def test_env_scanner_scope_narrows(tmp_path: Path):
-    (tmp_path / "a.py").write_text('token = "abc123"\n', encoding="utf-8")
-    (tmp_path / "b.py").write_text('token = "abc123"\n', encoding="utf-8")
+    # Part 7: "abc123" is not a verifiable secret — use a realistic value.
+    (tmp_path / "a.py").write_text('token = "Q7ZmK2vX9pL4wN8cR3tY6uI1oP5aS0"\n', encoding="utf-8")
+    (tmp_path / "b.py").write_text('token = "Q7ZmK2vX9pL4wN8cR3tY6uI1oP5aS0"\n', encoding="utf-8")
     full = EnvScanner().run(_inp(tmp_path))
     scoped = EnvScanner().run(_inp(tmp_path, scope=["a.py"]))
     full_files = {f.file for f in full.findings}

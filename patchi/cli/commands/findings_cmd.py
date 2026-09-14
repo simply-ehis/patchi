@@ -19,7 +19,6 @@ from rich.table import Table
 _log = logging.getLogger("patchi.cli.commands.findings_cmd")
 
 
-
 def run(args) -> None:
     con = Console()
     root = Path.cwd()
@@ -63,11 +62,7 @@ def _show_findings(root: Path, con: Console, json_output: bool = False) -> None:
     all_findings.sort(key=lambda f: sev_order.get(f.get("severity", "info"), 5))
 
     if json_output:
-        con.print(
-            json.dumps(
-                {"total": len(all_findings), "findings": all_findings}, indent=2, default=str
-            )
-        )
+        con.print(json.dumps({"total": len(all_findings), "findings": all_findings}, indent=2, default=str))
         return
 
     # Summary
@@ -119,7 +114,7 @@ def _show_summary(root: Path, con: Console, json_output: bool = False) -> None:
         try:
             baseline = json.loads(baseline_path.read_text(encoding="utf-8"))
         except Exception as _exc:
-            _log.warning('_show_summary failed: %s', _exc)
+            _log.warning("_show_summary failed: %s", _exc)
 
     # Current counts
     agent_counts = {}
@@ -144,9 +139,7 @@ def _show_summary(root: Path, con: Console, json_output: bool = False) -> None:
         con.print(json.dumps({"total": total, "agents": rows}, indent=2))
         return
 
-    con.print(
-        f"\n[bold]Finding Counts Summary[/bold] — {len(agent_counts)} agents, {total} total findings\n"
-    )
+    con.print(f"\n[bold]Finding Counts Summary[/bold] — {len(agent_counts)} agents, {total} total findings\n")
 
     table = Table(show_header=True, header_style="bold")
     table.add_column("Agent", width=28)
@@ -182,6 +175,4 @@ def _save_baseline(root: Path, con: Console) -> None:
     baseline_path = root / ".patchi" / "findings_baseline.json"
     baseline_path.parent.mkdir(parents=True, exist_ok=True)
     baseline_path.write_text(json.dumps(baseline, indent=2), encoding="utf-8")
-    con.print(
-        f"[green]Baseline saved: {len(baseline)} agents, {sum(baseline.values())} total findings[/green]"
-    )
+    con.print(f"[green]Baseline saved: {len(baseline)} agents, {sum(baseline.values())} total findings[/green]")

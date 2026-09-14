@@ -40,7 +40,13 @@ class GoroutineLeakAgent(BaseAgent):
         # Try go vet with -vettool if available
         if shutil.which("go"):
             try:
-                proc = subprocess.run(["go", "vet", "./..."], capture_output=True, text=True, timeout=30, cwd=str(inp.root))
+                proc = subprocess.run(
+                    ["go", "vet", "./..."],
+                    capture_output=True,
+                    text=True,
+                    timeout=30,
+                    cwd=str(inp.root),
+                )
                 for line in proc.stderr.splitlines():
                     if "leak" in line.lower() or "goroutine" in line.lower():
                         result.add_finding(
@@ -74,7 +80,8 @@ class GoroutineLeakAgent(BaseAgent):
                                 file=rel,
                                 line_start=i,
                                 title="go without context/WaitGroup — leak risk",
-                                description="`go func()` without `context.Context` or `sync.WaitGroup`/`errgroup` — goroutine may leak. Pass context and wait.",
+                                description="`go func()` without `context.Context` or `sync.WaitGroup`/`errgroup` —"
+                                " goroutine may leak. Pass context and wait.",
                                 evidence=line.strip()[:120],
                                 finding_type="goroutine_leak",
                             )

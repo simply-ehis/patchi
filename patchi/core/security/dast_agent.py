@@ -263,20 +263,33 @@ class DASTAgent(BaseAgent):
 
     def _run(self, inp: AgentInput, result: AgentResult) -> None:
         """Run DAST tests against the target application."""
+        # Part 3 §2.6: same shared Playwright check as every browser agent —
+        # skip honestly (module OR binaries missing) instead of erroring deep
+        # inside the browser pool later.
+        from patchi.core.agents.tool_health import playwright_ready
+
+        pw_ok, pw_hint = playwright_ready()
+        if not pw_ok:
+            self.skip(result, pw_hint)
+            result.data["playwright_available"] = False
+            return
+
         target_url = self._detect_target(inp.root)
         if not target_url:
-            result.add_finding(Finding(
-                agent=self.name,
-                type="dast_config",
-                severity=Severity.INFO,
-                message="No running web application detected. Start the web server first.",
-            ))
+            result.add_finding(
+                Finding(
+                    agent=self.name,
+                    type="dast_config",
+                    severity=Severity.INFO,
+                    message="No running web application detected. Start the web server first.",
+                )
+            )
             return
 
         _log.info("DAST: Testing %s", target_url)
 
         # Run tests synchronously (browser tests)
-        test_results = asyncio.run(self._run_tests(target_url, inp))
+        test_results = asyncio.run(self._run_tests(target_url, inp, result))
 
         # Add findings to result
         for finding in test_results:
@@ -287,8 +300,14 @@ class DASTAgent(BaseAgent):
         result.data["tests_run"] = len(DAST_TESTS)
         result.data["findings_count"] = len(test_results)
 
-    async def _run_tests(self, target_url: str, inp: AgentInput) -> list[Finding]:
-        """Run all DAST tests asynchronously with video recording."""
+    async def _run_tests(self, target_url: str, inp: AgentInput, result: AgentResult | None = None) -> list[Finding]:
+        """Run all DAST tests asynchronously with video recording.
+
+        ``result`` is optional so direct callers (web routes, scripts) can
+        still invoke this; when provided, a mid-run Playwright import failure
+        marks the agent SKIPPED instead of looking like a clean zero-finding
+        pass (Part 3 §2.5).
+        """
         findings: list[Finding] = []
 
         try:
@@ -298,9 +317,7 @@ class DASTAgent(BaseAgent):
                 VideoRecorder,
             )
 
-            screenshot_mgr = ScreenshotManager(
-                baseline_dir=inp.root / ".patchi" / "evidence" / "dast"
-            )
+            screenshot_mgr = ScreenshotManager(baseline_dir=inp.root / ".patchi" / "evidence" / "dast")
 
             # Initialize video recorder — outputs to evidence/video
             video_dir = inp.root / ".patchi" / "evidence" / "video"
@@ -311,9 +328,7 @@ class DASTAgent(BaseAgent):
             for test in DAST_TESTS:
                 recording_id = None
                 try:
-                    finding, recording_id = await self._run_test_recorded(
-                        recorder, screenshot_mgr, test, target_url
-                    )
+                    finding, recording_id = await self._run_test_recorded(recorder, screenshot_mgr, test, target_url)
                     if finding:
                         findings.append(finding)
                 except Exception as e:
@@ -324,10 +339,19 @@ class DASTAgent(BaseAgent):
                         try:
                             await recorder.stop_recording(recording_id)
                         except Exception as _exc:
-                            _log.warning('_run_tests failed: %s', _exc)
+                            _log.warning("_run_tests failed: %s", _exc)
 
         except ImportError:
-            _log.warning("Playwright not installed. Install with: pip install playwright")
+            # Part 3 §2.5/2.6: an import failure mid-run must not look like a
+            # clean zero-finding pass.
+            _log.warning(
+                "Playwright not installed. Install with: pip install playwright && playwright install chromium"
+            )
+            if result is not None:
+                self.skip(
+                    result,
+                    "playwright not installed — pip install playwright && playwright install chromium",
+                )
         except Exception as e:
             _log.error("DAST agent failed: %s", e)
 
@@ -364,9 +388,7 @@ class DASTAgent(BaseAgent):
             if vuln_found:
                 # Capture screenshot as evidence
                 try:
-                    await screenshot_mgr.capture(
-                        page, target_url, name=f"dast_{test.name}"
-                    )
+                    await screenshot_mgr.capture(page, target_url, name=f"dast_{test.name}")
                 except Exception as e:
                     _log.debug("Screenshot capture failed: %s", e)
 
@@ -387,7 +409,7 @@ class DASTAgent(BaseAgent):
             try:
                 await page.close()
             except Exception as _exc:
-                _log.warning('_run_test_recorded failed: %s', _exc)
+                _log.warning("_run_test_recorded failed: %s", _exc)
             # Stop recording and save video
             try:
                 if recording_id in recorder._active_recordings:
@@ -402,13 +424,11 @@ class DASTAgent(BaseAgent):
             try:
                 await browser.close()
             except Exception as _exc:
-                _log.warning('_run_test_recorded failed: %s', _exc)
+                _log.warning("_run_test_recorded failed: %s", _exc)
 
     # ── XSS Tests ──────────────────────────────────────────────────────────
 
-    async def test_xss_reflected(
-        self, page: Any, base_url: str, screenshot_mgr: Any
-    ) -> tuple[bool, str]:
+    async def test_xss_reflected(self, page: Any, base_url: str, screenshot_mgr: Any) -> tuple[bool, str]:
         """Test for reflected XSS via basic script injection."""
         payloads = [
             "<script>alert('XSS')</script>",
@@ -438,9 +458,7 @@ class DASTAgent(BaseAgent):
 
         return False, ""
 
-    async def test_xss_svg(
-        self, page: Any, base_url: str, screenshot_mgr: Any
-    ) -> tuple[bool, str]:
+    async def test_xss_svg(self, page: Any, base_url: str, screenshot_mgr: Any) -> tuple[bool, str]:
         """Test for stored XSS via SVG injection."""
 
         try:
@@ -458,15 +476,13 @@ class DASTAgent(BaseAgent):
                     return True, f"Potential XSS via SVG upload at {url}"
 
         except Exception as _exc:
-            _log.warning('test_xss_svg failed: %s', _exc)
+            _log.warning("test_xss_svg failed: %s", _exc)
 
         return False, ""
 
     # ── SQL Injection Tests ────────────────────────────────────────────────
 
-    async def test_sqli_error(
-        self, page: Any, base_url: str, screenshot_mgr: Any
-    ) -> tuple[bool, str]:
+    async def test_sqli_error(self, page: Any, base_url: str, screenshot_mgr: Any) -> tuple[bool, str]:
         """Test for SQL injection via error-based extraction."""
         payloads = [
             "'",
@@ -505,18 +521,14 @@ class DASTAgent(BaseAgent):
 
         return False, ""
 
-    async def test_sqli_union(
-        self, page: Any, base_url: str, screenshot_mgr: Any
-    ) -> tuple[bool, str]:
+    async def test_sqli_union(self, page: Any, base_url: str, screenshot_mgr: Any) -> tuple[bool, str]:
         """Test for SQL injection via UNION SELECT."""
         # Simplified check - look for SQL error patterns
         return await self.test_sqli_error(page, base_url, screenshot_mgr)
 
     # ── Header Tests ───────────────────────────────────────────────────────
 
-    async def test_csp_header(
-        self, page: Any, base_url: str, screenshot_mgr: Any
-    ) -> tuple[bool, str]:
+    async def test_csp_header(self, page: Any, base_url: str, screenshot_mgr: Any) -> tuple[bool, str]:
         """Check for missing Content-Security-Policy header."""
         try:
             response = await page.goto(base_url, wait_until="domcontentloaded")
@@ -526,13 +538,11 @@ class DASTAgent(BaseAgent):
                 return True, "Missing Content-Security-Policy header"
 
         except Exception as _exc:
-            _log.warning('test_csp_header failed: %s', _exc)
+            _log.warning("test_csp_header failed: %s", _exc)
 
         return False, ""
 
-    async def test_x_frame_options(
-        self, page: Any, base_url: str, screenshot_mgr: Any
-    ) -> tuple[bool, str]:
+    async def test_x_frame_options(self, page: Any, base_url: str, screenshot_mgr: Any) -> tuple[bool, str]:
         """Check for missing X-Frame-Options header."""
         try:
             response = await page.goto(base_url, wait_until="domcontentloaded")
@@ -543,13 +553,11 @@ class DASTAgent(BaseAgent):
                 return True, "Missing X-Frame-Options header (clickjacking risk)"
 
         except Exception as _exc:
-            _log.warning('test_x_frame_options failed: %s', _exc)
+            _log.warning("test_x_frame_options failed: %s", _exc)
 
         return False, ""
 
-    async def test_hsts_header(
-        self, page: Any, base_url: str, screenshot_mgr: Any
-    ) -> tuple[bool, str]:
+    async def test_hsts_header(self, page: Any, base_url: str, screenshot_mgr: Any) -> tuple[bool, str]:
         """Check for missing Strict-Transport-Security header."""
         if not base_url.startswith("https"):
             return False, ""
@@ -562,15 +570,13 @@ class DASTAgent(BaseAgent):
                 return True, "Missing Strict-Transport-Security header"
 
         except Exception as _exc:
-            _log.warning('test_hsts_header failed: %s', _exc)
+            _log.warning("test_hsts_header failed: %s", _exc)
 
         return False, ""
 
     # ── Information Disclosure ─────────────────────────────────────────────
 
-    async def test_server_version(
-        self, page: Any, base_url: str, screenshot_mgr: Any
-    ) -> tuple[bool, str]:
+    async def test_server_version(self, page: Any, base_url: str, screenshot_mgr: Any) -> tuple[bool, str]:
         """Check for server version disclosure in headers."""
         try:
             response = await page.goto(base_url, wait_until="domcontentloaded")
@@ -584,13 +590,11 @@ class DASTAgent(BaseAgent):
                 return True, f"X-Powered-By disclosed: {x_powered}"
 
         except Exception as _exc:
-            _log.warning('test_server_version failed: %s', _exc)
+            _log.warning("test_server_version failed: %s", _exc)
 
         return False, ""
 
-    async def test_error_disclosure(
-        self, page: Any, base_url: str, screenshot_mgr: Any
-    ) -> tuple[bool, str]:
+    async def test_error_disclosure(self, page: Any, base_url: str, screenshot_mgr: Any) -> tuple[bool, str]:
         """Check if error pages reveal stack traces."""
         error_indicators = [
             "Traceback (most recent call last)",
@@ -617,15 +621,13 @@ class DASTAgent(BaseAgent):
                         return True, f"Error disclosure at {url}: {indicator}"
 
         except Exception as _exc:
-            _log.warning('test_error_disclosure failed: %s', _exc)
+            _log.warning("test_error_disclosure failed: %s", _exc)
 
         return False, ""
 
     # ── Directory Traversal ────────────────────────────────────────────────
 
-    async def test_directory_traversal(
-        self, page: Any, base_url: str, screenshot_mgr: Any
-    ) -> tuple[bool, str]:
+    async def test_directory_traversal(self, page: Any, base_url: str, screenshot_mgr: Any) -> tuple[bool, str]:
         """Test for directory traversal via path manipulation."""
         payloads = [
             "../../../etc/passwd",
@@ -663,9 +665,7 @@ class DASTAgent(BaseAgent):
 
     # ── CSRF Tests ─────────────────────────────────────────────────────────
 
-    async def test_csrf_token(
-        self, page: Any, base_url: str, screenshot_mgr: Any
-    ) -> tuple[bool, str]:
+    async def test_csrf_token(self, page: Any, base_url: str, screenshot_mgr: Any) -> tuple[bool, str]:
         """Check for missing CSRF tokens in forms."""
         try:
             await page.goto(base_url, wait_until="domcontentloaded")
@@ -685,7 +685,7 @@ class DASTAgent(BaseAgent):
                     return True, f"Form at {action} missing CSRF token"
 
         except Exception as _exc:
-            _log.warning('test_csrf_token failed: %s', _exc)
+            _log.warning("test_csrf_token failed: %s", _exc)
 
         return False, ""
 
@@ -694,6 +694,7 @@ class DASTAgent(BaseAgent):
     async def _discover_endpoints(self, base_url: str) -> list[str]:
         """Discover endpoints by crawling the app (from DASTScanner)."""
         import socket
+
         endpoints = set()
         endpoints.add(base_url)
 
@@ -721,13 +722,14 @@ class DASTAgent(BaseAgent):
                             if link.startswith(base_url):
                                 endpoints.add(link)
             except Exception as _exc:
-                _log.debug('_discover_endpoints failed: %s', _exc)
+                _log.debug("_discover_endpoints failed: %s", _exc)
 
         return list(endpoints)[:50]  # cap at 50 endpoints
 
     async def _temp_page(self):
         """Create a temporary page for endpoint discovery."""
         from patchi.core.testing.live_v2.browser_pool import BrowserPool
+
         pool = BrowserPool()
         await pool.initialize()
         page = await pool.get_page()
@@ -735,9 +737,7 @@ class DASTAgent(BaseAgent):
 
     # ── Auth Bypass Tests (from DASTScanner) ──────────────────────────────
 
-    async def test_auth_bypass(
-        self, page: Any, base_url: str, screenshot_mgr: Any
-    ) -> tuple[bool, str]:
+    async def test_auth_bypass(self, page: Any, base_url: str, screenshot_mgr: Any) -> tuple[bool, str]:
         """Test for authentication bypass on protected pages."""
         try:
             resp = await page.goto(base_url, wait_until="domcontentloaded", timeout=5000)
@@ -746,14 +746,14 @@ class DASTAgent(BaseAgent):
 
             content = await page.content()
             has_login = bool(await page.query_selector("input[type=password]"))
-            has_protected = any(
-                kw in content.lower()
-                for kw in AUTH_BYPASS_KEYWORDS
-            )
+            has_protected = any(kw in content.lower() for kw in AUTH_BYPASS_KEYWORDS)
 
             if has_protected and not has_login:
                 # Page has protected content but no login form — possible bypass
-                return True, f"Auth bypass: Protected content accessible without authentication at {base_url}"
+                return (
+                    True,
+                    f"Auth bypass: Protected content accessible without authentication at {base_url}",
+                )
 
         except Exception as e:
             _log.debug("Auth bypass test failed: %s", e)
@@ -762,9 +762,7 @@ class DASTAgent(BaseAgent):
 
     # ── Open Redirect Tests (from DASTScanner) ──────────────────────────────
 
-    async def test_open_redirect(
-        self, page: Any, base_url: str, screenshot_mgr: Any
-    ) -> tuple[bool, str]:
+    async def test_open_redirect(self, page: Any, base_url: str, screenshot_mgr: Any) -> tuple[bool, str]:
         """Test for open redirect vulnerabilities."""
         for payload in OPEN_REDIRECT_PAYLOADS:
             try:
@@ -782,9 +780,7 @@ class DASTAgent(BaseAgent):
 
     # ── Additional Security Headers (from DASTScanner) ──────────────────────
 
-    async def test_additional_headers(
-        self, page: Any, base_url: str, screenshot_mgr: Any
-    ) -> tuple[bool, str]:
+    async def test_additional_headers(self, page: Any, base_url: str, screenshot_mgr: Any) -> tuple[bool, str]:
         """Check for additional missing security headers."""
         try:
             resp = await page.goto(base_url, wait_until="domcontentloaded")
@@ -793,10 +789,10 @@ class DASTAgent(BaseAgent):
 
             headers = {k.lower(): v for k, v in resp.headers.items()}
 
-            for header, expected_value, message, severity in ADDITIONAL_HEADER_CHECKS:
+            for header, expected_value, message, _severity in ADDITIONAL_HEADER_CHECKS:
                 if header not in headers:
                     return True, message
-                elif expected_value and headers[header] != expected_value:
+                if expected_value and headers[header] != expected_value:
                     return True, f"{header} = {headers[header]} (expected {expected_value})"
 
         except Exception as e:
@@ -806,9 +802,7 @@ class DASTAgent(BaseAgent):
 
     # ── Info Disclosure Stack Trace (from DASTScanner) ──────────────────────
 
-    async def test_stack_trace_disclosure(
-        self, page: Any, base_url: str, screenshot_mgr: Any
-    ) -> tuple[bool, str]:
+    async def test_stack_trace_disclosure(self, page: Any, base_url: str, screenshot_mgr: Any) -> tuple[bool, str]:
         """Check if error pages reveal stack traces."""
         try:
             error_urls = [
@@ -826,37 +820,58 @@ class DASTAgent(BaseAgent):
                         return True, f"Stack trace disclosure at {url}: {indicator}"
 
         except Exception as _exc:
-            _log.warning('test_stack_trace_disclosure failed: %s', _exc)
+            _log.warning("test_stack_trace_disclosure failed: %s", _exc)
 
         return False, ""
 
     # ── Helper Methods ─────────────────────────────────────────────────────
 
     def _detect_target(self, root) -> str | None:
-        """Detect the target URL for testing."""
+        """Detect the target URL for testing.
+
+        Order of preference (Part 3 acceptance fix):
+          1. The P-Check gate URL — the server the user actually verified.
+          2. A common port that is ACTUALLY OPEN.
+          3. The config web URL — only if it is really listening.
+        Never return a URL nothing is listening on: that produces a silent
+        0-finding run that looks like a clean pass (Part 2's exact lie).
+        """
         import socket
 
-        # Try common ports
-        ports = [1612, 8000, 3000, 8080, 80]
-
-        for port in ports:
+        def _open(host: str, port: int) -> bool:
             try:
-                with socket.create_connection(("127.0.0.1", port), timeout=1):
-                    return f"http://127.0.0.1:{port}"
+                with socket.create_connection((host, port), timeout=1):
+                    return True
             except (ConnectionRefusedError, OSError):
-                continue
+                return False
 
-        # Check if there's a web server in the config
+        # 1. P-Check verified server first
+        try:
+            from patchi.core.testing.gate import require_ready
+
+            ready, url, st = require_ready(root)
+            if ready and url:
+                return url
+        except Exception as _exc:
+            _log.debug("_detect_target gate lookup failed: %s", _exc)
+
+        # 2. Common dev ports, verified open
+        for port in [1612, 8000, 3000, 8080, 80]:
+            if _open("127.0.0.1", port):
+                return f"http://127.0.0.1:{port}"
+
+        # 3. Config URL only if truly listening
         try:
             from patchi.core import config as cfg
 
             config = cfg.load(root)
             web_config = config.get("web", {})
             host = web_config.get("host", "127.0.0.1")
-            port = web_config.get("port", 1612)
-            return f"http://{host}:{port}"
+            port = int(web_config.get("port", 1612))
+            if _open(host, port):
+                return f"http://{host}:{port}"
         except Exception as _exc:
-            _log.warning('_detect_target failed: %s', _exc)
+            _log.warning("_detect_target failed: %s", _exc)
 
         return None
 

@@ -1,7 +1,9 @@
 """
-ResourceLeakAgent §7.3.1-3 — setInterval/setTimeout/EventEmitter without cleanup, useEffect without cleanup, file handle not closed.
+ResourceLeakAgent §7.3.1-3 — setInterval/setTimeout/EventEmitter without cleanup, useEffect without cleanup, file
+handle not closed.
 
-Tree-sitter pattern: setInterval without clearInterval in same scope; useEffect return missing; createReadStream without close/destroy.
+Tree-sitter pattern: setInterval without clearInterval in same scope; useEffect return missing; createReadStream
+without close/destroy.
 """
 
 from __future__ import annotations
@@ -27,6 +29,7 @@ from patchi.core.brain.code_query import (
 )
 
 _log = logging.getLogger("patchi.agents.resource_leak")
+
 
 @register
 class ResourceLeakAgent(BaseAgent):
@@ -65,9 +68,7 @@ class ResourceLeakAgent(BaseAgent):
 
                 has_interval = "setInterval" in names
                 has_clear = "clearInterval" in names
-                has_emitter = any(
-                    c.name == "on" and c.arg_kinds[:1] == ["string"] for c in calls
-                )
+                has_emitter = any(c.name == "on" and c.arg_kinds[:1] == ["string"] for c in calls)
                 has_off = bool(names & {"removeListener", "off", "removeEventListener"})
                 no_cleanup_lines = js_useeffect_without_cleanup(tree, lang_for_file(rel))
                 stream_call = next(
@@ -79,20 +80,59 @@ class ResourceLeakAgent(BaseAgent):
 
                 # Interval leak
                 if has_interval and not has_clear:
-                    findings.append(make_finding(severity=Severity.MEDIUM, file=rel, line_start=first_interval, title="setInterval without clearInterval", description="Leaks interval; store handle and clearInterval on unmount/cleanup", finding_type="resource_leak_interval"))
+                    findings.append(
+                        make_finding(
+                            severity=Severity.MEDIUM,
+                            file=rel,
+                            line_start=first_interval,
+                            title="setInterval without clearInterval",
+                            description="Leaks interval; store handle and clearInterval on unmount/cleanup",
+                            finding_type="resource_leak_interval",
+                        )
+                    )
                 # Emitter leak
                 if has_emitter and not has_off:
-                    line = next((c.line for c in calls if c.name == "on" and c.arg_kinds[:1] == ["string"]), 0)
-                    findings.append(make_finding(severity=Severity.LOW, file=rel, line_start=line, title="EventEmitter .on without off/cleanup", description="Add removeListener/off in cleanup", finding_type="resource_leak_emitter"))
+                    line = next(
+                        (c.line for c in calls if c.name == "on" and c.arg_kinds[:1] == ["string"]),
+                        0,
+                    )
+                    findings.append(
+                        make_finding(
+                            severity=Severity.LOW,
+                            file=rel,
+                            line_start=line,
+                            title="EventEmitter .on without off/cleanup",
+                            description="Add removeListener/off in cleanup",
+                            finding_type="resource_leak_emitter",
+                        )
+                    )
                 # useEffect without cleanup
                 if no_cleanup_lines and has_interval:
-                    findings.append(make_finding(severity=Severity.LOW, file=rel, line_start=no_cleanup_lines[0], title="useEffect with interval but no cleanup return", description="Return () => clearInterval in useEffect", finding_type="resource_leak_effect"))
+                    findings.append(
+                        make_finding(
+                            severity=Severity.LOW,
+                            file=rel,
+                            line_start=no_cleanup_lines[0],
+                            title="useEffect with interval but no cleanup return",
+                            description="Return () => clearInterval in useEffect",
+                            finding_type="resource_leak_effect",
+                        )
+                    )
                 files_scanned += 1
             if files_scanned >= self._MAX_FILES:
                 break
             # Stream not closed
             if has_stream and not has_close and stream_call is not None:
-                findings.append(make_finding(severity=Severity.LOW, file=rel, line_start=stream_call.line, title="Stream without close/destroy", description="Ensure fs stream closed/destroyed", finding_type="resource_leak_stream"))
+                findings.append(
+                    make_finding(
+                        severity=Severity.LOW,
+                        file=rel,
+                        line_start=stream_call.line,
+                        title="Stream without close/destroy",
+                        description="Ensure fs stream closed/destroyed",
+                        finding_type="resource_leak_stream",
+                    )
+                )
             if len(findings) >= 40:
                 break
         result.status = AgentStatus.SUCCEEDED

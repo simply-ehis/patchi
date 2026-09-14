@@ -32,10 +32,12 @@ response = llm.chat(f"Summarize: {page_content}")
 ```
 → **action**: Add instruction separator and content sanitization:
 ```python
-response = llm.chat([
-    {"role": "system", "content": "Summarize the following content"},
-    {"role": "user", "content": content[:10000]}  # truncate
-])
+response = llm.chat(
+    [
+        {"role": "system", "content": "Summarize the following content"},
+        {"role": "user", "content": content[:10000]},  # truncate
+    ]
+)
 ```
 
 ## LLM02:2025 — Insecure Output Handling
@@ -130,7 +132,7 @@ Check tool registration code:
 registry.register_tool(
     name="read_any_file",
     func=open,
-    permissions=["read", "write", "execute"]  # too broad
+    permissions=["read", "write", "execute"],  # too broad
 )
 ```
 → **action**: Apply principle of least privilege. Restrict permissions per tool.
@@ -180,7 +182,7 @@ model.save_pretrained("./static/models/")
 # Before every LLM call, apply:
 def sanitize_llm_input(user_input: str) -> str:
     # Strip control characters
-    sanitized = re.sub(r'[\x00-\x08\x0e-\x1f]', '', user_input)
+    sanitized = re.sub(r"[\x00-\x08\x0e-\x1f]", "", user_input)
     # Separate instructions from data
     return f"[DATA START]\n{sanitized}\n[DATA END]"
 ```
@@ -189,10 +191,12 @@ def sanitize_llm_input(user_input: str) -> str:
 ```python
 from pydantic import BaseModel
 
+
 class LLMResponse(BaseModel):
     action: str  # must be in ALLOWED_ACTIONS
     target: str  # must match allowlist
     parameters: dict
+
 
 def validate_llm_output(raw: str) -> LLMResponse:
     parsed = json.loads(raw)

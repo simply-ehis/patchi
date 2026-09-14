@@ -40,20 +40,14 @@ def run(
         learning.record_rejection(reject, "ProactiveAgent", r)
         count = learning.get_summary(r)["rejections"].get(reject, 0)
         con.print()
-        con.print(
-            f"[#FACC15]✗[/#FACC15] Recorded rejection of [bold]{reject}[/bold] "
-            f"(now rejected {count}×)."
-        )
+        con.print(f"[#FACC15]✗[/#FACC15] Recorded rejection of [bold]{reject}[/bold] (now rejected {count}×).")
         if not learning.should_suggest(reject, r):
             con.print("[dim]Patchi will no longer propose this fix type for this project.[/dim]")
         con.print()
         return
 
     if not files:
-        con.print(
-            "[red]Provide at least one changed file, e.g.[/red] "
-            "[bold]p auto src/api/routes.py[/bold]"
-        )
+        con.print("[red]Provide at least one changed file, e.g.[/red] [bold]p auto src/api/routes.py[/bold]")
         return
 
     con.print()
@@ -89,22 +83,16 @@ def run(
         con.print()
 
     for f in result["suppressed"]:
-        con.print(
-            f"[dim]↷ suppressed (you rejected this type before): {f.fix_type} → {f.file}[/dim]"
-        )
+        con.print(f"[dim]↷ suppressed (you rejected this type before): {f.fix_type} → {f.file}[/dim]")
     if result["suppressed"]:
         con.print()
 
     if not apply:
         con.print(
-            "[dim]Run with [bold]--apply[/bold] to perform safe fixes, "
-            "or [bold]--apply --unsafe[/bold] for all.[/dim]"
+            "[dim]Run with [bold]--apply[/bold] to perform safe fixes, or [bold]--apply --unsafe[/bold] for all.[/dim]"
         )
         con.print()
         return
 
-    con.print(
-        f"[#4ADE80]✓[/#4ADE80] [dim]{len(result['applied'])} applied, "
-        f"{len(result['skipped'])} skipped.[/dim]"
-    )
+    con.print(f"[#4ADE80]✓[/#4ADE80] [dim]{len(result['applied'])} applied, {len(result['skipped'])} skipped.[/dim]")
     con.print()

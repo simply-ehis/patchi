@@ -61,6 +61,7 @@ def run(
         sys.exit(1)
 
     from patchi.core.agents.base import discover_agent_modules
+
     discover_agent_modules()
 
     try:
@@ -92,6 +93,7 @@ def run(
 
             try:
                 import importlib
+
                 module = importlib.import_module(module_path)
                 agent_cls = getattr(module, class_name)
                 result = _run_agent_safe(agent_cls, r, brain, config)

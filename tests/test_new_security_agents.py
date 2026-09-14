@@ -95,14 +95,26 @@ class TestOrchestrator(unittest.TestCase):
 
 class TestSecretsRuntimeAgent(unittest.TestCase):
     def test_detects_api_key(self):
-        code = 'api_key = "AKIAIOSFODNN7EXAMPLE"\n'
+        # Part 7: the AWS docs example key is a placeholder — use a realistic one.
+        code = 'api_key = "AKIAIOSFODNN7XKQ9MWB2DT8FV4HJ6"\n'
         findings = scan_code_for_secrets(code, "test.py")
         self.assertTrue(any("AWS" in f["message"] for f in findings))
 
+    def test_docs_example_key_rejected(self):
+        code = 'api_key = "AKIAIOSFODNN7EXAMPLE"\n'
+        findings = scan_code_for_secrets(code, "test.py")
+        self.assertEqual(findings, [])
+
     def test_detects_password(self):
-        code = 'password = "hunter2"\n'
+        # Part 7: hunter2 is too weak to verify — use a secret-shaped value.
+        code = 'password = "9f8eD2xQ7vB4mK1wZ6"\n'
         findings = scan_code_for_secrets(code, "test.py")
         self.assertTrue(any("password" in f["message"].lower() for f in findings))
+
+    def test_weak_password_rejected(self):
+        code = 'password = "hunter2"\n'
+        findings = scan_code_for_secrets(code, "test.py")
+        self.assertEqual(findings, [])
 
     def test_clean_code_passes(self):
         code = 'name = "hello"\n'
@@ -110,7 +122,8 @@ class TestSecretsRuntimeAgent(unittest.TestCase):
         self.assertEqual(len(findings), 0)
 
     def test_gate_blocks_secret(self):
-        safe, findings = gate_check_proposed_code('api_key = "ABCDEFGHIJKLMNOP1234"\n', "x.py")
+        # Part 7: sequential "ABCDEF..." runs are fake-shaped — use a realistic value.
+        safe, findings = gate_check_proposed_code('api_key = "Q7ZmK2vX9pL4wN8cR3tY6uI1oP5aS0"\n', "x.py")
         self.assertFalse(safe)
         self.assertTrue(len(findings) > 0)
 

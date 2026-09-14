@@ -76,16 +76,13 @@ async def hosted_overview(request: Request) -> JSONResponse:
             "findings_by_severity": sev_totals,
             "active_domains": brain.get("active_security_domains", []),
             "guard": {
-                "interceptor_enabled": conf.get("pipeline", {})
-                .get("interceptor", {})
-                .get("enabled", False),
+                "interceptor_enabled": conf.get("pipeline", {}).get("interceptor", {}).get("enabled", False),
                 "tokens": _safe_count(token_count, root),
                 "top_threats": threats,
             },
             "webhooks": len(hooks_mod.list_webhooks(root)),
             "recent_activity": [
-                {"ts": e.get("ts"), "event": e.get("event"), "actor": e.get("actor")}
-                for e in recent_audit[:10]
+                {"ts": e.get("ts"), "event": e.get("event"), "actor": e.get("actor")} for e in recent_audit[:10]
             ],
             "ai_usage": ai if isinstance(ai, dict) else {},
         }
@@ -107,7 +104,7 @@ async def compliance_report(request: Request, standard: str = "owasp-asvs") -> J
 
         audit_write(root, "compliance.report_generated", data={"standard": standard})
     except Exception as _exc:
-        _log.warning('compliance_report failed: %s', _exc)
+        _log.warning("compliance_report failed: %s", _exc)
 
     return JSONResponse(report)
 
@@ -142,7 +139,7 @@ async def add_webhook(request: Request) -> JSONResponse:
 
         audit_write(root, "webhook.added", data={"id": record["id"], "url": url})
     except Exception as _exc:
-        _log.warning('add_webhook failed: %s', _exc)
+        _log.warning("add_webhook failed: %s", _exc)
     return JSONResponse({"ok": True, "webhook": record})
 
 
@@ -161,9 +158,7 @@ async def test_webhooks(request: Request) -> JSONResponse:
     root = request.app.state.root
     from patchi.core.hosted import webhooks as hooks_mod
 
-    delivered = hooks_mod.dispatch_event(
-        root, "test", {"message": "Patchi hosted webhook test", "ok": True}
-    )
+    delivered = hooks_mod.dispatch_event(root, "test", {"message": "Patchi hosted webhook test", "ok": True})
     return JSONResponse({"ok": True, "delivered": delivered})
 
 

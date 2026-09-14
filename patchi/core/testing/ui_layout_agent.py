@@ -12,6 +12,7 @@ Uses Playwright to:
 
 Requires: playwright
 """
+
 from __future__ import annotations
 
 import logging
@@ -58,7 +59,19 @@ class UILayoutAgent(BaseAgent):
         try:
             from playwright.sync_api import sync_playwright  # noqa: F401
         except ImportError:
-            self.skip(result, "playwright not installed — pip install playwright && playwright install chromium")
+            self.skip(
+                result,
+                "playwright not installed — pip install playwright && playwright install chromium",
+            )
+            return
+        # Part 3 §2.6: the pip package alone is not enough — the browser
+        # binaries are a separate install step. One shared check everywhere.
+        from patchi.core.agents.tool_health import playwright_ready
+
+        pw_ok, pw_hint = playwright_ready()
+        if not pw_ok:
+            self.skip(result, pw_hint)
+            return
             return
 
         base_url = find_server(inp.root, inp.config, inp.extra)
@@ -174,7 +187,8 @@ class UILayoutAgent(BaseAgent):
                     finding_type="horizontal_overflow",
                     severity=Severity.MEDIUM,
                     file=page_path,
-                    message=f"Horizontal overflow at {vp_label}: page width {overflow['docWidth']}px > viewport {overflow['viewWidth']}px",
+                    message=f"Horizontal overflow at {vp_label}: page width {overflow['docWidth']}px > viewport"
+                    f" {overflow['viewWidth']}px",
                     extra={"viewport": vp_label, "viewport_width": vp_width},
                 )
             )
@@ -291,7 +305,8 @@ class UILayoutAgent(BaseAgent):
                     finding_type="tiny_touch_target",
                     severity=Severity.LOW if vp_label != "mobile" else Severity.MEDIUM,
                     file=page_path,
-                    message=f"Touch target too small ({tt['width']}x{tt['height']}px, min 44px): <{tt['tag']}> '{tt['text']}'",
+                    message=f"Touch target too small ({tt['width']}x{tt['height']}px, min 44px): <{tt['tag']}>"
+                    f" '{tt['text']}'",
                     extra={"viewport": vp_label},
                 )
             )
@@ -299,7 +314,8 @@ class UILayoutAgent(BaseAgent):
         # 6. Grid/flex collapse check
         collapse = page.evaluate("""() => {
             const issues = [];
-            document.querySelectorAll('[class*="grid"], [class*="flex"], [style*="display: grid"], [style*="display: flex"]').forEach(el => {
+document.querySelectorAll('[class*="grid"], [class*="flex"], [style*="display: grid"], [style*="display:
+            flex"]').forEach(el => {
                 const r = el.getBoundingClientRect();
                 const style = window.getComputedStyle(el);
                 const children = el.children.length;

@@ -19,6 +19,7 @@ from patchi.core.agents.base import (
 
 _log = logging.getLogger("patchi.agents.side.install")
 
+
 @register
 class InstallAgent(BaseAgent):
     group = AgentGroup.SCANNER
@@ -38,17 +39,41 @@ class InstallAgent(BaseAgent):
                     proc = subprocess.run(cmd, capture_output=True, text=True, timeout=120, cwd=str(root))
                     logs.append(proc.stdout[:500] + proc.stderr[:500])
                     if proc.returncode != 0:
-                        findings.append(make_finding(severity=Severity.HIGH, file="package.json", line_start=0, title="npm install failed", description=proc.stderr[:500], finding_type="install_failed"))
+                        findings.append(
+                            make_finding(
+                                severity=Severity.HIGH,
+                                file="package.json",
+                                line_start=0,
+                                title="npm install failed",
+                                description=proc.stderr[:500],
+                                finding_type="install_failed",
+                            )
+                        )
                 except Exception as exc:  # noqa: BLE001
                     _log.debug("install npm failed: %s", exc)
         # Python
         if (root / "requirements.txt").exists():
             if shutil.which("pip"):
                 try:
-                    proc = subprocess.run([shutil.which("pip"), "install", "-r", "requirements.txt"], capture_output=True, text=True, timeout=120, cwd=str(root))
+                    proc = subprocess.run(
+                        [shutil.which("pip"), "install", "-r", "requirements.txt"],
+                        capture_output=True,
+                        text=True,
+                        timeout=120,
+                        cwd=str(root),
+                    )
                     logs.append(proc.stdout[:500])
                     if proc.returncode != 0:
-                        findings.append(make_finding(severity=Severity.HIGH, file="requirements.txt", line_start=0, title="pip install failed", description=proc.stderr[:500], finding_type="install_failed"))
+                        findings.append(
+                            make_finding(
+                                severity=Severity.HIGH,
+                                file="requirements.txt",
+                                line_start=0,
+                                title="pip install failed",
+                                description=proc.stderr[:500],
+                                finding_type="install_failed",
+                            )
+                        )
                 except Exception as exc:  # noqa: BLE001
                     _log.debug("pip install failed: %s", exc)
         # Go / Rust log only

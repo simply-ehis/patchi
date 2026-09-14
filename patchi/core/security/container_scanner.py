@@ -87,7 +87,8 @@ class ContainerScannerAgent(BaseAgent):
                                     if sev.lower() in ("critical", "high", "medium", "low")
                                     else Severity.MEDIUM,
                                     file=rel,
-                                    message=f"{vuln.get('VulnerabilityID', '')}: {vuln.get('Title', 'Container vulnerability')}",
+                                    message=f"{vuln.get('VulnerabilityID', '')}:"
+                                    f" {vuln.get('Title', 'Container vulnerability')}",
                                     cwe=vuln.get("CweIDs", [""])[0] if vuln.get("CweIDs") else "",
                                     extra={
                                         "vuln_id": vuln.get("VulnerabilityID", ""),
@@ -133,7 +134,7 @@ class ContainerScannerAgent(BaseAgent):
                         )
                     return  # dive succeeded, skip heuristic
             except Exception as _exc:
-                logging.getLogger("patchi").debug('suppressed: %s', _exc)
+                logging.getLogger("patchi").debug("suppressed: %s", _exc)
         # Heuristic fallback: count RUN, check multi-stage, large base
         runs = len(re.findall(r"^\s*RUN\s+", content, re.MULTILINE | re.I))
         froms = re.findall(r"^\s*FROM\s+(\S+)", content, re.MULTILINE | re.I)
@@ -211,25 +212,34 @@ class ContainerScannerAgent(BaseAgent):
                         )
                     )
 
-                # Secrets in ENV
+                # Secrets in ENV. Part 7: keyword + any value was
+                # CRITICAL (ENV KEY=xxx fires). The value must pass the
+                # shared secret gate; ARG references ($VAR/${VAR}) are
+                # build-time indirection, not embedded secrets.
                 if upper.startswith("ENV "):
                     secretish = re.search(
-                        r"(?:password|secret|key|token|api_key)\s*=\s*\S+",
+                        r"(?:password|secret|key|token|api_key)\s*=\s*(\S+)",
                         stripped,
                         re.I,
                     )
                     if secretish:
-                        result.add_finding(
-                            Finding(
-                                agent=self.name,
-                                type="env_secret",
-                                severity=Severity.CRITICAL,
-                                file=rel,
-                                line=i,
-                                message="Secret in ENV — use build-time secrets or runtime injection",
-                                cwe="CWE-798",
+                        from patchi.core.security.secret_evidence import looks_like_secret
+
+                        _val = secretish.group(1).strip("\"'")
+                        if _val.startswith("$"):
+                            continue
+                        if looks_like_secret(_val):
+                            result.add_finding(
+                                Finding(
+                                    agent=self.name,
+                                    type="env_secret",
+                                    severity=Severity.CRITICAL,
+                                    file=rel,
+                                    line=i,
+                                    message="Secret in ENV — use build-time secrets or runtime injection",
+                                    cwe="CWE-798",
+                                )
                             )
-                        )
 
             if not has_healthcheck and lines:
                 result.add_finding(

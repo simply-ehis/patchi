@@ -31,15 +31,15 @@ def _render(result: dict) -> None:
         mark = "PASS" if s["ok"] else "FAIL"
         con.print(f"[bold]{name}[/bold]  {s['passed']}/{s['cases']}  {mark}")
         for f in s.get("failures", []):
-            con.print(
-                f"  [red]✗ {f['id']}[/red] expected={f['expected']} actual={f['actual']}"
-            )
+            con.print(f"  [red]✗ {f['id']}[/red] expected={f['expected']} actual={f['actual']}")
     gate = suites["gate"]
     if not gate.get("skipped"):
-        con.print(
-            f"vuln recall={gate['vuln_recall']}  "
-            f"clean defend escapes={gate['clean_defend_escapes']}"
-        )
+        con.print(f"vuln recall={gate['vuln_recall']}  clean defend escapes={gate['clean_defend_escapes']}")
+        # §4: per-tier calibration on screen, not just JSON.
+        for tier, cal in (gate.get("tier_calibration") or {}).items():
+            con.print(f"  tier {tier}: n={cal['n']} vuln_fraction={cal['vuln_fraction']} routing={cal['routing']}")
+        th = gate.get("thresholds") or {}
+        con.print(f"  thresholds: {th}")
     gen = suites["generation"]
     if gen.get("skipped"):
         con.print(f"generation  SKIPPED — {gen.get('reason', '')}")
@@ -84,7 +84,7 @@ def run(
                 "noise": _skipped("noise", "suite not requested"),
                 "generation": _skipped(
                     "generation",
-                    "hallucination rate needs a model + prompt version; not run offline",
+                    "needs a model; run `p eval gen` (spends tokens)",
                 ),
             },
             "ok": bool(g["ok"]),
@@ -97,7 +97,7 @@ def run(
                 "noise": n,
                 "generation": _skipped(
                     "generation",
-                    "hallucination rate needs a model + prompt version; not run offline",
+                    "needs a model; run `p eval gen` (spends tokens)",
                 ),
             },
             "ok": bool(n["ok"]),
@@ -109,6 +109,26 @@ def run(
         print(json.dumps(result, indent=2, default=str))
     else:
         _render(result)
+        # §3.4: hallucination rate is a first-class number — same status as
+        # test pass rate. Reported from the harness's live counters (this
+        # process) plus any harness history the current run produced.
+        try:
+            from patchi.core.ai.harness import stats as _ai_stats
+
+            hs = _ai_stats.as_dict()
+            if hs["calls"] or hs["grounded"] or hs["hallucinated"]:
+                con.print(
+                    f"[bold]ai_harness[/bold]  calls={hs['calls']} "
+                    f"first_try={hs['validated_first_try']} retried={hs['retried']} "
+                    f"escalated={hs['escalated']}"
+                )
+                if hs["grounded"] or hs["hallucinated"]:
+                    con.print(
+                        f"  grounded={hs['grounded']} hallucinated={hs['hallucinated']} "
+                        f"hallucination_rate={hs['hallucination_rate']}"
+                    )
+        except Exception:
+            pass
     if ci and not result["ok"]:
         return 1
     return 0

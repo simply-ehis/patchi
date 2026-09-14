@@ -5,6 +5,7 @@ Writes structured JSON-lines to .patchi/hosted/audit.log.
 Rotates when file exceeds MAX_SIZE_BYTES, keeping MAX_BACKUPS old files.
 Each entry: {timestamp, event, actor, data}.
 """
+
 from __future__ import annotations
 
 import json

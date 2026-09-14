@@ -8,6 +8,7 @@ Covers §2.1.2-4 and §2.2.2-5:
 - Outdated dependency report
 - Supply chain risk signals
 """
+
 from __future__ import annotations
 
 import json
@@ -88,9 +89,7 @@ def _find_unreachable_code(content: str, lang: str) -> list[dict]:
 
 
 _FEATURE_FLAG_PATTERNS = [
-    re.compile(
-        r"(?:is|has|show|enable|disable|use|with)_?\w*\s*[=:]\s*(true|false)", re.IGNORECASE
-    ),
+    re.compile(r"(?:is|has|show|enable|disable|use|with)_?\w*\s*[=:]\s*(true|false)", re.IGNORECASE),
     re.compile(r"const\s+\w+\s*=\s*(true|false)", re.IGNORECASE),
     re.compile(r"let\s+\w+\s*=\s*(true|false)", re.IGNORECASE),
     re.compile(r"var\s+\w+\s*=\s*(true|false)", re.IGNORECASE),
@@ -209,9 +208,7 @@ class DeadCodeHygieneAgent(BaseAgent):
 
     group = AgentGroup.SCANNER
     name = "DeadCodeHygieneAgent"
-    description = (
-        "Detect unreachable code, feature flag archaeology, duplicate/outdated/suspicious deps"
-    )
+    description = "Detect unreachable code, feature flag archaeology, duplicate/outdated/suspicious deps"
     shardable = True
     supported_languages = None
 

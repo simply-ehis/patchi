@@ -128,7 +128,7 @@ class FileCorpus:
             # Fast relative path: string replace instead of Path.relative_to()
             abs_dir = dirpath
             if abs_dir.startswith(root_str):
-                rel_dir = abs_dir[len(root_str):].replace("\\", "/").lstrip("/")
+                rel_dir = abs_dir[len(root_str) :].replace("\\", "/").lstrip("/")
             else:
                 rel_dir = Path(dirpath).relative_to(root).as_posix()
             if rel_dir == ".":
@@ -146,13 +146,12 @@ class FileCorpus:
                             self.learner_excluded += 1
                             continue
                     except Exception as _exc:  # noqa: BLE001 — learner bugs never block scans
-                        _log.debug('_build skipped: %s', _exc)
+                        _log.debug("_build skipped: %s", _exc)
 
                 if classify is not None:
                     cat = classify(rel_path)
                     if cat is not None and (
-                        (cat != "tests" and self._exclude_noise)
-                        or (cat == "tests" and self._exclude_tests)
+                        (cat != "tests" and self._exclude_noise) or (cat == "tests" and self._exclude_tests)
                     ):
                         self.noise_excluded[cat] = self.noise_excluded.get(cat, 0) + 1
                         continue

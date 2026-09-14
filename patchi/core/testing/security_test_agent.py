@@ -134,11 +134,7 @@ class SecurityTestAgent(BaseAgent):
 
         framework = self._detect_framework(inp.brain)
         for route_info in routes:
-            route = (
-                route_info.get("path", "")
-                if isinstance(route_info, dict)
-                else getattr(route_info, "path", "")
-            )
+            route = route_info.get("path", "") if isinstance(route_info, dict) else getattr(route_info, "path", "")
             method = (
                 route_info.get("method", "get")
                 if isinstance(route_info, dict)
@@ -201,11 +197,7 @@ class SecurityTestAgent(BaseAgent):
                 "    app = Flask(__name__)\n"
                 "    return app.test_client()\n"
             ),
-            "django": (
-                "@pytest.fixture\ndef client():\n"
-                "    from django.test import Client\n"
-                "    return Client()\n"
-            ),
+            "django": ("@pytest.fixture\ndef client():\n    from django.test import Client\n    return Client()\n"),
         }
         fixture = fixtures.get(
             framework,
@@ -216,11 +208,7 @@ class SecurityTestAgent(BaseAgent):
                 '    raise NotImplementedError("Define a client fixture for your framework")\n'
             ),
         )
-        return (
-            '"""Auto-generated security tests by Patchi SecurityTestAgent."""\n'
-            "import pytest\n\n\n"
-            f"{fixture}\n\n"
-        )
+        return f'"""Auto-generated security tests by Patchi SecurityTestAgent."""\nimport pytest\n\n\n{fixture}\n\n'
 
     def _generate_tests(self, route: str, method: str, func: str) -> str:
         """Generate test code for a single route."""

@@ -27,10 +27,24 @@ _log = logging.getLogger("patchi.testing.browser")
 # Patchi's own server-rendered UI routes. Used as the default discovery set
 # when no explicit route list is supplied via config / agent input.
 DEFAULT_UI_ROUTES = [
-    "/", "/brain", "/brain-map", "/council", "/findings", "/guard",
-    "/assurance", "/live-tests", "/attack-timeline", "/history",
-    "/review", "/self-improvement", "/settings", "/chat", "/tokens",
-    "/hosted", "/charter", "/smart",
+    "/",
+    "/brain",
+    "/brain-map",
+    "/council",
+    "/findings",
+    "/guard",
+    "/assurance",
+    "/live-tests",
+    "/attack-timeline",
+    "/history",
+    "/review",
+    "/self-improvement",
+    "/settings",
+    "/chat",
+    "/tokens",
+    "/hosted",
+    "/charter",
+    "/smart",
 ]
 
 # Patchi's `p web` default is 1612; the rest are common dev-server ports.
@@ -120,7 +134,7 @@ def open_page(browser, url: str, timeout: int = 30000, viewport: dict | None = N
         try:
             page.wait_for_selector("body", state="visible", timeout=10000)
         except Exception as _exc:
-            _log.warning('open_page failed: %s', _exc)
+            _log.warning("open_page failed: %s", _exc)
         page.wait_for_timeout(700)  # let client JS (charts, ws feed) settle
     except Exception as e:  # navigation/timeout -> still return session w/ status
         _log.warning("open_page failed for %s: %s", url, e)
@@ -132,12 +146,7 @@ def open_page(browser, url: str, timeout: int = 30000, viewport: dict | None = N
 def save_screenshot(page, evidence_dir: Path, name: str) -> Path | None:
     """Save a full-page screenshot; returns the path or None on failure."""
     evidence_dir.mkdir(parents=True, exist_ok=True)
-    safe = (
-        name.replace("/", "_")
-        .replace("\\", "_")
-        .replace(":", "_")
-        .replace(" ", "_")
-    )
+    safe = name.replace("/", "_").replace("\\", "_").replace(":", "_").replace(" ", "_")
     path = evidence_dir / f"{safe}.png"
     try:
         page.screenshot(path=str(path), full_page=True)

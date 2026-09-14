@@ -84,7 +84,7 @@ def main() -> int:
             owner_by_key[(m, p)] = getattr(route, "name", "")
 
     checks = [
-        (("GET", "/"), "dashboard_v2"),      # merged landing owned by v2
+        (("GET", "/"), "dashboard_v2"),  # merged landing owned by v2
         (("GET", "/findings"), None),
         (("GET", "/review"), None),
         (("GET", "/chat"), None),
@@ -92,8 +92,8 @@ def main() -> int:
         (("GET", "/hosted"), None),
         (("GET", "/api/v2/tools/list"), None),
         (("GET", "/api/hosted/v2/overview"), None),
-        (("GET", "/api/hosted/status"), None),   # v1 hosted API untouched
-        (("GET", "/api/hosted/tokens"), None),   # v1 hosted API untouched
+        (("GET", "/api/hosted/status"), None),  # v1 hosted API untouched
+        (("GET", "/api/hosted/tokens"), None),  # v1 hosted API untouched
         (("GET", "/ws"), None),
         (("GET", "/ws/v2"), None),
     ]
@@ -163,8 +163,14 @@ def main() -> int:
         f = static_dir / asset
         (ok if f.is_file() and f.stat().st_size > 0 else fail)(f"static {asset}", "" if f.exists() else "missing")
 
-    for tpl in ("dashboard_v2.html", "council_v2.html", "brain_map_v2.html",
-                "attack_timeline_v2.html", "live_tests_v2.html", "hosted.html"):
+    for tpl in (
+        "dashboard_v2.html",
+        "council_v2.html",
+        "brain_map_v2.html",
+        "attack_timeline_v2.html",
+        "live_tests_v2.html",
+        "hosted.html",
+    ):
         f = Path(__file__).resolve().parent.parent / "patchi" / "web" / "templates_v2" / tpl
         (ok if f.is_file() else fail)(f"template {tpl}", "" if f.exists() else "missing")
 
@@ -176,7 +182,7 @@ def main() -> int:
         args = parser.parse_args(["web", "--port", "9001"])
         assert args.port == 9001 and args.host == "127.0.0.1"
         parser.parse_args(["scan", "--json"])  # other command unaffected
-        parser.parse_args(["web", "--help"] ) if False else None
+        parser.parse_args(["web", "--help"]) if False else None
         ok("cli-parser: 'p web' flags coexist with all commands")
     except SystemExit as e:
         fail("cli-parser", f"argparse exited with {e.code}")

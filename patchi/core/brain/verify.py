@@ -14,6 +14,7 @@ Usage:
 This reuses the project's own test runner (pytest by default) and Patchi's
 Brain scan — it never trusts a self-report.
 """
+
 from __future__ import annotations
 
 import json

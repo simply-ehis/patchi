@@ -106,7 +106,8 @@ def _verify_api_key(x_api_key: str | None = Header(None)) -> str | None:
     return x_api_key
 
 
-# â”€â”€ Models â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# â”€â”€ Models
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â
 
 
 class ScanRequest(BaseModel):
@@ -115,7 +116,8 @@ class ScanRequest(BaseModel):
     pipeline: bool = False
 
 
-# â”€â”€ Scan status (shared state) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# â”€â”€ Scan status (shared state)
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â
 
 _scan_state = {
     "running": False,
@@ -128,7 +130,8 @@ _scan_state = {
 }
 
 
-# â”€â”€ Endpoints â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# â”€â”€ Endpoints
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â
 
 
 @router.get("/health")
@@ -150,7 +153,7 @@ async def health(request: Request) -> JSONResponse:
         results = mem.get_scan_results(root)
         scan_results_exist = bool(results)
     except Exception as _exc:
-        _log.warning('health failed: %s', _exc)
+        _log.warning("health failed: %s", _exc)
 
     return JSONResponse(
         {
@@ -274,9 +277,7 @@ async def scan_status(_key: str | None = Depends(_verify_api_key)) -> JSONRespon
 
 
 @router.get("/scan/results")
-async def scan_results(
-    request: Request, _key: str | None = Depends(_verify_api_key)
-) -> JSONResponse:
+async def scan_results(request: Request, _key: str | None = Depends(_verify_api_key)) -> JSONResponse:
     """Get latest scan results."""
     root = request.app.state.root
 
@@ -432,7 +433,7 @@ async def summary(request: Request, _key: str | None = Depends(_verify_api_key))
             assurance_claims = len(graph.claims)
             assurance_proved = sum(1 for c in graph.claims.values() if c.verdict.value == "proved")
         except Exception as _exc:
-            _log.warning('summary failed: %s', _exc)
+            _log.warning("summary failed: %s", _exc)
 
         # Model routing stats
         routing_stats = {}
@@ -442,7 +443,7 @@ async def summary(request: Request, _key: str | None = Depends(_verify_api_key))
             router = get_model_router(root=root)
             routing_stats = router.get_routing_stats()
         except Exception as _exc:
-            _log.warning('summary failed: %s', _exc)
+            _log.warning("summary failed: %s", _exc)
 
         # Tenant cost
         tenant_cost = 0.0
@@ -451,7 +452,7 @@ async def summary(request: Request, _key: str | None = Depends(_verify_api_key))
 
             tenant_cost = get_tenant_cost(root)
         except Exception as _exc:
-            _log.warning('summary failed: %s', _exc)
+            _log.warning("summary failed: %s", _exc)
 
         return JSONResponse(
             {
@@ -469,16 +470,15 @@ async def summary(request: Request, _key: str | None = Depends(_verify_api_key))
                 },
                 "routing": routing_stats,
                 "tenant_cost": tenant_cost,
-                "health_score": _compute_health_score(
-                    all_findings, assurance_claims, assurance_proved
-                ),
+                "health_score": _compute_health_score(all_findings, assurance_claims, assurance_proved),
             }
         )
     except Exception as e:
         return JSONResponse({"ok": False, "error": str(e)}, status_code=500)
 
 
-# â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# â”€â”€ Helpers
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â
 
 
 async def _run_scan(root: Path, scan_type: str, deep: bool, pipeline: bool) -> dict:
@@ -529,9 +529,7 @@ async def _run_scan(root: Path, scan_type: str, deep: bool, pipeline: bool) -> d
                 {
                     "agent": r.agent_name,
                     "type": f.type,
-                    "severity": f.severity.value
-                    if hasattr(f.severity, "value")
-                    else str(f.severity),
+                    "severity": f.severity.value if hasattr(f.severity, "value") else str(f.severity),
                     "file": f.file,
                     "line": f.line,
                     "message": f.message,

@@ -148,9 +148,7 @@ def run(
 
     # Intent gaps
     if intent and intent.get("gaps_total", 0) > 0:
-        con.print(
-            f"[bold]Intent Gaps[/bold] ({intent['gaps_total']} across {intent.get('routes_total', '?')} routes)"
-        )
+        con.print(f"[bold]Intent Gaps[/bold] ({intent['gaps_total']} across {intent.get('routes_total', '?')} routes)")
         con.print()
 
         for category, label, color in [
@@ -177,9 +175,7 @@ def run(
     con.print()
 
 
-def _analyze_findings(
-    root: Path, min_severity: str, json_output: bool, max_chains: int = 20
-) -> None:
+def _analyze_findings(root: Path, min_severity: str, json_output: bool, max_chains: int = 20) -> None:
     """Analyze findings from memory (original p chain behavior)."""
     from patchi.core import memory as mem
 
@@ -261,9 +257,7 @@ def _analyze_findings(
     table.add_column("Score", justify="right", width=6)
     table.add_column("Chain")
     for i, c in enumerate(visible, 1):
-        color = {"critical": "#FF4D6D", "high": "#FF8C42", "medium": "#FACC15"}.get(
-            c.severity, "#B8A898"
-        )
+        color = {"critical": "#FF4D6D", "high": "#FF8C42", "medium": "#FACC15"}.get(c.severity, "#B8A898")
         table.add_row(
             str(i),
             f"[{color}]{c.severity}[/{color}]",

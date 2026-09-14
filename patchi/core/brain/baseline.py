@@ -75,7 +75,10 @@ def _finding_hash(finding: Finding) -> str:
 
 
 def _finding_dict_hash(finding: dict) -> str:
-    raw = f"{finding.get('file', '')}:{finding.get('line', 0)}:{finding.get('type', '')}:{finding.get('severity', '')}:{finding.get('message', '')}"
+    raw = (
+        f"{finding.get('file', '')}:{finding.get('line', 0)}:{finding.get('type', '')}"
+        f":{finding.get('severity', '')}:{finding.get('message', '')}"
+    )
     return hashlib.sha256(raw.encode()).hexdigest()[:16]
 
 

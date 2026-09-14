@@ -21,22 +21,12 @@ class StateTransitionCampaign(Campaign):
 
     def steps(self) -> list[CampaignStep]:
         return [
-            CampaignStep(
-                name="discover_states", description="Discover all application states from the graph"
-            ),
+            CampaignStep(name="discover_states", description="Discover all application states from the graph"),
             CampaignStep(name="map_transitions", description="Map all legal state transitions"),
-            CampaignStep(
-                name="identify_guards", description="Identify guards protecting state transitions"
-            ),
-            CampaignStep(
-                name="test_legal_sequences", description="Test legal state transition sequences"
-            ),
-            CampaignStep(
-                name="test_illegal_sequences", description="Test illegal state transition sequences"
-            ),
-            CampaignStep(
-                name="test_replay", description="Test replay attacks on state transitions"
-            ),
+            CampaignStep(name="identify_guards", description="Identify guards protecting state transitions"),
+            CampaignStep(name="test_legal_sequences", description="Test legal state transition sequences"),
+            CampaignStep(name="test_illegal_sequences", description="Test illegal state transition sequences"),
+            CampaignStep(name="test_replay", description="Test replay attacks on state transitions"),
             CampaignStep(name="test_concurrent", description="Test concurrent state transitions"),
         ]
 

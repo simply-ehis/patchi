@@ -4,6 +4,7 @@ PysaAgent - Python Static Analyzer integration.
 Pysa (Python Static Analyzer) is a static analysis tool for Python that focuses on
 security vulnerabilities like SQL injection, XSS, and other taint-style vulnerabilities.
 """
+
 from __future__ import annotations
 
 import json
@@ -44,8 +45,8 @@ class PysaAgent(BaseAgent):
     def _run(self, inp: AgentInput, result: AgentResult) -> None:
         """Run Pysa analysis on the project."""
         if not self._is_pysa_available():
-            result.status = AgentStatus.SKIPPED
-            result.data["error"] = "Pysa not installed"
+            # Part 3 §2.5: distinct tool-missing skip, not a silent empty run.
+            self.skip_for_tool(result, "pyre")
             return
 
         findings = self._run_pysa(inp.root)

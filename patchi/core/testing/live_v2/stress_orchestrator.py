@@ -101,6 +101,7 @@ class StressTestReport:
 
     def to_dict(self) -> dict:
         import dataclasses
+
         return dataclasses.asdict(self)
 
 
@@ -182,9 +183,7 @@ class StressOrchestrator:
 
     async def _run_load_test(self):
         """Run steady-state load test."""
-        self.on_progress(
-            f"🚀 Starting load test: {self.config.users} users for {self.config.duration_seconds}s"
-        )
+        self.on_progress(f"🚀 Starting load test: {self.config.users} users for {self.config.duration_seconds}s")
 
         # Ramp up users
         await self._ramp_up_users(self.config.users, self.config.ramp_up_seconds)
@@ -200,7 +199,8 @@ class StressOrchestrator:
     async def _run_spike_test(self):
         """Run spike test: baseline -> spike -> baseline."""
         self.on_progress(
-            f"⚡ Starting spike test: {self.config.users} baseline -> {int(self.config.users * self.config.spike_multiplier)} spike"
+            f"⚡ Starting spike test: {self.config.users} baseline ->"
+            f" {int(self.config.users * self.config.spike_multiplier)} spike"
         )
 
         # Baseline
@@ -224,9 +224,7 @@ class StressOrchestrator:
 
     async def _run_soak_test(self):
         """Run long-duration soak test."""
-        self.on_progress(
-            f"🏃 Starting soak test: {self.config.users} users for {self.config.duration_seconds}s"
-        )
+        self.on_progress(f"🏃 Starting soak test: {self.config.users} users for {self.config.duration_seconds}s")
 
         await self._ramp_up_users(self.config.users, self.config.ramp_up_seconds)
 
@@ -235,9 +233,7 @@ class StressOrchestrator:
         check_interval = self.config.soak_check_interval
 
         while elapsed < self.config.duration_seconds - self.config.ramp_up_seconds:
-            remaining = min(
-                check_interval, self.config.duration_seconds - self.config.ramp_up_seconds - elapsed
-            )
+            remaining = min(check_interval, self.config.duration_seconds - self.config.ramp_up_seconds - elapsed)
             await self._run_steady_state(remaining)
             elapsed += remaining
 
@@ -491,8 +487,7 @@ class StressOrchestrator:
             status_codes=status_codes,
             errors=errors,
             throughput_over_time=[
-                {"timestamp": ts["timestamp"], "rps": ts["requests_per_sec"]}
-                for ts in self._time_series
+                {"timestamp": ts["timestamp"], "rps": ts["requests_per_sec"]} for ts in self._time_series
             ],
             latency_over_time=[
                 {"timestamp": ts["timestamp"], "p50": ts["latency_p50"], "p95": ts["latency_p95"]}

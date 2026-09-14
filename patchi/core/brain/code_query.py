@@ -177,9 +177,7 @@ def js_var_kinds(tree, lang: str = "javascript") -> list[tuple[str, int]]:
     out: list[tuple[str, int]] = []
     if tree is None:
         return []
-    found = _query_text(
-        lang_obj, "[(variable_declaration) (lexical_declaration)] @d", tree.root_node
-    )
+    found = _query_text(lang_obj, "[(variable_declaration) (lexical_declaration)] @d", tree.root_node)
     for nodes in found.values():
         for node in nodes:
             text = _node_text(node).lstrip()
@@ -568,9 +566,7 @@ def member_paths(text: str, lang) -> list[tuple[str, int]]:
         "field_expression",
     ):
         try:
-            found = QueryCursor(Query(language, f"({node_type}) @m")).captures(
-                tree.root_node
-            )
+            found = QueryCursor(Query(language, f"({node_type}) @m")).captures(tree.root_node)
         except Exception:
             continue
         for nodes in found.values():
@@ -659,9 +655,7 @@ def calls_with_dynamic_arg(text: str, lang, names: set[str]) -> list[int]:
 
     out = []
     try:
-        found = QueryCursor(
-            Query(language, "(call_expression) @c")
-        ).captures(parsed.root_node)
+        found = QueryCursor(Query(language, "(call_expression) @c")).captures(parsed.root_node)
     except Exception:
         return []
     for nodes in found.values():

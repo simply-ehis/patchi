@@ -341,7 +341,7 @@ def activate_from_diff(
             if u.returncode == 0:
                 uncommitted = len([line for line in u.stdout.strip().splitlines() if line.strip()])
         except Exception as _exc:
-            _log.warning('activate_from_diff failed: %s', _exc)
+            _log.warning("activate_from_diff failed: %s", _exc)
         cache = _load_cache(root)
         cache[cache_key] = {
             "head": head,

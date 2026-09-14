@@ -154,9 +154,7 @@ def from_config(raw: dict) -> ChannelConfig:
     try:
         apprise_url = builder(raw.get("credentials", raw))
     except KeyError as exc:
-        raise ValueError(
-            f"Channel '{raw['name']}' ({channel_type.value}) missing required field: {exc}"
-        ) from exc
+        raise ValueError(f"Channel '{raw['name']}' ({channel_type.value}) missing required field: {exc}") from exc
 
     return ChannelConfig(
         name=raw["name"],

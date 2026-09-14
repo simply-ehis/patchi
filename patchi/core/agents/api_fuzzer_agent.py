@@ -50,7 +50,26 @@ def _try_evomaster(routes: list[RouteInfo], out_dir: Path) -> int:
         spec = out_dir.parent / "openapi.json"
         if not spec.exists():
             spec = out_dir.parent / "swagger.json"
-        cmd = ["docker", "run", "--rm", "-v", f"{spec}:/tmp/spec.json", _EVO_DOCKER, "--blackBox", "true", "--bbSwaggerUrl", "file:///tmp/spec.json", "--outputFolder", "/tmp/out", "--maxTime", "30s"] if docker else None
+        cmd = (
+            [
+                "docker",
+                "run",
+                "--rm",
+                "-v",
+                f"{spec}:/tmp/spec.json",
+                _EVO_DOCKER,
+                "--blackBox",
+                "true",
+                "--bbSwaggerUrl",
+                "file:///tmp/spec.json",
+                "--outputFolder",
+                "/tmp/out",
+                "--maxTime",
+                "30s",
+            ]
+            if docker
+            else None
+        )
         if not cmd:
             return 0
         proc = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
@@ -77,6 +96,7 @@ class ApiFuzzerAgent(BaseAgent):
             corpus = inp.extra.get("file_corpus")
             if corpus is None:
                 from patchi.core.brain.file_corpus import FileCorpus
+
                 corpus = FileCorpus(inp.root)
             stack = FrameworkDetector(inp.root, corpus=corpus).detect()
             mapper = RouteMapper(inp.root, stack)
@@ -117,10 +137,13 @@ class ApiFuzzerAgent(BaseAgent):
             # 3. Method fuzz: wrong method
             payloads.append({"strategy": "method", "value": "WRONG_METHOD", "label": "method_fuzz"})
             # Persist
-            fname = f"{r.method.lower()}_{r.path.strip('/').replace('/','_') or 'root'}.json"
+            fname = f"{r.method.lower()}_{r.path.strip('/').replace('/', '_') or 'root'}.json"
             fname = "".join(c if c.isalnum() or c in "._-" else "_" for c in fname)[:120]
             try:
-                (out_dir / fname).write_text(json.dumps({"route": r.to_dict(), "payloads": payloads[:12]}, indent=2), encoding="utf-8")
+                (out_dir / fname).write_text(
+                    json.dumps({"route": r.to_dict(), "payloads": payloads[:12]}, indent=2),
+                    encoding="utf-8",
+                )
                 fuzz_count += 1
             except OSError as exc:
                 _log.warning("ApiFuzzer write failed: %s", exc)
@@ -132,7 +155,9 @@ class ApiFuzzerAgent(BaseAgent):
                     file=r.file,
                     line_start=r.line,
                     title=f"Fuzz payloads for {r.method} {r.path}",
-                    description=f"Generated {len(payloads[:12])} EvoMaster/InputFuzzer payloads (boundary/injection/encoding) for DAST replay --with-fuzz. EvoMaster: {'yes' if evo else 'local'}",
+                    description=f"Generated {len(payloads[:12])} EvoMaster/InputFuzzer payloads"
+                    f" (boundary/injection/encoding) for DAST replay --with-fuzz. EvoMaster:"
+                    f" {'yes' if evo else 'local'}",
                     evidence=r.path,
                     finding_type="fuzz_payload",
                 )

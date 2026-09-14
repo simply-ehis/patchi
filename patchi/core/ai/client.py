@@ -13,17 +13,18 @@ Supports:
 from __future__ import annotations
 
 import json
-import random
 
 # ── Public API ─────────────────────────────────────────────────────────────────
 import logging
 import os
+import random
 import re
 import time
 import urllib.error
 import urllib.request
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable, TypeVar
+from typing import TypeVar
 
 from loguru import logger
 
@@ -90,8 +91,7 @@ def _record_ai_failure() -> bool:
         if _circuit_failures >= _CIRCUIT_BREAKER_THRESHOLD:
             _circuit_open = True
             logger.warning(
-                "AI circuit breaker OPEN after {} consecutive failures — "
-                "skipping remaining AI calls this scan",
+                "AI circuit breaker OPEN after {} consecutive failures — skipping remaining AI calls this scan",
                 _circuit_failures,
             )
         return _circuit_open
@@ -119,6 +119,7 @@ def _retry_with_backoff(
     Execute a function with exponential backoff retry logic.
     Respects the global circuit breaker.
     """
+
     def _progress(msg: str) -> None:
         if progress_callback:
             try:
@@ -157,7 +158,10 @@ def _retry_with_backoff(
                 _progress(f"Retrying in {actual_delay:.1f}s... (attempt {attempt + 2}/{max_retries + 1})")
                 logger.debug(
                     "Retryable error (attempt {}/{}): {}. Retrying in {:.1f}s...",
-                    attempt + 1, max_retries + 1, e, actual_delay,
+                    attempt + 1,
+                    max_retries + 1,
+                    e,
+                    actual_delay,
                 )
 
                 time.sleep(actual_delay)
@@ -269,7 +273,7 @@ def call_ai(
 
             root = get_current_tenant_root()
         except Exception as _exc:
-            _log.warning('call_ai failed: %s', _exc)
+            _log.warning("call_ai failed: %s", _exc)
 
     # ── Cost-aware model routing ───────────────────────────────────────────
     # Use ModelRouter to select optimal model based on prompt complexity
@@ -298,7 +302,13 @@ def call_ai(
     local_model = ai_config.get("local_model_name")
     if local_model:
         result = _call_ollama(
-            local_model, system_prompt, user_prompt, max_tokens, temperature, _remaining(), _progress
+            local_model,
+            system_prompt,
+            user_prompt,
+            max_tokens,
+            temperature,
+            _remaining(),
+            _progress,
         )
         if result:
             return result
@@ -320,7 +330,14 @@ def call_ai(
 
         if fmt == "anthropic":
             result = _call_anthropic(
-                api_key, base_url, model, system_prompt, user_prompt, max_tokens, _remaining(), _progress
+                api_key,
+                base_url,
+                model,
+                system_prompt,
+                user_prompt,
+                max_tokens,
+                _remaining(),
+                _progress,
             )
         else:
             result = _call_openai_compat(
@@ -354,7 +371,14 @@ def call_ai_structured(
     Call AI and parse the response as JSON.
     Returns parsed JSON or None.
     """
-    raw = call_ai(config, system_prompt, user_prompt, max_tokens, temperature, progress_callback=progress_callback)
+    raw = call_ai(
+        config,
+        system_prompt,
+        user_prompt,
+        max_tokens,
+        temperature,
+        progress_callback=progress_callback,
+    )
     if not raw:
         return None
     return _parse_json_response(raw)
@@ -392,20 +416,14 @@ def _call_ollama(
             headers={"Content-Type": "application/json"},
             method="POST",
         )
-        with urllib.request.urlopen(
-            req, timeout=timeout if timeout is not None else HTTP_REQUEST_TIMEOUT
-        ) as resp:
+        with urllib.request.urlopen(req, timeout=timeout if timeout is not None else HTTP_REQUEST_TIMEOUT) as resp:
             data = json.loads(resp.read())
             pt = estimate_tokens(system + user)
             ct = estimate_tokens(data.get("response", ""))
             track(model, pt, ct)
             return data.get("response", "")
 
-    return _retry_with_backoff(
-        _do_call,
-        timeout_remaining=lambda: timeout,
-        progress_callback=progress_callback
-    )
+    return _retry_with_backoff(_do_call, timeout_remaining=lambda: timeout, progress_callback=progress_callback)
 
 
 def _call_openai_compat(
@@ -447,9 +465,7 @@ def _call_openai_compat(
             headers=headers,
             method="POST",
         )
-        with urllib.request.urlopen(
-            req, timeout=timeout if timeout is not None else HTTP_REQUEST_TIMEOUT
-        ) as resp:
+        with urllib.request.urlopen(req, timeout=timeout if timeout is not None else HTTP_REQUEST_TIMEOUT) as resp:
             data = json.loads(resp.read())
             usage = data.get("usage", {})
             pt = usage.get("prompt_tokens", 0) or estimate_tokens(system + user)
@@ -459,11 +475,7 @@ def _call_openai_compat(
             track(model, pt, ct)
             return data.get("choices", [{}])[0].get("message", {}).get("content", "")
 
-    return _retry_with_backoff(
-        _do_call,
-        timeout_remaining=lambda: timeout,
-        progress_callback=progress_callback
-    )
+    return _retry_with_backoff(_do_call, timeout_remaining=lambda: timeout, progress_callback=progress_callback)
 
 
 def _call_anthropic(
@@ -500,26 +512,19 @@ def _call_anthropic(
             headers=headers,
             method="POST",
         )
-        with urllib.request.urlopen(
-            req, timeout=timeout if timeout is not None else HTTP_REQUEST_TIMEOUT
-        ) as resp:
+        with urllib.request.urlopen(req, timeout=timeout if timeout is not None else HTTP_REQUEST_TIMEOUT) as resp:
             data = json.loads(resp.read())
             usage = data.get("usage", {})
             pt = usage.get("input_tokens", 0) or estimate_tokens(system + user)
-            ct = usage.get("output_tokens", 0) or estimate_tokens(
-                data.get("content", [{}])[0].get("text", "")
-            )
+            ct = usage.get("output_tokens", 0) or estimate_tokens(data.get("content", [{}])[0].get("text", ""))
             track(model, pt, ct)
             return data.get("content", [{}])[0].get("text", "")
 
-    return _retry_with_backoff(
-        _do_call,
-        timeout_remaining=lambda: timeout,
-        progress_callback=progress_callback
-    )
+    return _retry_with_backoff(_do_call, timeout_remaining=lambda: timeout, progress_callback=progress_callback)
 
 
 # ── JSON parsing ──────────────────────────────────────────────────────────────
+
 
 def _parse_json_response(text: str) -> dict | list | None:
     """Extract and parse JSON from AI response text."""

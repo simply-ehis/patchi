@@ -101,7 +101,12 @@ def build_body_tags(
                 layer_name = lname
                 break
         # score for understander ranking
-        score = fan_in * 10 + dep_count * 3 + (20 if crit == "critical" else 10 if crit == "high" else 0) + (5 if is_route else 0)
+        score = (
+            fan_in * 10
+            + dep_count * 3
+            + (20 if crit == "critical" else 10 if crit == "high" else 0)
+            + (5 if is_route else 0)
+        )
         tags[path] = {
             "role": role,
             "system": system,

@@ -9,6 +9,7 @@ sink without being sanitized.
 The analysis is intra-procedural and best-effort: it tracks simple local
 aliasing (`x = src; sink(x)`) and string concatenation of tainted values.
 """
+
 from __future__ import annotations
 
 import ast
@@ -165,11 +166,7 @@ def _walk_taint(
             tainted = []
             for arg in arg_texts:
                 base = arg.split(".")[0].split("[")[0].strip()
-                if (
-                    _is_source(arg)
-                    or base in aliases
-                    or (any(s in arg for s in aliases) and not _is_sanitized(arg))
-                ):
+                if _is_source(arg) or base in aliases or (any(s in arg for s in aliases) and not _is_sanitized(arg)):
                     tainted.append(arg)
             if tainted:
                 try:
@@ -223,9 +220,7 @@ def _track_python(content: str, sinks: set[str]) -> list[dict]:
                     call = node.value
                     if isinstance(call.func, ast.Name) and _is_source(_py_src_expr(call.func.id)):
                         aliases[t.id] = call.func.id
-                    elif isinstance(call.func, ast.Attribute) and _is_source(
-                        _py_src_expr(_py_attr_str(call.func))
-                    ):
+                    elif isinstance(call.func, ast.Attribute) and _is_source(_py_src_expr(_py_attr_str(call.func))):
                         aliases[t.id] = _py_attr_str(call.func)
 
     for node in ast.walk(tree):
@@ -240,10 +235,7 @@ def _track_python(content: str, sinks: set[str]) -> list[dict]:
                     if (
                         _is_source(arg_str)
                         or base in aliases
-                        or (
-                            any(a in arg_str for a in aliases.values())
-                            and not _is_sanitized(arg_str)
-                        )
+                        or (any(a in arg_str for a in aliases.values()) and not _is_sanitized(arg_str))
                     ):
                         tainted.append(arg_str)
                 if tainted:

@@ -313,7 +313,12 @@ class TestEnvFixer(unittest.TestCase):
         ]
         with mock_patch(
             "patchi.core.fix.fix_agents.call_ai",
-            return_value="```python\nimport os\nAPI_KEY = os.environ.get('API_KEY')\n```",
+            # AI harness contract (spec 3.2): the model returns a JSON object
+            # matching the declared schema — no code fences, no prose.
+            return_value=(
+                '{"patch": "import os\\nAPI_KEY = os.environ.get(\'API_KEY\')", '
+                '"explanation": "read the secret from the environment"}'
+            ),
         ):
             result = EnvFixer().run(_inp(self.root, findings))
         secret_patches = [
@@ -346,7 +351,12 @@ class TestUnitTestRunner(unittest.TestCase):
         ]
         with mock_patch(
             "patchi.core.fix.fix_agents.call_ai",
-            return_value="```python\ndef test_add():\n    assert add(1,2) == 3\n```",
+            # AI harness contract (spec 3.2): JSON {tests: <code>}; the test
+            # code must reference the target module (grounding check).
+            return_value=(
+                '{"tests": "from src.utils import add\\n\\n'
+                'def test_add():\\n    assert add(1,2) == 3\\n"}'
+            ),
         ):
             result = UnitTestRunner().run(_inp(self.root, findings))
 

@@ -81,9 +81,7 @@ class SnapshotDriftDetectorAgent(BaseAgent):
                 files_scanned += 1
                 current_hash = _hash_file(fp)
 
-                row = conn.execute(
-                    "SELECT hash FROM snapshot_baselines WHERE file_path = ?", (rel,)
-                ).fetchone()
+                row = conn.execute("SELECT hash FROM snapshot_baselines WHERE file_path = ?", (rel,)).fetchone()
 
                 if row:
                     old_hash = row[0]
@@ -96,7 +94,8 @@ class SnapshotDriftDetectorAgent(BaseAgent):
                             }
                         )
                         conn.execute(
-                            "INSERT INTO snapshot_drifts (run_id, file_path, old_hash, new_hash, detected_at) VALUES (?, ?, ?, ?, ?)",
+                            "INSERT INTO snapshot_drifts (run_id, file_path, old_hash, new_hash, detected_at) VALUES"
+                            " (?, ?, ?, ?, ?)",
                             (run_id, rel, old_hash, current_hash, now),
                         )
                 else:
@@ -104,7 +103,8 @@ class SnapshotDriftDetectorAgent(BaseAgent):
                     pass
 
                 conn.execute(
-                    "INSERT OR REPLACE INTO snapshot_baselines (file_path, hash, first_seen, last_seen) VALUES (?, ?, COALESCE((SELECT first_seen FROM snapshot_baselines WHERE file_path = ?), ?), ?)",
+                    "INSERT OR REPLACE INTO snapshot_baselines (file_path, hash, first_seen, last_seen) VALUES (?, ?,"
+                    " COALESCE((SELECT first_seen FROM snapshot_baselines WHERE file_path = ?), ?), ?)",
                     (rel, current_hash, rel, now, now),
                 )
 

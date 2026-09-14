@@ -86,14 +86,8 @@ def _check_all_writes_authenticated(data: dict) -> tuple[bool, str, dict]:
     report = data.get("routes")
     if report is None or not getattr(report, "routes", None):
         return False, "no route data available", {}
-    bad = [
-        r
-        for r in report.routes
-        if r.method.lower() in ("post", "put", "delete", "patch") and not r.has_auth_guard
-    ]
-    total_writes = sum(
-        1 for r in report.routes if r.method.lower() in ("post", "put", "delete", "patch")
-    )
+    bad = [r for r in report.routes if r.method.lower() in ("post", "put", "delete", "patch") and not r.has_auth_guard]
+    total_writes = sum(1 for r in report.routes if r.method.lower() in ("post", "put", "delete", "patch"))
     if not total_writes:
         return False, "no state-changing routes discovered", {}
     artifact = {"unguarded": [r.file + ":" + str(r.line) for r in bad]}
@@ -128,8 +122,7 @@ def _check_no_debug_mode(data: dict) -> tuple[bool, str, dict]:
     hits = [
         f
         for f in findings
-        if "debug" in str(f.get("type", "")).lower()
-        and f.get("severity", "").lower() in ("high", "critical")
+        if "debug" in str(f.get("type", "")).lower() and f.get("severity", "").lower() in ("high", "critical")
     ]
     if hits:
         return (

@@ -213,9 +213,7 @@ def gather_full(
     if state.health_total is None:
         add_event(state, "warn", "No brain found — run `p scan` to populate the cockpit.")
     else:
-        add_event(
-            state, "info", f"Cockpit armed · health {state.health_total} ({state.health_grade})"
-        )
+        add_event(state, "info", f"Cockpit armed · health {state.health_total} ({state.health_grade})")
 
     thread = refresh_fixes_async(state)
     if fixes_sync and thread is not None:
@@ -244,8 +242,7 @@ def refresh_on_change(state: CockpitState, changed: list[str]) -> None:
     add_event(
         state,
         "info",
-        f"saved {', '.join(changed[:3])}"
-        + (f" (+{len(changed) - 3} more)" if len(changed) > 3 else ""),
+        f"saved {', '.join(changed[:3])}" + (f" (+{len(changed) - 3} more)" if len(changed) > 3 else ""),
     )
 
     _get_blast(state, changed)
@@ -261,9 +258,7 @@ def _get_blast(state: CockpitState, changed: list[str]) -> None:
         state.blast_impacted = list(analysis.impacted_layers)
         state.blast_summary = analysis.summary
         if analysis.impacted_layers:
-            add_event(
-                state, "warn", f"blast radius: {len(analysis.impacted_layers)} downstream layer(s)"
-            )
+            add_event(state, "warn", f"blast radius: {len(analysis.impacted_layers)} downstream layer(s)")
     except Exception as e:
         # Triggered per-save during an active session (not the one-time "fresh
         # project" case above) -- more likely a real problem, so this is worth
@@ -287,9 +282,7 @@ def _sweep_secrets(state: CockpitState, paths: list[str] | None, announce: bool)
             state.secrets.append({"path": h.path, "line": h.line, "rule": h.rule})
             new += 1
         if new:
-            add_event(
-                state, "crit", f"{new} secret(s) detected — {hits[-1].rule} in {hits[-1].path}"
-            )
+            add_event(state, "crit", f"{new} secret(s) detected — {hits[-1].rule} in {hits[-1].path}")
         elif announce:
             add_event(state, "info", "secrets sweep clean")
     except Exception as e:
@@ -342,9 +335,7 @@ class SourceWatcher:
     def poll(self) -> list[str]:
         current = self._scan()
         changed = [
-            str(Path(p).relative_to(self.root).as_posix())
-            for p, m in current.items()
-            if self._mtimes.get(p) != m
+            str(Path(p).relative_to(self.root).as_posix()) for p, m in current.items() if self._mtimes.get(p) != m
         ]
         self._mtimes = current
         return changed

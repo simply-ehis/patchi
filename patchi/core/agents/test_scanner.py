@@ -110,6 +110,7 @@ class TestScanner(BaseAgent):
         count = 0
         if corpus and corpus.entries:
             import fnmatch
+
             for rel_key in corpus.entries:
                 if count >= _MAX_FILES:
                     break
@@ -164,7 +165,8 @@ class TestScanner(BaseAgent):
                         file=test_file,
                         line_start=0,
                         title="Covers Source Files",
-                        description=f"Test file covers: {', '.join(sorted(source_files)[:3])}{'...' if len(source_files) > 3 else ''}",
+                        description=f"Test file covers:"
+                        f" {', '.join(sorted(source_files)[:3])}{'...' if len(source_files) > 3 else ''}",
                         evidence=f"Covers {len(source_files)} source files",
                     )
                 )
@@ -226,9 +228,9 @@ class TestScanner(BaseAgent):
             title = args[3] if len(args) > 3 else ""
             description = args[4] if len(args) > 4 else ""
             evidence = args[5] if len(args) > 5 else ""
-            finding_type = kwargs.pop("finding_type", None) or title.lower().replace(
-                " ", "_"
-            ).replace(":", "").replace("'", "").replace("-", "_")
+            finding_type = kwargs.pop("finding_type", None) or title.lower().replace(" ", "_").replace(":", "").replace(
+                "'", ""
+            ).replace("-", "_")
             return make_finding(
                 self.name,
                 finding_type,
@@ -247,9 +249,9 @@ class TestScanner(BaseAgent):
             title = kwargs.pop("title", "")
             description = kwargs.pop("description", title)
             evidence = kwargs.pop("evidence", "")
-            finding_type = kwargs.pop("finding_type", None) or title.lower().replace(
-                " ", "_"
-            ).replace(":", "").replace("'", "").replace("-", "_")
+            finding_type = kwargs.pop("finding_type", None) or title.lower().replace(" ", "_").replace(":", "").replace(
+                "'", ""
+            ).replace("-", "_")
             return make_finding(
                 self.name,
                 finding_type,
@@ -326,9 +328,7 @@ class TestScanner(BaseAgent):
 
                 # Look for source in src directory
                 try:
-                    src_alt = (
-                        Path("src") / test_path.relative_to(test_dir).parent / f"{clean_test_name}{ext}"
-                    )
+                    src_alt = Path("src") / test_path.relative_to(test_dir).parent / f"{clean_test_name}{ext}"
                     if (inp.root / src_alt).exists():
                         potential_matches.append(str(src_alt))
                 except ValueError:
@@ -398,9 +398,7 @@ class TestScanner(BaseAgent):
                     # Try to convert module name to file path
                     for ext in [".py", ".pyx"]:
                         module_path = f"{import_module}{ext}"
-                        if (inp.root / module_path).exists() and not self._is_test_file(
-                            module_path
-                        ):
+                        if (inp.root / module_path).exists() and not self._is_test_file(module_path):
                             matches.append(module_path)
 
         return matches
@@ -421,10 +419,7 @@ class TestScanner(BaseAgent):
             return True
 
         # Check if it's a test file by extension pattern
-        if any(
-            test_pattern in file_path.lower()
-            for test_pattern in ["test.", "spec.", ".test", ".spec"]
-        ):
+        if any(test_pattern in file_path.lower() for test_pattern in ["test.", "spec.", ".test", ".spec"]):
             return True
 
         return False
@@ -457,9 +452,7 @@ class TestScanner(BaseAgent):
             for file_path in get_shard_files(inp, f"*{ext}"):
                 if file_path.is_file():
                     rel_path = file_path.relative_to(inp.root).as_posix()
-                    if not self._is_test_file(rel_path) and not self._should_skip_file(
-                        rel_path, inp
-                    ):
+                    if not self._is_test_file(rel_path) and not self._should_skip_file(rel_path, inp):
                         all_files.add(rel_path)
 
         return all_files

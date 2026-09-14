@@ -87,13 +87,7 @@ async def filter_history(
     if severity:
         sev_list = [s.strip() for s in severity.split(",") if s.strip()]
         if sev_list:
-            filtered = [
-                s for s in filtered
-                if any(
-                    s.get("severity_breakdown", {}).get(sev, 0) > 0
-                    for sev in sev_list
-                )
-            ]
+            filtered = [s for s in filtered if any(s.get("severity_breakdown", {}).get(sev, 0) > 0 for sev in sev_list)]
 
     # Tool filter
     if tool and tool != "all":
@@ -114,13 +108,16 @@ async def filter_history(
         def _sev_score(s):
             sb = s.get("severity_breakdown", {})
             return sb.get("critical", 0) * 100 + sb.get("high", 0) * 10
+
         filtered.sort(key=_sev_score, reverse=reverse)
 
     # Limit
     filtered = filtered[:limit]
 
-    return JSONResponse({
-        "total": len(all_history),
-        "filtered": len(filtered),
-        "results": filtered,
-    })
+    return JSONResponse(
+        {
+            "total": len(all_history),
+            "filtered": len(filtered),
+            "results": filtered,
+        }
+    )

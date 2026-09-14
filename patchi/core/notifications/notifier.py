@@ -115,11 +115,7 @@ class Notifier:
         Send a test alert to one or all channels.
         Returns list of (channel_name, success) tuples.
         """
-        targets = (
-            [ch for ch in self._channels if ch.name == channel_name]
-            if channel_name
-            else self._channels
-        )
+        targets = [ch for ch in self._channels if ch.name == channel_name] if channel_name else self._channels
         results: list[tuple[str, bool]] = []
         for ch in targets:
             ok = _apprise_send(

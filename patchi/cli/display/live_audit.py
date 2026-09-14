@@ -140,9 +140,7 @@ class LiveAuditDisplay:
                     continue
 
                 # Header line
-                header = self._render_header_line(
-                    phase_name, phase.status, phase.summary, phase.duration_ms
-                )
+                header = self._render_header_line(phase_name, phase.status, phase.summary, phase.duration_ms)
 
                 # Expanded body if this phase is running AND the running phase
                 is_expanded = phase_name == expanded
@@ -159,13 +157,9 @@ class LiveAuditDisplay:
                 style="dim",
             )
             grid = Group(*rows, Text(""), footer)
-            return Panel(
-                grid, title=f"[bold]{color.get('audit', '#C8621A')}audit[/bold]", border_style="dim"
-            )
+            return Panel(grid, title=f"[bold]{color.get('audit', '#C8621A')}audit[/bold]", border_style="dim")
 
-    def _render_header_line(
-        self, name: str, status: PhaseStatus, summary: str, duration_ms: int
-    ) -> RenderableType:
+    def _render_header_line(self, name: str, status: PhaseStatus, summary: str, duration_ms: int) -> RenderableType:
         """A single-line phase header: ◉ Scan → 47 files · 1.2s"""
         color = _PHASE_COLORS.get(name, "white")
         status_icon = status.value

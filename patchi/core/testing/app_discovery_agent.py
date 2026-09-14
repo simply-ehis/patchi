@@ -22,9 +22,9 @@ import socket
 import subprocess
 import sys
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Callable, Optional
 
 from ..agents.base import (
     AgentDomain,
@@ -67,6 +67,7 @@ class AppTarget:
             return False
         try:
             import urllib.request
+
             req = urllib.request.Request(self.url, method="HEAD")
             with urllib.request.urlopen(req, timeout=5) as resp:
                 return resp.status < 500
@@ -120,6 +121,7 @@ class FrameworkDetector:
         if pkg_json.exists():
             try:
                 import json
+
                 pkg = json.loads(pkg_json.read_text(encoding="utf-8"))
                 deps = {**pkg.get("dependencies", {}), **pkg.get("devDependencies", {})}
                 scripts = pkg.get("scripts", {})
@@ -196,7 +198,9 @@ class FrameworkDetector:
                     project.project_type = "web"
                     project.start_command = scripts.get("dev") or scripts.get("start") or "npm start"
                     project.health_method = "http"
-                    project.port = FrameworkDetector._extract_port(scripts.get("dev", "") or scripts.get("start", "")) or 3000
+                    project.port = (
+                        FrameworkDetector._extract_port(scripts.get("dev", "") or scripts.get("start", "")) or 3000
+                    )
                 else:
                     project.framework = "node"
                     project.project_type = "web"
@@ -403,10 +407,10 @@ class FrameworkDetector:
         """Extract port from command like '--port 3000' or '-p 3000'."""
         if not cmd:
             return None
-        match = re.search(r'[-\-]p(?:ort)?\s+(\d+)', cmd)
+        match = re.search(r"[-\-]p(?:ort)?\s+(\d+)", cmd)
         if match:
             return int(match.group(1))
-        match = re.search(r'--port\s+(\d+)', cmd)
+        match = re.search(r"--port\s+(\d+)", cmd)
         if match:
             return int(match.group(1))
         return None
@@ -582,7 +586,11 @@ class AppDiscoveryAgent(BaseAgent):
                 return
 
             # Launch the app
-            _log.info("AppDiscoveryAgent: Launching %s app (%s)...", project.project_type, project.framework)
+            _log.info(
+                "AppDiscoveryAgent: Launching %s app (%s)...",
+                project.project_type,
+                project.framework,
+            )
             target = launcher.launch()
 
             # Store target info
@@ -601,7 +609,7 @@ class AppDiscoveryAgent(BaseAgent):
             trace.metadata["framework"] = project.framework
             trace.metadata["target_type"] = target.type
 
-    def _check_existing(self, project: DetectedProject) -> Optional[AppTarget]:
+    def _check_existing(self, project: DetectedProject) -> AppTarget | None:
         """Check if app is already running."""
         import socket
 

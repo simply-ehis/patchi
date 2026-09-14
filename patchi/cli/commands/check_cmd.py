@@ -8,7 +8,8 @@ Spec:
   4. Attempt to build and start the app as local dev server (localhost)
 
 When everything succeeds: output READY_TO_SERVE with exact local dev server URL and port. Stop.
-When something fails: flag what failed + exact error + what is needed, escalate to Brain, wait for fix, re-run from step 1. Never READY_TO_SERVE while blocking error remains.
+When something fails: flag what failed + exact error + what is needed, escalate to Brain, wait for fix, re-run from
+step 1. Never READY_TO_SERVE while blocking error remains.
 Hard rule: No other agent may treat app as usable until READY_TO_SERVE.
 
 Gate file: .patchi/p_check_status.json {status, url, port, timestamp, error}
@@ -29,10 +30,25 @@ from patchi.core.config import require_project_root
 _STATUS_FILE = ".patchi/p_check_status.json"
 
 
-def _write_status(root: Path, status: str, url: str | None = None, port: int | None = None, error: str | None = None, domain: str | None = None) -> None:
+def _write_status(
+    root: Path,
+    status: str,
+    url: str | None = None,
+    port: int | None = None,
+    error: str | None = None,
+    domain: str | None = None,
+) -> None:
     p = root / _STATUS_FILE
     p.parent.mkdir(parents=True, exist_ok=True)
-    data = {"status": status, "url": url, "port": port, "error": error, "domain": domain, "timestamp": time.time(), "iso": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
+    data = {
+        "status": status,
+        "url": url,
+        "port": port,
+        "error": error,
+        "domain": domain,
+        "timestamp": time.time(),
+        "iso": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+    }
     tmp = p.with_suffix(".tmp")
     tmp.write_text(json.dumps(data, indent=2), encoding="utf-8")
     tmp.replace(p)
@@ -123,12 +139,15 @@ def _apply_domain_fixes(r: Path, blocking: list) -> list[str]:
                 try:
                     proc = subprocess.run(
                         ["ruff", "format", "."],
-                        capture_output=True, text=True, timeout=60, cwd=str(r),
+                        capture_output=True,
+                        text=True,
+                        timeout=60,
+                        cwd=str(r),
                     )
                     if proc.returncode == 0:
                         actions.append("ran ruff format .")
                 except Exception as _exc:
-                    logging.getLogger("patchi").debug('suppressed: %s', _exc)
+                    logging.getLogger("patchi").debug("suppressed: %s", _exc)
     return actions
 
 
@@ -202,13 +221,22 @@ def run(fix: bool = False, json_output: bool = False, root: Path | None = None) 
             )
             blocking.append(findings[-1])
     except Exception as _exc:
-        logging.getLogger("patchi").debug('suppressed: %s', _exc)
+        logging.getLogger("patchi").debug("suppressed: %s", _exc)
 
     if blocking:
         # Escalate to Brain
-        msg = f"P-Check BLOCKED: {len(blocking)} blocking error(s) in {', '.join({f.file or 'unknown' for f in blocking})}"
+        msg = (
+        f"P-Check BLOCKED: {len(blocking)} blocking error(s) in"
+        f" {', '.join({f.file or 'unknown' for f in blocking})}"
+        )
         con.print()
-        con.print(Panel(f"[red]{msg}[/red]\n" + "\n".join(f"  • {f.file}:{f.line} {f.message[:100]}" for f in blocking[:5]), title="P-Check — BLOCKED", border_style="#FF4D6D"))
+        con.print(
+            Panel(
+                f"[red]{msg}[/red]\n" + "\n".join(f"  • {f.file}:{f.line} {f.message[:100]}" for f in blocking[:5]),
+                title="P-Check — BLOCKED",
+                border_style="#FF4D6D",
+            )
+        )
         con.print(f"[dim]Escalating to Brain (orchestrator) — domain: {[f.type for f in blocking[:3]]}[/dim]")
         _write_status(r, "BLOCKED", error=msg, domain=",".join({f.type for f in blocking}))
         try:
@@ -217,10 +245,24 @@ def run(fix: bool = False, json_output: bool = False, root: Path | None = None) 
             mem.save_scan_result("PCheck", {"status": "BLOCKED", "findings": [f.to_dict() for f in findings]}, r)
             # also save as issue for brain
             for f in blocking[:5]:
-                mem.save_issue({"type": f.type, "file": f.file, "line": f.line, "message": f.message, "source": "PCheck"}, r)
+                mem.save_issue(
+                    {
+                        "type": f.type,
+                        "file": f.file,
+                        "line": f.line,
+                        "message": f.message,
+                        "source": "PCheck",
+                    },
+                    r,
+                )
         except Exception as _exc:
-            logging.getLogger("patchi").debug('suppressed: %s', _exc)
-        con.print("[yellow]P-Check: fix blocking errors (or run p check --fix if in domain) then re-run `p check` from step 1. Never READY_TO_SERVE while blocked.[/yellow]")
+            logging.getLogger("patchi").debug("suppressed: %s", _exc)
+        con.print(
+            con.print(
+                "[yellow]P-Check: fix blocking errors (or run p check --fix if in domain) then re-run `p check` from"
+                " step 1. Never READY_TO_SERVE while blocked.[/yellow]"
+            )
+        )
         con.print()
         if json_output:
             con.print(json.dumps({"status": "BLOCKED", "blocking": [f.to_dict() for f in blocking]}, indent=2))
@@ -247,21 +289,43 @@ def run(fix: bool = False, json_output: bool = False, root: Path | None = None) 
     if not url:
         msg = "P-Check could not start app — no start command detected or port health check failed"
         con.print()
-        con.print(Panel(f"[yellow]{msg}[/yellow]\n[dim]Check app_launcher logs at .patchi/launcher/app.log[/dim]", title="P-Check — BLOCKED (no URL)", border_style="#FF8C42"))
+        con.print(
+            Panel(
+                f"[yellow]{msg}[/yellow]\n[dim]Check app_launcher logs at .patchi/launcher/app.log[/dim]",
+                title="P-Check — BLOCKED (no URL)",
+                border_style="#FF8C42",
+            )
+        )
         con.print()
         _write_status(r, "BLOCKED", error=msg, domain="app_start")
         return
 
     # Success
     con.print()
-    con.print(Panel(f"[bold #4ADE80]READY_TO_SERVE[/bold #4ADE80]\nLocal dev server URL: [bold]{url}[/bold] port {port}\n[dim]P-Check complete — app is runnable, testable. No other agent may proceed until this was emitted.[/dim]", border_style="#4ADE80"))
+    con.print(
+        Panel(
+            f"[bold #4ADE80]READY_TO_SERVE[/bold #4ADE80]\nLocal dev server URL: [bold]{url}[/bold] port {port}\n"
+            f"[dim]P-Check complete — app is runnable, testable. No other agent may proceed until this was"
+            f" emitted.[/dim]",
+            border_style="#4ADE80",
+        )
+    )
     con.print()
     _write_status(r, "READY_TO_SERVE", url=url, port=port)
     try:
         from patchi.core import memory as mem
 
-        mem.save_scan_result("PCheck", {"status": "READY_TO_SERVE", "url": url, "port": port, "findings": [f.to_dict() for f in findings]}, r)
+        mem.save_scan_result(
+            "PCheck",
+            {
+                "status": "READY_TO_SERVE",
+                "url": url,
+                "port": port,
+                "findings": [f.to_dict() for f in findings],
+            },
+            r,
+        )
     except Exception as _exc:
-        logging.getLogger("patchi").debug('suppressed: %s', _exc)
+        logging.getLogger("patchi").debug("suppressed: %s", _exc)
     if json_output:
         con.print(json.dumps({"status": "READY_TO_SERVE", "url": url, "port": port}, indent=2))

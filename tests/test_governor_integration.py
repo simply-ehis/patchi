@@ -126,16 +126,30 @@ def test_graph_neighborhood_mocked():
     td.cleanup()
 
 
-def test_cli_governor_flag():
-    """Verify --governor CLI flag is wired correctly."""
+def test_cli_governor_flag_removed():
+    """§1 merge: --governor is GONE — plain p scan IS the pipeline.
+
+    The flag used to select the only implementation that ran security
+    agents, undocumented. There is one pipeline now; the flag must not
+    parse.
+    """
+    import inspect
+
     from patchi.cli.main import _build_parser
 
     p = _build_parser()
-    args = p.parse_args(["scan", "--governor"])
-    assert args.governor is True
-    args2 = p.parse_args(["scan"])
-    assert args2.governor is False
-    print("  CLI --governor flag: OK")
+    try:
+        p.parse_args(["scan", "--governor"])
+        raise AssertionError("--governor should be rejected after the §1 merge")
+    except SystemExit:
+        pass  # argparse exits 2 on unknown flags — expected
+
+    # The scan command handler no longer carries a governor parameter.
+    from patchi.cli.commands import scan_cmd
+
+    sig = inspect.signature(scan_cmd.run)
+    assert "governor" not in sig.parameters
+    print("  CLI --governor flag removed: OK")
     print("  PASSED\n")
 
 
@@ -146,7 +160,7 @@ def test_full_pipeline_on_di_stefano():
 
 if __name__ == "__main__":
     print("=== Governor v2 Integration Tests ===\n")
-    test_cli_governor_flag()
+    test_cli_governor_flag_removed()
     test_affected_symbols_from_scan_mocked()
     test_affected_symbols_empty_graph_diff()
     test_graph_neighborhood_mocked()

@@ -150,10 +150,7 @@ class RiskGate:
             for path, rtype in restricted:
                 if change.path.startswith(path.rstrip("/")):
                     if rtype == "sensitive":
-                        warnings.append(
-                            f"'{change.path}' is in a sensitive zone ({path}). "
-                            "Proceed with caution."
-                        )
+                        warnings.append(f"'{change.path}' is in a sensitive zone ({path}). Proceed with caution.")
                     else:
                         blocks.append(
                             f"'{change.path}' is in a restricted {rtype} zone ({path}). "
@@ -176,22 +173,16 @@ class RiskGate:
                     if change.proposed:
                         # Extract import statements from proposed code
                         import re as _re
-                        for m in _re.finditer(
-                            r'from\s+(\S+)\s+import\s+\w+', change.proposed
-                        ):
+
+                        for m in _re.finditer(r"from\s+(\S+)\s+import\s+\w+", change.proposed):
                             import_edges.append((change.path, m.group(1)))
-                        for m in _re.finditer(
-                            r'import\s+(\S+)', change.proposed
-                        ):
+                        for m in _re.finditer(r"import\s+(\S+)", change.proposed):
                             import_edges.append((change.path, m.group(1)))
 
                 # Check boundary rules
                 boundary_violations = check_boundary_violations(charter, import_edges)
                 for v in boundary_violations:
-                    blocks.append(
-                        f"Charter violation [{v.rule_id}]: {v.message}. "
-                        f"{v.suggestion}"
-                    )
+                    blocks.append(f"Charter violation [{v.rule_id}]: {v.message}. {v.suggestion}")
 
                 # Check convention rules (file size limits)
                 max_lines = 0
@@ -202,9 +193,7 @@ class RiskGate:
                         if max_lines > 0:
                             for change in patch.changes:
                                 if change.path.endswith((".py", ".ts", ".js")):
-                                    new_lines = (
-                                        (change.proposed or "").count("\n") + 1
-                                    )
+                                    new_lines = (change.proposed or "").count("\n") + 1
                                     if new_lines > max_lines:
                                         blocks.append(
                                             f"Charter violation [{rule.id}]: "
@@ -229,10 +218,7 @@ class RiskGate:
         # ── Warnings ───────────────────────────────────────────────────────────
 
         if patch.confidence < 70:
-            warnings.append(
-                f"Low confidence ({patch.confidence}%). "
-                "Patchi is less certain than usual about this fix."
-            )
+            warnings.append(f"Low confidence ({patch.confidence}%). Patchi is less certain than usual about this fix.")
 
         if patch.blast_radius > 10:
             warnings.append(
@@ -242,8 +228,7 @@ class RiskGate:
 
         if patch.total_lines_changed > 100:
             warnings.append(
-                f"Large patch: {patch.total_lines_changed} lines changed across "
-                f"{patch.file_count} file(s)."
+                f"Large patch: {patch.total_lines_changed} lines changed across {patch.file_count} file(s)."
             )
 
         # Secrets gate: check if proposed code introduces new secrets
@@ -369,9 +354,7 @@ class RiskGate:
         try:
             return cfg.get_mode(self.root)
         except Exception as e:
-            _log.warning(
-                "Failed to read mode from config — defaulting to CONFIRM (safest option): %s", e
-            )
+            _log.warning("Failed to read mode from config — defaulting to CONFIRM (safest option): %s", e)
             return Mode.CONFIRM
 
     def _restricted_paths(self) -> list[tuple[str, str]]:

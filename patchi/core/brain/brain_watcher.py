@@ -192,9 +192,7 @@ def update_layers(
         subsystem_modules.setdefault(sub, []).append(mod)
         module_to_subsystem[mod] = sub
 
-    changed_subsystems = {
-        module_to_subsystem[m] for m in changed_modules if m in module_to_subsystem
-    }
+    changed_subsystems = {module_to_subsystem[m] for m in changed_modules if m in module_to_subsystem}
 
     for sub, mods in subsystem_modules.items():
         all_children_present = all(m in new_layers for m in mods)
@@ -207,8 +205,7 @@ def update_layers(
                 sub_files.extend(new_layers[m].files)
                 sub_api.extend(new_layers[m].public_api)
             sub_summary = (
-                f"Subsystem '{sub}' — {len(mods)} module(s), "
-                f"{len(sub_files)} file(s). Modules: {', '.join(mods[:8])}."
+                f"Subsystem '{sub}' — {len(mods)} module(s), {len(sub_files)} file(s). Modules: {', '.join(mods[:8])}."
             )
             sub_layer = Layer(
                 name=sub,
@@ -237,11 +234,7 @@ def update_layers(
     if "__project__" in old_layers and not module_set_changed:
         new_layers["__project__"] = old_layers["__project__"]  # no-op
     else:
-        fw_names = (
-            ", ".join(f.name for f in stack.frameworks[:5])
-            if stack and stack.frameworks
-            else "unknown"
-        )
+        fw_names = ", ".join(f.name for f in stack.frameworks[:5]) if stack and stack.frameworks else "unknown"
         runtime = stack.runtime if stack else "unknown"
         project_summary = (
             f"Project — {len(file_infos)} file(s) across {len(modules)} module(s) "
@@ -285,18 +278,12 @@ def build_or_update(
     ``rebuilt_names`` is empty.
     """
     new_snapshot = file_snapshot(file_infos, root) if root is not None else {}
-    changes = (
-        diff_snapshots(old_snapshot or {}, new_snapshot)
-        if old_snapshot is not None
-        else ChangeSet()
-    )
+    changes = diff_snapshots(old_snapshot or {}, new_snapshot) if old_snapshot is not None else ChangeSet()
 
     if old_layers and not changes.any:
         return old_layers, [], changes
     if old_layers and changes.any:
-        layers, rebuilt = update_layers(
-            old_layers, file_infos, graph, routes, stack, changes=changes
-        )
+        layers, rebuilt = update_layers(old_layers, file_infos, graph, routes, stack, changes=changes)
         return layers, rebuilt, changes
     # No prior state — full build.
     layers = _full_build(file_infos, graph, routes, stack)

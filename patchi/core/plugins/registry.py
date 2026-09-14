@@ -128,11 +128,7 @@ class PluginRegistry:
         # Find and register any Analyzer subclasses
         for attr_name in dir(module):
             attr = getattr(module, attr_name)
-            if (
-                isinstance(attr, type)
-                and issubclass(attr, Analyzer)
-                and attr is not Analyzer
-            ):
+            if isinstance(attr, type) and issubclass(attr, Analyzer) and attr is not Analyzer:
                 self.register_analyzer(attr())
 
     def _discover_from_agent_packages(self) -> None:
@@ -294,18 +290,20 @@ class AgentAnalyzerWrapper(Analyzer):
         # Convert AgentResult to AnalyzerResult
         findings = []
         for f in result.findings:
-            findings.append(Finding(
-                file=f.file,
-                line=f.line,
-                type=f.type,
-                severity=Severity(f.severity.value),
-                message=f.message,
-                detail=f.detail,
-                code_snippet=f.code_snippet,
-                suggestion=f.suggestion,
-                cwe=f.cwe,
-                extra={"_legacy_agent": True},
-            ))
+            findings.append(
+                Finding(
+                    file=f.file,
+                    line=f.line,
+                    type=f.type,
+                    severity=Severity(f.severity.value),
+                    message=f.message,
+                    detail=f.detail,
+                    code_snippet=f.code_snippet,
+                    suggestion=f.suggestion,
+                    cwe=f.cwe,
+                    extra={"_legacy_agent": True},
+                )
+            )
 
         return AnalyzerResult(
             findings=findings,

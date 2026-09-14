@@ -48,15 +48,11 @@ def list_webhooks(root: Path) -> list[dict]:
     """All webhooks with secret redacted."""
     out = []
     for h in _load(root):
-        out.append(
-            {k: v for k, v in h.items() if k != "secret"} | {"has_secret": bool(h.get("secret"))}
-        )
+        out.append({k: v for k, v in h.items() if k != "secret"} | {"has_secret": bool(h.get("secret"))})
     return out
 
 
-def add_webhook(
-    root: Path, url: str, events: list[str] | None = None, name: str = "", secret: str = ""
-) -> dict:
+def add_webhook(root: Path, url: str, events: list[str] | None = None, name: str = "", secret: str = "") -> dict:
     """Register a webhook. Returns its record (with id)."""
     hooks = _load(root)
     record = {
@@ -139,7 +135,7 @@ def dispatch_event(root: Path, event: str, data: dict) -> int:
                         },
                     )
                 except Exception as _exc:
-                    _log.warning('dispatch_event failed: %s', _exc)
+                    _log.warning("dispatch_event failed: %s", _exc)
         dirty = True
 
     if dirty:
@@ -151,6 +147,6 @@ def dispatch_event(root: Path, event: str, data: dict) -> int:
         if delivered:
             audit_write(root, "webhook.delivered", data={"event": event, "count": delivered})
     except Exception as _exc:
-        _log.warning('dispatch_event failed: %s', _exc)
+        _log.warning("dispatch_event failed: %s", _exc)
 
     return delivered

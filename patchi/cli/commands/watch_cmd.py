@@ -59,12 +59,12 @@ def _show_preview(root: Path, fixes: list, applied: list) -> None:
                     con.print(f"     [dim]Before (line {line_num}):[/dim]")
                     for j in range(start, end):
                         prefix = ">>>" if j == line_num - 1 else "   "
-                        con.print(f"       {prefix} {j+1:4d} │ {lines[j]}")
+                        con.print(f"       {prefix} {j + 1:4d} │ {lines[j]}")
 
                     con.print("     [green]After:[/green]")
                     con.print(f"       >>> {line_num:4d} │ {fix.suggested_line}")
             except Exception as _exc:
-                _log.warning('_show_preview failed: %s', _exc)
+                _log.warning("_show_preview failed: %s", _exc)
 
         con.print()
 
@@ -185,9 +185,7 @@ def run(
                     cp = Path(r) / cf
                     if cp.exists() and cp.suffix == ".py":
                         try:
-                            pre_highs[cf] = {
-                                (h.type, h.cwe) for h in high_findings_on_file(cp)
-                            }
+                            pre_highs[cf] = {(h.type, h.cwe) for h in high_findings_on_file(cp)}
                         except Exception as e:
                             _log.warning("SAST pre-snapshot failed for %s: %s", cf, e)
                             pre_highs[cf] = set()
@@ -267,10 +265,7 @@ def run(
                         "severity": "high",
                     }
                 )
-                con.print(
-                    f"[#FACC15]🔒[/#FACC15] [yellow]Secret detected:[/yellow] "
-                    f"{h.path}:{h.line} [{h.rule}]"
-                )
+                con.print(f"[#FACC15]🔒[/#FACC15] [yellow]Secret detected:[/yellow] {h.path}:{h.line} [{h.rule}]")
                 con.print(f"  [dim]{h.snippet}[/dim]")
             if hits:
                 con.print(f"[dim]Escalated {len(hits)} secret hit(s) to Governor for review.[/dim]")

@@ -339,27 +339,61 @@ class Governor:
         if self._conn is None:
             self._conn = sqlite3.connect(str(self._db_path))
             self._conn.execute("PRAGMA journal_mode=WAL")
+            # §2c: bound lock waits — concurrent readers (watcher, another
+            # command) previously turned the end-of-run checkpoint into a
+            # "database table is locked" failure.
+            self._conn.execute("PRAGMA busy_timeout=5000")
         return self._conn
 
-    def close(self) -> None:
-        """Release all SQLite resources so the db file can be deleted (Windows)."""
+    def close(self) -> bool:
+        """Release all SQLite resources so the db file can be deleted (Windows).
+
+        §2c honesty fix: returns whether persistence released cleanly. A failed
+        checkpoint means the run's phase history may not be fully durable —
+        callers attach that to the run's outcome instead of declaring success
+        over a half-persisted state machine.
+        """
         db_path = self._db_path
+        checkpoint_ok = True
+        wal_left_behind = False
         if self._conn is not None:
             try:
-                self._conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+                self._conn.commit()
+            except Exception as _exc:
+                _log.debug("close commit: %s", _exc)
+            try:
+                # PASSIVE, not TRUNCATE: TRUNCATE blocks until every reader
+                # finishes and fails the whole close under contention. PASSIVE
+                # checkpoints what it can and never blocks.
+                self._conn.execute("PRAGMA wal_checkpoint(PASSIVE)")
+            except Exception as e:
+                checkpoint_ok = False
+                _log.warning("Governor.close checkpoint failed: %s", e)
+            try:
+                # Switching journal mode needs the exclusive lock; on success
+                # SQLite checkpoints and REMOVES the -wal/-shm files itself.
                 self._conn.execute("PRAGMA journal_mode=DELETE")
             except Exception as e:
-                _log.warning("Governor.close checkpoint failed: %s", e)
+                checkpoint_ok = False
+                wal_left_behind = True
+                _log.warning("Governor.close journal-mode switch failed: %s", e)
             try:
                 self._conn.close()
             except Exception as _exc:
-                _log.warning('close failed: %s', _exc)
+                checkpoint_ok = False
+                _log.warning("close failed: %s", _exc)
             self._conn = None
-        for suffix in (".db-wal", ".db-shm"):
-            try:
-                Path(f"{db_path}{suffix}").unlink(missing_ok=True)
-            except OSError:
-                pass
+        # Only sweep the WAL files when the journal-mode switch SUCCEEDED
+        # (they are already gone — this is just Windows hygiene). Unlinking a
+        # WAL whose frames were never checkpointed would silently discard
+        # committed phase history.
+        if not wal_left_behind:
+            for suffix in (".db-wal", ".db-shm"):
+                try:
+                    Path(f"{db_path}{suffix}").unlink(missing_ok=True)
+                except OSError:
+                    pass
+        return checkpoint_ok
 
     # ── Phase management ───────────────────────────────────────────────────
 
@@ -412,9 +446,7 @@ class Governor:
             ),
         )
 
-    def _collect_evidence(
-        self, phase: PipelinePhase, results: list[AgentResult]
-    ) -> dict:
+    def _collect_evidence(self, phase: PipelinePhase, results: list[AgentResult]) -> dict:
         """Build the §2 evidence dict for a phase transition.
 
         Every phase reports WHAT was checked, against WHAT baseline, with WHAT
@@ -457,6 +489,18 @@ class Governor:
             evidence["gate_audit_present"] = audit.exists()
             if not audit.exists():
                 _partial("no .patchi/gate_audit.json — discard layers unaccounted")
+            else:
+                # §2 SCAN mapping: technique/control coverage from the audit.
+                try:
+                    import json as _json
+
+                    mapping = _json.loads(audit.read_text(encoding="utf-8")).get("mapping", {})
+                    evidence["mapping"] = mapping
+                    total = int(mapping.get("total", 0) or 0)
+                    if total and not mapping.get("with_control_id"):
+                        _partial("no finding mapped to a control_id")
+                except Exception as e:
+                    _partial(f"gate audit unreadable: {e}")
 
         elif phase == PipelinePhase.TEST_GENERATION:
             # Hallucination rate needs a model + prompt version; offline runs
@@ -464,8 +508,7 @@ class Governor:
             measured = [
                 r.agent_name
                 for r in results
-                if isinstance(r.data, dict)
-                and ("hallucination_rate" in r.data or "generation_eval" in r.data)
+                if isinstance(r.data, dict) and ("hallucination_rate" in r.data or "generation_eval" in r.data)
             ]
             if measured:
                 evidence["hallucination"] = {
@@ -473,11 +516,28 @@ class Governor:
                     "status": "measured",
                 }
             else:
-                evidence["hallucination"] = {
-                    "status": "not-measured",
-                    "note": "no model run attached hallucination numbers",
-                }
-                _partial("hallucination rate not measured (no model run)")
+                # §3.4: the AI harness records grounded/hallucinated outcomes
+                # on every generation it gates. When it has measured anything,
+                # that IS the hallucination evidence — the partial verdict
+                # only stands when nothing measured it at all.
+                try:
+                    from patchi.core.ai.harness import stats as _hstats
+
+                    hs = _hstats.as_dict()
+                except Exception:
+                    hs = {}
+                if hs.get("grounded") or hs.get("hallucinated"):
+                    evidence["hallucination"] = {
+                        "status": "measured",
+                        "measured_by": ["ai_harness"],
+                        **hs,
+                    }
+                else:
+                    evidence["hallucination"] = {
+                        "status": "not-measured",
+                        "note": "no model run attached hallucination numbers",
+                    }
+                    _partial("hallucination rate not measured (no model run)")
 
         elif phase == PipelinePhase.TEST_EXECUTION:
             suites = [
@@ -485,10 +545,7 @@ class Governor:
                 for r in results
                 if isinstance(r.data, dict) and isinstance(r.data.get("suite"), dict)
             ]
-            totals = {
-                k: sum(int(s.get(k, 0) or 0) for s in suites)
-                for k in ("passed", "failed", "skipped", "errors")
-            }
+            totals = {k: sum(int(s.get(k, 0) or 0) for s in suites) for k in ("passed", "failed", "skipped", "errors")}
             evidence["test_totals"] = totals
             evidence["suites_reported"] = len(suites)
             # §6 flake depth: history-based flake counts gate the phase.
@@ -546,10 +603,7 @@ class Governor:
                     "low_coverage_files": cov_data.get("total_low_coverage"),
                     "hot_untested": cov_data.get("total_hot_untested"),
                 }
-                if (
-                    cov_data.get("total_low_coverage") is None
-                    and cov_data.get("total_hot_untested") is None
-                ):
+                if cov_data.get("total_low_coverage") is None and cov_data.get("total_hot_untested") is None:
                     _partial("no coverage prioritization data in scan memory")
             except Exception as e:
                 evidence["coverage"] = {"error": str(e)[:120]}
@@ -573,29 +627,21 @@ class Governor:
             ]
             if not cands:
                 _partial("no candidate scores logged (winner-only selection?)")
-            if any(
-                (c.get("breakdown") or {}).get("mutation") == "unmeasured"
-                for c in cands
-            ):
+            if any((c.get("breakdown") or {}).get("mutation") == "unmeasured" for c in cands):
                 _partial("mutation subset not measured on candidate diffs")
 
         elif phase == PipelinePhase.SANDBOX_REVERIFY:
             markers = [
                 r.agent_name
                 for r in results
-                if isinstance(r.data, dict)
-                and any(k in r.data for k in ("rescan", "retest", "reverify", "loopback"))
+                if isinstance(r.data, dict) and any(k in r.data for k in ("rescan", "retest", "reverify", "loopback"))
             ]
             evidence["loopback_markers"] = markers
             if not markers:
                 _partial("no loop-back re-scan/re-test markers found")
 
         elif phase == PipelinePhase.SCORE_SELECT:
-            auto = [
-                r.agent_name
-                for r in results
-                if isinstance(r.data, dict) and r.data.get("autonomous") is not None
-            ]
+            auto = [r.agent_name for r in results if isinstance(r.data, dict) and r.data.get("autonomous") is not None]
             evidence["autonomy_marked"] = auto
             if not auto:
                 _partial("no autonomous-domain marking on selections")
@@ -621,9 +667,7 @@ class Governor:
 
         critical = sum(1 for r in results for f in r.findings if f.severity.name == "CRITICAL")
         if critical > crit.max_critical_findings:
-            violations.append(
-                f"Too many CRITICAL findings: {critical} > {crit.max_critical_findings}"
-            )
+            violations.append(f"Too many CRITICAL findings: {critical} > {crit.max_critical_findings}")
 
         high = sum(1 for r in results for f in r.findings if f.severity.name == "HIGH")
         if high > crit.max_high_findings:
@@ -637,9 +681,7 @@ class Governor:
         if crit.require_eval_pass:
             eval_ev = ev.get("eval", {}) if isinstance(ev, dict) else {}
             if not eval_ev.get("eval_ok"):
-                violations.append(
-                    f"Standing eval set not passing: {eval_ev or 'no eval evidence'}"
-                )
+                violations.append(f"Standing eval set not passing: {eval_ev or 'no eval evidence'}")
         if crit.require_no_failed_tests:
             totals = (ev.get("test_totals", {}) or {}) if isinstance(ev, dict) else {}
             if int(totals.get("failed", 0) or 0) > 0 or int(totals.get("errors", 0) or 0) > 0:
@@ -651,10 +693,7 @@ class Governor:
         if crit.max_flaky_tests is not None and isinstance(ev, dict):
             flakes = int(ev.get("flaky_total", 0) or 0)
             if flakes > crit.max_flaky_tests:
-                violations.append(
-                    f"Flaky tests block progression: "
-                    f"{flakes} flaky > {crit.max_flaky_tests} allowed"
-                )
+                violations.append(f"Flaky tests block progression: {flakes} flaky > {crit.max_flaky_tests} allowed")
         for key in crit.require_evidence_keys:
             if not isinstance(ev, dict) or key not in ev:
                 violations.append(f"Missing required evidence: {key}")
@@ -668,10 +707,35 @@ class Governor:
             logger.warning("Pipeline is in FAILED state. Reset with reset_pipeline() to continue.")
 
         if not PipelinePhase.is_valid_transition(current, target):
-            logger.warning(
-                f"Invalid phase transition: {current.value} → {target.value}. "
-                f"Skipping ordering check."
+            # §2b honesty fix: an invalid phase sequence is enforced, not waved
+            # through. The pipeline state machine exists so a phase can never
+            # claim "done" out of order; logging and proceeding made the check
+            # decorative. The one case where an out-of-order step is
+            # legitimately fine — TEST_GENERATION completing with nothing to
+            # do — is a partial, self-reported phase (verdict="partial"), not
+            # an ordering exception, so it is NOT carved out here.
+            msg = (
+                f"Invalid phase transition: {current.value} → {target.value} "
+                f"(expected {current.next_phase.value if current.next_phase else 'terminal'}). "
+                f"Blocking — run reset_pipeline() to restart the pipeline."
             )
+            logger.error(msg)
+            evidence = self._collect_evidence(target, results)
+            evidence["complete"] = False
+            evidence["partial_reasons"].append(f"invalid transition from {current.value}")
+            phase_result = PhaseResult(
+                phase=target,
+                status=AgentStatus.FAILED,
+                results=results,
+                errors=[msg],
+                duration_ms=sum(r.duration_ms for r in results),
+                findings_count=sum(r.finding_count for r in results),
+                agents_run=len(results),
+                data={"evidence": evidence, "verdict": "failed"},
+            )
+            self.current_phase = PipelinePhase.FAILED
+            self._record_phase(phase_result)
+            return phase_result
 
         # §2: evidence is collected BEFORE the verdict so "done" always
         # carries what was checked, against what baseline, with what rate.
@@ -741,13 +805,9 @@ class Governor:
                     }
                     if radius >= 1:
                         for dep in sym_graph.get_dependents(sym.name, sym.file):
-                            entry["callers"].append(
-                                {"name": dep.name, "file": dep.file, "kind": dep.kind}
-                            )
+                            entry["callers"].append({"name": dep.name, "file": dep.file, "kind": dep.kind})
                         for dep in sym_graph.get_dependencies(sym.id):
-                            entry["callees"].append(
-                                {"name": dep.name, "file": dep.file, "kind": dep.kind}
-                            )
+                            entry["callees"].append({"name": dep.name, "file": dep.file, "kind": dep.kind})
                     neighborhood.append(entry)
         except Exception as e:
             logger.warning(f"build_graph_neighborhood error: {e}")
@@ -755,11 +815,69 @@ class Governor:
 
     # ── Pipeline execution ────────────────────────────────────────────────
 
-    def run_scan(self, scope: list[str] | None = None, side: bool = True) -> PhaseResult:
-        """Phase 1: Run scanner agents."""
-        logger.info(f"Pipeline phase: SCAN (scope={len(scope or [])} files, side={side})")
-        results = self.coordinator.run_all_scanners(scope=scope, side=side)
-        return self._transition_to(PipelinePhase.SCAN, results)
+    def run_scan(
+        self,
+        scope: list[str] | None = None,
+        side: bool = True,
+        area: str | None = None,
+    ) -> PhaseResult:
+        """Phase 1: Structural pass — the Brain scan, then ALL agent groups.
+
+        §1 merge: the Brain (file discovery → stack detection → source parsing
+        → route mapping → import graph → contract inference) is the
+        implementation detail INSIDE the SCAN phase — delegated to, never
+        duplicated. The Coordinator still dispatches the generic scanners
+        (AgentGroup.SCANNER), and the SECURITY group (the ~55 security agents)
+        now runs in the default SCAN phase — not opt-in behind any flag.
+
+        Honors PATCHI_OFFLINE (set by `p scan --offline`): the offline scan
+        contract is "zero API calls, zero token cost", so the LLM-backed
+        security agents are excluded there and re-enable when offline mode is
+        off. LLM agents are marked SKIP by the coordinator either way.
+        """
+        # ── Brain structural scan (discovery → parsing → routes → graph →
+        #    contract). Runs first so every downstream agent reads a current
+        #    brain/memory — the Coordinator's language filter, the security
+        #    orchestrator's route inventory, and the SymbolGraph phases all
+        #    depend on it. Delegated, not duplicated (§1).
+        try:
+            from patchi.core.brain.brain import Brain
+
+            brain = Brain(self.root, on_progress=getattr(self, "brain_on_progress", None))
+            report = brain.scan(area)
+            self._last_brain_report = report
+            # Share the pre-built corpus so the Coordinator does not rebuild it
+            if getattr(brain, "corpus", None) is not None:
+                self.coordinator._corpus = brain.corpus
+            # Refresh coordinator brain-memory so language filters use the
+            # languages from THIS scan, not a stale one.
+            try:
+                self.coordinator._brain = mem.get_brain(self.root)
+            except Exception as _exc:
+                logger.debug(f"brain memory refresh skipped: {_exc}")
+        except Exception as e:
+            logger.warning(f"Brain scan inside SCAN phase failed: {e}")
+
+        results = self.coordinator.run_all_scanners(scope=scope if area else None, side=side)
+
+        # §1: AgentGroup.SECURITY is part of the DEFAULT scan. Not opt-in,
+        # not behind a flag — and NOT excluded under PATCHI_OFFLINE: most of
+        # the group is static (InjectionAgent, TaintAnalyzer, BanditAgent, …)
+        # and makes zero API calls. Offline semantics stay "no API calls",
+        # enforced inside call_ai/_call_ai wrappers — LLM-backed agents
+        # self-skip their AI step at runtime. Skipping the whole group here
+        # is why plain --offline scans missed textbook SQLi and command
+        # injection entirely.
+        try:
+            results.extend(self.coordinator.run_group(AgentGroup.SECURITY, scope=scope))
+        except Exception as e:
+            logger.warning(f"SECURITY group dispatch failed: {e}")
+
+        phase_result = self._transition_to(PipelinePhase.SCAN, results)
+        # Carry the BrainReport on the phase so callers (p scan summary) can
+        # render the structural stats without re-running the Brain.
+        phase_result.data["brain_report"] = getattr(self, "_last_brain_report", None)
+        return phase_result
 
     def run_scan_deep(self, scope: list[str] | None = None) -> PhaseResult:
         """Phase 1b: Deep scan with AI analysis."""
@@ -811,14 +929,9 @@ class Governor:
         """Run security agents (part of scan phase or standalone)."""
         logger.info(f"Pipeline phase: SCAN --security (scope={len(scope or [])} files)")
         results = self.coordinator.run_group(AgentGroup.SECURITY, scope=scope)
-        return PhaseResult(
-            phase=PipelinePhase.SCAN,
-            status=AgentStatus.DONE,
-            results=results,
-            duration_ms=sum(r.duration_ms for r in results),
-            findings_count=sum(r.finding_count for r in results),
-            agents_run=len(results),
-        )
+        # §1.3/§2: same SCAN criteria + evidence as run_scan — a bare DONE
+        # with no verdict is exactly the overconfidence this spec removes.
+        return self._transition_to(PipelinePhase.SCAN, results)
 
     def run_fix(self, dry_run: bool = False) -> PhaseResult:
         """Phase: Run fix agents, then route every produced patch through the
@@ -985,9 +1098,7 @@ class Governor:
         total_findings = sum(r.finding_count for r in all_results)
         reverify = self._recheck_applied_patches()
 
-        crit = self.criteria.get(
-            PipelinePhase.SANDBOX_REVERIFY, DEFAULT_CRITERIA[PipelinePhase.SANDBOX_REVERIFY]
-        )
+        crit = self.criteria.get(PipelinePhase.SANDBOX_REVERIFY, DEFAULT_CRITERIA[PipelinePhase.SANDBOX_REVERIFY])
         violations: list[str] = []
         if total_findings > crit.max_critical_findings:
             violations.append(f"Re-verify failed: {total_findings} findings remain")
@@ -1150,6 +1261,10 @@ class Governor:
                 data={"evidence": evidence, "verdict": "partial"},
             )
             self._record_phase(result)
+            # §2: a skip must still ADVANCE the phase state, or the next
+            # phase's transition check sees a stale phase and (correctly)
+            # blocks — which broke TEST_EXECUTION on every skipped generation.
+            self.current_phase = PipelinePhase.TEST_GENERATION
             return result
 
         # Build graph-scoped context
@@ -1166,6 +1281,8 @@ class Governor:
                 data={"evidence": evidence, "verdict": "partial"},
             )
             self._record_phase(result)
+            # §2: advance the phase state even on skip (see comment above).
+            self.current_phase = PipelinePhase.TEST_GENERATION
             return result
 
         # Generate tests scoped to affected symbols
@@ -1255,6 +1372,9 @@ class Governor:
             scored_candidates.append(candidate)
         self._last_candidates = scored_candidates
         self._last_fix_results = results
+        # §2a: keep the verify summary so run_sandbox_reverify can re-score
+        # candidates with BOTH the verify-loop and reverify outcomes.
+        self._last_fix_verify = verify
 
         duration_ms = int((time.monotonic() - start) * 1000)
         result = self._transition_to(PipelinePhase.FIX_GENERATION, results)
@@ -1264,13 +1384,19 @@ class Governor:
         return result
 
     def _score_fix_candidate(
-        self, result: AgentResult, verify: dict | None = None
+        self, result: AgentResult, verify: dict | None = None, reverify: dict | None = None
     ) -> dict:
         """Score a fix candidate on the §2 composite (0-1), all parts logged.
 
         Components (spec §2 FIX_GENERATION Done column):
         - tests_pass 0.4 — verified patches / produced patches (verify_loop).
+          §2a: zeroed when SANDBOX_REVERIFY re-ran a previously-verified test
+          and it regressed — a fix whose own test broke cannot count as passing.
         - findings_free 0.3 — no residual findings on the candidate.
+          §2a: zeroed when the loop-back re-scan left findings unresolved —
+          that is a shared post-fix outcome, so no candidate may claim it.
+          ``reverify=None`` (FIX_GENERATION stage) records it as unknown
+          instead of silently assuming a clean tree.
         - blast_radius 0.2 — max affected-file count across its patches
           (compute_blast_radius scale: files; 10+ → 0).
         - completed 0.1 — agent finished without errors.
@@ -1283,13 +1409,29 @@ class Governor:
         data = result.data if isinstance(result.data, dict) else {}
         patches = data.get("patches", []) or []
         verify = verify or {}
+        reverify_unknown = reverify is None  # §2a: reverify not run yet
+        reverify = reverify or {}
         verified_ids = set(verify.get("verified", []) or [])
+        regressed_ids = set(reverify.get("regressed_tests", []) or [])
+        if reverify_unknown:
+            residual = None  # reverify not yet run — unknown, not zero
+        else:
+            residual = int(reverify.get("findings_remaining", 0) or 0)
 
         mine = [p.get("id") for p in patches if isinstance(p, dict) and p.get("id")]
-        tests_pass = (
-            sum(1 for pid in mine if pid in verified_ids) / len(mine) if mine else 0.0
-        )
+        tests_pass = sum(1 for pid in mine if pid in verified_ids) / len(mine) if mine else 0.0
+        # §2a: a patch whose verified test regressed during reverify zeroes the
+        # tests component — the earlier "verified" verdict was overwritten by
+        # a later phase touching the tree.
+        if mine and regressed_ids & set(mine):
+            tests_pass = 0.0
         findings_free = max(0.0, 1.0 - result.finding_count * 0.1)
+        # §2a: unresolved post-fix findings are a shared outcome — no candidate
+        # gets the findings_free component while the tree still has findings.
+        # residual=None (reverify hasn't run) leaves the component standing but
+        # marks it unknown in the breakdown — never silently assumed clean.
+        if residual:
+            findings_free = 0.0
         try:
             max_br = max(int(p.get("blast_radius", 0) or 0) for p in patches) if patches else 0
         except (TypeError, ValueError):
@@ -1304,7 +1446,9 @@ class Governor:
                 "tests_pass": round(tests_pass, 3),
                 "verified": sum(1 for pid in mine if pid in verified_ids),
                 "patches": len(mine),
+                "regressed_tests": sorted(regressed_ids & set(mine)),
                 "findings_free": round(findings_free, 3),
+                "residual_findings": residual,
                 "blast": round(blast, 3),
                 "max_blast_radius": max_br,
                 "completed": completed,
@@ -1346,9 +1490,7 @@ class Governor:
             return result
 
         for i, (candidate, _fix_res) in enumerate(zip(candidates, fix_results, strict=False)):
-            logger.info(
-                f"Reverifying candidate {i + 1}/{len(candidates)}: {candidate['agent_name']}"
-            )
+            logger.info(f"Reverifying candidate {i + 1}/{len(candidates)}: {candidate['agent_name']}")
 
             # Re-run scanner agents on the working tree
             try:
@@ -1378,6 +1520,36 @@ class Governor:
                 f"test(s) regressed: {', '.join(reverify['regressed'])}"
             )
 
+        # §2a honesty fix: remember the post-fix outcome so SCORE_SELECT can
+        # factor it into candidate scores. Previously this number was logged
+        # and dropped — candidates then scored a perfect 1.00 in the same run
+        # where 112 findings remained unresolved.
+        self._last_reverify_outcome: dict = {
+            "findings_remaining": total_findings,
+            "regressed_tests": list(reverify.get("regressed", [])),
+            "unrunnable_tests": list(reverify.get("unrunnable", [])),
+            "errors": list(errors),
+        }
+        # §2a: re-score every candidate NOW that the post-fix outcome is
+        # known. The FIX_GENERATION scores were provisional (reverify had not
+        # run); these are the scores the selection decision is allowed to
+        # use. A candidate that leaves findings unresolved cannot score 1.00.
+        rescored: list[dict] = []
+        for r in fix_results:
+            scored = self._score_fix_candidate(r, getattr(self, "_last_fix_verify", None), self._last_reverify_outcome)
+            rescored.append(
+                {
+                    "agent_name": r.agent_name,
+                    "status": r.status.value,
+                    "findings": r.finding_count,
+                    "duration_ms": r.duration_ms,
+                    "score": scored["score"],
+                    "breakdown": scored["breakdown"],
+                }
+            )
+        self._last_candidates = rescored
+        candidates = rescored
+
         duration_ms = int((time.monotonic() - start) * 1000)
         # §2: same evidence machinery as every other phase — including the
         # scoped-retest report (reverify re-runs the exact applied-patch
@@ -1391,9 +1563,7 @@ class Governor:
         }
         if not reverify.get("rechecked"):
             evidence["complete"] = False
-            evidence["partial_reasons"].append(
-                "no scoped retest ran (only full-group re-runs)"
-            )
+            evidence["partial_reasons"].append("no scoped retest ran (only full-group re-runs)")
         result = PhaseResult(
             phase=PipelinePhase.SANDBOX_REVERIFY,
             status=AgentStatus.DONE,
@@ -1409,9 +1579,7 @@ class Governor:
             },
         )
 
-        violations = self._check_criteria(
-            PipelinePhase.SANDBOX_REVERIFY, all_results, evidence
-        )
+        violations = self._check_criteria(PipelinePhase.SANDBOX_REVERIFY, all_results, evidence)
         if violations:
             result.status = AgentStatus.FAILED
             result.errors.extend(violations)
@@ -1428,6 +1596,12 @@ class Governor:
         Compares all fix candidates, selects the best-scoring one,
         logs the decision with all candidate scores for audit trail.
         If no candidate passes all gates, escalates to human review.
+
+        §2a: the scores used here are the POST-REVERIFY ones (re-scored at
+        the end of run_sandbox_reverify with the loop-back outcome factored
+        in) — a candidate that leaves findings unresolved cannot reach the
+        0.8 auto-apply threshold, and the pipeline cannot "pass" while its
+        own reverify log says findings remain.
         """
         start = time.monotonic()
         logger.info("Pipeline phase: SCORE_SELECT")
@@ -1469,9 +1643,7 @@ class Governor:
         # Log all candidates and decision
         logger.info(f"Score-select: {len(candidates)} candidates evaluated")
         for w in winners:
-            logger.info(
-                f"  {w['candidate']['agent_name']}: score={w['candidate']['score']:.2f} → {w['decision']}"
-            )
+            logger.info(f"  {w['candidate']['agent_name']}: score={w['candidate']['score']:.2f} → {w['decision']}")
 
         self._last_selection = winners
 
@@ -1495,10 +1667,7 @@ class Governor:
         auto = sum(1 for w in winners if w["decision"] == "auto_apply")
         esc = sum(1 for w in winners if w["decision"] == "escalate")
         evidence["autonomy"] = {"auto_apply": auto, "escalated": esc}
-        if not any(
-            "risk_gate" in (w["reason"] or "") and w["decision"] == "escalate"
-            for w in winners
-        ):
+        if not any("risk_gate" in (w["reason"] or "") and w["decision"] == "escalate" for w in winners):
             # No candidate tripped the autonomy rule — recorded honestly so a
             # future seeded high-criticality case can prove the rule engages.
             evidence["autonomy"]["rule_engaged"] = False
@@ -1561,8 +1730,7 @@ class Governor:
                     if decision.is_blocked:
                         return {
                             "action": "escalate",
-                            "reason": f"risk_gate BLOCKs patch {p.get('id')}: "
-                            + "; ".join(decision.blocks[:2]),
+                            "reason": f"risk_gate BLOCKs patch {p.get('id')}: " + "; ".join(decision.blocks[:2]),
                         }
                     if decision.needs_review:
                         return {
@@ -1617,17 +1785,37 @@ class Governor:
     def run_full_pipeline_v2(
         self,
         scope: list[str] | None = None,
-        dry_run: bool = False,
+        dry_run: bool = True,
+        area: str | None = None,
     ) -> list[PhaseResult]:
         """Run the full 7-step pipeline.
 
         SCAN → GRAPH_UPDATE → TEST_GENERATION → TEST_EXECUTION
         → FIX_GENERATION → SANDBOX_REVERIFY → SCORE_SELECT
+
+        §1 merge + user decision: ``dry_run`` now defaults to True — plain
+        `p scan` stays read-only (candidates are generated, sandbox-verified
+        and SCORED, but never applied to the working tree). ``p fix`` and
+        ``p auto`` remain the apply paths. A false-positive "Pipeline PASSED"
+        over unresolved post-fix findings (§2a) can no longer hide behind
+        application either: the verdict below re-checks the reverify outcome.
         """
         phases: list[PhaseResult] = []
 
+        # §2: pipeline state persists in SQLite across runs, so a fresh
+        # `p scan` would otherwise inherit the PREVIOUS run's last phase
+        # (e.g. sandbox_reverify) and its very first SCAN transition would be
+        # blocked as "invalid". A new run starts a new state machine; the
+        # old run's history stays in the history table.
+        if self.current_phase != PipelinePhase.IDLE:
+            logger.info(
+                "Pipeline state was %s from a previous run — resetting to IDLE",
+                self.current_phase.value,
+            )
+            self.reset_pipeline()
+
         # 1. SCAN
-        scan_result = self.run_scan(scope=scope)
+        scan_result = self.run_scan(scope=scope, area=area)
         phases.append(scan_result)
         if not scan_result.passed:
             logger.error("SCAN failed, aborting v2 pipeline")
@@ -1662,6 +1850,27 @@ class Governor:
         select_result = self.run_score_select()
         phases.append(select_result)
 
+        # §2c: close/checkpoint is the run's final persistence step. A failed
+        # checkpoint must be attached to the run's outcome — never printed
+        # after "PASSED" and forgotten. A pipeline whose state machine could
+        # not persist its own verdict is downgraded: SUCCESS → FAILED, DONE →
+        # PARTIAL. (close() also releases the SQLite handle; record first,
+        # close last so phase_history stays writable until the verdict is set.)
+        checkpoint_ok = self.close()
+        if not checkpoint_ok:
+            warn = "Checkpoint failed: phase history may not be persisted (see close log)"
+            logger.warning(warn)
+            last = phases[-1] if phases else None
+            if last is not None:
+                last.errors.append(warn)
+                if last.status == AgentStatus.DONE:
+                    # SKIPPED = "completed but degraded" — visible as NOT a
+                    # clean pass without inventing a new status value.
+                    last.status = AgentStatus.SKIPPED
+                    last.data["verdict"] = "partial"
+                    last.data["checkpoint_failed"] = True
+                elif last.passed:
+                    last.data["checkpoint_failed"] = True
         return phases
 
     # ── State management ──────────────────────────────────────────────────
@@ -1679,8 +1888,7 @@ class Governor:
             "current_phase": phase.value,
             "phase_order": phase.order,
             "next_phase": phase.next_phase.value if phase.next_phase else None,
-            "is_running": phase
-            not in (PipelinePhase.IDLE, PipelinePhase.COMPLETE, PipelinePhase.FAILED),
+            "is_running": phase not in (PipelinePhase.IDLE, PipelinePhase.COMPLETE, PipelinePhase.FAILED),
             "recent_history": history,
         }
 
@@ -1694,9 +1902,7 @@ class Governor:
     def brain(self) -> dict:
         return getattr(self.coordinator, "_brain", {})
 
-    def run_agents(
-        self, agent_names: list[str], scope: list[str] | None = None
-    ) -> list[AgentResult]:
+    def run_agents(self, agent_names: list[str], scope: list[str] | None = None) -> list[AgentResult]:
         """Passthrough to Coordinator.run_agents."""
         return self.coordinator.run_agents(agent_names, scope=scope)
 
@@ -1849,9 +2055,7 @@ class GovernorEngine:
         if finding_dict:
             control_id = control_id or finding_dict.get("control_id")
             symbol_id = (
-                symbol_id
-                or finding_dict.get("symbol_id")
-                or finding_dict.get("affected_node", {}).get("symbol")
+                symbol_id or finding_dict.get("symbol_id") or finding_dict.get("affected_node", {}).get("symbol")
             )
             technique_id = technique_id or finding_dict.get("technique_id")
             confidence = confidence if confidence else finding_dict.get("confidence", 0.0)
@@ -1862,9 +2066,7 @@ class GovernorEngine:
             )
             check_method = check_method or finding_dict.get("check_method")
             bug_class = bug_class or finding_dict.get("bug_class")
-            domain_activation_state = domain_activation_state or finding_dict.get(
-                "domain_activation_state"
-            )
+            domain_activation_state = domain_activation_state or finding_dict.get("domain_activation_state")
 
         incident_id = f"INC-{int(time.time() * 1000)}-{len(self._incidents) + 1}"
         now = datetime.now(UTC).isoformat()
@@ -1894,9 +2096,7 @@ class GovernorEngine:
         )
         self._incidents[incident_id] = incident
         self._persist_incident(incident)
-        logger.info(
-            f"Created incident {incident_id} (technique={technique_id}, confidence={confidence})"
-        )
+        logger.info(f"Created incident {incident_id} (technique={technique_id}, confidence={confidence})")
         return incident
 
     def get_incident(self, incident_id: str) -> Incident | None:
@@ -1986,9 +2186,7 @@ class GovernorEngine:
         self._persist_incident(incident)
         self._persist_audit_entry(incident_id, entry)
 
-        logger.debug(
-            f"Incident {incident_id}: {prior_state.value} → {new_state.value} (rule={rule_id})"
-        )
+        logger.debug(f"Incident {incident_id}: {prior_state.value} → {new_state.value} (rule={rule_id})")
         return incident
 
     # ── Dispatch rule evaluation (spec §2, first-match-wins) ──────────────
@@ -2048,9 +2246,7 @@ class GovernorEngine:
                 return False
         return True
 
-    def evaluate_dispatch_rules(
-        self, incident: Incident, at_state: IncidentState | None = None
-    ) -> DispatchRule | None:
+    def evaluate_dispatch_rules(self, incident: Incident, at_state: IncidentState | None = None) -> DispatchRule | None:
         """First-match-wins rule evaluation. Returns the first matching rule or None."""
         state = at_state or incident.state
         for rule in self._rules:
@@ -2089,9 +2285,7 @@ class GovernorEngine:
 
     # ── Escalation rules: §3.2 Score-based ────────────────────────────────
 
-    def check_score_escalation(
-        self, incident: Incident, best_score: float | None = None
-    ) -> str | None:
+    def check_score_escalation(self, incident: Incident, best_score: float | None = None) -> str | None:
         """§3.2 — composite score below configurable threshold."""
         if incident.state != IncidentState.FIX_CANDIDATE_SCORING:
             return None
@@ -2111,10 +2305,7 @@ class GovernorEngine:
                 return "max-fix-retries-exceeded"
 
         now = time.time()
-        while (
-            self._dispatch_timestamps
-            and self._dispatch_timestamps[0] < now - self._dispatch_window_seconds
-        ):
+        while self._dispatch_timestamps and self._dispatch_timestamps[0] < now - self._dispatch_window_seconds:
             self._dispatch_timestamps.popleft()
 
         if len(self._dispatch_timestamps) >= self._max_dispatches_per_window:
@@ -2158,10 +2349,7 @@ class GovernorEngine:
     def can_dispatch(self) -> bool:
         """Check dispatch rate — True if under the ceiling."""
         now = time.time()
-        while (
-            self._dispatch_timestamps
-            and self._dispatch_timestamps[0] < now - self._dispatch_window_seconds
-        ):
+        while self._dispatch_timestamps and self._dispatch_timestamps[0] < now - self._dispatch_window_seconds:
             self._dispatch_timestamps.popleft()
         return len(self._dispatch_timestamps) < self._max_dispatches_per_window
 
@@ -2228,18 +2416,12 @@ class GovernorEngine:
                         continue
 
                     control_id = finding_dict.get("control_id")
-                    symbol_id = finding_dict.get("symbol_id") or finding_dict.get(
-                        "affected_node", {}
-                    ).get("symbol")
+                    symbol_id = finding_dict.get("symbol_id") or finding_dict.get("affected_node", {}).get("symbol")
                     technique_id = finding_dict.get("technique_id")
 
                     existing: Incident | None = None
                     for inc in self._incidents.values():
-                        if (
-                            inc.control_id == control_id
-                            and inc.symbol_id == symbol_id
-                            and not inc.state.is_terminal
-                        ):
+                        if inc.control_id == control_id and inc.symbol_id == symbol_id and not inc.state.is_terminal:
                             existing = inc
                             break
 

@@ -5,6 +5,7 @@ Covers §11.6:
 - Extract license field from each dependency
 - Flag GPL/AGPL licenses (restrictive) and missing license fields
 """
+
 from __future__ import annotations
 
 import json
@@ -71,14 +72,7 @@ _log = logging.getLogger("patchi.agents.license_compliance")
 
 
 def _normalize_license(license_str: str) -> str:
-    return (
-        license_str.strip()
-        .strip('"')
-        .strip("'")
-        .lower()
-        .replace("-or-later", "")
-        .replace("-only", "")
-    )
+    return license_str.strip().strip('"').strip("'").lower().replace("-or-later", "").replace("-only", "")
 
 
 def _check_license(license_str: str | None) -> tuple[str, str]:

@@ -83,7 +83,7 @@ def audit(root: Path | None = None) -> AuditReport:
         import patchi.core.agents.test_agents  # noqa: F401
         import patchi.core.security.security_agents  # noqa: F401
     except Exception as _exc:
-        _log.warning('audit failed: %s', _exc)
+        _log.warning("audit failed: %s", _exc)
 
     from patchi.core.agents.base import list_agents
 
@@ -106,19 +106,13 @@ def _audit_class(cls: Any, group: str, report: AuditReport) -> None:
 
     # 1. NotImplementedError
     if "notimplementederror" in low and "raise notimplementederror" in low.replace(" ", ""):
-        report.issues.append(
-            AuditIssue(
-                name, group, "raises NotImplementedError", "high", "raise NotImplementedError"
-            )
-        )
+        report.issues.append(AuditIssue(name, group, "raises NotImplementedError", "high", "raise NotImplementedError"))
         return  # definitive, stop here
 
     # 2. Placeholder / stub markers
     for marker in _STUB_MARKERS:
         if marker in low:
-            report.issues.append(
-                AuditIssue(name, group, f"possible stub marker '{marker}'", "medium", marker)
-            )
+            report.issues.append(AuditIssue(name, group, f"possible stub marker '{marker}'", "medium", marker))
             break
 
     # 3. Old-style _run signature

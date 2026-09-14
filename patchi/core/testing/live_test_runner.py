@@ -154,9 +154,7 @@ class LiveTestRunner:
                 "agent_started",
                 {
                     "agent": agent_name,
-                    "description": agent_cls.description
-                    if hasattr(agent_cls, "description")
-                    else "",
+                    "description": agent_cls.description if hasattr(agent_cls, "description") else "",
                 },
             )
 

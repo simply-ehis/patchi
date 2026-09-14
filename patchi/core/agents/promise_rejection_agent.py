@@ -84,7 +84,8 @@ class PromiseRejectionTrackerAgent(BaseAgent):
                             file=rel,
                             line_start=line,
                             title="Promise without catch — unhandledRejection risk",
-                            description="`new Promise` without `.catch` or `await try/catch` — aggregate via process.on('unhandledRejection') during test runs (see §5.1.1).",
+                            description="`new Promise` without `.catch` or `await try/catch` — aggregate via"
+                            " process.on('unhandledRejection') during test runs (see §5.1.1).",
                             finding_type="promise_no_catch",
                         )
                     )
@@ -103,7 +104,8 @@ class PromiseRejectionTrackerAgent(BaseAgent):
                     file="",
                     line_start=0,
                     title="No global unhandledRejection handler detected",
-                    description="No `process.on('unhandledRejection')` in entry points — add aggregator to catch unhandled promises during CI (Node) / sys.excepthook (Python).",
+                    description="No `process.on('unhandledRejection')` in entry points — add aggregator to catch"
+                    " unhandled promises during CI (Node) / sys.excepthook (Python).",
                     finding_type="missing_unhandled_handler",
                 )
             )

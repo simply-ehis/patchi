@@ -106,9 +106,7 @@ class E2EFlowAgent(BaseAgent):
         from ..ai.client import call_ai
 
         config = inp.config
-        if not config.get("ai", {}).get("keys") and not config.get("ai", {}).get(
-            "local_model_name"
-        ):
+        if not config.get("ai", {}).get("keys") and not config.get("ai", {}).get("local_model_name"):
             return []
 
         pages_text = "\n".join(f"- {p}" for p in pages[:20])
@@ -199,7 +197,8 @@ def test_page_loads(base_url, page_path):
             if response and response.status < 400:
                 print(f"PASS: page_loads_{{page_path.replace('/', '_').replace('.html', '')}}")
             else:
-                print(f"FAIL: page_loads_{{page_path.replace('/', '_').replace('.html', '')}}: status {{response.status if response else 'None'}}")
+print(f"FAIL: page_loads_{{page_path.replace('/', '_').replace('.html', '')}}: status {{response.status
+                if response else 'None'}}")
         except Exception as e:
             print(f"FAIL: page_loads_{{page_path.replace('/', '_').replace('.html', '')}}: {{e}}")
         finally:
@@ -263,9 +262,7 @@ if __name__ == "__main__":
                     if line.startswith("PASS:"):
                         total += 1
                         passed += 1
-                        details.append(
-                            {"name": line[6:].strip(), "passed": True, "file": script["name"]}
-                        )
+                        details.append({"name": line[6:].strip(), "passed": True, "file": script["name"]})
                     elif line.startswith("FAIL:"):
                         total += 1
                         failed += 1

@@ -51,7 +51,19 @@ class UIButtonAgent(BaseAgent):
         try:
             from playwright.sync_api import sync_playwright  # noqa: F401
         except ImportError:
-            self.skip(result, "playwright not installed — pip install playwright && playwright install chromium")
+            self.skip(
+                result,
+                "playwright not installed — pip install playwright && playwright install chromium",
+            )
+            return
+        # Part 3 §2.6: the pip package alone is not enough — the browser
+        # binaries are a separate install step. One shared check everywhere.
+        from patchi.core.agents.tool_health import playwright_ready
+
+        pw_ok, pw_hint = playwright_ready()
+        if not pw_ok:
+            self.skip(result, pw_hint)
+            return
             return
 
         base_url = find_server(inp.root, inp.config, inp.extra)
@@ -156,7 +168,8 @@ class UIButtonAgent(BaseAgent):
     def _find_buttons(self, page) -> list:
         return page.evaluate("""() => {
             const buttons = [];
-            document.querySelectorAll('button, a[href], input[type=submit], input[type=button], [role=button], .btn, [class*=btn]').forEach(el => {
+document.querySelectorAll('button, a[href], input[type=submit], input[type=button], [role=button], .btn,
+            [class*=btn]').forEach(el => {
                 const r = el.getBoundingClientRect();
                 if (r.width > 0 && r.height > 0) {
                     buttons.push({
@@ -223,7 +236,7 @@ class UIButtonAgent(BaseAgent):
     def _capture_interactions(self, page, page_path: str, rel: str | None, base_url: str) -> list:
         findings = []
         try:
-            locators = page.locator('button:not([disabled]), a[href], [role=button]:not([disabled])')
+            locators = page.locator("button:not([disabled]), a[href], [role=button]:not([disabled])")
             count = locators.count()
             if count == 0:
                 return findings
@@ -253,7 +266,9 @@ class UIButtonAgent(BaseAgent):
                     if href and (href.startswith("http") or href.startswith("mailto:")):
                         continue  # leave site / external
                     try:
-                        label = loc.evaluate("e => (e.innerText || e.getAttribute('aria-label') || '').trim().substring(0, 30)")
+                        label = loc.evaluate(
+                            "e => (e.innerText || e.getAttribute('aria-label') || '').trim().substring(0, 30)"
+                        )
                     except Exception:
                         label = "?"
                 except Exception:

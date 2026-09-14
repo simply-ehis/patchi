@@ -793,9 +793,7 @@ class DomainActivatorV2:
             domain_evidence[domain].append("Forced activation (user/config)")
 
         # Filter by threshold
-        activated = [
-            domain for domain, score in domain_scores.items() if score >= self.activation_threshold
-        ]
+        activated = [domain for domain, score in domain_scores.items() if score >= self.activation_threshold]
 
         # Sort by score descending
         activated.sort(key=lambda d: domain_scores[d], reverse=True)

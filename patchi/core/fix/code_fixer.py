@@ -37,9 +37,7 @@ class CodeFixer(BaseAgent):
     timeout = 120
 
     def _run(self, inp: AgentInput, result: AgentResult) -> None:
-        findings = self._get_findings(
-            inp, ["parse_error", "unprotected_sensitive_route", "bug", "test_failure"]
-        )
+        findings = self._get_findings(inp, ["parse_error", "unprotected_sensitive_route", "bug", "test_failure"])
         patches: list[Patch] = []
         debug_cache: dict[tuple[str, str], dict | None] = {}
 
@@ -82,10 +80,7 @@ class CodeFixer(BaseAgent):
             blast_radius = 0
             if hasattr(inp, "extra") and "brain_report" in inp.extra:
                 brain_report = inp.extra["brain_report"]
-                if (
-                    hasattr(brain_report, "blast_radius_map")
-                    and fpath in brain_report.blast_radius_map
-                ):
+                if hasattr(brain_report, "blast_radius_map") and fpath in brain_report.blast_radius_map:
                     blast_radius = len(brain_report.blast_radius_map[fpath].all_dependents)
             else:
                 blast_radius = compute_blast_radius(fpath, inp.root)
@@ -100,9 +95,7 @@ class CodeFixer(BaseAgent):
                 test_path = inp.root / finding_file
                 test_content = _read_file(test_path)
                 if test_content:
-                    test_context = (
-                        f"\n\nFailing test file ({finding_file}):\n```\n{test_content[:2000]}\n```"
-                    )
+                    test_context = f"\n\nFailing test file ({finding_file}):\n```\n{test_content[:2000]}\n```"
 
             prompt = textwrap.dedent(f"""
                 Fix this issue in the file below. Return ONLY the corrected file content
@@ -149,9 +142,7 @@ class CodeFixer(BaseAgent):
                 # findings — for other types an empty scanner keeps the
                 # applier's M-16 _verify_fix on its generic fallback path
                 # instead of re-running the test suite inside apply().
-                scanner_agent=(
-                    "UnitTestAgent" if ftype == "test_failure" else finding.get("agent", "")
-                ),
+                scanner_agent=("UnitTestAgent" if ftype == "test_failure" else finding.get("agent", "")),
                 source_finding=finding,
             )
             patches.append(patch)
@@ -164,6 +155,4 @@ class CodeFixer(BaseAgent):
     def _get_findings(self, inp: AgentInput, types: list[str]) -> list[Finding]:
         # Fix agents receive findings via extra dict (set by the fix command)
         all_findings = inp.extra.get("findings", [])
-        return [
-            f for f in all_findings if f.get("type") in types and f.get("fix_agent") == self.name
-        ]
+        return [f for f in all_findings if f.get("type") in types and f.get("fix_agent") == self.name]

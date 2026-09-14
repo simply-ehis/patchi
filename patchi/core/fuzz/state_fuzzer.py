@@ -179,9 +179,7 @@ class StateFuzzer:
                 )
         return results
 
-    def _dfs_paths(
-        self, start: str, max_depth: int = 6, max_results: int = 5
-    ) -> list[list[StateTransition]]:
+    def _dfs_paths(self, start: str, max_depth: int = 6, max_results: int = 5) -> list[list[StateTransition]]:
         """DFS to find paths through the state machine."""
         results: list[list[StateTransition]] = []
         stack: list[tuple[str, list[StateTransition], set[str]]] = [(start, [], {start})]
@@ -193,11 +191,7 @@ class StateFuzzer:
                 if target in visited:
                     continue
                 transition = next(
-                    (
-                        t
-                        for t in self._transitions
-                        if t.from_state == state and t.to_state == target
-                    ),
+                    (t for t in self._transitions if t.from_state == state and t.to_state == target),
                     StateTransition(state, target, "unknown"),
                 )
                 new_path = path + [transition]
@@ -216,11 +210,7 @@ class StateFuzzer:
                 # Try all outgoing transitions in sequence
                 transitions = [
                     next(
-                        (
-                            t
-                            for t in self._transitions
-                            if t.from_state == state and t.to_state == tgt
-                        ),
+                        (t for t in self._transitions if t.from_state == state and t.to_state == tgt),
                         StateTransition(state, tgt, "unknown"),
                     )
                     for tgt in targets

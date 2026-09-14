@@ -5,8 +5,8 @@ Base functionality for fix agents.
 import logging
 import os
 import re
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable
 
 from patchi.core.fix.patch import (
     FileChange,
@@ -25,7 +25,7 @@ def _call_ai(
     config: dict,
     max_tokens: int = 1500,
     system_prompt: str = "",
-    progress_callback: Callable[[str], None] | None = None
+    progress_callback: Callable[[str], None] | None = None,
 ) -> str:
     if os.environ.get("PATCHI_OFFLINE"):
         return ""
@@ -184,9 +184,7 @@ _FIX_PATTERNS: list[tuple[str, str, str]] = [
 ]
 
 
-def _find_vulnerable_line(
-    content: str, finding_type: str, file_path: str
-) -> tuple[int, str] | None:
+def _find_vulnerable_line(content: str, finding_type: str, file_path: str) -> tuple[int, str] | None:
     """Find the specific line that needs fixing based on finding type."""
     import re
 
@@ -216,9 +214,7 @@ def _apply_fix_pattern(line: str, finding_type: str) -> str | None:
         return f"{indent}DEBUG = os.environ.get('DEBUG', 'false').lower() == 'true'"
 
     elif "weak_hash" in finding_type:
-        return line.replace("hashlib.md5(", "hashlib.sha256(").replace(
-            "hashlib.sha1(", "hashlib.sha256("
-        )
+        return line.replace("hashlib.md5(", "hashlib.sha256(").replace("hashlib.sha1(", "hashlib.sha256(")
 
     elif "eval" in finding_type or "exec" in finding_type:
         indent = line[: len(line) - len(line.lstrip())]
@@ -263,7 +259,10 @@ def _build_fix_prompt(
         _tags = load_body_tags(_root)
         if _tags and file_path in _tags:
             tag = _tags[file_path]
-            caller_hint = f"\nBody: role={tag.get('role')} fan_in={tag.get('fan_in')} score={tag.get('score')} layer={tag.get('layer')}\n"
+            caller_hint = (
+            f"\nBody: role={tag.get('role')} fan_in={tag.get('fan_in')} score={tag.get('score')}"
+            f" layer={tag.get('layer')}\n"
+            )
             # add function block
             _u = Understander(_root, [], _tags, {}, [])
             caller_hint += _u.function_at(file_path, line_num)[:1200]
@@ -320,9 +319,7 @@ def _generate_fix_with_ai(
     progress_callback: Callable[[str], None] | None = None,
 ) -> FileChange | None:
     """Use AI to generate a fix for the vulnerability."""
-    prompt = _build_fix_prompt(
-        finding_type, file_path, original, line_num, suggestion, playbook, message
-    )
+    prompt = _build_fix_prompt(finding_type, file_path, original, line_num, suggestion, playbook, message)
 
     system_prompt = (
         "You are a security engineer fixing vulnerabilities in Python/JS/Go code. "
@@ -331,7 +328,13 @@ def _generate_fix_with_ai(
     )
 
     try:
-        response = _call_ai(prompt, config, max_tokens=500, system_prompt=system_prompt, progress_callback=progress_callback)
+        response = _call_ai(
+            prompt,
+            config,
+            max_tokens=500,
+            system_prompt=system_prompt,
+            progress_callback=progress_callback,
+        )
     except Exception as e:
         _log.warning("AI fix generation failed: %s", e)
         return None

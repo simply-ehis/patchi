@@ -47,6 +47,7 @@ def _has_i18n(tree, lang: str, raw: str) -> bool:
     markers = ("useTranslation", "i18n", "$t(", "t('", 't("')
     return any(m in raw for m in markers)
 
+
 @register
 class I18nAgent(BaseAgent):
     group = AgentGroup.SCANNER
@@ -57,14 +58,14 @@ class I18nAgent(BaseAgent):
     supported_languages = None
 
     def _run(self, inp: AgentInput, result: AgentResult) -> None:
-        findings=[]
-        for pat in ("*.jsx","*.tsx","*.vue","*.svelte"):
+        findings = []
+        for pat in ("*.jsx", "*.tsx", "*.vue", "*.svelte"):
             for fp in get_shard_files(inp, pat):
-                rel=fp.relative_to(inp.root).as_posix()
+                rel = fp.relative_to(inp.root).as_posix()
                 if "node_modules" in rel:
                     continue
                 try:
-                    txt=fp.read_text(encoding="utf-8", errors="replace")
+                    txt = fp.read_text(encoding="utf-8", errors="replace")
                 except OSError:
                     continue
                 if fp.suffix in (".vue", ".svelte"):
@@ -82,16 +83,20 @@ class I18nAgent(BaseAgent):
                     continue
                 for s, line in texts:
                     if _looks_hardcoded(s):
-                        findings.append(make_finding(
-                            severity=Severity.LOW, file=rel, line_start=line,
-                            title=f"Hardcoded UI string '{s[:30]}' without i18n",
-                            description="Use t('key') / $t() / i18n key; check i18next-scanner",
-                            finding_type="i18n_hardcoded",
-                        ))
+                        findings.append(
+                            make_finding(
+                                severity=Severity.LOW,
+                                file=rel,
+                                line_start=line,
+                                title=f"Hardcoded UI string '{s[:30]}' without i18n",
+                                description="Use t('key') / $t() / i18n key; check i18next-scanner",
+                                finding_type="i18n_hardcoded",
+                            )
+                        )
                         break
                 if len(findings) >= 20:
                     break
             if len(findings) >= 20:
                 break
-        result.status=AgentStatus.SUCCEEDED
-        result.findings=findings[:20]
+        result.status = AgentStatus.SUCCEEDED
+        result.findings = findings[:20]

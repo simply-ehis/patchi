@@ -215,9 +215,7 @@ def install_hook(
     hook_path = git_dir / "hooks" / "pre-commit"
     hook_path.parent.mkdir(parents=True, exist_ok=True)
 
-    script = generate_hook(
-        strict=strict, with_tests=with_tests, with_scan=with_scan, auto_fix=auto_fix
-    )
+    script = generate_hook(strict=strict, with_tests=with_tests, with_scan=with_scan, auto_fix=auto_fix)
     hook_path.write_text(script, encoding="utf-8")
 
     try:

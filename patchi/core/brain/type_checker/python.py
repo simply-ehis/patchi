@@ -67,9 +67,7 @@ class PythonTypeChecker(BaseTypeChecker):
                     )
                 )
 
-    def _check_annotation(
-        self, node: ast.AnnAssign, lines: list[str], file_path: str, findings: list[dict]
-    ) -> None:
+    def _check_annotation(self, node: ast.AnnAssign, lines: list[str], file_path: str, findings: list[dict]) -> None:
         line = node.lineno
         ann = node.annotation
         if isinstance(ann, ast.Name) and ann.id == "Any":

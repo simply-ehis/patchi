@@ -57,7 +57,14 @@ def scan_file_ignores(root: Path, rel: str) -> list[dict]:
         parsed = _parse_ignore_line(line)
         if parsed:
             rule, expiry = parsed
-            out.append({"line": i, "rule": rule, "expiry": expiry.isoformat() if expiry else None, "expired": _is_expired(expiry)})
+            out.append(
+                {
+                    "line": i,
+                    "rule": rule,
+                    "expiry": expiry.isoformat() if expiry else None,
+                    "expired": _is_expired(expiry),
+                }
+            )
     return out
 
 
@@ -98,7 +105,15 @@ def filter_ignores(findings: list, root: Path) -> tuple[list, list, list]:
             # line proximity: same line, previous line, or header
             if ig["line"] in (line, line - 1, 1):
                 if ig["expired"]:
-                    expired_warnings.append({"file": rel, "line": ig["line"], "rule": rule, "finding_type": ftype, "message": f"Expired ignore {rule} expired {ig['expiry']}"})
+                    expired_warnings.append(
+                        {
+                            "file": rel,
+                            "line": ig["line"],
+                            "rule": rule,
+                            "finding_type": ftype,
+                            "message": f"Expired ignore {rule} expired {ig['expiry']}",
+                        }
+                    )
                     continue
                 matched = ig
                 break

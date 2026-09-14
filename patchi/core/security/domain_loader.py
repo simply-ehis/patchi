@@ -112,6 +112,7 @@ def _stat_fingerprint(domains_dir: Path, playbooks_dir: Path) -> str:
 
     return "|".join(parts) if parts else "empty"
 
+
 def _content_fingerprint(domains_dir: Path, playbooks_dir: Path) -> str:
     """Authoritative cache key: dir paths + name + full bytes of every YAML.
 
@@ -199,7 +200,7 @@ def _purge_stale_caches(d: Path, keep_fingerprint: str) -> None:
             except OSError:
                 pass
     except Exception as _exc:  # noqa: BLE001
-        _log.debug('_purge_stale_caches skipped: %s', _exc)
+        _log.debug("_purge_stale_caches skipped: %s", _exc)
 
 
 def _save_cached(fingerprint: str, domains: dict, playbooks: dict) -> None:
@@ -267,6 +268,7 @@ def _try_load_yaml(path: Path) -> dict | None:
         return None
     try:
         import yaml
+
         try:
             Loader = yaml.CSafeLoader  # type: ignore[attr-defined]
         except AttributeError:
@@ -276,20 +278,20 @@ def _try_load_yaml(path: Path) -> dict | None:
     except ImportError:
         try:
             import json
+
             with open(path, encoding="utf-8") as f:
                 return json.load(f)
         except Exception as e:
             import logging
-            logging.getLogger("patchi.security.domain_loader").warning(
-                "Failed to parse %s: %s", path, e
-            )
+
+            logging.getLogger("patchi.security.domain_loader").warning("Failed to parse %s: %s", path, e)
             return None
     except Exception as e:
         import logging
-        logging.getLogger("patchi.security.domain_loader").warning(
-            "Failed to parse %s: %s", path, e
-        )
+
+        logging.getLogger("patchi.security.domain_loader").warning("Failed to parse %s: %s", path, e)
         return None
+
 
 def _to_float(value, default: float = 0.5) -> float:
     """Coerce a YAML value to float, never raising on malformed data."""
@@ -472,9 +474,7 @@ class DomainLoader:
             # never be the empty sentinel.
             stat_fp = _stat_fingerprint(self._domains_dir, self._playbooks_dir)
             if stat_fp != self._last_stat or not self._last_fingerprint:
-                self._last_fingerprint = _content_fingerprint(
-                    self._domains_dir, self._playbooks_dir
-                )
+                self._last_fingerprint = _content_fingerprint(self._domains_dir, self._playbooks_dir)
                 self._last_stat = stat_fp
             self._loaded = True
 
@@ -535,11 +535,7 @@ class DomainLoader:
             if domain is None:
                 continue
             if did not in scope_ids:
-                parsed_types = {
-                    normalize_component_type(t)
-                    for t in str(domain.component_type).split(",")
-                    if t.strip()
-                }
+                parsed_types = {normalize_component_type(t) for t in str(domain.component_type).split(",") if t.strip()}
                 if not (parsed_types & scope_types):
                     continue
             domains[domain.domain_id] = domain
@@ -716,199 +712,620 @@ class DomainLoader:
         return {
             # ── Injection & Input ──────────────────────────────────────────
             "injection": {
-                "sql", "nosql", "ldap", "command", "orm", "eval",
-                "deserialization", "hql", "injection", "template injection",
-                "xpath", "csv injection", "log injection", "header injection",
+                "sql",
+                "nosql",
+                "ldap",
+                "command",
+                "orm",
+                "eval",
+                "deserialization",
+                "hql",
+                "injection",
+                "template injection",
+                "xpath",
+                "csv injection",
+                "log injection",
+                "header injection",
             },
             "xss": {
-                "xss", "cross-site", "cross site", "script injection",
-                "dom xss", "reflected xss", "stored xss", "self-xss",
+                "xss",
+                "cross-site",
+                "cross site",
+                "script injection",
+                "dom xss",
+                "reflected xss",
+                "stored xss",
+                "self-xss",
             },
             "sqli": {"sql injection", "sqli", "blind sql", "union select", "stacked query"},
             "ssrf": {
-                "ssrf", "server-side request forgery",
-                "server side request forgery", "url fetch",
+                "ssrf",
+                "server-side request forgery",
+                "server side request forgery",
+                "url fetch",
             },
             "xxe": {"xxe", "xml external", "xml entity", "xml parser", "dtd"},
-            "rce": {"rce", "remote code", "code execution", "code injection", "command injection", "os command", "exec", "passthru", "system("},
+            "rce": {
+                "rce",
+                "remote code",
+                "code execution",
+                "code injection",
+                "command injection",
+                "os command",
+                "exec",
+                "passthru",
+                "system(",
+            },
             "path_traversal": {
-                "path traversal", "directory traversal", "path injection",
-                "file inclusion", "local file", "lfi", "rfi", "dot dot slash",
+                "path traversal",
+                "directory traversal",
+                "path injection",
+                "file inclusion",
+                "local file",
+                "lfi",
+                "rfi",
+                "dot dot slash",
             },
             "open_redirect": {
-                "open redirect", "url redirect", "redirect injection",
-                "unvalidated redirect", "302 redirect", "location header",
+                "open redirect",
+                "url redirect",
+                "redirect injection",
+                "unvalidated redirect",
+                "302 redirect",
+                "location header",
             },
             # ── Authentication & Session ───────────────────────────────────
             "authentication": {
-                "auth", "authentication", "login", "password", "oauth",
-                "session", "token", "jwt", "sso", "identity",
-                "authenticate", "mfa", "totp", "2fa", "biometric",
-                "credential stuffing", "brute force", "account lockout",
+                "auth",
+                "authentication",
+                "login",
+                "password",
+                "oauth",
+                "session",
+                "token",
+                "jwt",
+                "sso",
+                "identity",
+                "authenticate",
+                "mfa",
+                "totp",
+                "2fa",
+                "biometric",
+                "credential stuffing",
+                "brute force",
+                "account lockout",
             },
             "session": {
-                "session", "cookie", "session fixation", "session hijack",
-                "session timeout", "session token", "httpOnly", "secure flag",
+                "session",
+                "cookie",
+                "session fixation",
+                "session hijack",
+                "session timeout",
+                "session token",
+                "httpOnly",
+                "secure flag",
             },
             "authorization": {
-                "authorization", "privilege", "role", "permission", "rbac",
-                "abac", "access control", "idor", "broken function",
-                "privilege escalation", "elevation of privilege",
+                "authorization",
+                "privilege",
+                "role",
+                "permission",
+                "rbac",
+                "abac",
+                "access control",
+                "idor",
+                "broken function",
+                "privilege escalation",
+                "elevation of privilege",
             },
             # ── Cryptography ──────────────────────────────────────────────
             "cryptography": {
-                "crypto", "encryption", "cipher", "hash", "tls", "ssl",
-                "certificate", "cryptographic", "key management",
-                "key exchange", "digital signature", "hmac", "aes", "rsa",
-                "pbkdf2", "bcrypt", "argon2", "scrypt", "nonce", "iv",
-                "quantum", "post-quantum", "ecc", "diffie",
+                "crypto",
+                "encryption",
+                "cipher",
+                "hash",
+                "tls",
+                "ssl",
+                "certificate",
+                "cryptographic",
+                "key management",
+                "key exchange",
+                "digital signature",
+                "hmac",
+                "aes",
+                "rsa",
+                "pbkdf2",
+                "bcrypt",
+                "argon2",
+                "scrypt",
+                "nonce",
+                "iv",
+                "quantum",
+                "post-quantum",
+                "ecc",
+                "diffie",
             },
             # ── Web & Frontend ────────────────────────────────────────────
-            "cors": {"cors", "cross-origin", "cross origin", "wildcard origin", "access-control-allow"},
-            "csrf": {"csrf", "xsrf", "cross-site request", "cross site request", "request forgery", "anti-forgery"},
+            "cors": {
+                "cors",
+                "cross-origin",
+                "cross origin",
+                "wildcard origin",
+                "access-control-allow",
+            },
+            "csrf": {
+                "csrf",
+                "xsrf",
+                "cross-site request",
+                "cross site request",
+                "request forgery",
+                "anti-forgery",
+            },
             "clickjacking": {"clickjack", "frame injection", "x-frame-options", "frame-ancestors"},
             "security_headers": {
-                "security header", "content-security-policy", "csp",
-                "strict-transport", "hsts", "x-content-type", "x-xss-protection",
-                "permissions-policy", "referrer-policy", "feature-policy",
+                "security header",
+                "content-security-policy",
+                "csp",
+                "strict-transport",
+                "hsts",
+                "x-content-type",
+                "x-xss-protection",
+                "permissions-policy",
+                "referrer-policy",
+                "feature-policy",
             },
             # ── Data & Privacy ────────────────────────────────────────────
             "sensitive_data": {
-                "sensitive data", "pii", "personal information",
-                "secret exposure", "credential leakage", "data leak",
-                "data breach", "data exposure", "data classification",
+                "sensitive data",
+                "pii",
+                "personal information",
+                "secret exposure",
+                "credential leakage",
+                "data leak",
+                "data breach",
+                "data exposure",
+                "data classification",
             },
             "secrets": {
-                "secret", "hardcoded", "credential", "api key",
-                "token exposure", "password in code", "secret scanning",
-                "private key", "secret key", "connection string",
+                "secret",
+                "hardcoded",
+                "credential",
+                "api key",
+                "token exposure",
+                "password in code",
+                "secret scanning",
+                "private key",
+                "secret key",
+                "connection string",
             },
             # ── Dependencies & Supply Chain ───────────────────────────────
             "dependency": {
-                "dependency", "cve", "supply chain", "third party",
-                "vulnerable package", "sbom", "outdated", "unmaintained",
+                "dependency",
+                "cve",
+                "supply chain",
+                "third party",
+                "vulnerable package",
+                "sbom",
+                "outdated",
+                "unmaintained",
             },
             "supply_chain": {
-                "supply chain", "dependency confusion", "malicious package",
-                "typosquatting", "artifact signing", "provenance",
+                "supply chain",
+                "dependency confusion",
+                "malicious package",
+                "typosquatting",
+                "artifact signing",
+                "provenance",
             },
             # ── Infrastructure & Config ───────────────────────────────────
             "misconfiguration": {
-                "misconfig", "security header", "hardening",
-                "insecure default", "security config", "missing header",
-                "debug mode", "verbose error", "default credential",
+                "misconfig",
+                "security header",
+                "hardening",
+                "insecure default",
+                "security config",
+                "missing header",
+                "debug mode",
+                "verbose error",
+                "default credential",
             },
             # ── Secrets & Hardcoded Credentials ────────────────────────────
             "hardcoded_secret": {
-                "hardcoded", "secret", "credential", "api key", "private key",
-                "password in code", "token exposure", "connection string",
-                "secret key", "auth token", "bearer token", "access key",
+                "hardcoded",
+                "secret",
+                "credential",
+                "api key",
+                "private key",
+                "password in code",
+                "token exposure",
+                "connection string",
+                "secret key",
+                "auth token",
+                "bearer token",
+                "access key",
             },
             "hardcoded_key": {
-                "hardcoded key", "hardcoded secret", "hardcoded password",
-                "hardcoded credential", "hardcoded token",
+                "hardcoded key",
+                "hardcoded secret",
+                "hardcoded password",
+                "hardcoded credential",
+                "hardcoded token",
             },
             # ── Authentication & Access ──────────────────────────────────
             "auth_bypass": {
-                "authentication bypass", "auth bypass", "login bypass",
-                "without authentication", "no auth", "unauthenticated",
-                "missing auth", "missing authentication",
+                "authentication bypass",
+                "auth bypass",
+                "login bypass",
+                "without authentication",
+                "no auth",
+                "unauthenticated",
+                "missing auth",
+                "missing authentication",
             },
             "missing_auth": {
-                "without authentication", "no auth", "unauthenticated",
-                "missing auth", "missing authentication", "missing authorization",
+                "without authentication",
+                "no auth",
+                "unauthenticated",
+                "missing auth",
+                "missing authentication",
+                "missing authorization",
             },
             # ── Debug & Config ───────────────────────────────────────────
             "debug_mode": {
-                "debug mode", "debug=true", "debug on", "verbose error",
-                "stack trace", "exposed error", "error details",
-                "traceback", "exception detail", "internal error",
+                "debug mode",
+                "debug=true",
+                "debug on",
+                "verbose error",
+                "stack trace",
+                "exposed error",
+                "error details",
+                "traceback",
+                "exception detail",
+                "internal error",
             },
             "insecure_config": {
-                "insecure default", "default credential", "default password",
-                "insecure configuration", "security misconfiguration",
-                "missing security header", "open port", "exposed service",
+                "insecure default",
+                "default credential",
+                "default password",
+                "insecure configuration",
+                "security misconfiguration",
+                "missing security header",
+                "open port",
+                "exposed service",
             },
             # ── Type Safety & Quality ────────────────────────────────────
             "type_safety": {
-                "type annotation", "type hint", "missing type",
-                "untyped", "any type", "type error", "type safety",
+                "type annotation",
+                "type hint",
+                "missing type",
+                "untyped",
+                "any type",
+                "type error",
+                "type safety",
             },
             # ── Technical Debt ───────────────────────────────────────────
             "technical_debt": {
-                "todo", "fixme", "hack", "workaround", "bug",
-                "technical debt", "deprecated", "legacy", "temporary",
+                "todo",
+                "fixme",
+                "hack",
+                "workaround",
+                "bug",
+                "technical debt",
+                "deprecated",
+                "legacy",
+                "temporary",
             },
-            "dos": {"dos", "denial of service", "rate limit", "resource exhaustion", "ddos", "throttle", "backlog"},
-            "runtime": {"runtime", "container", "kubernetes", "docker", "orchestration", "falco", "pod", "node"},
-            "network": {"network", "firewall", "dns", "tcp", "port", "egress", "ingress", "proxy", "vpn", "tls termination"},
+            "dos": {
+                "dos",
+                "denial of service",
+                "rate limit",
+                "resource exhaustion",
+                "ddos",
+                "throttle",
+                "backlog",
+            },
+            "runtime": {
+                "runtime",
+                "container",
+                "kubernetes",
+                "docker",
+                "orchestration",
+                "falco",
+                "pod",
+                "node",
+            },
+            "network": {
+                "network",
+                "firewall",
+                "dns",
+                "tcp",
+                "port",
+                "egress",
+                "ingress",
+                "proxy",
+                "vpn",
+                "tls termination",
+            },
             # ── Cloud ─────────────────────────────────────────────────────
-            "cloud_aws": {"aws", "s3", "ec2", "lambda", "iam", "cloudtrail", "kms", "rds", "ecs", "fargate", "sqs", "sns"},
-            "cloud_azure": {"azure", "blob storage", "key vault", "active directory", "arm template", "devops"},
-            "cloud_gcp": {"gcp", "gce", "gcs", "bigquery", "cloud functions", "gke", "secret manager", "cloud run"},
+            "cloud_aws": {
+                "aws",
+                "s3",
+                "ec2",
+                "lambda",
+                "iam",
+                "cloudtrail",
+                "kms",
+                "rds",
+                "ecs",
+                "fargate",
+                "sqs",
+                "sns",
+            },
+            "cloud_azure": {
+                "azure",
+                "blob storage",
+                "key vault",
+                "active directory",
+                "arm template",
+                "devops",
+            },
+            "cloud_gcp": {
+                "gcp",
+                "gce",
+                "gcs",
+                "bigquery",
+                "cloud functions",
+                "gke",
+                "secret manager",
+                "cloud run",
+            },
             # ── Container & Orchestration ──────────────────────────────────
             "container": {
-                "container", "dockerfile", "image", "layer", "registry",
-                "privileged", "root user", "capabilities", "seccomp",
-                "apparmor", "selinux", "read-only fs",
+                "container",
+                "dockerfile",
+                "image",
+                "layer",
+                "registry",
+                "privileged",
+                "root user",
+                "capabilities",
+                "seccomp",
+                "apparmor",
+                "selinux",
+                "read-only fs",
             },
             "kubernetes": {
-                "kubernetes", "k8s", "pod", "deployment", "service",
-                "ingress", "rbac", "networkpolicy", "podsecurity",
-                "etcd", "apiserver", "admission controller", "helm",
+                "kubernetes",
+                "k8s",
+                "pod",
+                "deployment",
+                "service",
+                "ingress",
+                "rbac",
+                "networkpolicy",
+                "podsecurity",
+                "etcd",
+                "apiserver",
+                "admission controller",
+                "helm",
             },
             # ── CI/CD & DevOps ────────────────────────────────────────────
             "cicd": {
-                "ci/cd", "pipeline", "github actions", "gitlab ci",
-                "jenkins", "build", "deploy", "artifact", "workflow",
-                "runner", "secret scanning", "cache poisoning",
+                "ci/cd",
+                "pipeline",
+                "github actions",
+                "gitlab ci",
+                "jenkins",
+                "build",
+                "deploy",
+                "artifact",
+                "workflow",
+                "runner",
+                "secret scanning",
+                "cache poisoning",
             },
             # ── API Security ──────────────────────────────────────────────
             "api_security": {
-                "api", "rest", "graphql", "grpc", "webhook",
-                "rate limit", "pagination", "versioning", "content negotiation",
-                "idempotency", "hateoas", "swagger", "openapi",
+                "api",
+                "rest",
+                "graphql",
+                "grpc",
+                "webhook",
+                "rate limit",
+                "pagination",
+                "versioning",
+                "content negotiation",
+                "idempotency",
+                "hateoas",
+                "swagger",
+                "openapi",
             },
             # ── Database ──────────────────────────────────────────────────
             "database": {
-                "database", "db", "mysql", "postgres", "postgresql",
-                "mongodb", "redis", "elasticsearch", "cassandra",
-                "sqlite", "oracle", "sql server", "stored procedure",
-                "query", "connection pool", "row level security",
+                "database",
+                "db",
+                "mysql",
+                "postgres",
+                "postgresql",
+                "mongodb",
+                "redis",
+                "elasticsearch",
+                "cassandra",
+                "sqlite",
+                "oracle",
+                "sql server",
+                "stored procedure",
+                "query",
+                "connection pool",
+                "row level security",
             },
             # ── Mobile ────────────────────────────────────────────────────
             "mobile": {
-                "mobile", "android", "ios", "swift", "kotlin",
-                "react native", "flutter", "xamarin", "ionic",
-                "keychain", "keystore", "deep link", "intent",
-                "webview", "biometric", "jailbreak", "root detection",
+                "mobile",
+                "android",
+                "ios",
+                "swift",
+                "kotlin",
+                "react native",
+                "flutter",
+                "xamarin",
+                "ionic",
+                "keychain",
+                "keystore",
+                "deep link",
+                "intent",
+                "webview",
+                "biometric",
+                "jailbreak",
+                "root detection",
             },
             # ── Desktop ───────────────────────────────────────────────────
             "desktop": {
-                "electron", "tauri", "nwjs", "desktop",
-                "browser extension", "chrome extension", "firefox extension",
+                "electron",
+                "tauri",
+                "nwjs",
+                "desktop",
+                "browser extension",
+                "chrome extension",
+                "firefox extension",
             },
             # ── Languages & Frameworks ────────────────────────────────────
-            "python": {"python", "django", "flask", "fastapi", "pylint", "bandit", "pip", "pyproject"},
-            "javascript": {"javascript", "nodejs", "node.js", "express", "npm", "package.json", "nextjs", "nuxt", "remix", "astro", "qwik", "svelte"},
-            "java": {"java", "spring", "tomcat", "maven", "gradle", "jvm", "jndi", "jsp", "jackson"},
-            "dotnet": {".net", "c#", "asp.net", "blazor", "nuget", "razor", "viewstate", "entity framework"},
-            "go": {"golang", "goroutine", "net/http", "gin framework", "echo framework", "fiber framework"},
+            "python": {
+                "python",
+                "django",
+                "flask",
+                "fastapi",
+                "pylint",
+                "bandit",
+                "pip",
+                "pyproject",
+            },
+            "javascript": {
+                "javascript",
+                "nodejs",
+                "node.js",
+                "express",
+                "npm",
+                "package.json",
+                "nextjs",
+                "nuxt",
+                "remix",
+                "astro",
+                "qwik",
+                "svelte",
+            },
+            "java": {
+                "java",
+                "spring",
+                "tomcat",
+                "maven",
+                "gradle",
+                "jvm",
+                "jndi",
+                "jsp",
+                "jackson",
+            },
+            "dotnet": {
+                ".net",
+                "c#",
+                "asp.net",
+                "blazor",
+                "nuget",
+                "razor",
+                "viewstate",
+                "entity framework",
+            },
+            "go": {
+                "golang",
+                "goroutine",
+                "net/http",
+                "gin framework",
+                "echo framework",
+                "fiber framework",
+            },
             "rust": {"rust", "cargo", "crate", "unsafe", "rustc", "tokio", "serde"},
             "ruby": {"ruby", "rails", "rubygems", "bundler", "erb", "devise", "activerecord"},
             "php": {"php", "laravel", "symfony", "composer", "wordpres", "drupal", "twig", "blade"},
-            "c_cpp": {"c++", "c language", "gcc", "clang", "buffer overflow", "format string", "malloc", "free"},
+            "c_cpp": {
+                "c++",
+                "c language",
+                "gcc",
+                "clang",
+                "buffer overflow",
+                "format string",
+                "malloc",
+                "free",
+            },
             # ── Compliance ────────────────────────────────────────────────
-            "compliance": {"compliance", "regulatory", "gdpr", "hipaa", "pci", "sox", "audit", "soc2", "iso27001"},
-            "privacy": {"privacy", "consent", "data retention", "anonymization", "pseudonymization", "cookie consent", "tracking", "fingerprinting"},
+            "compliance": {
+                "compliance",
+                "regulatory",
+                "gdpr",
+                "hipaa",
+                "pci",
+                "sox",
+                "audit",
+                "soc2",
+                "iso27001",
+            },
+            "privacy": {
+                "privacy",
+                "consent",
+                "data retention",
+                "anonymization",
+                "pseudonymization",
+                "cookie consent",
+                "tracking",
+                "fingerprinting",
+            },
             # ── Fraud & Business Logic ────────────────────────────────────
-            "fraud": {"fraud", "bot", "scraping", "account takeover", "credential stuffing", "payment fraud", "coupon abuse", "referral abuse"},
-            "business_logic": {"business logic", "price manipulation", "race condition", "workflow bypass", "amount tampering", "state confusion", "toctou"},
+            "fraud": {
+                "fraud",
+                "bot",
+                "scraping",
+                "account takeover",
+                "credential stuffing",
+                "payment fraud",
+                "coupon abuse",
+                "referral abuse",
+            },
+            "business_logic": {
+                "business logic",
+                "price manipulation",
+                "race condition",
+                "workflow bypass",
+                "amount tampering",
+                "state confusion",
+                "toctou",
+            },
             # ── Incident Response & Monitoring ─────────────────────────────
-            "incident": {"incident", "breach", "forensic", "containment", "recovery", "escalation", "alert"},
-            "monitoring": {"monitoring", "logging", "audit log", "siem", "detection", "alerting", "telemetry"},
+            "incident": {
+                "incident",
+                "breach",
+                "forensic",
+                "containment",
+                "recovery",
+                "escalation",
+                "alert",
+            },
+            "monitoring": {
+                "monitoring",
+                "logging",
+                "audit log",
+                "siem",
+                "detection",
+                "alerting",
+                "telemetry",
+            },
             # ── Threat Modeling ───────────────────────────────────────────
-            "threat_model": {"threat model", "stride", "attack surface", "abuse case", "risk assessment", "mitigation tracking"},
+            "threat_model": {
+                "threat model",
+                "stride",
+                "attack surface",
+                "abuse case",
+                "risk assessment",
+                "mitigation tracking",
+            },
             # ── IaC & Cloud Config ────────────────────────────────────────
             "terraform": {"terraform", "tf state", "tfvars", "provider", "module", "hcl"},
             "ansible": {"ansible", "playbook", "vault", "role", "galaxy", "inventory"},
@@ -917,15 +1334,53 @@ class DomainLoader:
             "iot": {"iot", "mqtt", "coap", "embedded", "firmware", "sensor", "actuator", "gateway"},
             "edge": {"edge", "cdn", "worker", "service worker", "cache api", "push notification"},
             # ── AI/ML ─────────────────────────────────────────────────────
-            "ai_ml": {"artificial intelligence", "machine learning", "llm", "neural network", "model training", "inference", "prompt injection", "rag", "vector database", "embedding", "fine-tune", "fine-tuning", "transformer"},
+            "ai_ml": {
+                "artificial intelligence",
+                "machine learning",
+                "llm",
+                "neural network",
+                "model training",
+                "inference",
+                "prompt injection",
+                "rag",
+                "vector database",
+                "embedding",
+                "fine-tune",
+                "fine-tuning",
+                "transformer",
+            },
             # ── Web3 & Blockchain ─────────────────────────────────────────
-            "web3": {"web3", "smart contract", "blockchain", "ethereum", "defi", "nft", "token", "oracle", "flash loan", "mev"},
+            "web3": {
+                "web3",
+                "smart contract",
+                "blockchain",
+                "ethereum",
+                "defi",
+                "nft",
+                "token",
+                "oracle",
+                "flash loan",
+                "mev",
+            },
             # ── Game Security ─────────────────────────────────────────────
-            "game": {"game", "cheat", "speed hack", "item duplication", "memory corruption", "anticheat"},
+            "game": {
+                "game",
+                "cheat",
+                "speed hack",
+                "item duplication",
+                "memory corruption",
+                "anticheat",
+            },
             # ── Post-Quantum ──────────────────────────────────────────────
             "quantum": {"quantum", "post-quantum", "lattice", "kyber", "dilithium", "nist pqc"},
             # ── Zero Trust ────────────────────────────────────────────────
-            "zero_trust": {"zero trust", "never trust", "verify every", "microsegment", "least privilege"},
+            "zero_trust": {
+                "zero trust",
+                "never trust",
+                "verify every",
+                "microsegment",
+                "least privilege",
+            },
         }
 
     def _classify_domains(self, text: str) -> set[str]:
@@ -939,9 +1394,7 @@ class DomainLoader:
                     break
         return matched
 
-    def match_finding_to_controls(
-        self, finding_type: str, file_path: str, message: str
-    ) -> list[DomainControl]:
+    def match_finding_to_controls(self, finding_type: str, file_path: str, message: str) -> list[DomainControl]:
         """Match a finding to domain controls using a pre-built keyword index.
 
         O(k) per finding where k = number of matching keywords.
@@ -1001,4 +1454,3 @@ class DomainLoader:
 
         scored.sort(key=lambda x: (-x[0], x[1].severity != "critical"))
         return [ctrl for _, ctrl in scored[:5]]
-

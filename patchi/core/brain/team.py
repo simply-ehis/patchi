@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+
 def route_to_team(root: Path, finding: dict) -> str:
     co = root / ".github/CODEOWNERS"
     if co.exists():
@@ -17,13 +18,24 @@ def route_to_team(root: Path, finding: dict) -> str:
                 return parts[-1]
     return "unassigned"
 
+
 def leaderboard(root: Path) -> list[dict]:
     try:
         # count fixes per author via git log
         import subprocess
-        out=subprocess.run(["git","log","--pretty=format:%an","--since=1.month.ago"], capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=5, cwd=str(root))
+
+        out = subprocess.run(
+            ["git", "log", "--pretty=format:%an", "--since=1.month.ago"],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=5,
+            cwd=str(root),
+        )
         from collections import Counter
-        cnt=Counter(out.stdout.splitlines()) if out.returncode==0 else Counter()
-        return [{"author": a, "fixes": c} for a,c in cnt.most_common(5)]
+
+        cnt = Counter(out.stdout.splitlines()) if out.returncode == 0 else Counter()
+        return [{"author": a, "fixes": c} for a, c in cnt.most_common(5)]
     except Exception:
         return []

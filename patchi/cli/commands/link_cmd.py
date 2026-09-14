@@ -55,7 +55,13 @@ def run(action: str | None = None, root: Path | None = None, **kwargs) -> None:
         elif sug_path.exists():
             try:
                 sug = json.loads(sug_path.read_text(encoding="utf-8"))
-                con.print(Panel(f"[yellow]Suggestion:[/yellow] frontend {sug.get('frontend')} ↔ backend {sug.get('backend')}\nRun [bold]p link confirm[/bold] to activate", border_style="#FF8C42"))
+                con.print(
+                    Panel(
+                        f"[yellow]Suggestion:[/yellow] frontend {sug.get('frontend')} ↔ backend {sug.get('backend')}\n"
+                        f"Run [bold]p link confirm[/bold] to activate",
+                        border_style="#FF8C42",
+                    )
+                )
             except Exception:
                 con.print("[dim]No linking suggestion[/dim]")
         else:
@@ -63,7 +69,6 @@ def run(action: str | None = None, root: Path | None = None, **kwargs) -> None:
         return
 
     if action == "add":
-
         # Called via registry: kwargs has frontend, backend, frontend_url, backend_url
         front = kwargs.get("frontend") or "./"
         back = kwargs.get("backend")
@@ -73,7 +78,14 @@ def run(action: str | None = None, root: Path | None = None, **kwargs) -> None:
             con.print("[red]--backend required (e.g. ../backend)[/red]")
             return
         cfg = _load_cfg(r)
-        cfg["linking"] = {"mode": "separate", "frontend": front, "backend": back, "frontend_url": furl, "backend_url": burl, "confirmed": True}
+        cfg["linking"] = {
+            "mode": "separate",
+            "frontend": front,
+            "backend": back,
+            "frontend_url": furl,
+            "backend_url": burl,
+            "confirmed": True,
+        }
         _save_cfg(r, cfg)
         con.print(f"[green]Linking added:[/green] {front} ↔ {back}")
         return

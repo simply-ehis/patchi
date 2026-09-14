@@ -21,13 +21,12 @@ async def live_tests_page(request: Request):
         test_data = (mem.get_scan_results(root) or {}).get("TestRunner", {})
     except Exception:
         test_data = {}
-    return _templates.TemplateResponse(
-        request, "live_testing.html", {"request": request, "test_data": test_data}
-    )
+    return _templates.TemplateResponse(request, "live_testing.html", {"request": request, "test_data": test_data})
 
 
 @router.get("/live-testing")
 async def live_testing_redirect():
     """Legacy path — forwards to the unified live tests page."""
     from fastapi.responses import RedirectResponse
+
     return RedirectResponse(url="/live-tests", status_code=307)

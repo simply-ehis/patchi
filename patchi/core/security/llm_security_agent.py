@@ -65,17 +65,17 @@ class LLMSecurityAgent(BaseAgent):
 
     def _scan_python(self, content: str, rel: str, result: AgentResult) -> None:
         # ── Prompt injection — user input in system prompt ─────────────────────
-        for m in re.finditer(
-            r'(?i)(?:system_prompt|system_message|prompt)\s*=\s*f["\'].*\{', content
-        ):
+        # Part 7: an f-string interpolation is not proof the value is
+        # user-controlled — MEDIUM + verify, not HIGH as fact.
+        for m in re.finditer(r'(?i)(?:system_prompt|system_message|prompt)\s*=\s*f["\'].*\{', content):
             result.add_finding(
                 Finding(
                     agent=self.name,
                     type="prompt_injection",
-                    severity=Severity.HIGH,
+                    severity=Severity.MEDIUM,
                     file=rel,
                     line=content[: m.start()].count("\n") + 1,
-                    message="User-controlled string in system prompt — potential prompt injection",
+                    message="Formatted string in system prompt — verify interpolated values are not user-controlled",
                     suggestion="Use chat template separation with instruction/data delimiters",
                     cwe="CWE-94",
                     extra={"skill": "agent-security-audit.skill"},
@@ -83,8 +83,10 @@ class LLMSecurityAgent(BaseAgent):
             )
 
         # ── Insecure output — LLM output exec/eval'd ─────────────────────────
+        # Part 7: the old alternation (`.*llm|response|result`) matched ANY
+        # line containing "response"/"result". Both sides must relate.
         for m in re.finditer(
-            r"(?i)(?:exec|eval)\s*\(\s*(?:llm\.|model\.|response|result)\s*\[", content
+            r"(?i)(?:exec|eval)\s*\(\s*(?:llm\.|model\.|response|result)\s*[\[\(.]", content
         ):
             result.add_finding(
                 Finding(
@@ -112,16 +114,14 @@ class LLMSecurityAgent(BaseAgent):
                     for child in py_ast.walk(node):
                         if isinstance(child, py_ast.Call) and isinstance(child.func, py_ast.Name):
                             if child.func.id == self_name:
-                                # Self-call — check no iteration guard
-                                body_str = (
-                                    content[node.lineno : node.end_lineno]
-                                    if hasattr(node, "end_lineno")
-                                    else ""
-                                )
-                                if (
-                                    "max_iter" not in body_str
-                                    and "depth" not in body_str
-                                    and "count" not in body_str
+                                # Self-call — check no iteration guard. Part 7:
+                                # word-boundary match on real guard names
+                                # (max_iter/max_iterations/retries/attempts), not
+                                # substrings like "indepth".
+                                body_str = content[node.lineno : node.end_lineno] if hasattr(node, "end_lineno") else ""
+                                if not re.search(
+                                    r"(?i)\b(?:max_iter\w*|max_iterations|retries|attempts|depth_limit|recursion_limit)\b",
+                                    body_str,
                                 ):
                                     result.add_finding(
                                         Finding(
@@ -140,29 +140,49 @@ class LLMSecurityAgent(BaseAgent):
             pass
 
         # ── Untrusted model source ─────────────────────────────────────────
-        bad_loads = [
+        # Part 7: from_pretrained/hub.load from the Hub is standard practice,
+        # not HIGH as fact; pickle/torch.load of .pt files IS the RCE shape.
+        _hub_loads = [
             r'(?i)AutoModel\.from_pretrained\(\s*["\'][^"\']*["\']\s*\)',
             r'(?i)torch\.hub\.load\(\s*["\'][^"\']*["\']\s*\)',
+        ]
+        _unsafe_loads = [
             r'(?i)torch\.load\(\s*["\'][^"\']*\.pt',
             r"(?i)pickle\.load",
         ]
-        for pat in bad_loads:
+        for pat in _hub_loads:
             for m in re.finditer(pat, content):
                 result.add_finding(
                     Finding(
                         agent=self.name,
                         type="untrusted_model_source",
-                        severity=Severity.HIGH,
+                        severity=Severity.MEDIUM,
                         file=rel,
                         line=content[: m.start()].count("\n") + 1,
-                        message="Model loaded from potentially untrusted source — verify origin or use safetensors",
+                        message="Model loaded from Hub — verify origin/pin digest or use safetensors",
                         suggestion="Pin model to SHA256 digest or verify source against allowlist",
                         cwe="CWE-1104",
                         extra={"skill": "llm-risk-assess.skill"},
                     )
                 )
+        for pat in _unsafe_loads:
+            for m in re.finditer(pat, content):
+                result.add_finding(
+                    Finding(
+                        agent=self.name,
+                        type="unsafe_deserialization",
+                        severity=Severity.HIGH,
+                        file=rel,
+                        line=content[: m.start()].count("\n") + 1,
+                        message="Pickle/torch.load deserialization — arbitrary code execution risk",
+                        suggestion="Use safetensors or another safe serialization format",
+                        cwe="CWE-502",
+                        extra={"skill": "llm-risk-assess.skill"},
+                    )
+                )
 
         # ── Sensitive data in prompt context ────────────────────────────────
+        # Part 7: keyword-near-llm is MEDIUM + verify, not HIGH as fact.
         for m in re.finditer(
             r'(?i)(?:db_url|api_key|password|\bsecret\b|\btoken\b).*llm\.|context.*=.*f["\']',
             content,
@@ -171,10 +191,10 @@ class LLMSecurityAgent(BaseAgent):
                 Finding(
                     agent=self.name,
                     type="sensitive_data_in_prompt",
-                    severity=Severity.HIGH,
+                    severity=Severity.MEDIUM,
                     file=rel,
                     line=content[: m.start()].count("\n") + 1,
-                    message="Sensitive data potentially passed to LLM context",
+                    message="Sensitive data potentially passed to LLM context — verify and redact",
                     suggestion="Filter or redact secrets before LLM call",
                     cwe="CWE-200",
                     extra={"skill": "llm-risk-assess.skill"},
@@ -182,9 +202,7 @@ class LLMSecurityAgent(BaseAgent):
             )
 
         # ── Tool permissions too broad ──────────────────────────────────────
-        for m in re.finditer(
-            r'(?i)permissions?\s*=\s*\["read"[,\s]*"write"[,\s]*"execute"\]', content
-        ):
+        for m in re.finditer(r'(?i)permissions?\s*=\s*\["read"[,\s]*"write"[,\s]*"execute"\]', content):
             result.add_finding(
                 Finding(
                     agent=self.name,
@@ -200,15 +218,21 @@ class LLMSecurityAgent(BaseAgent):
             )
 
         # ── Auto-approve destructive actions ───────────────────────────────
+        # Part 7: a confirmation gate on nearby lines exonerates; CRITICAL
+        # requires its absence, else HIGH + verify (a gate may live elsewhere).
         for m in re.finditer(r'(?i)agent\.run\(\s*["\'](?:delete|drop|remove|destroy)', content):
+            line_no = content[: m.start()].count("\n") + 1
+            window = "\n".join(content.splitlines()[max(0, line_no - 6):line_no + 2])
+            if re.search(r"(?i)(?:confirm|approv|human|review|gate|allowlist|whitelist)", window):
+                continue
             result.add_finding(
                 Finding(
                     agent=self.name,
                     type="excessive_agency",
-                    severity=Severity.CRITICAL,
+                    severity=Severity.HIGH,
                     file=rel,
-                    line=content[: m.start()].count("\n") + 1,
-                    message="Destructive action auto-approved — no human in the loop",
+                    line=line_no,
+                    message="Destructive action with no confirmation gate visible nearby — verify human approval",
                     suggestion="Implement confirmation gate for DELETE/DROP/REMOVE operations",
                     cwe="CWE-862",
                     extra={"skill": "agent-security-audit.skill"},
@@ -217,8 +241,11 @@ class LLMSecurityAgent(BaseAgent):
 
     def _scan_js_ts(self, content: str, rel: str, result: AgentResult) -> None:
         # ── LLM output rendered as HTML ─────────────────────────────────────
+        # Part 7: the old alternation matched ANY line with "response" in
+        # it. Sink AND source must share the line (either order).
         for m in re.finditer(
-            r"(?i)(?:innerHTML|outerHTML|\.html\(|dangerouslySetInnerHTML)\s*[=:].*llm|response|result",
+            r"(?i)(?:innerHTML|outerHTML|\.html\(|dangerouslySetInnerHTML)[^;\n]*(?:llm|response|result)"
+            r"|(?:llm|response|result)[^;\n]*(?:innerHTML|outerHTML|\.html\(|dangerouslySetInnerHTML)",
             content,
         ):
             result.add_finding(
@@ -236,15 +263,22 @@ class LLMSecurityAgent(BaseAgent):
             )
 
         # ── Tool shell injection (no validation) ───────────────────────────
+        # Part 7: shell:true is HIGH only with user-controlled input on the
+        # line; otherwise MEDIUM config smell with verify language.
         for m in re.finditer(r"(?i)shell\s*:\s*true|shell\s*=\s*true", content):
+            line_no = content[: m.start()].count("\n") + 1
+            line_text = content.splitlines()[line_no - 1] if line_no <= len(content.splitlines()) else ""
+            has_input = bool(re.search(r"(?i)(?:input|user|arg|param|query|prompt)", line_text))
             result.add_finding(
                 Finding(
                     agent=self.name,
                     type="tool_shell_injection",
-                    severity=Severity.HIGH,
+                    severity=Severity.HIGH if has_input else Severity.MEDIUM,
                     file=rel,
-                    line=content[: m.start()].count("\n") + 1,
-                    message="Tool uses shell=true without input validation",
+                    line=line_no,
+                    message="Tool uses shell=true with user-controlled input"
+                    if has_input
+                    else "Tool uses shell=true — verify inputs are validated/allowlisted",
                     suggestion="Use subprocess without shell=True, validate input against allowlist",
                     cwe="CWE-78",
                     extra={"skill": "agent-security-audit.skill"},

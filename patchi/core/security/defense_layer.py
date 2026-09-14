@@ -165,9 +165,7 @@ class DefenseLayer:
 
         target = f.file
         if action_type == "block_ip":
-            target = (
-                f.extra.get("ip", "") if hasattr(f, "extra") and isinstance(f.extra, dict) else ""
-            )
+            target = f.extra.get("ip", "") if hasattr(f, "extra") and isinstance(f.extra, dict) else ""
 
         return DefenseAction(
             type=action_type,
@@ -200,7 +198,8 @@ class DefenseLayer:
             )
             ts = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
             conn.execute(
-                "INSERT INTO defense_actions (timestamp, action, reason, target, severity, finding_type, finding_file) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                "INSERT INTO defense_actions (timestamp, action, reason, target, severity, finding_type, finding_file)"
+                " VALUES (?, ?, ?, ?, ?, ?, ?)",
                 (
                     ts,
                     result.action,

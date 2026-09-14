@@ -25,9 +25,7 @@ from patchi.core.agents.base import (
 _log = logging.getLogger("patchi.security.evidence")
 
 
-def patchi_capture_screenshot(
-    page, finding_id: str, evidence_dir: Path, step: int = 0
-) -> str | None:
+def patchi_capture_screenshot(page, finding_id: str, evidence_dir: Path, step: int = 0) -> str | None:
     """Capture a screenshot during a browser test. Returns file path."""
     try:
         evidence_dir.mkdir(parents=True, exist_ok=True)

@@ -12,6 +12,7 @@ Usage:
   p audit save [--intent "..."]   — snapshot current state as the agreed Plan
   p audit [--no-scan]             — Plan-vs-Built report card + drift
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -50,9 +51,7 @@ def _snapshot_scope(root: Path) -> dict:
         except Exception as e:
             _log.warning("_snapshot_scope failed: %s", e)
             h = ""
-        syms = sorted(
-            {f.name for f in fi.functions} | {c.name for c in fi.classes} | set(fi.exports)
-        )
+        syms = sorted({f.name for f in fi.functions} | {c.name for c in fi.classes} | set(fi.exports))
         scope[fi.path] = {"lang": fi.language.value, "symbols": syms, "hash": h}
     return scope
 
@@ -206,12 +205,8 @@ def compute_drift(root: Path, scans: dict | None = None) -> dict:
         "new_findings": max(0, current.get("total_findings", 0) - plan.get("total_findings", 0)),
         "plan_charter_violations": plan.get("charter_violations", 0),
         "built_charter_violations": current.get("charter_violations", 0),
-        "new_charter_violations": max(
-            0, current.get("charter_violations", 0) - plan.get("charter_violations", 0)
-        ),
-        "per_scanner": _diff_scanners(
-            plan.get("scan_summary", {}), current.get("scan_summary", {})
-        ),
+        "new_charter_violations": max(0, current.get("charter_violations", 0) - plan.get("charter_violations", 0)),
+        "per_scanner": _diff_scanners(plan.get("scan_summary", {}), current.get("scan_summary", {})),
         "scope_diff": scope_diff,
     }
     drift["clean"] = (
@@ -227,10 +222,7 @@ def compute_drift(root: Path, scans: dict | None = None) -> dict:
 
 
 def _summarize(scans: dict) -> dict:
-    scan_summary = {
-        name: {"finding_count": _count_findings(res), "timestamp": None}
-        for name, res in scans.items()
-    }
+    scan_summary = {name: {"finding_count": _count_findings(res), "timestamp": None} for name, res in scans.items()}
     return {
         "layers": {},
         "charter": {},
@@ -279,14 +271,12 @@ def report_card(root: Path, run_scan: bool = True) -> dict:
     if sd.get("added_files"):
         lines.append(
             f"  + Files added beyond plan ({sd['added_count']}): "
-            f"{', '.join(f for f in sd['added_files'][:8])}"
-            + (" …" if sd["added_count"] > 8 else "")
+            f"{', '.join(f for f in sd['added_files'][:8])}" + (" …" if sd["added_count"] > 8 else "")
         )
     if sd.get("removed_files"):
         lines.append(
             f"  - Files removed vs plan ({sd['removed_count']}): "
-            f"{', '.join(f for f in sd['removed_files'][:8])}"
-            + (" …" if sd["removed_count"] > 8 else "")
+            f"{', '.join(f for f in sd['removed_files'][:8])}" + (" …" if sd["removed_count"] > 8 else "")
         )
     if sd.get("modified_files"):
         lines.append(f"  ~ Files changed vs plan ({sd['modified_count']}):")
@@ -307,9 +297,7 @@ def report_card(root: Path, run_scan: bool = True) -> dict:
         lines.append(f"  Charter violations: {drift['new_charter_violations']} new")
     for row in drift["per_scanner"]:
         if row["delta"]:
-            lines.append(
-                f"    • {row['scanner']}: {row['plan']} -> {row['built']} ({row['delta']:+d})"
-            )
+            lines.append(f"    • {row['scanner']}: {row['plan']} -> {row['built']} ({row['delta']:+d})")
     status = "ON PLAN ✅" if drift["clean"] else "DRIFT DETECTED ⚠️"
     lines.insert(0, f"Plan-vs-Built: {status}")
     drift["summary"] = "\n".join(lines)
@@ -370,9 +358,7 @@ def drift_vs_plan_file(root: Path, plan_file: str | Path) -> dict:
         lines.append(f"  + Layers beyond plan: {', '.join(drift['layers_added'])}")
     if drift["layers_removed"]:
         lines.append(f"  - Layers missing vs plan: {', '.join(drift['layers_removed'])}")
-    lines.append(
-        f"  Findings: plan {plan_total} -> built {cur_total} ({drift['new_findings']} new)"
-    )
+    lines.append(f"  Findings: plan {plan_total} -> built {cur_total} ({drift['new_findings']} new)")
     if drift["new_charter_violations"]:
         lines.append(f"  Charter violations: {drift['new_charter_violations']} new")
     drift["summary"] = "\n".join(lines)

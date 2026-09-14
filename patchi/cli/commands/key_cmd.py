@@ -10,6 +10,7 @@ Subcommands:
 Keys are stored in .patchi/.env (gitignored).
 Only the nickname + provider name are stored in config.json — never the raw key.
 """
+
 from __future__ import annotations
 
 import logging
@@ -122,6 +123,7 @@ def _secure_key_input(prompt: str) -> str:
     # Try getpass first (works on most Unix, blocks paste in some PowerShell)
     try:
         import getpass
+
         return getpass.getpass(prompt + " ")
     except Exception:
         pass
@@ -129,6 +131,7 @@ def _secure_key_input(prompt: str) -> str:
     # Fallback: use rich's Prompt but without password masking
     # This allows pasting in PowerShell - the key is stored securely in .env anyway
     from rich.prompt import Prompt
+
     return Prompt.ask(prompt)
 
 
@@ -242,8 +245,7 @@ def run_add(root: Path | None = None) -> None:
 
     con.print()
     con.print(
-        f"[#4ADE80]✓[/#4ADE80] Key [bold]{nickname}[/bold] saved.\n"
-        f"[dim]Env var: {env_var} · File: .patchi/.env[/dim]"
+        f"[#4ADE80]✓[/#4ADE80] Key [bold]{nickname}[/bold] saved.\n[dim]Env var: {env_var} · File: .patchi/.env[/dim]"
     )
     con.print()
 
@@ -328,9 +330,7 @@ def run_remove(nickname: str, root: Path | None = None) -> None:
         return
 
     env_var = target.get("env_var", "")
-    con.print(
-        f"[yellow]Remove key [bold]{nickname}[/bold] ({target.get('provider', '?')})?[/yellow]"
-    )
+    con.print(f"[yellow]Remove key [bold]{nickname}[/bold] ({target.get('provider', '?')})?[/yellow]")
     if Confirm.ask("Confirm removal", default=False):
         keys = [k for k in keys if k.get("nickname") != nickname]
         cfg.set_value("ai.keys", keys, r)
@@ -378,9 +378,7 @@ def run_test(nickname: str | None = None, root: Path | None = None) -> None:
 
         api_key = os.environ.get(env_var, "")
         if not api_key:
-            con.print(
-                f"  [yellow]⚠[/yellow] [bold]{nick}[/bold] — env var {env_var} not set or empty"
-            )
+            con.print(f"  [yellow]⚠[/yellow] [bold]{nick}[/bold] — env var {env_var} not set or empty")
             continue
 
         con.print(f"  Testing [bold]{nick}[/bold] ({provider})…", end=" ")

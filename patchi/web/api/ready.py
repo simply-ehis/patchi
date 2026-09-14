@@ -38,7 +38,9 @@ async def run_ready(request: Request):
             )
         )
         all_results = {**testing, **security, **integration}
-        failed = [k for k, v in all_results.items() if v.get("status") not in ("done", "succeeded", "passed", "skipped")]
+        failed = [
+            k for k, v in all_results.items() if v.get("status") not in ("done", "succeeded", "passed", "skipped")
+        ]
         is_ready = not failed
         return {
             "ok": True,

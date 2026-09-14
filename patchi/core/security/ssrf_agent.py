@@ -67,9 +67,7 @@ class SSRFProtectionAgent(BaseAgent):
     group = AgentGroup.SECURITY
     domain = AgentDomain.SECURITY
     name = "SSRFProtectionAgent"
-    description = (
-        "SSRF protection: unvalidated URLs, internal network access, metadata endpoint exposure"
-    )
+    description = "SSRF protection: unvalidated URLs, internal network access, metadata endpoint exposure"
 
     # ── Source patterns for multi-language scanning ─────────────────────────
     _SOURCE_PATTERNS = [
@@ -222,7 +220,8 @@ class SSRFProtectionAgent(BaseAgent):
                     f"HTTP client call ({call['name']}) — verify URL is not user-controlled",
                     line=call["line"],
                     code_snippet=call["full_text"][:120],
-                    suggestion="Validate and whitelist URLs before making HTTP requests. Use URL parsing and allowlist.",
+                    suggestion="Validate and whitelist URLs before making HTTP requests. Use URL parsing and"
+                    " allowlist.",
                 )
             )
         return findings
@@ -281,7 +280,8 @@ class SSRFProtectionAgent(BaseAgent):
                         self._METADATA_MESSAGES[host],
                         line=line_num,
                         code_snippet=_snippet(line_num),
-                        suggestion="Block access to cloud metadata endpoints. Use IMDSv2 if metadata access is required.",
+                        suggestion="Block access to cloud metadata endpoints. Use IMDSv2 if metadata access is"
+                        " required.",
                     )
                 )
                 continue
@@ -403,7 +403,8 @@ class SSRFProtectionAgent(BaseAgent):
                             "Redirect with user-controlled URL — potential open redirect/SSRF",
                             line=call["line"],
                             code_snippet=call["full_text"][:120],
-                            suggestion="Validate redirect targets against an allowlist. Never redirect to user-supplied URLs.",
+                            suggestion="Validate redirect targets against an allowlist. Never redirect to"
+                            " user-supplied URLs.",
                         )
                     )
         return findings

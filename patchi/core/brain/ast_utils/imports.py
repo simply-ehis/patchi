@@ -77,9 +77,7 @@ def _ast_text(node: _py_ast.AST, source: str) -> str:
         return ""
 
 
-def _walk_imports(
-    node: Any, import_types: set[str], names: set[str], results: list[dict], lang: Lang
-) -> None:
+def _walk_imports(node: Any, import_types: set[str], names: set[str], results: list[dict], lang: Lang) -> None:
     try:
         ntype = node.type if hasattr(node, "type") else ""
     except Exception as e:
@@ -114,11 +112,7 @@ def _extract_import_name(node: Any, lang: Lang) -> str:
         return ""
     if lang in (Lang.RUST, Lang.JAVA, Lang.GO, Lang.SWIFT, Lang.C_SHARP, Lang.KOTLIN, Lang.DART):
         # Try named fields first
-        src = (
-            child_by_field(node, "source")
-            or child_by_field(node, "name")
-            or child_by_field(node, "alias")
-        )
+        src = child_by_field(node, "source") or child_by_field(node, "name") or child_by_field(node, "alias")
         if src:
             return node_text(src).strip("\"'<>")
         # Walk children for identifier / scoped_identifier / string

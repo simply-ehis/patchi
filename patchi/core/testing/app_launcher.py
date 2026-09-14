@@ -53,7 +53,7 @@ def _preferred_port(root: Path) -> int | None:
         if p and 1 <= p <= 65535:
             return p
     except Exception as _exc:
-        _log.debug('suppressed: %s', _exc)
+        _log.debug("suppressed: %s", _exc)
     try:
         env_p = int(os.environ.get("PORT", ""))
         if 1 <= env_p <= 65535:
@@ -70,7 +70,7 @@ def _preferred_port(root: Path) -> int | None:
         if m and 1 <= int(m.group(1)) <= 65535:
             return int(m.group(1))
     except Exception as _exc:
-        _log.debug('suppressed: %s', _exc)
+        _log.debug("suppressed: %s", _exc)
     return None
 
 
@@ -90,7 +90,7 @@ def _detect_start_cmd(root: Path) -> list[str] | None:
             if "start" in scripts:
                 return ["npm", "start"]
         except Exception as _exc:
-            _log.debug('suppressed: %s', _exc)
+            _log.debug("suppressed: %s", _exc)
     if "fastapi" in fws:
         # find app module
         for cand in ["app.main:app", "main:app", "server:app"]:
@@ -137,7 +137,13 @@ def ensure_running(root: Path, config: dict | None = None, extra: dict | None = 
     log_dir.mkdir(parents=True, exist_ok=True)
     log_path = log_dir / "app.log"
     try:
-        _PROC = subprocess.Popen(cmd, cwd=str(root), env=env, stdout=log_path.open("w", encoding="utf-8"), stderr=subprocess.STDOUT)
+        _PROC = subprocess.Popen(
+            cmd,
+            cwd=str(root),
+            env=env,
+            stdout=log_path.open("w", encoding="utf-8"),
+            stderr=subprocess.STDOUT,
+        )
         _PORT = port
         atexit.register(stop)
         # poll health
@@ -154,13 +160,13 @@ def ensure_running(root: Path, config: dict | None = None, extra: dict | None = 
                 if resp.status_code < 500:
                     return url
             except Exception as _exc:
-                _log.debug('suppressed: %s', _exc)
+                _log.debug("suppressed: %s", _exc)
             try:
                 resp = httpx.get(url, timeout=2)
                 if resp.status_code < 500:
                     return url
             except Exception as _exc:
-                _log.debug('suppressed: %s', _exc)
+                _log.debug("suppressed: %s", _exc)
         # fallback: try anyway if process still alive
         if _PROC.poll() is None:
             return url
@@ -179,6 +185,6 @@ def stop() -> None:
             try:
                 _PROC.kill()
             except Exception as _exc:
-                _log.debug('suppressed: %s', _exc)
+                _log.debug("suppressed: %s", _exc)
     _PROC = None
     _PORT = None

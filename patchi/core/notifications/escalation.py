@@ -8,6 +8,7 @@ escalation fires to the next channel in the notification list.
 Ack store persists to .patchi/escalation.json.
 `p notify ack [id]` calls EscalationTracker.acknowledge(id).
 """
+
 from __future__ import annotations
 
 import json

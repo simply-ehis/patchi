@@ -189,8 +189,6 @@ def _generate_updated_recommendations(
     covered = set(model.by_category.keys())
     for cat in category_counts:
         if cat not in covered and category_counts[cat] >= 2:
-            recs.append(
-                f"Add threat scenarios for '{cat}' — {category_counts[cat]} findings detected"
-            )
+            recs.append(f"Add threat scenarios for '{cat}' — {category_counts[cat]} findings detected")
 
     return recs[:10]

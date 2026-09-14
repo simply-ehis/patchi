@@ -7,6 +7,7 @@ Covers §3.3.1-2:
 - Parse Next.js (file-based /app/ or /pages/)
 - Cross-ref link usages (<Link to=>, navigate()) against route inventory
 """
+
 from __future__ import annotations
 
 import logging
@@ -63,20 +64,11 @@ def _extract_file_based_routes(root: Path, base_dir: str) -> list[str]:
             rel = fp.relative_to(root).as_posix()
             route = rel.replace(base_dir + "/", "/").replace("\\", "/")
             route = route.replace("/index.", "/").replace("/page.", "/")
-            route = (
-                route.replace("/(.)", "")
-                .replace("/[...", "/:")
-                .replace("/[", "/:")
-                .replace("]", "")
-            )
+            route = route.replace("/(.)", "").replace("/[...", "/:").replace("/[", "/:").replace("]", "")
             route = re.sub(r"\.[a-z]+$", "", route)
             if route not in ("", "/"):
                 routes.append(route)
-        if (
-            fp.name.startswith("+page.svelte")
-            or fp.name.startswith("page.tsx")
-            or fp.name.startswith("page.jsx")
-        ):
+        if fp.name.startswith("+page.svelte") or fp.name.startswith("page.tsx") or fp.name.startswith("page.jsx"):
             rel = fp.relative_to(root).as_posix()
             parent = rel.rsplit("/", 1)[0] if "/" in rel else ""
             route = "/" + parent.replace(base_dir + "/", "")
@@ -166,9 +158,7 @@ class SPARouteInventoryAgent(BaseAgent):
                     _log.warning("SPARouteInventoryAgent._run failed: %s", e)
                     continue
                 for link in _find_links(content):
-                    if link not in routes and not any(
-                        route.startswith(link.rstrip("/")) for route in routes
-                    ):
+                    if link not in routes and not any(route.startswith(link.rstrip("/")) for route in routes):
                         dead_links.append({"file": rel, "link": link})
 
         result.data["routes"] = routes

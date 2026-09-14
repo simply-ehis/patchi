@@ -72,12 +72,10 @@ class SemgrepAgent(BaseAgent):
                 result.status = AgentStatus.DONE
                 return
 
-        # Fallback: use existing patterns but with false-positive filtering
-        result.data["tool_missing"] = "semgrep"
-        result.data["install_hint"] = "pip install semgrep"
-        fallback_findings = self._run_fallback_regex(scan_root, inp.scope)
-        result.findings.extend(fallback_findings)
-        result.status = AgentStatus.DONE
+        # Part 3 §2.5: no semgrep → the "fallback" is an empty list, which
+        # would report DONE with 0 findings — indistinguishable from a clean
+        # scan. Skip with the distinct tool-missing status instead.
+        self.skip_for_tool(result, "semgrep")
 
     def _is_semgrep_available(self) -> bool:
         """Check if semgrep is installed."""

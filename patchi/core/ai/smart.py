@@ -161,9 +161,7 @@ class SmartAgent:
     async def run(self, goal: str, max_steps: int = 6) -> dict:
         realize.set_event_sink(self._sink)
         self.on_progress(f"SmartAgent: goal = {goal!r}")
-        self._emit(
-            "agent.progress", {"agent": "smart", "progress_pct": 0, "current_file": "planning"}
-        )
+        self._emit("agent.progress", {"agent": "smart", "progress_pct": 0, "current_file": "planning"})
 
         plan = self._plan(goal)
         # Merge Council suggestions (the "dynamic brain with councils/personas").
@@ -190,14 +188,10 @@ class SmartAgent:
             name = step["tool"]
             params = step["parameters"]
             pct = int((i) / max(1, len(plan)) * 100)
-            self._emit(
-                "agent.progress", {"agent": "smart", "progress_pct": pct, "current_file": name}
-            )
+            self._emit("agent.progress", {"agent": "smart", "progress_pct": pct, "current_file": name})
             self.on_progress(f"SmartAgent: step {i + 1}/{len(plan)} -> {name}")
             try:
-                res = await executor.execute(
-                    name, params, invoked_by="council", skip_confirmation=True
-                )
+                res = await executor.execute(name, params, invoked_by="council", skip_confirmation=True)
             except Exception as e:
                 res = type("R", (), {"success": False, "error": str(e), "result": None})()
             ok = getattr(res, "success", False)
@@ -224,9 +218,7 @@ class SmartAgent:
                 # Non-fatal; keep going with whatever else is planned.
                 pass
 
-        self._emit(
-            "agent.progress", {"agent": "smart", "progress_pct": 100, "current_file": "done"}
-        )
+        self._emit("agent.progress", {"agent": "smart", "progress_pct": 100, "current_file": "done"})
         self._emit(
             "agent.completed",
             {"agent": "smart", "findings_count": total_findings, "steps": len(step_results)},
@@ -275,15 +267,10 @@ class SmartAgent:
             )
         if tool == "check_compliance":
             return (
-                f"{data.get('total_findings', 0)} compliance findings across "
-                f"{len(data.get('controls', {}))} controls"
+                f"{data.get('total_findings', 0)} compliance findings across {len(data.get('controls', {}))} controls"
             )
         if tool == "screenshot":
-            return (
-                "screenshot captured"
-                if data.get("success")
-                else f"screenshot FAILED: {data.get('error', '')}"
-            )
+            return "screenshot captured" if data.get("success") else f"screenshot FAILED: {data.get('error', '')}"
         return (data.get("message") or data.get("error") or str(data))[:160]
 
     def _emit(self, event: str, data: dict) -> None:

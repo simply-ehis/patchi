@@ -81,9 +81,7 @@ def run(
         label = _PRIORITY_LABEL.get(pri, "other")
         safe = "[#4ADE80]safe[/#4ADE80]" if f.safe else "[#FACC15]review[/#FACC15]"
         table.add_row(str(i), label, safe, f.fix_type, f.file, f.description)
-    con.print(
-        f"[bold #C8621A]Prioritized Fix List[/bold #C8621A]  [dim]({len(fixes)} item(s))[/dim]"
-    )
+    con.print(f"[bold #C8621A]Prioritized Fix List[/bold #C8621A]  [dim]({len(fixes)} item(s))[/dim]")
     con.print(table)
     con.print()
 

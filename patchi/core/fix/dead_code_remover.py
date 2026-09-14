@@ -63,9 +63,7 @@ class DeadCodeRemover(BaseAgent):
 
             skip_reason = _safety_check(path, file_path, inp.root)
             if skip_reason:
-                result.data.setdefault("skipped", []).append(
-                    {"file": file_path, "reason": skip_reason}
-                )
+                result.data.setdefault("skipped", []).append({"file": file_path, "reason": skip_reason})
                 continue
 
             blast_radius = compute_blast_radius(file_path, inp.root)

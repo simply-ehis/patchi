@@ -115,18 +115,33 @@ def main() -> int:
 
     # v1 workflow pages + v2 intelligence pages + hosted, all under one nav
     for path, marker in (
-        ("/findings", None), ("/review", None), ("/chat", None), ("/guard", None),
-        ("/brain-map", None), ("/council", "Council"), ("/attack-timeline", None),
-        ("/live-tests", None), ("/hosted", "Hosted"),
+        ("/findings", None),
+        ("/review", None),
+        ("/chat", None),
+        ("/guard", None),
+        ("/brain-map", None),
+        ("/council", "Council"),
+        ("/attack-timeline", None),
+        ("/live-tests", None),
+        ("/hosted", "Hosted"),
     ):
         status, body = http_get(path)
         ok = status == 200 and (marker is None or marker in body)
         check(f"GET {path}", ok, f"status={status}")
 
-    nav_ok = all(f'href="{p}"' in landing for p in (
-        "/brain-map", "/council", "/attack-timeline", "/live-tests",
-        "/findings", "/review", "/chat", "/hosted",
-    ))
+    nav_ok = all(
+        f'href="{p}"' in landing
+        for p in (
+            "/brain-map",
+            "/council",
+            "/attack-timeline",
+            "/live-tests",
+            "/findings",
+            "/review",
+            "/chat",
+            "/hosted",
+        )
+    )
     check("unified nav links all sections", nav_ok)
 
     # Static assets
@@ -203,6 +218,7 @@ def _check_ws() -> tuple[bool, str]:
     except ImportError:
         return True, "(websockets lib not installed — skipped)"
     try:
+
         async def go():
             async with websockets.connect(f"ws://127.0.0.1:{PORT}/ws/v2", open_timeout=10) as ws:
                 raw = await asyncio.wait_for(ws.recv(), timeout=10)

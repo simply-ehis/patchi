@@ -37,7 +37,7 @@ async def assurance(request: Request):
         confirmed = [r for r in attack_results if r.confirmed]
         attacker_results = [r.to_dict() for r in confirmed[:20]]
     except Exception as _exc:
-        _log.warning('assurance failed: %s', _exc)
+        _log.warning("assurance failed: %s", _exc)
 
     # Run campaigns
     campaign_results = []
@@ -48,7 +48,7 @@ async def assurance(request: Request):
         result = orch.run_all()
         campaign_results = [c.to_dict() for c in result.campaigns]
     except Exception as _exc:
-        _log.warning('assurance failed: %s', _exc)
+        _log.warning("assurance failed: %s", _exc)
 
     # Fuzz stats
     fuzz_endpoints = len([c for c in graph.claims.values() if "endpoint" in c.domain])
@@ -59,6 +59,7 @@ async def assurance(request: Request):
     dast_target = ""
     try:
         from patchi.core import memory as mem
+
         mem.get_brain(root)
         scan_results = mem.get_scan_results(root)
         if "DASTAgent" in scan_results:
@@ -66,15 +67,17 @@ async def assurance(request: Request):
             dast_tests_run = dast_data.get("tests_run", 0)
             dast_target = dast_data.get("target_url", "")
             for f in dast_data.get("findings", []):
-                dast_findings.append({
-                    "type": f.get("type", "dast_unknown"),
-                    "severity": f.get("severity", "low"),
-                    "message": f.get("message", ""),
-                    "file": f.get("file", dast_target),
-                    "suggestion": f.get("suggestion", ""),
-                    "code_snippet": (f.get("code_snippet", "") or "")[:500],
-                    "source": "dast",
-                })
+                dast_findings.append(
+                    {
+                        "type": f.get("type", "dast_unknown"),
+                        "severity": f.get("severity", "low"),
+                        "message": f.get("message", ""),
+                        "file": f.get("file", dast_target),
+                        "suggestion": f.get("suggestion", ""),
+                        "code_snippet": (f.get("code_snippet", "") or "")[:500],
+                        "source": "dast",
+                    }
+                )
         # Also load static analysis findings for cross-correlation
         static_high = []
         for agent_name, data in scan_results.items():
@@ -82,31 +85,30 @@ async def assurance(request: Request):
                 continue
             for f in data.get("findings", []):
                 if f.get("severity") in ("critical", "high"):
-                    static_high.append({
-                        "agent": agent_name,
-                        "type": f.get("type", ""),
-                        "severity": f.get("severity", ""),
-                        "message": f.get("message", ""),
-                        "file": f.get("file", ""),
-                    })
+                    static_high.append(
+                        {
+                            "agent": agent_name,
+                            "type": f.get("type", ""),
+                            "severity": f.get("severity", ""),
+                            "message": f.get("message", ""),
+                            "file": f.get("file", ""),
+                        }
+                    )
     except Exception as _exc:
-        _log.warning('assurance failed: %s', _exc)
+        _log.warning("assurance failed: %s", _exc)
 
     # Correlate DAST findings with static analysis findings (same severity/type)
     dast_correlations = []
     for df in dast_findings:
-        matches = [
-            s for s in static_high
-            if s["severity"] == df["severity"] or s["type"] in df["type"]
-        ]
+        matches = [s for s in static_high if s["severity"] == df["severity"] or s["type"] in df["type"]]
         if matches:
-            dast_correlations.append({
-                "dast": df,
-                "static_matches": matches[:3],  # max 3 per DAST finding
-            })
-    dast_uncorrelated = [f for f in dast_findings if not any(
-        c["dast"] == f for c in dast_correlations
-    )]
+            dast_correlations.append(
+                {
+                    "dast": df,
+                    "static_matches": matches[:3],  # max 3 per DAST finding
+                }
+            )
+    dast_uncorrelated = [f for f in dast_findings if not any(c["dast"] == f for c in dast_correlations)]
 
     # Build claims data for the template
     claims_data = []
@@ -128,9 +130,7 @@ async def assurance(request: Request):
 
     # Chain/intent claims (from chain_to_assurance bridge)
     chain_claims = [c for c in claims_data if c["domain"] in ("exploit-chain", "intent-gap")]
-    invariant_claims = [
-        c for c in claims_data if c["domain"] not in ("exploit-chain", "intent-gap")
-    ]
+    invariant_claims = [c for c in claims_data if c["domain"] not in ("exploit-chain", "intent-gap")]
 
     # Load raw chain data for the chain explorer tab
     chain_raw = []
@@ -142,7 +142,7 @@ async def assurance(request: Request):
             ci = json.loads(ci_path.read_text(encoding="utf-8"))
             chain_raw = ci.get("chains", [])
     except Exception as _exc:
-        _log.warning('assurance failed: %s', _exc)
+        _log.warning("assurance failed: %s", _exc)
 
     return templates.TemplateResponse(
         request,
@@ -189,7 +189,7 @@ async def assurance_api(request: Request) -> JSONResponse:
         attacker_count = len(attack_results)
         confirmed_count = len(confirmed)
     except Exception as _exc:
-        _log.warning('assurance_api failed: %s', _exc)
+        _log.warning("assurance_api failed: %s", _exc)
 
     # Run campaigns
     campaign_data = []
@@ -200,7 +200,7 @@ async def assurance_api(request: Request) -> JSONResponse:
         result = orch.run_all()
         campaign_data = [c.to_dict() for c in result.campaigns]
     except Exception as _exc:
-        _log.warning('assurance_api failed: %s', _exc)
+        _log.warning("assurance_api failed: %s", _exc)
 
     return JSONResponse(
         {
@@ -230,12 +230,14 @@ async def assurance_heatmap(request: Request) -> JSONResponse:
         proved = counts.get("proved", 0)
         domain_total = counts.get("total", 0)
         pct = round(proved / domain_total * 100) if domain_total > 0 else 0
-        tiles.append({
-            "domain": domain,
-            "proved": proved,
-            "total": domain_total,
-            "coverage_pct": pct,
-        })
+        tiles.append(
+            {
+                "domain": domain,
+                "proved": proved,
+                "total": domain_total,
+                "coverage_pct": pct,
+            }
+        )
     # Sort by coverage ascending (worst first)
     tiles.sort(key=lambda t: t["coverage_pct"])
 
@@ -246,16 +248,18 @@ async def assurance_heatmap(request: Request) -> JSONResponse:
     not_proved_total = by_verdict.get("not_proved", 0)
     overall_pct = round(proved_total / total * 100) if total > 0 else 0
 
-    return JSONResponse({
-        "ok": True,
-        "overall_pct": overall_pct,
-        "total_claims": total,
-        "proved": proved_total,
-        "disproved": disproved_total,
-        "unproven": unproven_total,
-        "not_proved": not_proved_total,
-        "tiles": tiles,
-    })
+    return JSONResponse(
+        {
+            "ok": True,
+            "overall_pct": overall_pct,
+            "total_claims": total,
+            "proved": proved_total,
+            "disproved": disproved_total,
+            "unproven": unproven_total,
+            "not_proved": not_proved_total,
+            "tiles": tiles,
+        }
+    )
 
 
 @router.post("/api/assurance/run-dast")
@@ -268,6 +272,7 @@ async def run_dast_scan(request: Request):
 
         from patchi.core import memory as mem
         from patchi.core.security.dast_agent import DASTAgent
+
         target_url = None
         for port in (8000, 3000, 5000, 8080, 1612):
             url = f"http://127.0.0.1:{port}"
@@ -280,10 +285,12 @@ async def run_dast_scan(request: Request):
                 continue
 
         if not target_url:
-            return JSONResponse({
-                "ok": False,
-                "error": "No running app found. Start your app first (e.g. p web).",
-            })
+            return JSONResponse(
+                {
+                    "ok": False,
+                    "error": "No running app found. Start your app first (e.g. p web).",
+                }
+            )
 
         # Run DAST agent
         agent = DASTAgent(root)
@@ -298,13 +305,15 @@ async def run_dast_scan(request: Request):
         }
         mem.save_scan_results(scan_results, root)
 
-        return JSONResponse({
-            "ok": True,
-            "target_url": target_url,
-            "tests_run": result.get("tests_run", 0),
-            "findings_count": len(result.get("findings", [])),
-            "findings": result.get("findings", []),
-        })
+        return JSONResponse(
+            {
+                "ok": True,
+                "target_url": target_url,
+                "tests_run": result.get("tests_run", 0),
+                "findings_count": len(result.get("findings", [])),
+                "findings": result.get("findings", []),
+            }
+        )
     except Exception as e:
         return JSONResponse({"ok": False, "error": str(e)})
 
@@ -322,30 +331,34 @@ async def list_dast_screenshots(request: Request):
     if evidence_dir.is_dir():
         for f in sorted(evidence_dir.rglob("*.png"), key=lambda x: x.stat().st_mtime, reverse=True):
             try:
-                screenshots.append({
-                    "path": str(f.relative_to(root)),
-                    "name": f.stem,
-                    "timestamp": datetime.fromtimestamp(f.stat().st_mtime, UTC).isoformat(),
-                    "size": f.stat().st_size,
-                    "source": "dast",
-                })
+                screenshots.append(
+                    {
+                        "path": str(f.relative_to(root)),
+                        "name": f.stem,
+                        "timestamp": datetime.fromtimestamp(f.stat().st_mtime, UTC).isoformat(),
+                        "size": f.stat().st_size,
+                        "source": "dast",
+                    }
+                )
             except Exception as _exc:
-                _log.warning('list_dast_screenshots failed: %s', _exc)
+                _log.warning("list_dast_screenshots failed: %s", _exc)
 
     # Scan visual_baselines/current/ directory
     current_dir = visual_dir / "current"
     if current_dir.is_dir():
         for f in sorted(current_dir.rglob("*.png"), key=lambda x: x.stat().st_mtime, reverse=True):
             try:
-                screenshots.append({
-                    "path": str(f.relative_to(root)),
-                    "name": f.stem,
-                    "timestamp": datetime.fromtimestamp(f.stat().st_mtime, UTC).isoformat(),
-                    "size": f.stat().st_size,
-                    "source": "visual",
-                })
+                screenshots.append(
+                    {
+                        "path": str(f.relative_to(root)),
+                        "name": f.stem,
+                        "timestamp": datetime.fromtimestamp(f.stat().st_mtime, UTC).isoformat(),
+                        "size": f.stat().st_size,
+                        "source": "visual",
+                    }
+                )
             except Exception as _exc:
-                _log.warning('list_dast_screenshots failed: %s', _exc)
+                _log.warning("list_dast_screenshots failed: %s", _exc)
 
     # Scan visual_baselines/baselines/ directory (saved baselines)
     baselines_dir = visual_dir / "baselines"
@@ -357,22 +370,27 @@ async def list_dast_screenshots(request: Request):
                 meta = {}
                 if meta_file.exists():
                     import json
-                    meta = json.loads(meta_file.read_text(encoding="utf-8"))
-                baselines.append({
-                    "path": str(f.relative_to(root)),
-                    "name": f.stem,
-                    "timestamp": meta.get("created_at", datetime.fromtimestamp(f.stat().st_mtime, UTC).isoformat()),
-                    "size": f.stat().st_size,
-                })
-            except Exception as _exc:
-                _log.warning('list_dast_screenshots failed: %s', _exc)
 
-    return JSONResponse({
-        "ok": True,
-        "screenshots": screenshots[:50],  # Limit to 50 most recent
-        "baselines": baselines[:20],  # Limit to 20 baselines
-        "total": len(screenshots),
-    })
+                    meta = json.loads(meta_file.read_text(encoding="utf-8"))
+                baselines.append(
+                    {
+                        "path": str(f.relative_to(root)),
+                        "name": f.stem,
+                        "timestamp": meta.get("created_at", datetime.fromtimestamp(f.stat().st_mtime, UTC).isoformat()),
+                        "size": f.stat().st_size,
+                    }
+                )
+            except Exception as _exc:
+                _log.warning("list_dast_screenshots failed: %s", _exc)
+
+    return JSONResponse(
+        {
+            "ok": True,
+            "screenshots": screenshots[:50],  # Limit to 50 most recent
+            "baselines": baselines[:20],  # Limit to 20 baselines
+            "total": len(screenshots),
+        }
+    )
 
 
 @router.get("/api/assurance/screenshot/{path:path}")
@@ -391,6 +409,7 @@ async def serve_screenshot(path: str, request: Request):
         return JSONResponse({"error": "File not found"}, status_code=404)
 
     from starlette.responses import FileResponse
+
     return FileResponse(file_path, media_type="image/png")
 
 
@@ -407,6 +426,7 @@ async def fix_security_headers(request: Request):
 
     # Get DAST findings from memory
     from patchi.core import memory as mem
+
     scan_results = mem.get_scan_results(root)
     dast_findings = []
 
@@ -418,25 +438,30 @@ async def fix_security_headers(request: Request):
                 dast_findings.append(f)
 
     if not dast_findings:
-        return JSONResponse({
-            "ok": True,
-            "message": "No header findings to fix",
-            "fixed_count": 0,
-        })
+        return JSONResponse(
+            {
+                "ok": True,
+                "message": "No header findings to fix",
+                "fixed_count": 0,
+            }
+        )
 
     # Apply fixes
     from patchi.core.security.auto_fixer import fix_missing_headers
+
     result = fix_missing_headers(root, dast_findings, apply=not dry_run)
 
-    return JSONResponse({
-        "ok": True,
-        "dry_run": dry_run,
-        "fixed_count": result.get("fixed_count", 0),
-        "fixes": result.get("fixes", []),
-        "skipped": result.get("skipped", []),
-        "file": result.get("file"),
-        "error": result.get("error"),
-    })
+    return JSONResponse(
+        {
+            "ok": True,
+            "dry_run": dry_run,
+            "fixed_count": result.get("fixed_count", 0),
+            "fixes": result.get("fixes", []),
+            "skipped": result.get("skipped", []),
+            "file": result.get("file"),
+            "error": result.get("error"),
+        }
+    )
 
 
 @router.get("/api/assurance/videos")
@@ -465,24 +490,28 @@ async def list_dast_videos(request: Request):
                     seen.add(resolved)
 
                     stat = f.stat()
-                    videos.append({
-                        "name": f.stem,
-                        "filename": f.name,
-                        "path": str(f.relative_to(root)),
-                        "size_bytes": stat.st_size,
-                        "size_kb": round(stat.st_size / 1024, 1),
-                        "timestamp": datetime.fromtimestamp(stat.st_mtime, UTC).isoformat(),
-                        "source_dir": str(video_dir.relative_to(root)),
-                    })
+                    videos.append(
+                        {
+                            "name": f.stem,
+                            "filename": f.name,
+                            "path": str(f.relative_to(root)),
+                            "size_bytes": stat.st_size,
+                            "size_kb": round(stat.st_size / 1024, 1),
+                            "timestamp": datetime.fromtimestamp(stat.st_mtime, UTC).isoformat(),
+                            "source_dir": str(video_dir.relative_to(root)),
+                        }
+                    )
                 except Exception as _exc:
-                    _log.warning('list_dast_videos failed: %s', _exc)
+                    _log.warning("list_dast_videos failed: %s", _exc)
 
-    return JSONResponse({
-        "ok": True,
-        "videos": videos[:50],
-        "total": len(videos),
-        "total_size_kb": round(sum(v["size_kb"] for v in videos), 1),
-    })
+    return JSONResponse(
+        {
+            "ok": True,
+            "videos": videos[:50],
+            "total": len(videos),
+            "total_size_kb": round(sum(v["size_kb"] for v in videos), 1),
+        }
+    )
 
 
 @router.get("/api/assurance/video/{filename}")
@@ -506,6 +535,7 @@ async def serve_dast_video(filename: str, request: Request):
 
             media_type = "video/webm" if file_path.suffix == ".webm" else "video/mp4"
             from starlette.responses import FileResponse
+
             return FileResponse(file_path, media_type=media_type)
 
     return JSONResponse({"error": "Video not found"}, status_code=404)
@@ -526,16 +556,20 @@ async def assurance_trend(request: Request) -> JSONResponse:
         for dom, dom_data in snap.get("by_domain", {}).items():
             if dom not in domain_trends:
                 domain_trends[dom] = []
-            domain_trends[dom].append({
-                "t": ts,
-                "pct": dom_data.get("pct", 0),
-                "proved": dom_data.get("proved", 0),
-                "total": dom_data.get("total", 0),
-            })
+            domain_trends[dom].append(
+                {
+                    "t": ts,
+                    "pct": dom_data.get("pct", 0),
+                    "proved": dom_data.get("proved", 0),
+                    "total": dom_data.get("total", 0),
+                }
+            )
 
-    return JSONResponse({
-        "ok": True,
-        "snapshots": history,
-        "count": len(history),
-        "domain_trends": domain_trends,
-    })
+    return JSONResponse(
+        {
+            "ok": True,
+            "snapshots": history,
+            "count": len(history),
+            "domain_trends": domain_trends,
+        }
+    )

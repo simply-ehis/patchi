@@ -59,7 +59,19 @@ class VisualRegressionAgent(BaseAgent):
         try:
             from playwright.sync_api import sync_playwright  # noqa: F401
         except ImportError:
-            self.skip(result, "playwright not installed — pip install playwright && playwright install chromium")
+            self.skip(
+                result,
+                "playwright not installed — pip install playwright && playwright install chromium",
+            )
+            return
+        # Part 3 §2.6: the pip package alone is not enough — the browser
+        # binaries are a separate install step. One shared check everywhere.
+        from patchi.core.agents.tool_health import playwright_ready
+
+        pw_ok, pw_hint = playwright_ready()
+        if not pw_ok:
+            self.skip(result, pw_hint)
+            return
             return
 
         base_url = find_server(inp.root, inp.config, inp.extra)
@@ -107,8 +119,11 @@ class VisualRegressionAgent(BaseAgent):
                                     severity=Severity.HIGH,
                                     file=route,
                                     message=f"HTTP {page_session.status} on {route} ({vp['label']})",
-                                    extra={"viewport": vp["label"], "status": page_session.status,
-                                           "screenshot": rel},
+                                    extra={
+                                        "viewport": vp["label"],
+                                        "status": page_session.status,
+                                        "screenshot": rel,
+                                    },
                                 )
                             )
                         for ce in page_session.console_errors[:5]:
@@ -136,8 +151,11 @@ class VisualRegressionAgent(BaseAgent):
                                     severity=Severity.INFO,
                                     file=route,
                                     message=f"New baseline created: {slug} ({vp['label']})",
-                                    extra={"viewport": vp["label"], "screenshot": rel,
-                                           "baseline": str(base_shot.relative_to(inp.root))},
+                                    extra={
+                                        "viewport": vp["label"],
+                                        "screenshot": rel,
+                                        "baseline": str(base_shot.relative_to(inp.root)),
+                                    },
                                 )
                             )
                         else:
@@ -150,12 +168,16 @@ class VisualRegressionAgent(BaseAgent):
                                         finding_type="visual_regression",
                                         severity=Severity.MEDIUM,
                                         file=route,
-                                        message=f"Visual change on {route} ({vp['label']}): {len(changed)} region(s) changed",
+                                        message=f"Visual change on {route} ({vp['label']}): {len(changed)} region(s)"
+                                        f" changed",
                                         detail=f"Baseline: {base_shot.name}\nCurrent: {shot_path.name}",
-                                        extra={"viewport": vp["label"], "screenshot": rel,
-                                               "baseline": str(base_shot.relative_to(inp.root)),
-                                               "diff": str(diff_path.relative_to(inp.root)) if diff_path else None,
-                                               "regions": len(changed)},
+                                        extra={
+                                            "viewport": vp["label"],
+                                            "screenshot": rel,
+                                            "baseline": str(base_shot.relative_to(inp.root)),
+                                            "diff": str(diff_path.relative_to(inp.root)) if diff_path else None,
+                                            "regions": len(changed),
+                                        },
                                     )
                                 )
                                 # refresh baseline so next run compares against now-current
@@ -171,7 +193,8 @@ class VisualRegressionAgent(BaseAgent):
                     finding_type="visual_summary",
                     severity=Severity.INFO,
                     file="(all pages)",
-                    message=f"Visual regression PASSED: {shots} screenshots, 0 regressions, {new_baselines} new baselines",
+                    message=f"Visual regression PASSED: {shots} screenshots, 0 regressions, {new_baselines} new"
+                    f" baselines",
                 )
             )
         elif shots > 0:
@@ -181,7 +204,8 @@ class VisualRegressionAgent(BaseAgent):
                     finding_type="visual_summary",
                     severity=Severity.MEDIUM,
                     file="(all pages)",
-                    message=f"Visual regression: {regressions} changes, {error_pages} error pages across {shots} screenshots",
+                    message=f"Visual regression: {regressions} changes, {error_pages} error pages across {shots}"
+                    f" screenshots",
                 )
             )
 
@@ -253,7 +277,7 @@ class VisualRegressionAgent(BaseAgent):
 
         out = curr.copy()
         d = ImageDraw.Draw(out)
-        for (x, y, w, h) in changed:
+        for x, y, w, h in changed:
             d.rectangle([x, y, x + w, y + h], outline=(255, 0, 0), width=2)
         diff_path = out_dir / f"{slug}_{label}_diff.png"
         out.save(str(diff_path))

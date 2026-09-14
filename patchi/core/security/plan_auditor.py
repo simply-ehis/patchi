@@ -69,9 +69,7 @@ class PlanAuditorAgent(BaseAgent):
     def _check_security_agents(self, root: Path, result: AgentResult) -> None:
         """Verify all registered security agents are imported in security_agents.py."""
         expected_agents = [
-            a.name
-            for a in list_agents()
-            if a.group == AgentGroup.SECURITY or a.name == "PlanAuditorAgent"
+            a.name for a in list_agents() if a.group == AgentGroup.SECURITY or a.name == "PlanAuditorAgent"
         ]
 
         sec_file = root / "patchi" / "core" / "security" / "security_agents.py"

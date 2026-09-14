@@ -88,11 +88,13 @@ async def set_charter(request: Request) -> JSONResponse:
             charter = Charter(text=text, rules=rules)
             save_charter(charter, root)
 
-            return JSONResponse({
-                "ok": True,
-                "rule_count": len(rules),
-                "rules": [r.to_dict() for r in rules],
-            })
+            return JSONResponse(
+                {
+                    "ok": True,
+                    "rule_count": len(rules),
+                    "rules": [r.to_dict() for r in rules],
+                }
+            )
     except Exception as e:
         _log.error("Failed to set charter: %s", e)
         return JSONResponse({"ok": False, "error": str(e)})
@@ -127,11 +129,13 @@ async def check_violations(request: Request) -> JSONResponse:
         except Exception as e:
             _log.debug("Check failed: %s", e)
 
-        return JSONResponse({
-            "ok": True,
-            "violations": violations,
-            "rule_count": len(charter.rules),
-        })
+        return JSONResponse(
+            {
+                "ok": True,
+                "violations": violations,
+                "rule_count": len(charter.rules),
+            }
+        )
 
 
 @router.post("/api/charter/autofix")
@@ -164,34 +168,46 @@ async def charter_autofix(request: Request) -> JSONResponse:
 
         charter = load_charter(root)
         if not charter.rules:
-            return JSONResponse({
-                "ok": True,
-                "message": "No charter set. Set a charter first.",
-                "report": None,
-            })
+            return JSONResponse(
+                {
+                    "ok": True,
+                    "message": "No charter set. Set a charter first.",
+                    "report": None,
+                }
+            )
 
         # Collect files to check
         if paths:
-            file_paths = [Path(p) for p in paths if (Path(p).is_file() if not Path(p).is_absolute() else Path(p).is_file())]
+            file_paths = [
+                Path(p) for p in paths if (Path(p).is_file() if not Path(p).is_absolute() else Path(p).is_file())
+            ]
         else:
             # Default: scan all Python files in the project
-            file_paths = [f for f in root.rglob("*.py") if f.is_file() and ".patchi" not in str(f) and "node_modules" not in str(f)]
+            file_paths = [
+                f
+                for f in root.rglob("*.py")
+                if f.is_file() and ".patchi" not in str(f) and "node_modules" not in str(f)
+            ]
             # Limit to 500 files for performance
             file_paths = file_paths[:500]
 
         if not file_paths:
-            return JSONResponse({
-                "ok": True,
-                "message": "No files found to check",
-                "report": None,
-            })
+            return JSONResponse(
+                {
+                    "ok": True,
+                    "message": "No files found to check",
+                    "report": None,
+                }
+            )
 
         report = proactive_fix_files(root, file_paths, apply=not preview)
-        return JSONResponse({
-            "ok": True,
-            "preview": preview,
-            "report": report.to_dict(),
-        })
+        return JSONResponse(
+            {
+                "ok": True,
+                "preview": preview,
+                "report": report.to_dict(),
+            }
+        )
 
 
 @router.get("/api/charter/fix-history")
@@ -200,6 +216,7 @@ async def get_fix_history(request: Request) -> JSONResponse:
     root = request.app.state.root
     try:
         from patchi.core.brain.proactive import load_fix_history
+
         history = load_fix_history(root, limit=20)
         return JSONResponse({"ok": True, "history": history})
     except Exception as e:
@@ -221,6 +238,7 @@ async def revert_fix(request: Request) -> JSONResponse:
 
     try:
         from patchi.core.brain.proactive import revert_fix
+
         result = revert_fix(root, fix_id)
         return JSONResponse({"ok": result["success"], **result})
     except Exception as e:

@@ -30,11 +30,7 @@ class PHPTypeChecker(BaseTypeChecker):
         ntype = node.type
         if ntype in ("function_definition", "method_declaration"):
             line = node.start_point[0] + 1
-            name = (
-                _node_text(source, self._child_by_type(node, "name"))
-                if self._child_by_type(node, "name")
-                else ""
-            )
+            name = _node_text(source, self._child_by_type(node, "name")) if self._child_by_type(node, "name") else ""
             return_type = (
                 self._child_by_type(node, "primitive_type")
                 or self._child_by_type(node, "named_type")

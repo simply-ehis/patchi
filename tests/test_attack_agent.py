@@ -98,8 +98,6 @@ class TestAttackAgentRun(unittest.TestCase):
 
     @patch("patchi.core.agents.attack_agent.AttackAgent._run_module")
     def test_pymetasploit3_not_installed(self, mock_run_module):
-        import sys
-
         from patchi.core.agents.attack_agent import AttackAgent
         from patchi.core.agents.base import AgentInput, AgentResult, AgentStatus
         agent = AttackAgent()

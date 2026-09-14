@@ -65,8 +65,15 @@ class WebSocketSecurityAgent(BaseAgent):
 
     def _scan_websocket(self, content: str, rel: str, result: AgentResult) -> None:
         # ── Unencrypted WebSocket connection ────────────────────────────────
+        # Part 7: ws:// is cleartext by scheme (compulsory literal), but
+        # loopback/test endpoints are not production exposure. (Deliberately
+        # narrow: only loopback names and test markers skip. "example" is
+        # NOT excluded — RFC-2606 domains in source are still worth a look.)
         for m in re.finditer(r"""(?i)["']ws://""", content):
             line = content[: m.start()].count("\n") + 1
+            _ln = content.splitlines()[line - 1] if line <= len(content.splitlines()) else ""
+            if re.search(r"localhost|127\.0\.0\.1|::1|\btest\b", _ln, re.IGNORECASE):
+                continue
             result.add_finding(
                 Finding(
                     agent=self.name,
@@ -82,9 +89,7 @@ class WebSocketSecurityAgent(BaseAgent):
             )
 
         # ── Missing origin validation ───────────────────────────────────────
-        if not re.search(
-            r"(?i)(?:\borigin\b|check_origin|allowed_origins|validate_origin)", content
-        ):
+        if not re.search(r"(?i)(?:\borigin\b|check_origin|allowed_origins|validate_origin)", content):
             result.add_finding(
                 Finding(
                     agent=self.name,
@@ -92,7 +97,7 @@ class WebSocketSecurityAgent(BaseAgent):
                     severity=Severity.MEDIUM,
                     file=rel,
                     line=0,
-                    message="WebSocket handler lacks origin validation — potential cross-origin hijacking",
+                    message="No origin validation visible in this file — verify the handshake/proxy validates Origin",
                     suggestion="Validate Origin header on WebSocket upgrade, configure allowed_origins",
                     cwe="CWE-346",
                     extra={"skill": "api-security.skill"},
@@ -106,17 +111,22 @@ class WebSocketSecurityAgent(BaseAgent):
         ):
             line_start = content[: m.start()].count("\n") + 1
             surrounding = content[m.start() : m.start() + 500]
-            if not re.search(
-                r"(?i)(?:validate|sanitize|check|json\.loads|parse)", surrounding[:200]
-            ):
+            if not re.search(r"(?i)(?:validate|sanitize|check|json\.loads|parse)", surrounding[:200]):
+                # Part 7: HIGH requires a dangerous sink near the handler; a
+                # bare handler without "validate" on the line is MEDIUM.
+                _has_sink = bool(
+                    re.search(r"(?i)(?:eval|exec|query|execute|render|send|publish|run\()", surrounding)
+                )
                 result.add_finding(
                     Finding(
                         agent=self.name,
                         type="websocket_no_input_validation",
-                        severity=Severity.HIGH,
+                        severity=Severity.HIGH if _has_sink else Severity.MEDIUM,
                         file=rel,
                         line=line_start,
-                        message="WebSocket message processed without input validation — injection risk",
+                        message="WebSocket message processed without input validation — injection risk"
+                        if _has_sink
+                        else "WebSocket message handler without visible validation — verify input handling",
                         suggestion="Validate/sanitize all WebSocket message content before processing",
                         cwe="CWE-20",
                         extra={"skill": "api-security.skill"},
@@ -124,23 +134,24 @@ class WebSocketSecurityAgent(BaseAgent):
                 )
 
         # ── Missing authentication on WebSocket upgrade ────────────────────
+        # Part 7: a 150-char window cannot see decorator-above or global
+        # middleware — absence caps at HIGH with verify language, never
+        # CRITICAL "unauthenticated".
         for m in re.finditer(
             r"(?i)(?:@(?:ws|websocket)\.route|\bdef\s+websocket\b|\basync\s+def\s+websocket\b|socketio\.on\b)",
             content,
         ):
             line_start = content[: m.start()].count("\n") + 1
             surrounding = content[m.start() : m.start() + 300]
-            if not re.search(
-                r"(?i)(?:auth|token|jwt|session|api_key|authenticate)", surrounding[:150]
-            ):
+            if not re.search(r"(?i)(?:auth|token|jwt|session|api_key|authenticate)", surrounding[:150]):
                 result.add_finding(
                     Finding(
                         agent=self.name,
                         type="websocket_no_auth",
-                        severity=Severity.CRITICAL,
+                        severity=Severity.HIGH,
                         file=rel,
                         line=line_start,
-                        message="WebSocket endpoint lacks authentication — unauthenticated access",
+                        message="No authentication visible near WebSocket endpoint — verify handshake/middleware auth",
                         suggestion="Add authentication handshake (JWT, session, or API key) to WebSocket upgrade",
                         cwe="CWE-287",
                         extra={"skill": "api-security.skill"},
@@ -148,9 +159,7 @@ class WebSocketSecurityAgent(BaseAgent):
                 )
 
         # ── Message size / rate limiting missing ───────────────────────────
-        for m in re.finditer(
-            r'(?i)(?:@app\.ws|\bwebsocket_route\b|\.on\s*\(\s*["\']?connect)', content
-        ):
+        for m in re.finditer(r'(?i)(?:@app\.ws|\bwebsocket_route\b|\.on\s*\(\s*["\']?connect)', content):
             line_start = content[: m.start()].count("\n") + 1
             surrounding = content[m.start() : m.start() + 300]
             if not re.search(r"(?i)(?:max_size|max_length|limit|throttle|rate)", surrounding[:150]):

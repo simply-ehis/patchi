@@ -240,10 +240,23 @@ class TaintAnalyzer(BaseAgent):
 
     # Sink call names (full dotted or leaf) shared with the track_taint pass.
     _SINK_CALL_NAMES = {
-        "eval", "exec", "os.system", "subprocess.run", "subprocess.Popen",
-        "subprocess.call", "execute", "open", "redirect", "HttpResponseRedirect",
-        "render_template_string", "Template", "pickle.loads", "pickle.load",
-        "yaml.load", "document.write", "html",
+        "eval",
+        "exec",
+        "os.system",
+        "subprocess.run",
+        "subprocess.Popen",
+        "subprocess.call",
+        "execute",
+        "open",
+        "redirect",
+        "HttpResponseRedirect",
+        "render_template_string",
+        "Template",
+        "pickle.loads",
+        "pickle.load",
+        "yaml.load",
+        "document.write",
+        "html",
     }
 
     @staticmethod
@@ -382,10 +395,7 @@ class TaintAnalyzer(BaseAgent):
                         severity=severity,
                         file=rel,
                         line=line,
-                        message=(
-                            f"Potential {sink_type.replace('_', ' ')}: "
-                            f"untrusted input reaches {sink_type} sink."
-                        ),
+                        message=(f"Potential {sink_type.replace('_', ' ')}: untrusted input reaches {sink_type} sink."),
                         code_snippet=tr["full_text"].strip()[:120],
                         detail=f"Tainted via: {', '.join(tr.get('tainted_via') or [])[:80]}",
                         suggestion=f"Validate and sanitize input before passing to {sink_type} sink.",
@@ -428,9 +438,7 @@ class TaintAnalyzer(BaseAgent):
                         ),
                         code_snippet=source["code"][:120],
                         detail=f"Source at line {source['line']}: {source['code'][:80]}",
-                        suggestion=(
-                            f"Validate and sanitize input before passing to {sink_type} sink."
-                        ),
+                        suggestion=(f"Validate and sanitize input before passing to {sink_type} sink."),
                         cwe=cwe,
                         fix_agent="SecurityFixer",
                         ai_confirmed=ai_confirmed,
@@ -785,11 +793,7 @@ class SecretScanner(BaseAgent):
             return True
         # Compound forms: apikey, authtoken, clientsecret…
         joined = normalized.replace("_", "")
-        return any(
-            term.replace("_", "") in joined
-            for term in self._CRED_NAME_TERMS
-            if "_" in term or len(term) >= 5
-        )
+        return any(term.replace("_", "") in joined for term in self._CRED_NAME_TERMS if "_" in term or len(term) >= 5)
 
 
 def shannon_entropy(value: str) -> float:
@@ -824,9 +828,7 @@ def charset_mix(value: str) -> int:
     return sum((has_upper, has_lower, has_digit, has_symbol))
 
 
-def classify_secret(
-    name: str, value: str, scanner: SecretScanner
-) -> tuple[str | None, str, Severity]:
+def classify_secret(name: str, value: str, scanner: SecretScanner) -> tuple[str | None, str, Severity]:
     """Verdict for one candidate literal.
 
     Returns (verdict, label, severity); verdict None means clean.
@@ -915,9 +917,7 @@ def extract_py_string_candidates(src: str) -> list[StringCandidate]:
         return out
 
     def _const_str(node: _ast.AST) -> str | None:
-        return (
-            node.value if isinstance(node, _ast.Constant) and isinstance(node.value, str) else None
-        )
+        return node.value if isinstance(node, _ast.Constant) and isinstance(node.value, str) else None
 
     for node in _ast.walk(tree):
         line = getattr(node, "lineno", 0)

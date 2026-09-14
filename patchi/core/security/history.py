@@ -94,7 +94,8 @@ def patchi_record_scan(
     conn = _get_db(root)
     try:
         conn.execute(
-            "INSERT INTO scan_history (scan_id, timestamp, repo_path, tool, findings_count, severity_breakdown, duration_ms, health_score, metrics, agent_group) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO scan_history (scan_id, timestamp, repo_path, tool, findings_count, severity_breakdown,"
+            " duration_ms, health_score, metrics, agent_group) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
                 scan_id,
                 now,
@@ -111,7 +112,8 @@ def patchi_record_scan(
         for f in findings:
             fid = uuid.uuid4().hex
             conn.execute(
-                "INSERT OR REPLACE INTO findings (finding_id, scan_id, rule_id, file, line, severity, status, first_seen) VALUES (?, ?, ?, ?, ?, ?, 'open', ?)",
+                "INSERT OR REPLACE INTO findings (finding_id, scan_id, rule_id, file, line, severity, status,"
+                " first_seen) VALUES (?, ?, ?, ?, ?, ?, 'open', ?)",
                 (
                     fid,
                     scan_id,
@@ -147,7 +149,8 @@ def patchi_get_history(root: Path, limit: int = 20) -> list[dict]:
     conn = _get_db(root)
     try:
         cursor = conn.execute(
-            "SELECT scan_id, timestamp, tool, findings_count, severity_breakdown, duration_ms, health_score FROM scan_history ORDER BY rowid DESC LIMIT ?",
+            "SELECT scan_id, timestamp, tool, findings_count, severity_breakdown, duration_ms, health_score FROM"
+            " scan_history ORDER BY rowid DESC LIMIT ?",
             (limit,),
         )
         return [
@@ -263,16 +266,15 @@ def patchi_get_analytics(root: Path) -> dict:
         # Most common rule violations
         common_rules = []
         for row in conn.execute(
-            "SELECT rule_id, COUNT(*) as cnt FROM findings WHERE rule_id != '' GROUP BY rule_id ORDER BY cnt DESC LIMIT 10"
+            "SELECT rule_id, COUNT(*) as cnt FROM findings WHERE rule_id != '' GROUP BY rule_id ORDER BY cnt DESC"
+            " LIMIT 10"
         ):
             common_rules.append({"rule": row[0], "count": row[1]})
 
         # Average findings per scan
         avg_findings = 0
         if total > 0:
-            total_findings = (
-                conn.execute("SELECT SUM(findings_count) FROM scan_history").fetchone()[0] or 0
-            )
+            total_findings = conn.execute("SELECT SUM(findings_count) FROM scan_history").fetchone()[0] or 0
             avg_findings = round(total_findings / total, 1)
 
         return {

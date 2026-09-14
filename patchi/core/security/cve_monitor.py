@@ -76,9 +76,7 @@ def cached_osv_query(name: str, version: str, ecosystem: str, root: Path) -> lis
     try:
         url = "https://api.osv.dev/v1/query"
         query = {"package": {"name": name, "ecosystem": ecosystem}, "version": version}
-        req = urllib.request.Request(
-            url, data=json.dumps(query).encode(), headers={"Content-Type": "application/json"}
-        )
+        req = urllib.request.Request(url, data=json.dumps(query).encode(), headers={"Content-Type": "application/json"})
         with urllib.request.urlopen(req, timeout=10) as resp:
             data = json.loads(resp.read().decode())
         vulns = data.get("vulns", [])
@@ -122,11 +120,7 @@ class CVEMonitorAgent(BaseAgent):
                 for name, version in deps:
                     cache_key = _cve_cache_key(name, version, ecosystem)
                     cached = _CVE_CACHE.get(cache_key)
-                    if (
-                        cached
-                        and isinstance(cached, dict)
-                        and cached.get("_ts", 0) > time.time() - _CVE_CACHE_TTL
-                    ):
+                    if cached and isinstance(cached, dict) and cached.get("_ts", 0) > time.time() - _CVE_CACHE_TTL:
                         vulns = cached.get("vulns", [])
                     else:
                         queries.append((name, version, ecosystem, cache_key))
@@ -178,9 +172,7 @@ class CVEMonitorAgent(BaseAgent):
         try:
             batch_query = {"queries": []}
             for name, version, ecosystem, _cache_key in queries:
-                batch_query["queries"].append(
-                    {"package": {"name": name, "ecosystem": ecosystem}, "version": version}
-                )
+                batch_query["queries"].append({"package": {"name": name, "ecosystem": ecosystem}, "version": version})
             url = "https://api.osv.dev/v1/querybatch"
             req = urllib.request.Request(
                 url,
@@ -192,9 +184,7 @@ class CVEMonitorAgent(BaseAgent):
                 # Map results back to cache keys
                 for i, (_name, _version, _ecosystem, cache_key) in enumerate(queries):
                     results[cache_key] = (
-                        data.get("results", [{}])[i].get("vulns", [])
-                        if i < len(data.get("results", []))
-                        else []
+                        data.get("results", [{}])[i].get("vulns", []) if i < len(data.get("results", [])) else []
                     )
         except Exception as e:
             # Fallback to individual queries

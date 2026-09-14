@@ -47,9 +47,7 @@ _COOKIE_SETTER_CALLS = {
     "ctx.cookie",
 }
 # Literal header / config forms that also set cookies.
-_COOKIE_SETTER_LITERALS = re.compile(
-    r"(?i)\b(?:Set-Cookie|set_cookie|session\.cookie|cookie\.set)\b"
-)
+_COOKIE_SETTER_LITERALS = re.compile(r"(?i)\b(?:Set-Cookie|set_cookie|session\.cookie|cookie\.set)\b")
 
 
 @register
@@ -59,9 +57,7 @@ class SessionManagementAgent(BaseAgent):
     group = AgentGroup.SECURITY
     domain = AgentDomain.SECURITY
     name = "SessionManagementAgent"
-    description = (
-        "Session fixation, weak session IDs, missing cookie flags, insecure session storage"
-    )
+    description = "Session fixation, weak session IDs, missing cookie flags, insecure session storage"
 
     def _run(self, inp: AgentInput, result: AgentResult) -> None:
         patterns = ["*.py", "*.js", "*.ts", "*.jsx", "*.tsx", "*.java", "*.rb", "*.php", "*.go"]
@@ -103,9 +99,7 @@ class SessionManagementAgent(BaseAgent):
             login_line = content[: login_match.start()].count("\n") + 1
             surrounding = content[login_match.start() : login_match.start() + 800]
             if re.search(r'(?i)\bsession\[["\']?(?:user_id|user|username|email)\b', surrounding):
-                if not re.search(
-                    r"(?i)(?:regenerate|rotate|regenerate_id|session\.new)", surrounding
-                ):
+                if not re.search(r"(?i)(?:regenerate|rotate|regenerate_id|session\.new)", surrounding):
                     result.add_finding(
                         Finding(
                             agent=self.name,
@@ -125,6 +119,9 @@ class SessionManagementAgent(BaseAgent):
             _COOKIE_SETTER_LITERALS.search(content)
         )
         if has_cookie_setter:
+            # Part 7: flags may live in setter args or framework config in
+            # another file — file-local absence caps at MEDIUM with verify
+            # language (already the case; messages made honest).
             if not re.search(r"(?i)\b(?:HttpOnly|httponly|http_only)\b", content):
                 result.add_finding(
                     Finding(
@@ -133,7 +130,7 @@ class SessionManagementAgent(BaseAgent):
                         severity=Severity.MEDIUM,
                         file=rel,
                         line=0,
-                        message="HTTP-only cookie flag not set — session ID accessible to JavaScript",
+                        message="No HttpOnly flag found in this file — verify the setter/config sets it",
                         suggestion="Set HttpOnly flag on session cookies",
                         cwe="CWE-1004",
                         extra={"skill": "owasp-top10-web.skill"},
@@ -147,7 +144,7 @@ class SessionManagementAgent(BaseAgent):
                         severity=Severity.MEDIUM,
                         file=rel,
                         line=0,
-                        message="Secure cookie flag not set — session cookies sent over HTTP",
+                        message="No Secure flag found in this file — verify the setter/config sets it",
                         suggestion="Set Secure flag on session cookies for HTTPS-only transmission",
                         cwe="CWE-614",
                         extra={"skill": "owasp-top10-web.skill"},
@@ -155,9 +152,15 @@ class SessionManagementAgent(BaseAgent):
                 )
 
         # ── Session in URL parameter ────────────────────────────────────────
+        # Part 7: `token = get_token()` is not a URL leak. Require a URL /
+        # query-string sink on the matched line, else skip.
+        _URL_SINK_RE = re.compile(r"url|query|param|request\.args|\bGET\b|href|location|\?", re.IGNORECASE)
         for m in re.finditer(r"(?i)\b(?:session|sid|session_id|token)\s*=\s*\{?\w+", content):
             line = content[: m.start()].count("\n") + 1
             if m.group(0).startswith(("session=", "sid=", "session_id=", "token=")):
+                line_text = content.splitlines()[line - 1] if line <= len(content.splitlines()) else ""
+                if not _URL_SINK_RE.search(line_text):
+                    continue
                 result.add_finding(
                     Finding(
                         agent=self.name,
@@ -173,17 +176,22 @@ class SessionManagementAgent(BaseAgent):
                 )
 
         # ── Weak session storage (localStorage) ────────────────────────────
+        # Part 7: any setItem() with a token-ish word was CRITICAL. Require
+        # the localStorage/sessionStorage receiver; other receivers demote.
         for call in self._calls(content, lang, {"setItem"}):
             full = call.get("full_text", "")
             if re.search(r"(?i)(?:token|session|jwt|access_token)", full):
+                is_web_storage = "localstorage" in full.lower() or "sessionstorage" in full.lower()
                 result.add_finding(
                     Finding(
                         agent=self.name,
                         type="insecure_session_storage",
-                        severity=Severity.CRITICAL,
+                        severity=Severity.CRITICAL if is_web_storage else Severity.MEDIUM,
                         file=rel,
                         line=call.get("line", 0),
-                        message="Session/token stored in localStorage — accessible to XSS attacks",
+                        message="Session/token stored in localStorage — accessible to XSS attacks"
+                        if is_web_storage
+                        else "Token passed to setItem() on an unverified receiver — confirm it is not web storage",
                         suggestion="Use httpOnly cookies for session tokens instead of localStorage",
                         cwe="CWE-312",
                         extra={"skill": "owasp-top10-web.skill"},
@@ -191,9 +199,7 @@ class SessionManagementAgent(BaseAgent):
                 )
 
         # ── No session timeout / expiry ─────────────────────────────────────
-        if re.search(
-            r"(?i)\b(?:session|token)\b.*\b(?:expire|timeout|ttl|max_age|maxAge)\b", content
-        ):
+        if re.search(r"(?i)\b(?:session|token)\b.*\b(?:expire|timeout|ttl|max_age|maxAge)\b", content):
             pass  # OK — has expiry configuration
         elif re.search(r"(?i)\bsession\.(?:start|init|create|new)\s*\(", content):
             result.add_finding(

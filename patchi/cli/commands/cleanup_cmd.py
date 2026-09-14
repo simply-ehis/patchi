@@ -44,13 +44,11 @@ CLEANUP_TARGETS = [
     ("**/*junit*.xml", "JUnit test reports", False),
     ("**/*test-result*.xml", "pytest result files", False),
     ("**/dev-check-*.xml", "dev-check XML reports", False),
-
     # Flake/test databases
     ("**/*.db", "database files", False),
     ("**/*.db-journal", "database journals", False),
     ("**/*.db-wal", "database WAL files", False),
     ("**/*.db-shm", "database SHM files", False),
-
     # Stale caches
     ("ast_cache.json", "AST parse cache", False),
     ("file_info_cache.json", "file info cache", False),
@@ -59,23 +57,18 @@ CLEANUP_TARGETS = [
     ("threat_model.json", "threat model cache", False),
     ("queue.json", "queue state", False),
     ("cache/cve_cache.json", "CVE lookup cache", False),
-
     # Logs
     ("logs/*.log", "log files", False),
     ("logs/*.jsonl", "structured logs", False),
-
     # Snapshots
     ("snapshots/**/*", "ephemeral snapshots", False),
-
     # Profiling
     ("*.stats", "profiling stats", False),
     ("*.prof", "profiling data", False),
     ("*.lprof", "line profiling data", False),
-
     # Scratch files
     ("b.json", "scratch data", False),
     ("command_list.md", "generated command list", False),
-
     # Evidence (only with --all)
     ("evidence/dast/**/*", "DAST screenshots/evidence", True),
     ("evidence/browser_tests/**/*", "browser test evidence", True),
@@ -128,6 +121,7 @@ def cleanup(
     except Exception:
         try:
             from patchi.core.config import require_project_root
+
             r = require_project_root()
         except Exception as e:
             if json_output:
@@ -217,13 +211,15 @@ def cleanup(
                 con.print(f"  [yellow]?[/yellow] {description}: {count_str} ({size_str})")
 
         # Collect data for JSON output
-        cleanup_data.append({
-            "description": description,
-            "pattern": pattern,
-            "count": len(files),
-            "size_bytes": file_size,
-            "files": [str(f.relative_to(patchi_dir)) for f in files[:20]],  # Limit to 20
-        })
+        cleanup_data.append(
+            {
+                "description": description,
+                "pattern": pattern,
+                "count": len(files),
+                "size_bytes": file_size,
+                "files": [str(f.relative_to(patchi_dir)) for f in files[:20]],  # Limit to 20
+            }
+        )
 
     # Also clean empty directories
     empty_dirs = []
@@ -238,7 +234,7 @@ def cleanup(
                 if not json_output:
                     con.print(f"  [red]✗[/red] Empty dir: {d.relative_to(patchi_dir)}")
             except Exception as _exc:
-                _log.warning('cleanup failed: %s', _exc)
+                _log.warning("cleanup failed: %s", _exc)
 
     # JSON output for CI
     if json_output:
@@ -313,7 +309,7 @@ def get_patchi_size(root: Path | None = None) -> dict:
                 total_bytes += f.stat().st_size
                 total_files += 1
             except Exception as _exc:
-                _log.warning('get_patchi_size failed: %s', _exc)
+                _log.warning("get_patchi_size failed: %s", _exc)
 
     return {"total_bytes": total_bytes, "total_files": total_files}
 

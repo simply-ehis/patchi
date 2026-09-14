@@ -39,9 +39,7 @@ class JavaScriptRouteDetector(BaseRouteDetector):
         self._walk(tree.root_node, bytes(content, "utf-8"), content, file_path, routes)
         return routes
 
-    def _walk(
-        self, node: object, buf: bytes, content: str, file_path: str, routes: list[dict]
-    ) -> None:
+    def _walk(self, node: object, buf: bytes, content: str, file_path: str, routes: list[dict]) -> None:
         ntype = getattr(node, "type", "")
         if ntype == "call_expression":
             self._check_call(node, buf, content, file_path, routes)
@@ -49,9 +47,7 @@ class JavaScriptRouteDetector(BaseRouteDetector):
         for child in getattr(node, "named_children", None) or getattr(node, "children", []):
             self._walk(child, buf, content, file_path, routes)
 
-    def _check_call(
-        self, node: object, buf: bytes, content: str, file_path: str, routes: list[dict]
-    ) -> None:
+    def _check_call(self, node: object, buf: bytes, content: str, file_path: str, routes: list[dict]) -> None:
         func = self._child_by_field(node, "function")
         if func is None:
             return
@@ -77,9 +73,7 @@ class JavaScriptRouteDetector(BaseRouteDetector):
             first_arg = args.named_child(0)
             if first_arg and first_arg.type in ("string", "template_string", "string_fragment"):
                 try:
-                    raw = buf[first_arg.start_byte : first_arg.end_byte].decode(
-                        "utf-8", errors="replace"
-                    )
+                    raw = buf[first_arg.start_byte : first_arg.end_byte].decode("utf-8", errors="replace")
                     path = raw.strip("'\"`")
                 except Exception as e:
                     _log.warning("JavaScriptRouteDetector._check_call failed: %s", e)
@@ -178,11 +172,7 @@ class JavaScriptRouteDetector(BaseRouteDetector):
                 hm = re.search(r""",\s*(?:async\s+)?(\w+)\s*\)?\s*$""", line)
                 if hm and hm.group(1) not in {"function", "async", "req", "res", "next"}:
                     handler = hm.group(1)
-                auth = bool(
-                    re.search(
-                        r"(?:auth|authenticate|requireAuth|verifyToken|isAuthenticated)", line
-                    )
-                )
+                auth = bool(re.search(r"(?:auth|authenticate|requireAuth|verifyToken|isAuthenticated)", line))
                 routes.append(
                     self._make_route(
                         method,

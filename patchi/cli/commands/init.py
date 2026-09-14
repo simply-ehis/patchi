@@ -7,12 +7,11 @@ from rich.panel import Panel
 from rich.prompt import Prompt
 from rich.table import Table
 
+# Import providers from key_cmd to keep them in sync
+from patchi.cli.commands.key_cmd import PROVIDERS as KEY_PROVIDERS
 from patchi.cli.console import con
 from patchi.core import config as cfg
 from patchi.core.constants import DeviceTier
-
-# Import providers from key_cmd to keep them in sync
-from patchi.cli.commands.key_cmd import PROVIDERS as KEY_PROVIDERS
 
 """
 `p init` - Initialize Patchi in the current project directory.
@@ -38,8 +37,21 @@ STEP_PENDING = "[dim] ... [/dim]"
 _log = logging.getLogger("patchi.cli.init")
 
 
-def run(no_logo: bool = False) -> None:
-    """Entry point for `p init` / `patchi init`."""
+def run(no_logo: bool = False) -> int:
+    """Entry point for `p init` / `patchi init`. Returns process exit code.
+
+    §4 honesty fixes:
+    - Non-interactive stdin (EOFError) is handled explicitly: AI setup is
+      SKIPPED with a notice — project structure was already created before
+      that step and must not be lost — instead of an unhandled traceback.
+    - The function returns a real exit code: 0 when setup completed or AI
+      setup was merely SKIPPED (non-interactive stdin / --no-logo — the
+      project itself initialized fine), 1 when something actually failed.
+      Agents and CI can finally trust the exit code.
+    - ``--no-logo`` (the CI flag) now also skips the interactive AI prompts
+      entirely — a CI run must never block on stdin.
+    """
+    ai_setup_ok: bool | None = None  # None = skipped (nothing to configure)
 
     draw_logo(con, skip=no_logo)
 
@@ -107,7 +119,9 @@ def run(no_logo: bool = False) -> None:
             if key_count > 3:
                 key_names += f" +{key_count - 3} more"
             con.print(f"{STEP_DONE} {key_count} API key(s) already configured: [dim]{key_names}[/dim]")
-        con.print("    [dim]Run [bold]p ai add[/bold] to add more keys, or [bold]p ai status[/bold] to check them[/dim]")
+        con.print(
+            "    [dim]Run [bold]p ai add[/bold] to add more keys, or [bold]p ai status[/bold] to check them[/dim]"
+        )
     else:
         # No keys — prompt for setup
         con.print(
@@ -150,13 +164,33 @@ def run(no_logo: bool = False) -> None:
             con.print(f"  [yellow]Unknown provider: {choice!r}, using Custom[/yellow]")
             provider_data = KEY_PROVIDERS[-1]  # Custom
 
-        if provider_data["name"] == "Custom":
+        if no_logo:
+            # §4: --no-logo is the documented CI path — never block on stdin.
+            con.print(
+                "  [dim]--no-logo (CI mode): skipping interactive AI setup. "
+                "Add a key later with [bold]p ai add[/bold].[/dim]"
+            )
+            ai_setup_ok = None
+        elif provider_data["name"] == "Custom":
             # Use the same flow as key_cmd for custom
-            _setup_custom_provider(project_root)
+            ai_setup_ok = _setup_custom_provider(project_root)
         elif provider_data["name"] == "Ollama":
-            _setup_local_model(project_root)
+            ai_setup_ok = _setup_local_model(project_root)
         else:
-            _setup_known_provider(project_root, provider_data)
+            ai_setup_ok = _setup_known_provider(project_root, provider_data)
+
+        if ai_setup_ok is False:
+            con.print(
+                "  [yellow]AI setup did not complete — the project structure above is "
+                "still valid.[/yellow] [dim]Re-run [bold]p init[/bold] or use "
+                "[bold]p ai add[/bold] to configure a key.[/dim]"
+            )
+        elif ai_setup_ok is None:
+            # §4: skipped (non-interactive stdin / CI) — soft outcome. The
+            # project initialized fine; just tell the user how to add AI later.
+            con.print(
+                "  [dim]AI setup skipped (non-interactive run). Add a key later with [bold]p ai add[/bold].[/dim]"
+            )
 
     con.print()
 
@@ -172,6 +206,13 @@ def run(no_logo: bool = False) -> None:
 
     # ── Done ───────────────────────────────────────────────────────────────────
     _show_complete_panel(project_root)
+
+    # §4: exit non-zero only when something actually failed. Skipped AI setup
+    # (non-interactive stdin / CI) is a soft outcome: the project initialized,
+    # so callers see 0 but the notice tells them what to do next.
+    if ai_setup_ok is False:
+        return 1
+    return 0
 
 
 def _show_complete_panel(root: Path) -> None:
@@ -287,62 +328,110 @@ def _install_alias_unix(home: Path) -> dict:
 # ── AI setup helpers ───────────────────────────────────────────────────────────
 
 
-def _setup_local_model(root: Path) -> None:
-    model_name = Prompt.ask(
-        "  Ollama model name",
-        default="llama3.2",
-    )
+def _setup_local_model(root: Path) -> bool | None:
+    """Configure a local Ollama model.
+
+    True = configured, False = failed, None = skipped (non-interactive stdin).
+    """
+    try:
+        model_name = Prompt.ask(
+            "  Ollama model name",
+            default="llama3.2",
+        )
+    except (EOFError, OSError):
+        # §4: non-interactive stdin — skip (soft outcome) instead of crashing.
+        con.print("  [yellow]No stdin available (non-interactive run) — skipping local model setup.[/yellow]")
+        return None
     cfg.set_value("ai.local_model_name", model_name, root)
-    con.print(
-        f"    [dim]Model set to [bold]{model_name}[/bold]. Make sure Ollama is running.[/dim]"
-    )
+    con.print(f"    [dim]Model set to [bold]{model_name}[/bold]. Make sure Ollama is running.[/dim]")
+    return True
 
 
-def _setup_custom_provider(root: Path) -> None:
-    """Set up a custom OpenAI-compatible provider (same as key_cmd flow)."""
+def _setup_custom_provider(root: Path) -> bool | None:
+    """Set up a custom OpenAI-compatible provider (same as key_cmd flow).
+
+    True = key stored, False = setup failed, None = skipped (non-interactive
+    stdin — a soft outcome, not a failure).
+    """
     con.print()
     con.print("  [dim]Enter your provider's OpenAI-compatible API details.[/dim]")
 
-    provider_name = Prompt.ask("  Provider name")
+    try:
+        provider_name = Prompt.ask("  Provider name")
+    except (EOFError, OSError):
+        con.print("  [yellow]No stdin available (non-interactive run) — skipping custom provider setup.[/yellow]")
+        return None
     if not provider_name.strip():
         con.print("[red]Provider name is required.[/red]")
-        return
+        return False
 
-    base_url = Prompt.ask("  Base URL", default="https://api.openai.com/v1")
-    if not base_url.strip():
-        con.print("[red]Base URL is required.[/red]")
-        return
+    try:
+        base_url = Prompt.ask("  Base URL", default="https://api.openai.com/v1")
+        if not base_url.strip():
+            con.print("[red]Base URL is required.[/red]")
+            return False
 
-    model = Prompt.ask("  Model name")
-    if not model.strip():
-        con.print("[red]Model name is required.[/red]")
-        return
+        model = Prompt.ask("  Model name")
+        if not model.strip():
+            con.print("[red]Model name is required.[/red]")
+            return False
 
-    format_choices = ["openai", "anthropic", "google", "cohere"]
-    fmt = Prompt.ask("  API format", choices=format_choices, default="openai")
+        format_choices = ["openai", "anthropic", "google", "cohere"]
+        fmt = Prompt.ask("  API format", choices=format_choices, default="openai")
+    except (EOFError, OSError):
+        # Mid-flow EOF (stdin closed partway through) — skip, don't crash.
+        con.print("  [yellow]No stdin available (non-interactive run) — skipping custom provider setup.[/yellow]")
+        return None
 
     # Use secure key input that works in PowerShell
-    api_key = _secure_key_input("  Paste your API key")
+    try:
+        api_key = _secure_key_input("  Paste your API key")
+    except EOFError:
+        con.print("  [yellow]No stdin available (non-interactive run) — skipping API key setup.[/yellow]")
+        return None
     if not api_key.strip():
         con.print("[red]No key entered.[/red]")
-        return
+        return False
 
-    nickname = Prompt.ask("  Nickname for this key", default=provider_name)
+    try:
+        nickname = Prompt.ask("  Nickname for this key", default=provider_name)
+    except (EOFError, OSError):
+        nickname = provider_name
 
     _store_key(
-        root, provider=provider_name, base_url=base_url, model=model, api_key=api_key, fmt=fmt,
+        root,
+        provider=provider_name,
+        base_url=base_url,
+        model=model,
+        api_key=api_key,
+        fmt=fmt,
         nickname=nickname,
     )
+    return True
 
 
-def _setup_known_provider(root: Path, provider_data: dict) -> None:
-    """Set up a known provider from KEY_PROVIDERS list."""
-    api_key = _secure_key_input(f"  Paste your {provider_data['name']} API key")
+def _setup_known_provider(root: Path, provider_data: dict) -> bool | None:
+    """Set up a known provider from KEY_PROVIDERS list.
+
+    True = key stored, False = setup failed, None = skipped (non-interactive
+    stdin — a soft outcome, not a failure).
+    """
+    try:
+        api_key = _secure_key_input(f"  Paste your {provider_data['name']} API key")
+    except EOFError:
+        # §4: non-interactive stdin (agent/CI). Soft skip instead of a crash
+        # that still exits 0, and instead of a hard failure — the project
+        # structure was already created successfully.
+        con.print("  [yellow]No stdin available (non-interactive run) — skipping AI key setup.[/yellow]")
+        return None
     if not api_key.strip():
         con.print("[red]No key entered.[/red]")
-        return
+        return False
 
-    nickname = Prompt.ask("  Nickname for this key", default=provider_data["name"])
+    try:
+        nickname = Prompt.ask("  Nickname for this key", default=provider_data["name"])
+    except (EOFError, OSError):
+        nickname = provider_data["name"]
 
     _store_key(
         root,
@@ -353,22 +442,54 @@ def _setup_known_provider(root: Path, provider_data: dict) -> None:
         fmt=provider_data["format"],
         nickname=nickname,
     )
+    return True
 
 
 def _secure_key_input(prompt: str) -> str:
     """
     Securely read an API key from stdin, with support for pasting in PowerShell.
-    """
-    try:
-        import getpass
-        return getpass.getpass(prompt + " ")
-    except Exception:
-        pass
 
-    # Fallback: use rich's Prompt but without password masking
-    # This allows pasting in PowerShell - the key is stored securely in .env anyway
+    Non-interactive stdin (CI, agents, piped input) must raise EOFError, never
+    hang and never crash: getpass reads via the *console* API and can block
+    forever when no real console is attached (observed under msys/git-bash with
+    stdin redirected), and its isatty answer can be wrong there too. So the
+    getpass attempt runs under a watchdog thread; if it does not return in
+    time we fall back to rich's Prompt.ask, which reads stdin directly and
+    raises EOFError on EOF — which callers treat as "skip AI setup".
+    """
+    import sys
+    import threading
+
+    if sys.stdin is None:
+        raise EOFError("no stdin — cannot read API key")
+
+    result: dict = {}
+
+    def _read_masked() -> None:
+        try:
+            import getpass
+
+            result["key"] = getpass.getpass(prompt + " ")
+        except EOFError:
+            result["eof"] = True
+        except Exception:
+            result["err"] = True
+
+    worker = threading.Thread(target=_read_masked, daemon=True)
+    worker.start()
+    worker.join(timeout=10)
+    if not worker.is_alive() and "key" in result:
+        return result["key"]
+    # Masked read unavailable (hang = no real console, EOF, or error):
+    # fall back to plain stdin via rich, which raises EOFError on EOF.
     from rich.prompt import Prompt
-    return Prompt.ask(prompt)
+
+    try:
+        return Prompt.ask(prompt)
+    except EOFError:
+        raise
+    except (OSError, ValueError) as e:
+        raise EOFError(f"stdin unavailable: {e}") from e
 
 
 def _store_key(

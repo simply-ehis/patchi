@@ -145,9 +145,7 @@ class VideoRecorder:
             _log.warning(f"No video file found for {recording_id}")
             return TestRecording(
                 test_run_id=recording_id,
-                started_at=datetime.fromtimestamp(
-                    recording["start_time"], UTC
-                ).isoformat(),
+                started_at=datetime.fromtimestamp(recording["start_time"], UTC).isoformat(),
                 completed_at=datetime.now(UTC).isoformat(),
                 total_duration_seconds=time.time() - recording["start_time"],
             )
@@ -180,9 +178,7 @@ class VideoRecorder:
             total_size_bytes=segment.file_size,
         )
 
-        _log.info(
-            f"Recording saved: {final_path} ({duration:.1f}s, {segment.file_size / 1024:.1f} KB)"
-        )
+        _log.info(f"Recording saved: {final_path} ({duration:.1f}s, {segment.file_size / 1024:.1f} KB)")
         return test_recording
 
     async def add_metadata_marker(self, recording_id: str, marker: str, data: dict = None):
@@ -275,7 +271,7 @@ class RecordingBrowserPool:
         try:
             await instance._browser.close()
         except Exception as _exc:
-            _log.warning('release_recording failed: %s', _exc)
+            _log.warning("release_recording failed: %s", _exc)
 
         return test_recording
 

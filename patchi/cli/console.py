@@ -11,6 +11,7 @@ Usage:
                      no_color_flag=getattr(args, "no_color", False),
                      json_mode=getattr(args, "json_output", False))
 """
+
 from __future__ import annotations
 
 import logging

@@ -77,9 +77,9 @@ requests==2.31.0  # patched
 ### Switch to Actively Maintained Alternative
 ```python
 # Before
-deprecated-package==0.1  # archived 2022
+deprecated - package == 0.1  # archived 2022
 # After
-actively-maintained-package==2.0
+actively - maintained - package == 2.0
 ```
 
 ## CVE Data Sources (reference only)

@@ -15,8 +15,9 @@ Usage:
 from __future__ import annotations
 
 import time
+from collections.abc import Callable, Generator
 from contextlib import contextmanager
-from typing import Any, Callable, Generator
+from typing import Any
 
 from rich.live import Live
 from rich.panel import Panel
@@ -33,8 +34,8 @@ from rich.text import Text
 
 from patchi.cli.console import con
 
-
 # ── Status Icons ──────────────────────────────────────────────────────────────
+
 
 def status_icon(status: str) -> str:
     """Get a status icon for the given status."""
@@ -77,6 +78,7 @@ def colored_status(status: str) -> str:
 
 # ── Formatting Helpers ────────────────────────────────────────────────────────
 
+
 def format_header(title: str, subtitle: str | None = None) -> Panel:
     """Format a section header."""
     if subtitle:
@@ -118,6 +120,7 @@ def format_info(message: str) -> Panel:
 
 # ── Progress Bar ──────────────────────────────────────────────────────────────
 
+
 def create_progress() -> Progress:
     """Create a standard progress bar."""
     return Progress(
@@ -150,6 +153,7 @@ def progress_bar(
 
 
 # ── Spinner Context Manager ───────────────────────────────────────────────────
+
 
 @contextmanager
 def spinner(
@@ -187,6 +191,7 @@ def spinner(
 
 # ── Live Status Display ───────────────────────────────────────────────────────
 
+
 class LiveStatus:
     """Live status display for multi-step operations."""
 
@@ -198,12 +203,14 @@ class LiveStatus:
 
     def add_step(self, name: str, description: str) -> int:
         """Add a step and return its index."""
-        self.steps.append({
-            "name": name,
-            "description": description,
-            "status": "pending",
-            "result": None,
-        })
+        self.steps.append(
+            {
+                "name": name,
+                "description": description,
+                "status": "pending",
+                "result": None,
+            }
+        )
         return len(self.steps) - 1
 
     def start_step(self, index: int) -> None:
@@ -240,7 +247,7 @@ class LiveStatus:
         if self._live:
             self._live.update(table)
 
-    def __enter__(self) -> "LiveStatus":
+    def __enter__(self) -> LiveStatus:
         self._live = Live(table=None, console=con, refresh_per_second=4)
         self._live.start()
         return self
@@ -251,6 +258,7 @@ class LiveStatus:
 
 
 # ── Confirmation Prompt ────────────────────────────────────────────────────────
+
 
 def confirm(message: str, default: bool = False) -> bool:
     """Prompt for confirmation with rich styling.
@@ -317,6 +325,7 @@ def select(
 
 # ── Summary Panel ──────────────────────────────────────────────────────────────
 
+
 def summary_panel(
     title: str,
     items: dict[str, bool],
@@ -346,14 +355,14 @@ def summary_panel(
     border = "green" if passed == total else "yellow" if passed > 0 else "red"
 
     return Panel(
-        f"[bold]{title}[/bold]\n\n{content}\n\n"
-        f"[dim]{passed}/{total} passed[/dim]",
+        f"[bold]{title}[/bold]\n\n{content}\n\n[dim]{passed}/{total} passed[/dim]",
         border_style=border,
         padding=(0, 1),
     )
 
 
 # ── Result Table ──────────────────────────────────────────────────────────────
+
 
 def result_table(
     title: str,
@@ -393,6 +402,7 @@ def result_table(
 
 # ── Countdown Timer ───────────────────────────────────────────────────────────
 
+
 class CountdownTimer:
     """Visual countdown timer for timed operations."""
 
@@ -401,7 +411,7 @@ class CountdownTimer:
         self.description = description
         self._start = 0.0
 
-    def __enter__(self) -> "CountdownTimer":
+    def __enter__(self) -> CountdownTimer:
         self._start = time.monotonic()
         return self
 

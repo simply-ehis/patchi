@@ -173,11 +173,7 @@ class AppMapperAgent(BaseAgent):
     timeout = 60
 
     def _run(self, inp: AgentInput, result: AgentResult) -> None:
-        app_url = (
-            inp.brain.get("app_url", "")
-            or inp.config.get("app_url", "")
-            or inp.extra.get("app_url", "")
-        )
+        app_url = inp.brain.get("app_url", "") or inp.config.get("app_url", "") or inp.extra.get("app_url", "")
 
         if not app_url:
             result.add_finding(

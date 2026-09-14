@@ -17,6 +17,7 @@ Usage:
   p chat "write a rate limiter"       — creates the file
   p ask "what changed?"               — backward-compatible alias
 """
+
 from __future__ import annotations
 
 import json
@@ -37,6 +38,7 @@ _log = logging.getLogger("patchi.cli.chat_cmd")
 
 
 # ── History persistence ────────────────────────────────────────────────
+
 
 def _load_chat_history(root: Path) -> list[dict]:
     path = root / CHAT_HISTORY_FILE
@@ -81,6 +83,7 @@ You have full control. Use it wisely."""
 
 # ── Context injection ──────────────────────────────────────────────────
 
+
 def _build_injected_context(brain: dict, message: str, root=None) -> str:
     """Build rich context from the brain using BrainContext for deeper understanding."""
     m_lower = message.lower()
@@ -91,9 +94,10 @@ def _build_injected_context(brain: dict, message: str, root=None) -> str:
     if root:
         try:
             from patchi.core.brain.brain_context import get_brain_context
+
             ctx = get_brain_context(root)
         except Exception as _exc:
-            _log.debug('suppressed: %s', _exc)
+            _log.debug("suppressed: %s", _exc)
 
     if ctx and ctx.is_loaded():
         # Use BrainContext for rich context injection
@@ -105,7 +109,9 @@ def _build_injected_context(brain: dict, message: str, root=None) -> str:
         route_count = brain.get("route_count", 0)
         health = brain.get("health_score", {})
         health_total = health.get("total", 0) if isinstance(health, dict) else health
-        parts.append(f"Project: {file_count} files, {route_count} routes, framework: {framework}, health: {health_total}/100")
+        parts.append(
+            f"Project: {file_count} files, {route_count} routes, framework: {framework}, health: {health_total}/100"
+        )
 
     # Finding-specific context
     if any(w in m_lower for w in ["finding", "issue", "vulnerability", "bug", "critical", "high", "error"]):
@@ -121,12 +127,16 @@ def _build_injected_context(brain: dict, message: str, root=None) -> str:
                 parts.append(f"Issues ({len(issues)} total): {sev_str}")
                 top = [f for f in issues if isinstance(f, dict) and f.get("severity") in ("critical", "high")][:5]
                 for f in top:
-                    parts.append(f"  [{f.get('severity', 'info')}] {f.get('file', '')}:{f.get('line', 0)} -- {f.get('message', '')[:80]}")
+                    parts.append(
+                        f"  [{f.get('severity', 'info')}] {f.get('file', '')}:{f.get('line', 0)} --"
+                        f" {f.get('message', '')[:80]}"
+                    )
 
     return "\n".join(parts) if parts else ""
 
 
 # ── Force routing ──────────────────────────────────────────────────────
+
 
 def _check_force_routing(message: str) -> tuple[str, str | None]:
     """Check for forced routing prefixes. Returns (cleaned_message, force_mode)."""
@@ -141,6 +151,7 @@ def _check_force_routing(message: str) -> tuple[str, str | None]:
 
 
 # ── Explain All ────────────────────────────────────────────────────────────
+
 
 def _show_explain_all() -> None:
     """Show the full security knowledge base in a formatted table."""
@@ -189,6 +200,7 @@ def _show_explain_all() -> None:
 
 # ── Process message through the Brain ─────────────────────────────────
 
+
 def _process_message(
     message: str,
     root: Path,
@@ -212,6 +224,7 @@ def _process_message(
 
         def on_progress(msg):
             import time as _time
+
             if "Executing" in msg:
                 _tool_count[0] += 1
                 _step_start[0] = _time.monotonic()
@@ -254,8 +267,10 @@ def _process_message(
                 if current and current not in ["planning", "done"]:
                     con.print(f"    [dim]→ {current} ({pct}%)[/dim]")
     else:
+
         def on_progress(msg):
             con.print(f"  [dim]{msg}[/dim]")
+
         def on_event(payload: dict):
             pass
 
@@ -269,7 +284,7 @@ def _process_message(
         file_path = clean_msg
         for p in read_patterns:
             if file_path.lower().startswith(p):
-                file_path = file_path[len(p):].strip()
+                file_path = file_path[len(p) :].strip()
                 break
 
         content = orchestrator.read_file(file_path)
@@ -290,7 +305,7 @@ def _process_message(
             file_path = parts[0]
             for p in write_patterns:
                 if file_path.lower().startswith(p):
-                    file_path = file_path[len(p):].strip()
+                    file_path = file_path[len(p) :].strip()
                     break
             content = parts[1].strip()
 
@@ -307,7 +322,7 @@ def _process_message(
         command = clean_msg
         for p in ["run ", "exec "]:
             if command.lower().startswith(p):
-                command = command[len(p):].strip()
+                command = command[len(p) :].strip()
                 break
 
         result = orchestrator.run_command(command)
@@ -326,7 +341,7 @@ def _process_message(
         agent_type = clean_msg
         for p in spawn_patterns:
             if agent_type.lower().startswith(p):
-                agent_type = agent_type[len(p):].strip()
+                agent_type = agent_type[len(p) :].strip()
                 break
 
         # Extract agent type from the message
@@ -373,43 +388,47 @@ def _process_message(
 
 # ── Help commands ──────────────────────────────────────────────────────
 
+
 def _print_help():
     """Print help information."""
-    con.print(Panel(
-        "[bold]Patchi Chat — The Brain[/bold]\n\n"
-        "[bold]Direct File Access:[/bold]\n"
-        "  [cyan]read[/cyan] src/auth.py          — read and explain a file\n"
-        "  [cyan]write[/cyan] src/utils.py:code   — create/overwrite a file\n\n"
-        "[bold]Command Execution:[/bold]\n"
-        "  [cyan]run[/cyan] pytest tests/          — run any shell command\n"
-        "  [cyan]exec[/cyan] ruff check src/      — execute a command\n\n"
-        "[bold]Agent Spawning:[/bold]\n"
-        "  [cyan]spawn[/cyan] security             — run security scan\n"
-        "  [cyan]spawn[/cyan] council              — multi-persona deliberation\n"
-        "  [cyan]spawn[/cyan] smart                — goal-driven smart agent\n\n"
-        "[bold]Natural Language:[/bold]\n"
-        "  [cyan]scan[/cyan] this project          — security scan\n"
-        "  [cyan]fix[/cyan] critical findings      — scan + fix pipeline\n"
-        "  [cyan]test[/cyan] and check coverage    — run tests\n"
-        "  [cyan]what's in[/cyan] src/auth.py      — read file\n\n"
-        "[bold]Commands:[/bold]\n"
-        "  [green]tools[/green]    — list available tools\n"
-        "  [green]council[/green]  — show council/persona info\n"
-        "  [green]history[/green]  — show chat history\n"
-        "  [green]help[/green]     — this help\n"
-        "  [green]clear[/green]    — clear chat history\n\n"
-        "[bold]Forced Routing:[/bold]\n"
-        "  [yellow]reason:[/yellow] what changed?       — force reasoning engine\n"
-        "  [yellow]ai:[/yellow] explain this code       — force AI chat\n"
-        "  [yellow]tool:[/yellow] scan_vulnerabilities  — force tool execution\n",
-        border_style="#C8621A",
-    ))
+    con.print(
+        Panel(
+            "[bold]Patchi Chat — The Brain[/bold]\n\n"
+            "[bold]Direct File Access:[/bold]\n"
+            "  [cyan]read[/cyan] src/auth.py          — read and explain a file\n"
+            "  [cyan]write[/cyan] src/utils.py:code   — create/overwrite a file\n\n"
+            "[bold]Command Execution:[/bold]\n"
+            "  [cyan]run[/cyan] pytest tests/          — run any shell command\n"
+            "  [cyan]exec[/cyan] ruff check src/      — execute a command\n\n"
+            "[bold]Agent Spawning:[/bold]\n"
+            "  [cyan]spawn[/cyan] security             — run security scan\n"
+            "  [cyan]spawn[/cyan] council              — multi-persona deliberation\n"
+            "  [cyan]spawn[/cyan] smart                — goal-driven smart agent\n\n"
+            "[bold]Natural Language:[/bold]\n"
+            "  [cyan]scan[/cyan] this project          — security scan\n"
+            "  [cyan]fix[/cyan] critical findings      — scan + fix pipeline\n"
+            "  [cyan]test[/cyan] and check coverage    — run tests\n"
+            "  [cyan]what's in[/cyan] src/auth.py      — read file\n\n"
+            "[bold]Commands:[/bold]\n"
+            "  [green]tools[/green]    — list available tools\n"
+            "  [green]council[/green]  — show council/persona info\n"
+            "  [green]history[/green]  — show chat history\n"
+            "  [green]help[/green]     — this help\n"
+            "  [green]clear[/green]    — clear chat history\n\n"
+            "[bold]Forced Routing:[/bold]\n"
+            "  [yellow]reason:[/yellow] what changed?       — force reasoning engine\n"
+            "  [yellow]ai:[/yellow] explain this code       — force AI chat\n"
+            "  [yellow]tool:[/yellow] scan_vulnerabilities  — force tool execution\n",
+            border_style="#C8621A",
+        )
+    )
 
 
 def _print_tools():
     """Print available tools."""
     try:
         from patchi.core.ai.tools.registry import get_tool_registry
+
         registry = get_tool_registry()
 
         table = Table(title="Available Tools", box=None, show_lines=False)
@@ -419,7 +438,13 @@ def _print_tools():
 
         categories = {
             "scan": ["analyze_project", "scan_vulnerabilities", "scan_project"],
-            "test": ["run_tests", "generate_tests", "browser_test", "screenshot", "visual_regression"],
+            "test": [
+                "run_tests",
+                "generate_tests",
+                "browser_test",
+                "screenshot",
+                "visual_regression",
+            ],
             "fix": ["generate_fix", "apply_patch", "verify_fix", "rollback_patch"],
             "attack": ["attack_simulate", "red_team"],
             "stress": ["stress_test"],
@@ -469,7 +494,7 @@ def _print_council_info(root: Path):
         for p in personas:
             table.add_row(
                 p.name,
-                style_names.get(p.style.value if hasattr(p.style, 'value') else str(p.style), str(p.style)),
+                style_names.get(p.style.value if hasattr(p.style, "value") else str(p.style), str(p.style)),
                 p.focus_domain,
             )
 
@@ -496,6 +521,7 @@ def _print_chat_history(history: list[dict]):
 
 # ── Main entry point ───────────────────────────────────────────────────
 
+
 def run(
     message: list[str] | str | None = None,
     json_output: bool = False,
@@ -514,6 +540,7 @@ def run(
     """
     try:
         from patchi.core.config import require_project_root
+
         r = root or require_project_root()
     except RuntimeError as e:
         con.print(f"[red]{e}[/red]")

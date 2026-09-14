@@ -106,9 +106,7 @@ def _detect_signals(root: Path) -> set[str]:
     return sig
 
 
-def _build_agent_input(
-    root: Path, scope: list[str] | None = None, active_domains: list[str] | None = None
-):
+def _build_agent_input(root: Path, scope: list[str] | None = None, active_domains: list[str] | None = None):
     """Construct an ``AgentInput`` with current brain/config context."""
     from patchi.core.agents.base import AgentInput
 
@@ -239,9 +237,7 @@ def _security_agent_map(root: Path) -> dict[str, Any]:
     return {a.name: a for a in agents}
 
 
-def _select_security_agents(
-    root: Path, name_map: dict[str, Any], area: str | None = None
-) -> list[Any]:
+def _select_security_agents(root: Path, name_map: dict[str, Any], area: str | None = None) -> list[Any]:
     """Pick the security agents relevant to THIS project's signals + body tags gating."""
     signals = _detect_signals(root)
     web = "web" in signals or "web_frontend" in signals
@@ -251,7 +247,9 @@ def _select_security_agents(
 
         tags = load_body_tags(root)
         if tags:
-            high_route = any(t.get("is_route_file") and t.get("criticality") in ("high", "critical") for t in tags.values())
+            high_route = any(
+                t.get("is_route_file") and t.get("criticality") in ("high", "critical") for t in tags.values()
+            )
             if not high_route:
                 web = False
     except Exception:
@@ -291,8 +289,7 @@ def scan_vulnerabilities(
             extra = [
                 c
                 for n, c in name_map.items()
-                if any(s in n.lower() for s in ("red", "attack", "advers", "runtime", "probe"))
-                and c not in selected
+                if any(s in n.lower() for s in ("red", "attack", "advers", "runtime", "probe")) and c not in selected
             ]
             selected = extra + selected
 
@@ -501,7 +498,13 @@ def attack_simulate(
             from patchi.core.security.pentest.registry import PentestRegistry
 
             reg = PentestRegistry()
-            ctx = {"active_domains": active, "routes": brain.get("routes", []) if isinstance(brain, dict) else [], "target_url": target_url, "config": brain, "use_shannon": bool(use_shannon)}
+            ctx = {
+                "active_domains": active,
+                "routes": brain.get("routes", []) if isinstance(brain, dict) else [],
+                "target_url": target_url,
+                "config": brain,
+                "use_shannon": bool(use_shannon),
+            }
             picks = reg.ai_pick(ctx)
             # shannon is heavy — run alone
             if any(p.get("tool") == "shannon" for p in picks) and use_shannon:
@@ -510,11 +513,34 @@ def attack_simulate(
                 tool = p.get("tool")
                 _emit("security.agent.started", {"agent": tool, "class": tool})
                 extra = {"repo_root": str(root)}
-                res = reg.run(tool, target_url, safe_mode=safe_mode, workspace=root / ".patchi" / "pentest", extra=extra)
+                res = reg.run(
+                    tool,
+                    target_url,
+                    safe_mode=safe_mode,
+                    workspace=root / ".patchi" / "pentest",
+                    extra=extra,
+                )
                 for f in res.findings:
-                    fd = {"type": f.get("ruleId") or f.get("template") or f.get("type") or tool, "severity": "high" if tool in ("nuclei","shannon") else "medium", "message": f.get("message") or f.get("name") or str(f)[:300], "file": target_url, "line": 0, "cwe": f.get("cwe","")}
+                    fd = {
+                        "type": f.get("ruleId") or f.get("template") or f.get("type") or tool,
+                        "severity": "high" if tool in ("nuclei", "shannon") else "medium",
+                        "message": f.get("message") or f.get("name") or str(f)[:300],
+                        "file": target_url,
+                        "line": 0,
+                        "cwe": f.get("cwe", ""),
+                    }
                     findings.append(fd)
-                    _emit("security.finding", {"severity": fd["severity"], "type": fd["type"], "file": target_url, "line": 0, "cwe": fd["cwe"], "description": fd["message"]})
+                    _emit(
+                        "security.finding",
+                        {
+                            "severity": fd["severity"],
+                            "type": fd["type"],
+                            "file": target_url,
+                            "line": 0,
+                            "cwe": fd["cwe"],
+                            "description": fd["message"],
+                        },
+                    )
                 _emit("security.agent.completed", {"agent": tool, "success": bool(res.success)})
         except Exception as exc:  # noqa: BLE001
             _log.warning("pentest registry failed: %s", exc)
@@ -602,9 +628,7 @@ def _safe_dynamic_probe(target_url: str) -> dict:
 
 def red_team(root: Path, scope: str = "full", intensity: str = "active") -> dict:
     """Full red-team assessment: static attack surface + safe dynamic probing."""
-    _emit(
-        "security.scan.started", {"mode": "red-team-full", "scope": scope, "intensity": intensity}
-    )
+    _emit("security.scan.started", {"mode": "red-team-full", "scope": scope, "intensity": intensity})
     result = attack_simulate(root, safe_mode=True)
     result["scope"] = scope
     result["intensity"] = intensity
@@ -708,7 +732,15 @@ def run_tests(
     cmd = [c for c in cmd if c]
     _emit("test.suite.started", {"test_type": (test_types or ["unit"])[0], "test_count": 0})
     try:
-        proc = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=str(root), timeout=600)
+        proc = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            cwd=str(root),
+            timeout=600,
+        )
     except subprocess.TimeoutExpired:
         _emit("test.suite.completed", {"passed": 0, "failed": 0, "coverage_pct": 0.0})
         return {"success": False, "error": "pytest timed out (600s)"}
@@ -896,9 +928,7 @@ def screenshot(
                 img = page.screenshot(full_page=full_page)
             browser.close()
             b64 = base64.b64encode(img).decode()
-            _emit(
-                "test.browser.step_passed", {"flow_name": "screenshot", "step": f"captured {url}"}
-            )
+            _emit("test.browser.step_passed", {"flow_name": "screenshot", "step": f"captured {url}"})
             return {"success": True, "screenshot_base64": b64, "bytes": len(img), "url": url}
     except Exception as e:
         return {"success": False, "error": f"Screenshot failed: {e}"}
@@ -984,14 +1014,10 @@ def visual_regression(root: Path, urls: list[str], threshold: float = 0.1) -> di
                 if bl.exists():
                     prev = bl.read_bytes()
                     diff = abs(len(prev) - len(img)) / max(1, len(prev))
-                    results.append(
-                        {"url": url, "changed": diff > threshold, "delta": round(diff, 3)}
-                    )
+                    results.append({"url": url, "changed": diff > threshold, "delta": round(diff, 3)})
                 else:
                     bl.write_bytes(img)
-                    results.append(
-                        {"url": url, "changed": False, "delta": 0.0, "baseline_created": True}
-                    )
+                    results.append({"url": url, "changed": False, "delta": 0.0, "baseline_created": True})
             browser.close()
     except Exception as e:
         return {"success": False, "error": f"Visual regression failed: {e}"}
@@ -1028,15 +1054,13 @@ def read_file(root: Path, path: str, start: int = 1, end: int = 500) -> dict:
         end = min(end, start + 500 - 1)
         lines = full.read_text(encoding="utf-8", errors="replace").splitlines()
         sliced = lines[max(0, start - 1) : min(len(lines), end)]
-        numbered = "\n".join(f"{i+1:4d} | {line}" for i, line in enumerate(sliced, start=start))
+        numbered = "\n".join(f"{i + 1:4d} | {line}" for i, line in enumerate(sliced, start=start))
         return {"success": True, "path": str(rel), "start": start, "end": end, "content": numbered}
     except Exception as exc:  # noqa: BLE001
         return {"success": False, "error": str(exc)}
 
 
-def generate_tests(
-    root: Path, target_files: list[str], test_type: str = "unit", framework: str | None = None
-) -> dict:
+def generate_tests(root: Path, target_files: list[str], test_type: str = "unit", framework: str | None = None) -> dict:
     """Generate minimal, real pytest skeletons for the given source files.
 
     Files are written to ``.patchi/generated_tests/`` — never over the source —
@@ -1052,15 +1076,20 @@ def generate_tests(
             tags = load_body_tags(root)
             # need file_infos for understander — quick corpus probe
             corpus = FileCorpus(root)
+
             # Build pseudo file_infos from corpus entries
             class _FI:
                 def __init__(self, p: str):
                     self.path = p
+
             fis = [_FI(e.path) for e in corpus.files()]
             # If tags empty, fall back to corpus high-size
             if not tags:
                 # take 5 largest non-test python files as core hint
-                cand = sorted([e for e in corpus.files() if e.path.endswith(".py") and "tests" not in e.path], key=lambda e: -e.size_bytes)[:5]
+                cand = sorted(
+                    [e for e in corpus.files() if e.path.endswith(".py") and "tests" not in e.path],
+                    key=lambda e: -e.size_bytes,
+                )[:5]
                 target_files = [c.path for c in cand]
             else:
                 u = Understander(root, fis, tags, {}, [])

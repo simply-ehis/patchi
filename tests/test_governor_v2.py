@@ -299,6 +299,9 @@ class TestGovernorVerifyLoop(_GovTestCase):
         ), mock_patch.object(
             self.gov.coordinator, "run_group", return_value=[self._fix_result(pd)]
         ):
+            # Direct phase call: prime the pipeline to the real
+            # pre-FIX position (phase-order is enforced since the 2b fix).
+            self.gov.current_phase = PipelinePhase.TEST_EXECUTION
             result = self.gov.run_fix()
 
         self.assertEqual(result.phase, PipelinePhase.FIX_GENERATION)
@@ -323,6 +326,9 @@ class TestGovernorVerifyLoop(_GovTestCase):
         ), mock_patch.object(
             self.gov.coordinator, "run_group", return_value=[self._fix_result(pd)]
         ):
+            # Direct phase call: prime the pipeline to the real
+            # pre-FIX position (phase-order is enforced since the 2b fix).
+            self.gov.current_phase = PipelinePhase.TEST_EXECUTION
             result = self.gov.run_fix()
 
         self.assertEqual(result.status, AgentStatus.DONE)
@@ -340,6 +346,9 @@ class TestGovernorVerifyLoop(_GovTestCase):
         ), mock_patch.object(
             self.gov.coordinator, "run_group", return_value=[self._fix_result(pd)]
         ):
+            # Direct phase call: prime the pipeline to the real
+            # pre-FIX position (phase-order is enforced since the 2b fix).
+            self.gov.current_phase = PipelinePhase.TEST_EXECUTION
             result = self.gov.run_fix(dry_run=True)
 
         self.assertEqual(result.status, AgentStatus.DONE)
@@ -364,6 +373,9 @@ class TestGovernorVerifyLoop(_GovTestCase):
         ), mock_patch.object(
             self.gov.coordinator, "run_group", return_value=[self._fix_result(pd)]
         ):
+            # Direct phase call: prime the pipeline to the real
+            # pre-FIX position (phase-order is enforced since the 2b fix).
+            self.gov.current_phase = PipelinePhase.TEST_EXECUTION
             result = self.gov.run_fix()
 
         self.assertEqual(result.data["verify"]["applied_unverified"], [patch.id])
@@ -387,6 +399,9 @@ class TestGovernorVerifyLoop(_GovTestCase):
         ), mock_patch.object(
             self.gov.coordinator, "run_group", return_value=[self._fix_result(pd)]
         ):
+            # Direct phase call: prime the pipeline to the real
+            # pre-FIX position (phase-order is enforced since the 2b fix).
+            self.gov.current_phase = PipelinePhase.TEST_EXECUTION
             result = self.gov.run_fix()
 
         self.assertEqual(result.data["verify"]["rolled_back"], [patch.id])

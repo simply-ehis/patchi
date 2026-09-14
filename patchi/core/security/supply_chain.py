@@ -223,10 +223,23 @@ class SupplyChainAgent(BaseAgent):
             for name, ver, file in all_deps[:10]:
                 try:
                     # Socket.dev npm/packages/{name} endpoint (simplified)
-                    resp = httpx.get(f"https://api.socket.dev/v0/npm/{name}", headers={"Authorization": f"Bearer {token}"}, timeout=3)
-                    if resp.status_code == 200 and any(k in resp.text.lower() for k in ("malware", "suspicious", "typosquat")):
+                    resp = httpx.get(
+                        f"https://api.socket.dev/v0/npm/{name}",
+                        headers={"Authorization": f"Bearer {token}"},
+                        timeout=3,
+                    )
+                    if resp.status_code == 200 and any(
+                        k in resp.text.lower() for k in ("malware", "suspicious", "typosquat")
+                    ):
                         findings.append(
-                            Finding(agent=self.name, type="socket_flagged", severity=Severity.HIGH, file=file, message=f"Socket.dev flagged {name}@{ver}", cwe="CWE-1395")
+                            Finding(
+                                agent=self.name,
+                                type="socket_flagged",
+                                severity=Severity.HIGH,
+                                file=file,
+                                message=f"Socket.dev flagged {name}@{ver}",
+                                cwe="CWE-1395",
+                            )
                         )
                 except Exception as e:
                     _log.debug("socket check %s failed: %s", name, e)
@@ -238,9 +251,25 @@ class SupplyChainAgent(BaseAgent):
         out: list[Finding] = []
         # 0.0.0 / 0.0.1 + high entropy → new/obfuscated
         if version.strip() in ("0.0.0", "0.0.1", "0.0.2"):
-            out.append(Finding(agent=self.name, type="suspicious_version", severity=Severity.MEDIUM, file=file, message=f"Suspicious new package {name}@{version} (0.0.x)"))
+            out.append(
+                Finding(
+                    agent=self.name,
+                    type="suspicious_version",
+                    severity=Severity.MEDIUM,
+                    file=file,
+                    message=f"Suspicious new package {name}@{version} (0.0.x)",
+                )
+            )
         if len(name) > 28 or _entropy(name) > 4.2:
-            out.append(Finding(agent=self.name, type="obfuscated_name", severity=Severity.LOW, file=file, message=f"High-entropy package name {name} (possible obfuscation)"))
+            out.append(
+                Finding(
+                    agent=self.name,
+                    type="obfuscated_name",
+                    severity=Severity.LOW,
+                    file=file,
+                    message=f"High-entropy package name {name} (possible obfuscation)",
+                )
+            )
         # install script in package.json
         if file.endswith("package.json"):
             try:
@@ -256,7 +285,16 @@ class SupplyChainAgent(BaseAgent):
                     # Check for lifecycle scripts that download remote code
                     raw = fp.read_text(encoding="utf-8", errors="ignore")
                     if "postinstall" in raw and ("curl " in raw or "wget " in raw or "eval(" in raw):
-                        out.append(Finding(agent=self.name, type="install_script_download", severity=Severity.HIGH, file=file, message=f"Install script downloads remote code in {file}", cwe="CWE-829"))
+                        out.append(
+                            Finding(
+                                agent=self.name,
+                                type="install_script_download",
+                                severity=Severity.HIGH,
+                                file=file,
+                                message=f"Install script downloads remote code in {file}",
+                                cwe="CWE-829",
+                            )
+                        )
             except Exception as e:
                 _log.debug("suspicious metadata %s failed: %s", name, e)
         return out

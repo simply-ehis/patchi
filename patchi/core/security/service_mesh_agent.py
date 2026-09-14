@@ -124,7 +124,9 @@ class ServiceMeshAgent(BaseAgent):
     name = "ServiceMeshAgent"
     group = AgentGroup.SECURITY
     domain = AgentDomain.SECURITY
-    description = "Service mesh security: mTLS enforcement, sidecar injection, RBAC least privilege, authorization policies"
+    description = (
+        "Service mesh security: mTLS enforcement, sidecar injection, RBAC least privilege, authorization policies"
+    )
 
     def _run(self, inp: AgentInput, result: AgentResult) -> None:
         with trace_agent(self.name, inp.root) as trace:
@@ -249,10 +251,7 @@ class ServiceMeshAgent(BaseAgent):
                             for item in data.get("objects", []):
                                 for diag in item.get("diagnostics", []):
                                     check = diag.get("check", "")
-                                    if any(
-                                        kw in check.lower()
-                                        for kw in ["mtls", "auth", "mesh", "sidecar"]
-                                    ):
+                                    if any(kw in check.lower() for kw in ["mtls", "auth", "mesh", "sidecar"]):
                                         findings.append(
                                             make_finding(
                                                 Severity.MEDIUM,
@@ -395,9 +394,7 @@ class ServiceMeshAgent(BaseAgent):
                     )
 
             # Check sidecar injection
-            injection_match = re.search(
-                r"sidecar.*inject(?:ion)?:\s*\n\s*enabled:\s*(\w+)", content
-            )
+            injection_match = re.search(r"sidecar.*inject(?:ion)?:\s*\n\s*enabled:\s*(\w+)", content)
             if injection_match and injection_match.group(1).lower() == "false":
                 findings.append(
                     make_finding(

@@ -11,6 +11,7 @@ Exposes:
   WS   /ws                  → WebSocket for live events
   /api/*                    → REST + htmx endpoints
 """
+
 from __future__ import annotations
 
 import logging
@@ -33,9 +34,7 @@ def create_app(root: Path) -> FastAPI:
 
     from fastapi.middleware.cors import CORSMiddleware
 
-    allowed_origins = os.environ.get(
-        "PATCHI_CORS_ORIGINS", "http://localhost:3000,http://localhost:8000"
-    ).split(",")
+    allowed_origins = os.environ.get("PATCHI_CORS_ORIGINS", "http://localhost:3000,http://localhost:8000").split(",")
     app.add_middleware(
         CORSMiddleware,
         allow_origins=allowed_origins,
@@ -239,7 +238,7 @@ def create_app(root: Path) -> FastAPI:
 
     app.websocket("/ws")(unified_ws_endpoint)
 
-# Error handlers
+    # Error handlers
     @app.exception_handler(404)
     async def not_found(request, exc):
         return HTMLResponse(
@@ -284,16 +283,20 @@ def create_app(root: Path) -> FastAPI:
     @app.get("/health")
     async def health():
         from fastapi.responses import JSONResponse
+
         return JSONResponse({"status": "ok"})
 
     # Warm caches at startup so first dashboard request is fast
     @app.on_event("startup")
     async def _warm_caches():
         import asyncio
+
         _r = root
+
         def _do():
             try:
                 from patchi.core.security.domain_loader import DomainLoader
+
                 dl = DomainLoader(_r)
                 dl.load_all()
                 _log.info("Domain cache warmed: %d domains", len(dl._domains))
@@ -301,12 +304,15 @@ def create_app(root: Path) -> FastAPI:
                 _log.debug("Domain cache warm-up skipped: %s", exc)
             try:
                 from patchi.core.health import compute as ch
+
                 ch(_r)
             except Exception as _exc:
-                _log.debug('suppressed: %s', _exc)
+                _log.debug("suppressed: %s", _exc)
+
         await asyncio.to_thread(_do)
 
     return app
+
 
 # Module-level app for uvicorn discovery
 app = create_app(Path(_os.getcwd()))

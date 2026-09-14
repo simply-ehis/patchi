@@ -171,8 +171,7 @@ class NoiseReport:
             "discarded": self.discarded,
             "by_category": dict(self.by_category),
             "statement": (
-                f"{self.kept}/{self.total_in} findings kept "
-                f"({self.capped} noise-capped, {self.discarded} discarded)"
+                f"{self.kept}/{self.total_in} findings kept ({self.capped} noise-capped, {self.discarded} discarded)"
             ),
         }
 
@@ -263,7 +262,7 @@ def _set(f, key: str, value) -> None:
     try:
         setattr(f, key, value)
     except Exception as _exc:  # noqa: BLE001 — frozen/sealed objects: skip silently
-        _log.debug('_set skipped: %s', _exc)
+        _log.debug("_set skipped: %s", _exc)
 
 
 def _set_severity_info(f) -> None:
@@ -277,4 +276,4 @@ def _set_severity_info(f) -> None:
 
         f.severity = Severity.INFO
     except Exception as _exc:  # noqa: BLE001 — frozen/sealed objects: annotate only
-        _log.debug('_set_severity_info skipped: %s', _exc)
+        _log.debug("_set_severity_info skipped: %s", _exc)

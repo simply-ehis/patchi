@@ -33,14 +33,14 @@ from patchi.core.plugins.analyzer import (
 
 # TODO-like patterns
 TODO_PATTERNS = [
-    (r'(?i)\bTODO\b', "todo-comment", Severity.LOW),
-    (r'(?i)\bFIXME\b', "fixme-comment", Severity.MEDIUM),
-    (r'(?i)\bHACK\b', "hack-comment", Severity.MEDIUM),
-    (r'(?i)\bXXX\b', "xxx-comment", Severity.MEDIUM),
-    (r'(?i)\bNOTE\b', "note-comment", Severity.INFO),
-    (r'(?i)\bBUG\b', "bug-comment", Severity.MEDIUM),
-    (r'(?i)\bOPTIMIZE\b', "optimize-comment", Severity.LOW),
-    (r'(?i)\bREFACTOR\b', "refactor-comment", Severity.LOW),
+    (r"(?i)\bTODO\b", "todo-comment", Severity.LOW),
+    (r"(?i)\bFIXME\b", "fixme-comment", Severity.MEDIUM),
+    (r"(?i)\bHACK\b", "hack-comment", Severity.MEDIUM),
+    (r"(?i)\bXXX\b", "xxx-comment", Severity.MEDIUM),
+    (r"(?i)\bNOTE\b", "note-comment", Severity.INFO),
+    (r"(?i)\bBUG\b", "bug-comment", Severity.MEDIUM),
+    (r"(?i)\bOPTIMIZE\b", "optimize-comment", Severity.LOW),
+    (r"(?i)\bREFACTOR\b", "refactor-comment", Severity.LOW),
 ]
 
 
@@ -100,16 +100,18 @@ class TodoScanner(Analyzer):
                     if len(comment_text) > 200:
                         comment_text = comment_text[:200] + "..."
 
-                    findings.append(make_finding(
-                        file=file.path,
-                        line=line_num,
-                        type=finding_type,
-                        severity=severity,
-                        message=f"Code comment: {match.group().upper()}",
-                        detail=comment_text,
-                        code_snippet=line.strip()[:200],
-                        suggestion=f"Address the {match.group().upper()} comment or remove it",
-                        confidence=1.0,
-                    ))
+                    findings.append(
+                        make_finding(
+                            file=file.path,
+                            line=line_num,
+                            type=finding_type,
+                            severity=severity,
+                            message=f"Code comment: {match.group().upper()}",
+                            detail=comment_text,
+                            code_snippet=line.strip()[:200],
+                            suggestion=f"Address the {match.group().upper()} comment or remove it",
+                            confidence=1.0,
+                        )
+                    )
 
         return findings

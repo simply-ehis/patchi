@@ -55,6 +55,7 @@ from typing import Any
 
 class Severity(StrEnum):
     """Finding severity levels."""
+
     CRITICAL = "critical"
     HIGH = "high"
     MEDIUM = "medium"
@@ -65,6 +66,7 @@ class Severity(StrEnum):
 @dataclass(frozen=True)
 class FileNode:
     """A file in the project with its content and metadata."""
+
     path: str  # relative to project root
     content: str = ""
     language: str = ""
@@ -76,6 +78,7 @@ class FileNode:
 @dataclass(frozen=True)
 class ASTNode:
     """An AST node with position information."""
+
     type: str  # e.g. "function", "class", "import"
     name: str = ""
     start_line: int = 0
@@ -89,6 +92,7 @@ class ASTNode:
 @dataclass(frozen=True)
 class GraphEdge:
     """An edge in the dependency/call graph."""
+
     source: str  # file or symbol
     target: str  # file or symbol
     edge_type: str = "calls"  # calls, imports, inherits, etc.
@@ -106,6 +110,7 @@ class AnalyzerContext:
     - Project metadata (from brain)
     - Configuration
     """
+
     root: Path
     files: list[FileNode] = field(default_factory=list)
     asts: dict[str, list[ASTNode]] = field(default_factory=dict)  # file -> AST nodes
@@ -124,6 +129,7 @@ class Finding:
 
     Has a stable, deterministic ID based on the finding's properties.
     """
+
     file: str
     line: int
     type: str
@@ -187,10 +193,25 @@ class Finding:
             cwe=d.get("cwe", ""),
             fix_hint=d.get("fix_hint", ""),
             confidence=d.get("confidence", 1.0),
-            extra={k: v for k, v in d.items() if k not in {
-                "id", "file", "line", "type", "severity", "message",
-                "detail", "code_snippet", "suggestion", "cwe", "fix_hint", "confidence",
-            }},
+            extra={
+                k: v
+                for k, v in d.items()
+                if k
+                not in {
+                    "id",
+                    "file",
+                    "line",
+                    "type",
+                    "severity",
+                    "message",
+                    "detail",
+                    "code_snippet",
+                    "suggestion",
+                    "cwe",
+                    "fix_hint",
+                    "confidence",
+                }
+            },
             _id=d.get("id", ""),
         )
 
@@ -201,6 +222,7 @@ class AnalyzerResult:
 
     Contains findings, metrics, and metadata about the analysis run.
     """
+
     findings: list[Finding] = field(default_factory=list)
     metrics: dict[str, Any] = field(default_factory=dict)
     errors: list[str] = field(default_factory=list)
@@ -272,6 +294,7 @@ class Analyzer(ABC):
             return False
         if self.supported_file_patterns:
             import fnmatch
+
             if not any(fnmatch.fnmatch(file.path, p) for p in self.supported_file_patterns):
                 return False
         return True
@@ -291,6 +314,7 @@ class Analyzer(ABC):
 
 
 # ── Helper for creating findings ──────────────────────────────────────────────
+
 
 def make_finding(
     file: str,

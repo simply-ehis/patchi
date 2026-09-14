@@ -70,9 +70,7 @@ class NodeDebugAdapter:
 
         harness_code = _build_harness(self._script, self._args)
 
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".js", delete=False, encoding="utf-8"
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".js", delete=False, encoding="utf-8") as f:
             f.write(harness_code)
             tmp_path = Path(f.name)
 

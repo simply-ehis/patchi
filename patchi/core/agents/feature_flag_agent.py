@@ -26,8 +26,13 @@ from patchi.core.agents.base import (
 
 _log = logging.getLogger("patchi.agents.feature_flag")
 
-_FLAG_RE = re.compile(r"(?:feature[_-]?flag|FLAG|ff[_A-Z]+|isEnabled|enabled)\s*[=:]\s*(true|false|1|0|\"on\"|\'on\'|\"off\"|\'off\')", re.I)
-_BOOL_ASSIGN = re.compile(r"^\s*(?:const|let|var)?\s*(\w*(?:flag|enabled|feature)\w*)\s*=\s*(true|false)\b", re.I | re.M)
+_FLAG_RE = re.compile(
+    r"(?:feature[_-]?flag|FLAG|ff[_A-Z]+|isEnabled|enabled)\s*[=:]\s*(true|false|1|0|\"on\"|\'on\'|\"off\"|\'off\')",
+    re.I,
+)
+_BOOL_ASSIGN = re.compile(
+    r"^\s*(?:const|let|var)?\s*(\w*(?:flag|enabled|feature)\w*)\s*=\s*(true|false)\b", re.I | re.M
+)
 
 
 def _git_log_count(root: Path, rel: str, flag_name: str, commits: int = 20) -> int:
@@ -86,7 +91,9 @@ class FeatureFlagArchaeologyAgent(BaseAgent):
                                 file=rel,
                                 line_start=line,
                                 title=f"Hardcoded flag {name}={val} for {depth} commits (archaeology)",
-                                description=f"Boolean flag '{name}' has been {val} for {depth} recent commits touching {rel} — likely dead code. Remove flag or make dynamic. References: uber/piranha for refactoring.",
+                                description=f"Boolean flag '{name}' has been {val} for {depth} recent commits touching"
+                                f" {rel} — likely dead code. Remove flag or make dynamic. References:"
+                                f" uber/piranha for refactoring.",
                                 evidence=m.group(0).strip()[:120],
                                 finding_type="hardcoded_flag",
                             )

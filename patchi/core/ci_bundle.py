@@ -12,9 +12,11 @@ import json
 from collections.abc import Callable
 from pathlib import Path
 
+
 def stable_id(finding: dict) -> str:
-    raw = f"{finding.get('file','')}:{finding.get('type','')}:{finding.get('line',0)//5}"
+    raw = f"{finding.get('file', '')}:{finding.get('type', '')}:{finding.get('line', 0) // 5}"
     return hashlib.sha256(raw.encode()).hexdigest()[:12]
+
 
 def baseline_delta(baseline: list[dict], current: list[dict]) -> dict:
     b_ids = {stable_id(f) for f in baseline}
@@ -23,17 +25,28 @@ def baseline_delta(baseline: list[dict], current: list[dict]) -> dict:
     fixed = [f for f in baseline if stable_id(f) not in c_ids]
     return {"added": added, "fixed": fixed, "added_count": len(added), "fixed_count": len(fixed)}
 
+
 def filter_since(findings: list[dict], since_ref: str, root: Path) -> list[dict]:
     """Filter findings to files changed since git ref."""
     try:
         import subprocess
-        out = subprocess.run(["git","diff","--name-only", since_ref], capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=5, cwd=str(root))
+
+        out = subprocess.run(
+            ["git", "diff", "--name-only", since_ref],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=5,
+            cwd=str(root),
+        )
         if out.returncode != 0:
             return findings
         changed = set(out.stdout.splitlines())
-        return [f for f in findings if f.get("file","") in changed]
+        return [f for f in findings if f.get("file", "") in changed]
     except Exception:
         return findings
+
 
 def to_sarif(findings: list[dict], root: Path | None = None) -> dict:
     """Single SARIF implementation — delegates to export.sarif.
@@ -44,6 +57,7 @@ def to_sarif(findings: list[dict], root: Path | None = None) -> dict:
 
     return convert_findings(findings)
 
+
 def write_sarif(findings: list[dict], out_path: Path) -> None:
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(json.dumps(to_sarif(findings), indent=2), encoding="utf-8")
@@ -52,8 +66,10 @@ def write_sarif(findings: list[dict], out_path: Path) -> None:
 def render_markdown(findings: list[dict]) -> str:
     lines = ["# Patchi Findings", ""]
     order = {"critical": 0, "high": 1, "medium": 2, "low": 3, "info": 4}
+
     def _sort_key(d: dict) -> tuple:
         return (order.get(d.get("severity", "info"), 5), d.get("file", ""))
+
     for f in sorted(findings, key=_sort_key):
         lines.append(
             f"- `{f.get('file', '?')}:{f.get('line', 0)}` "

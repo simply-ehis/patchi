@@ -48,9 +48,7 @@ class MisconfigAgent(BaseAgent):
     group = AgentGroup.SECURITY
     domain = AgentDomain.SECURITY
     name = "MisconfigAgent"
-    description = (
-        "Security misconfig: debug, CORS, headers, TLS, error handling, file upload, rate limiting"
-    )
+    description = "Security misconfig: debug, CORS, headers, TLS, error handling, file upload, rate limiting"
 
     def _run(self, inp: AgentInput, result: AgentResult) -> None:
         """Run security misconfiguration detection."""
@@ -230,9 +228,7 @@ class MisconfigAgent(BaseAgent):
                 )
 
             # Check for insecure settings
-            if self._find_nested_key(
-                data, ["allow_origin", "origins"], lambda v: v == "*" or v == ["*"]
-            ):
+            if self._find_nested_key(data, ["allow_origin", "origins"], lambda v: v == "*" or v == ["*"]):
                 findings.append(
                     make_finding(
                         severity=Severity.HIGH,
@@ -280,9 +276,7 @@ class MisconfigAgent(BaseAgent):
                     )
 
                 # Check for insecure settings
-                if self._find_nested_key(
-                    data, ["allow_origin", "origins"], lambda v: v == "*" or v == ["*"]
-                ):
+                if self._find_nested_key(data, ["allow_origin", "origins"], lambda v: v == "*" or v == ["*"]):
                     findings.append(
                         make_finding(
                             severity=Severity.HIGH,
@@ -331,9 +325,7 @@ class MisconfigAgent(BaseAgent):
             # Check for scripts that might expose vulnerabilities
             scripts = data.get("scripts", {})
             for script_name, script_content in scripts.items():
-                if any(
-                    keyword in script_content.lower() for keyword in ["inspect", "--debug", "debug"]
-                ):
+                if any(keyword in script_content.lower() for keyword in ["inspect", "--debug", "debug"]):
                     findings.append(
                         make_finding(
                             severity=Severity.HIGH,
@@ -421,10 +413,7 @@ class MisconfigAgent(BaseAgent):
                 continue
 
             # Check for debug enabled
-            if any(
-                debug_var in line.upper()
-                for debug_var in ["DEBUG=", "FLASK_DEBUG=", "DJANGO_DEBUG="]
-            ):
+            if any(debug_var in line.upper() for debug_var in ["DEBUG=", "FLASK_DEBUG=", "DJANGO_DEBUG="]):
                 if "TRUE" in line.upper() or "1" in line or "YES" in line.upper():
                     findings.append(
                         make_finding(
@@ -438,10 +427,7 @@ class MisconfigAgent(BaseAgent):
                     )
 
             # Check for insecure settings
-            if any(
-                cors_var in line.upper()
-                for cors_var in ["CORS_ORIGIN_ALLOW_ALL=", "ALLOWED_HOSTS="]
-            ):
+            if any(cors_var in line.upper() for cors_var in ["CORS_ORIGIN_ALLOW_ALL=", "ALLOWED_HOSTS="]):
                 if "*" in line or '"*"' in line or "'*'" in line:
                     findings.append(
                         make_finding(
@@ -465,8 +451,7 @@ class MisconfigAgent(BaseAgent):
         for i, line in enumerate(lines, 1):
             # Look for common misconfiguration patterns
             if any(
-                pattern in line.lower()
-                for pattern in ["debug=true", "debug: true", "enable_debug=1", "debug_mode=yes"]
+                pattern in line.lower() for pattern in ["debug=true", "debug: true", "enable_debug=1", "debug_mode=yes"]
             ):
                 findings.append(
                     make_finding(
@@ -481,8 +466,7 @@ class MisconfigAgent(BaseAgent):
 
             # Check for insecure CORS
             if any(
-                cors_pattern in line.lower()
-                for cors_pattern in ["*.*", "allowed_origins=*", "origin_allow_all=true"]
+                cors_pattern in line.lower() for cors_pattern in ["*.*", "allowed_origins=*", "origin_allow_all=true"]
             ):
                 findings.append(
                     make_finding(
@@ -525,8 +509,7 @@ class MisconfigAgent(BaseAgent):
 
                 # Look for insecure CORS in source code
                 if any(
-                    cors_pattern in line.lower()
-                    for cors_pattern in ["cors.*[*]", "allow_all_origins", "origins=[*]"]
+                    cors_pattern in line.lower() for cors_pattern in ["cors.*[*]", "allow_all_origins", "origins=[*]"]
                 ):
                     findings.append(
                         make_finding(
@@ -548,17 +531,13 @@ class MisconfigAgent(BaseAgent):
                         "content-security-policy",
                     ]
                 ):
-                    if any(
-                        off_pattern in line.lower()
-                        for off_pattern in ["sameorigin", "deny", "default-src"]
-                    ):
+                    if any(off_pattern in line.lower() for off_pattern in ["sameorigin", "deny", "default-src"]):
                         # These are generally secure settings
                         pass
                     else:
                         # Check if the header is disabled
                         if any(
-                            disable_pattern in line.lower()
-                            for disable_pattern in ["none", "null", "empty", "unset"]
+                            disable_pattern in line.lower() for disable_pattern in ["none", "null", "empty", "unset"]
                         ):
                             findings.append(
                                 make_finding(

@@ -45,20 +45,20 @@ Scan for data types passed to LLM calls:
 Check tool registry for risky tool categories:
 ```python
 # HIGH RISK tools
-- shell_exec, run_command, execute, bash
-- db_query, sql_execute, database_run
-- file_write, file_delete, file_overwrite
-- network_request, http_post, curl
-- send_email, send_message, deploy
+-shell_exec, run_command, execute, bash
+-db_query, sql_execute, database_run
+-file_write, file_delete, file_overwrite
+-network_request, http_post, curl
+-send_email, send_message, deploy
 
 # MEDIUM RISK tools
-- file_read, file_list, dir_list
-- http_get, fetch_url, web_scrape
-- db_read_only, db_query_read
+-file_read, file_list, dir_list
+-http_get, fetch_url, web_scrape
+-db_read_only, db_query_read
 
 # LOW RISK tools
-- calculate, format, search_memory
-- summarize, translate, classify
+-calculate, format, search_memory
+-summarize, translate, classify
 ```
 → **action**: If LLM has access to any HIGH RISK tool and no human approval gate → risk += 0.25.
 

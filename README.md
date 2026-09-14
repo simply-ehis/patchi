@@ -257,7 +257,7 @@ patchi/
 │   ├── agents/             # Agent framework
 │   │   ├── base.py         # BaseAgent, Finding, Severity, register()
 │   │   ├── coordinator.py  # Multi-agent orchestration
-│   │   ├── governor.py     # Phase-gated state machine
+│   │   ├── governor.py     # Phase-gated state machine — THE p scan pipeline
 │   │   └── cache.py        # Tree-sitter parse cache
 │   │
 │   ├── security/           # 125 security agents

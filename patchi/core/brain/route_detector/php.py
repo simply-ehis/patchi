@@ -32,18 +32,14 @@ class PhpRouteDetector(BaseRouteDetector):
         self._walk(tree.root_node, bytes(content, "utf-8"), content, file_path, routes)
         return routes
 
-    def _walk(
-        self, node: object, buf: bytes, content: str, file_path: str, routes: list[dict]
-    ) -> None:
+    def _walk(self, node: object, buf: bytes, content: str, file_path: str, routes: list[dict]) -> None:
         ntype = getattr(node, "type", "")
         if ntype in ("scoped_call_expression", "function_call_expression"):
             self._check_call(node, buf, content, file_path, routes)
         for child in getattr(node, "named_children", None) or getattr(node, "children", []):
             self._walk(child, buf, content, file_path, routes)
 
-    def _check_call(
-        self, node: object, buf: bytes, content: str, file_path: str, routes: list[dict]
-    ) -> None:
+    def _check_call(self, node: object, buf: bytes, content: str, file_path: str, routes: list[dict]) -> None:
         func = self._child_by_field(node, "function")
         if func is None:
             return

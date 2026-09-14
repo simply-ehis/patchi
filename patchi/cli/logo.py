@@ -53,9 +53,7 @@ def draw(console: Console | None = None, skip: bool = False) -> None:
         return
 
     con = console or Console(stderr=False, highlight=False)
-    is_tty = sys.stdout.isatty() or (
-        con.file is not None and hasattr(con.file, "isatty") and con.file.isatty()
-    )
+    is_tty = sys.stdout.isatty() or (con.file is not None and hasattr(con.file, "isatty") and con.file.isatty())
 
     if not is_tty:
         _print_final(con)

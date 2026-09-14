@@ -94,9 +94,7 @@ class InputFuzzer:
 
         # Boundary values
         for val in _BOUNDARY_STRINGS:
-            results.append(
-                FuzzInput(label=f"boundary_{val[:10]!r}", value=val, strategy="boundary")
-            )
+            results.append(FuzzInput(label=f"boundary_{val[:10]!r}", value=val, strategy="boundary"))
 
         # Injection payloads
         for val in _INJECTION_STRINGS:
@@ -147,9 +145,7 @@ class InputFuzzer:
     def fuzz_numeric(self, original: int, count: int = 10) -> list[FuzzInput]:
         """Generate mutated numeric variants."""
         boundaries = [0, -1, 1, 2**31 - 1, 2**31, 2**63 - 1, -(2**31), -(2**63)]
-        results = [
-            FuzzInput(label=f"boundary_{v}", value=v, strategy="boundary") for v in boundaries
-        ]
+        results = [FuzzInput(label=f"boundary_{v}", value=v, strategy="boundary") for v in boundaries]
         for i in range(max(0, count - len(results))):
             results.append(
                 FuzzInput(

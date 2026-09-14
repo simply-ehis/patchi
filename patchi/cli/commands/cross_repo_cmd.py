@@ -37,9 +37,7 @@ def run(args):
 
     console.print(
         Panel(
-            f"[bold]Cross-Repository Intelligence[/bold]\n"
-            f"Mode: {mode}\n"
-            f"Targets: {', '.join(target_projects)}",
+            f"[bold]Cross-Repository Intelligence[/bold]\nMode: {mode}\nTargets: {', '.join(target_projects)}",
             border_style="blue",
         )
     )
@@ -56,9 +54,7 @@ def run(args):
             console.print("[red]Need at least 2 projects for cross-repo analysis.[/red]")
             return
 
-        console.print(
-            f"\n[bold]Running cross-repo intelligence on {len(target_projects)} projects...[/bold]\n"
-        )
+        console.print(f"\n[bold]Running cross-repo intelligence on {len(target_projects)} projects...[/bold]\n")
 
         results = index_repository(
             repo_path=".",
@@ -84,9 +80,7 @@ def run(args):
             table.add_row(source, target, link_type, detail)
 
         console.print(table)
-        console.print(
-            f"\n[green]Found {len(results) if isinstance(results, list) else 0} cross-repo links.[/green]"
-        )
+        console.print(f"\n[green]Found {len(results) if isinstance(results, list) else 0} cross-repo links.[/green]")
 
     except ImportError:
         console.print("[red]codebase-memory module not available.[/red]")

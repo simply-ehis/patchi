@@ -31,6 +31,7 @@ confidence_boost: 0.1
 ```python
 # Bad: (any of)
 from cryptography.hazmat.primitives.ciphers.algorithms import ARC4
+
 hashlib.md5()
 hashlib.sha1()
 DES.new(...)
@@ -102,10 +103,10 @@ min_length.*[0-5]|minimumLength.*[0-5]|MIN_PASSWORD_LENGTH.*[0-5]
 ### Session Fixation
 ```python
 # BAD: no session regeneration on login
-session['user_id'] = user.id
+session["user_id"] = user.id
 # GOOD:
 session.regenerate()  # or rotate
-session['user_id'] = user.id
+session["user_id"] = user.id
 ```
 → **confidence**: 0.7 default, +0.2 if `session_key` or `sid` appears in URL params.
 

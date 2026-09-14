@@ -126,11 +126,7 @@ class EventBus:
 
     async def publish(self, event: Event) -> None:
         """Publish a single event to matching subscribers."""
-        tid = (
-            event.technique_id.value
-            if isinstance(event.technique_id, TechniqueID)
-            else event.technique_id
-        )
+        tid = event.technique_id.value if isinstance(event.technique_id, TechniqueID) else event.technique_id
 
         matched_any = False
         async with self._lock:

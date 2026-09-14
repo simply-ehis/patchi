@@ -212,6 +212,16 @@ def _compute_security(brain: dict, scans: dict) -> float:
     high_deductions = 0
     med_deductions = 0
 
+    # Part 3 §2.5: "0 findings because the tool is missing" is not the same
+    # fact as "0 findings because nothing is wrong". A security agent skipped
+    # for a missing tool costs a little confidence instead of counting as a
+    # clean pass (capped so a fresh install can't zero out the score).
+    tools_missing = 0
+    for agent_name in security_agents:
+        if (scans.get(agent_name, {}) or {}).get("tool_missing"):
+            tools_missing += 1
+    score -= min(tools_missing * 2, 15)
+
     for agent_name in security_agents:
         agent_data = scans.get(agent_name, {})
         for f in agent_data.get("findings", []):
@@ -231,14 +241,18 @@ def _compute_security(brain: dict, scans: dict) -> float:
 
 
 def _compute_test_coverage(brain: dict, scans: dict, real_pct: float = 0.0) -> float:
-    """Test coverage score from TestScanner coverage_pct, with real % as fallback."""
+    """Test coverage score from TestScanner coverage_pct, with real % as fallback.
+
+    §2d honesty fix: a project with ZERO tests must not borrow the neutral
+    50.0 default that "unknown coverage" used to get — reporting 0 tests the
+    same as half-covered is exactly the false-confidence signal the health
+    score exists to prevent. Zero coverage now scores 0.
+    """
     test_data = scans.get("TestScanner", {})
     pct = test_data.get("coverage_pct")
     if pct is not None:
         return float(pct)
-    if real_pct > 0:
-        return real_pct
-    return 50.0
+    return real_pct
 
 
 def _compute_dead_code(brain: dict, scans: dict) -> float:
@@ -349,19 +363,12 @@ def _compute_test_coverage_pct(root: Path | None, brain: dict) -> float:
             for f in files:
                 source_files += 1
                 stem = f.stem
-                candidates = {
-                    f"test_{stem}{ext}".lower()
-                    for ext in source_extensions
-                } | {
-                    f"{stem}_test{ext}".lower()
-                    for ext in source_extensions
-                } | {
-                    f"{stem}.test{ext}".lower()
-                    for ext in source_extensions
-                } | {
-                    f"{stem}.spec{ext}".lower()
-                    for ext in source_extensions
-                }
+                candidates = (
+                    {f"test_{stem}{ext}".lower() for ext in source_extensions}
+                    | {f"{stem}_test{ext}".lower() for ext in source_extensions}
+                    | {f"{stem}.test{ext}".lower() for ext in source_extensions}
+                    | {f"{stem}.spec{ext}".lower() for ext in source_extensions}
+                )
                 if candidates & own_tests or candidates & sibling_tests:
                     files_with_tests += 1
 
@@ -392,9 +399,7 @@ def _grade(score: int) -> tuple[str, str]:
 # ── Breakdown detail ───────────────────────────────────────────────────────────
 
 
-def _build_breakdown(
-    brain: dict, scans: dict, patches: list, test_coverage_pct: float = 0.0
-) -> dict:
+def _build_breakdown(brain: dict, scans: dict, patches: list, test_coverage_pct: float = 0.0) -> dict:
     return {
         "file_count": brain.get("file_count", 0),
         "route_count": brain.get("route_count", 0),

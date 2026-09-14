@@ -61,11 +61,7 @@ class RedTeamAgent(BaseAgent):
 
         # Analyze routes for attack surface
         for route_info in routes:
-            route = (
-                route_info.get("path", "")
-                if isinstance(route_info, dict)
-                else getattr(route_info, "path", "")
-            )
+            route = route_info.get("path", "") if isinstance(route_info, dict) else getattr(route_info, "path", "")
             method = (
                 route_info.get("method", "get")
                 if isinstance(route_info, dict)
@@ -116,7 +112,11 @@ class RedTeamAgent(BaseAgent):
                     )
                 )
 
-        # Scan source for attack patterns
+        # Scan source for attack patterns. Part 7 (§4 KEEP-AND-HARDEN):
+        # exec/eval/os.system/pickle/marshal calls and DEBUG=True /
+        # ALLOWED_HOSTS=* literals ARE the vulnerability shape — no AST
+        # can say more than "this dangerous sink/config is present".
+        # Measured by tests/test_heuristic_verdicts.py (SafeLoader silence).
         source_patterns = ["*.py", "*.js", "*.ts", "*.jsx", "*.tsx", "*.go", "*.java"]
         attack_patterns = [
             (r"eval\s*\(", Severity.CRITICAL, "eval() usage — potential code injection"),
@@ -130,7 +130,9 @@ class RedTeamAgent(BaseAgent):
             (r"pickle\.loads?\s*\(", Severity.CRITICAL, "pickle deserialization — RCE risk"),
             (r"marshal\.loads?\s*\(", Severity.CRITICAL, "marshal deserialization — RCE risk"),
             (
-                r"yaml\.load\s*\([^)]*\)",
+                # Part 7: SafeLoader/safe_load callers are excluded at match
+                # time (negative lookahead) — safe parsing is not a vuln.
+                r"yaml\.load\s*\((?![^)]*SafeLoader)(?![^)]*safe_load)[^)]*\)",
                 Severity.HIGH,
                 "yaml.load without SafeLoader — code execution risk",
             ),

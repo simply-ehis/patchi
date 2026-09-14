@@ -28,8 +28,8 @@ router = APIRouter(prefix="/api")
 # Global scan state so the dashboard and cancel endpoint can inspect it.
 _scan_state: dict = {
     "running": False,
-    "task": None,         # asyncio.Task | None
-    "cancel": None,       # asyncio.Event — set to abort
+    "task": None,  # asyncio.Task | None
+    "cancel": None,  # asyncio.Event — set to abort
     "started_at": 0.0,
     "agent_index": 0,
     "agent_total": 0,
@@ -54,9 +54,7 @@ def _detect_component_types(root: Path) -> list[str]:
     try:
         if any((root / d).exists() for d in ("templates", "static", "public")):
             ctypes.append("frontend-web")
-        if any(
-            (root / f).exists() for f in ("requirements.txt", "pyproject.toml", "setup.py")
-        ):
+        if any((root / f).exists() for f in ("requirements.txt", "pyproject.toml", "setup.py")):
             ctypes.append("backend-api")
         if (
             any((root / d).exists() for d in ("docker", "k8s", "kubernetes", ".github"))
@@ -112,6 +110,8 @@ def _joined_domain_loader(root: Path):
         return fut.result(timeout=0)
     except Exception:
         return None
+
+
 # Per-agent hard timeout (seconds).  Agents that exceed this are killed.
 AGENT_TIMEOUT = 120
 
@@ -162,12 +162,14 @@ async def trigger_scan(
         return JSONResponse({"ok": False, "error": f"Unknown scan type: {scan_type}"})
 
     cancel_event = asyncio.Event()
-    _scan_state.update({
-        "running": True,
-        "cancel": cancel_event,
-        "started_at": time.time(),
-        "agent_total": len(to_run),
-    })
+    _scan_state.update(
+        {
+            "running": True,
+            "cancel": cancel_event,
+            "started_at": time.time(),
+            "agent_total": len(to_run),
+        }
+    )
 
     async def _run():
         try:
@@ -195,18 +197,14 @@ async def trigger_scan(
                         await evt_scan_progress(agent_cls.name, "scanning", idx, total)
 
                         inp = AgentInput(root=root, scope=[], brain=brain, config=config)
-                        task = asyncio.create_task(
-                            _run_agent_with_timeout(agent_cls, inp, AGENT_TIMEOUT)
-                        )
+                        task = asyncio.create_task(_run_agent_with_timeout(agent_cls, inp, AGENT_TIMEOUT))
                         batch_tasks.append(task)
 
                     # Wait for all agents in this batch concurrently.
                     # yield control between batches so the event loop can
                     # handle HTTP requests, WS pings, etc.
                     if batch_tasks:
-                        batch_results = await asyncio.gather(
-                            *batch_tasks, return_exceptions=True
-                        )
+                        batch_results = await asyncio.gather(*batch_tasks, return_exceptions=True)
                         for r in batch_results:
                             if isinstance(r, Exception):
                                 # Agent timed out or crashed — record as empty result
@@ -214,6 +212,7 @@ async def trigger_scan(
                                     AgentResult,
                                     AgentStatus,
                                 )
+
                                 r = AgentResult(
                                     agent_name="unknown",
                                     status=AgentStatus.FAILED,
@@ -221,8 +220,10 @@ async def trigger_scan(
                                 )
                             results.append(r)
                             await evt_scan_progress(
-                                getattr(r, "agent_name", "?"), "done",
-                                min(len(results), total), total,
+                                getattr(r, "agent_name", "?"),
+                                "done",
+                                min(len(results), total),
+                                total,
                             )
 
                 total_findings = sum(r.finding_count for r in results)
@@ -230,6 +231,7 @@ async def trigger_scan(
                 # Deduplicate + correlate
                 try:
                     from patchi.core.security.orchestrator import SecurityOrchestrator
+
                     report = SecurityOrchestrator().correlate(results)
                     deduped_count = report.total_findings
                 except Exception:
@@ -252,24 +254,28 @@ async def trigger_scan(
 
                     invalidate_cache()
                 except Exception as _exc:
-                    _log.debug('suppressed: %s', _exc)
+                    _log.debug("suppressed: %s", _exc)
 
                 # Record scan in history
                 try:
                     import time as _time
 
                     from patchi.core.memory import record_scan
-                    elapsed = round(_time.time() - _scan_state.get('started_at', _time.time()), 1)
-                    agent_names = [getattr(r, 'agent_name', '?') for r in results]
-                    record_scan({
-                        'timestamp': datetime.now(UTC).isoformat(),
-                        'total_findings': deduped_count,
-                        'agents_run': len(results),
-                        'agents_list': agent_names[:20],
-                        'duration_s': elapsed,
-                        'auto_fix': auto_fix,
-                        'cancelled': cancel_event.is_set(),
-                    }, root)
+
+                    elapsed = round(_time.time() - _scan_state.get("started_at", _time.time()), 1)
+                    agent_names = [getattr(r, "agent_name", "?") for r in results]
+                    record_scan(
+                        {
+                            "timestamp": datetime.now(UTC).isoformat(),
+                            "total_findings": deduped_count,
+                            "agents_run": len(results),
+                            "agents_list": agent_names[:20],
+                            "duration_s": elapsed,
+                            "auto_fix": auto_fix,
+                            "cancelled": cancel_event.is_set(),
+                        },
+                        root,
+                    )
                 except Exception as _exc:
                     _log.debug("record_scan history write skipped: %s", _exc)
 
@@ -280,9 +286,8 @@ async def trigger_scan(
                         await asyncio.to_thread(_run_proactive_fix, root, config)
                     except Exception as e:
                         import logging
-                        logging.getLogger("patchi.web.scan").warning(
-                            "Auto-fix failed: %s", e
-                        )
+
+                        logging.getLogger("patchi.web.scan").warning("Auto-fix failed: %s", e)
                     await evt_scan_progress("auto_fix", "done", total + 1, total + 1)
         finally:
             _scan_state["running"] = False
@@ -332,13 +337,15 @@ async def scan_status() -> JSONResponse:
     if not _scan_state["running"]:
         return JSONResponse({"running": False})
     elapsed = time.time() - _scan_state["started_at"]
-    return JSONResponse({
-        "running": True,
-        "elapsed": round(elapsed, 1),
-        "current_agent": _scan_state["current_agent"],
-        "agent_index": _scan_state["agent_index"],
-        "agent_total": _scan_state["agent_total"],
-    })
+    return JSONResponse(
+        {
+            "running": True,
+            "elapsed": round(elapsed, 1),
+            "current_agent": _scan_state["current_agent"],
+            "agent_index": _scan_state["agent_index"],
+            "agent_total": _scan_state["agent_total"],
+        }
+    )
 
 
 @router.get("/scan/history")
@@ -346,6 +353,7 @@ async def scan_history(request: Request, limit: int = 10) -> JSONResponse:
     """Return the last N scan summaries from history."""
     root = request.app.state.root
     from patchi.core.memory import get_scan_history
+
     history = get_scan_history(root)
     return JSONResponse({"ok": True, "scans": history[:limit], "total": len(history)})
 
@@ -359,6 +367,7 @@ def _run_proactive_fix(root, config):
         fixer.run()
     except Exception as e:
         import logging
+
         logging.getLogger("patchi.web.scan").warning("_run_proactive_fix failed: %s", e)
 
 
@@ -399,14 +408,16 @@ async def get_scan_report(request: Request) -> JSONResponse:
             payload["total_findings"] = report.total_findings
             return JSONResponse(payload)
     except Exception as _exc:
-        _log.warning('get_scan_report failed: %s', _exc)
+        _log.warning("get_scan_report failed: %s", _exc)
 
-    return JSONResponse({
-        "ok": True,
-        "total_findings": len(all_findings),
-        "findings": all_findings[:50],
-        "cached": True,
-    })
+    return JSONResponse(
+        {
+            "ok": True,
+            "total_findings": len(all_findings),
+            "findings": all_findings[:50],
+            "cached": True,
+        }
+    )
 
 
 @router.post("/scan/quick")
@@ -500,7 +511,13 @@ async def trigger_dast(request: Request) -> JSONResponse:
     try:
         from patchi.core.security.dast_agent import DASTAgent
     except ImportError:
-        return JSONResponse({"ok": False, "error": "Playwright not installed. Run: pip install playwright && playwright install"}, status_code=500)
+        return JSONResponse(
+            {
+                "ok": False,
+                "error": "Playwright not installed. Run: pip install playwright && playwright install",
+            },
+            status_code=500,
+        )
 
     async def _run():
         with tenant_context(root):

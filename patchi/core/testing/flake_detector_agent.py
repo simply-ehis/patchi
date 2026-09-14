@@ -77,12 +77,14 @@ def _record_test_run(
     conn = _get_flake_db(root)
     try:
         conn.execute(
-            "INSERT INTO test_runs (run_id, timestamp, runner, total, passed, failed, skipped, duration_ms) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO test_runs (run_id, timestamp, runner, total, passed, failed, skipped, duration_ms) VALUES (?,"
+            " ?, ?, ?, ?, ?, ?, ?)",
             (run_id, now, runner, total, passed, failed, skipped, duration_ms),
         )
         for c in cases:
             conn.execute(
-                "INSERT INTO test_results (run_id, test_name, passed, duration_ms, file, line) VALUES (?, ?, ?, ?, ?, ?)",
+                "INSERT INTO test_results (run_id, test_name, passed, duration_ms, file, line) VALUES (?, ?, ?, ?, ?,"
+                " ?)",
                 (
                     run_id,
                     c.get("name", "?"),
@@ -102,7 +104,8 @@ def _get_all_runs(root: Path) -> list[dict]:
     conn = _get_flake_db(root)
     try:
         cur = conn.execute(
-            "SELECT run_id, timestamp, runner, total, passed, failed, skipped, duration_ms FROM test_runs ORDER BY rowid ASC"
+            "SELECT run_id, timestamp, runner, total, passed, failed, skipped, duration_ms FROM test_runs ORDER BY"
+            " rowid ASC"
         )
         return [
             {

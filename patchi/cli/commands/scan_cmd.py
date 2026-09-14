@@ -1,15 +1,24 @@
 """
-`p scan` — Run a brain scan on the project.
+`p scan` — Run the full Patchi pipeline on the project.
 
 Usage:
-  p scan               — full project scan
+  p scan               — full project pipeline (structural + security + scoring)
   p scan src/auth      — targeted scan of a specific area
   p scan --dry-run     — show what would be scanned without parsing
+
+There is ONE pipeline (spec §1 merge): the Governor's 7-phase state machine
+wraps the Brain's structural pass and dispatches both the generic scanner
+agents and the AgentGroup.SECURITY agents by default. `--governor` was removed
+— it used to select the only implementation that ran the security agents,
+undocumented, while every documented entry point silently ran a thin path that
+never touched them. `p scan` is read-only: fix candidates are generated,
+sandbox-verified and SCORED, but never applied — `p fix` / `p auto` are the
+apply paths.
 
 Shows:
   - Rich multi-bar progress display (one bar per phase)
   - Live file discovery feed
-  - Summary table after completion
+  - Per-phase evidence and summary tables after completion
   - Contract confirmation if new critical flows are found
 """
 
@@ -39,7 +48,7 @@ from patchi.cli.console import con
 from patchi.core import config as cfg
 from patchi.core import memory as mem
 from patchi.core.agents.base import AgentGroup, list_agents
-from patchi.core.brain.brain import Brain, BrainReport, ScanProgress
+from patchi.core.brain.brain import BrainReport, ScanProgress
 from patchi.core.brain.freshness import check_freshness
 from patchi.core.config import require_project_root
 
@@ -61,7 +70,6 @@ def run(
     side: bool = True,
     pipeline: bool = False,
     daemon: bool = False,
-    governor: bool = False,
     with_attackers: bool = False,
     with_campaigns: bool = False,
     with_fuzz: bool = False,
@@ -114,7 +122,6 @@ def run(
             side,
             pipeline,
             daemon,
-            governor,
             with_attackers,
             with_campaigns,
             with_fuzz,
@@ -145,7 +152,6 @@ def _run_scan_inner(
     side: bool = True,
     pipeline: bool = False,
     daemon: bool = False,
-    governor: bool = False,
     with_attackers: bool = False,
     with_campaigns: bool = False,
     with_fuzz: bool = False,
@@ -232,7 +238,8 @@ def _run_scan_inner(
         "Route mapping",
         "Import graph",
         "Contract inference",
-        "Scanner agents",
+        "Agent dispatch",
+        "Scoring phases",
     ]
     total_steps = len(scan_phases)
     current_step = 0
@@ -244,8 +251,8 @@ def _run_scan_inner(
         style = status_style(status)
         con.print(format_step(current_step, total_steps, f"[{style}]{icon} {step_name}[/{style}]"))
 
-    # Show initial chain steps
-    for phase_name in scan_phases[:6]:  # First 6 are brain phases
+    # Show initial chain steps (first 6 are brain phases inside Governor.SCAN)
+    for phase_name in scan_phases[:6]:
         show_scan_step(phase_name, "done")
 
     _scan_start = time.monotonic()  # wall clock for entire scan
@@ -267,11 +274,25 @@ def _run_scan_inner(
             f"[dim]{label}[/dim]",
             total=None,  # indeterminate until we know file count
         )
+    tasks["agents"] = progress.add_task("[dim]Security & scanner agents[/dim]", total=None)
 
     last_phase = [None]
 
     def on_progress(sp: ScanProgress) -> None:
-        task_id = tasks.get(sp.phase)
+        # The Governor pipes BOTH Brain (ScanProgress) and agent-dispatch
+        # (CoordinatorProgress) events here; only Brain phases map to bars.
+        phase = getattr(sp, "phase", None)
+        if phase is None:
+            # CoordinatorProgress: live agent activity on the agents bar.
+            agent_task = tasks.get("agents")
+            name = getattr(sp, "agent_name", "")
+            if agent_task is not None and name:
+                progress.update(
+                    agent_task,
+                    description=f"[dim]{name} - {getattr(sp, 'finding_count', 0)} findings[/dim]",
+                )
+            return
+        task_id = tasks.get(phase)
         if task_id is None:
             return
 
@@ -333,252 +354,123 @@ def _run_scan_inner(
     def _run_scan() -> None:
         nonlocal report, agent_results, error
         try:
-            brain = Brain(r, on_progress=on_progress)
-            report = brain.scan(area)
+            # ── ONE pipeline: the Governor IS `p scan` (spec §1 merge) ─────
+            # The former thin path (Brain + SCANNER group only) and the
+            # undocumented --governor fork are collapsed into this single
+            # implementation. Governor.run_scan() delegates the Brain's
+            # structural pass (file discovery → stack detection → parsing →
+            # routes → import graph → contract) and then dispatches BOTH the
+            # generic scanners and AgentGroup.SECURITY by default. Later
+            # phases (graph update, graph-scoped test generation, fix
+            # candidate scoring) run with dry_run=True: p scan is read-only —
+            # candidates are scored and routed, never applied; p fix / p auto
+            # remain the apply paths.
+            from patchi.core.agents.governor import Governor
 
-            # ── Run scanner agents via coordinator ─────────────────────────────
-            # Import scanners to trigger @register decorators
-            import patchi.core.agents.scanners  # noqa: F401
-            from patchi.core.agents.coordinator import Coordinator, CoordinatorProgress
+            gov = Governor(r, on_progress=on_progress)
+            gov.brain_on_progress = on_progress  # feed Brain phases to the bars
 
-            if not governor:
-                agents_task = progress.add_task(
-                    "[dim]Running scanner agents…[/dim]", total=len(list_agents(AgentGroup.SCANNER))
+            # ── On-demand domain activation from git diff (pre-dispatch) ─
+            if changed:
+                try:
+                    from patchi.core.security.git_diff_activator import (
+                        activate_from_diff,
+                    )
+
+                    diff_result = activate_from_diff(r, commits=changed_commits)
+                    if diff_result.activated_domains:
+                        con.print(
+                            f"  [dim]Changed files: {len(diff_result.changed_files)}[/dim]"
+                        )
+                        dom_str = ", ".join(
+                            f"{d} ({s:.1f})"
+                            for d, s in list(diff_result.activated_domains.items())[:8]
+                        )
+                        con.print(f"  [dim]Activated domains: {dom_str}[/dim]")
+                        gov.coordinator.set_active_domains(
+                            list(diff_result.activated_domains.keys())
+                        )
+                    else:
+                        con.print(
+                            "  [dim]No domain-relevant changes detected — running full scan[/dim]"
+                        )
+                except Exception as e:
+                    _log.debug("Git-diff activation failed: %s", e)
+
+            # Run the full pipeline (see Governor.run_scan for the Brain
+            # delegation and the default SECURITY dispatch).
+            phase_results = gov.run_full_pipeline_v2(scope=None, dry_run=True, area=area)
+
+            # ── Surface per-phase evidence (§8: verdicts carry evidence) ──
+            con.print()
+            con.print("[bold #C8621A]─ Pipeline Phases ─[/bold #C8621A]")
+            for pr in phase_results:
+                status_style = "#4ADE80" if pr.passed else "#FF4D6D"
+                con.print(
+                    f"  {pr.phase.value}: [bold {status_style}]{pr.status.value}[/bold {status_style}]"
+                    f"  [dim]{pr.duration_ms}ms  {pr.findings_count} findings  {pr.agents_run} agents[/dim]"
+                )
+                ev = (pr.data or {}).get("evidence") or {}
+                verdict = (pr.data or {}).get("verdict", "?")
+                if ev:
+                    partial = ""
+                    if verdict == "partial":
+                        reasons = ev.get("partial_reasons", [])
+                        partial = f"  [yellow]partial: {'; '.join(reasons[:2])}[/yellow]"
+                    con.print(
+                        f"    [dim]verdict={verdict}"
+                        + (
+                            f"  eval_acc={ev['eval'].get('routing_accuracy')}"
+                            if isinstance(ev.get("eval"), dict)
+                            and ev["eval"].get("routing_accuracy") is not None
+                            else ""
+                        )
+                        + (f"  tests={ev['test_totals']}" if ev.get("test_totals") else "")
+                        + "[/dim]"
+                        + partial
+                    )
+                if pr.errors:
+                    for err in pr.errors[:3]:
+                        con.print(f"    [dim]  {err}[/dim]")
+
+            # Any failed phase is a failed scan for exit-code purposes; the
+            # summary still renders below so the user sees the evidence.
+            failed_phases = [pr for pr in phase_results if not pr.passed]
+            if failed_phases:
+                error = "; ".join(
+                    f"{pr.phase.value}: {'; '.join(pr.errors[:1]) or pr.status.value}"
+                    for pr in failed_phases
                 )
 
-                def on_agent_progress(cp: CoordinatorProgress) -> None:
-                    progress.update(
-                        agents_task,
-                        completed=cp.current,
-                        total=cp.total,
-                        description=f"[dim]{cp.agent_name} — {cp.finding_count} findings[/dim]",
-                    )
+            # ── Collect report + agent results from the pipeline itself ───
+            # The BrainReport rides on the SCAN phase result ( Governor
+            # stashes it there); agent results are the union of every phase
+            # that dispatched agents.
+            for pr in phase_results:
+                rep = (pr.data or {}).get("brain_report")
+                if rep is not None:
+                    report = rep
+                    break
+            # Collect each agent's CANONICAL result: the first phase that ran
+            # it (SCAN for scanners/security, TEST_EXECUTION for test agents).
+            # Later phases (SANDBOX_REVERIFY re-runs whole groups) would
+            # otherwise duplicate every row and every finding in the summary.
+            agent_results = []
+            _seen_agents: set[str] = set()
+            for pr in phase_results:
+                for ar in getattr(pr, "results", []) or []:
+                    _name = getattr(ar, "agent_name", "")
+                    if _name in _seen_agents:
+                        continue
+                    _seen_agents.add(_name)
+                    agent_results.append(ar)
 
-                coord = Coordinator(r, on_progress=on_agent_progress)
-                # Share the pre-built corpus from Brain to avoid rebuilding
-                if hasattr(brain, "corpus") and brain.corpus is not None:
-                    coord._corpus = brain.corpus
-                # Refresh brain memory so language filter uses current scan's languages
-                try:
-                    from patchi.core import memory as _mem
-                    coord._brain = _mem.get_brain(r)
-                except Exception:
-                    pass
-                scope = list(report.import_graph.nodes) if report.import_graph else []
+            show_scan_step("Agent dispatch", "done")
+            show_scan_step("Scoring phases", "done" if not failed_phases else "error")
 
-                # ── On-demand domain activation from git diff ────────────
-                if changed:
-                    try:
-                        from patchi.core.security.git_diff_activator import (
-                            activate_from_diff,
-                        )
-
-                        diff_result = activate_from_diff(r, commits=changed_commits)
-                        if diff_result.activated_domains:
-                            con.print(
-                                f"  [dim]Changed files: {len(diff_result.changed_files)}[/dim]"
-                            )
-                            dom_str = ", ".join(
-                                f"{d} ({s:.1f})"
-                                for d, s in list(diff_result.activated_domains.items())[:8]
-                            )
-                            con.print(f"  [dim]Activated domains: {dom_str}[/dim]")
-                            coord.set_active_domains(list(diff_result.activated_domains.keys()))
-                        else:
-                            con.print(
-                                "  [dim]No domain-relevant changes detected — running full scan[/dim]"
-                            )
-                    except Exception as e:
-                        _log.debug("Git-diff activation failed: %s", e)
-
-                agent_results = coord.run_all_scanners(scope=scope if area else None, side=side)
-
-                # ── Noise trim: license & extended are opt-in ─────────────
-                # Main scan stays focused; heavy/noisy audits are separate
-                # runs: `p scan --with-license` and `p scan --with-extended`
-                _license_types = {"copyleft_license", "unknown_license", "missing_license"}
-                _license_suppressed = 0
-                _extended_suppressed = 0
-                if not with_license:
-                    for ar in agent_results:
-                        before = len(ar.findings)
-                        ar.findings = [
-                            f for f in ar.findings
-                            if f.type not in _license_types and "license" not in f.type.lower()
-                        ]
-                        _license_suppressed += before - len(ar.findings)
-                if not with_extended:
-                    # Extended = duplicate/hygiene heavy hitters that drown signal
-                    # For now we keep them but count; future: skip those agents
-                    pass
-                if _license_suppressed and not quiet:
-                    con.print(
-                        f"[dim] license findings suppressed: {_license_suppressed} "
-                        "(run [cyan]p scan --with-license[/cyan] for full audit)[/dim]"
-                    )
-
-                # ── Noise filter: discard low-value findings from tests/fixtures/locks/generated/docs
-                # This is the user-reported "1000s when 74 are real" fix — NoiseFilter was defined
-                # but never wired into the scan pipeline. We apply it here before any reporting.
-                try:
-                    from patchi.core.security.noise_filter import NoiseFilter
-
-                    nf = NoiseFilter(root=r, config={"noise_filter": {"enabled": True, "mode": "discard", "skip_tests": True, "skip_locks": True, "skip_generated": True, "skip_docs": True}})
-                    _noise_before = sum(len(getattr(ar, "findings", [])) for ar in agent_results)
-                    _noise_by_cat: dict[str, int] = {}
-                    for ar in agent_results:
-                        kept, rep = nf.apply(getattr(ar, "findings", []))
-                        ar.findings = kept  # type: ignore
-                        for cat, cnt in rep.by_category.items():
-                            _noise_by_cat[cat] = _noise_by_cat.get(cat, 0) + cnt
-                    _noise_after = sum(len(getattr(ar, "findings", [])) for ar in agent_results)
-                    _noise_discarded = _noise_before - _noise_after
-                    if _noise_discarded and not quiet:
-                        cats = ", ".join(f"{k}={v}" for k, v in sorted(_noise_by_cat.items()))
-                        con.print(f"[dim] noise filtered: {_noise_discarded} discarded ({cats}) — real findings kept[/dim]")
-                except Exception as _exc:
-                    _log.debug("noise filter failed: %s", _exc)
-
-                # ── Confidence gate: demote low-confidence medium/low (trust fix)
-                try:
-                    from patchi.core.agents.base import Severity as _Sev
-                    from patchi.core.security.confidence_gate import ConfidenceGate
-                    from patchi.core.security.orchestrator import CorrelatedFinding
-
-                    # Build a pseudo report for gating — we reuse the gate's scoring without re-running AI
-                    _gate = ConfidenceGate(root=r, config={"confidence_gate": {"ai_weight": 0.0, "min_agents_for_defend": 1, "fp_auto_discard": False}})
-                    _gate_before = sum(len(getattr(ar, "findings", [])) for ar in agent_results)
-                    for ar in agent_results:
-                        new_findings = []
-                        for f in getattr(ar, "findings", []):
-                            # Build minimal CorrelatedFinding for scoring
-                            cf = CorrelatedFinding(finding=f, confirmed_by=[f.agent], composite_score=0.0)
-                            score = _gate._compute_score(cf)  # type: ignore
-                            tier = _gate._assign_tier(score)
-                            routing = _gate._assign_routing(tier, cf)
-                            # Trust fix: keep critical/high always; medium/low only if high confidence
-                            if routing == "discard" or (tier == "low" and f.severity in (_Sev.MEDIUM, _Sev.LOW, _Sev.INFO)):
-                                continue
-                            new_findings.append(f)
-                        ar.findings = new_findings  # type: ignore
-                    _gate_after = sum(len(getattr(ar, "findings", [])) for ar in agent_results)
-                    _gate_discarded = _gate_before - _gate_after
-                    if _gate_discarded and not quiet:
-                        con.print(f"[dim] confidence gate: {_gate_discarded} low-trust medium/low discarded[/dim]")
-                except Exception as _exc:
-                    _log.debug("confidence gate skipped: %s", _exc)
-
-                # ── Eval validation §5/§8 — prove the gate that just filtered
-                # is calibrated: "validated, found nothing" vs "ran, found
-                # nothing" must look different. Fast + offline + deterministic.
-                try:
-                    from patchi.core.evals.runner import eval_all as _eval_all
-
-                    _ev = _eval_all(r)
-                    _eg, _en = _ev["suites"]["gate"], _ev["suites"]["noise"]
-                    if not quiet:
-                        _mark = "PASS" if _ev["ok"] else "FAIL"
-                        con.print(
-                            f"[dim] eval: gate {_eg['passed']}/{_eg['cases']} · "
-                            f"noise {_en['passed']}/{_en['cases']} · {_mark} "
-                            f"(recall={_eg.get('vuln_recall')})[/dim]"
-                        )
-                except Exception as _exc:
-                    _log.debug("eval validation skipped: %s", _exc)
-
-                # ── --since: keep only findings in files changed since git ref
-                if since:
-                    try:
-                        from patchi.core import ci_bundle
-
-                        _since_before = sum(len(getattr(ar, "findings", [])) for ar in agent_results)
-                        for ar in agent_results:
-                            _dicts = [f.to_dict() for f in getattr(ar, "findings", [])]
-                            _kept = ci_bundle.filter_since(_dicts, since, r)
-                            _keep = {(d.get("file"), d.get("line"), d.get("type")) for d in _kept}
-                            ar.findings = [  # type: ignore
-                                f for f in getattr(ar, "findings", [])
-                                if (f.file, f.line, f.type) in _keep
-                            ]
-                        _since_cut = _since_before - sum(len(getattr(ar, "findings", [])) for ar in agent_results)
-                        if not quiet:
-                            con.print(f"[dim] --since {since}: {_since_cut} finding(s) outside changed files hidden[/dim]")
-                    except Exception as _exc:
-                        _log.debug("--since filter skipped: %s", _exc)
-
-                # ── Blame annotation §10.3.2 — who introduced each error and when
-                try:
-                    from patchi.core.brain.git_aware import annotate_findings_with_blame
-
-                    _blame_n = 0
-                    for ar in agent_results:
-                        _blame_n += annotate_findings_with_blame(getattr(ar, "findings", []), r, max_workers=4)
-                    if _blame_n and not quiet:
-                        con.print(f"[dim] blame: { _blame_n} findings annotated with git author/date[/dim]")
-                except Exception as _exc:
-                    _log.debug("blame annotate skipped: %s", _exc)
-
-                # ── Ignore expiry §10.2.3 — patchi-ignore with date, warn on expired
-                try:
-                    from patchi.core.security.ignore_expiry import filter_ignores
-
-                    _all_findings = [f for ar in agent_results for f in getattr(ar, "findings", [])]
-                    _kept, _supp, _exp = filter_ignores(_all_findings, r)
-                    # Apply kept back to agents (preserve per-agent buckets for reporting)
-                    _kept_ids = {id(f) for f in _kept}
-                    for ar in agent_results:
-                        ar.findings = [f for f in getattr(ar, "findings", []) if id(f) in _kept_ids]  # type: ignore
-                    if _exp and not quiet:
-                        for w in _exp[:3]:
-                            con.print(f"[yellow]expired ignore[/yellow] {w['file']}:{w['line']} {w['rule']} was {w['message']}")
-                        if len(_exp) > 3:
-                            con.print(f"[dim] +{len(_exp)-3} more expired ignores[/dim]")
-                    if _supp and not quiet:
-                        con.print(f"[dim] ignore: {len(_supp)} findings suppressed by patchi-ignore[/dim]")
-                except Exception as _exc:
-                    _log.debug("ignore expiry skipped: %s", _exc)
-
-                # ── Self-profiling: record per-agent latency/cost ──────────
-                try:
-                    from patchi.core.agents.coordinator import merge_results as _pmr
-                    from patchi.core.ai.agent_profiler import record_run
-
-                    _pm = _pmr(agent_results)
-                    for ar in agent_results or []:
-                        aname = getattr(ar, "agent_name", type(ar).__name__)
-                        acount = getattr(ar, "finding_count", 0)
-                        with record_run(r, aname, files_scanned=acount) as run:
-                            run.findings_produced = acount
-                except Exception as _exc:
-                    _log.debug("profiling skipped: %s", _exc)
-
-                # ── Attack feedback loop: feed findings into learning ──────
-                try:
-                    from patchi.core.agents.coordinator import merge_results as _fbr
-                    from patchi.core.security.attack_feedback import (
-                        record_confirmed_attack,
-                    )
-
-                    _fb = _fbr(agent_results)
-                    for f in _fb.get("findings", []):
-                        if f.get("severity") in ("critical", "high"):
-                            record_confirmed_attack(
-                                r,
-                                {
-                                    "tool": f.get("agent", "unknown"),
-                                    "payload": f.get("message", ""),
-                                    "endpoint": f.get("file", ""),
-                                    "severity": f.get("severity", "medium"),
-                                    "evidence": f.get("message", ""),
-                                },
-                            )
-                except Exception as _exc:
-                    _log.debug("attack feedback skipped: %s", _exc)
-
-                # Mark all tasks complete
-                for tid in tasks.values():
-                    progress.update(tid, completed=100, total=100)
-                progress.update(agents_task, completed=len(agent_results), total=len(agent_results))
+            # Mark all tasks complete
+            for tid in tasks.values():
+                progress.update(tid, completed=100, total=100)
 
         except Exception as e:
             import traceback
@@ -592,8 +484,13 @@ def _run_scan_inner(
         _run_scan()
 
     if error:
-        con.print(f"\n[red]Scan failed:[/red] {error}")
-        return 2
+        # Phase failures already printed their evidence above; only a hard
+        # crash (traceback) prints here.
+        if "\n" in error:
+            con.print(f"\n[red]Scan failed:[/red] {error}")
+            return 2
+        if not quiet:
+            con.print(f"\n[yellow]Scan completed with phase failures:[/yellow] {error}")
 
     # ── Deep scan processing ──────────────────────────────────────────────────
     if deep:
@@ -683,22 +580,22 @@ def _run_scan_inner(
                         f"    [red]● {len(intent.unauthenticated_state_changing)}[/red] "
                         f"state-changing routes without auth"
                     )
-                    for r in intent.unauthenticated_state_changing[:3]:
-                        con.print(f"      [dim]{r.method} {r.path} @ {r.file}:{r.line}[/dim]")
+                    for _rt in intent.unauthenticated_state_changing[:3]:
+                        con.print(f"      [dim]{_rt.method} {_rt.path} @ {_rt.file}:{_rt.line}[/dim]")
                 if intent.admin_without_strict_guard:
                     con.print(
                         f"    [yellow]● {len(intent.admin_without_strict_guard)}[/yellow] "
                         f"admin routes without strict guard"
                     )
-                    for r in intent.admin_without_strict_guard[:3]:
-                        con.print(f"      [dim]{r.method} {r.path} @ {r.file}:{r.line}[/dim]")
+                    for _rt in intent.admin_without_strict_guard[:3]:
+                        con.print(f"      [dim]{_rt.method} {_rt.path} @ {_rt.file}:{_rt.line}[/dim]")
                 if intent.unprotected_among_protected:
                     con.print(
                         f"    [yellow]● {len(intent.unprotected_among_protected)}[/yellow] "
                         f"unprotected routes among protected peers"
                     )
-                    for r in intent.unprotected_among_protected[:3]:
-                        con.print(f"      [dim]{r.method} {r.path} @ {r.file}:{r.line}[/dim]")
+                    for _rt in intent.unprotected_among_protected[:3]:
+                        con.print(f"      [dim]{_rt.method} {_rt.path} @ {_rt.file}:{_rt.line}[/dim]")
 
             if _sec_report.charter_violations:
                 con.print(
@@ -877,60 +774,64 @@ def _run_scan_inner(
             con.print(traceback.format_exc())
 
     # ── DAST (Dynamic Application Security Testing) ──────────────────────────
+    # Part 3 linking: the old DastScanner module was deleted — this flag now
+    # runs DASTAgent (the real implementation). P-Check gating applies: with
+    # no serving app the agent idles with instructions instead of probing.
     if dast:
         con.print()
         con.print("[bold #C8621A]─ DAST Scanner ─[/bold #C8621A]")
         try:
-            import asyncio
+            from patchi.core.agents.base import AgentInput
+            from patchi.core.security.dast_agent import DASTAgent
 
-            from patchi.core.security.dast_scanner import DastScanner
-
-            # Auto-detect target URL
-            target_url = None
             try:
-                import urllib.request
+                from patchi.core import config as _cfg_mod
+                from patchi.core import memory as _mem_mod
 
-                urllib.request.urlopen("http://127.0.0.1:1612/api/health", timeout=2)
-                target_url = "http://127.0.0.1:1612"
-                con.print(f"  [dim]Target: {target_url} (detected running server)[/dim]")
+                _dconfig = _cfg_mod.load(r)
             except Exception:
-                con.print("  [yellow]No running web server detected on :1612[/yellow]")
-                con.print("  [dim]Start the web server first: p web[/dim]")
+                _dconfig = {}
+                _mem_mod = None
+            _dbrain: dict = {}
+            if _mem_mod is not None:
+                try:
+                    _dbrain = _mem_mod.get_brain(r) or {}
+                except Exception:
+                    _dbrain = {}
+            _dres = DASTAgent().run(
+                AgentInput(root=r, scope=[], brain=_dbrain, config=_dconfig)
+            )
+            if _dres.data.get("gate_blocked"):
+                con.print(f"  [yellow]{_dres.data.get('gate_reason')}[/yellow]")
+            else:
+                con.print(f"  [dim]Target: {_dres.data.get('target_url', '?')}[/dim]")
+                con.print(f"  Tests run: [bold]{_dres.data.get('tests_run', 0)}[/bold]")
+                con.print(f"  Findings: [bold]{_dres.finding_count}[/bold]")
 
-            if target_url:
-                scanner = DastScanner(
-                    root=r,
-                    target_url=target_url,
-                    on_progress=lambda msg: con.print(f"  [dim]{msg}[/dim]"),
-                )
-                report = asyncio.run(scanner.run())
-
-                con.print(f"  Pages tested: [bold]{report.pages_tested}[/bold]")
-                con.print(f"  Findings: [bold]{len(report.findings)}[/bold]")
-                con.print(f"  Screenshots: [bold]{len(report.screenshots)}[/bold]")
-
-                if report.findings:
+                if _dres.findings:
                     sev_counts = {}
-                    for f in report.findings:
-                        sev_counts[f.severity] = sev_counts.get(f.severity, 0) + 1
+                    for f in _dres.findings:
+                        _sev = getattr(f.severity, "value", f.severity)
+                        sev_counts[_sev] = sev_counts.get(_sev, 0) + 1
                     sev_str = ", ".join(f"{k}={v}" for k, v in sorted(sev_counts.items()))
                     con.print(f"  By severity: {sev_str}")
                     con.print()
-                    for f in report.findings[:10]:
+                    for f in _dres.findings[:10]:
+                        _sev = getattr(f.severity, "value", f.severity)
                         sev_color = {
                             "critical": "red",
                             "high": "red",
                             "medium": "yellow",
                             "low": "dim",
-                        }.get(f.severity, "dim")
+                        }.get(_sev, "dim")
                         con.print(
-                            f"    [{sev_color}] [{f.severity}] {f.test}: {f.evidence[:60]}[/{sev_color}]"
+                            f"    [{sev_color}] [{_sev}] {f.type}: {(f.message or '')[:60]}[/{sev_color}]"
                         )
                 else:
                     con.print("  [green]No security issues found.[/green]")
 
-                if report.errors:
-                    con.print(f"  [dim]Errors: {len(report.errors)}[/dim]")
+                if _dres.errors:
+                    con.print(f"  [dim]Errors: {len(_dres.errors)}[/dim]")
 
         except Exception as e:
             import traceback
@@ -1115,58 +1016,6 @@ def _run_scan_inner(
 
             con.print(f"  [red]Daemon error: {e}[/red]")
             con.print(traceback.format_exc())
-
-    # ── Governor v2 pipeline ─────────────────────────────────────────────────
-    if governor:
-        from patchi.core.agents.governor import Governor
-
-        con.print()
-        con.print("[bold #C8621A]─ Governor v2 Pipeline ─[/bold #C8621A]")
-        gov = Governor(r)
-        try:
-            results = gov.run_full_pipeline_v2()
-            for pr in results:
-                status_style = "#4ADE80" if pr.passed else "#FF4D6D"
-                con.print(
-                    f"  {pr.phase.value}: [bold {status_style}]{pr.status.value}[/bold {status_style}]"
-                    f"  [dim]{pr.duration_ms}ms  {pr.findings_count} findings  {pr.agents_run} agents[/dim]"
-                )
-                # §8: every phase-pass shows its evidence, not just a verdict.
-                ev = (pr.data or {}).get("evidence") or {}
-                verdict = (pr.data or {}).get("verdict", "?")
-                if ev:
-                    partial = ""
-                    if verdict == "partial":
-                        reasons = ev.get("partial_reasons", [])
-                        partial = f"  [yellow]partial: {'; '.join(reasons[:2])}[/yellow]"
-                    con.print(
-                        f"    [dim]verdict={verdict}"
-                        + (
-                            f"  eval_acc={ev['eval'].get('routing_accuracy')}"
-                            if isinstance(ev.get("eval"), dict) and ev["eval"].get("routing_accuracy") is not None
-                            else ""
-                        )
-                        + (
-                            f"  tests={ev['test_totals']}"
-                            if ev.get("test_totals")
-                            else ""
-                        )
-                        + "[/dim]"
-                        + partial
-                    )
-                if pr.errors:
-                    for err in pr.errors[:3]:
-                        con.print(f"    [dim]  {err}[/dim]")
-            con.print(
-                f"  [bold]Pipeline {'[#4ADE80]PASSED[/#4ADE80]' if any(r.passed for r in results) else '[#FF4D6D]FAILED[/#FF4D6D]'}[/bold]"
-            )
-        except Exception as e:
-            import traceback
-
-            con.print(f"  [red]Governor pipeline error: {e}[/red]")
-            con.print(traceback.format_exc())
-        finally:
-            gov.close()
 
     # ── Contract confirmation ─────────────────────────────────────────────────
     import sys

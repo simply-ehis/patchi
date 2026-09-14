@@ -224,9 +224,7 @@ class Layer2Orchestrator:
                             summary=str(entry.get("summary", ""))[:300],
                             fix_code=str(entry.get("fix_code", "") or ""),
                             test_code=str(entry.get("test_code", "") or ""),
-                            confidence_adjustment=float(
-                                entry.get("confidence_adjustment", 0.0) or 0.0
-                            ),
+                            confidence_adjustment=float(entry.get("confidence_adjustment", 0.0) or 0.0),
                             need_human_review=bool(entry.get("need_human_review", False)),
                             tokens_used=int(parsed.get("tokens_used", 0) or 0),
                             model=str(parsed.get("model", "unknown")),

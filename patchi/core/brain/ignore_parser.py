@@ -9,6 +9,7 @@ Parses inline ignore comments in source code:
 
 Reports expired ignores as findings.
 """
+
 from __future__ import annotations
 
 import logging

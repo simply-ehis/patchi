@@ -10,6 +10,7 @@ SymbolNode types:
   - route (web route handler)
   - variable (module-level exported)
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -252,9 +253,7 @@ class SymbolGraph:
             new_symbols = self._extract_symbols(fi)
             for sym in new_symbols:
                 self._insert_symbol(conn, sym, rel)
-                old = next(
-                    (s for s in old_symbols if s.name == sym.name and s.line == sym.line), None
-                )
+                old = next((s for s in old_symbols if s.name == sym.name and s.line == sym.line), None)
                 if old and old.hash != sym.hash:
                     diff.modified.append(sym)
                 elif not old:
@@ -268,9 +267,7 @@ class SymbolGraph:
         conn.commit()
         return diff
 
-    def get_symbol(
-        self, name: str, file: str | None = None, line: int | None = None
-    ) -> SymbolNode | None:
+    def get_symbol(self, name: str, file: str | None = None, line: int | None = None) -> SymbolNode | None:
         """Look up a symbol by name (and optionally file+line)."""
         conn = self._get_conn()
         if file and line:
@@ -357,9 +354,7 @@ class SymbolGraph:
         )
         return [self._row_to_symbol(r) for r in cur.fetchall()]
 
-    def get_transitive_dependents(
-        self, symbol_name: str, file: str, max_depth: int = 5
-    ) -> list[SymbolNode]:
+    def get_transitive_dependents(self, symbol_name: str, file: str, max_depth: int = 5) -> list[SymbolNode]:
         """All symbols that transitively depend on the given symbol."""
         visited: set[int] = set()
         result: list[SymbolNode] = []
@@ -397,10 +392,7 @@ class SymbolGraph:
             self._row_to_symbol(r).to_dict()
             for r in conn.execute("SELECT * FROM symbols ORDER BY file, line").fetchall()
         ]
-        edges = [
-            {"source": r[0], "target": r[1], "kind": r[2]}
-            for r in conn.execute("SELECT * FROM edges").fetchall()
-        ]
+        edges = [{"source": r[0], "target": r[1], "kind": r[2]} for r in conn.execute("SELECT * FROM edges").fetchall()]
         meta = dict(conn.execute("SELECT key, value FROM meta").fetchall())
         return {"symbols": symbols, "edges": edges, "meta": meta, "count": len(symbols)}
 
@@ -520,18 +512,14 @@ class SymbolGraph:
                 end = getattr(node, "end_lineno", node.lineno) or node.lineno
                 sym = SymbolNode(
                     name=node.name,
-                    kind=SymbolKind.ASYNC_FUNCTION
-                    if isinstance(node, ast.AsyncFunctionDef)
-                    else SymbolKind.FUNCTION,
+                    kind=SymbolKind.ASYNC_FUNCTION if isinstance(node, ast.AsyncFunctionDef) else SymbolKind.FUNCTION,
                     file=file,
                     line=node.lineno,
                     end_line=end,
                     docstring=ast.get_docstring(node) or "",
                     language="python",
                     decorators=[
-                        d.id if isinstance(d, ast.Name) else ""
-                        for d in node.decorator_list
-                        if isinstance(d, ast.Name)
+                        d.id if isinstance(d, ast.Name) else "" for d in node.decorator_list if isinstance(d, ast.Name)
                     ],
                     params=[a.arg for a in node.args.args] if hasattr(node.args, "args") else [],
                     is_exported=not node.name.startswith("_") or file == "__init__.py",
@@ -586,11 +574,7 @@ class SymbolGraph:
             decorators = self._extract_decorators_buf(node, buf)
             params = self._extract_params_buf(node, buf)
             docstring = self._extract_docstring_buf(node, buf)
-            kind = (
-                SymbolKind.ASYNC_FUNCTION
-                if node_type == "async_function_definition"
-                else SymbolKind.FUNCTION
-            )
+            kind = SymbolKind.ASYNC_FUNCTION if node_type == "async_function_definition" else SymbolKind.FUNCTION
 
             is_route = any(d for d in decorators if "route" in d or "app." in d or "router." in d)
             sym_kind = SymbolKind.ROUTE if is_route else kind
@@ -656,9 +640,7 @@ class SymbolGraph:
             for child in self._children(node):
                 self._walk_python(child, buf, content_str, file, symbols, parent_id)
 
-    def _extract_js_ts(
-        self, raw_bytes: bytes, content_str: str, file: str, lang: Lang
-    ) -> list[SymbolNode]:
+    def _extract_js_ts(self, raw_bytes: bytes, content_str: str, file: str, lang: Lang) -> list[SymbolNode]:
         """JS/TS symbols via tree-sitter."""
         symbols: list[SymbolNode] = []
         parser = get_parser(lang)
@@ -711,9 +693,7 @@ class SymbolGraph:
             name = self._node_text_buf(name_node, buf) if name_node else "anon"
             decorators = self._extract_decorators_buf(node, buf)
             params = self._extract_params_buf(node, buf)
-            kind = (
-                SymbolKind.ASYNC_FUNCTION if node_type == "arrow_function" else SymbolKind.FUNCTION
-            )
+            kind = SymbolKind.ASYNC_FUNCTION if node_type == "arrow_function" else SymbolKind.FUNCTION
 
             is_route = any(d for d in decorators if "route" in d or "app." in d or "router." in d)
             sym_kind = SymbolKind.ROUTE if is_route else kind
@@ -949,9 +929,7 @@ class SymbolGraph:
         if node_type == "script_element":
             raw_tag = self._node_text_buf(node, buf)
             _SVELTE_SCRIPT_RE.match(raw_tag)
-            has_ts = (
-                "ts" in raw_tag[:80] or 'lang="ts"' in raw_tag[:80] or "lang='ts'" in raw_tag[:80]
-            )
+            has_ts = "ts" in raw_tag[:80] or 'lang="ts"' in raw_tag[:80] or "lang='ts'" in raw_tag[:80]
             js_lang = Lang.TYPESCRIPT if has_ts else Lang.JAVASCRIPT
             js_parser = get_parser(js_lang)
             if js_parser:
@@ -959,18 +937,14 @@ class SymbolGraph:
                 inner_bytes = inner_text.encode("utf-8")
                 try:
                     js_tree = js_parser.parse(inner_bytes)
-                    self._walk_js_ts(
-                        js_tree.root_node, inner_bytes, inner_text, file, symbols, parent_id
-                    )
+                    self._walk_js_ts(js_tree.root_node, inner_bytes, inner_text, file, symbols, parent_id)
                 except Exception as e:
                     _log.warning("SymbolGraph._walk_svelte failed: %s", e)
             return
 
         # Component tags (capitalized) → custom components referenced
         if node_type == "element":
-            tag_text = (
-                self._node_text_buf(node, buf).split()[0] if self._node_text_buf(node, buf) else ""
-            )
+            tag_text = self._node_text_buf(node, buf).split()[0] if self._node_text_buf(node, buf) else ""
             if tag_text and tag_text[0].isupper():
                 sym = SymbolNode(
                     name=tag_text,
@@ -1241,9 +1215,7 @@ class SymbolGraph:
 
     # ── C/C++ extractor ────────────────────────────────────────────────────
 
-    def _extract_c_cpp(
-        self, raw_bytes: bytes, content_str: str, file: str, lang: Lang
-    ) -> list[SymbolNode]:
+    def _extract_c_cpp(self, raw_bytes: bytes, content_str: str, file: str, lang: Lang) -> list[SymbolNode]:
         symbols: list[SymbolNode] = []
         parser = get_parser(lang)
         if not parser:
@@ -1284,11 +1256,7 @@ class SymbolGraph:
             decl = self._child_by_field(node, "declarator")
             name = ""
             if decl:
-                name_node = (
-                    self._child_by_field(decl, "declarator")
-                    if hasattr(decl, "child_by_field_name")
-                    else None
-                )
+                name_node = self._child_by_field(decl, "declarator") if hasattr(decl, "child_by_field_name") else None
                 if not name_node:
                     name_node = self._child_by_field(decl, "name")
                 if name_node:
@@ -1706,11 +1674,7 @@ class SymbolGraph:
 
     def _child_by_field(self, node: Any, field_name: str) -> Any | None:
         try:
-            return (
-                node.child_by_field_name(field_name)
-                if hasattr(node, "child_by_field_name")
-                else None
-            )
+            return node.child_by_field_name(field_name) if hasattr(node, "child_by_field_name") else None
         except Exception as e:
             _log.warning("SymbolGraph._child_by_field failed: %s", e)
             return None
@@ -1750,11 +1714,7 @@ class SymbolGraph:
             return []
         import re
 
-        return [
-            p.strip()
-            for p in re.split(r"[,:]", text.strip("()"))
-            if p.strip() and not p.strip().startswith("*")
-        ]
+        return [p.strip() for p in re.split(r"[,:]", text.strip("()")) if p.strip() and not p.strip().startswith("*")]
 
     def _extract_docstring_buf(self, node: Any, buf: bytes) -> str:
         body = self._child_by_field(node, "body")
@@ -1774,9 +1734,7 @@ class SymbolGraph:
     # ── Internal: SQLite helpers ───────────────────────────────────────────
 
     def _insert_symbol(self, conn: sqlite3.Connection, sym: SymbolNode, file: str) -> None:
-        content_hash = (
-            sym.hash or hashlib.md5(f"{sym.name}{sym.line}{sym.kind}".encode()).hexdigest()[:12]
-        )
+        content_hash = sym.hash or hashlib.md5(f"{sym.name}{sym.line}{sym.kind}".encode()).hexdigest()[:12]
         conn.execute(
             """INSERT OR IGNORE INTO symbols
                (name, kind, file, line, end_line, parent_id, docstring, language, hash, decorators, params, is_exported)
@@ -1920,9 +1878,7 @@ class SymbolGraph:
         for child in node.children if hasattr(node, "children") else []:
             self._walk_calls(child, refs)
 
-    def _find_local_symbol(
-        self, conn: sqlite3.Connection, name: str, file: str, near_line: int
-    ) -> SymbolNode | None:
+    def _find_local_symbol(self, conn: sqlite3.Connection, name: str, file: str, near_line: int) -> SymbolNode | None:
         """Find a symbol by name in the same file, preferring the one closest to near_line."""
         cur = conn.execute(
             "SELECT * FROM symbols WHERE file = ? AND name = ? ORDER BY ABS(line - ?) LIMIT 1",

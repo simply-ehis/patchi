@@ -63,7 +63,10 @@ class IaCScannerAgent(BaseAgent):
                     self._scan_docker_compose(content, rel, result)
                     scanned += 1
 
-        # K8s manifests
+        # K8s manifests. Part 7: NetworkPolicy normally lives in a
+        # different file than the Deployment — collect first, then judge
+        # coverage project-wide instead of per file.
+        _k8s_docs: list[tuple[str, str]] = []
         for pattern in ["*.yaml", "*.yml"]:
             for fpath in safe_rglob(inp.root, pattern):
                 if fpath.is_file():
@@ -73,8 +76,11 @@ class IaCScannerAgent(BaseAgent):
                     except OSError:
                         continue
                     if "apiVersion:" in content and ("kind:" in content):
-                        self._scan_k8s(content, rel, result)
+                        _k8s_docs.append((rel, content))
                         scanned += 1
+        _has_netpol = any("kind: NetworkPolicy" in c for _, c in _k8s_docs)
+        for rel, content in _k8s_docs:
+            self._scan_k8s(content, rel, result, has_network_policy=_has_netpol)
 
         # Terraform
         for fpath in safe_rglob(inp.root, "*.tf"):
@@ -180,7 +186,9 @@ class IaCScannerAgent(BaseAgent):
                 )
             )
 
-    def _scan_k8s(self, content: str, file: str, result: AgentResult) -> None:
+    def _scan_k8s(
+        self, content: str, file: str, result: AgentResult, has_network_policy: bool = False
+    ) -> None:
         if "kind: Deployment" in content or "kind: StatefulSet" in content:
             if "securityContext" not in content:
                 result.add_finding(
@@ -203,14 +211,14 @@ class IaCScannerAgent(BaseAgent):
                         message="K8s workload missing resource limits",
                     )
                 )
-        if "kind: NetworkPolicy" not in content and "kind: Deployment" in content:
+        if "kind: Deployment" in content and not has_network_policy:
             result.add_finding(
                 Finding(
                     agent=self.name,
                     type="no_network_policy",
                     severity=Severity.LOW,
                     file=file,
-                    message="No NetworkPolicy found — all pod-to-pod traffic allowed",
+                    message="No NetworkPolicy found anywhere in scanned manifests — all pod-to-pod traffic allowed",
                 )
             )
 

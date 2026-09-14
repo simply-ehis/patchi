@@ -16,6 +16,7 @@ Detection is offline (AST for Python, textual heuristics otherwise) and reads
 only the Layered Brain / import graph — no raw re-scan of the whole repo.
 Applying is always opt-in (``--apply`` for safe fixes, ``--unsafe`` for all).
 """
+
 from __future__ import annotations
 
 import ast
@@ -131,9 +132,7 @@ class ProactiveAgent:
 
             if fi.language == "python":
                 fixes += self._check_imports(path, src, fi, public_api)
-                fixes += self._check_dead_code(
-                    path, src, fi, file_infos, fi_map, src_cache=src_cache
-                )
+                fixes += self._check_dead_code(path, src, fi, file_infos, fi_map, src_cache=src_cache)
                 fixes += self._check_signature(path, src, fi)
             if charter is not None:
                 fixes += self._check_charter(path, fi, graph, charter)
@@ -150,9 +149,7 @@ class ProactiveAgent:
 
     # ── Import analysis (Python AST) ──────────────────────────────────────────────
 
-    def _check_imports(
-        self, path: str, src: str, fi: FileInfo, public_api: dict[str, str]
-    ) -> list[ProposedFix]:
+    def _check_imports(self, path: str, src: str, fi: FileInfo, public_api: dict[str, str]) -> list[ProposedFix]:
         try:
             tree = ast.parse(src)
         except SyntaxError:
@@ -318,8 +315,7 @@ class ProactiveAgent:
                     ProposedFix(
                         "signature_callers",
                         path,
-                        f"'{name}' signature changed ({baseline[name]} → {params}); "
-                        f"review {len(callers)} caller(s)",
+                        f"'{name}' signature changed ({baseline[name]} → {params}); review {len(callers)} caller(s)",
                         False,
                         name=name,
                         callers=callers,
@@ -360,9 +356,7 @@ class ProactiveAgent:
 
     # ── Charter check on the changed file ──────────────────────────────────────────
 
-    def _check_charter(
-        self, path: str, fi: FileInfo, graph: ImportGraph | None, charter: object
-    ) -> list[ProposedFix]:
+    def _check_charter(self, path: str, fi: FileInfo, graph: ImportGraph | None, charter: object) -> list[ProposedFix]:
         from patchi.core.brain.charter import _matches_boundary
 
         boundaries = getattr(charter, "boundaries", [])
@@ -511,10 +505,7 @@ def _apply_dead_code(path: Path, name: str, line: int) -> bool:
         return False
     target = None
     for node in tree.body:
-        if (
-            isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))
-            and node.name == name
-        ):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)) and node.name == name:
             target = node
             break
     if target is None:
@@ -523,9 +514,7 @@ def _apply_dead_code(path: Path, name: str, line: int) -> bool:
     end = target.end_lineno  # 1-based inclusive
     lines = src.splitlines()
     # Safety: never remove the only top-level definition in a file.
-    top_level_defs = [
-        n for n in tree.body if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))
-    ]
+    top_level_defs = [n for n in tree.body if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))]
     if len(top_level_defs) <= 1:
         return False
     del lines[start:end]
@@ -579,9 +568,7 @@ def run_proactive(
     graph = build_import_graph(root)
     charter = load_charter(root)
     agent = ProactiveAgent(root)
-    all_fixes = agent.analyze_change(
-        files, file_infos, graph, charter, include_format=include_format
-    )
+    all_fixes = agent.analyze_change(files, file_infos, graph, charter, include_format=include_format)
 
     # Phase 5 — Learning Brain: don't propose fix types the user rejects.
     suppressed = [f for f in all_fixes if not learning.should_suggest(f.fix_type, root)]
@@ -793,11 +780,7 @@ def build_fix_list(
 
     if area:
         area_rel = str(area).rstrip("/\\")
-        files = [
-            fi.path
-            for fi in file_infos
-            if fi.path == area_rel or fi.path.startswith(area_rel + "/")
-        ]
+        files = [fi.path for fi in file_infos if fi.path == area_rel or fi.path.startswith(area_rel + "/")]
     else:
         files = [fi.path for fi in file_infos]
 

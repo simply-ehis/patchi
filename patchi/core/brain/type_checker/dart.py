@@ -35,9 +35,7 @@ class DartTypeChecker(BaseTypeChecker):
                 if self._child_by_type(node, "identifier")
                 else ""
             )
-            return_type = self._child_by_type(node, "type_identifier") or self._child_by_type(
-                node, "generic_type"
-            )
+            return_type = self._child_by_type(node, "type_identifier") or self._child_by_type(node, "generic_type")
             if return_type and _node_text(source, return_type) == "dynamic":
                 findings.append(
                     make_finding(
@@ -45,7 +43,8 @@ class DartTypeChecker(BaseTypeChecker):
                         file=file_path,
                         line=line,
                         title="Function returns 'dynamic'",
-                        description=f"Function '{name}' returns 'dynamic' — prefer a specific type for sound null safety",
+                        description=f"Function '{name}' returns 'dynamic' — prefer a specific type for sound null"
+                        f" safety",
                         severity="medium",
                     )
                 )

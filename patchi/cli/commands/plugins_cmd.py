@@ -45,19 +45,21 @@ def cmd_plugins(args: list[str]) -> None:
 
 def _show_help() -> None:
     """Show help message."""
-    console.print(Panel.fit(
-        "[bold]Patchi Plugin System[/bold]\n\n"
-        "Commands:\n"
-        "  p plugins list              List all registered plugins\n"
-        "  p plugins run <name>        Run a specific plugin\n"
-        "  p plugins run-all           Run all plugins\n"
-        "  p plugins info <name>       Show plugin details\n\n"
-        "Plugin directories:\n"
-        "  Built-in: patchi/core/plugins/analyzers/\n"
-        "  User:     ~/.patchi/plugins/\n"
-        "  Project:  .patchi/plugins/",
-        title="Plugin Help",
-    ))
+    console.print(
+        Panel.fit(
+            "[bold]Patchi Plugin System[/bold]\n\n"
+            "Commands:\n"
+            "  p plugins list              List all registered plugins\n"
+            "  p plugins run <name>        Run a specific plugin\n"
+            "  p plugins run-all           Run all plugins\n"
+            "  p plugins info <name>       Show plugin details\n\n"
+            "Plugin directories:\n"
+            "  Built-in: patchi/core/plugins/analyzers/\n"
+            "  User:     ~/.patchi/plugins/\n"
+            "  Project:  .patchi/plugins/",
+            title="Plugin Help",
+        )
+    )
 
 
 def _list_plugins() -> None:
@@ -168,7 +170,9 @@ def _run_all_plugins() -> None:
                     "low": "blue",
                     "info": "dim",
                 }.get(finding.severity.value, "white")
-                console.print(f"  [{severity_color}]●[/{severity_color}] {finding.file}:{finding.line} - {finding.message}")
+                console.print(
+                    f"  [{severity_color}]●[/{severity_color}] {finding.file}:{finding.line} - {finding.message}"
+                )
 
 
 def _show_plugin_info(name: str) -> None:
@@ -182,23 +186,26 @@ def _show_plugin_info(name: str) -> None:
 
     info = analyzer.describe()
 
-    console.print(Panel.fit(
-        f"[bold]Name:[/bold] {info['name']}\n"
-        f"[bold]Version:[/bold] {info['version']}\n"
-        f"[bold]Description:[/bold] {info['description']}\n"
-        f"[bold]Priority:[/bold] {info['priority']}\n"
-        f"[bold]Timeout:[/bold] {info['timeout']}s\n"
-        f"[bold]Enabled:[/bold] {info['enabled']}\n"
-        f"[bold]Languages:[/bold] {', '.join(info['supported_languages']) or 'all'}\n"
-        f"[bold]File Patterns:[/bold] {', '.join(info['supported_file_patterns']) or 'all'}",
-        title=f"Plugin: {name}",
-    ))
+    console.print(
+        Panel.fit(
+            f"[bold]Name:[/bold] {info['name']}\n"
+            f"[bold]Version:[/bold] {info['version']}\n"
+            f"[bold]Description:[/bold] {info['description']}\n"
+            f"[bold]Priority:[/bold] {info['priority']}\n"
+            f"[bold]Timeout:[/bold] {info['timeout']}s\n"
+            f"[bold]Enabled:[/bold] {info['enabled']}\n"
+            f"[bold]Languages:[/bold] {', '.join(info['supported_languages']) or 'all'}\n"
+            f"[bold]File Patterns:[/bold] {', '.join(info['supported_file_patterns']) or 'all'}",
+            title=f"Plugin: {name}",
+        )
+    )
 
 
 def _load_config(root: Path) -> dict:
     """Load project config."""
     try:
         from patchi.core import config as cfg
+
         return cfg.load(root)
     except Exception:
         return {}
@@ -227,12 +234,14 @@ def _load_files(root: Path) -> list:
                 # Detect language
                 language = _detect_language(path)
 
-                files.append(FileNode(
-                    path=rel_path,
-                    content=content,
-                    language=language,
-                    size=path.stat().st_size,
-                ))
+                files.append(
+                    FileNode(
+                        path=rel_path,
+                        content=content,
+                        language=language,
+                        size=path.stat().st_size,
+                    )
+                )
             except Exception:
                 continue
 

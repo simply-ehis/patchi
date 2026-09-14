@@ -17,9 +17,9 @@ import sys
 _log = logging.getLogger("patchi.cli.commands.charter_cmd")
 
 
-
 def _get_root():
     from patchi.core.config import require_project_root
+
     return require_project_root()
 
 
@@ -88,7 +88,7 @@ def run_check(args) -> None:
                 elif isinstance(e, (list, tuple)) and len(e) >= 2:
                     import_edges.append((str(e[0]), str(e[1])))
     except Exception as _exc:
-        _log.warning('run_check failed: %s', _exc)
+        _log.warning("run_check failed: %s", _exc)
 
     violations = check_all_violations(charter, import_edges=import_edges)
 
@@ -145,8 +145,8 @@ exit 0
     hook_path.write_text(hook_body, encoding="utf-8")
     # Make executable on Unix
     import stat
-    hook_path.chmod(hook_path.stat().st_mode | stat.S_IEXEC | stat.S_IXGRP | stat.S_IXOTH)
 
+    hook_path.chmod(hook_path.stat().st_mode | stat.S_IEXEC | stat.S_IXGRP | stat.S_IXOTH)
 
 
 # Backward compat entry point

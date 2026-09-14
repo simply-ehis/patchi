@@ -19,7 +19,6 @@ Quick reference for every command and flag in Patchi.
 | `p scan --offline` | Static-only scan, zero AI token cost |
 | `p scan --force` | Re-scan even if the brain cache is fresh |
 | `p scan --dry-run` | Preview what would be scanned without parsing |
-| `p scan --governor` | Full scan with Governor v2 pipeline (state machine, crash recovery, phased analysis) |
 | `p scan --contract` | Review and confirm app contract flows |
 | `p scan --all-flows` | Show all flows including low-confidence (used with --contract) |
 | `p scan --no-side` | Skip config/env/CI files, scan source only |

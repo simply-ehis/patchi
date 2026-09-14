@@ -65,8 +65,7 @@ def feed_chains_to_graph(root: Path) -> int:
         impact_type = steps[-1].get("type", "unknown")
 
         statement = (
-            f"Attack chain: {entry_type} → {impact_type} "
-            f"({len(steps)} steps, severity={severity}, score={score:.0f})"
+            f"Attack chain: {entry_type} → {impact_type} ({len(steps)} steps, severity={severity}, score={score:.0f})"
         )
 
         graph.upsert_claim(
@@ -90,7 +89,8 @@ def feed_chains_to_graph(root: Path) -> int:
 
             ev = Evidence(
                 source=f"chain_analyzer.step{j + 1}",
-                detail=f"[{step.get('role', '?')}] {step.get('type', '?')} @ {step.get('file', '?')}:{step.get('line', '?')}"
+                detail=f"[{step.get('role', '?')}] {step.get('type', '?')} @"
+                f" {step.get('file', '?')}:{step.get('line', '?')}"
                 + (f" → FIX: {fix_hint}" if fix_hint else ""),
                 supports=False,  # refuting = vulnerability confirmed
                 timestamp=time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),

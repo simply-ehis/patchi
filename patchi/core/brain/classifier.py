@@ -16,6 +16,7 @@ AI classification (fallback only):
   - Returns a plain-English one-liner describing the file's purpose
   - Result cached in brain.json so the call only happens once per file
 """
+
 from __future__ import annotations
 
 import ast

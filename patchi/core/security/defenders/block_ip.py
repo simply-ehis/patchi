@@ -54,7 +54,8 @@ class BlockIpAdapter(BaseAdapter):
             else:
                 return DefendResult(
                     action="applied",
-                    reason=f"Blocked IP {ip} persisted to .patchi/blocked_ips.json (iptables unavailable: {result.stderr[:100]})",
+                    reason=f"Blocked IP {ip} persisted to .patchi/blocked_ips.json (iptables unavailable:"
+                    f" {result.stderr[:100]})",
                     defense_action=action,
                 )
         except FileNotFoundError:

@@ -315,9 +315,7 @@ class Council:
                 # DevOps for infrastructure files
                 elif persona_name == "devops_engineer":
                     infra_kws = ["docker", "ci", "deploy", "k8s"]
-                    infra_files = [
-                        f for f in context_files if any(k in f.lower() for k in infra_kws)
-                    ]
+                    infra_files = [f for f in context_files if any(k in f.lower() for k in infra_kws)]
                     score += min(len(infra_files) * 0.5, 2.0)
 
             if score > 0:
@@ -428,7 +426,7 @@ class Council:
                 self.session_history.append(sess)
                 return sess
             except Exception as _exc:
-                _log.debug('suppressed: %s', _exc)
+                _log.debug("suppressed: %s", _exc)
         start_time = time.monotonic()
         context = context or {}
 
@@ -470,9 +468,7 @@ class Council:
         session.duration_ms = int((time.monotonic() - start_time) * 1000)
 
         self.session_history.append(session)
-        self.on_progress(
-            f"✅ Council complete in {session.duration_ms}ms. Consensus: {session.consensus_reached}"
-        )
+        self.on_progress(f"✅ Council complete in {session.duration_ms}ms. Consensus: {session.consensus_reached}")
 
         # L4 cache set
         try:
@@ -487,7 +483,7 @@ class Council:
                 },
             )
         except Exception as _exc:
-            _log.debug('suppressed: %s', _exc)
+            _log.debug("suppressed: %s", _exc)
         return session
 
     async def _run_persona_analysis(
@@ -758,9 +754,7 @@ Provide synthesis in this JSON format:
             decisions = persona.memory.decisions
             stats[name] = {
                 "total_decisions": len(decisions),
-                "avg_confidence": sum(d.confidence for d in decisions) / len(decisions)
-                if decisions
-                else 0,
+                "avg_confidence": sum(d.confidence for d in decisions) / len(decisions) if decisions else 0,
                 "success_rates": persona.memory.success_rates,
                 "style": persona.get_style().value,
             }

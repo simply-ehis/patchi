@@ -58,6 +58,7 @@ def run(
         if not r:
             if json_output:
                 import json as _json
+
                 con.print(_json.dumps({"error": "no project root found"}))
             else:
                 con.print("[yellow]No project root found. Run 'p init' first.[/yellow]")
@@ -246,6 +247,7 @@ def _run_health(root: Path, json_output: bool) -> None:
     if not brain or not brain.get("file_count"):
         if json_output:
             import json as _json
+
             con.print(_json.dumps({"error": "no scan data yet"}))
         else:
             con.print("[yellow]No scan data yet. Run 'p scan' first.[/yellow]")
@@ -273,10 +275,7 @@ def _show_health(score, brain: dict, root: Path) -> None:
     components = score.to_dict().get("components", {})
 
     con.print()
-    con.print(
-        f"[bold #C8621A]Project Health[/bold #C8621A]  "
-        f"[dim]grade {score.grade} · {score.total}/100[/dim]"
-    )
+    con.print(f"[bold #C8621A]Project Health[/bold #C8621A]  [dim]grade {score.grade} · {score.total}/100[/dim]")
 
     # ── Score bar ─────────────────────────────────────────────────────────────
     bar_width = 40
@@ -333,10 +332,7 @@ def _show_health(score, brain: dict, root: Path) -> None:
         test_pct = breakdown.get("test_coverage_pct", 0)
 
         con.print("[bold]Project snapshot[/bold]")
-        con.print(
-            f"  [dim]Files:[/dim] {file_count}  [dim]Routes:[/dim] {route_count}  "
-            f"[dim]Framework:[/dim] {fw}"
-        )
+        con.print(f"  [dim]Files:[/dim] {file_count}  [dim]Routes:[/dim] {route_count}  [dim]Framework:[/dim] {fw}")
         con.print(
             f"  [dim]Circular deps:[/dim] {circular}  [dim]Tests:[/dim] {test_pct:.0f}% coverage  "
             f"[dim]Patches:[/dim] {patches}"
@@ -378,10 +374,7 @@ def _show_health(score, brain: dict, root: Path) -> None:
     if components.get("dead_code", 100) < 70:
         actions.append("[dim]→ Run [bold]p fix[/bold] to remove dead code[/dim]")
     if components.get("contract", 100) < 60:
-        actions.append(
-            "[dim]→ Run [bold]p scan[/bold] then [bold]p contract confirm[/bold]"
-            " to confirm flows[/dim]"
-        )
+        actions.append("[dim]→ Run [bold]p scan[/bold] then [bold]p contract confirm[/bold] to confirm flows[/dim]")
 
     if actions:
         con.print("[bold]Suggested Actions[/bold]")
@@ -515,7 +508,7 @@ def _run_doctor(root: Path, json_output: bool = False, verbose: bool = False) ->
         else:
             checks.append(("Ollama", "—", "No local model configured (optional)", "#6B7280"))
     except Exception as _exc:
-        _log.warning('_run_doctor failed: %s', _exc)
+        _log.warning("_run_doctor failed: %s", _exc)
 
     # ── 6. Optional: test tooling ─────────────────────────────────────────────
     con.print()
@@ -549,25 +542,17 @@ def _run_doctor(root: Path, json_output: bool = False, verbose: bool = False) ->
                 st = check_tool(cmd)
                 if st["status"] == "ok":
                     note = f"{desc} ({st['version']})"
-                    checks.append((
-                        f"[dim]opt:[/dim] {cmd}", "✓", note, "#4ADE80"
-                    ))
+                    checks.append((f"[dim]opt:[/dim] {cmd}", "✓", note, "#4ADE80"))
                 elif st["status"] == "broken":
                     hint = st["hint"]
-                    checks.append((
-                        f"[dim]opt:[/dim] {cmd}", "✗", f"Broken: {hint}", "#FF4D6D"
-                    ))
+                    checks.append((f"[dim]opt:[/dim] {cmd}", "✗", f"Broken: {hint}", "#FF4D6D"))
                     errors += 1
                 else:
                     note = f"Optional — {pip_name}"
-                    checks.append((
-                        f"[dim]opt:[/dim] {cmd}", "—", note, "#6B7280"
-                    ))
+                    checks.append((f"[dim]opt:[/dim] {cmd}", "—", note, "#6B7280"))
             except Exception:
                 note = f"Optional — {pip_name}"
-                checks.append((
-                    f"[dim]opt:[/dim] {cmd}", "—", note, "#6B7280"
-                ))
+                checks.append((f"[dim]opt:[/dim] {cmd}", "—", note, "#6B7280"))
     except ImportError:
         pass
 
@@ -593,7 +578,7 @@ def _run_doctor(root: Path, json_output: bool = False, verbose: bool = False) ->
             info_msg = f"{size_str} ({total_files} files)"
             checks.append((".patchi/ size", "✓", info_msg, "#4ADE80"))
     except Exception as _exc:
-        _log.warning('_run_doctor failed: %s', _exc)
+        _log.warning("_run_doctor failed: %s", _exc)
 
     # ── 9. Stale commands check ────────────────────────────────────────────────
     try:
@@ -617,7 +602,7 @@ def _run_doctor(root: Path, json_output: bool = False, verbose: bool = False) ->
         if not any(name not in cmd_names for name in stale_commands):
             checks.append(("command hygiene", "✓", "No stale commands found", "#4ADE80"))
     except Exception as _exc:
-        _log.warning('_run_doctor failed: %s', _exc)
+        _log.warning("_run_doctor failed: %s", _exc)
 
     # ── Render results ────────────────────────────────────────────────────────
     if json_output:
@@ -670,8 +655,7 @@ def _run_doctor(root: Path, json_output: bool = False, verbose: bool = False) ->
     else:
         con.print(
             Panel(
-                f"[bold #FF4D6D]{errors} error(s), {warnings} warning(s)"
-                f". Fix errors above.[/bold #FF4D6D]",
+                f"[bold #FF4D6D]{errors} error(s), {warnings} warning(s). Fix errors above.[/bold #FF4D6D]",
                 border_style="#FF4D6D",
                 padding=(0, 1),
             )

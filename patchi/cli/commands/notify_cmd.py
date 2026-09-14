@@ -64,9 +64,7 @@ def _cmd_list(args) -> None:
     console.print(table)
     quiet = cfg.get("quiet_hours", {})
     if quiet.get("enabled"):
-        console.print(
-            f"\n[dim]Quiet hours: {quiet['start']} → {quiet['end']} ({quiet.get('timezone', 'UTC')})[/dim]"
-        )
+        console.print(f"\n[dim]Quiet hours: {quiet['start']} → {quiet['end']} ({quiet.get('timezone', 'UTC')})[/dim]")
     console.print(f"[dim]Digest frequency: {cfg.get('digest_frequency', 'daily')}[/dim]")
 
 
@@ -98,17 +96,13 @@ def _cmd_add(args) -> None:
     credentials: dict[str, str] = _prompt_credentials(channel_type)
 
     min_severity = (
-        console.input(
-            f"[cyan]Minimum severity [{'/'.join(SEVERITY_CHOICES)}] (default: medium): [/cyan]"
-        ).strip()
+        console.input(f"[cyan]Minimum severity [{'/'.join(SEVERITY_CHOICES)}] (default: medium): [/cyan]").strip()
         or "medium"
     )
     if min_severity not in SEVERITY_CHOICES:
         min_severity = "medium"
 
-    in_digest_raw = (
-        console.input("[cyan]Batch into digest? (y/n, default: n): [/cyan]").strip().lower()
-    )
+    in_digest_raw = console.input("[cyan]Batch into digest? (y/n, default: n): [/cyan]").strip().lower()
     in_digest = in_digest_raw == "y"
 
     raw = {
@@ -174,21 +168,13 @@ def _cmd_ack(args) -> None:
         console.print("[red]Provide an alert ID to acknowledge.[/red]")
         return
     ok = _notifier(_require_root()).acknowledge(aid)
-    msg = (
-        f"[green]✓ Alert {aid} acknowledged.[/green]"
-        if ok
-        else f"[red]Alert ID '{aid}' not found.[/red]"
-    )
+    msg = f"[green]✓ Alert {aid} acknowledged.[/green]" if ok else f"[red]Alert ID '{aid}' not found.[/red]"
     console.print(msg)
 
 
 def _cmd_flush(args) -> None:
     sent = _notifier(_require_root()).flush_digest()
-    console.print(
-        f"[green]✓ Digest flushed to {sent} channel(s).[/green]"
-        if sent
-        else "[dim]Nothing to flush.[/dim]"
-    )
+    console.print(f"[green]✓ Digest flushed to {sent} channel(s).[/green]" if sent else "[dim]Nothing to flush.[/dim]")
 
 
 def _cmd_pending(args) -> None:

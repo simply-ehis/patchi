@@ -296,9 +296,7 @@ class ModelRouter:
             "total_tokens": stats.get("total_tokens", 0),
             "budget_limit": self._budget_limit,
             "budget_used_pct": (
-                (stats.get("cost_estimate", 0) / self._budget_limit * 100)
-                if self._budget_limit > 0
-                else 0
+                (stats.get("cost_estimate", 0) / self._budget_limit * 100) if self._budget_limit > 0 else 0
             ),
             "models_used": list(stats.get("by_model", {}).keys()),
             "prefer_local": self._prefer_local,

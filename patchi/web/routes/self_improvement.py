@@ -23,7 +23,7 @@ def _load_json(root: Path, rel: str) -> dict:
         try:
             return json.loads(p.read_text(encoding="utf-8"))
         except Exception as _exc:
-            _log.warning('_load_json failed: %s', _exc)
+            _log.warning("_load_json failed: %s", _exc)
     return {}
 
 

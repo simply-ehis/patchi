@@ -94,22 +94,48 @@ class FrameworkDetector:
         if not self._corpus:
             return {}
         ext_to_lang = {
-            ".py": "Python", ".js": "JavaScript", ".jsx": "JavaScript",
-            ".ts": "TypeScript", ".tsx": "TypeScript",
-            ".java": "Java", ".cs": "C#", ".go": "Go", ".rs": "Rust",
-            ".php": "PHP", ".rb": "Ruby", ".swift": "Swift",
-            ".kt": "Kotlin", ".scala": "Scala",
-            ".cpp": "C++", ".cc": "C++", ".cxx": "C++", ".c": "C",
-            ".h": "C/C++", ".hpp": "C++",
-            ".pl": "Perl", ".pm": "Perl", ".lua": "Lua", ".r": "R",
-            ".m": "Objective-C", ".mm": "Objective-C++",
-            ".sh": "Shell", ".bash": "Shell", ".zsh": "Shell",
+            ".py": "Python",
+            ".js": "JavaScript",
+            ".jsx": "JavaScript",
+            ".ts": "TypeScript",
+            ".tsx": "TypeScript",
+            ".java": "Java",
+            ".cs": "C#",
+            ".go": "Go",
+            ".rs": "Rust",
+            ".php": "PHP",
+            ".rb": "Ruby",
+            ".swift": "Swift",
+            ".kt": "Kotlin",
+            ".scala": "Scala",
+            ".cpp": "C++",
+            ".cc": "C++",
+            ".cxx": "C++",
+            ".c": "C",
+            ".h": "C/C++",
+            ".hpp": "C++",
+            ".pl": "Perl",
+            ".pm": "Perl",
+            ".lua": "Lua",
+            ".r": "R",
+            ".m": "Objective-C",
+            ".mm": "Objective-C++",
+            ".sh": "Shell",
+            ".bash": "Shell",
+            ".zsh": "Shell",
             ".ps1": "PowerShell",
-            ".yaml": "YAML", ".yml": "YAML", ".json": "JSON",
-            ".toml": "TOML", ".xml": "XML",
-            ".html": "HTML", ".htm": "HTML",
-            ".css": "CSS", ".scss": "SCSS", ".sass": "Sass",
-            ".vue": "Vue", ".svelte": "Svelte",
+            ".yaml": "YAML",
+            ".yml": "YAML",
+            ".json": "JSON",
+            ".toml": "TOML",
+            ".xml": "XML",
+            ".html": "HTML",
+            ".htm": "HTML",
+            ".css": "CSS",
+            ".scss": "SCSS",
+            ".sass": "Sass",
+            ".vue": "Vue",
+            ".svelte": "Svelte",
         }
         counts: dict[str, int] = {}
         for ext, lang in ext_to_lang.items():
@@ -177,9 +203,7 @@ class FrameworkDetector:
         # Svelte (standalone Svelte files without SvelteKit)
         svelte_files = self._rglob("*.svelte")
         if svelte_files:
-            has_kit = any(
-                "sveltekit" in f.name.lower() or "kit" in f.name.lower() for f in stack.frameworks
-            )
+            has_kit = any("sveltekit" in f.name.lower() or "kit" in f.name.lower() for f in stack.frameworks)
             if not has_kit:
                 stack.frameworks.append(
                     FrameworkInfo(
@@ -222,9 +246,7 @@ class FrameworkDetector:
             self._detect_swift(pkg_swift, stack)
         elif self._rglob("*.swift"):
             stack.frameworks.append(
-                FrameworkInfo(
-                    name="Swift", language="Swift", version="", config_file="", confidence=0.6
-                )
+                FrameworkInfo(name="Swift", language="Swift", version="", config_file="", confidence=0.6)
             )
 
         # Ruby — Gemfile or .rb files
@@ -233,9 +255,7 @@ class FrameworkDetector:
             self._detect_ruby(gemfile, stack)
         elif self._rglob("*.rb"):
             stack.frameworks.append(
-                FrameworkInfo(
-                    name="Ruby", language="Ruby", version="", config_file="", confidence=0.6
-                )
+                FrameworkInfo(name="Ruby", language="Ruby", version="", config_file="", confidence=0.6)
             )
 
         # Shell / Bash (simple presence check)
@@ -405,19 +425,33 @@ class FrameworkDetector:
         except OSError:
             return
 
-        fw_patterns: list[tuple[str, str, re.Pattern]] = [
-            ("FastAPI", "Python", re.compile(r"fastapi", re.I)),
-            ("Django", "Python", re.compile(r"django", re.I)),
-            ("Flask", "Python", re.compile(r"flask", re.I)),
-            ("Starlette", "Python", re.compile(r"starlette", re.I)),
-            ("Tornado", "Python", re.compile(r"tornado", re.I)),
-            ("Sanic", "Python", re.compile(r"sanic", re.I)),
-            ("Litestar", "Python", re.compile(r"litestar", re.I)),
-            ("aiohttp", "Python", re.compile(r"aiohttp", re.I)),
+        # Part 7: match package NAMES at line starts (`^name` + version
+        # specifier boundary), not substrings — "flask" must not match a
+        # hypothetical "deflasker", and extras like flask-cors still count
+        # via the separate base-name check below.
+        fw_patterns: list[tuple[str, str, str]] = [
+            ("FastAPI", "Python", "fastapi"),
+            ("Django", "Python", "django"),
+            ("Flask", "Python", "flask"),
+            ("Starlette", "Python", "starlette"),
+            ("Tornado", "Python", "tornado"),
+            ("Sanic", "Python", "sanic"),
+            ("Litestar", "Python", "litestar"),
+            ("aiohttp", "Python", "aiohttp"),
         ]
 
-        for fw_name, fw_lang, pattern in fw_patterns:
-            if pattern.search(content):
+        def _package_present(package: str) -> bool:
+            for line in content.splitlines():
+                line = line.strip().lower()
+                if not line or line.startswith(("#", "-")):
+                    continue
+                head = re.split(r"[=<>!~\s\[]", line, maxsplit=1)[0]
+                if head == package or head.startswith(package + "-") or head.startswith(package + "_"):
+                    return True
+            return False
+
+        for fw_name, fw_lang, package in fw_patterns:
+            if _package_present(package):
                 version = _extract_version_from_requirements(content, fw_name.lower())
                 stack.frameworks.append(
                     FrameworkInfo(
@@ -671,9 +705,7 @@ class FrameworkDetector:
 
         if not stack.frameworks:
             stack.frameworks.append(
-                FrameworkInfo(
-                    name="Java", language="Java", version="", config_file=path.name, confidence=0.7
-                )
+                FrameworkInfo(name="Java", language="Java", version="", config_file=path.name, confidence=0.7)
             )
 
     # ── C# detector ─────────────────────────────────────────────────────────
@@ -734,9 +766,7 @@ class FrameworkDetector:
 
         if not stack.frameworks:
             stack.frameworks.append(
-                FrameworkInfo(
-                    name="C#", language="C#", version="", config_file=path.name, confidence=0.7
-                )
+                FrameworkInfo(name="C#", language="C#", version="", config_file=path.name, confidence=0.7)
             )
 
     # ── Go detector ─────────────────────────────────────────────────────────
@@ -788,9 +818,7 @@ class FrameworkDetector:
 
         if not stack.frameworks:
             stack.frameworks.append(
-                FrameworkInfo(
-                    name="Go", language="Go", version="", config_file="go.mod", confidence=0.7
-                )
+                FrameworkInfo(name="Go", language="Go", version="", config_file="go.mod", confidence=0.7)
             )
 
     # ── C/C++ detector ──────────────────────────────────────────────────────
@@ -833,9 +861,7 @@ class FrameworkDetector:
 
         if not stack.frameworks:
             stack.frameworks.append(
-                FrameworkInfo(
-                    name=lang, language=lang, version="", config_file=path.name, confidence=0.7
-                )
+                FrameworkInfo(name=lang, language=lang, version="", config_file=path.name, confidence=0.7)
             )
 
     # ── Swift detector ──────────────────────────────────────────────────────
@@ -976,9 +1002,7 @@ class FrameworkDetector:
 
         if not stack.frameworks:
             stack.frameworks.append(
-                FrameworkInfo(
-                    name="Ruby", language="Ruby", version="", config_file="Gemfile", confidence=0.7
-                )
+                FrameworkInfo(name="Ruby", language="Ruby", version="", config_file="Gemfile", confidence=0.7)
             )
 
 

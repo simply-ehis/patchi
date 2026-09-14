@@ -119,7 +119,5 @@ def suppress_findings(result) -> int:
     if not isinstance(result, AgentResult):
         return 0
     original = len(result.findings)
-    result.findings = [
-        f for f in result.findings if not is_pattern_context(f.file, f.line if f.line else 0)
-    ]
+    result.findings = [f for f in result.findings if not is_pattern_context(f.file, f.line if f.line else 0)]
     return original - len(result.findings)

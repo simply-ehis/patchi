@@ -103,9 +103,7 @@ class IntentReport:
         return {
             "routes_total": len(self.routes),
             "gaps_total": self.gap_count,
-            "unauthenticated_state_changing": [
-                self._r2d(r) for r in self.unauthenticated_state_changing
-            ],
+            "unauthenticated_state_changing": [self._r2d(r) for r in self.unauthenticated_state_changing],
             "admin_without_strict_guard": [self._r2d(r) for r in self.admin_without_strict_guard],
             "unprotected_among_protected": [self._r2d(r) for r in self.unprotected_among_protected],
         }
@@ -222,9 +220,7 @@ class IntentAnalyzer:
                         out["path"] = deco.args[0].value
                     for kw in deco.keywords:
                         if kw.arg == "methods" and isinstance(kw.value, (ast.List, ast.Tuple)):
-                            methods = [
-                                e.value for e in kw.value.elts if isinstance(e, ast.Constant)
-                            ]
+                            methods = [e.value for e in kw.value.elts if isinstance(e, ast.Constant)]
                             if methods:
                                 out["method"] = str(methods[0]).upper()
         return out
@@ -261,8 +257,7 @@ class IntentAnalyzer:
                 report.unauthenticated_state_changing.append(r)
             # 2. Admin-looking path guarded at user level (or not at all)
             if r.is_admin_path and not any(
-                h in (r.path + r.function_name).lower()
-                for h in ("require_admin", "admin_required", "superuser")
+                h in (r.path + r.function_name).lower() for h in ("require_admin", "admin_required", "superuser")
             ):
                 report.admin_without_strict_guard.append(r)
 

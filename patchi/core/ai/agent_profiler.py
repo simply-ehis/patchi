@@ -133,7 +133,7 @@ def record_run(
             usage = resource.getrusage(resource.RUSAGE_SELF)
             run.peak_rss_mb = usage.ru_maxrss / 1024  # KB â†’ MB
         except Exception as _exc:
-            _log.warning('record_run failed: %s', _exc)
+            _log.warning("record_run failed: %s", _exc)
         _persist_run(root, run)
 
 
@@ -170,11 +170,10 @@ def record_tokens(root: Path, agent: str, prompt_tokens: int, completion_tokens:
         profile = MODEL_PROFILES.get(model)
         if profile:
             last["cost_usd"] = (
-                prompt_tokens * profile.cost_per_1k_input / 1000
-                + completion_tokens * profile.cost_per_1k_output / 1000
+                prompt_tokens * profile.cost_per_1k_input / 1000 + completion_tokens * profile.cost_per_1k_output / 1000
             )
     except Exception as _exc:
-        _log.warning('record_tokens failed: %s', _exc)
+        _log.warning("record_tokens failed: %s", _exc)
     _save(root, data)
 
 
@@ -271,7 +270,5 @@ def get_profile_summary(root: Path) -> dict:
             / max(1, sum(1 for p in profiles.values() if p.run_count >= 3)),
             3,
         ),
-        "slowest": [
-            {"agent": p.agent, "p95_ms": round(p.p95_wall_ms)} for p in get_slowest_agents(root, 5)
-        ],
+        "slowest": [{"agent": p.agent, "p95_ms": round(p.p95_wall_ms)} for p in get_slowest_agents(root, 5)],
     }

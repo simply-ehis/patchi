@@ -152,9 +152,23 @@ class CloudWAFDetector(BaseAgent):
         # safe_rglob yields generators — materialize before concatenating.
         tf_files = list(safe_rglob(root, "*.tf"))
         cf_files = list(safe_rglob(root, "*.yaml")) + list(safe_rglob(root, "*.yml"))
-        ia_files = tf_files + [
-            f for f in cf_files if "cloudflare" in str(f).lower() or "waf" in str(f).lower()
-        ]
+        ia_files = tf_files + [f for f in cf_files if "cloudflare" in str(f).lower() or "waf" in str(f).lower()]
+
+        # Part 7: association/attachment is cross-resource — judge it on
+        # the JOINED corpus once, not per file (a WAF attached in
+        # waf.tf covers an ALB declared in alb.tf).
+        _tf_corpus = []
+        for fp in ia_files:
+            if fp.suffix == ".tf":
+                try:
+                    _tf_corpus.append(fp.read_text(encoding="utf-8", errors="replace"))
+                except Exception:
+                    pass
+        _joined_tf = "\n".join(_tf_corpus)
+        _waf_attached = bool(
+            re.search(r"aws_wafv2_web_acl_association|web_acl_id\s*=", _joined_tf)
+        )
+        _weakness_done: set[str] = set()
 
         for fp in ia_files:
             try:
@@ -165,7 +179,7 @@ class CloudWAFDetector(BaseAgent):
             rel = str(fp.relative_to(root))
 
             for res_name, pattern, msg, severity in self.MISSING_WAF_PATTERNS:
-                if re.search(pattern, text, re.IGNORECASE):
+                if re.search(pattern, text, re.IGNORECASE) and not _waf_attached:
                     findings.append(
                         Finding(
                             agent=self.name,
@@ -178,7 +192,14 @@ class CloudWAFDetector(BaseAgent):
                     )
 
             for name, pattern, severity in self.WAF_WEAKNESSES:
-                if not re.search(pattern, text, re.IGNORECASE):
+                # Only meaningful where a WAF ACL exists at all; once per
+                # project, not once per file.
+                if (
+                    "aws_wafv2_web_acl" in _joined_tf
+                    and name not in _weakness_done
+                    and not re.search(pattern, _joined_tf, re.IGNORECASE)
+                ):
+                    _weakness_done.add(name)
                     findings.append(
                         Finding(
                             agent=self.name,
@@ -191,6 +212,21 @@ class CloudWAFDetector(BaseAgent):
                     )
 
             for name, pattern, msg, severity in self.WAF_MISCONFIG_PATTERNS:
+                # Part 7: the geo/ip entry was inverted (presence reported
+                # as absence). Presence of a restriction is a positive.
+                if name == "no_ip_restriction_admin":
+                    if re.search(pattern, text, re.IGNORECASE):
+                        findings.append(
+                            Finding(
+                                agent=self.name,
+                                type="waf_geo_ip_restriction",
+                                severity=Severity.INFO,
+                                file=rel,
+                                message="Geo/IP restriction configured on admin paths (good practice confirmed)",
+                                cwe="CWE-693",
+                            )
+                        )
+                    continue
                 for m in re.finditer(pattern, text, re.IGNORECASE):
                     findings.append(
                         Finding(
@@ -234,7 +270,9 @@ class CloudWAFDetector(BaseAgent):
                         )
                     )
 
-        # Phase 2: WAF bypass patterns in test/request files
+        # Phase 2: WAF bypass patterns in test/request files. Part 7:
+        # these files are bypass TESTS by construction — payloads here are
+        # inventory at INFO, never live-bypass MEDIUM verdicts.
         test_files = list(safe_rglob(root, "*test*")) + list(safe_rglob(root, "*spec*"))
         seen_bypass: set[tuple[str, str]] = set()
         for fp in test_files:
@@ -246,7 +284,7 @@ class CloudWAFDetector(BaseAgent):
                 _log.warning("CloudWAFDetector._run failed: %s", e)
                 continue
             rel = str(fp.relative_to(root))
-            for name, pattern, severity in self.WAF_BYPASS_PATTERNS:
+            for name, pattern, _severity in self.WAF_BYPASS_PATTERNS:
                 for m in re.finditer(pattern, text, re.IGNORECASE):
                     key = (rel, name)
                     if key in seen_bypass:
@@ -256,11 +294,11 @@ class CloudWAFDetector(BaseAgent):
                         Finding(
                             agent=self.name,
                             type="waf_bypass",
-                            severity=severity,
+                            severity=Severity.INFO,
                             file=rel,
-                            message=f"WAF bypass pattern: {name}",
+                            message=f"WAF bypass test payload present ({name}) — test scope, verify coverage",
                             line=1 + text[: m.start()].count("\n"),
-                            snippet=m.group()[:80],
+                            code_snippet=m.group()[:80],
                             cwe="CWE-693",
                         )
                     )

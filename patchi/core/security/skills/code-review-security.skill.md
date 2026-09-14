@@ -14,10 +14,10 @@ confidence_boost: 0.08
 
 ### Unsafe eval / exec
 ```python
-eval(user_input)              # CWE-95
-exec(user_input)              # CWE-95
-compile(user_input, ...)      # CWE-94
-__import__(user_input)        # CWE-94
+eval(user_input)  # CWE-95
+exec(user_input)  # CWE-95
+compile(user_input, ...)  # CWE-94
+__import__(user_input)  # CWE-94
 ```
 → **confidence**: 0.9. **action: fix_code** — replace with safe alternative (ast.literal_eval, dict lookup).
 
@@ -52,9 +52,9 @@ if not full_path.startswith("/data/"):
 
 ### Unsafe URL Fetching
 ```python
-requests.get(url)               # if url is user-controlled
-urllib.request.urlopen(url)     # if url is user-controlled
-httpx.get(url)                  # if url is user-controlled
+requests.get(url)  # if url is user-controlled
+urllib.request.urlopen(url)  # if url is user-controlled
+httpx.get(url)  # if url is user-controlled
 ```
 **Heuristic**: Check if URL param resolves to private IP (10.x.x.x, 172.16-31.x.x, 192.168.x.x, 127.x.x.x).
 → **action: block_ip** or escalate.
@@ -80,14 +80,14 @@ return redirect(target)
 ```python
 # Rolled own encryption
 def encrypt(data):
-    return ''.join(chr(ord(c) ^ 0x42) for c in data)
+    return "".join(chr(ord(c) ^ 0x42) for c in data)
 ```
 → **action: fix_code** — use established library (cryptography, PyNaCl).
 
 ### Weak Key Size
 ```python
-RSA.generate(1024)      # < 2048
-DSA.generate(512)       # < 1024
+RSA.generate(1024)  # < 2048
+DSA.generate(512)  # < 1024
 ecdsa.SigningKey.generate(curve=ecdsa.NIST256p)  # OK
 ```
 → **action: fix_code** — use minimum key sizes: RSA 2048, DSA 2048, ECDSA P-256.
@@ -97,7 +97,7 @@ ecdsa.SigningKey.generate(curve=ecdsa.NIST256p)  # OK
 ### Pickle / YAML / Marshal
 ```python
 pickle.loads(data)
-yaml.load(data)                      # unsafe without Loader
+yaml.load(data)  # unsafe without Loader
 marshal.loads(data)
 shelve.open(filename)
 ```

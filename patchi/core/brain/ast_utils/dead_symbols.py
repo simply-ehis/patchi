@@ -13,6 +13,7 @@ Conservative by design — only flags file-scope symbols that:
   - have a length >= 3 (avoids false positives on trivial names),
   - never appear as an identifier/reference on any line other than their own.
 """
+
 from __future__ import annotations
 
 import ast as _py_ast
@@ -136,9 +137,7 @@ def _find_dead_python(content: str, min_name_len: int) -> list[dict]:
         occurrences = ref_lines.get(name, set())
         used = any(ln != def_line for ln in occurrences)
         if not used:
-            dead.append(
-                {"name": name, "line": def_line, "kind": "function_or_class", "file_scope": True}
-            )
+            dead.append({"name": name, "line": def_line, "kind": "function_or_class", "file_scope": True})
     return dead
 
 

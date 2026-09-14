@@ -5,7 +5,8 @@ Subcommands:
   p agents              — list all agents grouped by type
   p agents list         — same as above
   p agents list scanner — list only scanner agents
-  p agents list fix     — list only fix agents p agents status       — show which agents ran in the last scan and their results
+p agents list fix     — list only fix agents p agents status       — show which agents ran in the last scan and their
+  results
 """
 
 from __future__ import annotations
@@ -65,10 +66,7 @@ def run_list(group_name: str | None = None, root: Path | None = None) -> None:
         _render_group(group, agents, scan_results)
 
     if not target_group:
-        con.print(
-            "[dim]Filter: [bold]p agents list scanner[/bold]  ·  "
-            "[bold]p agents list security[/bold]  …[/dim]"
-        )
+        con.print("[dim]Filter: [bold]p agents list scanner[/bold]  ·  [bold]p agents list security[/bold]  …[/dim]")
     con.print()
 
 
@@ -163,9 +161,7 @@ def run_reset(agent_name: str | None = None, root: Path | None = None) -> None:
     reset = coord.reset_circuit_breaker(agent_name)
     if reset:
         con.print()
-        con.print(
-            f"[#4ADE80]✓[/#4ADE80] Circuit breaker reset for [bold]{len(reset)}[/bold] agent(s):"
-        )
+        con.print(f"[#4ADE80]✓[/#4ADE80] Circuit breaker reset for [bold]{len(reset)}[/bold] agent(s):")
         for name in reset[:10]:
             con.print(f"  [dim]  {name}[/dim]")
         if len(reset) > 10:

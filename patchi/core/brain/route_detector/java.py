@@ -40,9 +40,7 @@ class JavaRouteDetector(BaseRouteDetector):
         self._walk(tree.root_node, bytes(content, "utf-8"), content, file_path, routes)
         return routes
 
-    def _walk(
-        self, node: object, buf: bytes, content: str, file_path: str, routes: list[dict]
-    ) -> None:
+    def _walk(self, node: object, buf: bytes, content: str, file_path: str, routes: list[dict]) -> None:
         ntype = getattr(node, "type", "")
         if ntype in ("marker_annotation", "annotation"):
             self._check_annotation(node, buf, content, file_path, routes)
@@ -50,9 +48,7 @@ class JavaRouteDetector(BaseRouteDetector):
         for child in getattr(node, "named_children", None) or getattr(node, "children", []):
             self._walk(child, buf, content, file_path, routes)
 
-    def _check_annotation(
-        self, node: object, buf: bytes, content: str, file_path: str, routes: list[dict]
-    ) -> None:
+    def _check_annotation(self, node: object, buf: bytes, content: str, file_path: str, routes: list[dict]) -> None:
         name_node = self._child_by_field(node, "name") or node
         try:
             ann_name = self._node_text(name_node).lower()
@@ -68,9 +64,7 @@ class JavaRouteDetector(BaseRouteDetector):
         args_node = self._child_by_field(node, "arguments")
         if args_node:
             try:
-                for child in getattr(args_node, "named_children", None) or getattr(
-                    args_node, "children", []
-                ):
+                for child in getattr(args_node, "named_children", None) or getattr(args_node, "children", []):
                     if child.type in ("string_literal", "string"):
                         raw = self._node_text(child)
                         path = raw.strip('"')
@@ -120,9 +114,7 @@ class JavaRouteDetector(BaseRouteDetector):
                 for child in getattr(cur, "named_children", None) or getattr(cur, "children", []):
                     if child.type in ("marker_annotation", "annotation"):
                         try:
-                            name = self._node_text(
-                                self._child_by_field(child, "name") or child
-                            ).lower()
+                            name = self._node_text(self._child_by_field(child, "name") or child).lower()
                             if any(a in name for a in _SPRING_AUTH_ANNOTATIONS):
                                 return True
                         except Exception as e:

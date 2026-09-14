@@ -5,6 +5,7 @@ A fast, low-false-positive regex sweep over source files. If `gitleaks`
 or `semgrep` is installed it can be used instead (see `scan_secrets`).
 Both `p audit` and `p watch` reuse this so detection stays consistent.
 """
+
 from __future__ import annotations
 
 import logging

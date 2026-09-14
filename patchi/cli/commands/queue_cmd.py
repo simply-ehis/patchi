@@ -144,9 +144,6 @@ def run_set_mode(mode_str: str, root: Path | None = None) -> None:
 
     try:
         cfg.set_queue_mode(mode, root)
-        con.print(
-            f"[#4ADE80]✓[/#4ADE80] Queue mode set to [bold]{mode.value}[/bold].\n"
-            f"[dim]{mode.description()}[/dim]"
-        )
+        con.print(f"[#4ADE80]✓[/#4ADE80] Queue mode set to [bold]{mode.value}[/bold].\n[dim]{mode.description()}[/dim]")
     except RuntimeError as e:
         con.print(f"[red]{e}[/red]")

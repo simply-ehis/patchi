@@ -1,4 +1,5 @@
 """Diagnose why SemgrepAgent returns no findings on the consensus fixture."""
+
 import sys
 import tempfile
 from pathlib import Path

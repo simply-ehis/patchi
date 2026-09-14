@@ -39,11 +39,31 @@ from .base import (
 )
 
 # Extensions that may contain comments
-_COMMENT_EXTENSIONS = frozenset({
-    ".js", ".jsx", ".ts", ".tsx", ".py", ".java", ".php", ".rb",
-    ".go", ".rs", ".cpp", ".cxx", ".cc", ".c", ".h", ".hpp",
-    ".cs", ".scala", ".kt", ".swift", ".dart",
-})
+_COMMENT_EXTENSIONS = frozenset(
+    {
+        ".js",
+        ".jsx",
+        ".ts",
+        ".tsx",
+        ".py",
+        ".java",
+        ".php",
+        ".rb",
+        ".go",
+        ".rs",
+        ".cpp",
+        ".cxx",
+        ".cc",
+        ".c",
+        ".h",
+        ".hpp",
+        ".cs",
+        ".scala",
+        ".kt",
+        ".swift",
+        ".dart",
+    }
+)
 
 
 @register
@@ -133,9 +153,7 @@ class CommentScanner(BaseAgent):
 
         # Add summary when technical debt markers exist
         debt_findings = [
-            f
-            for f in findings
-            if any(marker_name in f.title for _, marker_name, _ in self.TECH_DEBT_PATTERNS)
+            f for f in findings if any(marker_name in f.title for _, marker_name, _ in self.TECH_DEBT_PATTERNS)
         ]
         if debt_findings:
             findings.append(
@@ -160,34 +178,12 @@ class CommentScanner(BaseAgent):
         result.findings = findings
         result.data.update(
             {
-                "todo_count": len(
-                    [
-                        f
-                        for f in findings
-                        if f.type == "technical_debt" and "TODO" in f.message.upper()
-                    ]
-                ),
+                "todo_count": len([f for f in findings if f.type == "technical_debt" and "TODO" in f.message.upper()]),
                 "fixme_count": len(
-                    [
-                        f
-                        for f in findings
-                        if f.type == "technical_debt" and "FIXME" in f.message.upper()
-                    ]
+                    [f for f in findings if f.type == "technical_debt" and "FIXME" in f.message.upper()]
                 ),
-                "hack_count": len(
-                    [
-                        f
-                        for f in findings
-                        if f.type == "technical_debt" and "HACK" in f.message.upper()
-                    ]
-                ),
-                "bug_count": len(
-                    [
-                        f
-                        for f in findings
-                        if f.type == "technical_debt" and "BUG" in f.message.upper()
-                    ]
-                ),
+                "hack_count": len([f for f in findings if f.type == "technical_debt" and "HACK" in f.message.upper()]),
+                "bug_count": len([f for f in findings if f.type == "technical_debt" and "BUG" in f.message.upper()]),
                 "total_markers": len(debt_findings),
                 "by_type": by_type,
                 "needs_ai": False,

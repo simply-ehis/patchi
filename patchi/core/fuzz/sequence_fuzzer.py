@@ -125,7 +125,8 @@ class SequenceFuzzer:
                             label=f"concurrent_{i}_{j}",
                             operations=[op_a, op_b],
                             strategy="concurrent",
-                            description=f"Execute {op_a.get('method', '?')} and {op_b.get('method', '?')} concurrently (race condition test)",
+                            description=f"Execute {op_a.get('method', '?')} and {op_b.get('method', '?')} concurrently"
+                            f" (race condition test)",
                         )
                     )
         return results

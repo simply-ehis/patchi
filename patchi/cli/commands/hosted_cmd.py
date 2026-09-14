@@ -42,6 +42,7 @@ _EXPERIMENTAL_BANNER = (
     "feedback appreciated!  [dim]Report issues at patchi.dev/feedback[/dim]"
 )
 
+
 def _print_experimental_notice() -> None:
     con.print()
     con.print(_EXPERIMENTAL_BANNER)
@@ -201,9 +202,7 @@ def run_worker(root: Path | None = None) -> None:
                 # Progress every 5s
                 now = time.monotonic()
                 if now - last_report >= 5:
-                    con.print(
-                        f"  [dim]parsed {lines_parsed} lines  |  unrecognised {lines_failed}[/dim]"
-                    )
+                    con.print(f"  [dim]parsed {lines_parsed} lines  |  unrecognised {lines_failed}[/dim]")
                     last_report = now
 
     except KeyboardInterrupt:
@@ -260,9 +259,7 @@ def run_guard(root: Path | None = None) -> None:
 
                 # Check IP reputation — flag blocked IPs
                 if entry.ip and ip_reputation.is_blocked(entry.ip, r):
-                    con.print(
-                        f"  [#FF4D6D]BLOCKED  [/#FF4D6D] [dim]{entry.ip}[/dim] — known threat IP"
-                    )
+                    con.print(f"  [#FF4D6D]BLOCKED  [/#FF4D6D] [dim]{entry.ip}[/dim] — known threat IP")
                     audit_write(
                         r,
                         "blocked_ip_request",
@@ -280,8 +277,7 @@ def run_guard(root: Path | None = None) -> None:
                         color = sev_colors[finding.severity]
                         ts = time.strftime("%H:%M:%S")
                         con.print(
-                            f"  [{color}]{finding.severity.upper():<8}[/{color}] "
-                            f"[dim]{ts}[/dim]  {finding.title}"
+                            f"  [{color}]{finding.severity.upper():<8}[/{color}] [dim]{ts}[/dim]  {finding.title}"
                         )
                         if finding.ip:
                             tracker.record(finding.ip, finding.detector, finding.title)
@@ -307,8 +303,7 @@ def _on_escalation(ip: str, score: float, severity: str) -> None:
     """Called by WatchlistTracker when an IP crosses a threshold."""
     color = "#FF4D6D" if severity == "critical" else "#FF8C42"
     con.print(
-        f"\n  [{color}]⚠ ESCALATION[/{color}]  IP [bold]{ip}[/bold] "
-        f"score={score:.0f}  severity={severity.upper()}"
+        f"\n  [{color}]⚠ ESCALATION[/{color}]  IP [bold]{ip}[/bold] score={score:.0f}  severity={severity.upper()}"
     )
 
 
@@ -319,8 +314,7 @@ def _make_escalation_fn(root: Path, config: dict):
     def _escalation(ip: str, score: float, severity: str) -> None:
         color = "#FF4D6D" if severity == "critical" else "#FF8C42"
         con.print(
-            f"\n  [{color}]⚠ ESCALATION[/{color}]  IP [bold]{ip}[/bold] "
-            f"score={score:.0f}  severity={severity.upper()}"
+            f"\n  [{color}]⚠ ESCALATION[/{color}]  IP [bold]{ip}[/bold] score={score:.0f}  severity={severity.upper()}"
         )
         if escalate_enabled:
             try:
@@ -359,7 +353,6 @@ def run_status(root: Path | None = None, json_output: bool = False) -> None:
     log_path = hosted.get("log_path", "")
 
     if json_output:
-
         tracker = WatchlistTracker(r)
         top_ips = tracker.top(10) if enabled else []
         entries = read_recent(r, 5) if enabled else []
@@ -472,10 +465,7 @@ def _print_log_entry(entry: dict) -> None:
     event = entry.get("event", "?")
     actor = entry.get("actor", "")
     data = entry.get("data", {})
-    con.print(
-        f"  [dim]{ts}[/dim]  [bold #F2EDD6]{event:<20}[/bold #F2EDD6]"
-        f"  [dim]{actor}  {_fmt_data(data)}[/dim]"
-    )
+    con.print(f"  [dim]{ts}[/dim]  [bold #F2EDD6]{event:<20}[/bold #F2EDD6]  [dim]{actor}  {_fmt_data(data)}[/dim]")
 
 
 # ── disconnect ─────────────────────────────────────────────────────────────────
@@ -630,14 +620,10 @@ def run_daemon(root: Path | None = None, guard: bool = False) -> None:
             if platform.system() == "Windows":
                 import subprocess
 
-                result = subprocess.run(
-                    ["tasklist", "/FI", f"PID eq {old_pid}"], capture_output=True, text=True
-                )
+                result = subprocess.run(["tasklist", "/FI", f"PID eq {old_pid}"], capture_output=True, text=True)
                 if str(old_pid) in result.stdout:
                     con.print(f"[yellow]Worker already running (PID {old_pid}).[/yellow]")
-                    con.print(
-                        "[dim]Run 'p hosted stop' first, or delete .patchi/hosted/worker.pid[/dim]"
-                    )
+                    con.print("[dim]Run 'p hosted stop' first, or delete .patchi/hosted/worker.pid[/dim]")
                     return
             else:
                 os.kill(old_pid, 0)  # Check if process exists
@@ -685,9 +671,7 @@ def run_daemon(root: Path | None = None, guard: bool = False) -> None:
 
             # Rate-limit restarts
             if now - last_restart < 3600 and restart_count >= max_restarts_per_hour:
-                con.print(
-                    f"[red]Too many restarts ({restart_count}/hour). Waiting 5 minutes...[/red]"
-                )
+                con.print(f"[red]Too many restarts ({restart_count}/hour). Waiting 5 minutes...[/red]")
                 time.sleep(300)
                 restart_count = 0
                 last_restart = time.monotonic()
@@ -813,9 +797,7 @@ def _daemon_health_check(root: Path, restart_count: int) -> None:
         proc = psutil.Process(pid)
         mem_mb = proc.memory_info().rss / (1024 * 1024)
         cpu_pct = proc.cpu_percent(interval=0.1)
-        con.print(
-            f"  [dim]health: mem {mem_mb:.0f}MB  cpu {cpu_pct:.1f}%  restarts {restart_count}[/dim]"
-        )
+        con.print(f"  [dim]health: mem {mem_mb:.0f}MB  cpu {cpu_pct:.1f}%  restarts {restart_count}[/dim]")
     except ImportError:
         # psutil not available, basic check
         con.print(f"  [dim]health: pid {os.getpid()}  restarts {restart_count}[/dim]")

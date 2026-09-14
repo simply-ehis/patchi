@@ -26,17 +26,19 @@ def _collect_commands(commands: list, prefix: str = "") -> list[dict]:
         }
         if cmd.args:
             for arg in cmd.args:
-                entry["args"].append({
-                    "name": arg.name,
-                    "help": arg.help,
-                    "type": getattr(arg, "type", "string"),
-                    "required": getattr(arg, "required", False),
-                    "choices": getattr(arg, "choices", None),
-                    "default": getattr(arg, "default", None),
-                    "action": getattr(arg, "action", None),
-                    "nargs": getattr(arg, "nargs", None),
-                    "dest": getattr(arg, "dest", None),
-                })
+                entry["args"].append(
+                    {
+                        "name": arg.name,
+                        "help": arg.help,
+                        "type": getattr(arg, "type", "string"),
+                        "required": getattr(arg, "required", False),
+                        "choices": getattr(arg, "choices", None),
+                        "default": getattr(arg, "default", None),
+                        "action": getattr(arg, "action", None),
+                        "nargs": getattr(arg, "nargs", None),
+                        "dest": getattr(arg, "dest", None),
+                    }
+                )
         if cmd.subcommands:
             entry["subcommands"] = _collect_commands(cmd.subcommands, full_name + " ")
         result.append(entry)

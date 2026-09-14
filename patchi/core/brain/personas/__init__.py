@@ -117,8 +117,7 @@ Your voice: Precise, structural, forward-looking. Use architectural terminology.
         circular = brain.get("circular_deps", [])
         if circular:
             relevant["_circular_dependencies"] = [
-                {"label": c.get("short_label", ""), "files": c.get("files", [])}
-                for c in circular[:10]
+                {"label": c.get("short_label", ""), "files": c.get("files", [])} for c in circular[:10]
             ]
 
         return {"architectural_view": relevant}
@@ -294,17 +293,10 @@ Your voice: Practical, coverage-aware, automation-focused. Think in test pyramid
                 pass
 
         _front_exts = (".jsx", ".tsx", ".vue", ".svelte")
-        has_frontend = any(
-            p.endswith(_front_exts) or "/templates/" in p or p.endswith(".html")
-            for p in paths
-        )
-        has_spa_router = any(
-            "router" in p.lower() or "routes" in p.lower() for p in paths
-        )
+        has_frontend = any(p.endswith(_front_exts) or "/templates/" in p or p.endswith(".html") for p in paths)
+        has_spa_router = any("router" in p.lower() or "routes" in p.lower() for p in paths)
         has_api = any(
-            p.endswith(".py")
-            and ("api" in p.lower() or "route" in p.lower() or "view" in p.lower())
-            for p in paths
+            p.endswith(".py") and ("api" in p.lower() or "route" in p.lower() or "view" in p.lower()) for p in paths
         )
         has_auth = any("auth" in p.lower() or "login" in p.lower() for p in paths)
         dom_low = {d.lower() for d in domains}

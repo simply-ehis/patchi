@@ -63,9 +63,7 @@ def eval_gate(root: Path, config: dict | None = None) -> dict:
         if case.get("noise_category"):
             finding.noise_category = case["noise_category"]  # type: ignore[attr-defined]
         if case.get("seed_known_fp"):
-            gate.record_false_positives(
-                [{"file": finding.file, "type": finding.type, "line": finding.line}]
-            )
+            gate.record_false_positives([{"file": finding.file, "type": finding.type, "line": finding.line}])
         cf = CorrelatedFinding(
             finding=finding,
             confirmed_by=list(fd.get("confirmed_by", [])),
@@ -88,9 +86,7 @@ def eval_gate(root: Path, config: dict | None = None) -> dict:
     passed = sum(1 for d in details if d["pass"])
     vuln = [d for d in details if d["kind"] == "vuln"]
     clean = [d for d in details if d["kind"] == "clean"]
-    vuln_recall = (
-        sum(1 for d in vuln if d["actual"] != "discard") / len(vuln) if vuln else 1.0
-    )
+    vuln_recall = sum(1 for d in vuln if d["actual"] != "discard") / len(vuln) if vuln else 1.0
     clean_escapes = sum(1 for d in clean if d["actual"] == "defend")
     # §4 calibration: per-tier precision of "tier means real" (vuln fraction)
     # and routing distribution — thresholds are validated against THESE
@@ -102,9 +98,7 @@ def eval_gate(root: Path, config: dict | None = None) -> dict:
             continue
         tier_calibration[tier] = {
             "n": len(in_tier),
-            "vuln_fraction": round(
-                sum(1 for d in in_tier if d["kind"] == "vuln") / len(in_tier), 3
-            ),
+            "vuln_fraction": round(sum(1 for d in in_tier if d["kind"] == "vuln") / len(in_tier), 3),
             "routing": {
                 r: sum(1 for d in in_tier if d["actual"] == r)
                 for r in ("defend", "ai_analyze", "human_review", "discard")
@@ -206,9 +200,7 @@ def _model_id(config: dict | None) -> str:
         return "unknown"
 
 
-def eval_generation(
-    root: Path, config: dict | None = None, max_tokens: int = 300
-) -> dict:
+def eval_generation(root: Path, config: dict | None = None, max_tokens: int = 300) -> dict:
     """Model-backed generation eval (§5/§2 TEST_GENERATION Done column).
 
     For each seeded case: ask the model for a regression test, then score
@@ -242,9 +234,7 @@ def eval_generation(
     details: list[dict] = []
     for case in cases:
         prompt = (
-            f"Target file: {case['target_file']}\n"
-            f"Target function: {case['target_symbol']}\n"
-            f"Code:\n{case['seed']}\n"
+            f"Target file: {case['target_file']}\nTarget function: {case['target_symbol']}\nCode:\n{case['seed']}\n"
         )
         try:
             resp = call_ai(cfg, GEN_SYSTEM, prompt, max_tokens=max_tokens) or ""
@@ -279,9 +269,7 @@ def eval_generation(
                 "id": case["id"],
                 "grounded": grounded,
                 "reason": (
-                    "references target + valid python"
-                    if grounded
-                    else f"missing refs={refs} valid_py={valid_py}"
+                    "references target + valid python" if grounded else f"missing refs={refs} valid_py={valid_py}"
                 ),
                 "response_chars": len(resp),
             }
@@ -303,9 +291,7 @@ def eval_generation(
     }
 
 
-def eval_all(
-    root: Path, config: dict | None = None, include_generation: bool = False
-) -> dict:
+def eval_all(root: Path, config: dict | None = None, include_generation: bool = False) -> dict:
     """Run offline suites; generation only with include_generation=True.
 
     Generation spends model tokens, so `p eval` stays offline by default and

@@ -190,19 +190,14 @@ class ProactiveAutoFixer:
             # Check if violation exists, but don't auto-fix
             violated = self._check_convention_violation(rule, abs_path, content)
             if violated:
-                result.blocked_reason = (
-                    f"Convention violation: {rule.description} "
-                    f"(requires manual fix)"
-                )
+                result.blocked_reason = f"Convention violation: {rule.description} (requires manual fix)"
                 return result
             return None
 
         # Unknown scope — flag but don't fix
         return None
 
-    def _check_convention_violation(
-        self, rule: CharterRule, abs_path: Path, content: str
-    ) -> bool:
+    def _check_convention_violation(self, rule: CharterRule, abs_path: Path, content: str) -> bool:
         """Check if a convention rule is violated."""
         if rule.scope == "lines" and rule.max_value > 0:
             line_count = len(content.splitlines())
@@ -213,9 +208,7 @@ class ProactiveAutoFixer:
 
         return False
 
-    def _auto_fix_convention(
-        self, rule: CharterRule, abs_path: Path, content: str
-    ) -> tuple[str | None, list[str]]:
+    def _auto_fix_convention(self, rule: CharterRule, abs_path: Path, content: str) -> tuple[str | None, list[str]]:
         """Apply safe auto-fix for a convention rule.
 
         Returns:
@@ -294,10 +287,7 @@ class ProactiveAutoFixer:
         if not comment_prefix:
             return None
 
-        header = (
-            f"{comment_prefix} Auto-fixed by Patchi\n"
-            f"{comment_prefix} Added missing file header\n\n"
-        )
+        header = f"{comment_prefix} Auto-fixed by Patchi\n{comment_prefix} Added missing file header\n\n"
 
         return header + content
 
@@ -388,9 +378,7 @@ class ProactiveAutoFixer:
             return "\n".join(result)
         return None
 
-    def _check_boundary(
-        self, rule: CharterRule, rel_path: str, content: str
-    ) -> ProactiveFixResult | None:
+    def _check_boundary(self, rule: CharterRule, rel_path: str, content: str) -> ProactiveFixResult | None:
         """Check boundary rules — flag only, no auto-fix."""
         # Parse imports from content
         imports = self._extract_imports(rel_path, content)
@@ -411,8 +399,7 @@ class ProactiveAutoFixer:
                 scope="boundary",
             )
             result.blocked_reason = (
-                f"Boundary violation: {rule.description} "
-                f"({violations[0][0]} imports {violations[0][1]})"
+                f"Boundary violation: {rule.description} ({violations[0][0]} imports {violations[0][1]})"
             )
             return result
 
@@ -482,9 +469,7 @@ class ProactiveAutoFixer:
                 imports.append((pkg, pkg))
         return imports
 
-    def _check_security(
-        self, rule: CharterRule, rel_path: str, content: str
-    ) -> ProactiveFixResult | None:
+    def _check_security(self, rule: CharterRule, rel_path: str, content: str) -> ProactiveFixResult | None:
         """Check security rules — flag only, no auto-fix."""
         if not rule.keywords:
             return None
@@ -498,17 +483,12 @@ class ProactiveAutoFixer:
                     rule_type=rule.type.value,
                     scope="security",
                 )
-                result.blocked_reason = (
-                    f"Security violation: {rule.description} "
-                    f"(found '{keyword}')"
-                )
+                result.blocked_reason = f"Security violation: {rule.description} (found '{keyword}')"
                 return result
 
         return None
 
-    def _check_stack(
-        self, rule: CharterRule, rel_path: str
-    ) -> ProactiveFixResult | None:
+    def _check_stack(self, rule: CharterRule, rel_path: str) -> ProactiveFixResult | None:
         """Check stack rules — flag only, no auto-fix."""
         if not rule.allowed_languages:
             return None
@@ -537,8 +517,7 @@ class ProactiveAutoFixer:
                 scope="stack",
             )
             result.blocked_reason = (
-                f"Stack violation: {rule.description} "
-                f"(found {lang} file, allowed: {', '.join(rule.allowed_languages)})"
+                f"Stack violation: {rule.description} (found {lang} file, allowed: {', '.join(rule.allowed_languages)})"
             )
             return result
 
@@ -557,10 +536,7 @@ class ProactiveAutoFixer:
         from patchi.core import memory as mem
 
         history = mem.list_issues(self.root)
-        return [
-            item for item in history
-            if item.get("type") == "proactive_fix"
-        ]
+        return [item for item in history if item.get("type") == "proactive_fix"]
 
     def save_fix_history(self, report: ProactiveFixReport) -> None:
         """Save proactive fix results to memory."""

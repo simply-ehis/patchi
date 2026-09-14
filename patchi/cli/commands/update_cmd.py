@@ -11,6 +11,7 @@ Auto-update check:
   On startup, Patchi checks for updates silently once per week.
   A notification is shown on the next command if a newer version exists.
 """
+
 from __future__ import annotations
 
 import json
@@ -149,10 +150,7 @@ def print_update_available_if_needed(root: Path | None = None) -> None:
         data = json.loads(check_path.read_text(encoding="utf-8"))
         latest = data.get("version", "")
         if latest and _is_newer(latest, __version__):
-            con.print(
-                f"  [dim]Update available:[/dim] [#A78BFA]v{latest}[/#A78BFA] "
-                f"[dim](run 'p update')[/dim]"
-            )
+            con.print(f"  [dim]Update available:[/dim] [#A78BFA]v{latest}[/#A78BFA] [dim](run 'p update')[/dim]")
     except Exception as e:
         _log.warning("print_update_available_if_needed failed: %s", e)
 
@@ -231,9 +229,7 @@ def _print_release_info(info: dict) -> None:
     url = info.get("release_url", "")
 
     con.print()
-    con.print(
-        f"[bold #A78BFA]Update available:[/bold #A78BFA] v{__version__} [dim]→[/dim] [bold]v{version}[/bold]"
-    )
+    con.print(f"[bold #A78BFA]Update available:[/bold #A78BFA] v{__version__} [dim]→[/dim] [bold]v{version}[/bold]")
     if body:
         con.print()
         for line in body.splitlines()[:8]:

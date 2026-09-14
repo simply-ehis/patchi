@@ -244,8 +244,7 @@ def build_layers(
             sub_files.extend(layers[m].files)
             sub_api.extend(layers[m].public_api)
         sub_summary = (
-            f"Subsystem '{sub_name}' — {len(mods)} module(s), "
-            f"{len(sub_files)} file(s). Modules: {', '.join(mods[:8])}."
+            f"Subsystem '{sub_name}' — {len(mods)} module(s), {len(sub_files)} file(s). Modules: {', '.join(mods[:8])}."
         )
         sub_layer = Layer(
             name=sub_name,
@@ -268,9 +267,7 @@ def build_layers(
         _populate_dependencies(layers, graph, module_to_subsystem)
 
     # ── Level 4: project ───────────────────────────────────────────────────────
-    fw_names = (
-        ", ".join(f.name for f in stack.frameworks[:5]) if stack and stack.frameworks else "unknown"
-    )
+    fw_names = ", ".join(f.name for f in stack.frameworks[:5]) if stack and stack.frameworks else "unknown"
     runtime = stack.runtime if stack else "unknown"
     project_summary = (
         f"Project — {len(file_infos)} file(s) across {len(modules)} module(s) "

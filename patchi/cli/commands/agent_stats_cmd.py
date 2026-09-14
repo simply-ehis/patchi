@@ -142,9 +142,7 @@ def _show_profile_section(data: dict) -> None:
 
         acc_str = f"{accuracy * 100:.0f}%" if run_count >= 3 else "n/a"
         acc_color = (
-            ("green" if accuracy >= 0.8 else "yellow" if accuracy >= 0.5 else "red")
-            if run_count >= 3
-            else "dim"
+            ("green" if accuracy >= 0.8 else "yellow" if accuracy >= 0.5 else "red") if run_count >= 3 else "dim"
         )
 
         p95_str = f"{p95:.0f}ms"
@@ -225,9 +223,7 @@ def _show_learning_section(data: dict) -> None:
             bar_len = int(score * 20)
             bar = "#" * bar_len + "." * (20 - bar_len)
             color = "green" if score >= 0.7 else "yellow" if score >= 0.4 else "red"
-            table.add_row(
-                agent, f"[{color}]{score * 100:.0f}%[/{color}]", f"[{color}]{bar}[/{color}]"
-            )
+            table.add_row(agent, f"[{color}]{score * 100:.0f}%[/{color}]", f"[{color}]{bar}[/{color}]")
         con.print(table)
         con.print()
     else:

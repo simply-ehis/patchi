@@ -34,30 +34,51 @@ from patchi.core.plugins.analyzer import (
 # Patterns that indicate secrets
 SECRET_PATTERNS = [
     # Passwords
-    (r'(?i)(password|passwd|pwd)\s*[=:]\s*["\']([^"\']{8,})["\']', "hardcoded-password", Severity.CRITICAL),
-    (r'(?i)(password|passwd|pwd)\s*[=:]\s*([^\s"\'#]{8,})', "hardcoded-password", Severity.CRITICAL),
-
+    (
+        r'(?i)(password|passwd|pwd)\s*[=:]\s*["\']([^"\']{8,})["\']',
+        "hardcoded-password",
+        Severity.CRITICAL,
+    ),
+    (
+        r'(?i)(password|passwd|pwd)\s*[=:]\s*([^\s"\'#]{8,})',
+        "hardcoded-password",
+        Severity.CRITICAL,
+    ),
     # API Keys
-    (r'(?i)(api[_-]?key|apikey)\s*[=:]\s*["\']([A-Za-z0-9_\-]{20,})["\']', "hardcoded-api-key", Severity.HIGH),
-    (r'(?i)(secret[_-]?key|client[_-]?secret)\s*[=:]\s*["\']([A-Za-z0-9_\-]{20,})["\']', "hardcoded-secret-key", Severity.HIGH),
-
+    (
+        r'(?i)(api[_-]?key|apikey)\s*[=:]\s*["\']([A-Za-z0-9_\-]{20,})["\']',
+        "hardcoded-api-key",
+        Severity.HIGH,
+    ),
+    (
+        r'(?i)(secret[_-]?key|client[_-]?secret)\s*[=:]\s*["\']([A-Za-z0-9_\-]{20,})["\']',
+        "hardcoded-secret-key",
+        Severity.HIGH,
+    ),
     # Private keys
-    (r'-----BEGIN\s+(RSA\s+)?PRIVATE\s+KEY-----', "private-key-exposure", Severity.CRITICAL),
-
+    (r"-----BEGIN\s+(RSA\s+)?PRIVATE\s+KEY-----", "private-key-exposure", Severity.CRITICAL),
     # Connection strings
-    (r'(?i)(mysql|postgres|postgresql|mongodb|redis)://[^\s"\'<>]{20,}', "hardcoded-connection-string", Severity.HIGH),
-
+    (
+        r'(?i)(mysql|postgres|postgresql|mongodb|redis)://[^\s"\'<>]{20,}',
+        "hardcoded-connection-string",
+        Severity.HIGH,
+    ),
     # Tokens
-    (r'(?i)(token|access[_-]?token|auth[_-]?token)\s*[=:]\s*["\']([A-Za-z0-9_\-\.]{20,})["\']', "hardcoded-token", Severity.HIGH),
-
+    (
+        r'(?i)(token|access[_-]?token|auth[_-]?token)\s*[=:]\s*["\']([A-Za-z0-9_\-\.]{20,})["\']',
+        "hardcoded-token",
+        Severity.HIGH,
+    ),
     # AWS keys
-    (r'AKIA[0-9A-Z]{16}', "aws-access-key", Severity.CRITICAL),
-
+    (r"AKIA[0-9A-Z]{16}", "aws-access-key", Severity.CRITICAL),
     # GitHub tokens
-    (r'ghp_[A-Za-z0-9]{36}', "github-personal-access-token", Severity.CRITICAL),
-
+    (r"ghp_[A-Za-z0-9]{36}", "github-personal-access-token", Severity.CRITICAL),
     # JWT tokens
-    (r'eyJ[A-Za-z0-9_\-]*\.eyJ[A-Za-z0-9_\-]*\.[A-Za-z0-9_\-]*', "jwt-token-exposure", Severity.HIGH),
+    (
+        r"eyJ[A-Za-z0-9_\-]*\.eyJ[A-Za-z0-9_\-]*\.[A-Za-z0-9_\-]*",
+        "jwt-token-exposure",
+        Severity.HIGH,
+    ),
 ]
 
 # Files to skip
@@ -126,17 +147,19 @@ class SecretScanner(Analyzer):
                     if self._is_false_positive(line, match):
                         continue
 
-                    findings.append(make_finding(
-                        file=file.path,
-                        line=line_num,
-                        type=finding_type,
-                        severity=severity,
-                        message=f"Possible {finding_type.replace('-', ' ')} detected",
-                        detail=f"Pattern matched: {match.group()[:50]}...",
-                        code_snippet=line.strip()[:200],
-                        suggestion="Move secrets to environment variables or a secrets manager",
-                        confidence=0.8,
-                    ))
+                    findings.append(
+                        make_finding(
+                            file=file.path,
+                            line=line_num,
+                            type=finding_type,
+                            severity=severity,
+                            message=f"Possible {finding_type.replace('-', ' ')} detected",
+                            detail=f"Pattern matched: {match.group()[:50]}...",
+                            code_snippet=line.strip()[:200],
+                            suggestion="Move secrets to environment variables or a secrets manager",
+                            confidence=0.8,
+                        )
+                    )
 
         return findings
 

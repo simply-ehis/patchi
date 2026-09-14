@@ -97,10 +97,23 @@ class RouteGraphScanner(BaseAgent):
             import os
 
             route_patterns = [
-                "*.js", "*.jsx", "*.ts", "*.tsx",
-                "**/routes/**", "**/api/**", "**/pages/**", "**/app/**",
-                "*.py", "**/urls.py", "**/views.py", "**/routes.py",
-                "*.java", "*.rb", "routes.rb", "*.php", "*.cs",
+                "*.js",
+                "*.jsx",
+                "*.ts",
+                "*.tsx",
+                "**/routes/**",
+                "**/api/**",
+                "**/pages/**",
+                "**/app/**",
+                "*.py",
+                "**/urls.py",
+                "**/views.py",
+                "**/routes.py",
+                "*.java",
+                "*.rb",
+                "routes.rb",
+                "*.php",
+                "*.cs",
             ]
             for dirpath, dirnames, filenames in os.walk(inp.root):
                 dirnames[:] = [d for d in dirnames if d not in _SKIP_DIRS]
@@ -233,9 +246,7 @@ class RouteGraphScanner(BaseAgent):
             # FastAPI patterns - look for decorator calls like @app.get("/path")
             if isinstance(node, py_ast.FunctionDef) and node.decorator_list:
                 for decorator in node.decorator_list:
-                    if isinstance(decorator, py_ast.Call) and isinstance(
-                        decorator.func, py_ast.Attribute
-                    ):
+                    if isinstance(decorator, py_ast.Call) and isinstance(decorator.func, py_ast.Attribute):
                         func_attr = decorator.func.attr
                         if func_attr in [
                             "get",
@@ -248,9 +259,10 @@ class RouteGraphScanner(BaseAgent):
                             "trace",
                         ]:
                             # Check if this is a FastAPI app method
-                            if isinstance(
-                                decorator.func.value, py_ast.Name
-                            ) and decorator.func.value.id in ["app", "router"]:
+                            if isinstance(decorator.func.value, py_ast.Name) and decorator.func.value.id in [
+                                "app",
+                                "router",
+                            ]:
                                 # Extract the route path from the decorator arguments
                                 path_arg = None
                                 if decorator.args:
@@ -296,9 +308,7 @@ class RouteGraphScanner(BaseAgent):
                             # Check for methods in keyword arguments
                             methods = ["GET"]  # Default for Flask
                             for keyword in decorator.keywords:
-                                if keyword.arg == "methods" and isinstance(
-                                    keyword.value, py_ast.List
-                                ):
+                                if keyword.arg == "methods" and isinstance(keyword.value, py_ast.List):
                                     for elt in keyword.value.elts:
                                         if isinstance(elt, py_ast.Constant):
                                             methods.append(elt.value)
@@ -448,7 +458,8 @@ class RouteGraphScanner(BaseAgent):
                                         file=finding.file,
                                         line_start=finding.line,
                                         title=f"Unprotected sensitive route: {method_upper} {path}",
-                                        description=f"Sensitive route {path} with potentially unsafe HTTP method {method_upper} appears unprotected",
+                                        description=f"Sensitive route {path} with potentially unsafe HTTP method"
+                                        f" {method_upper} appears unprotected",
                                         evidence=finding.title,
                                     )
                                 )
@@ -474,9 +485,7 @@ class RouteGraphScanner(BaseAgent):
                     "methods": methods,
                     "file": finding.file,
                     "line": finding.line,
-                    "framework": finding.title.split("(")[-1].split(")")[0]
-                    if "(" in finding.title
-                    else "unknown",
+                    "framework": finding.title.split("(")[-1].split(")")[0] if "(" in finding.title else "unknown",
                 }
         return route_map
 
@@ -536,9 +545,7 @@ class RouteGraphScanner(BaseAgent):
         ]:
             for m in re.finditer(pattern, content, re.MULTILINE):
                 findings.append(
-                    self._make_route_finding(
-                        rel_path, content, m, m.group(1).upper(), m.group(2), framework
-                    )
+                    self._make_route_finding(rel_path, content, m, m.group(1).upper(), m.group(2), framework)
                 )
         return findings
 
@@ -562,25 +569,13 @@ class RouteGraphScanner(BaseAgent):
                 if child.type == "member_expression":
                     for sub in child.children:
                         if sub.type == "identifier":
-                            obj = (
-                                buf[sub.start_byte : sub.end_byte].decode()
-                                if hasattr(sub, "start_byte")
-                                else ""
-                            )
+                            obj = buf[sub.start_byte : sub.end_byte].decode() if hasattr(sub, "start_byte") else ""
                         elif sub.type == "property_identifier":
-                            method = (
-                                buf[sub.start_byte : sub.end_byte].decode()
-                                if hasattr(sub, "start_byte")
-                                else ""
-                            )
+                            method = buf[sub.start_byte : sub.end_byte].decode() if hasattr(sub, "start_byte") else ""
                 elif child.type == "arguments":
                     for arg in child.children:
                         if arg.type == "string":
-                            path = (
-                                buf[arg.start_byte : arg.end_byte].decode()
-                                if hasattr(arg, "start_byte")
-                                else ""
-                            )
+                            path = buf[arg.start_byte : arg.end_byte].decode() if hasattr(arg, "start_byte") else ""
                             path = path.strip("'\"")
                             break
 
@@ -659,16 +654,10 @@ class RouteGraphScanner(BaseAgent):
             annotation = m.group(1).replace("Mapping", "").upper()
             if annotation == "REQUEST":
                 annotation = "GET"
-            findings.append(
-                self._make_route_finding(
-                    rel_path, content, m, annotation, m.group(2), "Spring Boot"
-                )
-            )
+            findings.append(self._make_route_finding(rel_path, content, m, annotation, m.group(2), "Spring Boot"))
         return findings
 
-    def _walk_java_route_node(
-        self, node: Any, buf: bytes, rel_path: str, findings: list[Finding]
-    ) -> None:
+    def _walk_java_route_node(self, node: Any, buf: bytes, rel_path: str, findings: list[Finding]) -> None:
         ntype = node.type
 
         if ntype == "marker_annotation":
@@ -752,20 +741,12 @@ class RouteGraphScanner(BaseAgent):
         """Regex fallback for Ruby routes."""
         findings = []
         for m in re.finditer(r'(get|post|put|patch|delete)\s+["\']([^"\']*)["\']', content):
-            findings.append(
-                self._make_route_finding(
-                    rel_path, content, m, m.group(1).upper(), m.group(2), "Rails"
-                )
-            )
+            findings.append(self._make_route_finding(rel_path, content, m, m.group(1).upper(), m.group(2), "Rails"))
         for m in re.finditer(r"resources\s+:(\w+)", content):
-            findings.append(
-                self._make_route_finding(rel_path, content, m, "RESOURCE", m.group(1), "Rails")
-            )
+            findings.append(self._make_route_finding(rel_path, content, m, "RESOURCE", m.group(1), "Rails"))
         return findings
 
-    def _walk_ruby_route_node(
-        self, node: Any, buf: bytes, rel_path: str, findings: list[Finding]
-    ) -> None:
+    def _walk_ruby_route_node(self, node: Any, buf: bytes, rel_path: str, findings: list[Finding]) -> None:
         ntype = node.type
         if ntype == "call":
             method_name = ""
@@ -788,9 +769,7 @@ class RouteGraphScanner(BaseAgent):
                                 path = _node_text_buf(arg, buf).strip("\"'")
                                 break
                 if path:
-                    method_display = (
-                        method_name.upper() if method_name.lower() != "resources" else "RESOURCE"
-                    )
+                    method_display = method_name.upper() if method_name.lower() != "resources" else "RESOURCE"
                     findings.append(
                         self._make_route_finding(
                             rel_path,
@@ -827,25 +806,15 @@ class RouteGraphScanner(BaseAgent):
     def _scan_php_routes_regex(self, content: str, rel_path: str) -> list[Finding]:
         """Regex fallback for PHP routes."""
         findings = []
-        for m in re.finditer(
-            r"Route::(get|post|put|patch|delete)\s*\(\s*['\"]([^'\"]*)['\"]\s*,", content
-        ):
-            findings.append(
-                self._make_route_finding(
-                    rel_path, content, m, m.group(1).upper(), m.group(2), "Laravel"
-                )
-            )
+        for m in re.finditer(r"Route::(get|post|put|patch|delete)\s*\(\s*['\"]([^'\"]*)['\"]\s*,", content):
+            findings.append(self._make_route_finding(rel_path, content, m, m.group(1).upper(), m.group(2), "Laravel"))
         return findings
 
-    def _walk_php_route_node(
-        self, node: Any, buf: bytes, rel_path: str, findings: list[Finding]
-    ) -> None:
+    def _walk_php_route_node(self, node: Any, buf: bytes, rel_path: str, findings: list[Finding]) -> None:
         ntype = node.type
         if ntype == "function_call_expression" or ntype == "scoped_call_expression":
             call_text = _node_text_buf(node, buf)
-            route_match = __import__("re").match(
-                r"Route::(get|post|put|patch|delete)\s*\(", call_text
-            )
+            route_match = __import__("re").match(r"Route::(get|post|put|patch|delete)\s*\(", call_text)
             if route_match:
                 method = route_match.group(1).upper()
                 path = ""
@@ -901,16 +870,10 @@ class RouteGraphScanner(BaseAgent):
             (r'\[Route\(["\']([^"\']*)["\']\s*\)\]', "ROUTE"),
         ]:
             for m in re.finditer(pattern, content):
-                findings.append(
-                    self._make_route_finding(
-                        rel_path, content, m, method, m.group(1), "ASP.NET Core"
-                    )
-                )
+                findings.append(self._make_route_finding(rel_path, content, m, method, m.group(1), "ASP.NET Core"))
         return findings
 
-    def _walk_cs_route_node(
-        self, node: Any, buf: bytes, rel_path: str, findings: list[Finding]
-    ) -> None:
+    def _walk_cs_route_node(self, node: Any, buf: bytes, rel_path: str, findings: list[Finding]) -> None:
         ntype = node.type
         if ntype == "attribute":
             attr_text = _node_text_buf(node, buf)

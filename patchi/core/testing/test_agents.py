@@ -7,8 +7,8 @@ Exports all test agent classes and shared test helper types.
 from __future__ import annotations
 
 from ..agents.base import register
-from .app_discovery_agent import AppDiscoveryAgent  # noqa: F401
 from .api_contract_agent import APIContractAgent
+from .app_discovery_agent import AppDiscoveryAgent  # noqa: F401
 from .browser_test_agent import BrowserTestAgent
 from .e2e_flow_agent import E2EFlowAgent
 from .flake_detector_agent import FlakeDetectorAgent  # noqa: F401

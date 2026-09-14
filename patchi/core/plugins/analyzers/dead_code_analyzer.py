@@ -106,15 +106,17 @@ class DeadCodeAnalyzer(Analyzer):
 
             # Check if name is used (excluding the import itself)
             if name not in used_names:
-                findings.append(make_finding(
-                    file=file.path,
-                    line=lineno,
-                    type="unused-import",
-                    severity=Severity.LOW,
-                    message=f"Unused import: {name}",
-                    detail=f"Import '{name}' is defined but never used in this file",
-                    suggestion=f"Remove unused import '{name}'",
-                    confidence=0.9,
-                ))
+                findings.append(
+                    make_finding(
+                        file=file.path,
+                        line=lineno,
+                        type="unused-import",
+                        severity=Severity.LOW,
+                        message=f"Unused import: {name}",
+                        detail=f"Import '{name}' is defined but never used in this file",
+                        suggestion=f"Remove unused import '{name}'",
+                        confidence=0.9,
+                    )
+                )
 
         return findings

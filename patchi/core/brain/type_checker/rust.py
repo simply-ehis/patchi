@@ -47,7 +47,8 @@ class RustTypeChecker(BaseTypeChecker):
                                     file=file_path,
                                     line=line,
                                     title="Returns Box<dyn Trait> — consider generics",
-                                    description=f"Function '{name}' returns Box<dyn ...> — consider `impl Trait` or generics",
+                                    description=f"Function '{name}' returns Box<dyn ...> — consider `impl Trait` or"
+                                    f" generics",
                                     evidence=f"{name}: Box<dyn ...>",
                                     severity="low",
                                 )

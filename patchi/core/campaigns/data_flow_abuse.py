@@ -26,12 +26,8 @@ class DataFlowAbuseCampaign(Campaign):
                 name="identify_transformations",
                 description="Identify data transformations in flows",
             ),
-            CampaignStep(
-                name="test_sanitization", description="Test sanitization on sensitive flows"
-            ),
-            CampaignStep(
-                name="test_encoding_bypass", description="Test encoding bypass on transformations"
-            ),
+            CampaignStep(name="test_sanitization", description="Test sanitization on sensitive flows"),
+            CampaignStep(name="test_encoding_bypass", description="Test encoding bypass on transformations"),
             CampaignStep(name="test_cross_boundary", description="Test cross-boundary data flows"),
             CampaignStep(name="test_security_meaning", description="Test security meaning changes"),
         ]
@@ -135,7 +131,8 @@ class DataFlowAbuseCampaign(Campaign):
                             {
                                 "type": "uncontrolled_cross_boundary",
                                 "severity": "critical",
-                                "detail": f"Cross-boundary flow without controls: {a.get('source', '?')} → {a.get('sink', '?')}",
+                                "detail": f"Cross-boundary flow without controls: {a.get('source', '?')} →"
+                                f" {a.get('sink', '?')}",
                             }
                         )
 

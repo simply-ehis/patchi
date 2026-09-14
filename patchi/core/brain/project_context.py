@@ -100,9 +100,7 @@ def agent_is_relevant(
             return True, ""
         if agent_name == "PrivacyAgent":
             if not is_finance and not is_health:
-                _has_pii_signals = any(
-                    w in purpose_lower for w in ("pii", "gdpr", "ccpa", "privacy", "personal")
-                )
+                _has_pii_signals = any(w in purpose_lower for w in ("pii", "gdpr", "ccpa", "privacy", "personal"))
                 if not _has_pii_signals:
                     return False, f"Project domain is '{domain}' — privacy rules not applicable"
 

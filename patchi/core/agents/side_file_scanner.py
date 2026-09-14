@@ -315,10 +315,7 @@ class SideFileScanner(BaseAgent):
             # Check for security-related fields
             if "scripts" in data:
                 for script_name, script_content in data["scripts"].items():
-                    if any(
-                        security_cmd in script_content.lower()
-                        for security_cmd in ["audit", "security"]
-                    ):
+                    if any(security_cmd in script_content.lower() for security_cmd in ["audit", "security"]):
                         findings.append(
                             make_finding(
                                 self.name,
@@ -346,9 +343,7 @@ class SideFileScanner(BaseAgent):
 
         return findings
 
-    def _parse_requirements_txt(
-        self, file_path: Path, rel_path: str, content: str
-    ) -> list[Finding]:
+    def _parse_requirements_txt(self, file_path: Path, rel_path: str, content: str) -> list[Finding]:
         """Parse requirements.txt file."""
         findings = []
 
@@ -441,9 +436,7 @@ class SideFileScanner(BaseAgent):
             # Look for common CI/CD patterns
             lines = content.splitlines()
             for i, line in enumerate(lines, 1):
-                if any(
-                    keyword in line.lower() for keyword in ["deploy", "publish", "release", "build"]
-                ):
+                if any(keyword in line.lower() for keyword in ["deploy", "publish", "release", "build"]):
                     findings.append(
                         make_finding(
                             self.name,
@@ -492,10 +485,7 @@ class SideFileScanner(BaseAgent):
             # Look for potentially risky commands
             lines = content.splitlines()
             for i, line in enumerate(lines, 1):
-                if any(
-                    risky_cmd in line.lower()
-                    for risky_cmd in ["rm -rf", "sudo", "chmod", "chown", "mv /", "cp /"]
-                ):
+                if any(risky_cmd in line.lower() for risky_cmd in ["rm -rf", "sudo", "chmod", "chown", "mv /", "cp /"]):
                     findings.append(
                         make_finding(
                             self.name,
@@ -522,9 +512,7 @@ class SideFileScanner(BaseAgent):
 
         return findings
 
-    def _find_env_vars_in_content(
-        self, file_path: Path, rel_path: str, content: str
-    ) -> list[Finding]:
+    def _find_env_vars_in_content(self, file_path: Path, rel_path: str, content: str) -> list[Finding]:
         """Find environment variable references in content."""
         findings = []
 

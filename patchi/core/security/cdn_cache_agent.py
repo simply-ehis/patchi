@@ -89,9 +89,7 @@ _ORIGIN_BYPASS_PATTERNS = [
 
 _CACHE_KEY_INJECTION_PATTERNS = [
     (
-        re.compile(
-            r"(?:cache.?key|cacheKey|cache_key)\s*[=:]\s*.*\+|f['\"].*\{.*\}", re.IGNORECASE
-        ),
+        re.compile(r"(?:cache.?key|cacheKey|cache_key)\s*[=:]\s*.*\+|f['\"].*\{.*\}", re.IGNORECASE),
         "Dynamic cache key construction via string concatenation",
     ),
     (re.compile(r"Vary\s*:\s*\*", re.IGNORECASE), "Wildcard Vary header may cause cache poisoning"),
@@ -153,10 +151,7 @@ class CDNCacheSecurityAgent(BaseAgent):
                 rel = fp.relative_to(inp.root).as_posix()
                 try:
                     content = fp.read_text(encoding="utf-8", errors="replace")
-                    if (
-                        "OriginAccessControl" not in content
-                        and "origin_access" not in content.lower()
-                    ):
+                    if "OriginAccessControl" not in content and "origin_access" not in content.lower():
                         findings.append(
                             make_finding(
                                 severity=Severity.HIGH,

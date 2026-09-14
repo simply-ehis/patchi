@@ -61,9 +61,7 @@ _FCM_KEY_PATTERNS = [
         "PUSH-01: Hardcoded FCM Server Key",
     ),
     (
-        re.compile(
-            r"(?:server[_-]?key|fcm[_-]?key)\s*[:=]\s*['\"][A-Za-z0-9_\-]{20,}['\"]", re.IGNORECASE
-        ),
+        re.compile(r"(?:server[_-]?key|fcm[_-]?key)\s*[:=]\s*['\"][A-Za-z0-9_\-]{20,}['\"]", re.IGNORECASE),
         "PUSH-01: Hardcoded FCM Key",
     ),
     (
@@ -102,9 +100,7 @@ _PUSH_TOKEN_PATTERNS = [
         "PUSH-04: Hardcoded Push Token",
     ),
     (
-        re.compile(
-            r"(?:token|device_token)\s*\.\s*(?:save|store|persist|write|insert)", re.IGNORECASE
-        ),
+        re.compile(r"(?:token|device_token)\s*\.\s*(?:save|store|persist|write|insert)", re.IGNORECASE),
         "PUSH-05: Push Token Stored Without Encryption",
     ),
 ]
@@ -198,7 +194,8 @@ class PushNotificationAgent(BaseAgent):
                                 file=rel,
                                 line_start=i,
                                 title=title,
-                                description="Hardcoded FCM server key found. Anyone with this key can send push notifications.",
+                                description="Hardcoded FCM server key found. Anyone with this key can send push"
+                                " notifications.",
                                 evidence=line.strip()[:120],
                                 suggestion="Store FCM server keys in environment variables or a secrets manager.",
                             )
@@ -239,9 +236,7 @@ class PushNotificationAgent(BaseAgent):
             # Sensitive data in payloads
             in_notification_block = False
             for i, line in enumerate(lines, 1):
-                if re.search(
-                    r"(?:notification|message|payload|alert|body)\s*[{(]", line, re.IGNORECASE
-                ):
+                if re.search(r"(?:notification|message|payload|alert|body)\s*[{(]", line, re.IGNORECASE):
                     in_notification_block = True
                 if in_notification_block:
                     for rx, title in _SENSITIVE_PAYLOAD_PATTERNS:
@@ -279,8 +274,7 @@ class PushNotificationAgent(BaseAgent):
                     content_lower = content.lower()
                     # Check if file is push-related
                     is_push_config = any(
-                        kw in content_lower
-                        for kw in ("fcm", "firebase", "apns", "push", "notification")
+                        kw in content_lower for kw in ("fcm", "firebase", "apns", "push", "notification")
                     )
                     if not is_push_config:
                         continue
@@ -295,7 +289,8 @@ class PushNotificationAgent(BaseAgent):
                                     line_start=0,
                                     title=title,
                                     description="FCM server key found in configuration file.",
-                                    suggestion="Use environment variables or a secrets manager instead of config files.",
+                                    suggestion="Use environment variables or a secrets manager instead of config"
+                                    " files.",
                                 )
                             )
 

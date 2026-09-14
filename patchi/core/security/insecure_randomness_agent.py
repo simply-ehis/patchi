@@ -132,7 +132,8 @@ class InsecureRandomnessAgent(BaseAgent):
 
     # Secure alternative suggestions per language
     SECURE_ALTERNATIVES: dict[str, str] = {
-        "JavaScript": "crypto.randomBytes() or crypto.randomUUID() (Node.js) / window.crypto.getRandomValues() (browser)",
+        "JavaScript": "crypto.randomBytes() or crypto.randomUUID() (Node.js) / window.crypto.getRandomValues()"
+        " (browser)",
         "Python": "secrets.token_bytes(), secrets.token_hex(), secrets.choice(), or os.urandom()",
         "Java": "java.security.SecureRandom",
         "Go": "crypto/rand.Read()",

@@ -17,9 +17,7 @@ class NextJsRouteDetector(BaseRouteDetector):
             url_path = re.sub(r"\.(?:js|ts|jsx|tsx)$", "", url_path)
             if url_path.endswith("/index"):
                 url_path = url_path[:-6] or "/"
-            routes.append(
-                self._make_route("ANY", url_path, p.stem, file_path, 1, framework="Next.js")
-            )
+            routes.append(self._make_route("ANY", url_path, p.stem, file_path, 1, framework="Next.js"))
 
         elif "app" in parts and p.stem in ("route", "page"):
             idx = parts.index("app")
@@ -72,10 +70,6 @@ class SvelteKitRouteDetector(BaseRouteDetector):
         if not url_path:
             url_path = "/"
 
-        method = (
-            "ANY" if (p.name.endswith("+server.ts") or p.name.endswith("+server.js")) else "GET"
-        )
-        routes.append(
-            self._make_route(method, url_path, p.stem, file_path, 1, framework="SvelteKit")
-        )
+        method = "ANY" if (p.name.endswith("+server.ts") or p.name.endswith("+server.js")) else "GET"
+        routes.append(self._make_route(method, url_path, p.stem, file_path, 1, framework="SvelteKit"))
         return routes

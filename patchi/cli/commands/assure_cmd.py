@@ -121,9 +121,7 @@ def run(
 
             attack_results = planner.run_all()
             confirmed = [r for r in attack_results if r.confirmed]
-            con.print(
-                f"  Tested: [bold]{len(attack_results)}[/bold], Confirmed: [bold]{len(confirmed)}[/bold]"
-            )
+            con.print(f"  Tested: [bold]{len(attack_results)}[/bold], Confirmed: [bold]{len(confirmed)}[/bold]")
 
             # Record confirmed attacks as evidence
             for r in confirmed:
@@ -314,9 +312,7 @@ def _render_report(report_data: dict, coverage: dict, graph) -> None:
     summary_text = Text()
     summary_text.append(f"Claims: {summary['total_claims']}  ", style="bold")
     summary_text.append(f"Proved: {summary['proved']}  ", style="green")
-    summary_text.append(
-        f"Violated: {summary['disproved']}  ", style="red" if summary["disproved"] > 0 else "dim"
-    )
+    summary_text.append(f"Violated: {summary['disproved']}  ", style="red" if summary["disproved"] > 0 else "dim")
     summary_text.append(
         f"Unproven: {summary['unproven'] + summary['not_proved']}",
         style="yellow" if summary["unproven"] + summary["not_proved"] > 0 else "dim",
@@ -391,15 +387,12 @@ def _render_report(report_data: dict, coverage: dict, graph) -> None:
 
     con.print(f"[bold]{coverage['statement']}[/bold]")
     if disproved:
-        con.print(
-            "[#FF4D6D]Violated properties above need fixes — run `p fix` or `p chain`.[/#FF4D6D]"
-        )
+        con.print("[#FF4D6D]Violated properties above need fixes — run `p fix` or `p chain`.[/#FF4D6D]")
     elif proved < total:
         con.print("[dim]Unproved properties have insufficient evidence — scan deeper first.[/dim]")
     con.print()
     con.print(
-        "[dim]No evidence currently demonstrates a known violation within "
-        f"the {total}-property tested scope.[/dim]"
+        f"[dim]No evidence currently demonstrates a known violation within the {total}-property tested scope.[/dim]"
         if disproved == 0
         else ""
     )

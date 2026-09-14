@@ -38,9 +38,7 @@ def run(root: Path | None = None) -> None:
         return
 
     patches_raw = mem.list_patches(r)
-    pending = [
-        Patch.from_dict(p) for p in patches_raw if p.get("state") == PatchState.PENDING.value
-    ]
+    pending = [Patch.from_dict(p) for p in patches_raw if p.get("state") == PatchState.PENDING.value]
 
     con.print()
 
@@ -152,8 +150,7 @@ def _show_patch_card(patch: Patch) -> None:
         if not change.diff.strip():
             continue
         con.print(
-            f"  [bold #B8A898]{change.path}[/bold #B8A898]  "
-            f"[dim]+{change.lines_added} / -{change.lines_removed}[/dim]"
+            f"  [bold #B8A898]{change.path}[/bold #B8A898]  [dim]+{change.lines_added} / -{change.lines_removed}[/dim]"
         )
         # Syntax-highlighted diff
         diff_syntax = Syntax(
@@ -218,8 +215,6 @@ def _reject_patch(patch: Patch, root: Path) -> None:
             type_str = patch_type.value if hasattr(patch_type, "value") else str(patch_type)
             count = mem.record_rejection(type_str, root)
             if count == 3:
-                con.print(
-                    f"\n[#C8621A]ℹ You've rejected [bold]{type_str}[/bold] patches 3 times.[/#C8621A]"
-                )
+                con.print(f"\n[#C8621A]ℹ You've rejected [bold]{type_str}[/bold] patches 3 times.[/#C8621A]")
     except Exception as e:
         _log.warning("_reject_patch failed: %s", e)

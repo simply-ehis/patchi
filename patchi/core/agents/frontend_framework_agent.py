@@ -43,6 +43,7 @@ _log = logging.getLogger("patchi.agents.frontend_framework")
 
 _HOOKS = {"useEffect", "useState", "useMemo", "useCallback", "useRef"}
 
+
 @register
 class FrontendFrameworkAgent(BaseAgent):
     group = AgentGroup.SCANNER
@@ -53,21 +54,21 @@ class FrontendFrameworkAgent(BaseAgent):
     supported_languages = ["JavaScript", "TypeScript"]
 
     def _run(self, inp: AgentInput, result: AgentResult) -> None:
-        findings=[]
+        findings = []
         _MIN_SIZE = 200
         _MAX_FILES = 500
         scanned = 0
-        for pat in ("*.jsx","*.tsx","*.js","*.ts","*.vue","*.svelte"):
+        for pat in ("*.jsx", "*.tsx", "*.js", "*.ts", "*.vue", "*.svelte"):
             for fp in get_shard_files(inp, pat):
                 if scanned >= _MAX_FILES:
                     break
                 if fp.stat().st_size < _MIN_SIZE:
                     continue
-                rel=fp.relative_to(inp.root).as_posix()
+                rel = fp.relative_to(inp.root).as_posix()
                 if "node_modules" in rel or "tests" in rel:
                     continue
                 try:
-                    txt=fp.read_text(encoding="utf-8", errors="replace")
+                    txt = fp.read_text(encoding="utf-8", errors="replace")
                 except OSError:
                     continue
                 scanned += 1
@@ -82,7 +83,16 @@ class FrontendFrameworkAgent(BaseAgent):
                 if is_jsx:
                     for call in calls:
                         if call.name == "useEffect" and len(call.arg_kinds) < 2:
-                            findings.append(make_finding(severity=Severity.LOW, file=rel, line_start=call.line, title="React useEffect missing deps", description="Add dependency array or disable exhaustive-deps consciously", finding_type="react_hook"))
+                            findings.append(
+                                make_finding(
+                                    severity=Severity.LOW,
+                                    file=rel,
+                                    line_start=call.line,
+                                    title="React useEffect missing deps",
+                                    description="Add dependency array or disable exhaustive-deps consciously",
+                                    finding_type="react_hook",
+                                )
+                            )
                             break
                     # React: list rendering without key (previously dead branch)
                     attrs = js_jsx_attributes(tree, lang)
@@ -90,7 +100,16 @@ class FrontendFrameworkAgent(BaseAgent):
                         if not any(name == "key" for _, name, _ in attrs):
                             elems = js_jsx_elements(tree, lang)
                             line0 = elems[0][1] if elems else 1
-                            findings.append(make_finding(severity=Severity.LOW, file=rel, line_start=line0, title="List element without key", description="Add key to list-rendered elements for stable diffing", finding_type="react_key"))
+                            findings.append(
+                                make_finding(
+                                    severity=Severity.LOW,
+                                    file=rel,
+                                    line_start=line0,
+                                    title="List element without key",
+                                    description="Add key to list-rendered elements for stable diffing",
+                                    finding_type="react_key",
+                                )
+                            )
                 # Vue: v-for without :key (template markup via html.parser)
                 if fp.suffix == ".vue":
                     by_el: dict[tuple[str, int], set[str]] = {}
@@ -98,7 +117,16 @@ class FrontendFrameworkAgent(BaseAgent):
                         by_el.setdefault((tag, line), set()).add(attr)
                     for (_tag, line), attr_set in by_el.items():
                         if "v-for" in attr_set and "key" not in attr_set and ":key" not in attr_set:
-                            findings.append(make_finding(severity=Severity.LOW, file=rel, line_start=line, title="Vue v-for without :key", description="Add :key to v-for for stable diffing", finding_type="vue_key"))
+                            findings.append(
+                                make_finding(
+                                    severity=Severity.LOW,
+                                    file=rel,
+                                    line_start=line,
+                                    title="Vue v-for without :key",
+                                    description="Add :key to v-for for stable diffing",
+                                    finding_type="vue_key",
+                                )
+                            )
                             break
                 # Svelte: $store subscription without unsubscribe
                 if fp.suffix == ".svelte":
@@ -107,37 +135,54 @@ class FrontendFrameworkAgent(BaseAgent):
                         if stree is None:
                             continue
                         snames = js_call_names(stree, "javascript")
-                        stores = [
-                            (t, n)
-                            for t, n in js_identifier_lines(stree, "javascript")
-                            if t.startswith("$")
-                        ]
+                        stores = [(t, n) for t, n in js_identifier_lines(stree, "javascript") if t.startswith("$")]
                         if not stores or "subscribe" not in snames:
                             continue
                         if snames & {"unsubscribe", "onDestroy"}:
                             continue
-                        findings.append(make_finding(
-                            severity=Severity.LOW, file=rel, line_start=stores[0][1],
-                            title="Svelte store without unsubscribe",
-                            description=(
-                                "Store subscription may leak; "
-                                "use $store auto-sub or onDestroy unsubscribe"
-                            ),
-                            finding_type="svelte_store_leak",
-                        ))
+                        findings.append(
+                            make_finding(
+                                severity=Severity.LOW,
+                                file=rel,
+                                line_start=stores[0][1],
+                                title="Svelte store without unsubscribe",
+                                description=(
+                                    "Store subscription may leak; use $store auto-sub or onDestroy unsubscribe"
+                                ),
+                                finding_type="svelte_store_leak",
+                            )
+                        )
                         break
                 # Angular: constructor DI (private param)
                 if "Angular" in txt or "@Component" in txt:
                     line = js_constructor_di_line(tree, lang)
                     if line:
-                        findings.append(make_finding(severity=Severity.INFO, file=rel, line_start=line, title="Angular DI injection", description="Verify DI token provided", finding_type="angular_di"))
+                        findings.append(
+                            make_finding(
+                                severity=Severity.INFO,
+                                file=rel,
+                                line_start=line,
+                                title="Angular DI injection",
+                                description="Verify DI token provided",
+                                finding_type="angular_di",
+                            )
+                        )
                 # Solid: createEffect without cleanup
                 if "createEffect" in names:
                     line = next(c.line for c in calls if c.name == "createEffect")
-                    findings.append(make_finding(severity=Severity.INFO, file=rel, line_start=line, title="Solid createEffect without cleanup", description="Return cleanup function if needed", finding_type="solid_effect"))
+                    findings.append(
+                        make_finding(
+                            severity=Severity.INFO,
+                            file=rel,
+                            line_start=line,
+                            title="Solid createEffect without cleanup",
+                            description="Return cleanup function if needed",
+                            finding_type="solid_effect",
+                        )
+                    )
                 if len(findings) >= 40:
                     break
             if len(findings) >= 40:
                 break
-        result.status=AgentStatus.SUCCEEDED
-        result.findings=findings[:40]
+        result.status = AgentStatus.SUCCEEDED
+        result.findings = findings[:40]

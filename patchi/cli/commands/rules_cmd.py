@@ -18,7 +18,6 @@ from rich.table import Table
 _log = logging.getLogger("patchi.cli.commands.rules_cmd")
 
 
-
 def run(args) -> None:
     con = Console()
     root = Path.cwd()
@@ -228,6 +227,6 @@ def _which_rule(root: Path, con: Console, finding_id: str) -> None:
                             con.print(f"    {json.dumps(rule, indent=2)[:300]}")
                             con.print()
     except Exception as _exc:
-        _log.warning('_which_rule failed: %s', _exc)
+        _log.warning("_which_rule failed: %s", _exc)
 
     con.print("[dim]Search complete.[/dim]")

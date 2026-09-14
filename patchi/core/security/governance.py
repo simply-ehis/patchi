@@ -72,7 +72,8 @@ def patchi_action_log(
             conn = _get_db(root)
             try:
                 conn.execute(
-                    "INSERT INTO action_log (timestamp, action, target, agent, detail, status) VALUES (?, ?, ?, ?, ?, ?)",
+                    "INSERT INTO action_log (timestamp, action, target, agent, detail, status) VALUES (?, ?, ?, ?, ?,"
+                    " ?)",
                     row,
                 )
                 conn.commit()
@@ -132,9 +133,7 @@ def _load_policy(root: Path) -> dict:
     return _DEFAULT_POLICY.copy()
 
 
-def patchi_policy_gate(
-    root: Path, action: str, target: str, severity: str = "medium"
-) -> tuple[bool, str]:
+def patchi_policy_gate(root: Path, action: str, target: str, severity: str = "medium") -> tuple[bool, str]:
     """
     Check if an action is allowed by the policy gate.
     Returns (allowed, reason).

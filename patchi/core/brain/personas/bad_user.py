@@ -103,12 +103,8 @@ Your voice: Hurried, flow-breaking, allergic to spinners that lie.
         routes = routes or ["/"]
         flows: list[dict] = []
         for route in routes[:10]:
-            flows.append(
-                {"route": route, "action": "double_submit", "note": "click submit twice fast"}
-            )
-            flows.append(
-                {"route": route, "action": "navigate_away", "note": "leave mid-load, hit back"}
-            )
+            flows.append({"route": route, "action": "double_submit", "note": "click submit twice fast"})
+            flows.append({"route": route, "action": "navigate_away", "note": "leave mid-load, hit back"})
         return flows
 
 

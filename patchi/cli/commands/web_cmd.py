@@ -43,9 +43,7 @@ def _resolve_project(explicit: str | None) -> Path:
     if explicit:
         p = Path(explicit).expanduser().resolve()
         if not (p / ".patchi").is_dir():
-            console.print(
-                f"[red]{p} has no .patchi directory.[/red] Run [bold]p init[/bold] there first."
-            )
+            console.print(f"[red]{p} has no .patchi directory.[/red] Run [bold]p init[/bold] there first.")
             raise SystemExit(1)
         return p
 
@@ -63,9 +61,7 @@ def _resolve_project(explicit: str | None) -> Path:
     # Same contract as require_project_root(); candidates listed as FYI only
     from patchi.core.tenant import TenantManager
 
-    console.print(
-        "[red]No .patchi directory found.[/red] Run [bold]p init[/bold] in your project folder first."
-    )
+    console.print("[red]No .patchi directory found.[/red] Run [bold]p init[/bold] in your project folder first.")
     nearby = TenantManager().discover_projects(near=Path.cwd())
     if nearby:
         console.print("[dim]Patchi projects near here:[/dim]")
@@ -87,9 +83,7 @@ def run(
     try:
         import uvicorn  # noqa: F401
     except ImportError as e:
-        console.print(
-            "[red]Missing dependencies.[/red] Install with: [bold]pip install patchi[web][/bold]"
-        )
+        console.print("[red]Missing dependencies.[/red] Install with: [bold]pip install patchi[web][/bold]")
         raise SystemExit(1) from e
 
     project_root = root or _resolve_project(project)

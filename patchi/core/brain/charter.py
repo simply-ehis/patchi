@@ -19,6 +19,7 @@ The charter is stored in `.patchi/memory/charter.json` and checked on every
 scan.  Violations are surfaced as ``charter-drift`` findings so that **both
 humans (via ``p scan``) and agents (via the Governor) stay in context**.
 """
+
 from __future__ import annotations
 
 import json
@@ -147,10 +148,12 @@ class Charter:
             stack = {"languages": [], "frameworks": []}
             for rule in d["rules"]:
                 if rule.get("type") == "boundary":
-                    boundaries.append({
-                        "from": rule.get("from_pattern", ""),
-                        "to": rule.get("to_pattern", ""),
-                    })
+                    boundaries.append(
+                        {
+                            "from": rule.get("from_pattern", ""),
+                            "to": rule.get("to_pattern", ""),
+                        }
+                    )
                 elif rule.get("type") == "convention":
                     if rule.get("max_value"):
                         conventions["max_file_lines"] = rule["max_value"]
@@ -222,8 +225,14 @@ def parse_charter(text: str, config: dict | None = None) -> Charter:
                 charter.stack["languages"].append(norm)
 
     # ── Boundaries: "X must not import Y" ──
-    boundary_words = ["must not import", "cannot import", "never import",
-                      "should not import", "must not use", "cannot use"]
+    boundary_words = [
+        "must not import",
+        "cannot import",
+        "never import",
+        "should not import",
+        "must not use",
+        "cannot use",
+    ]
     for sep in boundary_words:
         if sep in text_lower:
             parts = text_lower.split(sep)
@@ -233,9 +242,9 @@ def parse_charter(text: str, config: dict | None = None) -> Charter:
                 # Remove leading articles
                 for prefix in ["the ", "a ", "an "]:
                     if from_pat.startswith(prefix):
-                        from_pat = from_pat[len(prefix):]
+                        from_pat = from_pat[len(prefix) :]
                     if to_pat.startswith(prefix):
-                        to_pat = to_pat[len(prefix):]
+                        to_pat = to_pat[len(prefix) :]
                 charter.boundaries.append({"from": from_pat, "to": to_pat})
 
     # ── Conventions: sizes + test coverage ──
@@ -262,6 +271,7 @@ def parse_charter(text: str, config: dict | None = None) -> Charter:
         charter.security.append("parameterized_queries")
 
     return charter
+
 
 def _split_role_phrase(phrase: str) -> tuple[str, str]:
     """Split a 'X importing Y' phrase into (from, to) role tokens."""
@@ -290,9 +300,7 @@ def parse_charter_with_ai(text: str, config: dict) -> Charter | None:
         "Return ONLY JSON.\n\n" + text
     )
     try:
-        resp = call_ai(
-            config, "You are a config parser. Output only JSON.", prompt, max_tokens=1024
-        )
+        resp = call_ai(config, "You are a config parser. Output only JSON.", prompt, max_tokens=1024)
     except Exception as e:
         _log.warning("parse_charter_with_ai failed: %s", e)
         return None
@@ -425,9 +433,7 @@ def check_charter(
 
     # ── Convention: require tests for routes ───────────────────────────────────
     if charter.conventions.get("require_tests_for_routes") and routes:
-        route_files = {
-            r.get("file", "") if isinstance(r, dict) else getattr(r, "file", "") for r in routes
-        }
+        route_files = {r.get("file", "") if isinstance(r, dict) else getattr(r, "file", "") for r in routes}
         test_files = {
             fi.path
             for fi in (file_infos or [])

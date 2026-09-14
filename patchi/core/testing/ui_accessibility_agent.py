@@ -17,6 +17,7 @@ are surfaced so a11y runs don't silently no-op on broken pages.
 
 Requires: playwright, axe-core (injected from CDN)
 """
+
 from __future__ import annotations
 
 import logging
@@ -43,24 +44,57 @@ AXE_CORE_JS = "https://cdnjs.cloudflare.com/ajax/libs/axe-core/4.8.4/axe.min.js"
 
 AXE_RULES_BY_SEVERITY = {
     "critical": [
-        "color-contrast", "image-alt", "label", "select-name", "button-name",
-        "input-image-alt", "aria-required-attr", "valid-lang", "doc-title",
+        "color-contrast",
+        "image-alt",
+        "label",
+        "select-name",
+        "button-name",
+        "input-image-alt",
+        "aria-required-attr",
+        "valid-lang",
+        "doc-title",
     ],
     "serious": [
-        "aria-allowed-attr", "aria-hidden-body", "aria-hidden-focus", "bypass",
-        "definition-list", "dlitem", "duplicate-id", "heading-order", "html-has-lang",
-        "html-lang-valid", "landmark-banner-is-top-level", "landmark-contentinfo-is-top-level",
-        "landmark-main-is-top-level", "landmark-no-duplicate-banner", "landmark-one-main",
-        "meta-viewport", "region",
+        "aria-allowed-attr",
+        "aria-hidden-body",
+        "aria-hidden-focus",
+        "bypass",
+        "definition-list",
+        "dlitem",
+        "duplicate-id",
+        "heading-order",
+        "html-has-lang",
+        "html-lang-valid",
+        "landmark-banner-is-top-level",
+        "landmark-contentinfo-is-top-level",
+        "landmark-main-is-top-level",
+        "landmark-no-duplicate-banner",
+        "landmark-one-main",
+        "meta-viewport",
+        "region",
     ],
     "moderate": [
-        "color-contrast-enhanced", "css-orientation-lock", "frame-title",
-        "heading-level", "html-xml-lang-mismatch", "identical-links-same-purpose",
-        "label-title-only", "link-in-text-block", "p-as-heading", "table-duplicate-name",
+        "color-contrast-enhanced",
+        "css-orientation-lock",
+        "frame-title",
+        "heading-level",
+        "html-xml-lang-mismatch",
+        "identical-links-same-purpose",
+        "label-title-only",
+        "link-in-text-block",
+        "p-as-heading",
+        "table-duplicate-name",
     ],
     "minor": [
-        "css-orientation-lock", "definition-list", "dlitem", "link-name",
-        "list", "listitem", "meter-name", "scrollable-region-focusable", "tabindex",
+        "css-orientation-lock",
+        "definition-list",
+        "dlitem",
+        "link-name",
+        "list",
+        "listitem",
+        "meter-name",
+        "scrollable-region-focusable",
+        "tabindex",
     ],
 }
 
@@ -82,7 +116,19 @@ class UIAccessibilityAgent(BaseAgent):
         try:
             from playwright.sync_api import sync_playwright  # noqa: F401
         except ImportError:
-            self.skip(result, "playwright not installed — pip install playwright && playwright install chromium")
+            self.skip(
+                result,
+                "playwright not installed — pip install playwright && playwright install chromium",
+            )
+            return
+        # Part 3 §2.6: the pip package alone is not enough — the browser
+        # binaries are a separate install step. One shared check everywhere.
+        from patchi.core.agents.tool_health import playwright_ready
+
+        pw_ok, pw_hint = playwright_ready()
+        if not pw_ok:
+            self.skip(result, pw_hint)
+            return
             return
 
         base_url = find_server(inp.root, inp.config, inp.extra)
@@ -164,8 +210,11 @@ class UIAccessibilityAgent(BaseAgent):
                     file=v.get("file", ""),
                     message=f"[{v.get('impact', '?')}] {v.get('id', 'unknown')}: {v.get('description', '')}",
                     detail=self._format_violation(v),
-                    extra={"rule": v.get("id", ""), "wcag_tags": v.get("tags", []),
-                           "screenshot": v.get("screenshot")},
+                    extra={
+                        "rule": v.get("id", ""),
+                        "wcag_tags": v.get("tags", []),
+                        "screenshot": v.get("screenshot"),
+                    },
                 )
             )
 
@@ -186,7 +235,8 @@ class UIAccessibilityAgent(BaseAgent):
                     finding_type="a11y_summary",
                     severity=Severity.HIGH if (total_violations or error_pages) else Severity.MEDIUM,
                     file="(all pages)",
-                    message=f"Accessibility: {total_violations} violations, {error_pages} error pages across {pages_tested} pages",
+                    message=f"Accessibility: {total_violations} violations, {error_pages} error pages across"
+                    f" {pages_tested} pages",
                 )
             )
 

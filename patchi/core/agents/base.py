@@ -13,6 +13,7 @@ Agent contract:
   3. Return AgentResult (findings, metadata, duration, errors)
   4. Done. Never mutate state. Never touch the queue directly.
 """
+
 from __future__ import annotations
 
 import ast
@@ -32,9 +33,7 @@ from patchi.core.brain.languages import DEFAULT_IGNORE_DIRS, is_minified_asset
 
 # ponytail: rglob traverses node_modules (30k+ files). Shared skip sets.
 _SKIP_DIRS = frozenset(DEFAULT_IGNORE_DIRS)
-_SKIP_FILES = frozenset(
-    {"package-lock.json", "yarn.lock", "pnpm-lock.yaml", "composer.lock", "Gemfile.lock"}
-)
+_SKIP_FILES = frozenset({"package-lock.json", "yarn.lock", "pnpm-lock.yaml", "composer.lock", "Gemfile.lock"})
 
 # Module-level fallback corpus set by Coordinator before running agents.
 # safe_rglob uses this when no explicit corpus is passed — avoids touching
@@ -91,9 +90,7 @@ def safe_rglob(
         corpus = _default_corpus
     if corpus is not None:
         for entry in corpus.by_glob(pattern):
-            if _skip_asset(entry.path, skip_files) or _skip_asset(
-                Path(entry.path).name, skip_files
-            ):
+            if _skip_asset(entry.path, skip_files) or _skip_asset(Path(entry.path).name, skip_files):
                 continue
             yield root / entry.path
         return
@@ -138,7 +135,7 @@ def safe_rglob(
                     yield Path(dirpath) / fname
 
 
-def get_shard_files(inp: "AgentInput", pattern: str) -> list[Path]:
+def get_shard_files(inp: AgentInput, pattern: str) -> list[Path]:
     """Return files for this agent's shard, filtered by pattern.
 
     In shard mode (inp.shard_files is set), returns only those files.
@@ -356,15 +353,9 @@ class AgentInput:
     domain: str = ""  # project domain (e.g. "dev-tool", "web-app", "library")
     context: dict = field(default_factory=dict)  # rich project context from brain context phase
     active_domains: list[str] = field(default_factory=list)  # activated security domain IDs
-    on_message: callable | None = (
-        None  # callback for live progress streaming: fn(agent_name, message, style)
-    )
-    on_ai_progress: callable | None = (
-        None  # callback for AI call progress: fn(message)
-    )
-    shard_files: list[str] | None = (
-        None  # files for this shard (None = all files via safe_rglob)
-    )
+    on_message: callable | None = None  # callback for live progress streaming: fn(agent_name, message, style)
+    on_ai_progress: callable | None = None  # callback for AI call progress: fn(message)
+    shard_files: list[str] | None = None  # files for this shard (None = all files via safe_rglob)
 
 
 # ── Agent result ───────────────────────────────────────────────────────────────
@@ -554,13 +545,25 @@ class BaseAgent(ABC):
         #   api_contract_agent.py). AttackAgent was REMOVED from this list —
         #   it probes 127.0.0.1 via Metasploit and must never run blind.
         gate_url: str | None = None
-        if self.group in (AgentGroup.TEST, AgentGroup.SECURITY) and self.name not in ("PreCheckAgent", "UnitTestAgent", "RegressionAgent", "APIContractAgent"):
+        if self.group in (AgentGroup.TEST, AgentGroup.SECURITY) and self.name not in (
+            "PreCheckAgent",
+            "UnitTestAgent",
+            "RegressionAgent",
+            "APIContractAgent",
+        ):
             # Only gate live/test/attack agents, not pure static scanners or unit test runners
+            # §7 audit: every name here was verified against the live registry
+            # (a "DastAgent" typo once left the real DASTAgent ungated).
+            # Pure-live SECURITY agents idle entirely; mixed agents
+            # (CORSAuditor, APIContractAgent) self-gate only their live step.
             needs_gate = self.group == AgentGroup.TEST or self.name in (
                 "RedTeamAgent",
                 "RedTeamEngineAgent",
-                "DastAgent",
+                "DASTAgent",
                 "BrowserTestAgent",
+                "BrowserTesterAgent",
+                "HeaderAuditAgent",
+                "SecurityProber",
                 "UIButtonAgent",
                 "UILayoutAgent",
                 "UIAccessibilityAgent",
@@ -661,6 +664,24 @@ class BaseAgent(ABC):
         result.status = AgentStatus.SKIPPED
         result.data["skip_reason"] = reason
 
+    def skip_for_tool(self, result: AgentResult, tool: str) -> None:
+        """Skip with the distinct tool-missing status (Part 3 §2.5).
+
+        "0 findings because the tool is missing" must never look like "0
+        findings because nothing was wrong": the skip reason carries the
+        registry install hint, and data["tool_missing"] marks it for
+        reports and health-score computation.
+        """
+        try:
+            from patchi.core.agents.tool_health import install_hint
+
+            hint = install_hint(tool)
+        except Exception:
+            hint = ""
+        reason = f"skipped: tool missing ({tool})" + (f" — {hint}" if hint else "")
+        self.skip(result, reason)
+        result.data["tool_missing"] = tool
+
     @classmethod
     def describe(cls) -> dict:
         """Return metadata for `p agents list`."""
@@ -745,10 +766,7 @@ def validate_agent_registry() -> list[str]:
     violations: list[str] = []
     for name, cls in _REGISTRY.items():
         if not (isinstance(cls, type) and issubclass(cls, BaseAgent)):
-            violations.append(
-                f"{name}: registered class is not a BaseAgent subclass "
-                f"(no run()/AgentResult contract)"
-            )
+            violations.append(f"{name}: registered class is not a BaseAgent subclass (no run()/AgentResult contract)")
             continue
         if not callable(getattr(cls, "run", None)):
             violations.append(f"{name}: registered agent has no callable run()")
@@ -804,14 +822,15 @@ def _find_result_shadowing(cls: type) -> list[tuple[int, str]]:
     # deadlocks on Windows when pytest-timeout threads conflict.
     try:
         import sys as _sys
+
         mod_name = cls.__module__
         mod = _sys.modules.get(mod_name)
-        if mod and hasattr(mod, '__file__') and mod.__file__:
+        if mod and hasattr(mod, "__file__") and mod.__file__:
             src_path = Path(mod.__file__)
-            if src_path.suffix == '.pyc' and src_path.with_suffix('.py').exists():
-                src_path = src_path.with_suffix('.py')
+            if src_path.suffix == ".pyc" and src_path.with_suffix(".py").exists():
+                src_path = src_path.with_suffix(".py")
             if src_path.exists():
-                src = src_path.read_text(encoding='utf-8', errors='replace')
+                src = src_path.read_text(encoding="utf-8", errors="replace")
             else:
                 return []
         else:
@@ -858,9 +877,7 @@ def _find_result_shadowing(cls: type) -> list[tuple[int, str]]:
         elif isinstance(node, ast.Name) and node.id == "result" and isinstance(node.ctx, ast.Load):
             load_lines.add(node.lineno)
 
-    return sorted(
-        (line, kind) for line, kind in rebinds.items() if any(load > line for load in load_lines)
-    )
+    return sorted((line, kind) for line, kind in rebinds.items() if any(load > line for load in load_lines))
 
 
 def register(agent_cls: type[BaseAgent]) -> type[BaseAgent]:
@@ -884,13 +901,10 @@ def register(agent_cls: type[BaseAgent]) -> type[BaseAgent]:
     agent_name = getattr(agent_cls, "name", "") or ""
     if not agent_name or not isinstance(agent_name, str) or agent_name == "BaseAgent":
         raise TypeError(
-            f"register() requires agent {agent_cls.__name__} to define its own .name "
-            f"(inherited the BaseAgent default)"
+            f"register() requires agent {agent_cls.__name__} to define its own .name (inherited the BaseAgent default)"
         )
     if not isinstance(getattr(agent_cls, "group", None), AgentGroup):
-        raise TypeError(
-            f"register() requires {agent_cls.__name__}.group to be an AgentGroup member"
-        )
+        raise TypeError(f"register() requires {agent_cls.__name__}.group to be an AgentGroup member")
     # The _run contract: every agent must implement _run(self, inp, result)
     # -> None. The old per-call inspect.signature shim in run() was removed, so
     # a wrong-shaped _run would only explode mid-pipeline — catch it here at
@@ -976,9 +990,9 @@ def make_finding(
         title = args[3] if len(args) > 3 else ""
         description = args[4] if len(args) > 4 else ""
         evidence = args[5] if len(args) > 5 else ""
-        finding_type = kwargs.pop("finding_type", None) or title.lower().replace(" ", "_").replace(
-            ":", ""
-        ).replace("'", "").replace("-", "_")
+        finding_type = kwargs.pop("finding_type", None) or title.lower().replace(" ", "_").replace(":", "").replace(
+            "'", ""
+        ).replace("-", "_")
         agent = kwargs.pop("agent", _infer_agent_name())
         message = kwargs.pop("message", "") or title or description
         detail = kwargs.pop("detail", description or evidence)
@@ -1006,9 +1020,9 @@ def make_finding(
         description = kwargs.pop("description", "")
         message = kwargs.pop("message", "") or title or description
         evidence = kwargs.pop("evidence", "")
-        finding_type = kwargs.pop("finding_type", None) or title.lower().replace(" ", "_").replace(
-            ":", ""
-        ).replace("'", "").replace("-", "_")
+        finding_type = kwargs.pop("finding_type", None) or title.lower().replace(" ", "_").replace(":", "").replace(
+            "'", ""
+        ).replace("-", "_")
         agent = kwargs.pop("agent", _infer_agent_name())
         detail = kwargs.pop("detail", description or evidence)
         return Finding(

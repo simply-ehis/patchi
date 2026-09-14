@@ -287,9 +287,7 @@ class MLDetector:
                     detector="ml_outlier",
                     severity="medium",
                     title="ML anomaly detected",
-                    detail=(
-                        f"Request to {entry.path} from {entry.ip} has anomaly score {score:.3f}."
-                    ),
+                    detail=(f"Request to {entry.path} from {entry.ip} has anomaly score {score:.3f}."),
                     ip=entry.ip,
                     evidence={"score": round(score, 3), "status": entry.status},
                 )

@@ -87,7 +87,8 @@ class RunAgent(BaseAgent):
                         file="",
                         line_start=0,
                         title="Run failed — could not start app",
-                        description="AppLauncher ensure_running returned None — check .patchi/launcher/app.log and start command",
+                        description="AppLauncher ensure_running returned None — check .patchi/launcher/app.log and"
+                        " start command",
                         finding_type="run_failed",
                     )
                 )

@@ -4,6 +4,7 @@ CodeQLAgent - CodeQL static analysis integration.
 CodeQL is a semantic code analysis engine from GitHub that can find
 vulnerabilities and code quality issues.
 """
+
 from __future__ import annotations
 
 import json
@@ -46,8 +47,7 @@ class CodeqlAgent(BaseAgent):
     def _run(self, inp: AgentInput, result: AgentResult) -> None:
         """Run CodeQL analysis on the project."""
         if not self._is_codeql_available():
-            result.status = AgentStatus.SKIPPED
-            result.data["error"] = "CodeQL CLI not installed"
+            self.skip_for_tool(result, "codeql")
             return
 
         findings = self._run_codeql(inp.root)
@@ -229,5 +229,3 @@ class CodeqlAgent(BaseAgent):
             confidence_raw=0.8,  # database-query findings: semantic, not pattern
             extra={"rule_id": finding_data.get("rule_id", "")},
         )
-
-

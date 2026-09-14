@@ -9,6 +9,7 @@ Features:
 - Test session monitoring
 - Command palette for AI tool calls
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -233,7 +234,9 @@ async def agents_stream(request: Request):
         scan_results = mem.get_scan_results(root)
 
         for scanner, data in scan_results.items():
-            yield f"data: {json.dumps({'agent': scanner, 'status': 'completed', 'findings': len(data.get('findings', []))})}\n\n"
+            payload = json.dumps({'agent': scanner, 'status': 'completed',
+                                  'findings': len(data.get('findings', []))})
+            yield f"data: {payload}\n\n"
             await asyncio.sleep(0.1)
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
@@ -398,5 +401,3 @@ async def deliberate(request: Request):
         ],
         "duration_ms": session.duration_ms,
     }
-
-

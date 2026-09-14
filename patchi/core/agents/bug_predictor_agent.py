@@ -11,9 +11,19 @@ import logging
 import subprocess
 from pathlib import Path
 
-from patchi.core.agents.base import AgentGroup, AgentInput, AgentResult, AgentStatus, BaseAgent, Severity, make_finding, register
+from patchi.core.agents.base import (
+    AgentGroup,
+    AgentInput,
+    AgentResult,
+    AgentStatus,
+    BaseAgent,
+    Severity,
+    make_finding,
+    register,
+)
 
 _log = logging.getLogger("patchi.agents.bug_predictor")
+
 
 def _churn(root: Path, rel: str) -> int:
     try:
@@ -32,8 +42,10 @@ def _churn(root: Path, rel: str) -> int:
     except Exception:
         return 0
 
+
 def _complexity(txt: str) -> int:
     return txt.count(" if ") + txt.count(" else") + txt.count(" for ") + txt.count(" while ")
+
 
 @register
 class BugPredictorAgent(BaseAgent):
@@ -45,11 +57,12 @@ class BugPredictorAgent(BaseAgent):
     supported_languages = None
 
     def _run(self, inp: AgentInput, result: AgentResult) -> None:
-        findings=[]
+        findings = []
         # simple heuristic model: score = churn*0.4 + complexity*0.3 + past_bug*0.3
         past = {}
         try:
             from patchi.core import memory as mem
+
             scans = mem.get_scan_results(inp.root) or {}
             for data in scans.values():
                 for f in data.get("findings", []):
@@ -77,7 +90,8 @@ class BugPredictorAgent(BaseAgent):
                         file=rel,
                         line_start=0,
                         title=f"Predicted bug-prone ({score:.0f}) — churn {churn} complexity {comp}",
-                        description="High churn+complexity predicts next bug — review, add tests. Features: churn, complexity, bug density; sklearn fallback linear.",
+                        description="High churn+complexity predicts next bug — review, add tests. Features: churn,"
+                        " complexity, bug density; sklearn fallback linear.",
                         finding_type="bug_prediction",
                     )
                 )

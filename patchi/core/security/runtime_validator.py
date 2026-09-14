@@ -63,9 +63,7 @@ def _check_headers(url: str) -> list[dict]:
 
             for header, (msg, sev, cwe) in _REQUIRED_HEADERS.items():
                 if header not in headers:
-                    findings.append(
-                        {"message": msg, "severity": sev.value, "cwe": cwe, "header": header}
-                    )
+                    findings.append({"message": msg, "severity": sev.value, "cwe": cwe, "header": header})
 
             for header, (msg, sev, cwe) in _DANGEROUS_HEADERS.items():
                 if header in headers:
@@ -141,9 +139,7 @@ def _check_tls(url: str) -> list[dict]:
                 for scan in data.get("scan_result", {}).get("tls_cipher_suites", []):
                     for suite in scan.get("tls_cipher_suites", []):
                         name = suite.get("name", "")
-                        if any(
-                            weak in name.upper() for weak in ("RC4", "DES", "NULL", "EXPORT", "MD5")
-                        ):
+                        if any(weak in name.upper() for weak in ("RC4", "DES", "NULL", "EXPORT", "MD5")):
                             findings.append(
                                 {
                                     "message": f"Weak TLS cipher: {name}",
@@ -182,11 +178,7 @@ class RuntimeValidatorAgent(BaseAgent):
             return
 
         # Look for configured URL in brain or config
-        app_url = (
-            inp.brain.get("app_url", "")
-            or inp.config.get("app_url", "")
-            or inp.extra.get("app_url", "")
-        )
+        app_url = inp.brain.get("app_url", "") or inp.config.get("app_url", "") or inp.extra.get("app_url", "")
 
         if not app_url:
             result.add_finding(

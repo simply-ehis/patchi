@@ -188,10 +188,7 @@ class BrainContext:
             lines.append(f"TECH: {', '.join(self.tech_stack[:8])}")
 
         # Stats
-        lines.append(
-            f"FILES: {self.file_count} | ROUTES: {self.route_count}"
-            f" | HEALTH: {self.health_score}/100"
-        )
+        lines.append(f"FILES: {self.file_count} | ROUTES: {self.route_count} | HEALTH: {self.health_score}/100")
 
         # Critical dirs
         if self.critical_dirs:
@@ -235,13 +232,14 @@ def build_brain_context(root: Path, config: dict | None = None) -> BrainContext:
     4. domain_loader (active domains)
     """
     import time as _time
+
     t0 = _time.monotonic()
     ctx = BrainContext(root=root)
-
 
     # 1. Load brain.json (enriched context + scan results)
     try:
         from patchi.core import memory as mem
+
         brain = mem.get_brain(root)
         if brain:
             ctx.file_count = brain.get("file_count", 0)
@@ -249,9 +247,7 @@ def build_brain_context(root: Path, config: dict | None = None) -> BrainContext:
             ctx.framework = brain.get("framework", "")
             ctx.language_breakdown = brain.get("languages", {})
             hs = brain.get("health_score")
-            ctx.health_score = (
-                hs.get("total", 0) if isinstance(hs, dict) else (hs or 0)
-            )
+            ctx.health_score = hs.get("total", 0) if isinstance(hs, dict) else (hs or 0)
             ctx.health_grade = brain.get("health_grade", "?")
 
             # Enriched context
@@ -285,6 +281,7 @@ def build_brain_context(root: Path, config: dict | None = None) -> BrainContext:
     # 2. Project reader (README, package.json, etc.)
     try:
         from patchi.core.brain.project_reader import read_project_insight
+
         insight = read_project_insight(root)
         if insight:
             ctx.project_name = ctx.project_name or insight.name
@@ -301,13 +298,15 @@ def build_brain_context(root: Path, config: dict | None = None) -> BrainContext:
     # 2b. File criticality ranking via body_tags + understander
     try:
         from patchi.core.brain.body_tags import build_body_tags
+
         file_infos = []
         try:
             from patchi.core.agents.discovery import discover_project
+
             disc = discover_project(root)
-            file_infos = getattr(disc, 'file_infos', [])
+            file_infos = getattr(disc, "file_infos", [])
         except Exception as _exc:
-            _log.debug('suppressed: %s', _exc)
+            _log.debug("suppressed: %s", _exc)
         body_tags = build_body_tags(root, file_infos)
         if body_tags:
             ranked = sorted(
@@ -315,8 +314,13 @@ def build_brain_context(root: Path, config: dict | None = None) -> BrainContext:
                 key=lambda kv: (-int(kv[1].get("score", 0)), -int(kv[1].get("fan_in", 0)), kv[0]),
             )
             ctx.file_criticality_ranking = [
-                {"path": path, "score": tag.get("score", 0), "role": tag.get("role", ""),
-                 "system": tag.get("system", ""), "criticality": tag.get("criticality", "low")}
+                {
+                    "path": path,
+                    "score": tag.get("score", 0),
+                    "role": tag.get("role", ""),
+                    "system": tag.get("system", ""),
+                    "criticality": tag.get("criticality", "low"),
+                }
                 for path, tag in ranked[:30]
             ]
     except Exception as exc:
@@ -325,6 +329,7 @@ def build_brain_context(root: Path, config: dict | None = None) -> BrainContext:
     # 3. Active domains
     try:
         from patchi.core.security.domain_loader import DomainLoader
+
         dl = DomainLoader(root)
         dl._load_all()
         ctx.active_domains = list(dl._domains.keys())[:20]
@@ -336,26 +341,29 @@ def build_brain_context(root: Path, config: dict | None = None) -> BrainContext:
         fp_file = root / ".patchi/memory/known_false_positives.json"
         if fp_file.exists():
             import json
+
             fps = json.loads(fp_file.read_text(encoding="utf-8"))
             if isinstance(fps, list):
                 ctx.known_fps = {tuple(fp) if isinstance(fp, list) else fp for fp in fps}
             elif isinstance(fps, dict):
                 ctx.known_fps = set(fps.keys())
     except Exception as _exc:
-        _log.debug('suppressed: %s', _exc)
+        _log.debug("suppressed: %s", _exc)
 
     # 5. Recent findings
     try:
         from patchi.core import memory as mem
+
         scan_results = mem.get_scan_results(root)
         for _scanner, data in scan_results.items():
             for finding in data.get("findings", [])[-50:]:
                 if isinstance(finding, dict):
                     ctx.recent_findings.append(finding)
     except Exception as _exc:
-        _log.debug('suppressed: %s', _exc)
+        _log.debug("suppressed: %s", _exc)
 
     from datetime import datetime as _dtnow
+
     ctx.built_at = _dtnow.now(UTC).isoformat()
     ctx.build_duration_ms = int((_time.monotonic() - t0) * 1000)
 

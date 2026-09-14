@@ -125,10 +125,7 @@ class CoreScanner(BaseAgent):
 
         # Look for common patterns in any text file
         for i, line in enumerate(lines, 1):
-            if any(
-                keyword in line.lower()
-                for keyword in ["entry", "main", "start", "init", "constructor"]
-            ):
+            if any(keyword in line.lower() for keyword in ["entry", "main", "start", "init", "constructor"]):
                 findings.append(
                     make_finding(
                         severity=Severity.INFO,
@@ -178,9 +175,7 @@ class CoreScanner(BaseAgent):
         for child in node.children:
             self._walk_tree(child, file_path, content, findings, lang)
 
-    def _extract_function(
-        self, node, file_path: str, content: str, findings: list[Finding], lang: Lang
-    ):
+    def _extract_function(self, node, file_path: str, content: str, findings: list[Finding], lang: Lang):
         """Extract function information."""
         # Get function name
         name_node = None
@@ -206,9 +201,7 @@ class CoreScanner(BaseAgent):
                 )
             )
 
-    def _extract_class(
-        self, node, file_path: str, content: str, findings: list[Finding], lang: Lang
-    ):
+    def _extract_class(self, node, file_path: str, content: str, findings: list[Finding], lang: Lang):
         """Extract class information."""
         name_node = None
         for child in node.children:
@@ -233,9 +226,7 @@ class CoreScanner(BaseAgent):
                 )
             )
 
-    def _extract_import(
-        self, node, file_path: str, content: str, findings: list[Finding], lang: Lang
-    ):
+    def _extract_import(self, node, file_path: str, content: str, findings: list[Finding], lang: Lang):
         """Extract import information."""
         import_text = content[node.start_byte : node.end_byte]
         line_no = node.start_point[0] + 1
@@ -251,9 +242,7 @@ class CoreScanner(BaseAgent):
             )
         )
 
-    def _extract_export(
-        self, node, file_path: str, content: str, findings: list[Finding], lang: Lang
-    ):
+    def _extract_export(self, node, file_path: str, content: str, findings: list[Finding], lang: Lang):
         """Extract export information."""
         export_text = content[node.start_byte : node.end_byte]
         line_no = node.start_point[0] + 1

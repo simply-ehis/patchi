@@ -18,7 +18,8 @@ from pathlib import Path
 from rich.table import Table
 from rich.text import Text
 
-from patchi.cli.commands.key_cmd import PROVIDERS as KEY_PROVIDERS, _secure_key_input, _write_env_var, _ensure_gitignore
+from patchi.cli.commands.key_cmd import PROVIDERS as KEY_PROVIDERS
+from patchi.cli.commands.key_cmd import _ensure_gitignore, _secure_key_input, _write_env_var
 from patchi.cli.console import con
 from patchi.core.config import require_project_root
 
@@ -91,8 +92,7 @@ def run_profiles(root=None) -> None:
     con.print(table)
     con.print()
     con.print(
-        "[dim]Profile schema (E-12 S-2): nickname, provider, env_var, "
-        "base_url, model, format, status, extra_body[/dim]"
+        "[dim]Profile schema (E-12 S-2): nickname, provider, env_var, base_url, model, format, status, extra_body[/dim]"
     )
     con.print()
 
@@ -136,9 +136,7 @@ def run_status(root: Path | None = None) -> None:
         for k in keys:
             env_var = k.get("env_var", "")
             has_key = bool(os.environ.get(env_var))
-            status = (
-                Text("ready", style="#4ADE80") if has_key else Text("missing env", style="#FACC15")
-            )
+            status = Text("ready", style="#4ADE80") if has_key else Text("missing env", style="#FACC15")
             table.add_row(
                 k.get("nickname", "?"),
                 k.get("base_url", "").replace("https://", "").split("/")[0][:16],
@@ -276,13 +274,13 @@ def run_add(root: Path | None = None) -> None:
 
     con.print()
     con.print(
-        f"[#4ADE80]✓[/#4ADE80] Key [bold]{nickname}[/bold] saved.\n"
-        f"[dim]Env var: {env_var} · File: .patchi/.env[/dim]"
+        f"[#4ADE80]✓[/#4ADE80] Key [bold]{nickname}[/bold] saved.\n[dim]Env var: {env_var} · File: .patchi/.env[/dim]"
     )
     con.print()
 
     # Offer to test immediately
     from rich.prompt import Confirm
+
     if Confirm.ask("Test this key now?", default=True):
         run_test(nickname, root=r)
 

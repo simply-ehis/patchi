@@ -112,8 +112,15 @@ def _run(cmd: list[str], cwd: Path, timeout: int = 60) -> dict:
         return {"returncode": -1, "stdout": "", "stderr": "Command timed out", "timed_out": True}
     run_cwd = cwd if cwd.exists() else None
     try:
-        result = subprocess.run(cmd, cwd=run_cwd, capture_output=True, text=True,
-                                encoding="utf-8", errors="replace", timeout=timeout)
+        result = subprocess.run(
+            cmd,
+            cwd=run_cwd,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=timeout,
+        )
         return {
             "returncode": result.returncode,
             "stdout": result.stdout,
@@ -388,7 +395,15 @@ class UnitTestAgent(BaseAgent):
             # Coverage-guided: hot files' tests run first (same set, no skips)
             prioritized = self._hot_test_first(root, targets)
             targets = prioritized + targets
-        cmd = [sys.executable, "-m", "pytest", "-v", "--tb=short", "--continue-on-collection-errors", "--timeout=30"]
+        cmd = [
+            sys.executable,
+            "-m",
+            "pytest",
+            "-v",
+            "--tb=short",
+            "--continue-on-collection-errors",
+            "--timeout=30",
+        ]
         cmd.extend(targets)
         proc = _run(cmd, root, timeout=90)
         output = f"{proc.get('stdout', '')}\n{proc.get('stderr', '')}"
@@ -448,14 +463,10 @@ class UnitTestAgent(BaseAgent):
             for line in stdout.splitlines():
                 if " passed" in line or " failed" in line or " skipped" in line or " error" in line:
                     passed = (
-                        int(re.search(r"(\d+) passed", line).group(1))
-                        if re.search(r"(\d+) passed", line)
-                        else passed
+                        int(re.search(r"(\d+) passed", line).group(1)) if re.search(r"(\d+) passed", line) else passed
                     )
                     failed = (
-                        int(re.search(r"(\d+) failed", line).group(1))
-                        if re.search(r"(\d+) failed", line)
-                        else failed
+                        int(re.search(r"(\d+) failed", line).group(1)) if re.search(r"(\d+) failed", line) else failed
                     )
                     skipped = (
                         int(re.search(r"(\d+) skipped", line).group(1))
@@ -463,9 +474,7 @@ class UnitTestAgent(BaseAgent):
                         else skipped
                     )
                     errors = (
-                        int(re.search(r"(\d+) error", line).group(1))
-                        if re.search(r"(\d+) error", line)
-                        else errors
+                        int(re.search(r"(\d+) error", line).group(1)) if re.search(r"(\d+) error", line) else errors
                     )
         cases: list[TestCase] = []
         for line in stdout.splitlines():
@@ -550,9 +559,7 @@ class UnitTestAgent(BaseAgent):
                 suite.cases.append(TestCase(name=test_name, passed=True))
             elif action == "fail":
                 suite.failed += 1
-                suite.cases.append(
-                    TestCase(name=test_name, passed=False, error=rec.get("Output", ""))
-                )
+                suite.cases.append(TestCase(name=test_name, passed=False, error=rec.get("Output", "")))
             elif action == "skip":
                 suite.skipped += 1
         suite.total = suite.passed + suite.failed + suite.skipped
@@ -686,9 +693,7 @@ class UnitTestAgent(BaseAgent):
         output = f"{proc.get('stdout', '')}\n{proc.get('stderr', '')}"
         suite = TestSuite(runner="minitest")
         for line in output.splitlines():
-            m = re.search(
-                r"(\d+)\s+runs.*(\d+)\s+assertions.*(\d+)\s+failures.*(\d+)\s+errors", line
-            )
+            m = re.search(r"(\d+)\s+runs.*(\d+)\s+assertions.*(\d+)\s+failures.*(\d+)\s+errors", line)
             if m:
                 suite.total = int(m.group(1))
                 suite.failed = int(m.group(3)) + int(m.group(4))
@@ -876,7 +881,15 @@ class UnitTestAgent(BaseAgent):
         """Run unittest tests."""
         try:
             cmd = [sys.executable, "-m", "unittest", "discover", "-s", ".", "-v"]
-            result = subprocess.run(cmd, cwd=root, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=120)
+            result = subprocess.run(
+                cmd,
+                cwd=root,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=120,
+            )
 
             output = result.stdout + result.stderr
             return self._parse_unittest_output(output)
@@ -933,11 +946,17 @@ class UnitTestAgent(BaseAgent):
         """Run Jest tests."""
         try:
             cmd = ["npx", "jest", "--json", "--silent"]
-            result = subprocess.run(cmd, cwd=root, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=120)
+            result = subprocess.run(
+                cmd,
+                cwd=root,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=120,
+            )
 
-            if (
-                result.returncode == 0 or result.returncode == 1
-            ):  # 1 means tests failed but command succeeded
+            if result.returncode == 0 or result.returncode == 1:  # 1 means tests failed but command succeeded
                 try:
                     # Jest outputs JSON to stderr
                     output_json = json.loads(result.stderr or result.stdout)
@@ -970,7 +989,15 @@ class UnitTestAgent(BaseAgent):
             # npx not found, try with globally installed jest
             try:
                 cmd = ["jest", "--json", "--silent"]
-                result = subprocess.run(cmd, cwd=root, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=120)
+                result = subprocess.run(
+                    cmd,
+                    cwd=root,
+                    capture_output=True,
+                    text=True,
+                    encoding="utf-8",
+                    errors="replace",
+                    timeout=120,
+                )
 
                 if result.returncode == 0 or result.returncode == 1:
                     try:
@@ -1075,11 +1102,17 @@ class UnitTestAgent(BaseAgent):
         """Run Mocha tests."""
         try:
             cmd = ["npx", "mocha", "--reporter", "json"]
-            result = subprocess.run(cmd, cwd=root, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=120)
+            result = subprocess.run(
+                cmd,
+                cwd=root,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=120,
+            )
 
-            if (
-                result.returncode == 0 or result.returncode == 1
-            ):  # 1 means tests failed but command succeeded
+            if result.returncode == 0 or result.returncode == 1:  # 1 means tests failed but command succeeded
                 try:
                     output_json = json.loads(result.stdout)
                     return self._parse_mocha_output(output_json)
@@ -1111,7 +1144,15 @@ class UnitTestAgent(BaseAgent):
             # Try with globally installed mocha
             try:
                 cmd = ["mocha", "--reporter", "json"]
-                result = subprocess.run(cmd, cwd=root, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=120)
+                result = subprocess.run(
+                    cmd,
+                    cwd=root,
+                    capture_output=True,
+                    text=True,
+                    encoding="utf-8",
+                    errors="replace",
+                    timeout=120,
+                )
 
                 if result.returncode == 0 or result.returncode == 1:
                     try:

@@ -89,11 +89,7 @@ def run_list(root: Path | None = None) -> None:
         name = m.get("name", "?")
         size = _fmt_size(m.get("size", 0))
         mod = m.get("modified_at", "")[:19].replace("T", " ")
-        active = (
-            "[#4ADE80]●[/#4ADE80]"
-            if name.split(":")[0] == (current_model or "").split(":")[0]
-            else ""
-        )
+        active = "[#4ADE80]●[/#4ADE80]" if name.split(":")[0] == (current_model or "").split(":")[0] else ""
         table.add_row(name, size, mod, active)
 
     con.print(table)

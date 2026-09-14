@@ -37,8 +37,11 @@ class DetectionPipeline:
     """Wires ConfidenceGate + Layer2Orchestrator + Sigma into a single pipeline."""
 
     def __init__(
-        self, root: Path, config: dict | None = None,
-        component_types=None, brain_context=None,
+        self,
+        root: Path,
+        config: dict | None = None,
+        component_types=None,
+        brain_context=None,
     ):
         self.root = root
         self.config = config or {}
@@ -55,6 +58,7 @@ class DetectionPipeline:
             import concurrent.futures as _cf
 
             from patchi.core.security.domain_loader import DomainLoader
+
             pool = _cf.ThreadPoolExecutor(max_workers=1, thread_name_prefix="dl-pipeline")
 
             def _preload() -> DomainLoader:
@@ -66,18 +70,15 @@ class DetectionPipeline:
             self._domain_loader_future = pool.submit(_preload)
             pool.shutdown(wait=False)
         except Exception as _exc:
-            logging.getLogger("patchi").debug('suppressed: %s', _exc)
+            logging.getLogger("patchi").debug("suppressed: %s", _exc)
 
     def _get_sigma_set(self):
         if self._sigma_set is None:
             from patchi.core.detector.sigma_engine import SigmaRuleSet
 
-            sigma_dir = self.root / (
-                self.config.get("pipeline", {}).get("sigma_rules_dir", ".patchi/sigma")
-            )
+            sigma_dir = self.root / (self.config.get("pipeline", {}).get("sigma_rules_dir", ".patchi/sigma"))
             self._sigma_set = SigmaRuleSet.load_directory(sigma_dir)
             if self._sigma_set.count > 0:
-
                 logging.getLogger("patchi.detection").info(
                     "Loaded %d Sigma rules from %s", self._sigma_set.count, sigma_dir
                 )
@@ -111,9 +112,7 @@ class DetectionPipeline:
 
     def process(self, report: SecurityReport) -> GatedReport:
         if not report.findings:
-            return GatedReport(
-                stats={"total": 0, "defend": 0, "ai_analyze": 0, "human_review": 0, "discarded": 0}
-            )
+            return GatedReport(stats={"total": 0, "defend": 0, "ai_analyze": 0, "human_review": 0, "discarded": 0})
 
         # Stage 0: Noise filter — findings from tests/lockfiles/generated/docs
         # are severity-capped (or discarded) before scoring. This kills the
@@ -131,10 +130,7 @@ class DetectionPipeline:
             else:
                 gated_list = [self.gate.gate(cf) for cf in report.findings]
         except Exception as e:
-
-            logging.getLogger("patchi.detection").warning(
-                "Noise filter failed (non-fatal, scanning all): %s", e
-            )
+            logging.getLogger("patchi.detection").warning("Noise filter failed (non-fatal, scanning all): %s", e)
             gated_list = [self.gate.gate(cf) for cf in report.findings]
 
         # Stage 1a: Domain taxonomy matching — enrich findings with ASVS/domain context
@@ -145,11 +141,13 @@ class DetectionPipeline:
                     try:
                         self._domain_loader = self._domain_loader_future.result(timeout=0)
                     except Exception as _exc:
-                        logging.getLogger("patchi").debug('suppressed: %s', _exc)
+                        logging.getLogger("patchi").debug("suppressed: %s", _exc)
                 if self._domain_loader is None:
                     from patchi.core.security.domain_loader import DomainLoader
+
                     self._domain_loader = DomainLoader(
-                        self.root, component_types=self._component_types,
+                        self.root,
+                        component_types=self._component_types,
                     )
             loader = self._domain_loader
             for gf in gated_list:
@@ -158,41 +156,31 @@ class DetectionPipeline:
                 )
                 if ctrl_matches:
                     gf.domain_controls = [
-                        {"control_id": c.control_id, "name": c.name, "severity": c.severity}
-                        for c in ctrl_matches
+                        {"control_id": c.control_id, "name": c.name, "severity": c.severity} for c in ctrl_matches
                     ]
                     playbook = loader.get_playbook(ctrl_matches[0].control_id)
                     if playbook:
                         gf.playbook_ref = playbook.control_id
                         gf.fix_strategy = playbook.fix_strategy
         except Exception as e:
-
-            logging.getLogger("patchi.detection").warning(
-                "Domain taxonomy enrichment failed: %s", e
-            )
+            logging.getLogger("patchi.detection").warning("Domain taxonomy enrichment failed: %s", e)
 
         # Stage 1a½: Brain context — context-aware false-positive reduction
         if self._brain and self._brain.is_loaded():
             for gf in gated_list:
-                fctx = self._brain.get_finding_context(
-                    gf.finding.file or "", gf.finding.type, gf.finding.message
-                )
+                fctx = self._brain.get_finding_context(gf.finding.file or "", gf.finding.type, gf.finding.message)
                 # Demote test fixture findings (they contain intentional vulns)
                 if fctx["is_test_fixture"] and gf.routing == "defend":
                     gf.routing = "ai_analyze"
-                    gf.routing_reason = (
-                        f"Test fixture — demoted for AI review ({gf.routing_reason})"
-                    )
+                    gf.routing_reason = f"Test fixture — demoted for AI review ({gf.routing_reason})"
                     gf.confidence_score = min(gf.confidence_score, 0.5)
                 # Boost findings in critical directories
                 if fctx["project_relevance"] == "high":
                     gf.confidence_score = min(1.0, gf.confidence_score + 0.1)
                 # Add domain context to finding message for downstream use
                 if fctx["domain_matches"]:
-                    domains_str = ', '.join(fctx['domain_matches'][:3])
-                    gf.routing_reason = (
-                        f"[domains: {domains_str}] {gf.routing_reason}"
-                    )
+                    domains_str = ", ".join(fctx["domain_matches"][:3])
+                    gf.routing_reason = f"[domains: {domains_str}] {gf.routing_reason}"
 
         # Stage 1b: Sigma rule matching — boosts confidence for known attack patterns
         sigma_set = self._get_sigma_set()
@@ -213,9 +201,7 @@ class DetectionPipeline:
                                 if hasattr(match.technique_id, "value")
                                 else str(match.technique_id)
                             )
-                            if tid in gf.finding.message or (
-                                gf.finding.cwe and tid in gf.finding.cwe
-                            ):
+                            if tid in gf.finding.message or (gf.finding.cwe and tid in gf.finding.cwe):
                                 gf.confidence_tier = "high"
                                 gf.routing = "defend"
                                 gf.routing_reason = f"Sigma rule match: {match.rule_name} ({tid})"
@@ -242,9 +228,7 @@ class DetectionPipeline:
                         if recalc.confidence_score >= 0.7:
                             gf.confidence_tier = "high"
                     gf.routing = "defend"
-                    gf.routing_reason = (
-                        f"AI confirmed ({gf.confidence_score:.2f}): {ai_res.summary}"
-                    )
+                    gf.routing_reason = f"AI confirmed ({gf.confidence_score:.2f}): {ai_res.summary}"
                     high.append(gf)
                 else:
                     gf.routing = "discard"
@@ -258,15 +242,11 @@ class DetectionPipeline:
         try:
             learned = self.gate.learn_from_dismissed(GatedReport(findings=discarded, stats={}))
             if learned:
-
                 logging.getLogger("patchi.detection").info(
                     "Learned %d new false positive(s) from rejected findings", learned
                 )
         except Exception as e:
-
-            logging.getLogger("patchi.detection").warning(
-                "FP learning loop failed (non-fatal): %s", e
-            )
+            logging.getLogger("patchi.detection").warning("FP learning loop failed (non-fatal): %s", e)
 
         stats = {
             "total": len(gated_list),
@@ -314,10 +294,7 @@ class DetectionPipeline:
                 gated=result,
             )
         except Exception as e:
-
-            logging.getLogger("patchi.detection").warning(
-                "Gate audit write failed (non-fatal): %s", e
-            )
+            logging.getLogger("patchi.detection").warning("Gate audit write failed (non-fatal): %s", e)
         return result
 
     def _write_gate_audit(
@@ -331,6 +308,22 @@ class DetectionPipeline:
 
         from patchi.core.atomic import atomic_write_json
 
+        def _tech_ids(gf) -> list[str]:
+            out = []
+            for m in getattr(gf, "sigma_matches", None) or []:
+                tid = getattr(m, "technique_id", None)
+                if tid is None:
+                    continue
+                out.append(getattr(tid, "value", tid) if not isinstance(tid, str) else tid)
+            return [str(t) for t in out if t and str(t) != "unknown"]
+
+        def _ctrl_ids(gf) -> list[str]:
+            return [
+                c.get("control_id", "")
+                for c in (getattr(gf, "domain_controls", None) or [])
+                if isinstance(c, dict) and c.get("control_id")
+            ]
+
         discarded = [
             {
                 "file": g.finding.file,
@@ -340,14 +333,25 @@ class DetectionPipeline:
                 "score": round(g.confidence_score, 3),
                 "tier": g.confidence_tier,
                 "reason": (g.routing_reason or "")[:200],
+                "technique_ids": _tech_ids(g),
+                "control_ids": _ctrl_ids(g),
             }
             for g in gated.discarded[:500]
         ]
+        # §2 SCAN mapping coverage: fraction of findings carrying a
+        # technique_id / control_id (unmapped findings are unscoped claims).
+        mapped_tech = sum(1 for g in gated.findings if _tech_ids(g))
+        mapped_ctrl = sum(1 for g in gated.findings if _ctrl_ids(g))
         audit = {
             "ts": time.time(),
             "raw_in": raw_in,
             "noise": noise_stats or {},
             "routing": dict(gated.stats),
+            "mapping": {
+                "total": len(gated.findings),
+                "with_technique_id": mapped_tech,
+                "with_control_id": mapped_ctrl,
+            },
             "kept": gated.stats.get("defend", 0)
             + gated.stats.get("ai_analyze", 0)
             + gated.stats.get("human_review", 0),

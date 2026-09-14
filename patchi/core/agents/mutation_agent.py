@@ -47,7 +47,11 @@ def _try_universalmutator(root: Path) -> list[dict] | None:
     proc = _run(["universalmutator", "--help"], root, timeout=10)
     if proc is None:
         # try python -m universalmutator
-        proc = _run([shutil.which("python") or "python", "-m", "universalmutator", "--help"], root, timeout=10)
+        proc = _run(
+            [shutil.which("python") or "python", "-m", "universalmutator", "--help"],
+            root,
+            timeout=10,
+        )
         if proc is None:
             return None
     # Run on a sample file to avoid huge runs — limit to 1 file, 10 mutants
@@ -56,7 +60,14 @@ def _try_universalmutator(root: Path) -> list[dict] | None:
         return None
     try:
         proc = subprocess.run(
-            ["universalmutator", str(sample), "--mutants", "10", "--output", str(root / ".patchi" / "mutants.json")],
+            [
+                "universalmutator",
+                str(sample),
+                "--mutants",
+                "10",
+                "--output",
+                str(root / ".patchi" / "mutants.json"),
+            ],
             capture_output=True,
             text=True,
             timeout=30,
@@ -67,7 +78,14 @@ def _try_universalmutator(root: Path) -> list[dict] | None:
             data = json.loads(out.read_text(encoding="utf-8"))
             out_df = []
             for m in data if isinstance(data, list) else data.get("mutants", [])[:10]:
-                out_df.append({"file": str(sample.relative_to(root)), "line": m.get("line", 0), "mutant": m.get("mutant", ""), "killed": m.get("killed", False)})
+                out_df.append(
+                    {
+                        "file": str(sample.relative_to(root)),
+                        "line": m.get("line", 0),
+                        "mutant": m.get("mutant", ""),
+                        "killed": m.get("killed", False),
+                    }
+                )
             return out_df
     except Exception as exc:  # noqa: BLE001
         _log.debug("universalmutator run failed: %s", exc)
@@ -81,9 +99,17 @@ def _try_cargo_mutants(root: Path) -> list[dict] | None:
     if proc and proc.stdout:
         try:
             data = json.loads(proc.stdout)
-            return [{"file": m.get("file",""), "line": m.get("line",0), "mutant": m.get("name",""), "killed": False} for m in data[:10]]
+            return [
+                {
+                    "file": m.get("file", ""),
+                    "line": m.get("line", 0),
+                    "mutant": m.get("name", ""),
+                    "killed": False,
+                }
+                for m in data[:10]
+            ]
         except Exception as _exc:
-            _log.debug('suppressed: %s', _exc)
+            _log.debug("suppressed: %s", _exc)
     return None
 
 
@@ -91,7 +117,9 @@ def _try_cargo_mutants(root: Path) -> list[dict] | None:
 class MutationAgent(BaseAgent):
     group = AgentGroup.TEST
     name = "MutationAgent"
-    description = "Mutation testing §6.1.3 — universalmutator + cargo-mutants/mutmut/Stryker, survived mutants = weak tests"
+    description = (
+        "Mutation testing §6.1.3 — universalmutator + cargo-mutants/mutmut/Stryker, survived mutants = weak tests"
+    )
     timeout = 120
 
     def _run(self, inp: AgentInput, result: AgentResult) -> None:
@@ -107,8 +135,9 @@ class MutationAgent(BaseAgent):
                             severity=Severity.MEDIUM,
                             file=m.get("file", ""),
                             line_start=m.get("line", 0),
-                            title=f"Mutation survived: {m.get('mutant','')[:60]}",
-                            description="Mutant not killed by tests — tests don't catch this bug class. Branch coverage deep-dive needed.",
+                            title=f"Mutation survived: {m.get('mutant', '')[:60]}",
+                            description="Mutant not killed by tests — tests don't catch this bug class. Branch"
+                            " coverage deep-dive needed.",
                             evidence=m.get("mutant", ""),
                             finding_type="mutation_survived",
                         )
@@ -123,9 +152,9 @@ class MutationAgent(BaseAgent):
                     findings.append(
                         make_finding(
                             severity=Severity.MEDIUM,
-                            file=m.get("file",""),
-                            line_start=m.get("line",0),
-                            title=f"Cargo mutant survived: {m.get('mutant','')[:60]}",
+                            file=m.get("file", ""),
+                            line_start=m.get("line", 0),
+                            title=f"Cargo mutant survived: {m.get('mutant', '')[:60]}",
                             description="cargo-mutants survived — Rust test gap",
                             finding_type="mutation_survived",
                         )
@@ -138,6 +167,7 @@ class MutationAgent(BaseAgent):
                 corpus = inp.extra.get("file_corpus")
                 if corpus is None:
                     from patchi.core.brain.file_corpus import FileCorpus
+
                     corpus = FileCorpus(inp.root)
                 for entry in corpus.files():
                     if "test" in entry.path.lower() or entry.path.startswith("tests/"):
@@ -150,7 +180,11 @@ class MutationAgent(BaseAgent):
                         if branches > 8 and entry.size_bytes > 2000:
                             # heuristic: complex file, check has test
                             stem = Path(entry.path).stem
-                            has_test = any((inp.root / f"tests/test_{stem}.py").exists() or (inp.root / f"tests/{stem}_test.py").exists() for _ in [1])
+                            has_test = any(
+                                (inp.root / f"tests/test_{stem}.py").exists()
+                                or (inp.root / f"tests/{stem}_test.py").exists()
+                                for _ in [1]
+                            )
                             if not has_test:
                                 findings.append(
                                     make_finding(
@@ -158,7 +192,8 @@ class MutationAgent(BaseAgent):
                                         file=entry.path,
                                         line_start=0,
                                         title=f"High-branch file without dedicated test: {entry.path}",
-                                        description=f"{branches} branches, no test_{stem}.py — mutation testing would likely fail",
+                                        description=f"{branches} branches, no test_{stem}.py — mutation testing would"
+                                        f" likely fail",
                                         finding_type="branch_coverage_gap",
                                     )
                                 )

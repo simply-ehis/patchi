@@ -277,6 +277,30 @@ class TestSessionManagement:
             uc = [f for f in result.findings if f.type == "user_controlled_session_id"]
             assert len(uc) >= 1
 
+    def test_token_assignment_without_url_sink_silent(self):
+        # Part 7: `token = get_token()` is not a URL leak without a sink.
+        agent = SessionManagementAgent()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "app.py").write_text("token = get_token()\n")
+            inp = AgentInput(root=root, scope=[], brain={}, config={}, extra={})
+            result = agent.run(inp)
+            in_url = [f for f in result.findings if f.type == "session_in_url"]
+            assert len(in_url) == 0
+
+    def test_non_storage_setitem_demoted(self):
+        # Part 7: setItem on an unknown receiver is MEDIUM, not CRITICAL.
+        agent = SessionManagementAgent()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "app.js").write_text("cache.setItem('token', jwt)\n")
+            inp = AgentInput(root=root, scope=[], brain={}, config={}, extra={})
+            result = agent.run(inp)
+            storage = [f for f in result.findings if f.type == "insecure_session_storage"]
+            assert len(storage) >= 1
+            from patchi.core.agents.base import Severity
+            assert all(f.severity == Severity.MEDIUM for f in storage)
+
 
 # ── Test AuthZAgent ──────────────────────────────────────────────────────────
 

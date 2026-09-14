@@ -10,6 +10,7 @@ Stored in .patchi/cache/agent_cache/{agent_name}.json
 
 On a full scan with zero file changes, this skips every agent → ~5-10x speedup.
 """
+
 from __future__ import annotations
 
 import hashlib

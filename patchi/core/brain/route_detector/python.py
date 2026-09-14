@@ -46,9 +46,7 @@ class PythonRouteDetector(BaseRouteDetector):
 
         return routes
 
-    def _check_fastapi_decorator(
-        self, dec: ast.AST, func: ast.AST, file_path: str, content: str
-    ) -> dict | None:
+    def _check_fastapi_decorator(self, dec: ast.AST, func: ast.AST, file_path: str, content: str) -> dict | None:
         if not isinstance(dec, ast.Call):
             return None
         fn = self._get_dotted_name(dec.func)
@@ -93,9 +91,7 @@ class PythonRouteDetector(BaseRouteDetector):
             auth_required=auth if auth else None,
         )
 
-    def _check_flask_decorator(
-        self, dec: ast.AST, func: ast.AST, file_path: str, content: str
-    ) -> list[dict] | None:
+    def _check_flask_decorator(self, dec: ast.AST, func: ast.AST, file_path: str, content: str) -> list[dict] | None:
         if not isinstance(dec, ast.Call):
             return None
         fn = self._get_dotted_name(dec.func)

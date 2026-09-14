@@ -44,17 +44,35 @@ class Understander:
         out: list[dict[str, Any]] = []
         seen: set[str] = set()
         # force-include
-        for must in ("patchi/core/brain/brain.py", "patchi/core/memory.py", "patchi/core/brain/body_tags.py"):
+        for must in (
+            "patchi/core/brain/brain.py",
+            "patchi/core/memory.py",
+            "patchi/core/brain/body_tags.py",
+        ):
             if must in self.tags and must not in seen:
                 t = self.tags[must]
-                out.append({"path": must, "why": f"{t['role']}/{t['system']} critical={t['criticality']} fan_in={t['fan_in']}", "score": t["score"], "tag": t})
+                out.append(
+                    {
+                        "path": must,
+                        "why": f"{t['role']}/{t['system']} critical={t['criticality']} fan_in={t['fan_in']}",
+                        "score": t["score"],
+                        "tag": t,
+                    }
+                )
                 seen.add(must)
         for path, tag in self._ranked:
             if path in seen:
                 continue
             if not include_low and tag.get("criticality") == "low" and tag.get("score", 0) < 15 and len(out) >= limit:
                 continue
-            out.append({"path": path, "why": f"{tag['role']}/{tag['system']} {tag['criticality']} fan_in={tag.get('fan_in',0)}", "score": tag["score"], "tag": tag})
+            out.append(
+                {
+                    "path": path,
+                    "why": f"{tag['role']}/{tag['system']} {tag['criticality']} fan_in={tag.get('fan_in', 0)}",
+                    "score": tag["score"],
+                    "tag": tag,
+                }
+            )
             seen.add(path)
             if len(out) >= limit:
                 break
@@ -78,7 +96,7 @@ class Understander:
             try:
                 txt = (self.root / rel_path).read_text(encoding="utf-8", errors="replace")
                 lines = txt.splitlines()[:max_lines]
-                return "\n".join(f"{i+1:4d} | {line}" for i, line in enumerate(lines))
+                return "\n".join(f"{i + 1:4d} | {line}" for i, line in enumerate(lines))
             except Exception as exc:  # noqa: BLE001
                 _log.debug("understander snippet failed for %s: %s", rel_path, exc)
                 return ""
@@ -109,11 +127,13 @@ class Understander:
             if s.strip() and not s.strip().startswith("#"):
                 indent = len(s) - len(s.lstrip())
                 st = s.strip()
-                if indent <= base_indent and (st.startswith("def ") or st.startswith("class ") or st.startswith("async def ")):
+                if indent <= base_indent and (
+                    st.startswith("def ") or st.startswith("class ") or st.startswith("async def ")
+                ):
                     end = i
                     break
         block = lines[start:end]
-        return "\n".join(f"{i+1:4d} | {line}" for i, line in enumerate(block, start=start + 1))
+        return "\n".join(f"{i + 1:4d} | {line}" for i, line in enumerate(block, start=start + 1))
 
     def as_prompt_block(self, limit: int = 14) -> str:
         """One-shot block for LLM prompts — core files + why."""

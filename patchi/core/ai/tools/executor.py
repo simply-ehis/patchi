@@ -67,9 +67,7 @@ class ExecutionResult:
 class ConfirmationProvider:
     """Interface for getting user confirmation."""
 
-    async def confirm(
-        self, tool_name: str, parameters: dict, side_effects: str, description: str
-    ) -> bool:
+    async def confirm(self, tool_name: str, parameters: dict, side_effects: str, description: str) -> bool:
         """Return True if user confirms, False otherwise."""
         raise NotImplementedError
 
@@ -80,9 +78,7 @@ class CLIConfirmationProvider(ConfirmationProvider):
     def __init__(self, auto_confirm: bool = False):
         self.auto_confirm = auto_confirm
 
-    async def confirm(
-        self, tool_name: str, parameters: dict, side_effects: str, description: str
-    ) -> bool:
+    async def confirm(self, tool_name: str, parameters: dict, side_effects: str, description: str) -> bool:
         if self.auto_confirm:
             return True
 
@@ -109,9 +105,7 @@ class CLIConfirmationProvider(ConfirmationProvider):
 class WebConfirmationProvider(ConfirmationProvider):
     """Web confirmation — auto-confirms since the web UI handles confirmation via its own modal."""
 
-    async def confirm(
-        self, tool_name: str, parameters: dict, side_effects: str, description: str
-    ) -> bool:
+    async def confirm(self, tool_name: str, parameters: dict, side_effects: str, description: str) -> bool:
         # Web UI handles confirmation through its own modal/dialog
         # Auto-confirm here since the web route already validated the request
         return True
@@ -429,10 +423,7 @@ class ToolExecutor:
                 # Skip .patchi, .git, __pycache__, node_modules, venv
                 rel = path.relative_to(self.root)
                 parts = rel.parts
-                if any(
-                    p.startswith(".") or p in ("__pycache__", "node_modules", ".venv", "venv")
-                    for p in parts
-                ):
+                if any(p.startswith(".") or p in ("__pycache__", "node_modules", ".venv", "venv") for p in parts):
                     continue
                 try:
                     content = path.read_bytes()
@@ -616,6 +607,4 @@ def execute_tool_sync(
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
 
-    return loop.run_until_complete(
-        executor.execute(tool_name, parameters, invoked_by, timeout=timeout)
-    )
+    return loop.run_until_complete(executor.execute(tool_name, parameters, invoked_by, timeout=timeout))

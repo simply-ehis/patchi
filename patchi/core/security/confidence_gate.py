@@ -71,9 +71,7 @@ class ConfidenceGate:
         self.ai_weight: float = float(noise_cfg.get("ai_weight", 0.3))  # default 0.3, was 0.0
         self.fp_penalty: float = float(noise_cfg.get("fp_penalty", 0.3))
         self.noise_penalty: float = float(noise_cfg.get("noise_penalty", 0.5))
-        self.fp_auto_discard: bool = bool(
-            noise_cfg.get("fp_auto_discard", True)
-        )  # default True, was False
+        self.fp_auto_discard: bool = bool(noise_cfg.get("fp_auto_discard", True))  # default True, was False
         self._known_fps: set[tuple] = set()
         self._load_known_fps()
         # Lazy-load AI validator
@@ -143,11 +141,7 @@ class ConfidenceGate:
         if self._fp_path.exists():
             try:
                 data = json.loads(self._fp_path.read_text(encoding="utf-8"))
-                remaining = [
-                    e
-                    for e in data
-                    if (e.get("file", ""), e.get("type", ""), e.get("line", 0)) != key
-                ]
+                remaining = [e for e in data if (e.get("file", ""), e.get("type", ""), e.get("line", 0)) != key]
             except Exception:  # noqa: BLE001
                 remaining = []
         tmp = self._fp_path.with_suffix(".json.tmp")
@@ -190,9 +184,7 @@ class ConfidenceGate:
         gated_list = [
             self.gate(
                 cf,
-                ai_confidence=(
-                    ai_confidences[i] if ai_confidences and i < len(ai_confidences) else None
-                ),
+                ai_confidence=(ai_confidences[i] if ai_confidences and i < len(ai_confidences) else None),
             )
             for i, cf in enumerate(report.findings)
         ]
@@ -241,16 +233,25 @@ class ConfidenceGate:
         # cap to bound cost ~10 Findings
         l2_targets = l2_targets[:10]
         if l2_targets:
-            _log.info("L2 AIConfidenceGate validating %d findings (low/high+secret/injection/auth) ...", len(l2_targets))
+            _log.info(
+                "L2 AIConfidenceGate validating %d findings (low/high+secret/injection/auth) ...",
+                len(l2_targets),
+            )
             for gf in l2_targets:
                 result = self._ai_validator.validate(gf.finding, route_context=route_context)
                 # Schema: is_true_positive + confidence + explanation already
                 if result.confidence >= 0.7 and not result.is_true_positive:
                     gf.routing = "discard"
-                    gf.routing_reason = f"L2 fp ({result.confidence:.0%}): {result.explanation} [verdict=fp exploitability~{1-result.confidence:.1f}]"
+                    gf.routing_reason = (
+                    f"L2 fp ({result.confidence:.0%}): {result.explanation} [verdict=fp"
+                    f" exploitability~{1 - result.confidence:.1f}]"
+                    )
                 elif result.confidence >= 0.6 and result.is_true_positive:
                     gf.routing = "defend"
-                    gf.routing_reason = f"L2 confirmed ({result.confidence:.0%}): {result.explanation} [exploitability={result.confidence:.1f}]"
+                    gf.routing_reason = (
+                    f"L2 confirmed ({result.confidence:.0%}): {result.explanation}"
+                    f" [exploitability={result.confidence:.1f}]"
+                    )
                 else:
                     gf.routing = "human_review"
                     gf.routing_reason = f"L2 unverified ({result.confidence:.0%}): {result.explanation}"
@@ -320,9 +321,7 @@ class ConfidenceGate:
         score += _METHOD_PRECISION.get(method, 0.3)
 
         # 2. Severity bonus
-        score += _SEVERITY_BONUS.get(
-            f.severity.value if hasattr(f.severity, "value") else str(f.severity), 0.0
-        )
+        score += _SEVERITY_BONUS.get(f.severity.value if hasattr(f.severity, "value") else str(f.severity), 0.0)
 
         # 3. Multi-agent confirmation
         confirm_count = len(cf.confirmed_by)
@@ -415,8 +414,7 @@ class ConfidenceGate:
                 else f"Medium confidence ({score:.2f}) — needs AI confirmation"
             ),
             "human_review": (
-                f"Low confidence ({score:.2f}) but severity is "
-                f"{cf.finding.severity} — needs human review"
+                f"Low confidence ({score:.2f}) but severity is {cf.finding.severity} — needs human review"
             ),
             "discard": f"Low confidence ({score:.2f}) or below agent consensus — filtered",
         }

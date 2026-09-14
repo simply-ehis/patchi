@@ -49,6 +49,7 @@ class ScanBus:
         if file_infos is None:
             # Build from corpus if available, else scan
             from patchi.core.brain.scanner import FileScanner
+
             file_infos = FileScanner(self.root, corpus=self.corpus).scan()
         n = self.shard_count
         # shard by hash of path for even distribution

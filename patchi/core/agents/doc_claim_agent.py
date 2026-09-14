@@ -13,6 +13,7 @@ Fallback (--offline mode):
     from patchi.core.brain.doc_validator import validate_project_docs
     result = validate_project_docs(...)  # regex-based heuristic
 """
+
 from __future__ import annotations
 
 import json
@@ -75,7 +76,8 @@ _CLAIM_EXTRACTION_PROMPT = """\
 You are reading a documentation file from a software project.
 Extract every concrete, verifiable claim about the project into a JSON array.
 
-A claim is a statement that CAN be checked against source code — something that is either true or false based on what the code actually does.
+A claim is a statement that CAN be checked against source code — something that is either true or false based on what
+the code actually does.
 
 INCLUDE claims about:
 - Features the project supports ("supports JWT", "handles file uploads")
@@ -100,7 +102,8 @@ Output ONLY a JSON array of objects with this structure:
 [
   {{
     "claim": "The exact sentence from the doc",
-    "category": "feature|cli_command|api_endpoint|config_key|dependency|architecture|format_support|security|test_capability",
+"category":
+    "feature|cli_command|api_endpoint|config_key|dependency|architecture|format_support|security|test_capability",
     "evidence_hints": [
       "route: POST /api/v1/users",
       "function: verify_jwt_token",
@@ -129,7 +132,8 @@ class Claim:
 
     text: str
     source_file: str
-    category: str  # feature, cli_command, api_endpoint, config_key, dependency, architecture, format_support, security, test_capability
+    category: str  # feature, cli_command, api_endpoint, config_key, dependency, architecture, format_support, security,
+    # test_capability
     evidence_hints: list[str]  # hints for the brain to verify structurally
     verified: bool = False  # set by the brain after cross-referencing
     evidence: list[str] = field(default_factory=list)  # actual verification evidence
@@ -175,9 +179,7 @@ class DocClaimAgent(BaseAgent):
         has_ai = bool(ai_config.get("keys") or ai_config.get("local_model_name"))
 
         if not has_ai:
-            logger.info(
-                "No AI configured — DocClaimAgent returns no claims (fallback to heuristic)"
-            )
+            logger.info("No AI configured — DocClaimAgent returns no claims (fallback to heuristic)")
             result.data["claims"] = []
             result.data["ai_unavailable"] = True
             return
@@ -197,9 +199,7 @@ class DocClaimAgent(BaseAgent):
                 if len(text.strip()) < 20:
                     continue
 
-                future = executor.submit(
-                    self._extract_claims, text, doc_path, result, inp.config, ai_config
-                )
+                future = executor.submit(self._extract_claims, text, doc_path, result, inp.config, ai_config)
                 future_to_doc[future] = doc_path
 
             for future in as_completed(future_to_doc):
@@ -324,9 +324,7 @@ class DocClaimAgent(BaseAgent):
                     temperature=0.1,
                 )
             except Exception as e:
-                logger.warning(
-                    f"LLM extraction failed for {doc_path.name} (attempt {attempt + 1}): {e}"
-                )
+                logger.warning(f"LLM extraction failed for {doc_path.name} (attempt {attempt + 1}): {e}")
                 if attempt < max_retries - 1:
                     continue
                 result.errors.append(f"{doc_path.name}: LLM error — {e}")
@@ -436,17 +434,12 @@ def verify_claims_against_code(
         classes = fi.classes if hasattr(fi, "classes") else fi.get("classes", [])
         imports = fi.imports if hasattr(fi, "imports") else fi.get("imports", [])
         if funcs:
-            func_names.update(
-                f.name.lower() if hasattr(f, "name") else f.get("name", "").lower() for f in funcs
-            )
+            func_names.update(f.name.lower() if hasattr(f, "name") else f.get("name", "").lower() for f in funcs)
         if classes:
-            class_names.update(
-                c.name.lower() if hasattr(c, "name") else c.get("name", "").lower() for c in classes
-            )
+            class_names.update(c.name.lower() if hasattr(c, "name") else c.get("name", "").lower() for c in classes)
         if imports:
             import_names.update(
-                i.source.lower() if hasattr(i, "source") else i.get("source", "").lower()
-                for i in imports
+                i.source.lower() if hasattr(i, "source") else i.get("source", "").lower() for i in imports
             )
 
     if symbol_graph:
@@ -476,9 +469,26 @@ def verify_claims_against_code(
         except Exception as e:
             _log.warning("verify_claims_against_code failed: %s", e)
 
+    # Part 7: evidence strength. Exact-membership matches are strong;
+    # substring/filename/fallback matches are weak — one weak hit is not
+    # proof (the old `verified = len(evidence) > 0`). Verified iff any
+    # strong hit exists, or at least two independent weak hits corroborate.
+    # Strings are unchanged for downstream compat; strength rides alongside.
     for claim in claims:
         hints = claim.get("evidence_hints", [])
         evidence: list[str] = []
+        strong = 0
+        weak = 0
+
+        # Default-arg bind: `_hit` only runs inside this same claim iteration,
+        # but binding `evidence` at def time makes that explicit (B023).
+        def _hit(text: str, is_strong: bool, evidence: list[str] = evidence) -> None:
+            nonlocal strong, weak
+            evidence.append(text)
+            if is_strong:
+                strong += 1
+            else:
+                weak += 1
 
         for hint in hints:
             hint_lower = hint.lower()
@@ -487,66 +497,68 @@ def verify_claims_against_code(
             if hint_lower.startswith("route:"):
                 target = hint_lower.replace("route:", "").strip()
                 if target in route_set:
-                    evidence.append(f"matched_route:{hint}")
+                    _hit(f"matched_route:{hint}", True)
 
             # Function/class/symbol check
             elif hint_lower.startswith("function:"):
                 target = hint_lower.replace("function:", "").strip()
                 if target in func_names:
-                    evidence.append(f"matched_function:{hint}")
+                    _hit(f"matched_function:{hint}", True)
 
             elif hint_lower.startswith("class:"):
                 target = hint_lower.replace("class:", "").strip()
                 if target in class_names:
-                    evidence.append(f"matched_class:{hint}")
+                    _hit(f"matched_class:{hint}", True)
 
             elif hint_lower.startswith("symbol:"):
                 target = hint_lower.replace("symbol:", "").strip()
                 if target in symbols:
-                    evidence.append(f"matched_symbol:{hint}")
+                    _hit(f"matched_symbol:{hint}", True)
 
             # CLI flag check
             elif hint_lower.startswith("cli:"):
                 target = hint_lower.replace("cli:", "").strip()
                 if target in cli_flags:
-                    evidence.append(f"matched_cli:{hint}")
+                    _hit(f"matched_cli:{hint}", True)
 
             # Import/package check (now also uses import_graph)
             elif hint_lower.startswith("import:"):
                 target = hint_lower.replace("import:", "").strip()
                 if target in import_names:
-                    evidence.append(f"matched_import:{hint}")
+                    _hit(f"matched_import:{hint}", True)
                 elif ig_nodes:
                     for node in ig_nodes:
                         if target in node.lower():
-                            evidence.append(f"matched_import_graph:{hint}")
+                            _hit(f"matched_import_graph:{hint}", False)
                             break
 
             elif hint_lower.startswith("package:"):
                 target = hint_lower.replace("package:", "").strip()
-                if target in import_names or target in file_names:
-                    evidence.append(f"matched_package:{hint}")
+                if target in import_names:
+                    _hit(f"matched_package:{hint}", True)
+                elif target in file_names:
+                    _hit(f"matched_package:{hint}", False)
                 elif ig_nodes:
                     for node in ig_nodes:
                         if target in node.lower():
-                            evidence.append(f"matched_import_graph:{hint}")
+                            _hit(f"matched_import_graph:{hint}", False)
                             break
 
             # Config key check
             elif hint_lower.startswith("config_key:"):
                 target = hint_lower.replace("config_key:", "").strip()
                 if config and target in str(config).lower():
-                    evidence.append(f"matched_config:{hint}")
+                    _hit(f"matched_config:{hint}", True)
 
             # File match check
             elif hint_lower.startswith("file_match:"):
                 target = hint_lower.replace("file_match:", "").strip()
                 if any(target in fp for fp in file_paths):
-                    evidence.append(f"matched_file:{hint}")
+                    _hit(f"matched_file:{hint}", False)
                 elif ig_nodes:
                     for node in ig_nodes:
                         if target in node.lower():
-                            evidence.append(f"matched_file_via_import_graph:{hint}")
+                            _hit(f"matched_file_via_import_graph:{hint}", False)
                             break
 
             # Dependency verification via import graph
@@ -555,22 +567,26 @@ def verify_claims_against_code(
                 if ig_nodes:
                     for node in ig_nodes:
                         if target in node.lower():
-                            evidence.append(f"matched_import_graph_dep:{hint}")
+                            _hit(f"matched_import_graph_dep:{hint}", False)
                             break
                 if target in import_names:
-                    evidence.append(f"matched_import:{hint}")
+                    _hit(f"matched_import:{hint}", True)
 
-            # General keyword search (fallback)
+            # General keyword search (fallback). An untyped hint that
+            # EXACTLY names a real function/class/symbol is the same
+            # membership fact as the typed branches — strong. Substring
+            # import-graph matches stay weak.
             else:
                 if hint_lower in func_names or hint_lower in class_names or hint_lower in symbols:
-                    evidence.append(f"matched_symbol:{hint}")
+                    _hit(f"matched_symbol:{hint}", True)
                 elif ig_nodes:
                     for node in ig_nodes:
                         if hint_lower in node.lower():
-                            evidence.append(f"matched_import_graph:{hint}")
+                            _hit(f"matched_import_graph:{hint}", False)
                             break
 
-        claim["verified"] = len(evidence) > 0
+        claim["verified"] = bool(strong) or weak >= 2
         claim["evidence"] = evidence
+        claim["verify_strength"] = "strong" if strong else ("weak" if weak else "none")
 
     return claims

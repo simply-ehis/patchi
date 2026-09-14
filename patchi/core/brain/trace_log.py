@@ -124,9 +124,7 @@ def format_trace_summary() -> str:
         total_ms += t.duration_ms
         total_findings += t.findings
         status_icon = "ok" if t.status == "ok" else "FAIL"
-        lines.append(
-            f"  {t.agent_name:25s} {t.duration_ms:6d}ms  {t.findings:3d} findings  [{status_icon}]"
-        )
+        lines.append(f"  {t.agent_name:25s} {t.duration_ms:6d}ms  {t.findings:3d} findings  [{status_icon}]")
     lines.append("-" * 60)
     lines.append(f"  {'TOTAL':25s} {total_ms:6d}ms  {total_findings:3d} findings")
     return "\n".join(lines)

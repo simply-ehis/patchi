@@ -46,10 +46,7 @@ class EnforceRateLimitAdapter(BaseAdapter):
                     )
                 )
         elif "fastapi" in content.lower():
-            if (
-                "from slowapi import Limiter" not in content
-                and "from fastapi import Depends" in content
-            ):
+            if "from slowapi import Limiter" not in content and "from fastapi import Depends" in content:
                 changes.append(
                     FileChange(
                         path=str(fpath),

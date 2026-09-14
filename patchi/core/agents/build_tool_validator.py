@@ -31,9 +31,7 @@ _log = logging.getLogger("patchi.agents.build_tool_validator")
 def _check_vite_config(content: str, rel: str) -> list[dict]:
     findings: list[dict] = []
     if "defineConfig" not in content:
-        findings.append(
-            {"file": rel, "issue": "defineConfig not found — possibly outdated config format"}
-        )
+        findings.append({"file": rel, "issue": "defineConfig not found — possibly outdated config format"})
     if "optimizeDeps" not in content:
         findings.append({"file": rel, "issue": "Missing optimizeDeps — may slow dev server"})
     if "build" in content and "target" in content and "es2015" in content:
@@ -46,30 +44,20 @@ def _check_vite_config(content: str, rel: str) -> list[dict]:
 def _check_webpack_config(content: str, rel: str) -> list[dict]:
     findings: list[dict] = []
     if "mode" not in content:
-        findings.append(
-            {"file": rel, "issue": "Missing mode — defaults to 'production' but explicit is safer"}
-        )
+        findings.append({"file": rel, "issue": "Missing mode — defaults to 'production' but explicit is safer"})
     if "'production'" in content and "'development'" not in content and "devtool" in content:
-        findings.append(
-            {"file": rel, "issue": "devtool configured — may leak source maps in production"}
-        )
+        findings.append({"file": rel, "issue": "devtool configured — may leak source maps in production"})
     if "MiniCssExtractPlugin" not in content and "css" in content:
-        findings.append(
-            {"file": rel, "issue": "No MiniCssExtractPlugin — CSS will be inlined in JS"}
-        )
+        findings.append({"file": rel, "issue": "No MiniCssExtractPlugin — CSS will be inlined in JS"})
     return findings
 
 
 def _check_rollup_config(content: str, rel: str) -> list[dict]:
     findings: list[dict] = []
-    if "output" not in content or (
-        "format" not in content and "dir" not in content and "file" not in content
-    ):
+    if "output" not in content or ("format" not in content and "dir" not in content and "file" not in content):
         findings.append({"file": rel, "issue": "Missing output configuration (format/dir/file)"})
     if "external" not in content:
-        findings.append(
-            {"file": rel, "issue": "No external dependencies listed — bundle may be bloated"}
-        )
+        findings.append({"file": rel, "issue": "No external dependencies listed — bundle may be bloated"})
     return findings
 
 
@@ -83,9 +71,7 @@ def _check_esbuild_config(content: str, rel: str) -> list[dict]:
             }
         )
     if "format" not in content:
-        findings.append(
-            {"file": rel, "issue": "Missing format (esm/cjs/iife) — output format ambiguous"}
-        )
+        findings.append({"file": rel, "issue": "Missing format (esm/cjs/iife) — output format ambiguous"})
     return findings
 
 

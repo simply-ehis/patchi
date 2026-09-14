@@ -307,11 +307,7 @@ class IgnoreLearner:
             # Generalize: same dir name already noisy elsewhere?
             leaf = d.rsplit("/", 1)[-1]
             others = name_hits.get(leaf, set()) - {d.rsplit("/", 1)[0] if "/" in d else "."}
-            if (
-                leaf
-                and leaf not in _SOURCE_PREFIXES
-                and (len(others) >= 1 or self._seen_elsewhere(leaf))
-            ):
+            if leaf and leaf not in _SOURCE_PREFIXES and (len(others) >= 1 or self._seen_elsewhere(leaf)):
                 self.entries.append(
                     IgnoreEntry(
                         pattern=f"**/{leaf}/**",
@@ -358,10 +354,7 @@ class IgnoreLearner:
                         pattern=f"{d}/**",
                         category="data_dir",
                         source="composition",
-                        reason=(
-                            f"{len(files)} files, zero executable "
-                            f"({data_count}/{len(files)} config/data)"
-                        ),
+                        reason=(f"{len(files)} files, zero executable ({data_count}/{len(files)} config/data)"),
                         confidence=0.85,
                     )
                 )
@@ -370,19 +363,14 @@ class IgnoreLearner:
 
     def _merge_global_and_user(self) -> None:
         user_entries = [
-            IgnoreEntry.from_dict(e)
-            for e in _load_store(self.root / PROJECT_STORE)
-            if e.get("source") == "user"
+            IgnoreEntry.from_dict(e) for e in _load_store(self.root / PROJECT_STORE) if e.get("source") == "user"
         ]
         user_bases = {u.pattern.removesuffix("/**").rstrip("/") for u in user_entries}
 
         kept = []
         for e in self.entries:
             base = e.pattern.removesuffix("/**").rstrip("/")
-            overridden = any(
-                base == ub or base.startswith(ub + "/") or ub.startswith(base + "/")
-                for ub in user_bases
-            )
+            overridden = any(base == ub or base.startswith(ub + "/") or ub.startswith(base + "/") for ub in user_bases)
             if not overridden:
                 kept.append(e)
         self.entries = kept + user_entries
@@ -399,6 +387,11 @@ class IgnoreLearner:
 
     def matches(self, rel_path: str) -> IgnoreEntry | None:
         """Most specific matching entry for a project-relative path."""
+        # Patterns are compiled by load()/learn(), but callers that assign
+        # .entries directly (tests, programmatic use) never compiled them —
+        # compile lazily so matching always sees the current entry list.
+        if not hasattr(self, "_prefix_patterns"):
+            self._compile_patterns()
         cached = self._match_cache.get(rel_path, KeyError)
         if cached is not KeyError:
             return cached

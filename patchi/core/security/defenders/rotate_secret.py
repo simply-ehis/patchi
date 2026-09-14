@@ -22,9 +22,7 @@ class RotateSecretAdapter(BaseAdapter):
         if env_path.exists():
             try:
                 content = env_path.read_text(encoding="utf-8")
-                var_name = (
-                    action.target if action.target and "=" not in action.target else "SECRET_KEY"
-                )
+                var_name = action.target if action.target and "=" not in action.target else "SECRET_KEY"
                 if var_name in content:
                     content = re.sub(
                         rf"^{re.escape(var_name)}=.*$",

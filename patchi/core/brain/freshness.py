@@ -6,6 +6,7 @@ file modification times against the last scan timestamp.
 
 Also provides the file watcher used by `p watch`.
 """
+
 from __future__ import annotations
 
 import json
@@ -216,9 +217,7 @@ class BrainWatcher:
             from watchfiles import Change  # noqa: F401 — used to check availability
             from watchfiles import watch as wf_watch
         except ImportError as e:
-            raise RuntimeError(
-                "watchfiles is required for p watch. Install it with: pip install watchfiles"
-            ) from e
+            raise RuntimeError("watchfiles is required for p watch. Install it with: pip install watchfiles") from e
 
         from patchi.core.brain.languages import DEFAULT_IGNORE_DIRS, Lang, detect_language
 

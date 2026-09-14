@@ -75,9 +75,7 @@ class RegressionAgent(BaseAgent):
                     detail=f"Baseline failed={baseline.get('failed', 0)}, current failed={suite.get('failed', 0)}",
                 )
             )
-        elif suite.get("failed", 0) < baseline.get("failed", 0) or suite.get(
-            "passed", 0
-        ) > baseline.get("passed", 0):
+        elif suite.get("failed", 0) < baseline.get("failed", 0) or suite.get("passed", 0) > baseline.get("passed", 0):
             brain = mem.get_brain(inp.root)
             brain["test_baseline"] = {
                 "passed": suite.get("passed", 0),
@@ -107,9 +105,7 @@ class RegressionAgent(BaseAgent):
         for pattern in snapshot_patterns:
             for snap_file in root.rglob(pattern):
                 if snap_file.is_file():
-                    snapshot_tests.append(
-                        {"file_path": snap_file, "type": self._infer_snapshot_type(snap_file)}
-                    )
+                    snapshot_tests.append({"file_path": snap_file, "type": self._infer_snapshot_type(snap_file)})
 
         return snapshot_tests
 

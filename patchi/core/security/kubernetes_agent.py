@@ -260,9 +260,7 @@ class KubernetesAgent(BaseAgent):
     name = "KubernetesAgent"
     group = AgentGroup.SECURITY
     domain = AgentDomain.SECURITY
-    description = (
-        "Kubernetes cluster hardening: CIS Benchmark controls, RBAC, pod security, network policies"
-    )
+    description = "Kubernetes cluster hardening: CIS Benchmark controls, RBAC, pod security, network policies"
 
     def _run(self, inp: AgentInput, result: AgentResult) -> None:
         with trace_agent(self.name, inp.root) as trace:
@@ -302,7 +300,8 @@ class KubernetesAgent(BaseAgent):
                         "",
                         0,
                         "K8S-20: No NetworkPolicy found",
-                        f"Found {len(namespaces_seen)} namespace(s) but no NetworkPolicy. Network segmentation not enforced.",
+                        f"Found {len(namespaces_seen)} namespace(s) but no NetworkPolicy. Network segmentation not"
+                        f" enforced.",
                         suggestion="Add NetworkPolicy to restrict pod-to-pod communication",
                         control_id="K8S-20",
                     )
@@ -369,7 +368,8 @@ class KubernetesAgent(BaseAgent):
                                                 "",
                                                 0,
                                                 "K8S-16: cluster-admin binding via kubectl",
-                                                f"cluster-admin bound to: {subject.get('name', 'unknown')} ({subject.get('kind', 'unknown')})",
+                                                f"cluster-admin bound to: {subject.get('name', 'unknown')}"
+                                                f" ({subject.get('kind', 'unknown')})",
                                                 suggestion="Review and remove unnecessary cluster-admin bindings",
                                                 cwe="CWE-269",
                                                 control_id="K8S-16",
@@ -541,7 +541,8 @@ class KubernetesAgent(BaseAgent):
                         0,
                         "K8S-06: No securityContext defined",
                         "Pod does not define securityContext. Default settings may be permissive.",
-                        suggestion="Add securityContext with runAsNonRoot, readOnlyRootFilesystem, and drop ALL capabilities",
+                        suggestion="Add securityContext with runAsNonRoot, readOnlyRootFilesystem, and drop ALL"
+                        " capabilities",
                         control_id="K8S-06",
                     )
                 )

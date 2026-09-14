@@ -156,7 +156,7 @@ class ImportGraph:
 
     def to_dot(self, max_nodes: int = 200) -> str:
         """DOT/Graphviz export for visualization (§1.3.3)."""
-        lines = ["digraph G {", "  rankdir=LR;", '  node [shape=box, style=rounded];']
+        lines = ["digraph G {", "  rankdir=LR;", "  node [shape=box, style=rounded];"]
         nodes = sorted(self.nodes)[:max_nodes]
         node_set = set(nodes)
         for n in nodes:
@@ -165,7 +165,9 @@ class ImportGraph:
         for src in nodes:
             for tgt in sorted(self.edges.get(src, [])):
                 if tgt in node_set:
-                    lines.append(f'  "{src.replace(chr(34), chr(92)+chr(34))}" -> "{tgt.replace(chr(34), chr(92)+chr(34))}";')
+                    lines.append(
+                        f'  "{src.replace(chr(34), chr(92) + chr(34))}" -> "{tgt.replace(chr(34), chr(92) + chr(34))}";'
+                    )
         lines.append("}")
         return "\n".join(lines)
 
@@ -287,7 +289,12 @@ def _resolve_to_local(
     return _try_extensions(candidate, local_files, filename_index)
 
 
-def _resolve_relative(imp: str, source_dir: Path, local_files: set[str], filename_index: dict[str, list[str]] | None = None) -> str | None:
+def _resolve_relative(
+    imp: str,
+    source_dir: Path,
+    local_files: set[str],
+    filename_index: dict[str, list[str]] | None = None,
+) -> str | None:
     """Resolve a relative import like .utils, ../helper, /src/foo."""
     if imp.startswith("."):
         level = 0
@@ -310,7 +317,12 @@ def _resolve_relative(imp: str, source_dir: Path, local_files: set[str], filenam
     return None
 
 
-def _resolve_path(imp: str, source_dir: Path, local_files: set[str], filename_index: dict[str, list[str]] | None = None) -> str | None:
+def _resolve_path(
+    imp: str,
+    source_dir: Path,
+    local_files: set[str],
+    filename_index: dict[str, list[str]] | None = None,
+) -> str | None:
     """Resolve a path-style import relative to source file's directory."""
     # Try direct resolution relative to source directory
     candidate = (source_dir / imp).as_posix()
@@ -334,7 +346,12 @@ def _resolve_path(imp: str, source_dir: Path, local_files: set[str], filename_in
     return None
 
 
-def _resolve_dotted(imp: str, source_dir: Path, local_files: set[str], filename_index: dict[str, list[str]] | None = None) -> str | None:
+def _resolve_dotted(
+    imp: str,
+    source_dir: Path,
+    local_files: set[str],
+    filename_index: dict[str, list[str]] | None = None,
+) -> str | None:
     """Resolve a dotted module import (Python, Java)."""
     # Try the original string as a path first (handles "util.h", "theme.css", "db.php")
     result = _resolve_path(imp, source_dir, local_files, filename_index)
@@ -351,7 +368,10 @@ def _resolve_dotted(imp: str, source_dir: Path, local_files: set[str], filename_
 
 _JAVA_SRC_PREFIXES = ("src/main/java/", "src/test/java/", "src/main/kotlin/", "src/")
 
-def _try_extensions(base_path: str, local_files: set[str], filename_index: dict[str, list[str]] | None = None) -> str | None:
+
+def _try_extensions(
+    base_path: str, local_files: set[str], filename_index: dict[str, list[str]] | None = None
+) -> str | None:
     """Try appending each known extension and check if the file exists in local_files."""
     base = base_path.lstrip("/")
 
@@ -369,7 +389,26 @@ def _try_extensions(base_path: str, local_files: set[str], filename_index: dict[
                 if c == base or c.endswith("/" + base):
                     return c
             # Try with common extensions
-            for ext in (".py", ".js", ".ts", ".tsx", ".jsx", ".go", ".rs", ".java", ".c", ".cpp", ".h", ".hpp", ".rb", ".php", ".cs", ".swift", ".dart", ".kt"):
+            for ext in (
+                ".py",
+                ".js",
+                ".ts",
+                ".tsx",
+                ".jsx",
+                ".go",
+                ".rs",
+                ".java",
+                ".c",
+                ".cpp",
+                ".h",
+                ".hpp",
+                ".rb",
+                ".php",
+                ".cs",
+                ".swift",
+                ".dart",
+                ".kt",
+            ):
                 for c in candidates:
                     if c == base + ext or c.endswith("/" + base + ext):
                         return c
@@ -515,14 +554,32 @@ def find_dead_files(
     - Static assets, shell scripts, dotfiles
     """
     _CONFIG_STEMS = {
-        "package.json", "tsconfig.json", "tsconfig.node.json",
-        "vite.config", "vitest.config", "jest.config", "playwright.config",
-        "biome.json", "eslint.config", ".eslintrc",
-        "tailwind.config", "postcss.config", "components.json",
-        "railway.json", ".mcp.json", "check-env",
+        "package.json",
+        "tsconfig.json",
+        "tsconfig.node.json",
+        "vite.config",
+        "vitest.config",
+        "jest.config",
+        "playwright.config",
+        "biome.json",
+        "eslint.config",
+        ".eslintrc",
+        "tailwind.config",
+        "postcss.config",
+        "components.json",
+        "railway.json",
+        ".mcp.json",
+        "check-env",
     }
     _CONFIG_EXTS = {".json", ".yaml", ".yml", ".toml", ".sh", ".env", ".lock"}
-    _CONFIG_PREFIXES = {".", "tsconfig", "vite.config", "vitest.config", "jest.config", "playwright.config"}
+    _CONFIG_PREFIXES = {
+        ".",
+        "tsconfig",
+        "vite.config",
+        "vitest.config",
+        "jest.config",
+        "playwright.config",
+    }
 
     dead: list[str] = []
     for fi in files:

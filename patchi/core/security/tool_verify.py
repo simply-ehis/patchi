@@ -47,6 +47,19 @@ def _extract_identity(finding: Finding | object) -> tuple[str, str]:
     return cwe, ftype
 
 
+def is_tool_ready(tool: str) -> tuple[bool, str]:
+    """Unified availability check (Part 3 §2): the shared tool registry
+    decides, not a hardcoded per-module list. Returns (ready, reason)."""
+    try:
+        from patchi.core.agents.tool_health import install_hint, is_available
+    except ImportError:
+        return False, "tool registry unavailable"
+    if is_available(tool):
+        return True, ""
+    hint = install_hint(tool)
+    return False, f"{tool} not available" + (f" — {hint}" if hint else "")
+
+
 def run_tool_on_file(tool: str, file_path: Path) -> list[Finding]:
     """Run one SAST tool against a single file via an isolated temp copy.
 
@@ -60,6 +73,11 @@ def run_tool_on_file(tool: str, file_path: Path) -> list[Finding]:
     agent_name = _TOOL_AGENT.get(tool.lower())
     if not agent_name:
         raise ValueError(f"tool_verify: unsupported tool {tool!r}")
+
+    ready, reason = is_tool_ready(tool)
+    if not ready:
+        _log.warning("tool_verify: skipping %s on %s: %s", tool, file_path, reason)
+        return []
 
     agents = {a.name: a for a in list_agents("security")}
     cls = agents.get(agent_name)
@@ -121,7 +139,7 @@ def high_findings_on_file(file_path: Path) -> list[Finding]:
                 try:
                     f.file = real
                 except Exception as _exc:
-                    _log.warning('high_findings_on_file failed: %s', _exc)
+                    _log.warning("high_findings_on_file failed: %s", _exc)
                 out.append(f)
     return out
 

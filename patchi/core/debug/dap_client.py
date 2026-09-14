@@ -42,9 +42,7 @@ class DAPClient:
             except (ConnectionRefusedError, OSError) as e:
                 last_err = e
                 time.sleep(0.5)
-        raise ConnectionError(
-            f"Could not connect to {self._host}:{self._port} after {timeout}s"
-        ) from last_err
+        raise ConnectionError(f"Could not connect to {self._host}:{self._port} after {timeout}s") from last_err
 
     def close(self) -> None:
         if self._sock:
@@ -109,9 +107,7 @@ class DAPClient:
             msg = self.read_message()
             if msg["type"] == "response" and msg.get("request_seq") == expected_seq:
                 if not msg.get("success", False):
-                    err = msg.get(
-                        "message", msg.get("body", {}).get("error", {}).get("format", "unknown")
-                    )
+                    err = msg.get("message", msg.get("body", {}).get("error", {}).get("format", "unknown"))
                     raise DAPError(f"{msg.get('command', '?')} failed: {err}")
                 return msg.get("body", {})
             if msg["type"] == "event":

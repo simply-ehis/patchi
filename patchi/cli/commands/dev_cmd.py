@@ -26,10 +26,19 @@ from patchi.core.agents.base import AgentGroup, list_agents
 _log = logging.getLogger("patchi.cli.dev_cmd")
 
 
-def run(action: str | None = None, verbose: bool = False, json_output: bool = False, strict: bool = False, auto_fix: bool = False, fast: bool = False) -> None:
+def run(
+    action: str | None = None,
+    verbose: bool = False,
+    json_output: bool = False,
+    strict: bool = False,
+    auto_fix: bool = False,
+    fast: bool = False,
+) -> None:
 
     if action == "test":
         _show_test_docs(con)
+    elif action == "ci":
+        _run_ci_check(con)
     elif action == "playwright":
         _show_playwright_docs(con)
     elif action == "security":
@@ -40,6 +49,7 @@ def run(action: str | None = None, verbose: bool = False, json_output: bool = Fa
         _install_hook(con, strict=strict, auto_fix=auto_fix)
     elif action == "check":
         from patchi.cli.commands.dev_check_cmd import run as check_run
+
         check_run(json_output=json_output, fast=fast)
     else:
         _show_dev_overview(con, verbose)
@@ -68,9 +78,7 @@ def _show_dev_overview(con: Console, verbose: bool) -> None:
     pipeline_enabled = config.get("pipeline", {}).get("enabled", False)
     info.add_row("[bold]Security Pipeline:[/bold]", "ENABLED" if pipeline_enabled else "DISABLED")
     interceptor_enabled = config.get("pipeline", {}).get("interceptor", {}).get("enabled", False)
-    info.add_row(
-        "[bold]Request Interceptor:[/bold]", "ENABLED" if interceptor_enabled else "DISABLED"
-    )
+    info.add_row("[bold]Request Interceptor:[/bold]", "ENABLED" if interceptor_enabled else "DISABLED")
     ai_keys = config.get("ai", {}).get("keys", [])
     info.add_row("[bold]AI Keys:[/bold]", f"{len(ai_keys)} configured")
     info.add_row("[bold]Agent Queue:[/bold]", config.get("queue_mode", "single"))
@@ -81,7 +89,8 @@ def _show_dev_overview(con: Console, verbose: bool) -> None:
     _show_quick_commands(con)
     con.print()
     con.print(
-        "[dim]Run [bold]p dev test[/bold] for testing docs, [bold]p dev security[/bold] for security status, [bold]p dev docs[/bold] for all commands[/dim]"
+        "[dim]Run [bold]p dev test[/bold] for testing docs, [bold]p dev security[/bold] for security status, [bold]p"
+        " dev docs[/bold] for all commands[/dim]"
     )
 
 
@@ -90,6 +99,7 @@ def _show_quick_commands(con: Console) -> None:
     t.add_column("Command", style="cyan")
     t.add_column("Description")
     t.add_row("p dev test", "Show all testing tools and commands")
+    t.add_row("p dev ci", "Check CI scaffolding (pre-commit, workflows)")
     t.add_row("p dev playwright", "Show Playwright/browser testing docs")
     t.add_row("p dev security", "Show security pipeline status")
     t.add_row("p dev docs", "Show all CLI commands reference")
@@ -107,9 +117,7 @@ def _show_quick_commands(con: Console) -> None:
 
 def _show_test_docs(con: Console) -> None:
     con.print()
-    con.print(
-        Panel.fit("[bold yellow]Testing Tools Reference[/bold yellow]", border_style="yellow")
-    )
+    con.print(Panel.fit("[bold yellow]Testing Tools Reference[/bold yellow]", border_style="yellow"))
     con.print()
 
     t = Table(title="Test Commands")
@@ -119,9 +127,7 @@ def _show_test_docs(con: Console) -> None:
 
     t.add_row("p test", "default", "Run unit + regression tests")
     t.add_row("p test unit", "unit", "Run pytest/unittest/jest/mocha tests via UnitTestAgent")
-    t.add_row(
-        "p test browser", "browser", "Run Playwright critical-flow tests via BrowserTestAgent"
-    )
+    t.add_row("p test browser", "browser", "Run Playwright critical-flow tests via BrowserTestAgent")
     t.add_row("p test e2e", "e2e", "AI-generated end-to-end Playwright tests via E2EFlowAgent")
     t.add_row("p test buttons", "buttons", "Button/form/interaction tests via UIButtonAgent")
     t.add_row(
@@ -265,7 +271,8 @@ def _show_security_status(con: Console) -> None:
     t.add_row(
         "Request Interceptor",
         "ENABLED" if interceptor.get("enabled") else "DISABLED",
-        f"ASGI middleware, threshold={interceptor.get('block_threshold', 0.7)}, rate={interceptor.get('rate_limit', 100)}/min",
+        f"ASGI middleware, threshold={interceptor.get('block_threshold', 0.7)},"
+        f" rate={interceptor.get('rate_limit', 100)}/min",
     )
     t.add_row(
         "Security Agents",
@@ -288,9 +295,7 @@ def _show_security_status(con: Console) -> None:
 
     con.print("[bold]Security Commands:[/bold]")
     con.print("  p security all            — Run all 34 security scanners")
-    con.print(
-        "  p security <type>         — Run specific security scan (sqli, xss, jwt, crypto, etc.)"
-    )
+    con.print("  p security <type>         — Run specific security scan (sqli, xss, jwt, crypto, etc.)")
     con.print("  p security report         — Show correlated security report")
     con.print("  p security browsertest    — Run Playwright security browser tests")
     con.print("  p scan --pipeline         — Full scan + security pipeline + auto-defense")
@@ -310,11 +315,7 @@ def _show_security_status(con: Console) -> None:
 
 def _show_cli_reference(con: Console) -> None:
     con.print()
-    con.print(
-        Panel.fit(
-            "[bold green]Patchi CLI Reference — All Commands[/bold green]", border_style="green"
-        )
-    )
+    con.print(Panel.fit("[bold green]Patchi CLI Reference — All Commands[/bold green]", border_style="green"))
     con.print()
 
     t = Table(box=None)
@@ -383,6 +384,37 @@ def _get_version() -> str:
     except Exception as e:
         _log.warning("_get_version failed: %s", e)
         return "unknown"
+
+
+def _run_ci_check(con: Console) -> None:
+    """Run CICDGeneratorAgent (Part 3 §1): CI scaffolding gaps, read-only."""
+    from patchi.core.config import require_project_root
+
+    try:
+        root = require_project_root()
+    except RuntimeError as e:
+        con.print(f"[red]{e}[/red]")
+        return
+
+    from patchi.core.agents.base import AgentInput, discover_agent_modules, get_agent
+
+    discover_agent_modules()
+    cls = get_agent("CICDGeneratorAgent")
+    if cls is None:
+        con.print("[red]CICDGeneratorAgent not registered[/red]")
+        return
+    res = cls().run(AgentInput(root=root, scope=[], brain={}, config={}))
+    generated = res.data.get("generated", []) or []
+    if generated:
+        con.print("[yellow]Missing CI scaffolding:[/yellow]")
+        for g in generated:
+            con.print(f"  - {g}")
+        con.print("[dim]Run `p fix` to write these files.[/dim]")
+    else:
+        con.print("[green]CI scaffolding present.[/green]")
+    for f in res.findings:
+        if f.type == "branch_protection":
+            con.print(f"[yellow]Note: {f.message}[/yellow]")
 
 
 def _install_hook(con: Console, strict: bool = False, auto_fix: bool = False) -> None:

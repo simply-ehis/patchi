@@ -75,6 +75,27 @@ class BrowserTestAgent(BaseAgent):
             result.data.update({"playwright_available": False, "needs_ai": False})
             return
 
+        # Part 3 §2.6: module present but browser binaries are a separate
+        # install step — same shared check as every other browser agent.
+        from patchi.core.agents.tool_health import playwright_ready
+
+        pw_ok, pw_hint = playwright_ready()
+        if not pw_ok:
+            findings.append(
+                make_finding(
+                    severity=Severity.INFO,
+                    file="__playwright__",
+                    line_start=0,
+                    title="Playwright browser binaries missing",
+                    description=pw_hint,
+                    evidence="playwright module importable but browser binaries absent",
+                )
+            )
+            result.status = AgentStatus.SKIPPED
+            result.findings = findings
+            result.data.update({"playwright_available": False, "needs_ai": False})
+            return
+
         # ── Live probe against a running app (opt-in) ─────────────────────────
         # Real navigation through the shared browser pool: captures console
         # errors, page crashes, 5xx responses and screenshots of failures.
@@ -152,7 +173,8 @@ class BrowserTestAgent(BaseAgent):
                         line_start=0,
                         title=f"Browser Test Failure: {test['name']}",
                         description=test.get("error", "Unknown error"),
-                        evidence=f"Flow: {test['name']}\nError: {test.get('error', 'N/A')}\nScreenshot: {test.get('screenshot', 'N/A')}",
+                        evidence=f"Flow: {test['name']}\nError: {test.get('error', 'N/A')}\nScreenshot:"
+                        f" {test.get('screenshot', 'N/A')}",
                     )
                 )
             elif test.get("status") == "PASSED":
@@ -231,14 +253,8 @@ class BrowserTestAgent(BaseAgent):
         urls = [base_url]
         for route in (inp.brain or {}).get("routes", [])[:6]:
             path = route.get("path") if isinstance(route, dict) else getattr(route, "path", "")
-            method = (
-                route.get("method") if isinstance(route, dict) else getattr(route, "method", "get")
-            ) or "get"
-            if (
-                str(method).lower() in ("get", "")
-                and path
-                and not path.startswith(("api/", "/api"))
-            ):
+            method = (route.get("method") if isinstance(route, dict) else getattr(route, "method", "get")) or "get"
+            if str(method).lower() in ("get", "") and path and not path.startswith(("api/", "/api")):
                 urls.append(base_url.rstrip("/") + ("/" + path.lstrip("/")))
         seen = set()
         urls = [u for u in urls if not (u in seen or seen.add(u))][:5]
@@ -255,7 +271,7 @@ class BrowserTestAgent(BaseAgent):
                         await page.screenshot(path=str(shot), full_page=False)
                         screenshots.append(shot.name)
                     except Exception as _exc:
-                        _log.warning('_probe_async failed: %s', _exc)
+                        _log.warning("_probe_async failed: %s", _exc)
                     nav_failures.append({"url": url, "error": str(e)[:160]})
                     continue
         finally:
@@ -349,9 +365,7 @@ class BrowserTestAgent(BaseAgent):
         if not config:
             return generated
 
-        flows_text = "\n".join(
-            f"- {f.get('name', '?')}: {f.get('description', '')}" for f in app_contract
-        )
+        flows_text = "\n".join(f"- {f.get('name', '?')}: {f.get('description', '')}" for f in app_contract)
 
         system = get_system_prompt(Skill.TEST_GENERATE)
         user_prompt = build_prompt(
@@ -394,13 +408,15 @@ class BrowserTestAgent(BaseAgent):
 
         try:
             # Try to run with pytest-playwright
-            cmd = (
-                [sys.executable, "-m", "pytest"]
-                + [str(tf.relative_to(root)) for tf in test_files]
-                + ["-v"]
-            )
+            cmd = [sys.executable, "-m", "pytest"] + [str(tf.relative_to(root)) for tf in test_files] + ["-v"]
             result = subprocess.run(
-                cmd, cwd=root, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=300
+                cmd,
+                cwd=root,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=300,
             )  # 5 min timeout
 
             if result.returncode in [0, 1]:  # 0 = all passed, 1 = some failed
@@ -443,7 +459,15 @@ class BrowserTestAgent(BaseAgent):
 
             targets = [str(tf.relative_to(root)) for tf in test_files]
             cmd = [sys.executable, "-m", "pytest"] + targets + ["-v", "--tb=short"]
-            proc = subprocess.run(cmd, cwd=root, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=300)
+            proc = subprocess.run(
+                cmd,
+                cwd=root,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=300,
+            )
             output = f"{proc.stdout}\n{proc.stderr}"
             passed = failed = 0
             for line in output.splitlines():

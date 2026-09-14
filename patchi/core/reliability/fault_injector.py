@@ -116,11 +116,7 @@ class FaultInjector:
             return results
 
         lines = content.splitlines()
-        rel_path = (
-            str(file_path.relative_to(self._root))
-            if self._root in file_path.parents
-            else str(file_path)
-        )
+        rel_path = str(file_path.relative_to(self._root)) if self._root in file_path.parents else str(file_path)
 
         for line_num, line in enumerate(lines, 1):
             stripped = line.strip()

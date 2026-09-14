@@ -29,7 +29,7 @@ The correct role for any LLM, tiny or large, in this system stays what it was al
 
 ## 2. The Governor / Worker-Ants Architecture
 
-This replaces "brain routes everything" with "brain aggregates and plans, ants execute narrow jobs, findings flow back structured."
+This replaces "brain routes everything" with "brain aggregates and plans, ants execute narrow jobs, findings flow back structured." As of the §1 merge, the Governor is not an opt-in v2 add-on — it IS the `p scan` pipeline: the Brain's structural pass is the implementation detail inside the Governor's SCAN phase, the SECURITY agent group dispatches by default, and there is no separate thin scan path.
 
 ```
                          ┌──────────────────────────┐

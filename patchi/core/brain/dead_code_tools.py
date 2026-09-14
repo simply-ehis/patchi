@@ -84,9 +84,7 @@ def run_ruff_unused_imports(root: Path) -> list[dict]:
                 if entry.get("code") == "F401":
                     results.append(
                         {
-                            "symbol": entry.get("message", "").split("'")[1]
-                            if "'" in entry.get("message", "")
-                            else "",
+                            "symbol": entry.get("message", "").split("'")[1] if "'" in entry.get("message", "") else "",
                             "file": entry.get("filename", ""),
                             "line": entry.get("location", {}).get("row", 0),
                             "tool": "ruff",
@@ -147,11 +145,7 @@ def detect_and_run(root: Path, corpus: FileCorpus | None = None) -> list[dict]:
     results: list[dict] = []
 
     has_python = any(corpus.by_ext(".py")) if corpus else any(root.rglob("*.py"))
-    has_ts = (
-        any(corpus.by_ext(".ts", ".tsx"))
-        if corpus
-        else any(root.rglob("*.ts")) or any(root.rglob("*.tsx"))
-    )
+    has_ts = any(corpus.by_ext(".ts", ".tsx")) if corpus else any(root.rglob("*.ts")) or any(root.rglob("*.tsx"))
 
     if has_python:
         results.extend(run_vulture(root))

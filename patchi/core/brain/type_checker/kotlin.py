@@ -35,9 +35,7 @@ class KotlinTypeChecker(BaseTypeChecker):
                 if self._child_by_type(node, "identifier")
                 else ""
             )
-            return_type = self._child_by_type(node, "type_identifier") or self._child_by_type(
-                node, "user_type"
-            )
+            return_type = self._child_by_type(node, "type_identifier") or self._child_by_type(node, "user_type")
             if return_type and _node_text(source, return_type) == "Any":
                 findings.append(
                     make_finding(

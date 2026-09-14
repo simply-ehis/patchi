@@ -16,6 +16,7 @@ is configured, :meth:`ReasoningEngine.ask` can optionally enrich the answer.
 This module is additive: it only reads the Layered Brain persisted at
 ``.patchi/memory/layers.json`` and existing ``layered_brain`` helpers.
 """
+
 from __future__ import annotations
 
 import logging
@@ -109,13 +110,9 @@ class ReasoningEngine:
             return "No changes provided."
         parts = [f"{len(changed)} file(s) changed"]
         if affected:
-            parts.append(
-                f"{len(affected)} layer(s) directly affected: {', '.join(sorted(affected))}"
-            )
+            parts.append(f"{len(affected)} layer(s) directly affected: {', '.join(sorted(affected))}")
         if blast:
-            parts.append(
-                f"{len(blast)} downstream layer(s) in the blast radius: {', '.join(sorted(blast))}"
-            )
+            parts.append(f"{len(blast)} downstream layer(s) in the blast radius: {', '.join(sorted(blast))}")
         else:
             parts.append("no downstream layers depend on the changed code")
         return "; ".join(parts) + "."
@@ -188,8 +185,7 @@ class ReasoningEngine:
             use_ai = bool(ask_ai)
         if not self.layers:
             return (
-                "I don't have a brain-map of this project yet. "
-                "Run `p scan` to build the layered brain, then ask again."
+                "I don't have a brain-map of this project yet. Run `p scan` to build the layered brain, then ask again."
             )
 
         q = question.lower()
@@ -235,9 +231,7 @@ class ReasoningEngine:
         if not scored:
             return (
                 "I couldn't match that to any layer I know. "
-                "Known layers: "
-                + ", ".join(sorted(n for n in self.layers if n != "__project__"))
-                + "."
+                "Known layers: " + ", ".join(sorted(n for n in self.layers if n != "__project__")) + "."
             )
 
         scored.sort(key=lambda x: x[0], reverse=True)
@@ -252,7 +246,12 @@ class ReasoningEngine:
 
                     cfgd = cfg.load(self.root) if hasattr(cfg, "load") else {}
                     ctx = "\n".join(f"[{n}] {lay.summary} — {lay.purpose}" for _, n, lay in top)
-                    ans = call_ai(cfgd, "You are Patchi understander. Answer from layered brain context.", f"Question: {question}\n\nContext:\n{ctx}", max_tokens=400)
+                    ans = call_ai(
+                        cfgd,
+                        "You are Patchi understander. Answer from layered brain context.",
+                        f"Question: {question}\n\nContext:\n{ctx}",
+                        max_tokens=400,
+                    )
                     if ans:
                         return ans
             except Exception as _exc:

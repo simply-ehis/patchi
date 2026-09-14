@@ -75,9 +75,7 @@ _SMTP_CREDENTIAL_PATTERNS = [
         "EMAILAUTH-06: Hardcoded SMTP Password",
     ),
     (
-        re.compile(
-            r"(?:smtp[_-]?(?:user|username|login))\s*[:=]\s*['\"][^'\"]{2,}['\"]", re.IGNORECASE
-        ),
+        re.compile(r"(?:smtp[_-]?(?:user|username|login))\s*[:=]\s*['\"][^'\"]{2,}['\"]", re.IGNORECASE),
         "EMAILAUTH-07: Hardcoded SMTP Username",
     ),
     (
@@ -95,9 +93,7 @@ _SMTP_CREDENTIAL_PATTERNS = [
 
 _CRLF_INJECTION_PATTERNS = [
     (
-        re.compile(
-            r"(?:subject|to|from|cc|bcc|reply[-_]?to)\s*[=:]\s*.*\+.*\\r\\n|\\r\\n", re.IGNORECASE
-        ),
+        re.compile(r"(?:subject|to|from|cc|bcc|reply[-_]?to)\s*[=:]\s*.*\+.*\\r\\n|\\r\\n", re.IGNORECASE),
         "EMAILAUTH-08: CRLF Injection in Email Header",
     ),
     (
@@ -190,7 +186,8 @@ class EmailAuthenticationAgent(BaseAgent):
                                     file=rel,
                                     line_start=0,
                                     title="EMAILAUTH-02: No DKIM Record Found",
-                                    description="DNS/mail configuration without DKIM. Email integrity cannot be verified.",
+                                    description="DNS/mail configuration without DKIM. Email integrity cannot be"
+                                    " verified.",
                                     suggestion="Configure DKIM signing and publish the public key as a DNS TXT record.",
                                 )
                             )
@@ -202,7 +199,8 @@ class EmailAuthenticationAgent(BaseAgent):
                                     line_start=0,
                                     title="EMAILAUTH-03: No DMARC Record Found",
                                     description="No DMARC policy found. Spoofed emails will not be rejected.",
-                                    suggestion="Add a DMARC TXT record (e.g., v=DMARC1; p=quarantine; rua=mailto:dmarc@example.com).",
+                                    suggestion="Add a DMARC TXT record (e.g., v=DMARC1; p=quarantine;"
+                                    " rua=mailto:dmarc@example.com).",
                                 )
                             )
                 except Exception as e:
@@ -230,7 +228,8 @@ class EmailAuthenticationAgent(BaseAgent):
                                         file=rel,
                                         line_start=i,
                                         title="EMAILAUTH-04: Email Sending Code Detected",
-                                        description=f"Email sending code found: {desc}. Verify authentication is properly configured.",
+                                        description=f"Email sending code found: {desc}. Verify authentication is"
+                                        f" properly configured.",
                                         evidence=line.strip()[:120],
                                     )
                                 )
@@ -260,7 +259,8 @@ class EmailAuthenticationAgent(BaseAgent):
                                         file=rel,
                                         line_start=i,
                                         title=desc,
-                                        description="User-controlled input may be injected into email headers via CRLF.",
+                                        description="User-controlled input may be injected into email headers via"
+                                        " CRLF.",
                                         evidence=line.strip()[:120],
                                         suggestion="Sanitize header values: strip \\r\\n characters before use.",
                                     )
@@ -294,7 +294,8 @@ class EmailAuthenticationAgent(BaseAgent):
                                             file=rel,
                                             line_start=i,
                                             title="EMAILAUTH-05: SMTP Without TLS",
-                                            description="SMTP connection found without TLS/STARTTLS. Credentials and content sent in cleartext.",
+                                            description="SMTP connection found without TLS/STARTTLS. Credentials and"
+                                            " content sent in cleartext.",
                                             evidence=line.strip()[:120],
                                             suggestion="Use SMTP_SSL or call starttls() before sending.",
                                         )

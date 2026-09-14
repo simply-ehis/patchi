@@ -174,12 +174,27 @@ class AttackExecutor:
             target = step.get("target") or step.get("url") or self.target_url
             safe = step.get("safe_mode", self.safe_mode)
             # shannon needs repo_root
-            extra = {"repo_root": str(self.root), "templates": step.get("templates"), "wordlist": step.get("wordlist"), "data": step.get("data")}
+            extra = {
+                "repo_root": str(self.root),
+                "templates": step.get("templates"),
+                "wordlist": step.get("wordlist"),
+                "data": step.get("data"),
+            }
             # Run in thread to avoid blocking event loop (subprocess)
             import asyncio as _aio
 
             res = await _aio.to_thread(reg.run, tool, target, safe, self._evidence_dir, extra)
-            out: dict = {"success": bool(res.success and not res.error and (res.findings or res.evidence)), "evidence": res.evidence or res.error, "data": {"tool": res.tool, "findings": res.findings, "raw": res.raw_output[:2000], "duration_ms": res.duration_ms}, "error": res.error}
+            out: dict = {
+                "success": bool(res.success and not res.error and (res.findings or res.evidence)),
+                "evidence": res.evidence or res.error,
+                "data": {
+                    "tool": res.tool,
+                    "findings": res.findings,
+                    "raw": res.raw_output[:2000],
+                    "duration_ms": res.duration_ms,
+                },
+                "error": res.error,
+            }
             # Count as success even if 0 findings but no error (target clean)
             if res.success and not res.error and not res.findings:
                 out["success"] = True
@@ -347,9 +362,7 @@ class AttackExecutor:
             payloads = [
                 p
                 for p in payloads
-                if not any(
-                    d in p.upper() for d in ["DROP", "DELETE", "UPDATE", "INSERT", "EXEC", "SYSTEM"]
-                )
+                if not any(d in p.upper() for d in ["DROP", "DELETE", "UPDATE", "INSERT", "EXEC", "SYSTEM"])
             ]
 
         url = step.get("url", self.target_url)
@@ -362,19 +375,11 @@ class AttackExecutor:
                     body = await resp.text()
                     # Check for error reflection, stack traces, or interesting responses
                     if resp.status >= 500:
-                        findings.append(
-                            {"payload": payload, "status": resp.status, "type": "server_error"}
-                        )
-                    elif any(
-                        kw in body.lower() for kw in ["traceback", "exception", "stack trace"]
-                    ):
-                        findings.append(
-                            {"payload": payload, "status": resp.status, "type": "info_disclosure"}
-                        )
+                        findings.append({"payload": payload, "status": resp.status, "type": "server_error"})
+                    elif any(kw in body.lower() for kw in ["traceback", "exception", "stack trace"]):
+                        findings.append({"payload": payload, "status": resp.status, "type": "info_disclosure"})
                     elif payload in body:  # payload reflected in response
-                        findings.append(
-                            {"payload": payload, "status": resp.status, "type": "reflected"}
-                        )
+                        findings.append({"payload": payload, "status": resp.status, "type": "reflected"})
             except Exception:
                 continue
 
@@ -463,26 +468,20 @@ class AttackExecutor:
             if action_type == "navigate":
                 await page.goto(url, wait_until="domcontentloaded", timeout=10000)
                 evidence["title"] = await page.title()
-                evidence["screenshot"] = await self._capture_screenshot(
-                    page, f"nav_{step.get('step', 0)}"
-                )
+                evidence["screenshot"] = await self._capture_screenshot(page, f"nav_{step.get('step', 0)}")
 
             elif action_type == "click":
                 await page.goto(url, wait_until="domcontentloaded", timeout=10000)
                 if selector:
                     await page.click(selector)
                     await page.wait_for_load_state("domcontentloaded")
-                evidence["screenshot"] = await self._capture_screenshot(
-                    page, f"click_{step.get('step', 0)}"
-                )
+                evidence["screenshot"] = await self._capture_screenshot(page, f"click_{step.get('step', 0)}")
 
             elif action_type == "fill":
                 await page.goto(url, wait_until="domcontentloaded", timeout=10000)
                 if selector and value:
                     await page.fill(selector, value)
-                evidence["screenshot"] = await self._capture_screenshot(
-                    page, f"fill_{step.get('step', 0)}"
-                )
+                evidence["screenshot"] = await self._capture_screenshot(page, f"fill_{step.get('step', 0)}")
 
             elif action_type == "fill_and_submit":
                 await page.goto(url, wait_until="domcontentloaded", timeout=10000)
@@ -495,9 +494,7 @@ class AttackExecutor:
                     if submit:
                         await submit.click()
                         await page.wait_for_load_state("domcontentloaded")
-                evidence["screenshot"] = await self._capture_screenshot(
-                    page, f"submit_{step.get('step', 0)}"
-                )
+                evidence["screenshot"] = await self._capture_screenshot(page, f"submit_{step.get('step', 0)}")
                 evidence["final_url"] = page.url
 
             elif action_type == "check_auth_bypass":
@@ -505,21 +502,15 @@ class AttackExecutor:
                 # Check if we can access protected resource without auth
                 content = await page.content()
                 has_login_form = bool(await page.query_selector("input[type=password]"))
-                has_dashboard = any(
-                    kw in content.lower() for kw in ["dashboard", "welcome", "logout", "admin"]
-                )
+                has_dashboard = any(kw in content.lower() for kw in ["dashboard", "welcome", "logout", "admin"])
                 evidence["has_login_form"] = has_login_form
                 evidence["has_dashboard"] = has_dashboard
                 evidence["bypassed"] = has_dashboard and not has_login_form
-                evidence["screenshot"] = await self._capture_screenshot(
-                    page, f"bypass_{step.get('step', 0)}"
-                )
+                evidence["screenshot"] = await self._capture_screenshot(page, f"bypass_{step.get('step', 0)}")
 
             elif action_type == "screenshot":
                 await page.goto(url, wait_until="domcontentloaded", timeout=10000)
-                evidence["screenshot"] = await self._capture_screenshot(
-                    page, f"capture_{step.get('step', 0)}"
-                )
+                evidence["screenshot"] = await self._capture_screenshot(page, f"capture_{step.get('step', 0)}")
                 evidence["title"] = await page.title()
 
             elif action_type == "intercept_requests":
@@ -539,9 +530,7 @@ class AttackExecutor:
                 await page.wait_for_timeout(2000)  # let requests settle
                 evidence["captured_requests"] = captured_requests[:20]
                 evidence["request_count"] = len(captured_requests)
-                evidence["screenshot"] = await self._capture_screenshot(
-                    page, f"intercept_{step.get('step', 0)}"
-                )
+                evidence["screenshot"] = await self._capture_screenshot(page, f"intercept_{step.get('step', 0)}")
 
             else:
                 evidence["error"] = f"Unknown browser action: {action_type}"
@@ -783,9 +772,7 @@ class RedTeamEngine:
         start_time = time.monotonic()
 
         self.on_progress(f"🎯 Starting Red Team Assessment: {assessment_id}")
-        self.on_progress(
-            f"   Scope: {scope} | Intensity: {intensity} | Safe Mode: {self.safe_mode}"
-        )
+        self.on_progress(f"   Scope: {scope} | Intensity: {intensity} | Safe Mode: {self.safe_mode}")
 
         # Select scenarios
         scenarios = self.select_scenarios(project_context, scope, intensity, forced_scenarios)
@@ -833,9 +820,7 @@ class RedTeamEngine:
 
             # Capture evidence from executor
             report.exploit_evidence = {
-                "screenshots": len(
-                    [e for e in executor.get_evidence() if e.get("data", {}).get("screenshot")]
-                ),
+                "screenshots": len([e for e in executor.get_evidence() if e.get("data", {}).get("screenshot")]),
                 "total_steps": len(executor.get_evidence()),
                 "evidence_dir": str(executor._evidence_dir),
                 "evidence": executor.get_evidence()[:50],
@@ -847,9 +832,7 @@ class RedTeamEngine:
         report.completed_at = datetime.now(UTC).isoformat()
         report.duration_ms = int((time.monotonic() - start_time) * 1000)
 
-        self.on_progress(
-            f"✅ Assessment complete: {report.total_findings} findings in {report.duration_ms}ms"
-        )
+        self.on_progress(f"✅ Assessment complete: {report.total_findings} findings in {report.duration_ms}ms")
 
         # Save report
         await self._save_report(report)
@@ -914,7 +897,8 @@ class RedTeamEngine:
             file="",
             line=0,
             message=f"{scenario['name']}: {scenario.get('description', '')}",
-            detail=f"Attack scenario {scenario['id']} completed successfully. Steps: {result.steps_completed}/{result.total_steps}",
+            detail=f"Attack scenario {scenario['id']} completed successfully. Steps:"
+            f" {result.steps_completed}/{result.total_steps}",
             cwe=scenario.get("cwe", ""),
             suggestion=f"Apply remediation playbook: {scenario.get('remediation_playbook', 'manual review')}",
             extra={

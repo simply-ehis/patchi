@@ -110,7 +110,12 @@ def _build_prompt(
     try:
         pi = extra_context.get("project_insight") if extra_context else None
         if isinstance(pi, dict) and pi:
-            insight_block = f"\nPROJECT_INSIGHT: {pi.get('name','')} — {pi.get('description','')[:200]} | type={pi.get('project_type','')} fw={pi.get('framework','')} lang={pi.get('language','')} tech={pi.get('tech_stack',[])[:6]} entry={pi.get('entry_points',[])[:3]} readme={pi.get('readme_summary','')[:300]}\n"
+            insight_block = (
+            f"\nPROJECT_INSIGHT: {pi.get('name', '')} — {pi.get('description', '')[:200]} |"
+            f" type={pi.get('project_type', '')} fw={pi.get('framework', '')}"
+            f" lang={pi.get('language', '')} tech={pi.get('tech_stack', [])[:6]}"
+            f" entry={pi.get('entry_points', [])[:3]} readme={pi.get('readme_summary', '')[:300]}\n"
+            )
     except Exception:
         insight_block = ""
     # Layer summaries (up to 10)
@@ -118,7 +123,14 @@ def _build_prompt(
     try:
         lb = extra_context.get("layer_summaries") if extra_context else None
         if isinstance(lb, list) and lb:
-            layer_block = "\nLAYER_SUMMARIES:\n" + "\n".join(f"- {lay.get('name','')} ({lay.get('level','')}): {lay.get('summary','')[:180]}" for lay in lb[:10]) + "\n"
+            layer_block = (
+                "\nLAYER_SUMMARIES:\n"
+                + "\n".join(
+                    f"- {lay.get('name', '')} ({lay.get('level', '')}): {lay.get('summary', '')[:180]}"
+                    for lay in lb[:10]
+                )
+                + "\n"
+            )
     except Exception:
         layer_block = ""
     core_block = ""
@@ -152,7 +164,13 @@ def _heuristic_enrichment(
     fw_str = ", ".join(fws) if fws else "Unknown project"
     has_routes = len(routes) > 0
     # domain heuristic: most informative active domain or deployment
-    domain = active_domains[0] if active_domains else context.get("deployment_model", "unknown") if isinstance(context, dict) else "unknown"
+    domain = (
+        active_domains[0]
+        if active_domains
+        else context.get("deployment_model", "unknown")
+        if isinstance(context, dict)
+        else "unknown"
+    )
     if isinstance(domain, str) and "-" in domain:
         pass  # keep as-is
     critical: list[dict[str, str]] = []

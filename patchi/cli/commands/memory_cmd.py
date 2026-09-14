@@ -59,13 +59,9 @@ def run_show_all(root: Path | None = None) -> None:
         table.add_row(category, count_str, descriptions.get(category, ""))
 
     con.print()
-    con.print(
-        Panel(table, title="[bold #C8621A]Patchi Memory[/bold #C8621A]", border_style="#2A3D28")
-    )
+    con.print(Panel(table, title="[bold #C8621A]Patchi Memory[/bold #C8621A]", border_style="#2A3D28"))
     con.print()
-    con.print(
-        "[dim]Commands: [bold]p memory show <category>[/bold]  ·  [bold]p memory delete <category>[/bold][/dim]"
-    )
+    con.print("[dim]Commands: [bold]p memory show <category>[/bold]  ·  [bold]p memory delete <category>[/bold][/dim]")
     con.print()
 
 

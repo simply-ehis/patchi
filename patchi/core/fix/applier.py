@@ -98,13 +98,9 @@ class PatchApplier:
 
             risk_sev = RiskLevel.from_score(patch.risk_score).value
             for change in patch.changes:
-                allowed, reason = patchi_policy_gate(
-                    self.root, "patch_apply", change.path, risk_sev
-                )
+                allowed, reason = patchi_policy_gate(self.root, "patch_apply", change.path, risk_sev)
                 if not allowed:
-                    patchi_action_log(
-                        self.root, "patch_blocked", change.path, detail=reason, status="blocked"
-                    )
+                    patchi_action_log(self.root, "patch_blocked", change.path, detail=reason, status="blocked")
                     return ApplyResult(
                         patch_id=patch.id,
                         success=False,
@@ -136,16 +132,8 @@ class PatchApplier:
                         patchi_policy_gate,
                     )
 
-                    severity_str = (
-                        "high"
-                        if patch.risk_score >= 61
-                        else "medium"
-                        if patch.risk_score >= 31
-                        else "low"
-                    )
-                    allowed, reason = patchi_policy_gate(
-                        self.root, "patch_apply", change.path, severity_str
-                    )
+                    severity_str = "high" if patch.risk_score >= 61 else "medium" if patch.risk_score >= 31 else "low"
+                    allowed, reason = patchi_policy_gate(self.root, "patch_apply", change.path, severity_str)
                     if not allowed:
                         snap.restore(snapshot_id, self.root)
                         return ApplyResult(
@@ -171,9 +159,7 @@ class PatchApplier:
                     from patchi.core.security.secrets_guard import gate_check_proposed_code
 
                     if change.proposed:
-                        safe, secret_findings = gate_check_proposed_code(
-                            change.proposed, change.path
-                        )
+                        safe, secret_findings = gate_check_proposed_code(change.proposed, change.path)
                         if not safe:
                             snap.restore(snapshot_id, self.root)
                             return ApplyResult(
@@ -214,11 +200,7 @@ class PatchApplier:
                 snapshot_id=snapshot_id,
                 error=(
                     f"Write failed after {len(written)} file(s): {e}"
-                    + (
-                        ""
-                        if rollback_ok
-                        else " (rollback ALSO failed — files may be in a partial state!)"
-                    )
+                    + ("" if rollback_ok else " (rollback ALSO failed — files may be in a partial state!)")
                 ),
                 duration_ms=_ms(t0),
             )
@@ -345,9 +327,7 @@ class PatchApplier:
                 if agent_cls:
                     from patchi.core.agents.base import AgentInput
 
-                    inp = AgentInput(
-                        root=self.root, scope=patch.affected_paths, brain={}, config={}
-                    )
+                    inp = AgentInput(root=self.root, scope=patch.affected_paths, brain={}, config={})
                     result = agent_cls().run(inp)
                     # Check if the same finding type still exists on the same file
                     still_present = any(

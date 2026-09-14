@@ -159,7 +159,8 @@ def _build_harness(script: Path) -> str:
 
         import re as _re
         _SECRET_NAMES = _re.compile(
-            r"(password|passwd|secret|token|api[_-]?key|apikey|credential|authorization|private[_-]?key|access[_-]?key|session[_-]?id|aws[_-]?secret)", _re.I)
+            r"(password|passwd|secret|token|api[_-]?key|apikey|credential|authorization"
+            r"|private[_-]?key|access[_-]?key|session[_-]?id|aws[_-]?secret)", _re.I)
 
         def _patchi_redact(k, v):
             if _SECRET_NAMES.search(k):
@@ -190,7 +191,8 @@ def _build_pytest_harness(script: Path) -> str:
             import re as _re
             import sys as _sys
             _SECRET_NAMES = _re.compile(
-                r"(password|passwd|secret|token|api[_-]?key|apikey|credential|authorization|private[_-]?key|access[_-]?key|session[_-]?id|aws[_-]?secret)", _re.I)
+                r"(password|passwd|secret|token|api[_-]?key|apikey|credential|authorization"
+                r"|private[_-]?key|access[_-]?key|session[_-]?id|aws[_-]?secret)", _re.I)
 
             def _redact(k, v):
                 if _SECRET_NAMES.search(k):

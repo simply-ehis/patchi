@@ -268,10 +268,7 @@ class ThreatModelGenerator:
         for fp in source_files:
             # Skip vendor/node_modules/venv
             parts = fp.relative_to(self.root).parts
-            if any(
-                p.startswith(".") or p in ("node_modules", "__pycache__", ".venv", "venv")
-                for p in parts
-            ):
+            if any(p.startswith(".") or p in ("node_modules", "__pycache__", ".venv", "venv") for p in parts):
                 continue
             try:
                 content = fp.read_text(encoding="utf-8", errors="ignore").lower()
@@ -280,7 +277,7 @@ class ThreatModelGenerator:
                         if kw.lower() in content:
                             keyword_counts[kw] = keyword_counts.get(kw, 0) + 1
             except Exception as _exc:
-                _log.warning('_collect_project_signals failed: %s', _exc)
+                _log.warning("_collect_project_signals failed: %s", _exc)
 
         # Convert counts to scores (0-1)
         max_count = max(keyword_counts.values()) if keyword_counts else 1
@@ -349,14 +346,9 @@ class ThreatModelGenerator:
         recs = []
 
         # High-severity applicable scenarios
-        high_sev = [
-            s for s in model.scenarios if s.applicable and s.severity in ("critical", "high")
-        ]
+        high_sev = [s for s in model.scenarios if s.applicable and s.severity in ("critical", "high")]
         if high_sev:
-            recs.append(
-                f"Address {len(high_sev)} high/critical scenarios: "
-                + ", ".join(s.name for s in high_sev[:3])
-            )
+            recs.append(f"Address {len(high_sev)} high/critical scenarios: " + ", ".join(s.name for s in high_sev[:3]))
 
         # Category gaps
         if "secrets" in model.by_category:
@@ -369,9 +361,7 @@ class ThreatModelGenerator:
             recs.append("Audit authentication flows — auth scenarios are relevant")
 
         # Dependency warnings
-        dep_scenarios = [
-            s for s in model.scenarios if s.category == "dependencies" and s.applicable
-        ]
+        dep_scenarios = [s for s in model.scenarios if s.category == "dependencies" and s.applicable]
         if dep_scenarios:
             recs.append("Run dependency vulnerability scan — project has dependency files")
 

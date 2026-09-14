@@ -133,7 +133,5 @@ class SpawnManager:
         except Exception as e:
             import logging
 
-            logging.getLogger("patchi.web.spawn").warning(
-                "Restriction check failed for %s: %s", node_id, e
-            )
+            logging.getLogger("patchi.web.spawn").warning("Restriction check failed for %s: %s", node_id, e)
             return False

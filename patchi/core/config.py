@@ -245,9 +245,7 @@ def get_restrictions(root: Path | None = None) -> list[dict]:
     return get("restrictions", root)
 
 
-def add_restriction(
-    path: str, rtype: RestrictionType, reason: str = "", root: Path | None = None
-) -> None:
+def add_restriction(path: str, rtype: RestrictionType, reason: str = "", root: Path | None = None) -> None:
     root = root or require_project_root()
     config = load(root)
     # No duplicates

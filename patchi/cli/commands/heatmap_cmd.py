@@ -38,8 +38,18 @@ def run(json_output: bool = False, root: Path | None = None) -> None:
     table.add_column("Findings", justify="right", width=9)
     for h in hotspots[:15]:
         sev = h.get("severity", "low")
-        color = {"critical": "#FF4D6D", "high": "#FF8C42", "medium": "#FACC15", "low": "#4ADE80"}.get(sev, "dim")
-        table.add_row(h["file"][:50], f"{h['score']:.1f}", f"[{color}]{sev}[/{color}]", str(next((c for c in data['tree']['children'] if False), "")))
+        color = {
+            "critical": "#FF4D6D",
+            "high": "#FF8C42",
+            "medium": "#FACC15",
+            "low": "#4ADE80",
+        }.get(sev, "dim")
+        table.add_row(
+            h["file"][:50],
+            f"{h['score']:.1f}",
+            f"[{color}]{sev}[/{color}]",
+            str(next((c for c in data["tree"]["children"] if False), "")),
+        )
     # findings count per hotspot already in score, show directly
     # rebuild with findings
     table = Table(show_header=True, header_style="bold #C8621A", box=None, pad_edge=False)
@@ -48,15 +58,29 @@ def run(json_output: bool = False, root: Path | None = None) -> None:
     table.add_column("Severity")
     for h in hotspots[:15]:
         sev = h.get("severity", "low")
-        color = {"critical": "#FF4D6D", "high": "#FF8C42", "medium": "#FACC15", "low": "#4ADE80"}.get(sev, "dim")
+        color = {
+            "critical": "#FF4D6D",
+            "high": "#FF8C42",
+            "medium": "#FACC15",
+            "low": "#4ADE80",
+        }.get(sev, "dim")
         table.add_row(h["file"], f"{h['score']:.1f}", f"[{color}]{sev}[/{color}]")
     con.print()
-    con.print(Panel(table, title="🔥 Risk Heatmap — bug-prone hotspots (score = findings×10 + churn×2 + size/10)", border_style="#C8621A"))
-    con.print(f"\n[dim]Total files with findings: {data.get('total_files', 0)} — tree stored for web D3 treemap at .patchi/heatmap.json[/dim]")
+    con.print(
+        Panel(
+            table,
+            title="🔥 Risk Heatmap — bug-prone hotspots (score = findings×10 + churn×2 + size/10)",
+            border_style="#C8621A",
+        )
+    )
+    con.print(
+        f"\n[dim]Total files with findings: {data.get('total_files', 0)} — tree stored for web D3 treemap at"
+        f" .patchi/heatmap.json[/dim]"
+    )
     # persist for web
     try:
         out = r / ".patchi" / "heatmap.json"
         out.write_text(json.dumps(data, indent=2), encoding="utf-8")
     except Exception as _exc:
-        logging.getLogger("patchi").debug('suppressed: %s', _exc)
+        logging.getLogger("patchi").debug("suppressed: %s", _exc)
     con.print()

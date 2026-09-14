@@ -2,15 +2,16 @@
 
 import math
 from pathlib import Path
+
 from PIL import Image, ImageDraw
 
 OUT_DIR = Path(__file__).resolve().parent.parent / "patchi" / "web" / "static"
 SIZE = 1024
 
 # Colors
-BG = (245, 230, 208)        # cream
-BORDER = (232, 168, 73)     # amber
-BRACKET = (45, 55, 72)      # dark
+BG = (245, 230, 208)  # cream
+BORDER = (232, 168, 73)  # amber
+BRACKET = (45, 55, 72)  # dark
 
 
 def point_on_rounded_rect(x1, y1, x2, y2, r, dist):
@@ -98,12 +99,16 @@ def generate_logo(path: Path):
     # <
     draw.line(
         [(cx - off + bw // 2, cy - bh // 2), (cx - off, cy), (cx - off + bw // 2, cy + bh // 2)],
-        fill=BRACKET, width=lw, joint="curve",
+        fill=BRACKET,
+        width=lw,
+        joint="curve",
     )
     # >
     draw.line(
         [(cx + off - bw // 2, cy - bh // 2), (cx + off, cy), (cx + off - bw // 2, cy + bh // 2)],
-        fill=BRACKET, width=lw, joint="curve",
+        fill=BRACKET,
+        width=lw,
+        joint="curve",
     )
 
     img.save(path, "PNG")

@@ -130,11 +130,7 @@ class SigmaRuleSet:
     def _build_index(self) -> None:
         self._rule_index.clear()
         for rule in self._rules:
-            tid = (
-                rule.technique_id.value
-                if isinstance(rule.technique_id, TechniqueID)
-                else str(rule.technique_id)
-            )
+            tid = rule.technique_id.value if isinstance(rule.technique_id, TechniqueID) else str(rule.technique_id)
             self._rule_index.setdefault(tid, []).append(rule)
 
     @property
@@ -165,9 +161,7 @@ class SigmaRuleSet:
 
     def _match_logsource(self, logsource: dict[str, str], event: Event) -> bool:
         if "category" in logsource:
-            if not self._value_match(
-                logsource["category"], event.source_details.get("category", event.source.value)
-            ):
+            if not self._value_match(logsource["category"], event.source_details.get("category", event.source.value)):
                 return False
         if "product" in logsource:
             if not self._value_match(logsource["product"], event.source_details.get("product", "")):
@@ -289,13 +283,11 @@ class SigmaRuleSet:
         lower = expr.lower()
         if " or " in lower:
             return any(
-                self._evaluate_condition(p.strip(), results)
-                for p in re.split(r"\s+or\s+", expr, flags=re.IGNORECASE)
+                self._evaluate_condition(p.strip(), results) for p in re.split(r"\s+or\s+", expr, flags=re.IGNORECASE)
             )
         if " and " in lower:
             return all(
-                self._evaluate_condition(p.strip(), results)
-                for p in re.split(r"\s+and\s+", expr, flags=re.IGNORECASE)
+                self._evaluate_condition(p.strip(), results) for p in re.split(r"\s+and\s+", expr, flags=re.IGNORECASE)
             )
         if lower in ("all of them", "all of the"):
             return all(results.values())

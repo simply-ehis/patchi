@@ -188,9 +188,7 @@ class SecurityOrchestrator:
             if exact_key not in used:
                 # Try line-tolerance match within same file + type + cwe
                 matched = False
-                for tolerance_line in range(
-                    max(1, f.line - LINE_TOLERANCE), f.line + LINE_TOLERANCE + 1
-                ):
+                for tolerance_line in range(max(1, f.line - LINE_TOLERANCE), f.line + LINE_TOLERANCE + 1):
                     tol_key = (f.file, tolerance_line, f.type, cwe_key)
                     if tol_key in used:
                         matched = True
@@ -266,12 +264,12 @@ class SecurityOrchestrator:
             ig = build_import_graph(Path("."))
             import_edges = dict(ig.edges)
         except Exception as _exc:
-            _log.warning('correlate failed: %s', _exc)
+            _log.warning("correlate failed: %s", _exc)
         try:
             chain_analyzer = ChainAnalyzer(all_findings, import_edges=import_edges)
             chains = chain_analyzer.find_chains(max_chains=20)
         except Exception as _exc:
-            _log.warning('correlate failed: %s', _exc)
+            _log.warning("correlate failed: %s", _exc)
 
         # ── Intent analysis (route ↔ code gap detection) ──────────────────────
         intent_report: IntentReport | None = None
@@ -279,7 +277,7 @@ class SecurityOrchestrator:
             intent_analyzer = IntentAnalyzer()
             intent_report = intent_analyzer.analyze_root(Path("."))
         except Exception as _exc:
-            _log.warning('correlate failed: %s', _exc)
+            _log.warning("correlate failed: %s", _exc)
 
         # ── Charter drift detection ───────────────────────────────────────────
         charter_violations: list[dict] = []
@@ -288,17 +286,16 @@ class SecurityOrchestrator:
                 check_all_violations,
                 load_charter,
             )
+
             charter = load_charter(Path("."))
             if charter.rules:
                 flat_edges: list[tuple[str, str]] = []
                 for src, dsts in import_edges.items():
                     for dst in dsts:
                         flat_edges.append((src, dst))
-                charter_violations = [
-                    v.to_dict() for v in check_all_violations(charter, flat_edges)
-                ]
+                charter_violations = [v.to_dict() for v in check_all_violations(charter, flat_edges)]
         except Exception as _exc:
-            _log.warning('correlate failed: %s', _exc)
+            _log.warning("correlate failed: %s", _exc)
 
         return SecurityReport(
             findings=correlated,

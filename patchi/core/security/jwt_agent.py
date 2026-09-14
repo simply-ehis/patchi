@@ -83,9 +83,7 @@ class JWTSecurityAgent(BaseAgent):
     group = AgentGroup.SECURITY
     domain = AgentDomain.SECURITY
     name = "JWTSecurityAgent"
-    description = (
-        "JWT security: weak algorithms, missing expiry, insecure storage, hardcoded secrets"
-    )
+    description = "JWT security: weak algorithms, missing expiry, insecure storage, hardcoded secrets"
 
     # ── Literal value markers (matched against parsed string/assignment
     # nodes — never raw text, so comments can't trigger findings) ──────────
@@ -93,7 +91,13 @@ class JWTSecurityAgent(BaseAgent):
     _KEY_NAMES = ("secret", "key")
     _STORAGE_PREFIXES = ("jwt", "token", "auth", "access")
     _EXPIRY_NAMES = (
-        "exp", "expires", "expiry", "expiration", "expires_in", "expiresin", "ttl",
+        "exp",
+        "expires",
+        "expiry",
+        "expiration",
+        "expires_in",
+        "expiresin",
+        "ttl",
     )
     _ALGO_SEVERITY = {
         "none": (
@@ -235,16 +239,12 @@ class JWTSecurityAgent(BaseAgent):
         lits_by_line: dict[int, list[str]] = {}
         for value, line_num in literals:
             lits_by_line.setdefault(line_num, []).append(value.lower())
-        storage_calls = find_calls(
-            content, lang, {"setItem", "getItem", "cookie", "set_cookie", "setcookie"}
-        )
+        storage_calls = find_calls(content, lang, {"setItem", "getItem", "cookie", "set_cookie", "setcookie"})
         for call in storage_calls:
             lowered_name = str(call.get("name", "")).lower()
             line_num = int(call.get("line", 0) or 0)
             values = lits_by_line.get(line_num, [])
-            if not any(
-                v.startswith(prefix) for v in values for prefix in self._STORAGE_PREFIXES
-            ):
+            if not any(v.startswith(prefix) for v in values for prefix in self._STORAGE_PREFIXES):
                 continue
             if "localstorage" in lowered_name:
                 findings.append(
@@ -286,9 +286,7 @@ class JWTSecurityAgent(BaseAgent):
         # Missing validation: decode sites without verify / algorithms
         decode_calls = find_calls(content, lang, {"decode"})
         if decode_calls:
-            verify_calls = find_calls(
-                content, lang, {"verify", "authenticate", "validate"}
-            )
+            verify_calls = find_calls(content, lang, {"verify", "authenticate", "validate"})
             if not verify_calls:
                 first = decode_calls[0]
                 findings.append(
@@ -325,7 +323,8 @@ class JWTSecurityAgent(BaseAgent):
                     severity=Severity.HIGH,
                     file=rel_path,
                     message="JWT used but no expiration claim (exp) found in file",
-                    suggestion="Always set expiration on JWT tokens. Recommended: short-lived access tokens (15min) + refresh tokens.",
+                    suggestion="Always set expiration on JWT tokens. Recommended: short-lived access tokens (15min) +"
+                    " refresh tokens.",
                 )
             )
 
@@ -358,9 +357,7 @@ class JWTSecurityAgent(BaseAgent):
             pass
         return "algorithms" in str(call.get("full_text", ""))
 
-    def _has_expiry(
-        self, content: str, lang: Lang, rel_path: str, assignments: list[dict]
-    ) -> bool:
+    def _has_expiry(self, content: str, lang: Lang, rel_path: str, assignments: list[dict]) -> bool:
         """Expiry markers via assignment targets, kwargs, and object keys."""
         for assignment in assignments:
             if str(assignment.get("target", "")).lower() in self._EXPIRY_NAMES:

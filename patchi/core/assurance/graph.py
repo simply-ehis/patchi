@@ -183,8 +183,7 @@ class AssuranceGraph:
             "by_domain": by_domain,
             "disproved_claims": [c.to_dict() for c in disproved],
             "statement": (
-                f"{by_verdict.get('proved', 0)}/{total} properties proved; "
-                f"{len(disproved)} violated"
+                f"{by_verdict.get('proved', 0)}/{total} properties proved; {len(disproved)} violated"
                 if total
                 else "no properties established yet"
             ),
@@ -267,7 +266,6 @@ class AssuranceGraph:
             _log.warning("failed to load assurance graph: %s", e)
         return g
 
-
     def _record_coverage_snapshot(self, root: Path) -> None:
         """Append a coverage snapshot to the history file for trend analysis."""
         try:
@@ -289,9 +287,7 @@ class AssuranceGraph:
             snapshot = {
                 "timestamp": datetime.now(UTC).isoformat(),
                 "overall_pct": round(
-                    cov["by_verdict"].get("proved", 0) / cov["claims_total"] * 100
-                    if cov["claims_total"]
-                    else 0
+                    cov["by_verdict"].get("proved", 0) / cov["claims_total"] * 100 if cov["claims_total"] else 0
                 ),
                 "claims_total": cov["claims_total"],
                 "proved": cov["by_verdict"].get("proved", 0),

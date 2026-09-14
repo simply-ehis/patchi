@@ -79,6 +79,7 @@ _SHARD_COUNT = 4  # number of parallel copies per shardable agent
 def _split_by_directory(files: list[str], n_chunks: int) -> list[list[str]]:
     """Split files into n_chunks by directory first, then hash for overflow."""
     import hashlib
+
     groups: dict[str, list[str]] = {}
     for f in files:
         parts = Path(f).parts
@@ -213,11 +214,7 @@ class Coordinator:
     @property
     def circuit_broken_agents(self) -> list[str]:
         """Return list of agents currently blocked by circuit breaker."""
-        return [
-            name
-            for name, failures in self._circuit_breaker.items()
-            if failures >= self._CB_THRESHOLD
-        ]
+        return [name for name, failures in self._circuit_breaker.items() if failures >= self._CB_THRESHOLD]
 
     def _is_circuit_broken(self, agent_name: str) -> bool:
         return self._circuit_breaker.get(agent_name, 0) >= self._CB_THRESHOLD
@@ -292,6 +289,7 @@ class Coordinator:
                     # Wire brain context for context-aware classification
                     try:
                         from patchi.core.brain.brain_context import get_brain_context
+
                         _brain_ctx = get_brain_context(self.root, self._config)
                     except Exception:
                         _brain_ctx = None
@@ -346,9 +344,7 @@ class Coordinator:
         """Set domains for on-demand activation (from git diff)."""
         self._active_domains = domains
 
-    def run_all_scanners(
-        self, scope: list[str] | None = None, side: bool = True
-    ) -> list[AgentResult]:
+    def run_all_scanners(self, scope: list[str] | None = None, side: bool = True) -> list[AgentResult]:
         if side:
             return self.run_group(AgentGroup.SCANNER, scope=scope)
         # Filter out side scanners — source-only scan
@@ -414,15 +410,14 @@ class Coordinator:
             ordered_names = cached[cache_key]
             name_map = {getattr(a, "name", ""): a for a in agent_classes}
             reordered = [name_map[n] for n in ordered_names if n in name_map]
-            remaining = [
-                a for a in agent_classes if getattr(a, "name", "") not in set(ordered_names)
-            ]
+            remaining = [a for a in agent_classes if getattr(a, "name", "") not in set(ordered_names)]
             return reordered + remaining
 
         prompt = (
             f"Project: {languages} files, framework: {framework}\n"
             f"Agents: {', '.join(getattr(a, 'name', str(a)) for a in agent_classes)}\n"
-            f"Prioritise critical agents first for this project type. Return ONLY a comma-separated list of agent names in desired order."
+            f"Prioritise critical agents first for this project type. Return ONLY a comma-separated list of agent"
+            f" names in desired order."
         )
         try:
             from patchi.core.ai.client import call_ai
@@ -514,9 +509,7 @@ class Coordinator:
             )
             # Update circuit breaker (LIMIT-04)
             if result.status == AgentStatus.FAILED:
-                self._circuit_breaker[result.agent_name] = (
-                    self._circuit_breaker.get(result.agent_name, 0) + 1
-                )
+                self._circuit_breaker[result.agent_name] = self._circuit_breaker.get(result.agent_name, 0) + 1
             else:
                 self._circuit_breaker[result.agent_name] = 0  # Reset on success
             try:
@@ -530,6 +523,10 @@ class Coordinator:
                         "errors": result.errors[:3],
                         "findings": [f.to_dict() for f in result.findings],
                         "circuit_broken": self._is_circuit_broken(result.agent_name),
+                        # Part 3 §2.5: "skipped: tool missing" must survive to
+                        # reports/health — it is NOT a clean zero-finding run.
+                        "tool_missing": result.data.get("tool_missing"),
+                        "skip_reason": result.data.get("skip_reason"),
                     },
                     self.root,
                 )
@@ -571,13 +568,9 @@ class Coordinator:
         elif getattr(self, "run_mode", RunMode.AUTO) == RunMode.SEQUENTIAL:
             run_results = _run_sequential(agent_classes_run, inp, on_done)
         elif getattr(self, "run_mode", RunMode.AUTO) == RunMode.PROCESS:
-            run_results = _run_process_parallel(
-                agent_classes_run, inp, on_done, self._config, self.root
-            )
+            run_results = _run_process_parallel(agent_classes_run, inp, on_done, self._config, self.root)
         elif self._config.get("scan_bus", {}).get("enabled", True):
-            run_results = _run_scan_bus(
-                agent_classes_run, inp, on_done, self._config, self.root
-            )
+            run_results = _run_scan_bus(agent_classes_run, inp, on_done, self._config, self.root)
         else:
             run_results = _run_parallel(agent_classes_run, inp, on_done, self._config)
 
@@ -592,6 +585,7 @@ class Coordinator:
         # Invalidate health score cache so the next status call picks up fresh data
         try:
             from patchi.core.health import invalidate_cache
+
             invalidate_cache()
         except Exception:
             pass
@@ -599,8 +593,10 @@ class Coordinator:
         # Check if AI circuit breaker opened — warn user
         try:
             from patchi.core.ai.client import _circuit_open
+
             if _circuit_open:
                 from rich.console import Console
+
                 Console().print(
                     "\n[bold yellow]WARNING:[/bold yellow] AI provider unreachable. "
                     "Findings have no AI explanations. Check your API key and network.\n"
@@ -623,8 +619,8 @@ def _run_scan_bus(
 ) -> list[AgentResult]:
     """ScanBus path: one shared corpus + FindingBus merge across shard workers.
     Shardable agents get split across file subsets when corpus is large."""
-    from patchi.core.scan_bus import QueueRunner, ScanBus
     from patchi.core.agents.base import AgentGroup, AgentResult, AgentStatus
+    from patchi.core.scan_bus import QueueRunner, ScanBus
 
     sb = config.get("scan_bus", {})
     corpus = inp.extra.get("file_corpus")
@@ -645,19 +641,13 @@ def _run_scan_bus(
     # Count total futures to submit for thread pool sizing
     total_futures = 0
     for cls in agent_classes:
-        should_shard = (
-            getattr(cls, "shardable", False)
-            and len(all_files) > _SHARD_THRESHOLD
-        )
+        should_shard = getattr(cls, "shardable", False) and len(all_files) > _SHARD_THRESHOLD
         total_futures += _SHARD_COUNT if should_shard else 1
 
     with ThreadPoolExecutor(max_workers=max(runner.scan_bus.shard_count, total_futures)) as ex:
         for cls in agent_classes:
             agent_timeout = getattr(cls, "timeout", 120)
-            should_shard = (
-                getattr(cls, "shardable", False)
-                and len(all_files) > _SHARD_THRESHOLD
-            )
+            should_shard = getattr(cls, "shardable", False) and len(all_files) > _SHARD_THRESHOLD
 
             if should_shard:
                 chunks = _split_by_directory(all_files, _SHARD_COUNT)
@@ -677,7 +667,11 @@ def _run_scan_bus(
                         on_ai_progress=inp.on_ai_progress,
                         shard_files=chunk,
                     )
-                    fut = ex.submit(runner._run_and_publish, lambda c=cls: _run_agent_safe(c(), shard_inp), cls)
+                    fut = ex.submit(
+                        runner._run_and_publish,
+                        lambda c=cls, si=shard_inp: _run_agent_safe(c(), si),
+                        cls,
+                    )
                     futures[fut] = cls.name
                     timeout_map[fut] = agent_timeout
                     shard_groups[cls.name].append(fut)
@@ -707,10 +701,9 @@ def _run_scan_bus(
             if r.agent_name in shard_groups and r.agent_name not in merged_names:
                 shard_futures = shard_groups[r.agent_name]
                 shard_results = [
-                    next((sr for sr in results if sr.agent_name == r.agent_name), r)
-                    for _ in shard_futures
+                    next((sr for sr in results if sr.agent_name == r.agent_name), r) for _ in shard_futures
                 ]
-                merged = _merge_shard_results(shard_results[:len(shard_futures)], r.agent_name)
+                merged = _merge_shard_results(shard_results[: len(shard_futures)], r.agent_name)
                 final_results.append(merged)
                 merged_names.add(r.agent_name)
             elif r.agent_name not in shard_groups:
@@ -750,10 +743,7 @@ def _run_parallel(
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         for cls in agent_classes:
             agent_timeout = getattr(cls, "timeout", 120)
-            should_shard = (
-                getattr(cls, "shardable", False)
-                and len(all_files) > _SHARD_THRESHOLD
-            )
+            should_shard = getattr(cls, "shardable", False) and len(all_files) > _SHARD_THRESHOLD
 
             if should_shard:
                 chunks = _split_by_directory(all_files, _SHARD_COUNT)
@@ -802,11 +792,10 @@ def _run_parallel(
             if r.agent_name in shard_groups and r.agent_name not in merged_names:
                 shard_futures = shard_groups[r.agent_name]
                 shard_results = [
-                    next((sr for sr in results if sr.agent_name == r.agent_name), r)
-                    for _ in shard_futures
+                    next((sr for sr in results if sr.agent_name == r.agent_name), r) for _ in shard_futures
                 ]
                 # Deduplicate: only merge once per agent
-                merged = _merge_shard_results(shard_results[:len(shard_futures)], r.agent_name)
+                merged = _merge_shard_results(shard_results[: len(shard_futures)], r.agent_name)
                 final_results.append(merged)
                 merged_names.add(r.agent_name)
             elif r.agent_name not in shard_groups:

@@ -209,11 +209,7 @@ class Event:
 
     @property
     def technique_display(self) -> str:
-        tid = (
-            self.technique_id.value
-            if isinstance(self.technique_id, TechniqueID)
-            else self.technique_id
-        )
+        tid = self.technique_id.value if isinstance(self.technique_id, TechniqueID) else self.technique_id
         return f"{tid} — {TechniqueID.display_name(tid)}"
 
 
@@ -237,11 +233,7 @@ class EventBatch:
     def by_technique(self) -> dict[str, list[Event]]:
         groups: dict[str, list[Event]] = {}
         for ev in self.events:
-            tid = (
-                ev.technique_id.value
-                if isinstance(ev.technique_id, TechniqueID)
-                else ev.technique_id
-            )
+            tid = ev.technique_id.value if isinstance(ev.technique_id, TechniqueID) else ev.technique_id
             groups.setdefault(tid, []).append(ev)
         return groups
 

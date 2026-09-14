@@ -54,7 +54,12 @@ def _framework_candidate_files(root: Path) -> list[Path]:
         return candidates
     for d in subdirs:
         if not d.is_dir() or d.name in (
-            ".patchi", "node_modules", "__pycache__", "venv", ".venv", ".git"
+            ".patchi",
+            "node_modules",
+            "__pycache__",
+            "venv",
+            ".venv",
+            ".git",
         ):
             continue
         for name in ("app.py", "main.py"):
@@ -130,11 +135,7 @@ def generate_contract_tests(root: Path, base_url: str | None = None) -> dict:
     root = Path(root)
     all_routes = extract_routes(root)
     routes = all_routes[:200]
-    capped_note = (
-        f"NOTE: {len(all_routes)} routes detected, file capped at 200. "
-        if len(all_routes) > 200
-        else ""
-    )
+    capped_note = f"NOTE: {len(all_routes)} routes detected, file capped at 200. " if len(all_routes) > 200 else ""
     base = (base_url or "http://127.0.0.1:8000").rstrip("/")
     if not routes:
         return {"path": None, "routes": 0, "written": False, "base_url": base}
@@ -160,7 +161,7 @@ def generate_contract_tests(root: Path, base_url: str | None = None) -> dict:
         "",
         "",
         "def _call(method, path):",
-        '    url = BASE_URL + path',
+        "    url = BASE_URL + path",
         "    req = urllib.request.Request(url, method=method)",
         "    try:",
         "        with urllib.request.urlopen(req, timeout=10) as r:",
@@ -173,9 +174,9 @@ def generate_contract_tests(root: Path, base_url: str | None = None) -> dict:
     for i, r in enumerate(routes):
         path = _fill_path_params(r["path"])
         lines.append(f"def {_fname(r['method'], r['path'], i)}():")
-        lines.append(f'    # {r["method"]} {r["path"]}  (from {r["file"]})')
+        lines.append(f"    # {r['method']} {r['path']}  (from {r['file']})")
         lines.append(f'    status = _call("{r["method"]}", "{path}")')
-        lines.append("    assert status < 500, f\"route 5xx: {status}\"")
+        lines.append('    assert status < 500, f"route 5xx: {status}"')
         lines.append("")
         lines.append("")
 
@@ -190,6 +191,7 @@ def generate_contract_tests(root: Path, base_url: str | None = None) -> dict:
         "written": True,
         "base_url": base,
     }
+
 
 _log = logging.getLogger("patchi.testing.api_contract_agent")
 
@@ -229,13 +231,15 @@ class APIContractAgent(BaseAgent):
                 )
                 result.status = AgentStatus.SUCCEEDED
                 result.findings = findings
-                result.data.update({
-                    "contracts_found": 1,
-                    "framework": framework,
-                    "synthetic": True,
-                    "route_count": route_count,
-                    "needs_ai": False,
-                })
+                result.data.update(
+                    {
+                        "contracts_found": 1,
+                        "framework": framework,
+                        "synthetic": True,
+                        "route_count": route_count,
+                        "needs_ai": False,
+                    }
+                )
                 return
 
             findings.append(
@@ -273,12 +277,14 @@ class APIContractAgent(BaseAgent):
             )
             result.status = AgentStatus.SKIPPED
             result.findings = findings
-            result.data.update({
-                "contracts_found": len(contract_files),
-                "gate_blocked": True,
-                "gate_reason": msg,
-                "needs_ai": False,
-            })
+            result.data.update(
+                {
+                    "contracts_found": len(contract_files),
+                    "gate_blocked": True,
+                    "gate_reason": msg,
+                    "needs_ai": False,
+                }
+            )
             return
         if url and not (inp.extra or {}).get("base_url"):
             inp = AgentInput(
@@ -314,7 +320,8 @@ class APIContractAgent(BaseAgent):
                     line_start=0,
                     title=f"API Contract Violations: {total_errors} errors",
                     description=f"Found {total_errors} contract violations across endpoints",
-                    evidence=f"Violations found in {len([r for r in validation_results.values() if r.get('errors')])} endpoints",
+                    evidence=f"Violations found in {len([r for r in validation_results.values() if r.get('errors')])}"
+                    f" endpoints",
                 )
             )
 
@@ -330,7 +337,8 @@ class APIContractAgent(BaseAgent):
                         line_start=error.get("line", 0),
                         title=f"API Contract Violation: {error.get('type', 'unknown')}",
                         description=error.get("message", "Unknown contract violation"),
-                        evidence=f"Expected: {error.get('expected', 'N/A')}\nActual: {error.get('actual', 'N/A')}\nPath: {error.get('path', 'N/A')}",
+                        evidence=f"Expected: {error.get('expected', 'N/A')}\nActual: {error.get('actual', 'N/A')}\n"
+                        f"Path: {error.get('path', 'N/A')}",
                     )
                 )
 
@@ -361,7 +369,18 @@ class APIContractAgent(BaseAgent):
 
         # Use os.walk with exclusion for speed (avoids rglob through node_modules)
         import os
-        exclude = {".patchi", "node_modules", "venv", ".venv", "__pycache__", ".git", "target", "build", "dist"}
+
+        exclude = {
+            ".patchi",
+            "node_modules",
+            "venv",
+            ".venv",
+            "__pycache__",
+            ".git",
+            "target",
+            "build",
+            "dist",
+        }
         # Only look for actual OpenAPI/Swagger spec files, not any file with "api" in name
         spec_prefixes = ("openapi", "swagger")
         spec_contains = ("openapi", "swagger", "api-spec", "api_spec")
@@ -389,17 +408,13 @@ class APIContractAgent(BaseAgent):
                 return True
 
             # Check for JSON Schema indicators
-            if '"$schema"' in content and (
-                "json-schema" in content.lower() or "jsonschema" in content.lower()
-            ):
+            if '"$schema"' in content and ("json-schema" in content.lower() or "jsonschema" in content.lower()):
                 return True
 
             # For YAML files, check for OpenAPI structure
             if file_path.suffix.lower() in [".yaml", ".yml"]:
                 # Look for common OpenAPI fields
-                if any(
-                    field in content for field in ["openapi:", "swagger:", "paths:", "components:"]
-                ):
+                if any(field in content for field in ["openapi:", "swagger:", "paths:", "components:"]):
                     return True
 
             # For JSON files, check for API contract structure
@@ -432,9 +447,18 @@ class APIContractAgent(BaseAgent):
         import re
 
         framework_patterns = [
-            ("FastAPI", re.compile(r"from\s+fastapi\s+import\s+.*\bFastAPI\b|from\s+fastapi\s+import\s+FastAPI")),
-            ("Flask", re.compile(r"from\s+flask\s+import\s+.*\bFlask\b|from\s+flask\s+import\s+Flask")),
-            ("Django", re.compile(r"from\s+django\.urls\s+import|from\s+django\.conf\s+import|django\.setup")),
+            (
+                "FastAPI",
+                re.compile(r"from\s+fastapi\s+import\s+.*\bFastAPI\b|from\s+fastapi\s+import\s+FastAPI"),
+            ),
+            (
+                "Flask",
+                re.compile(r"from\s+flask\s+import\s+.*\bFlask\b|from\s+flask\s+import\s+Flask"),
+            ),
+            (
+                "Django",
+                re.compile(r"from\s+django\.urls\s+import|from\s+django\.conf\s+import|django\.setup"),
+            ),
         ]
         route_patterns = [
             re.compile(r"@(?:app|router)\.(get|post|put|delete|patch|options|head)\s*\("),
@@ -478,15 +502,11 @@ class APIContractAgent(BaseAgent):
                 # Parse the contract based on type
                 if contract_file.suffix.lower() in [".json"]:
                     contract = json.loads(contract_content)
-                    validation_result = self._validate_openapi_contract_json(
-                        contract, contract_file, inp
-                    )
+                    validation_result = self._validate_openapi_contract_json(contract, contract_file, inp)
                 else:
                     # For YAML, we'd need a YAML parser
                     # For now, we'll treat it as a string
-                    validation_result = self._validate_openapi_contract_yaml(
-                        contract_content, contract_file, inp
-                    )
+                    validation_result = self._validate_openapi_contract_yaml(contract_content, contract_file, inp)
 
                 results[str(contract_file)] = validation_result
             except Exception as e:
@@ -519,14 +539,10 @@ class APIContractAgent(BaseAgent):
         brain = inp.brain or {}
         return brain.get("base_url", "http://localhost:3000").rstrip("/")
 
-    def _validate_openapi_contract_json(
-        self, contract: dict, contract_file: Path, inp: AgentInput
-    ) -> dict:
+    def _validate_openapi_contract_json(self, contract: dict, contract_file: Path, inp: AgentInput) -> dict:
         """Validate OpenAPI contract by probing the running API."""
         errors = []
-        if not isinstance(contract, dict) or (
-            "openapi" not in contract and "swagger" not in contract
-        ):
+        if not isinstance(contract, dict) or ("openapi" not in contract and "swagger" not in contract):
             errors.append(
                 {
                     "type": "invalid_spec",
@@ -619,9 +635,7 @@ class APIContractAgent(BaseAgent):
 
         return {"errors": errors}
 
-    def _validate_openapi_contract_yaml(
-        self, content: str, contract_file: Path, inp: AgentInput
-    ) -> dict:
+    def _validate_openapi_contract_yaml(self, content: str, contract_file: Path, inp: AgentInput) -> dict:
         """Validate OpenAPI contract from YAML."""
         try:
             import yaml

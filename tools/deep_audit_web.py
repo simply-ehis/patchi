@@ -109,7 +109,7 @@ def main() -> int:
     js_files = [STATIC / "dashboard_v2.js"]
 
     # ── 1+2+3: links, fetches, static refs across templates & JS ──────────
-    href_re = re.compile(r'''(?:href|src)=["']([^"']+)["']''')
+    href_re = re.compile(r"""(?:href|src)=["']([^"']+)["']""")
     fetch_re = re.compile(r"""fetch\(\s*['"`]([^'"`$]+)['"`]""")
 
     bad_links: list[str] = []
@@ -128,7 +128,7 @@ def main() -> int:
                 continue
             if href.startswith("/static/"):
                 n_static += 1
-                rel = href[len("/static/"):].split("?")[0]
+                rel = href[len("/static/") :].split("?")[0]
                 if not (STATIC / rel).is_file():
                     # allow subdirectory-less css/js already verified; report missing
                     bad_links.append(f"{f.name}: static missing {href}")
@@ -194,7 +194,19 @@ def main() -> int:
         sent |= set(extract(send_re, t))
         # only count ones that look like WS sends (heuristic: also matches tool bodies; filter below)
         for a in extract(body_re, t):
-            if a.startswith(("queue.", "status.", "fix.", "spawn.", "mode.", "scan.", "council_", "start_", "subscribe")):
+            if a.startswith(
+                (
+                    "queue.",
+                    "status.",
+                    "fix.",
+                    "spawn.",
+                    "mode.",
+                    "scan.",
+                    "council_",
+                    "start_",
+                    "subscribe",
+                )
+            ):
                 sent.add(a)
 
     unhandled = sorted(a for a in sent if a not in handled and a != "ping")

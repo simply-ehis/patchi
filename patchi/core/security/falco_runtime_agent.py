@@ -241,6 +241,7 @@ class FalcoRuntimeAgent(BaseAgent):
         seen_sc = False
         seen_nonroot = False
         seen_seccomp = False
+        _missing_falco: dict[str, list[str]] = {}
 
         for fp in sorted(ia_files, key=str):
             try:
@@ -251,7 +252,16 @@ class FalcoRuntimeAgent(BaseAgent):
             rel = str(fp.relative_to(root))
             fname = fp.name
 
+            # Part 7: filename keywords alone don't make a file K8s —
+            # corroborate with manifest content markers.
             is_k8s = any(kw in str(fp).lower() for kw in self.K8S_DIR_KEYWORDS)
+            if not is_k8s and fp.suffix.lower() in {".yaml", ".yml"}:
+                try:
+                    _head = fp.read_text(encoding="utf-8", errors="replace")[:2000]
+                except Exception:
+                    _head = ""
+                if "apiVersion:" in _head and "kind:" in _head:
+                    is_k8s = True
             is_dockerfile = "dockerfile" in fname.lower()
             is_compose = fname.lower().startswith("docker-compose")
 
@@ -311,30 +321,42 @@ class FalcoRuntimeAgent(BaseAgent):
                     )
                 )
 
-            # Falco deployment checks
+            # Falco deployment checks. Part 7: DaemonSet is cluster-wide
+            # — absence in EACH file is N findings for one fact. Track
+            # project-wide presence; the verdict is emitted once below.
             if is_k8s:
-                for pname, pattern, msg, severity in self.MISSING_FALCO_PATTERNS:
-                    if not re.search(pattern, text, re.IGNORECASE):
-                        findings.append(
-                            Finding(
-                                agent=self.name,
-                                type=pname,
-                                severity=severity,
-                                file=rel,
-                                message=msg,
-                                cwe="CWE-1104",
-                            )
-                        )
+                _missing_falco["__checked__"] = True
+                for pname, pattern, _msg, _severity in self.MISSING_FALCO_PATTERNS:
+                    if re.search(pattern, text, re.IGNORECASE):
+                        _missing_falco.setdefault(pname + "::__present__", []).append(rel)
 
-        # Phase 2: Check Falco rules presence and quality
+        # Project-once Falco deployment verdicts (not one per file): emit
+        # only when NO k8s file in the project matched.
+        if _missing_falco.pop("__checked__", False):
+            for pname, _pattern, msg, severity in self.MISSING_FALCO_PATTERNS:
+                if pname + "::__present__" not in _missing_falco:
+                    findings.append(
+                        Finding(
+                            agent=self.name,
+                            type=pname,
+                            severity=severity,
+                            file="",
+                            message=f"{msg} (no k8s manifest in scope references it)",
+                            cwe="CWE-1104",
+                        )
+                    )
+
+        # Phase 2: Check Falco rules presence and quality. Part 7: a
+        # project without Falco is missing a monitoring layer, not
+        # actively vulnerable — MEDIUM advisory, not HIGH.
         if not falco_files:
             findings.append(
                 Finding(
                     agent=self.name,
                     type="no_falco_rules",
-                    severity=Severity.HIGH,
+                    severity=Severity.MEDIUM,
                     file="",
-                    message="No Falco rules files found — add runtime security monitoring",
+                    message="No Falco rules files found — consider runtime security monitoring",
                     cwe="CWE-1104",
                 )
             )
@@ -346,8 +368,11 @@ class FalcoRuntimeAgent(BaseAgent):
                     _log.warning("FalcoRuntimeAgent._run failed: %s", e)
                     continue
                 rel = str(fp.relative_to(root))
+                # Part 7: match inside actual `- rule:` blocks, not loose
+                # keywords anywhere in the file (prose matches don't count).
+                blocks = re.split(r"(?m)^\s*-\s*rule\s*:", text)[1:]
                 for name, pattern in self.REQUIRED_FALCO_RULES:
-                    if not re.search(pattern, text, re.IGNORECASE):
+                    if not any(re.search(pattern, b, re.IGNORECASE) for b in blocks):
                         findings.append(
                             Finding(
                                 agent=self.name,

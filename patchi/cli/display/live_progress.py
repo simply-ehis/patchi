@@ -84,9 +84,7 @@ class LiveProgress:
 
         elapsed = int((time.monotonic() - self._start_time) * 1000)
         if summary:
-            self.con.print(
-                f"  [bold #A78BFA]{self._title}:[/bold #A78BFA] {summary} [dim]({elapsed}ms)[/dim]"
-            )
+            self.con.print(f"  [bold #A78BFA]{self._title}:[/bold #A78BFA] {summary} [dim]({elapsed}ms)[/dim]")
 
     def update(self):
         if self._live:

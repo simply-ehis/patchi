@@ -290,9 +290,7 @@ async def get_brain_nodes(request: Request) -> JSONResponse:
         findings_by_file = {}
         if isinstance(scan_results, dict):
             for _scanner_name, scanner_data in scan_results.items():
-                findings = (
-                    scanner_data.get("findings", []) if isinstance(scanner_data, dict) else []
-                )
+                findings = scanner_data.get("findings", []) if isinstance(scanner_data, dict) else []
                 for f in findings:
                     fpath = f.get("file", "")
                     if not fpath:
@@ -309,9 +307,7 @@ async def get_brain_nodes(request: Request) -> JSONResponse:
             fname = node_id.split("/")[-1].lower()
             if node_id.endswith((".test.", ".spec.")) or fname.startswith("test_"):
                 ntype = "test"
-            elif node_id.endswith(
-                ("config.py", "settings.py", ".env", "config.json", "config.yaml")
-            ):
+            elif node_id.endswith(("config.py", "settings.py", ".env", "config.json", "config.yaml")):
                 ntype = "config"
             elif node_id in brain_data.get("dead_files", []):
                 ntype = "dead"
@@ -334,9 +330,7 @@ async def get_brain_nodes(request: Request) -> JSONResponse:
                 elif any(
                     r.get("path") == node_id
                     for r in (
-                        brain_data.get("restrictions", [])
-                        if isinstance(brain_data.get("restrictions"), list)
-                        else []
+                        brain_data.get("restrictions", []) if isinstance(brain_data.get("restrictions"), list) else []
                     )
                 ):
                     ntype = "restricted"
@@ -411,9 +405,7 @@ async def accept_fix(request: Request) -> JSONResponse:
         # Load patch from memory
         patch_data = memory_mod.get_patch(patch_id, root)
         if not patch_data:
-            return JSONResponse(
-                {"ok": False, "error": f"Patch {patch_id} not found"}, status_code=404
-            )
+            return JSONResponse({"ok": False, "error": f"Patch {patch_id} not found"}, status_code=404)
 
         from patchi.core.fix.applier import PatchApplier
         from patchi.core.fix.patch import Patch, PatchState
@@ -431,16 +423,8 @@ async def accept_fix(request: Request) -> JSONResponse:
 
                 from patchi.web.events import evt_review_updated, manager
 
-                pending = len(
-                    [
-                        p
-                        for p in memory_mod.list_patches(root)
-                        if p.get("state") in ("proposed", "pending")
-                    ]
-                )
-                asyncio.get_running_loop().create_task(
-                    manager.broadcast(evt_review_updated(pending))
-                )
+                pending = len([p for p in memory_mod.list_patches(root) if p.get("state") in ("proposed", "pending")])
+                asyncio.get_running_loop().create_task(manager.broadcast(evt_review_updated(pending)))
             except Exception as exc:
                 logger.warning("Failed to broadcast review_updated event: %s", exc)
             return JSONResponse({"ok": True, "message": f"Patch {patch_id} applied"})
@@ -537,22 +521,16 @@ async def post_quick_security_scan(request: Request) -> JSONResponse:
 
             await manager.broadcast(evt_security_scan_started("quick"))
             coord = Coordinator(root)
-            results = await asyncio.to_thread(
-                coord.run_agents, ["TaintAnalyzer", "SecretScanner", "ConfigAuditAgent"]
-            )
+            results = await asyncio.to_thread(coord.run_agents, ["TaintAnalyzer", "SecretScanner", "ConfigAuditAgent"])
 
             counts = {"critical": 0, "high": 0, "medium": 0, "low": 0}
             for r in results:
                 for f in r.findings:
                     sev = f.severity.value if hasattr(f.severity, "value") else str(f.severity)
                     counts[sev] = counts.get(sev, 0) + 1
-                    await manager.broadcast(
-                        evt_security_finding(sev, f.type, f.file, f.line, "", f.title)
-                    )
+                    await manager.broadcast(evt_security_finding(sev, f.type, f.file, f.line, "", f.title))
             await manager.broadcast(
-                evt_security_scan_completed(
-                    counts["critical"], counts["high"], counts["medium"], counts["low"]
-                )
+                evt_security_scan_completed(counts["critical"], counts["high"], counts["medium"], counts["low"])
             )
         except Exception as exc:
             logger.warning("Quick security scan failed: %s", exc)
@@ -606,9 +584,7 @@ async def post_full_security_scan(request: Request) -> JSONResponse:
                     )
                 )
             await manager.broadcast(
-                evt_security_scan_completed(
-                    counts["critical"], counts["high"], counts["medium"], counts["low"]
-                )
+                evt_security_scan_completed(counts["critical"], counts["high"], counts["medium"], counts["low"])
             )
         except Exception as exc:
             logger.warning("Full security scan failed: %s", exc)
@@ -1124,9 +1100,7 @@ async def trigger_fix(request: Request) -> JSONResponse:
                     patch.state = PatchState.PENDING
                     mem.save_patch(patch.to_dict(), root)
                     queued += 1
-                    await manager.broadcast(
-                        evt_fix_proposed(patch.id, patch.risk_score, patch.confidence, {}, [])
-                    )
+                    await manager.broadcast(evt_fix_proposed(patch.id, patch.risk_score, patch.confidence, {}, []))
 
             await evt_scan_complete(applied + queued, 0)
         except Exception as exc:
@@ -1183,11 +1157,7 @@ async def trigger_security(request: Request) -> JSONResponse:
 
             counts = {"critical": 0, "high": 0, "medium": 0, "low": 0}
             for c in correlated:
-                sev = (
-                    c.finding.severity.value
-                    if hasattr(c.finding.severity, "value")
-                    else str(c.finding.severity)
-                )
+                sev = c.finding.severity.value if hasattr(c.finding.severity, "value") else str(c.finding.severity)
                 counts[sev] = counts.get(sev, 0) + 1
                 await manager.broadcast(
                     evt_security_finding(
@@ -1201,9 +1171,7 @@ async def trigger_security(request: Request) -> JSONResponse:
                 )
 
             await manager.broadcast(
-                evt_security_scan_completed(
-                    counts["critical"], counts["high"], counts["medium"], counts["low"]
-                )
+                evt_security_scan_completed(counts["critical"], counts["high"], counts["medium"], counts["low"])
             )
         except Exception as exc:
             logger.warning("Security scan background task failed: %s", exc)
@@ -1248,9 +1216,7 @@ async def trigger_test(request: Request) -> JSONResponse:
                 duration_ms = int((_time.monotonic() - _t0) * 1000)
                 passed = result.returncode == 0
                 await manager.broadcast(evt_test_case_passed("pytest", duration_ms))
-                await manager.broadcast(
-                    evt_test_suite_completed(1 if passed else 0, 0 if passed else 1, 0)
-                )
+                await manager.broadcast(evt_test_suite_completed(1 if passed else 0, 0 if passed else 1, 0))
             else:
                 await manager.broadcast(evt_test_suite_completed(0, 0, 0))
         except Exception as exc:
@@ -1365,9 +1331,7 @@ async def get_guard(request: Request) -> JSONResponse:
                                 "message": d.get("title", "Anomaly detected"),
                                 "level": d.get("severity", "medium"),
                                 "ip": d.get("ip", ""),
-                                "timestamp": time.strftime(
-                                    "%H:%M:%S", time.localtime(e.get("timestamp", 0))
-                                ),
+                                "timestamp": time.strftime("%H:%M:%S", time.localtime(e.get("timestamp", 0))),
                             }
                         )
             except Exception as exc:
@@ -1514,15 +1478,11 @@ async def add_key_web(request: Request) -> JSONResponse:
         nickname = body.get("nickname", provider).strip() or provider
 
         if not provider or not key_val:
-            return JSONResponse(
-                {"ok": False, "error": "provider and key are required"}, status_code=400
-            )
+            return JSONResponse({"ok": False, "error": "provider and key are required"}, status_code=400)
 
         # Map provider name to config using shared PROVIDERS constant
         pkey = provider.lower()
-        pconf_raw = PROVIDERS.get(
-            pkey, {"base_url": provider, "model": "gpt-4o-mini", "format": "openai"}
-        )
+        pconf_raw = PROVIDERS.get(pkey, {"base_url": provider, "model": "gpt-4o-mini", "format": "openai"})
         pconf = {
             "base": pconf_raw.get("base_url", ""),
             "model": pconf_raw.get("model", "gpt-4o-mini"),
@@ -1651,8 +1611,10 @@ async def get_notifications(request: Request):
         if html:
             lst = (
                 "".join(
-                    f'<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 8px;border-bottom:1px solid var(--border)">'
-                    f'<span><strong>{ch.get("name", "?")}</strong> <span style="color:var(--text-dim)">{ch.get("type", "?")}</span></span>'
+                    f'<div style="display:flex;justify-content:space-between;align-items:center;padding:6px'
+                    f' 8px;border-bottom:1px solid var(--border)">'
+                    f'<span><strong>{ch.get("name", "?")}</strong> <span'
+                    f' style="color:var(--text-dim)">{ch.get("type", "?")}</span></span>'
                     f'<span style="font-size:11px;color:var(--text-dim)">{ch.get("min_severity", "medium")}+</span>'
                     f"</div>"
                     for ch in [channel_to_dict(ch) for ch in channels]
@@ -1950,11 +1912,7 @@ def _remove_env_file_key(env_file, env_var: str) -> None:
     env_file = Path(env_file)
     if not env_file.exists():
         return
-    lines = [
-        line
-        for line in env_file.read_text(encoding="utf-8").splitlines()
-        if not line.startswith(f"{env_var}=")
-    ]
+    lines = [line for line in env_file.read_text(encoding="utf-8").splitlines() if not line.startswith(f"{env_var}=")]
     env_file.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
@@ -1985,9 +1943,7 @@ async def trigger_live_test(request: Request) -> JSONResponse:
 
             # Stream events to WebSocket
             async def on_event(event: str, data: dict):
-                await manager.broadcast(
-                    {"event": f"test.{event}", "data": data, "ts": __import__("time").time()}
-                )
+                await manager.broadcast({"event": f"test.{event}", "data": data, "ts": __import__("time").time()})
 
             runner.set_event_callback(on_event)
 
@@ -2247,9 +2203,7 @@ async def trigger_audit(request: Request) -> JSONResponse:
                 {
                     "ok": True,
                     "health": health.to_dict(),
-                    "security_findings": sum(
-                        r.finding_count for r in sec_results if hasattr(r, "finding_count")
-                    ),
+                    "security_findings": sum(r.finding_count for r in sec_results if hasattr(r, "finding_count")),
                 }
             )
         except Exception as e:
@@ -2367,13 +2321,9 @@ async def test_ai(request: Request) -> JSONResponse:
             cfg = cfg_mod.load(_root(request))
             result = _call_ollama(cfg, "Say OK", max_tokens=10)
             if result:
-                return JSONResponse(
-                    {"ok": True, "message": f"Ollama responded: {result.strip()[:100]}"}
-                )
+                return JSONResponse({"ok": True, "message": f"Ollama responded: {result.strip()[:100]}"})
             else:
-                return JSONResponse(
-                    {"ok": False, "message": "Ollama not responding. Is it running? (ollama serve)"}
-                )
+                return JSONResponse({"ok": False, "message": "Ollama not responding. Is it running? (ollama serve)"})
         else:
             return JSONResponse(
                 {

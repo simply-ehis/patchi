@@ -113,15 +113,9 @@ class AutoFixer:
         Returns:
             Dict with fix details, patch_id, verification result
         """
-        finding_id = getattr(finding, "id", None) or getattr(finding, "finding", {}).get(
-            "id", str(uuid.uuid4())[:8]
-        )
+        finding_id = getattr(finding, "id", None) or getattr(finding, "finding", {}).get("id", str(uuid.uuid4())[:8])
         finding_type = finding.type if hasattr(finding, "type") else finding.finding.type
-        severity = (
-            finding.severity.value
-            if hasattr(finding, "severity")
-            else finding.finding.severity.value
-        )
+        severity = finding.severity.value if hasattr(finding, "severity") else finding.finding.severity.value
 
         self.on_progress(f"🔧 Generating fix for {finding_type} ({severity})")
 
@@ -163,9 +157,7 @@ class AutoFixer:
                 verification = await self._verify_fix(patch, finding, playbook)
                 attempt.verified = verification.verified
                 attempt.verification_at = (
-                    verification.verified_at
-                    if hasattr(verification, "verified_at")
-                    else datetime.now(UTC).isoformat()
+                    verification.verified_at if hasattr(verification, "verified_at") else datetime.now(UTC).isoformat()
                 )
 
             self.fix_history.append(attempt)
@@ -216,9 +208,7 @@ class AutoFixer:
     ) -> Patch | None:
         """Generate a fix patch."""
         # Use base generate_fix with playbook context
-        finding_dict = (
-            finding.to_dict() if hasattr(finding, "to_dict") else finding.finding.to_dict()
-        )
+        finding_dict = finding.to_dict() if hasattr(finding, "to_dict") else finding.finding.to_dict()
 
         # Enhance with playbook info
         if playbook:
@@ -237,9 +227,7 @@ class AutoFixer:
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
 
-        patch = await loop.run_in_executor(
-            None, lambda: base_generate_fix(self.root, finding_dict, self.config)
-        )
+        patch = await loop.run_in_executor(None, lambda: base_generate_fix(self.root, finding_dict, self.config))
 
         return patch
 
@@ -414,9 +402,7 @@ class FixPlaybookEngine:
 
     def get_playbook_for_finding(self, finding: Finding) -> FixPlaybook | None:
         """Get the most relevant playbook for a finding."""
-        controls = self.domain_loader.match_finding_to_controls(
-            finding.type, finding.file, finding.message
-        )
+        controls = self.domain_loader.match_finding_to_controls(finding.type, finding.file, finding.message)
 
         for ctrl in controls:
             playbook = self.domain_loader.get_playbook(ctrl.control_id)
@@ -503,6 +489,7 @@ async def auto_fix_finding(
 
 # ── Header Auto-Fix ─────────────────────────────────────────────────────────
 
+
 def fix_missing_headers(
     root: Path,
     findings: list[dict],
@@ -582,7 +569,7 @@ def fix_missing_headers(
             if any(kw in content for kw in ["FastAPI", "Flask", "Starlette", "@app", "middleware"]):
                 web_files.append(f)
         except Exception as _exc:
-            _log.warning('fix_missing_headers failed: %s', _exc)
+            _log.warning("fix_missing_headers failed: %s", _exc)
 
     if not web_files:
         return {

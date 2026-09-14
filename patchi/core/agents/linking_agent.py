@@ -28,13 +28,15 @@ _log = logging.getLogger("patchi.agents.linking")
 
 
 def _has_frontend(root: Path) -> bool:
-    return (root / "package.json").exists() or any((root / p).exists() for p in ["src/routes", "app/routes", "pages", "src/app"])
+    return (root / "package.json").exists() or any(
+        (root / p).exists() for p in ["src/routes", "app/routes", "pages", "src/app"]
+    )
 
 
 def _has_backend(root: Path) -> bool:
-    return any((root / p).exists() for p in ["requirements.txt", "pyproject.toml", "Cargo.toml", "go.mod", "pom.xml"]) or any(
-        (root / d).exists() for d in ["patchi/core", "src/main", "app"]
-    )
+    return any(
+        (root / p).exists() for p in ["requirements.txt", "pyproject.toml", "Cargo.toml", "go.mod", "pom.xml"]
+    ) or any((root / d).exists() for d in ["patchi/core", "src/main", "app"])
 
 
 def _load_linking_config(root: Path) -> dict | None:
@@ -46,7 +48,7 @@ def _load_linking_config(root: Path) -> dict | None:
                 if isinstance(link, dict) and link.get("backend"):
                     return link
             except Exception as _exc:
-                _log.debug('suppressed: %s', _exc)
+                _log.debug("suppressed: %s", _exc)
     return None
 
 
@@ -58,7 +60,9 @@ def _suggest_link(root: Path) -> dict | None:
             if not sibling.is_dir() or sibling == root:
                 continue
             is_front = (sibling / "package.json").exists()
-            is_back = any((sibling / p).exists() for p in ["requirements.txt", "pyproject.toml", "go.mod", "Cargo.toml"])
+            is_back = any(
+                (sibling / p).exists() for p in ["requirements.txt", "pyproject.toml", "go.mod", "Cargo.toml"]
+            )
             if is_front or is_back:
                 candidates.append(sibling.name)
         if candidates:
@@ -68,11 +72,21 @@ def _suggest_link(root: Path) -> dict | None:
             if has_front_here and not has_back_here:
                 for c in candidates:
                     if "back" in c.lower() or "api" in c.lower():
-                        return {"frontend": ".", "backend": f"../{c}", "frontend_url": "http://localhost:3000", "backend_url": "http://localhost:5000"}
+                        return {
+                            "frontend": ".",
+                            "backend": f"../{c}",
+                            "frontend_url": "http://localhost:3000",
+                            "backend_url": "http://localhost:5000",
+                        }
             if has_back_here and not has_front_here:
                 for c in candidates:
                     if "front" in c.lower() or "web" in c.lower():
-                        return {"frontend": f"../{c}", "backend": ".", "frontend_url": "http://localhost:3000", "backend_url": "http://localhost:5000"}
+                        return {
+                            "frontend": f"../{c}",
+                            "backend": ".",
+                            "frontend_url": "http://localhost:3000",
+                            "backend_url": "http://localhost:5000",
+                        }
     except Exception as exc:  # noqa: BLE001
         _log.debug("suggest link failed: %s", exc)
     return None
@@ -82,7 +96,10 @@ def _suggest_link(root: Path) -> dict | None:
 class LinkingAgent(BaseAgent):
     group = AgentGroup.SCANNER
     name = "LinkingAgent"
-    description = "Linking — base URL, route existence, CORS, env parity, auth, response shape, ws (p scan hybrid monorepo/separate)"
+    description = (
+    "Linking — base URL, route existence, CORS, env parity, auth, response shape, ws (p scan hybrid"
+    " monorepo/separate)"
+    )
     timeout = 90
 
     def _run(self, inp: AgentInput, result: AgentResult) -> None:
@@ -107,7 +124,8 @@ class LinkingAgent(BaseAgent):
                             file=str(sug_path.relative_to(root)),
                             line_start=0,
                             title=f"Link suggestion: frontend {sug['frontend']} ↔ backend {sug['backend']}",
-                            description="Separate repos detected — run `p link confirm` or `p link add --backend ../backend` to activate linking checks",
+                            description="Separate repos detected — run `p link confirm` or `p link add --backend"
+                            " ../backend` to activate linking checks",
                             finding_type="link_suggestion",
                         )
                     )
@@ -162,7 +180,12 @@ class LinkingAgent(BaseAgent):
             if front_url and back_url and front_url.rstrip("/") != back_url.rstrip("/"):
                 issues.append(("base_url", f"Frontend API base {front_url} != backend {back_url}"))
             elif not front_url and frontend_calls:
-                issues.append(("base_url", "Frontend API base URL not configured (env VITE_API_URL/NEXT_PUBLIC_API_URL missing)"))
+                issues.append(
+                    (
+                        "base_url",
+                        "Frontend API base URL not configured (env VITE_API_URL/NEXT_PUBLIC_API_URL missing)",
+                    )
+                )
         except Exception as exc:  # noqa: BLE001
             _log.debug("base url check failed: %s", exc)
 
@@ -172,7 +195,13 @@ class LinkingAgent(BaseAgent):
 
             diff = diff_contract(frontend_calls, backend_routes)
             for m in diff.missing_routes:
-                issues.append(("route_existence", f"Frontend {m.get('method')} {m.get('raw')} has no backend route (404) at {m.get('file')}:{m.get('line')}"))
+                issues.append(
+                    (
+                        "route_existence",
+                        f"Frontend {m.get('method')} {m.get('raw')} has no backend route (404) at"
+                        f" {m.get('file')}:{m.get('line')}",
+                    )
+                )
             for mm in diff.method_mismatch:
                 issues.append(("method_mismatch", f"Method mismatch {mm}"))
         except Exception as exc:  # noqa: BLE001
@@ -187,11 +216,22 @@ class LinkingAgent(BaseAgent):
 
                 back_origin = back_url or "http://127.0.0.1:5000"
                 try:
-                    resp = httpx.request("OPTIONS", f"{back_origin}/api", headers={"Origin": front_url or "http://localhost:3000"}, timeout=3)
+                    resp = httpx.request(
+                        "OPTIONS",
+                        f"{back_origin}/api",
+                        headers={"Origin": front_url or "http://localhost:3000"},
+                        timeout=3,
+                    )
                     if "access-control-allow-origin" not in {k.lower() for k in resp.headers}:
-                        issues.append(("cors", f"Backend {back_origin} does not allow frontend origin {front_url or 'http://localhost:3000'} — CORS not whitelisted"))
+                        issues.append(
+                            (
+                                "cors",
+                                f"Backend {back_origin} does not allow frontend origin"
+                                f" {front_url or 'http://localhost:3000'} — CORS not whitelisted",
+                            )
+                        )
                 except Exception as _exc:
-                    _log.debug('suppressed: %s', _exc)
+                    _log.debug("suppressed: %s", _exc)
         except Exception as exc:  # noqa: BLE001
             _log.debug("cors check failed: %s", exc)
 
@@ -215,7 +255,12 @@ class LinkingAgent(BaseAgent):
                     )
             for key in ["API_URL", "AUTH_SECRET", "FEATURE_FLAG"]:
                 if (key in front_env) != (key in back_env):
-                    issues.append(("env_parity", f"Env key {key} present on one side only — front {key in front_env} back {key in back_env}"))
+                    issues.append(
+                        (
+                            "env_parity",
+                            f"Env key {key} present on one side only — front {key in front_env} back {key in back_env}",
+                        )
+                    )
         except Exception as exc:  # noqa: BLE001
             _log.debug("env parity failed: %s", exc)
 

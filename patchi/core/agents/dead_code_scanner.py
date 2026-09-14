@@ -10,6 +10,7 @@ Strategy (per MASTER_REBUILD_BRIEF FIX 2C):
 
 No keyword grep. No hardcoded summaries. Every scan derives from real code.
 """
+
 from __future__ import annotations
 
 import json
@@ -63,9 +64,9 @@ _log = logging.getLogger("patchi.agents.dead_code_scanner")
 
 def _run_sglyon_deadcode(root: Path) -> list[dict] | None:
     """Run sglyon/deadcode if installed; parses JSON output."""
+    import json
     import shutil
     import subprocess
-    import json
 
     # Try binary first, then python -m deadcode
     candidates = []
@@ -100,7 +101,7 @@ def _run_sglyon_deadcode(root: Path) -> list[dict] | None:
                         "line": int(item.get("line", 0) or 0),
                         "name": item.get("symbol") or item.get("name", ""),
                         "type": item.get("kind") or item.get("type", "deadcode"),
-                        "message": f"sglyon/deadcode: {item.get('kind','unused')} {item.get('symbol','')}",
+                        "message": f"sglyon/deadcode: {item.get('kind', 'unused')} {item.get('symbol', '')}",
                         "confidence": 90,
                         "code": "",
                     }
@@ -148,8 +149,8 @@ class DeadCodeScanner(BaseAgent):
         # Build import graph — use corpus if available
         corpus = inp.extra.get("file_corpus")
         try:
-            from ..brain.scanner import FileScanner
             from ..brain.import_graph import build_graph
+            from ..brain.scanner import FileScanner
 
             scanner = FileScanner(inp.root, ignore_paths=inp.config.get("ignore_paths", []), corpus=corpus)
             all_files = scanner.scan()
@@ -291,8 +292,7 @@ class DeadCodeScanner(BaseAgent):
                         line_start=sym["line"],
                         title=f"Unused {sym['kind']}: {sym['name']}",
                         description=(
-                            f"Symbol '{sym['name']}' is never referenced "
-                            f"within {rel_path} (intra-file dead code)."
+                            f"Symbol '{sym['name']}' is never referenced within {rel_path} (intra-file dead code)."
                         ),
                         finding_type="dead_code",
                     )
@@ -322,11 +322,7 @@ def _detect_project_langs(root: Path) -> set[str]:
         langs.add("java")
     if (root / "package.json").exists():
         langs.add("javascript")
-    if (
-        (root / "requirements.txt").exists()
-        or (root / "setup.py").exists()
-        or (root / "pyproject.toml").exists()
-    ):
+    if (root / "requirements.txt").exists() or (root / "setup.py").exists() or (root / "pyproject.toml").exists():
         langs.add("python")
     if list(root.glob("*.csproj")):
         langs.add("csharp")
@@ -550,9 +546,7 @@ def _run_dotnet_dead_code(root: Path) -> list[dict] | None:
         csproj_files = list(root.glob("**/*.csproj"))
     if not csproj_files:
         return None
-    proc = _run_tool(
-        ["dotnet", "list", str(csproj_files[0]), "package", "--vulnerable"], root, timeout=120
-    )
+    proc = _run_tool(["dotnet", "list", str(csproj_files[0]), "package", "--vulnerable"], root, timeout=120)
     if proc is None:
         return None
     findings: list[dict] = []
@@ -640,9 +634,7 @@ def _run_swift_dead_code(root: Path) -> list[dict] | None:
 
 def _run_clang_tidy(root: Path) -> list[dict] | None:
     """Run clang-tidy for C/C++ dead code detection."""
-    proc = _run_tool(
-        ["clang-tidy", "--checks=-*,misc-unused-*", "--list-checks"], root, timeout=120
-    )
+    proc = _run_tool(["clang-tidy", "--checks=-*,misc-unused-*", "--list-checks"], root, timeout=120)
     if proc is None:
         return None
     findings: list[dict] = []

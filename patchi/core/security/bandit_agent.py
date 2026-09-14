@@ -3,6 +3,7 @@ BanditAgent - Bandit security linter integration.
 
 Bandit is a Python security linter that finds common security issues.
 """
+
 from __future__ import annotations
 
 import json
@@ -43,8 +44,7 @@ class BanditAgent(BaseAgent):
     def _run(self, inp: AgentInput, result: AgentResult) -> None:
         """Run Bandit analysis on the project."""
         if not self._is_bandit_available():
-            result.status = AgentStatus.SKIPPED
-            result.data["error"] = "Bandit not installed"
+            self.skip_for_tool(result, "bandit")
             return
 
         findings = self._run_bandit(inp.root)

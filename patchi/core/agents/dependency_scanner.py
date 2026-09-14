@@ -18,6 +18,7 @@ Does NOT call AI.
 Does NOT write to disk.
 Does NOT touch the queue.
 """
+
 from __future__ import annotations
 
 import json
@@ -69,9 +70,9 @@ class DependencyScanner(BaseAgent):
             title = args[3] if len(args) > 3 else ""
             message = args[4] if len(args) > 4 else ""
             evidence = args[5] if len(args) > 5 else ""
-            finding_type = kwargs.pop("finding_type", None) or title.lower().replace(
-                " ", "_"
-            ).replace(":", "").replace("'", "").replace("-", "_")
+            finding_type = kwargs.pop("finding_type", None) or title.lower().replace(" ", "_").replace(":", "").replace(
+                "'", ""
+            ).replace("-", "_")
             return _base_make_finding(
                 self.name,
                 finding_type,
@@ -91,9 +92,9 @@ class DependencyScanner(BaseAgent):
             title = kwargs.pop("title", "")
             message = kwargs.pop("description", title)
             evidence = kwargs.pop("evidence", "")
-            finding_type = kwargs.pop("finding_type", None) or title.lower().replace(
-                " ", "_"
-            ).replace(":", "").replace("'", "").replace("-", "_")
+            finding_type = kwargs.pop("finding_type", None) or title.lower().replace(" ", "_").replace(":", "").replace(
+                "'", ""
+            ).replace("-", "_")
             return _base_make_finding(
                 self.name,
                 finding_type,
@@ -312,9 +313,7 @@ class DependencyScanner(BaseAgent):
                 # Check for vulnerabilities via OSV API
                 vulns = self._check_npm_vulnerabilities(name, version)
                 for vuln in vulns:
-                    severity = self._map_osv_severity(
-                        vuln.get("severity", [{}])[0].get("score", "UNKNOWN")
-                    )
+                    severity = self._map_osv_severity(vuln.get("severity", [{}])[0].get("score", "UNKNOWN"))
                     findings.append(
                         self._mkf(
                             severity=severity,
@@ -379,9 +378,7 @@ class DependencyScanner(BaseAgent):
                 # Check for vulnerabilities via OSV API
                 vulns = self._check_pypi_vulnerabilities(pkg_name, version)
                 for vuln in vulns:
-                    severity = self._map_osv_severity(
-                        vuln.get("severity", [{}])[0].get("score", "UNKNOWN")
-                    )
+                    severity = self._map_osv_severity(vuln.get("severity", [{}])[0].get("score", "UNKNOWN"))
                     findings.append(
                         self._mkf(
                             severity=severity,

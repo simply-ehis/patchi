@@ -236,6 +236,7 @@ def _launch_browser(p):
         raise
 
 
+@pytest.mark.slow
 def test_capped_dots_stable_across_view_switches():
     """400-node graph: exactly MAX_RENDERED_NODES full shapes + the rest as
     capped dim dots, with the dot set stable across every 2D/3D view switch.
@@ -394,6 +395,7 @@ def test_capped_dots_stable_across_view_switches():
             server.kill()
 
 
+@pytest.mark.slow
 def test_all_brain_map_views_render_without_overlaps():
     sync_playwright = pytest.importorskip("playwright.sync_api").sync_playwright
     port = _find_free_port()

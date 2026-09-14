@@ -168,9 +168,7 @@ def evt_queue_cleared() -> dict:
     return _evt("queue.cleared", {})
 
 
-def evt_fix_proposed(
-    patch_id: str, risk_score: int, confidence_score: int, diff: dict, blast_radius: list
-) -> dict:
+def evt_fix_proposed(patch_id: str, risk_score: int, confidence_score: int, diff: dict, blast_radius: list) -> dict:
     return _evt(
         "fix.proposed",
         {
@@ -184,9 +182,7 @@ def evt_fix_proposed(
 
 
 def evt_fix_applying(patch_id: str, file: str, lines_affected: list) -> dict:
-    return _evt(
-        "fix.applying", {"patch_id": patch_id, "file": file, "lines_affected": lines_affected}
-    )
+    return _evt("fix.applying", {"patch_id": patch_id, "file": file, "lines_affected": lines_affected})
 
 
 def evt_fix_test_running(patch_id: str, test_type: str) -> dict:
@@ -213,9 +209,7 @@ def evt_security_scan_started(mode: str) -> dict:
     return _evt("security.scan.started", {"mode": mode})
 
 
-def evt_security_finding(
-    severity: str, type: str, file: str, line: int, cwe: str, description: str
-) -> dict:
+def evt_security_finding(severity: str, type: str, file: str, line: int, cwe: str, description: str) -> dict:
     return _evt(
         "security.finding",
         {
@@ -229,9 +223,7 @@ def evt_security_finding(
     )
 
 
-def evt_security_scan_completed(
-    critical_count: int, high_count: int, medium_count: int, low_count: int
-) -> dict:
+def evt_security_scan_completed(critical_count: int, high_count: int, medium_count: int, low_count: int) -> dict:
     return _evt(
         "security.scan.completed",
         {
@@ -259,9 +251,7 @@ def evt_test_case_passed(test_name: str, duration_ms: int) -> dict:
 
 
 def evt_test_case_failed(test_name: str, error: str, duration_ms: int) -> dict:
-    return _evt(
-        "test.case.failed", {"test_name": test_name, "error": error, "duration_ms": duration_ms}
-    )
+    return _evt("test.case.failed", {"test_name": test_name, "error": error, "duration_ms": duration_ms})
 
 
 def evt_test_browser_flow_started(flow_name: str, steps: list) -> dict:
@@ -279,9 +269,7 @@ def evt_test_browser_step_failed(flow_name: str, step: str, screenshot_url: str)
     )
 
 
-def evt_test_stress_update(
-    users: int, rps: int, p50: float, p95: float, p99: float, error_rate: float
-) -> dict:
+def evt_test_stress_update(users: int, rps: int, p50: float, p95: float, p99: float, error_rate: float) -> dict:
     return _evt(
         "test.stress.update",
         {"users": users, "rps": rps, "p50": p50, "p95": p95, "p99": p99, "error_rate": error_rate},
@@ -296,9 +284,7 @@ def evt_test_stress_break_found(breaking_users: int, breaking_route: str) -> dic
 
 
 def evt_test_suite_completed(passed: int, failed: int, coverage_pct: float) -> dict:
-    return _evt(
-        "test.suite.completed", {"passed": passed, "failed": failed, "coverage_pct": coverage_pct}
-    )
+    return _evt("test.suite.completed", {"passed": passed, "failed": failed, "coverage_pct": coverage_pct})
 
 
 def evt_health_score_updated(score: int, previous_score: int, components: dict) -> dict:
@@ -308,9 +294,7 @@ def evt_health_score_updated(score: int, previous_score: int, components: dict) 
     )
 
 
-def evt_health_score_100_estimate(
-    cycles_needed: int, estimated_hours: int, estimated_cost: float
-) -> dict:
+def evt_health_score_100_estimate(cycles_needed: int, estimated_hours: int, estimated_cost: float) -> dict:
     return _evt(
         "health.score_100_estimate",
         {
@@ -321,9 +305,7 @@ def evt_health_score_100_estimate(
     )
 
 
-def evt_guard_anomaly_detected(
-    anomaly_type: str, ip: str, severity: str, signal_data: dict
-) -> dict:
+def evt_guard_anomaly_detected(anomaly_type: str, ip: str, severity: str, signal_data: dict) -> dict:
     return _evt(
         "guard.anomaly_detected",
         {"type": anomaly_type, "ip": ip, "severity": severity, "signal_data": signal_data},
@@ -390,9 +372,7 @@ def evt_system_low_memory(available_mb: int, action_taken: str) -> dict:
 
 
 def evt_system_error(component: str, reason: str, recoverable: bool) -> dict:
-    return _evt(
-        "system.error", {"component": component, "reason": reason, "recoverable": recoverable}
-    )
+    return _evt("system.error", {"component": component, "reason": reason, "recoverable": recoverable})
 
 
 def evt_queue_updated(depth: int, active: int, paused: bool = False) -> dict:

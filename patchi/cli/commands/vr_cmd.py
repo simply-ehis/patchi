@@ -17,7 +17,6 @@ from pathlib import Path
 _log = logging.getLogger("patchi.cli.commands.vr_cmd")
 
 
-
 def _get_root() -> Path:
     """Find the project root by walking up for .patchi/."""
     cwd = Path.cwd()
@@ -47,7 +46,7 @@ def _discover_routes(root: Path) -> list[str]:
 
         return discover_routes({}, {})
     except Exception as _exc:
-        _log.warning('_discover_routes failed: %s', _exc)
+        _log.warning("_discover_routes failed: %s", _exc)
     # Fallback: known common routes
     return ["/", "/findings", "/live-tests", "/assurance", "/chat"]
 
@@ -85,9 +84,7 @@ VIEWPORTS = [
 ]
 
 
-def _cmd_capture(
-    root: Path, baseline_dir: Path, evidence_dir: Path
-) -> None:
+def _cmd_capture(root: Path, baseline_dir: Path, evidence_dir: Path) -> None:
     """Capture fresh baselines for all routes at mobile/tablet/desktop viewports."""
     try:
         from playwright.sync_api import sync_playwright
@@ -155,10 +152,7 @@ def _cmd_capture(
                     page.wait_for_timeout(1000)
                     page.screenshot(path=str(shot_path), full_page=True)
                     size_kb = shot_path.stat().st_size // 1024
-                    print(
-                        f"   ✅ {route} @ {vp['label']} "
-                        f"({vp['width']}×{vp['height']}) → {size_kb} KB"
-                    )
+                    print(f"   ✅ {route} @ {vp['label']} ({vp['width']}×{vp['height']}) → {size_kb} KB")
                     captured += 1
                 except Exception as e:
                     print(f"   ❌ {route} @ {vp['label']} — {type(e).__name__}: {e}")
@@ -167,22 +161,17 @@ def _cmd_capture(
                     try:
                         ctx.close()
                     except Exception as _exc:
-                        _log.warning('_cmd_capture failed: %s', _exc)
+                        _log.warning("_cmd_capture failed: %s", _exc)
 
         browser.close()
 
     total_expected = len(routes) * len(VIEWPORTS)
-    print(
-        f"\nDone: {captured} captured, {skipped} skipped, "
-        f"{errors} errors ({total_expected} total screenshots)"
-    )
+    print(f"\nDone: {captured} captured, {skipped} skipped, {errors} errors ({total_expected} total screenshots)")
     if captured > 0:
         print(f"Baselines saved to: {baseline_dir}")
 
 
-def _cmd_compare(
-    root: Path, baseline_dir: Path, evidence_dir: Path, json_output: bool
-) -> None:
+def _cmd_compare(root: Path, baseline_dir: Path, evidence_dir: Path, json_output: bool) -> None:
     """Compare current screenshots against baselines and report diffs."""
     if not baseline_dir.is_dir():
         print("No baselines found. Run: p vr baseline")
@@ -231,14 +220,16 @@ def _cmd_compare(
                     # Generate diff overlay
                     diff_path = evidence_dir / f"{slug_dir.name}_{vp_name}_diff.png"
                     _generate_diff_overlay(base_img, curr_img, diff_path)
-                    changes.append({
-                        "route": route,
-                        "viewport": vp_name,
-                        "changed_pct": round(pct, 2),
-                        "changed_pixels": changed,
-                        "total_pixels": total,
-                        "diff_file": str(diff_path.name),
-                    })
+                    changes.append(
+                        {
+                            "route": route,
+                            "viewport": vp_name,
+                            "changed_pct": round(pct, 2),
+                            "changed_pixels": changed,
+                            "total_pixels": total,
+                            "diff_file": str(diff_path.name),
+                        }
+                    )
                     print(f"   🔴 {route} ({vp_name}): {pct:.1f}% changed — {diff_path.name}")
                 else:
                     clean += 1
@@ -247,15 +238,20 @@ def _cmd_compare(
 
     if json_output:
         import json
-        print(json.dumps({
-            "changes": changes,
-            "clean": clean,
-            "no_current_screenshot": no_baseline,
-            "total_changes": len(changes),
-        }, indent=2))
+
+        print(
+            json.dumps(
+                {
+                    "changes": changes,
+                    "clean": clean,
+                    "no_current_screenshot": no_baseline,
+                    "total_changes": len(changes),
+                },
+                indent=2,
+            )
+        )
     else:
-        print(f"\nResults: {len(changes)} changed, {clean} clean, "
-              f"{no_baseline} no current screenshot")
+        print(f"\nResults: {len(changes)} changed, {clean} clean, {no_baseline} no current screenshot")
         if changes:
             print("Run `p vr baseline` to update baselines after reviewing changes.")
         else:
@@ -299,11 +295,7 @@ def _draw_bounding_boxes(draw, base_img, curr_img, sw, sh, scale) -> None:
     curr_data = list(curr_img.getdata())
 
     # Simple flood-fill approach: mark changed pixels, find bounding boxes
-    changed = [
-        (i % sw, i // sw)
-        for i, (b, c) in enumerate(zip(base_data, curr_data, strict=False))
-        if b != c
-    ]
+    changed = [(i % sw, i // sw) for i, (b, c) in enumerate(zip(base_data, curr_data, strict=False)) if b != c]
 
     if not changed:
         return
@@ -344,8 +336,7 @@ def _draw_bounding_boxes(draw, base_img, curr_img, sw, sh, scale) -> None:
     # Draw boxes on the original-size diff (upscaling coords)
     # Actually draw on the downscaled diff
     for x0, y0, x1, y1 in boxes[:20]:  # Cap at 20 boxes
-        draw.rectangle([x0 // scale, y0 // scale, x1 // scale, y1 // scale],
-                       outline=(255, 50, 50), width=2)
+        draw.rectangle([x0 // scale, y0 // scale, x1 // scale, y1 // scale], outline=(255, 50, 50), width=2)
 
 
 def _cmd_reset(root: Path, baseline_dir: Path) -> None:
@@ -360,9 +351,7 @@ def _cmd_reset(root: Path, baseline_dir: Path) -> None:
     print("Next `p vr baseline` or `p test visual` will re-create them.")
 
 
-def _cmd_list(
-    root: Path, baseline_dir: Path, evidence_dir: Path, json_output: bool
-) -> None:
+def _cmd_list(root: Path, baseline_dir: Path, evidence_dir: Path, json_output: bool) -> None:
     """List baselines and evidence screenshots."""
     baselines = []
     if baseline_dir.is_dir():
@@ -372,32 +361,42 @@ def _cmd_list(
             route = "/" + slug_dir.name.replace("_", "/") if slug_dir.name != "root" else "/"
             for f in slug_dir.glob("*.png"):
                 stat = f.stat()
-                baselines.append({
-                    "route": route,
-                    "viewport": f.stem,
-                    "file": str(f.relative_to(root)),
-                    "size_kb": round(stat.st_size / 1024, 1),
-                })
+                baselines.append(
+                    {
+                        "route": route,
+                        "viewport": f.stem,
+                        "file": str(f.relative_to(root)),
+                        "size_kb": round(stat.st_size / 1024, 1),
+                    }
+                )
 
     screenshots = []
     if evidence_dir.is_dir():
         for f in sorted(evidence_dir.glob("*.png"), key=lambda x: x.stat().st_mtime, reverse=True):
             stat = f.stat()
-            screenshots.append({
-                "name": f.stem,
-                "file": str(f.relative_to(root)),
-                "size_kb": round(stat.st_size / 1024, 1),
-                "is_diff": "_diff" in f.stem,
-            })
+            screenshots.append(
+                {
+                    "name": f.stem,
+                    "file": str(f.relative_to(root)),
+                    "size_kb": round(stat.st_size / 1024, 1),
+                    "is_diff": "_diff" in f.stem,
+                }
+            )
 
     if json_output:
         import json
-        print(json.dumps({
-            "baselines": baselines,
-            "screenshots": screenshots,
-            "baseline_count": len(baselines),
-            "screenshot_count": len(screenshots),
-        }, indent=2))
+
+        print(
+            json.dumps(
+                {
+                    "baselines": baselines,
+                    "screenshots": screenshots,
+                    "baseline_count": len(baselines),
+                    "screenshot_count": len(screenshots),
+                },
+                indent=2,
+            )
+        )
     else:
         print("📸 Visual Regression Status\n")
 
@@ -413,10 +412,7 @@ def _cmd_list(
             print(f"   Routes: {len({b['route'] for b in baselines})}")
             for vp_label in ["desktop", "tablet", "mobile"]:
                 if vp_label in vp_counts:
-                    print(
-                        f"   {vp_label}: {vp_counts[vp_label]} screenshots "
-                        f"({vp_size[vp_label]:.0f} KB)"
-                    )
+                    print(f"   {vp_label}: {vp_counts[vp_label]} screenshots ({vp_size[vp_label]:.0f} KB)")
             print()
             for b in baselines:
                 print(f"   {b['route']} @ {b['viewport']} — {b['size_kb']} KB")

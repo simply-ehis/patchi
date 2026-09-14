@@ -21,6 +21,7 @@ Config shape:
   "report_format": "rich"
 }
 """
+
 from __future__ import annotations
 
 import json

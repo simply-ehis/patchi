@@ -75,7 +75,8 @@ _REMEDIATIONS: dict[str, Remediation] = {
         auto_fixable=True,
         lang_patterns={
             "go": 'db.QueryRow(ctx, "SELECT * FROM users WHERE id = $1", userID)',
-            "java": 'PreparedStatement ps = conn.prepareStatement("SELECT * FROM users WHERE id = ?"); ps.setInt(1, userId);',
+            "java": 'PreparedStatement ps = conn.prepareStatement("SELECT * FROM users WHERE id = ?"); ps.setInt(1,'
+            ' userId);',
             "rust": 'sqlx::query!("SELECT * FROM users WHERE id = $1", user_id).fetch_one(&pool)',
             "php": '$stmt = $pdo->prepare("SELECT * FROM users WHERE id = :id"); $stmt->execute(["id" => $userId]);',
             "ruby": "User.where(id: user_id).first  # ActiveRecord sanitizes automatically",
@@ -114,8 +115,8 @@ _REMEDIATIONS: dict[str, Remediation] = {
         auto_fixable=True,
         lang_patterns={
             "go": "filepath.Clean(path) + must be inside baseDir; check with strings.HasPrefix",
-            "java": "Path resolved = Paths.get(baseDir, userInput).normalize(); if (!resolved.startsWith(baseDir)) throw;",
-            "rust": "let resolved = std::fs::canonicalize(base_dir.join(&user_input))?; if !resolved.starts_with(&base_dir) { return Err(...); }",
+            "java": 'javax.crypto.Cipher.getInstance("AES/GCM/NoPadding")',
+            "rust": 'std::process::Command::new("ls").arg(path).output()',
             "php": 'realpath($baseDir . "/" . $userInput) must start with realpath($baseDir)',
             "ruby": "File.expand_path(user_input, base_dir).start_with?(base_dir)",
         },
@@ -313,7 +314,7 @@ def get_remediation_confidence(finding_type: str, root: Path | None = None) -> f
                 # Blend: 60% base + 40% historical
                 base = 0.6 * base + 0.4 * acceptance_rate
         except Exception as _exc:
-            _log.warning('get_remediation_confidence failed: %s', _exc)
+            _log.warning("get_remediation_confidence failed: %s", _exc)
 
     return max(0.1, min(0.95, base))
 

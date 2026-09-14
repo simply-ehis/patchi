@@ -139,9 +139,7 @@ def _build_report(
     }
 
 
-def _build_recommendations(
-    score, findings_by_severity: dict, brain: dict, scans: dict
-) -> list[str]:
+def _build_recommendations(score, findings_by_severity: dict, brain: dict, scans: dict) -> list[str]:
     recs: list[str] = []
 
     # Security
@@ -151,29 +149,22 @@ def _build_recommendations(
             "these are active vulnerabilities."
         )
     if findings_by_severity["high"]:
-        recs.append(
-            f"Address {len(findings_by_severity['high'])} HIGH severity findings before next release."
-        )
+        recs.append(f"Address {len(findings_by_severity['high'])} HIGH severity findings before next release.")
 
     # Test coverage
     if score.test_coverage < 50:
         recs.append(
-            "Test coverage is below 50%. Add unit tests for business-critical paths "
-            "— run `p test unit` to see gaps."
+            "Test coverage is below 50%. Add unit tests for business-critical paths — run `p test unit` to see gaps."
         )
 
     # Dead code
     if score.dead_code < 60:
-        recs.append(
-            "Dead code ratio is high. Run `p scan` then review `p fix` suggestions "
-            "to remove unused modules."
-        )
+        recs.append("Dead code ratio is high. Run `p scan` then review `p fix` suggestions to remove unused modules.")
 
     # Dependency health
     if score.dependency < 70:
         recs.append(
-            "Vulnerable dependencies detected. Run `p security deps` for details "
-            "and upgrade affected packages."
+            "Vulnerable dependencies detected. Run `p security deps` for details and upgrade affected packages."
         )
 
     # Circular deps
@@ -204,9 +195,7 @@ def _print_report(data: dict, score) -> None:
     proj = data["project"]
     con.print(f"  [bold]Project[/bold]    {proj['root']}")
     con.print(f"  [bold]Framework[/bold]  {proj['framework']}")
-    con.print(
-        f"  [bold]Files[/bold]      {proj['file_count']}  |  [bold]Routes[/bold] {proj['route_count']}"
-    )
+    con.print(f"  [bold]Files[/bold]      {proj['file_count']}  |  [bold]Routes[/bold] {proj['route_count']}")
     con.print(f"  [bold]Last scan[/bold]  {proj['last_scan']}")
     con.print()
 
@@ -252,9 +241,7 @@ def _print_report(data: dict, score) -> None:
 
     # Patches
     if data["patches"]:
-        con.print(
-            f"  [bold #F2EDD6]Recent Patches[/bold #F2EDD6]  [dim](last {len(data['patches'])})[/dim]"
-        )
+        con.print(f"  [bold #F2EDD6]Recent Patches[/bold #F2EDD6]  [dim](last {len(data['patches'])})[/dim]")
         for p in data["patches"][-5:]:
             status_color = "#4ADE80" if p["status"] == "applied" else "#6B7280"
             con.print(
@@ -376,9 +363,7 @@ def _send_weekly(root: Path) -> None:
 
     report_data = _build_report(root, brain, scans, patches, score)
     markdown = _render_markdown(report_data)
-    out_path = (
-        root / ".patchi" / f"weekly_report_{datetime.now(UTC).strftime('%Y%m%d')}.md"
-    )
+    out_path = root / ".patchi" / f"weekly_report_{datetime.now(UTC).strftime('%Y%m%d')}.md"
     out_path.write_text(markdown, encoding="utf-8")
 
     con.print()
@@ -386,9 +371,7 @@ def _send_weekly(root: Path) -> None:
 
     # Send via email if a notification channel is configured
     notifications = config.get("notifications", [])
-    email_channels = [
-        n for n in notifications if n.get("type") == "email" or n.get("channel_type") == "email"
-    ]
+    email_channels = [n for n in notifications if n.get("type") == "email" or n.get("channel_type") == "email"]
     if email_channels:
         try:
             from patchi.core.notifications.digest import DigestQueue
@@ -404,13 +387,9 @@ def _send_weekly(root: Path) -> None:
                 }
             ]
             digest.flush(channels=email_channels)
-            con.print(
-                f"[#4ADE80]✓[/#4ADE80] Report sent to [bold]{len(email_channels)}[/bold] email channel(s)"
-            )
+            con.print(f"[#4ADE80]✓[/#4ADE80] Report sent to [bold]{len(email_channels)}[/bold] email channel(s)")
         except Exception as e:
             con.print(f"[yellow]Could not send via email: {e}[/yellow]")
     else:
-        con.print(
-            "[dim]No email channel configured. Set up notifications in config to auto-send.[/dim]"
-        )
+        con.print("[dim]No email channel configured. Set up notifications in config to auto-send.[/dim]")
     con.print()

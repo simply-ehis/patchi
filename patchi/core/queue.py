@@ -143,8 +143,7 @@ def enqueue(
         waiting = [i for i in data["items"] if i["state"] == QueueItemState.WAITING.value]
         if len(waiting) >= QUEUE_MAX_DEPTH:
             raise QueueFullError(
-                f"Queue is full ({QUEUE_MAX_DEPTH} items). "
-                "Clear some tasks or increase queue_max_depth in settings."
+                f"Queue is full ({QUEUE_MAX_DEPTH} items). Clear some tasks or increase queue_max_depth in settings."
             )
 
         item_id = str(uuid.uuid4())[:8]

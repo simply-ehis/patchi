@@ -248,11 +248,49 @@ def _ai_fix(
     except Exception as e:
         _log.warning("Failed to write AI-call audit log entry for %s: %s", file_path, e)
 
-    response = call_ai(config, system, user_prompt)
-    if not response:
+    # AI harness (spec 3): structured contract + reject-and-retry. Ask for
+    # JSON {"patch": ..., "explanation": ...} validated by pydantic instead
+    # of freeform text + regex extraction. On schema failure the harness
+    # retries ONCE with the validation error fed back, then reports
+    # escalate; _ai_fix returns None (the finding surfaces as fix_failed
+    # for human review - never silently accepted).
+    from pydantic import BaseModel, Field
+
+    from patchi.core.ai import harness as _harness
+
+    class _FixProposal(BaseModel):
+        patch: str = Field(description="The complete corrected file content")
+        explanation: str = Field(default="", description="One-line rationale")
+
+    scope_block = ""
+    try:
+        sym_ctx = _harness.build_symbol_context(root or Path.cwd(), Path(file_path).stem)
+        if sym_ctx:
+            scope_block = (
+                "\n\nCall-graph neighborhood of the affected code "
+                "(blast-radius awareness ONLY - do not modify these):\n"
+                + _harness.context_to_prompt_block(sym_ctx)
+            )
+    except Exception as _e:
+        _log.debug("harness context skipped: %s", _e)
+
+    response, status = _harness.harness_call(
+        config,
+        system,
+        user_prompt
+        + "\n\nReturn the FULL corrected file content in the 'patch' field."
+        + scope_block,
+        _FixProposal,
+        max_tokens=3000,
+        # Late-bound: resolve this module's call_ai AT call time so
+        # unittest.mock.patch on patchi.core.fix.fix_agents.call_ai works.
+        call_fn=lambda *a, **kw: call_ai(*a, **kw),
+    )
+    if status != "ok" or response is None:
+        _log.warning("AI fix harness status=%s for %s", status, file_path)
         return None
 
-    proposed = _extract_code_block(response)
+    proposed = response.patch
     if not proposed.strip() or proposed.strip() == file_content.strip():
         return None
 
@@ -619,13 +657,54 @@ class UnitTestRunner(BaseAgent):
             except Exception as e:
                 _log.warning("Failed to write AI-call audit log entry for %s: %s", source_path, e)
 
-            response = call_ai(inp.config, system, user_prompt)
-            if not response:
+            # AI harness (spec 3.2): structured output contract — the model
+            # returns JSON {tests: <code>} validated against a pydantic
+            # schema. Freeform text + regex extraction is gone.
+            from pydantic import BaseModel, Field
+
+            class _TestGen(BaseModel):
+                tests: str = Field(description="Complete test-file content")
+
+            from patchi.core.ai import harness as _harness
+
+            generated, h_status = _harness.harness_call(
+                inp.config,
+                system,
+                user_prompt,
+                _TestGen,
+                max_tokens=2000,
+                # Late-bound so mocks on this module keep working.
+                call_fn=lambda *a, **kw: call_ai(*a, **kw),
+            )
+            if h_status != "ok" or generated is None:
+                _log.warning(
+                    "UnitTestRunner: harness status=%s for %s", h_status, source_path
+                )
                 continue
 
-            proposed = _extract_code_block(response)
+            proposed = generated.tests
             if not proposed.strip():
                 continue
+
+            # AI harness (spec 3.3/3.4): determinism check on generated
+            # tests - must reference the target module and be valid
+            # python, or the generation is rejected (never silently
+            # accepted) and counted as hallucinated for p eval.
+            try:
+                from patchi.core.ai import harness as _harness
+
+                grounded, _why = _harness.check_generation_grounding(
+                    proposed, [Path(source_path).stem], language="python"
+                )
+                if not grounded:
+                    _log.warning(
+                        "UnitTestRunner: rejected hallucinated test for %s: %s",
+                        source_path,
+                        _why,
+                    )
+                    continue
+            except Exception as _e:
+                _log.debug("grounding check skipped: %s", _e)
 
             change = FileChange(path=test_path, original="", proposed=proposed)
 
@@ -662,3 +741,4 @@ class UnitTestRunner(BaseAgent):
         if parent and parent != ".":
             return f"tests/{parent}/{test_name}"
         return f"tests/{test_name}"
+

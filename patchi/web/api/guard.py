@@ -28,8 +28,7 @@ async def get_threats(request: Request) -> str:
             score = t.get("score", 0)
             reason = (t.get("reason", "") or "")[:60]
             lines.append(
-                f"<tr><td style='font-family:var(--font-mono)'>{ip}</td>"
-                f"<td>{score}</td><td>{reason}</td></tr>"
+                f"<tr><td style='font-family:var(--font-mono)'>{ip}</td><td>{score}</td><td>{reason}</td></tr>"
             )
     except Exception:
         lines.append("<tr><td colspan='3'>No threats</td></tr>")

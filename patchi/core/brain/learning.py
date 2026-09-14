@@ -8,6 +8,7 @@ Maintains a Bayesian-style classifier that learns:
 
 All data stored in .patchi/learning.json. Zero external dependencies.
 """
+
 from __future__ import annotations
 
 import json
@@ -141,9 +142,7 @@ def get_summary(root: Path) -> dict:
             summary["agent_trust"][agent] = round(scores["accepts"] / total, 2)
 
     # Find types that should be skipped
-    for ftype in set(
-        list(data.get("acceptances", {}).keys()) + list(data.get("rejections", {}).keys())
-    ):
+    for ftype in set(list(data.get("acceptances", {}).keys()) + list(data.get("rejections", {}).keys())):
         if not should_suggest(ftype, root):
             summary["skip_types"].append(ftype)
 

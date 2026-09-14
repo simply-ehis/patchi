@@ -32,10 +32,7 @@ def _cmd_status():
 
 
 def _coming_soon(command: str, phase: str) -> None:
-    con.print(
-        f"[dim]{command}[/dim] [yellow]→[/yellow] "
-        f"[dim]Coming in {phase}. Not yet available in this build.[/dim]"
-    )
+    con.print(f"[dim]{command}[/dim] [yellow]→[/yellow] [dim]Coming in {phase}. Not yet available in this build.[/dim]")
 
 
 # ── Parser setup ───────────────────────────────────────────────────────────────
@@ -53,9 +50,7 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--no-logo", action="store_true", help="Skip logo draw sequence (for CI)")
     parser.add_argument("--json", action="store_true", help="Output as JSON instead of rich format")
     parser.add_argument("--quiet", action="store_true", help="Errors only")
-    parser.add_argument(
-        "--verbose", action="store_true", help="Show agent reasoning and full detail"
-    )
+    parser.add_argument("--verbose", action="store_true", help="Show agent reasoning and full detail")
     parser.add_argument("--dry-run", action="store_true", help="Preview actions without executing")
     parser.add_argument(
         "--theme",
@@ -63,9 +58,7 @@ def _build_parser() -> argparse.ArgumentParser:
         choices=("dark", "light", "mono", "highcontrast"),
         help="CLI color palette (default: value from settings, or dark)",
     )
-    parser.add_argument(
-        "--no-color", action="store_true", help="Disable color output (same as NO_COLOR env)"
-    )
+    parser.add_argument("--no-color", action="store_true", help="Disable color output (same as NO_COLOR env)")
 
     sub = parser.add_subparsers(dest="command", metavar="<command>")
 
@@ -194,7 +187,9 @@ def main() -> None:
 
     # Onboarding check (M-01): if project exists but onboarding not complete,
     # and the user didn't explicitly run `init`, prompt them to run it.
-    if cmd != "init":
+    # Never in --json mode: stdout must stay machine-parseable (banner corrupts
+    # every `p <cmd> --json` consumer otherwise).
+    if cmd != "init" and not getattr(args, "json", False):
         try:
             from patchi.core.config import find_project_root, load
 

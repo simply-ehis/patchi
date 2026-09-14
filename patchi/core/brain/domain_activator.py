@@ -194,11 +194,7 @@ def _check_native_code_safety(*args) -> bool:
     ]
     ncs_deps: list[str] = []  # C/C++/Rust do not use dep manifests we scan here
 
-    return (
-        _has_ext(ctx.exts, ncs_exts)
-        or _has_import(ctx.imports, ncs_imports)
-        or _has_dependency(ctx.deps, ncs_deps)
-    )
+    return _has_ext(ctx.exts, ncs_exts) or _has_import(ctx.imports, ncs_imports) or _has_dependency(ctx.deps, ncs_deps)
 
 
 def _check_go_concurrency(*args) -> bool:
@@ -220,11 +216,7 @@ def _check_go_concurrency(*args) -> bool:
         "github.com/sourcegraph/conc",  # modern concurrency helpers
     ]
 
-    return (
-        _has_ext(ctx.exts, gco_exts)
-        or _has_import(ctx.imports, gco_imports)
-        or _has_dependency(ctx.deps, gco_deps)
-    )
+    return _has_ext(ctx.exts, gco_exts) or _has_import(ctx.imports, gco_imports) or _has_dependency(ctx.deps, gco_deps)
 
 
 def _check_jvm_hardening(*args) -> bool:
@@ -906,8 +898,7 @@ def _check_kubernetes_hardening(*args) -> bool:
     k8s_deps = ["kubernetes", "pykube", "lightkube", "helm"]
 
     has_k8s_yaml = any(
-        "k8s" in f.lower() or "kubernetes" in f.lower() or "deploy" in f.lower()
-        for f in ctx.infra_files
+        "k8s" in f.lower() or "kubernetes" in f.lower() or "deploy" in f.lower() for f in ctx.infra_files
     )
 
     return (
@@ -1115,9 +1106,7 @@ def _check_configuration_hardening(*args) -> bool:
     return (
         _has_infra_file(ctx.infra_files, ch_infra)
         or _has_import(ctx.imports, ch_imports)
-        or _has_config_key(
-            ctx.config_keys, ["secret", "password", "api_key", "token", "credentials"]
-        )
+        or _has_config_key(ctx.config_keys, ["secret", "password", "api_key", "token", "credentials"])
     )
 
 
@@ -1671,11 +1660,7 @@ def _check_secure_coding_architecture(*args) -> bool:
         "hypercorn",
     ]
 
-    return (
-        _has_import(ctx.imports, sc_imports)
-        or _has_dependency(ctx.deps, sc_deps)
-        or len(list(ctx.deps)) > 5
-    )
+    return _has_import(ctx.imports, sc_imports) or _has_dependency(ctx.deps, sc_deps) or len(list(ctx.deps)) > 5
 
 
 def _check_secure_communication_tls(*args) -> bool:
@@ -1869,12 +1854,9 @@ def _check_security_scanner_tool(*args) -> bool:
         "kics",
     ]
 
-    has_scanner_code = _has_import(ctx.imports, scanner_imports) or _has_dependency(
-        ctx.deps, scanner_deps
-    )
+    has_scanner_code = _has_import(ctx.imports, scanner_imports) or _has_dependency(ctx.deps, scanner_deps)
     has_scanner_structure = any(
-        any(seg in f.lower() for seg in ["scan", "detect", "finding", "agent", "security"])
-        for f in ctx.infra_files
+        any(seg in f.lower() for seg in ["scan", "detect", "finding", "agent", "security"]) for f in ctx.infra_files
     )
 
     return has_scanner_code or has_scanner_structure

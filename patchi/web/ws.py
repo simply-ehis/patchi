@@ -52,9 +52,7 @@ class WSManager:
             if dead:
                 import logging
 
-                logging.getLogger("patchi.web.ws").warning(
-                    "Removed %d dead WS connection(s)", len(dead)
-                )
+                logging.getLogger("patchi.web.ws").warning("Removed %d dead WS connection(s)", len(dead))
 
     @property
     def connection_count(self) -> int:

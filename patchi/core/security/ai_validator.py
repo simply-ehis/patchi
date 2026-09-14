@@ -153,9 +153,7 @@ def heuristic_pre_filter(finding: Any) -> tuple[str, float] | None:
         return "Generated code marker detected", 0.7
 
     # 4. TODO/FIXME with security mention = not a real vuln yet
-    if "todo" in snippet_lower and any(
-        kw in ftype.lower() for kw in ["security", "auth", "crypto"]
-    ):
+    if "todo" in snippet_lower and any(kw in ftype.lower() for kw in ["security", "auth", "crypto"]):
         return "TODO/FIXME marker — not implemented yet", 0.5
 
     return None
@@ -164,18 +162,22 @@ def heuristic_pre_filter(finding: Any) -> tuple[str, float] | None:
 # ── AI Validator ──────────────────────────────────────────────────────────────
 
 _SYSTEM_PROMPT = """\
-You are Patchi's security harness validator. You receive a security finding with its full file context and must determine if it is a TRUE POSITIVE or FALSE POSITIVE.
+You are Patchi's security harness validator. You receive a security finding with its full file context and must
+determine if it is a TRUE POSITIVE or FALSE POSITIVE.
 
 You must produce a chain-of-reasoning in 3 steps:
 
 STEP 1 — CODE READING:
-Read the function/method containing the finding. What does the code actually do? Is the pattern suspicious or benign in context?
+Read the function/method containing the finding. What does the code actually do? Is the pattern suspicious or benign in
+context?
 
 STEP 2 — DATA FLOW:
-Trace the data flow. Where does user-controlled input come from? Is there any sanitization between source and sink? Is the path realistic for an attacker?
+Trace the data flow. Where does user-controlled input come from? Is there any sanitization between source and sink? Is
+the path realistic for an attacker?
 
 STEP 3 — EXPLOITABILITY:
-Given the application context (routes, middleware, auth), can an attacker actually reach this code? What is the real-world impact?
+Given the application context (routes, middleware, auth), can an attacker actually reach this code? What is the
+real-world impact?
 
 After the 3 steps, output a structured JSON verdict:
 {
@@ -313,7 +315,7 @@ class AIValidator:
             if full.is_file():
                 return full.read_text(encoding="utf-8", errors="replace")[:8000]
         except Exception as _exc:
-            _log.warning('_read_file failed: %s', _exc)
+            _log.warning("_read_file failed: %s", _exc)
         return ""
 
     def _build_prompt(
@@ -373,11 +375,7 @@ class AIValidator:
         start = max(0, line - 30)
         for i in range(line - 1, max(0, line - 40), -1):
             line_text = lines[i].strip()
-            if (
-                line_text.startswith("def ")
-                or line_text.startswith("function ")
-                or line_text.startswith("class ")
-            ):
+            if line_text.startswith("def ") or line_text.startswith("function ") or line_text.startswith("class "):
                 start = i
                 break
             if line_text.startswith("@") and i + 1 < len(lines):
@@ -386,9 +384,7 @@ class AIValidator:
 
         # Find function end (go down to find next def/class at same indent)
         end = min(len(lines), line + 30)
-        base_indent = (
-            len(lines[line - 1]) - len(lines[line - 1].lstrip()) if line <= len(lines) else 0
-        )
+        base_indent = len(lines[line - 1]) - len(lines[line - 1].lstrip()) if line <= len(lines) else 0
         for i in range(line, min(len(lines), line + 50)):
             cur_line = lines[i]
             if cur_line.strip() and not cur_line.strip().startswith("#"):

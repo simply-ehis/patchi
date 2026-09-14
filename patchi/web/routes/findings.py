@@ -27,7 +27,7 @@ def _load_chain_intent(root: Path) -> dict:
         try:
             return _json.loads(ci_path.read_text(encoding="utf-8"))
         except Exception as _exc:
-            _log.warning('_load_chain_intent failed: %s', _exc)
+            _log.warning("_load_chain_intent failed: %s", _exc)
     return {"chains": [], "intent_report": None}
 
 
@@ -38,9 +38,7 @@ def _load_visual_regression(root: Path) -> dict:
 
     screenshots = []
     if evidence_dir.is_dir():
-        for f in sorted(
-            evidence_dir.glob("*.png"), key=lambda x: x.stat().st_mtime, reverse=True
-        ):
+        for f in sorted(evidence_dir.glob("*.png"), key=lambda x: x.stat().st_mtime, reverse=True):
             try:
                 stat = f.stat()
                 is_diff = "_diff" in f.stem
@@ -57,7 +55,7 @@ def _load_visual_regression(root: Path) -> dict:
                     }
                 )
             except Exception as _exc:
-                _log.warning('_load_visual_regression failed: %s', _exc)
+                _log.warning("_load_visual_regression failed: %s", _exc)
 
     # Pair screenshots: for each diff, find its source screenshot
     diff_map = {s["source_name"]: s for s in screenshots if s["is_diff"]}
@@ -106,9 +104,7 @@ def _load_dast_evidence(root: Path) -> dict[str, dict]:
         cat = ""
         if test_name.startswith("dast_"):
             cat = test_name[5:].split("_")[0]
-        evidence_map.setdefault(cat, {}).setdefault(test_name, []).append(
-            f"/evidence/dast/{name}"
-        )
+        evidence_map.setdefault(cat, {}).setdefault(test_name, []).append(f"/evidence/dast/{name}")
     return evidence_map
 
 
@@ -192,9 +188,7 @@ async def findings(request: Request):
         from patchi.core.security.remediation import get_remediation_for_step
 
         for chain in chains:
-            chain["remediations"] = [
-                get_remediation_for_step(step) for step in chain.get("steps", [])
-            ]
+            chain["remediations"] = [get_remediation_for_step(step) for step in chain.get("steps", [])]
     except ImportError:
         pass
 
@@ -209,11 +203,12 @@ async def findings(request: Request):
     charter_violations: list[dict] = []
     try:
         from patchi.core.security.charter import check_all_violations, load_charter
+
         charter = load_charter(root)
         if charter.rules:
             charter_violations = [v.to_dict() for v in check_all_violations(charter)]
     except Exception as _exc:
-        _log.warning('findings failed: %s', _exc)
+        _log.warning("findings failed: %s", _exc)
 
     # Load scan history
     scan_history = _load_scan_history(root)
@@ -309,6 +304,7 @@ async def api_findings_history_export(request: Request):
 
     # Also include current findings snapshot
     from patchi.core import memory as mem
+
     scan_results = mem.get_scan_results(root)
     current_findings = []
     for agent_name, data in scan_results.items():

@@ -227,9 +227,7 @@ class ScanScheduler:
                 mem.save_scan_result(
                     agent.name,
                     {
-                        "status": result.status.value
-                        if hasattr(result.status, "value")
-                        else str(result.status),
+                        "status": result.status.value if hasattr(result.status, "value") else str(result.status),
                         "duration_ms": dur,
                         "finding_count": len(result.findings),
                         "files_scanned": result.files_scanned,

@@ -134,8 +134,13 @@ def run(
     # ConsoleLoggingAgent rides along on browser-family runs (§11: auto when
     # p test is active). Fail-open inside the agent if no server/playwright.
     _browser_family = {
-        "BrowserTestAgent", "UIButtonAgent", "UILayoutAgent", "UIAccessibilityAgent",
-        "VisualRegressionAgent", "E2EFlowAgent", "ConsoleLoggingAgent",
+        "BrowserTestAgent",
+        "UIButtonAgent",
+        "UILayoutAgent",
+        "UIAccessibilityAgent",
+        "VisualRegressionAgent",
+        "E2EFlowAgent",
+        "ConsoleLoggingAgent",
     }
     if "ConsoleLoggingAgent" in agent_map and any(n in _browser_family for n in to_run_names):
         if all(a.name != "ConsoleLoggingAgent" for a in to_run):
@@ -144,7 +149,19 @@ def run(
 
     # Chain: Check → Run → Test/Attack (Run relies on Check green, Test relies on Run)
     _launcher_url = None
-    needs_launcher = any(n in ("BrowserTestAgent", "UIButtonAgent", "UILayoutAgent", "UIAccessibilityAgent", "VisualRegressionAgent", "E2EFlowAgent", "ConsoleLoggingAgent") for n in to_run_names) or test_type in ("browser", "e2e", "visual", "full")
+    needs_launcher = any(
+        n
+        in (
+            "BrowserTestAgent",
+            "UIButtonAgent",
+            "UILayoutAgent",
+            "UIAccessibilityAgent",
+            "VisualRegressionAgent",
+            "E2EFlowAgent",
+            "ConsoleLoggingAgent",
+        )
+        for n in to_run_names
+    ) or test_type in ("browser", "e2e", "visual", "full")
     needs_run = needs_launcher or any(n in ("RedTeamAgent", "DastAgent", "ApiFuzzerAgent") for n in to_run_names)
     if needs_run:
         # 1. Check must be green — gate via .patchi/p_check_status.json
@@ -153,7 +170,10 @@ def run(
 
             ready, url, st = require_ready(r)
             if not ready:
-                con.print(f"[yellow]P-Check not READY_TO_SERVE — running p check first[/yellow] [dim]({st.get('status') if st else 'no status'})[/dim]")
+                con.print(
+                    f"[yellow]P-Check not READY_TO_SERVE — running p check first[/yellow]"
+                    f" [dim]({st.get('status') if st else 'no status'})[/dim]"
+                )
                 # Run P-Check side agents inline (install/build/format)
                 try:
                     from patchi.cli.commands.check_cmd import run as check_run
@@ -161,7 +181,10 @@ def run(
                     check_run(root=r)
                     ready, url, st = require_ready(r)
                     if not ready:
-                        con.print(f"[red]P-Check still BLOCKED: {st.get('error') if st else 'unknown'} — aborting test (fix via p check --fix)[/red]")
+                        con.print(
+                            f"[red]P-Check still BLOCKED: {st.get('error') if st else 'unknown'} — aborting test (fix"
+                            f" via p check --fix)[/red]"
+                        )
                         return
                 except Exception as exc:  # noqa: BLE001
                     _log.debug("p check inline failed: %s", exc)
@@ -178,7 +201,11 @@ def run(
                 _launcher_url = run_res.data["base_url"]
                 con.print(f"[dim]RunAgent: app at {_launcher_url} — P-Check was green[/dim]")
             else:
-                _log.debug("RunAgent %s: %s", run_res.status, run_res.data.get("gate_reason") or run_res.errors)
+                _log.debug(
+                    "RunAgent %s: %s",
+                    run_res.status,
+                    run_res.data.get("gate_reason") or run_res.errors,
+                )
                 if run_res.data.get("gate_blocked"):
                     con.print(f"[red]Run blocked: {run_res.data.get('gate_reason')}[/red]")
                     return
@@ -196,7 +223,7 @@ def run(
 
                 _launcher_url = ensure_running(r, config, {})
             except Exception as _exc:
-                _log.debug('suppressed: %s', _exc)
+                _log.debug("suppressed: %s", _exc)
 
     con.print()
     label = f" [dim]→ {area}[/dim]" if area else ""
@@ -279,7 +306,12 @@ def run(
     total_tests = sum(r.data.get("suite", {}).get("total", 0) for r in results)
     total_passed = sum(r.data.get("suite", {}).get("passed", 0) for r in results)
     total_failed = sum(r.data.get("suite", {}).get("failed", 0) for r in results)
-    lp.stop(summary=f"{total_tests} tests - {total_passed} passed, {total_failed} failed")
+    if total_tests == 0:
+        # §2d honesty fix: zero tests is NOT a pass — it's a distinct state,
+        # surfaced as such here and in the results banner below.
+        lp.stop(summary="0 tests found - nothing ran (this is not a pass)")
+    else:
+        lp.stop(summary=f"{total_tests} tests - {total_passed} passed, {total_failed} failed")
     # Launcher teardown
     if _launcher_url:
         try:
@@ -312,9 +344,7 @@ def run(
             r,
         )
         if dropped:
-            con.print(
-                f"[dim]UI gate: kept {len(kept)}, dropped {len(dropped)} unverifiable[/dim]"
-            )
+            con.print(f"[dim]UI gate: kept {len(kept)}, dropped {len(dropped)} unverifiable[/dim]")
     except Exception as e:
         _log.warning("UI merge failed: %s", e)
 
@@ -381,10 +411,7 @@ def run_generate(test_type: str | None = None, root: Path | None = None) -> None
         if not summary["written"]:
             con.print("[yellow]No static routes detected — nothing to generate.[/yellow]")
             return
-        con.print(
-            f"[green]Generated {summary['routes']} contract smoke tests → "
-            f"{summary['path']}[/green]"
-        )
+        con.print(f"[green]Generated {summary['routes']} contract smoke tests → {summary['path']}[/green]")
         con.print(f"[dim]Base URL: {summary['base_url']} (override with PATCHI_CONTRACT_BASE_URL)[/dim]")
         con.print(f"[dim]Run: pytest {summary['path']} (needs the app serving)[/dim]")
         return
@@ -421,6 +448,7 @@ def run_generate(test_type: str | None = None, root: Path | None = None) -> None
 
             tags = load_body_tags(r)
             corpus = FileCorpus(r)
+
             class _FI:
                 def __init__(self, p: str):
                     self.path = p
@@ -442,7 +470,10 @@ def run_generate(test_type: str | None = None, root: Path | None = None) -> None
         con.print("[yellow]Patchi found no untested core files to generate for.[/yellow]")
         con.print("[dim]Patchi decides coverage gap: all core files already have tests or no core detected[/dim]")
         return
-    con.print(f"[dim]Patchi auto-picked {len(project_files)} untested core files: {', '.join(project_files[:3])}{' …' if len(project_files)>3 else ''}[/dim]")
+    con.print(
+        f"[dim]Patchi auto-picked {len(project_files)} untested core files:"
+        f" {', '.join(project_files[:3])}{' …' if len(project_files) > 3 else ''}[/dim]"
+    )
     scope_msg = f" for {test_type} tests" if test_type else " — Patchi decided"
     top_files = project_files  # Patchi decides, not user
 
@@ -472,10 +503,10 @@ def run_generate(test_type: str | None = None, root: Path | None = None) -> None
         scans = _mem2.get_scan_results(r) or {}
         mut = scans.get("MutationAgent", {}).get("findings", [])
         if mut:
-            mut_lines = [f"- {f.get('file')}:{f.get('line')} {f.get('message','')[:80]}" for f in mut[:5]]
+            mut_lines = [f"- {f.get('file')}:{f.get('line')} {f.get('message', '')[:80]}" for f in mut[:5]]
             extra_context.append("MUTATION SURVIVED (must kill):\n" + "\n".join(mut_lines))
     except Exception as _exc:
-        _log.debug('suppressed: %s', _exc)
+        _log.debug("suppressed: %s", _exc)
     try:
         # Branch gaps: heuristic from FileCorpus
         from patchi.core.brain.file_corpus import FileCorpus
@@ -493,16 +524,21 @@ def run_generate(test_type: str | None = None, root: Path | None = None) -> None
         if branch_gaps:
             extra_context.append("BRANCH GAPS (cover each if/else):\n" + "\n".join(branch_gaps[:5]))
     except Exception as _exc:
-        _log.debug('suppressed: %s', _exc)
+        _log.debug("suppressed: %s", _exc)
     try:
         from patchi.core.fuzz.input_fuzzer import InputFuzzer
 
         fz = InputFuzzer(seed=42)
         fuzz_samples = [f.to_dict() for f in fz.fuzz_string("test", count=5)]
-        extra_context.append("FUZZ BOUNDARIES (test these):\n" + "\n".join(f"- {s['label']}: {s['value']!r} ({s['strategy']})" for s in fuzz_samples[:4]))
+        extra_context.append(
+            "FUZZ BOUNDARIES (test these):\n"
+            + "\n".join(f"- {s['label']}: {s['value']!r} ({s['strategy']})" for s in fuzz_samples[:4])
+        )
     except Exception as _exc:
-        _log.debug('suppressed: %s', _exc)
-    extra_block = "\n\n".join(extra_context) if extra_context else "No extra gap data — cover happy path + one edge per function."
+        _log.debug("suppressed: %s", _exc)
+    extra_block = (
+        "\n\n".join(extra_context) if extra_context else "No extra gap data — cover happy path + one edge per function."
+    )
     if extra_block:
         extra_block = f"\n\nSMART CONTEXT — Patchi decided what to catch:\n{extra_block}\n"
 
@@ -520,7 +556,8 @@ Rules:
 6. NEVER use module-level `with patch(...)` blocks — use @patch decorators on test methods only
 7. NEVER import the module under test at the top level — import inside each test method
 8. Keep all imports inside test functions/methods to avoid side effects at collection time
-9. SMART: For each function, add one happy path + one boundary/branch test + one mutation-killing test (use extra context above). For security-sensitive fns, add injection/encoding payload test from FUZZ BOUNDARIES.
+9. SMART: For each function, add one happy path + one boundary/branch test + one mutation-killing test (use extra
+context above). For security-sensitive fns, add injection/encoding payload test from FUZZ BOUNDARIES.
 10. Prioritize covering MUTATION SURVIVED and BRANCH GAPS listed — those are Patchi's priority catch list."""
 
     from patchi.core.ai.prompts import SYSTEM_PROMPTS, Skill
@@ -559,9 +596,7 @@ Rules:
             else:
                 lp.log("  Tests verified and written")
                 lp.stop(summary="Tests generated and verified")
-                con.print(
-                    f"[#4ADE80]✓[/#4ADE80] Tests verified and written to [bold]{out_path.relative_to(r)}[/bold]"
-                )
+                con.print(f"[#4ADE80]✓[/#4ADE80] Tests verified and written to [bold]{out_path.relative_to(r)}[/bold]")
             con.print("[dim]Run with: p test unit[/dim]")
         else:
             lp.stop(summary="AI returned empty response")
@@ -628,8 +663,7 @@ def run_report(last_n: int = 20, root: Path | None = None) -> None:
             str(passed) if passed else "—",
             Text(str(failed), style="#FF4D6D") if failed else "—",
             f"{dur}ms" if dur else "—",
-            ", ".join(a.replace("Agent", "") for a in agents[:4])
-            + ("…" if len(agents) > 4 else ""),
+            ", ".join(a.replace("Agent", "") for a in agents[:4]) + ("…" if len(agents) > 4 else ""),
         )
 
     con.print()
@@ -646,7 +680,8 @@ def run_report(last_n: int = 20, root: Path | None = None) -> None:
         con.print(f"[dim]Total runs: {total_runs}[/dim]")
         if agents_run:
             con.print(
-                f"[dim]Agents exercised: {', '.join(f'{k}({v})' for k, v in sorted(agents_run.items(), key=lambda x: -x[1]))}[/dim]"
+                f"[dim]Agents exercised:"
+                f" {', '.join(f'{k}({v})' for k, v in sorted(agents_run.items(), key=lambda x: -x[1]))}[/dim]"
             )
     con.print()
 
@@ -858,8 +893,25 @@ def _show_results(results: list) -> None:
     from patchi.core.agents.base import AgentStatus
 
     all_passed = all(r.finding_count == 0 for r in results if r.status != AgentStatus.SKIPPED)
+    # §2d: "0 tests ran" must never render as "All tests passed". Sum the
+    # suites; if nothing actually executed, show the distinct no-tests state
+    # with the fix command, not a green success banner.
+    total_tests_run = sum((r.data.get("suite", {}) or {}).get("total", 0) or 0 for r in results)
 
     con.print()
+
+    if results and total_tests_run == 0 and all_passed:
+        con.print(
+            Panel(
+                "[bold #FACC15]No tests found.[/bold #FACC15]\n"
+                "[dim]0 tests ran — this is not a pass. Tests verify nothing until they exist.[/dim]\n"
+                "[dim]Generate a starting suite: [bold]p test generate[/bold][/dim]",
+                border_style="#FACC15",
+                padding=(0, 1),
+            )
+        )
+        con.print()
+        return
 
     if all_passed and results:
         con.print(
@@ -1006,11 +1058,7 @@ def _show_attack_results(result, default_target: str = "127.0.0.1:8000") -> None
     con.print(
         Panel(
             f"[bold #F2EDD6]Target:[/bold #F2EDD6]  [dim]{target}[/dim]\n"
-            + (
-                f"[bold #F2EDD6]Framework:[/bold #F2EDD6]  [dim]{', '.join(frameworks)}[/dim]\n"
-                if frameworks
-                else ""
-            )
+            + (f"[bold #F2EDD6]Framework:[/bold #F2EDD6]  [dim]{', '.join(frameworks)}[/dim]\n" if frameworks else "")
             + f"[bold #F2EDD6]Modules:[/bold #F2EDD6]  [dim]{len(modules_run)} probe(s)[/dim]\n"
             + f"[bold #F2EDD6]Findings:[/bold #F2EDD6]  [dim]{result.finding_count}[/dim]",
             border_style="#C8621A",
@@ -1070,8 +1118,4 @@ def _scope_from_area(root: Path, area: str | None) -> list[str]:
     if area_path.is_dir():
         return [str(p.relative_to(root)) for p in area_path.rglob("*.py")]
     # Treat as prefix filter
-    return [
-        str(p.relative_to(root))
-        for p in root.rglob("*.py")
-        if str(p.relative_to(root)).startswith(area)
-    ]
+    return [str(p.relative_to(root)) for p in root.rglob("*.py") if str(p.relative_to(root)).startswith(area)]

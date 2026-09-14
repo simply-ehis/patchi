@@ -37,6 +37,7 @@ class GateResult:
 def _run_gate(cmd: list[str], cwd: str, timeout: int = 300, env: dict | None = None) -> GateResult:
     """Run a gate command and return structured result."""
     import os as _os
+
     name = cmd[0]
     start = time.time()
     run_env = dict(_os.environ)
@@ -46,11 +47,15 @@ def _run_gate(cmd: list[str], cwd: str, timeout: int = 300, env: dict | None = N
         # DEVNULL avoids pipe-buffer deadlocks on Windows when pytest's
         # subprocess tests inherit and hold pipe handles open.
         result = subprocess.run(
-            cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-            cwd=cwd, env=run_env, timeout=timeout,
+            cmd,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            cwd=cwd,
+            env=run_env,
+            timeout=timeout,
         )
         duration = time.time() - start
-        output = f'exit code {result.returncode}'
+        output = f"exit code {result.returncode}"
 
         if result.returncode == 0:
             return GateResult(name=name, passed=True, duration_s=duration, output=output)
@@ -58,24 +63,35 @@ def _run_gate(cmd: list[str], cwd: str, timeout: int = 300, env: dict | None = N
             # Check for pytest collection errors
             if "ERRORS" in output and "no tests ran" in output.lower():
                 return GateResult(
-                    name=name, passed=False, duration_s=duration,
-                    output=output, detail="collection_error",
+                    name=name,
+                    passed=False,
+                    duration_s=duration,
+                    output=output,
+                    detail="collection_error",
                     kind="collection_error",
                 )
             return GateResult(
-                name=name, passed=False, duration_s=duration,
-                output=output, detail=f"exit code {result.returncode}",
+                name=name,
+                passed=False,
+                duration_s=duration,
+                output=output,
+                detail=f"exit code {result.returncode}",
             )
     except subprocess.TimeoutExpired:
         duration = time.time() - start
         return GateResult(
-            name=name, passed=False, duration_s=duration,
-            detail="timeout", kind="timeout",
+            name=name,
+            passed=False,
+            duration_s=duration,
+            detail="timeout",
+            kind="timeout",
         )
     except Exception as e:
         duration = time.time() - start
         return GateResult(
-            name=name, passed=False, duration_s=duration,
+            name=name,
+            passed=False,
+            duration_s=duration,
             detail=str(e),
         )
 
@@ -105,6 +121,7 @@ def run(action: str = "check", json_output: bool = False, fast: bool = False) ->
     """Entry point for ``p dev check``."""
     try:
         from patchi.core.config import require_project_root
+
         root = str(require_project_root())
     except RuntimeError as e:
         console.print(f"[red]{e}[/red]")
@@ -115,8 +132,20 @@ def run(action: str = "check", json_output: bool = False, fast: bool = False) ->
     # ── Gate 1: Ruff lint ────────────────────────────────────────────────
     console.print("[bold]Gate 1: Ruff Lint[/bold]")
     gate1 = _run_gate(
-        [sys.executable, "-m", "ruff", "check", "patchi/", "--select", "E,F,W", "--ignore", "E402,E501,E741", "--quiet"],
-        cwd=root, timeout=120,
+        [
+            sys.executable,
+            "-m",
+            "ruff",
+            "check",
+            "patchi/",
+            "--select",
+            "E,F,W",
+            "--ignore",
+            "E402,E501,E741",
+            "--quiet",
+        ],
+        cwd=root,
+        timeout=120,
     )
     results.append(gate1)
     if gate1.passed:
@@ -189,7 +218,7 @@ def run(action: str = "check", json_output: bool = False, fast: bool = False) ->
         "tests/test_debug_capture.py",
         "tests/test_debug_codelldb.py",
         "tests/test_debug_node.py",
-        "tests/test_debug_powershell.py",        # Quality / verification
+        "tests/test_debug_powershell.py",  # Quality / verification
         "tests/test_freshness.py",
         "tests/test_patch.py",
         "tests/test_proactive.py",
@@ -244,15 +273,14 @@ def run(action: str = "check", json_output: bool = False, fast: bool = False) ->
     if os.cpu_count() and os.cpu_count() >= 4:
         try:
             import xdist  # noqa: F401
+
             _pytest_args += ["-n", "auto", "--dist", "loadscope"]
         except ImportError:
             pass
     gate2 = _run_gate(
-         _pytest_args + test_list + [
-         "-q",
-         f"--junitxml={junit_path}",
-         "--tb=line"],
-         cwd=root, timeout=360,
+        _pytest_args + test_list + ["-q", f"--junitxml={junit_path}", "--tb=line"],
+        cwd=root,
+        timeout=360,
         env={"PATCHI_OFFLINE": "1"},
     )
     results.append(gate2)
@@ -285,7 +313,8 @@ def run(action: str = "check", json_output: bool = False, fast: bool = False) ->
     console.print("\n[bold]Gate 3: Security Scan (changed files)[/bold]")
     gate3 = _run_gate(
         [sys.executable, "-m", "patchi.cli.main", "scan", "--changed", "--dry-run"],
-        cwd=root, timeout=300,
+        cwd=root,
+        timeout=300,
     )
     results.append(gate3)
     if gate3.passed:
