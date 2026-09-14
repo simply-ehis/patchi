@@ -62,6 +62,9 @@ def _find_secrets_in_file(filepath: Path) -> list[tuple[str, int, str]]:
             # Skip if it's inside a set/mapping container (detection patterns)
             if stripped.startswith("(") or stripped.startswith("["):
                 continue
+            # Skip detection-evidence modules (they define placeholder/known-bad patterns)
+            if "secret_evidence" in str(filepath) or "noise_filter" in str(filepath):
+                continue
             findings.append((name, ln, m.group()))
     return findings
 
