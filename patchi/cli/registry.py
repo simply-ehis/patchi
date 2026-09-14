@@ -576,6 +576,7 @@ COMMANDS: list[Command] = [
             Arg("--licenses", action="store_true", help="Check license compliance"),
             Arg("--outdated", action="store_true", help="Check for outdated packages"),
             Arg("--cve", action="store_true", help="Check for known CVEs"),
+            Arg("--sbom-limit", type=int, default=5000, help="Max deps in SBOM (0=unlimited)"),
             Arg("--json", dest="json_output", action="store_true", help="Output as JSON"),
         ),
     ),
@@ -1047,6 +1048,89 @@ COMMANDS: list[Command] = [
         ),
     ),
     Command(
+        "governance",
+        "GUARD infrastructure surface — action log, policy, history, blast radius, triage daemon",
+        "patchi.cli.commands.governance_cmd:run",
+        namespace_handler=True,
+        subcommands=(
+            Command(
+                "actions",
+                "Show the governance action log (audit trail)",
+                args=(
+                    Arg("--limit", dest="limit", type=int, default=50, help="Rows to show (default 50)"),
+                    Arg("--json", dest="json_output", action="store_true", help="Output as JSON"),
+                ),
+            ),
+            Command(
+                "policy",
+                "Show the policy, or test a target against it",
+                args=(
+                    Arg("target", nargs="?", default=None, help="File/path to test against the policy"),
+                    Arg(
+                        "--severity",
+                        dest="severity",
+                        choices=("info", "low", "medium", "high", "critical"),
+                        default="medium",
+                        help="Severity to assume for the target check",
+                    ),
+                    Arg("--json", dest="json_output", action="store_true", help="Output as JSON"),
+                ),
+            ),
+            Command(
+                "history",
+                "Scan history + findings lifecycle analytics",
+                args=(
+                    Arg("--limit", dest="limit", type=int, default=20, help="Rows to show (default 20)"),
+                    Arg("--json", dest="json_output", action="store_true", help="Output as JSON"),
+                ),
+            ),
+            Command(
+                "verify",
+                "Mark a finding's fix as verified",
+                args=(
+                    Arg("finding_id", help="Finding id from `p governance history` / the DB"),
+                    Arg(
+                        "--force",
+                        dest="force",
+                        action="store_true",
+                        help="Transition even if the finding is not currently open",
+                    ),
+                    Arg("--json", dest="json_output", action="store_true", help="Output as JSON"),
+                ),
+            ),
+            Command(
+                "impact",
+                "Blast radius of a symbol or package",
+                args=(
+                    Arg("symbol", help="Symbol or package name to count references for"),
+                    Arg("--json", dest="json_output", action="store_true", help="Output as JSON"),
+                ),
+            ),
+            Command(
+                "triage",
+                "Event-stream anomaly daemon (stats without --start)",
+                args=(
+                    Arg("--start", dest="start", action="store_true", help="Subscribe to the live EventBus"),
+                    Arg("--json", dest="json_output", action="store_true", help="Output as JSON"),
+                ),
+            ),
+            Command(
+                "generate",
+                "Generate CI configs from CICDGeneratorAgent templates",
+                args=(
+                    Arg("--write", dest="write", action="store_true", help="Actually create missing files"),
+                    Arg(
+                        "--force",
+                        dest="force",
+                        action="store_true",
+                        help="Overwrite existing files (default: never overwrite)",
+                    ),
+                    Arg("--json", dest="json_output", action="store_true", help="Output as JSON"),
+                ),
+            ),
+        ),
+    ),
+    Command(
         "rules",
         "View and validate security rule packs",
         "patchi.cli.commands.rules_cmd:run",
@@ -1218,6 +1302,12 @@ COMMANDS: list[Command] = [
                 help="Only remove files older than this (e.g. 7d, 24h, 30m)",
             ),
             Arg(
+                "--no-backup",
+                dest="no_backup",
+                action="store_true",
+                help="Delete permanently instead of backing up first",
+            ),
+            Arg(
                 "--json",
                 dest="json_output",
                 action="store_true",
@@ -1259,6 +1349,12 @@ COMMANDS: list[Command] = [
                 help="baseline=capture, compare=diff, reset=delete, list=show",
             ),
             Arg("--json", dest="json_output", action="store_true", help="Output as JSON"),
+            Arg(
+                "--no-backup",
+                dest="no_backup",
+                action="store_true",
+                help="Delete permanently instead of backing up first",
+            ),
         ),
     ),
     Command(
@@ -1282,8 +1378,10 @@ COMMANDS: list[Command] = [
         "Generate a project architecture document (Tier 1: no AI required)",
         "patchi.cli.commands.docs_cmd:run",
         args=(
-            Arg("--output", "-o", help="Output file path (default: docs/ARCHITECTURE.md)"),
+            Arg("--output", help="Output file path (default: docs/ARCHITECTURE.md)"),
             Arg("--stdout", help="Print to stdout instead of writing a file", action="store_true"),
+            Arg("--regen", action="store_true", help="Force regeneration even if docs look fresh"),
+            Arg("--auto", action="store_true", help="Auto-regenerate when docs are stale (skip if fresh)"),
         ),
     ),
 ]

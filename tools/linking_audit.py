@@ -76,10 +76,10 @@ def main() -> int:
     # targets, and pipeline helpers are programmatic by design. Listing them
     # here keeps the orphan table to genuine user-facing gaps.
     KNOWN_INFRA = {
-        "TriageAgent": "EventBus daemon (run_detached) + detector dispatcher target",
-        "GovernanceAgent": "policy-gate wrapper; patchi_action_log() is the live path",
-        "HistoryAgent": "analytics reader; `p trend` reads the history DB directly",
-        "BlastRadiusAgent": "fix-pipeline helper; `p impact` carries equivalent logic",
+        "TriageAgent": "EventBus daemon; `p governance triage` shows stats / --start subscribes live",
+        "GovernanceAgent": "policy-gate wrapper; `p governance actions`/`policy` expose the audit trail",
+        "HistoryAgent": "analytics reader; `p governance history` + `p trend`",
+        "BlastRadiusAgent": "fix-pipeline helper; `p governance impact <symbol>` runs the same analysis",
     }
 
     rows = []
@@ -170,6 +170,14 @@ def main() -> int:
         "SECURITY group with ran/skipped coverage statement."
     )
     out.append("- CICDGeneratorAgent: had no CLI entry → `p dev ci` runs it.")
+    out.append(
+        "- GUARD surface: `p governance` (actions/policy/history/verify/impact/"
+        "triage/generate) built — action-log reader, history analytics, blast-"
+        "radius counter, triage daemon, and CI templates are user-reachable now. "
+        "Latent crashes fixed in the same pass: EWMAMeter.current_value missing, "
+        "check_silence referencing nonexistent self._ewma, DetectionPipeline "
+        "building Events with a nonexistent schema (Sigma stage silently disabled)."
+    )
     out.append(
         "- GUARD infra (Triage/Governance/History/BlastRadius): programmatic "
         "by design (daemon/dispatcher/reader/helper) — OK (infra), not orphans."

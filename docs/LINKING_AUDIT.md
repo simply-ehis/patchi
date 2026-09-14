@@ -27,12 +27,12 @@ Registered agents: **123**. ORPHANED from CLI: **0**.
 | SecurityFixer | fix | OK (group dispatch) | no | — |
 | TypeFixer | fix | OK (group dispatch) | no | — |
 | UnitTestRunner | fix | OK (group dispatch) | no | — |
-| BlastRadiusAgent | guard | OK (infra: fix-pipeline helper; `p impact` carries equivalent logic) | no | — |
+| BlastRadiusAgent | guard | OK (infra: fix-pipeline helper; `p governance impact <symbol>` runs the same analysis) | no | — |
 | CICDGeneratorAgent | guard | OK (named in CLI) | no | — |
-| GovernanceAgent | guard | OK (infra: policy-gate wrapper; patchi_action_log() is the live path) | no | — |
-| HistoryAgent | guard | OK (infra: analytics reader; `p trend` reads the history DB directly) | no | — |
+| GovernanceAgent | guard | OK (infra: policy-gate wrapper; `p governance actions`/`policy` expose the audit trail) | no | — |
+| HistoryAgent | guard | OK (infra: analytics reader; `p governance history` + `p trend`) | no | — |
 | PlanAuditorAgent | guard | OK (named in CLI) | no | — |
-| TriageAgent | guard | OK (infra: EventBus daemon (run_detached) + detector dispatcher target) | no | — |
+| TriageAgent | guard | OK (named in CLI) | no | — |
 | BugPredictorAgent | scanner | OK (group dispatch) | no | — |
 | BuildAgent | scanner | OK (group dispatch) | no | cargo, npm |
 | BuildToolValidatorAgent | scanner | OK (group dispatch) | no | — |
@@ -43,7 +43,7 @@ Registered agents: **123**. ORPHANED from CLI: **0**.
 | DeadCodeScanner | scanner | OK (group dispatch) | no | — |
 | DependencyScanner | scanner | OK (group dispatch) | no | cargo, npm |
 | DocClaimAgent | scanner | OK (group dispatch) | no | — |
-| EnvScanner | scanner | OK (group dispatch) | no | — |
+| EnvScanner | scanner | OK (group dispatch) | no | shannon |
 | FeatureFlagArchaeologyAgent | scanner | OK (group dispatch) | no | git |
 | FormatAgent | scanner | OK (group dispatch) | no | eslint |
 | FrontendFrameworkAgent | scanner | OK (group dispatch) | no | — |
@@ -84,7 +84,7 @@ Registered agents: **123**. ORPHANED from CLI: **0**.
 | ComplianceAgent | security | OK (group dispatch) | no | — |
 | ConfigAuditAgent | security | OK (group dispatch) | no | semgrep |
 | ContainerScannerAgent | security | OK (group dispatch) | no | trivy |
-| CryptoAgent | security | OK (group dispatch) | no | — |
+| CryptoAgent | security | OK (group dispatch) | no | safety |
 | DASTAgent | security | OK (group dispatch) | no | playwright |
 | DNSSecurityAgent | security | OK (group dispatch) | no | — |
 | DependencyCVEChecker | security | OK (group dispatch) | no | cargo, npm, osv-scanner |
@@ -154,5 +154,6 @@ Registered agents: **123**. ORPHANED from CLI: **0**.
 - `p security`: did not exist → built as the security-family default (full SECURITY group + skip reasons).
 - `p ready` security step: hardcoded 2-agent shortlist → full SECURITY group with ran/skipped coverage statement.
 - CICDGeneratorAgent: had no CLI entry → `p dev ci` runs it.
+- GUARD surface: `p governance` (actions/policy/history/verify/impact/triage/generate) built — action-log reader, history analytics, blast-radius counter, triage daemon, and CI templates are user-reachable now. Latent crashes fixed in the same pass: EWMAMeter.current_value missing, check_silence referencing nonexistent self._ewma, DetectionPipeline building Events with a nonexistent schema (Sigma stage silently disabled).
 - GUARD infra (Triage/Governance/History/BlastRadius): programmatic by design (daemon/dispatcher/reader/helper) — OK (infra), not orphans.
 - `p scan --dast` imported deleted `dast_scanner` (always errored) → rewired, see above.

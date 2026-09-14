@@ -579,6 +579,24 @@ Show change impact / blast radius.
 | `--all` | Show all impacts |
 | `--json` | JSON output |
 
+### `p governance`
+GUARD infrastructure surface — the audit trail, policy, history, blast radius,
+event triage, and CI config generation behind one command.
+
+| Subcommand | What it does |
+|------------|-------------|
+| `p governance actions` | Show the governance action log (what agents/fixes/gates did) |
+| `p governance policy [target]` | Show the policy; with a target, test it against the policy |
+| `p governance history` | Scan history + findings lifecycle analytics |
+| `p governance verify <id>` | Mark a finding's fix as verified (`--force` to override status) |
+| `p governance impact <symbol>` | Blast radius: count references across the codebase |
+| `p governance triage` | Event-anomaly stats; `--start` subscribes to the live EventBus |
+| `p governance generate` | Preview CI configs; `--write` creates them, never overwrites without `--force` |
+
+| Flag | Effect |
+|------|--------|
+| `--json` | JSON output (all subcommands) |
+
 ### `p charter`
 Project charter and rules management.
 

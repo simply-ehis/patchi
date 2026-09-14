@@ -188,8 +188,11 @@ def main() -> None:
     # Onboarding check (M-01): if project exists but onboarding not complete,
     # and the user didn't explicitly run `init`, prompt them to run it.
     # Never in --json mode: stdout must stay machine-parseable (banner corrupts
-    # every `p <cmd> --json` consumer otherwise).
-    if cmd != "init" and not getattr(args, "json", False):
+    # every `p <cmd> --json` consumer otherwise). Subcommand-level --json lives
+    # on json_output (subparsers don't inherit top-level dests), so check both.
+    if cmd != "init" and not (
+        getattr(args, "json", False) or getattr(args, "json_output", False)
+    ):
         try:
             from patchi.core.config import find_project_root, load
 

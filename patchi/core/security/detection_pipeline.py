@@ -85,7 +85,7 @@ class DetectionPipeline:
         return self._sigma_set
 
     def _findings_to_events(self, findings):
-        from patchi.core.detector.event import Event, EventSeverity, EventSource
+        from patchi.core.detector.event import Event, EventSeverity, EventSource, TechniqueID
 
         events = []
         for cf in findings:
@@ -95,13 +95,21 @@ class DetectionPipeline:
                 "medium": EventSeverity.MEDIUM,
                 "low": EventSeverity.LOW,
             }
+            # Part 3 §1 linking pass: this used Event(title=…) and
+            # EventSource.SECURITY_SCAN — neither exists, so the whole Sigma
+            # stage raised TypeError/AttributeError inside process() and the
+            # coordinator's blanket except silently disabled the pipeline on
+            # every scan (the exact "failure that looks like nothing happened"
+            # class). Fields now match Event's real schema.
             event = Event(
-                title=cf.finding.message[:200] if cf.finding.message else cf.finding.type,
+                summary=cf.finding.message[:200] if cf.finding.message else cf.finding.type,
+                technique_id=TechniqueID.UNKNOWN,
                 severity=sev_map.get(cf.finding.severity, EventSeverity.INFO),
-                source=EventSource.SECURITY_SCAN,
+                source=EventSource.AGENT,
+                agent_name=cf.finding.agent or "",
                 source_details={
                     "file": cf.finding.file or "",
-                    "line": cf.finding.line or 0,
+                    "line": str(cf.finding.line or 0),
                     "agent": cf.finding.agent or "",
                     "cwe": cf.finding.cwe or "",
                     "category": "security_scan",

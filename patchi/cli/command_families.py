@@ -67,7 +67,7 @@ FAMILIES: dict[str, CommandFamily] = {
         name="security",
         description="Security — vulnerability scanning and hardening",
         default_command="security",
-        commands=["chains", "findings", "rules", "deps", "assure", "charter", "restrict"],
+        commands=["chains", "findings", "rules", "deps", "assure", "charter", "restrict", "governance"],
         agent_domain="security",
     ),
     "web": CommandFamily(

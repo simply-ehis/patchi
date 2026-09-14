@@ -91,6 +91,14 @@ class EWMAMeter:
     def std(self) -> float:
         return self.variance**0.5
 
+    # Part 3 §1 linking pass: `_on_event`'s rate-spike check compares the
+    # current rate against the EWMA baseline, but this accessor never existed —
+    # the first warm source would have crashed `_on_event` with AttributeError
+    # the moment its 5th event arrived.
+    @property
+    def current_value(self) -> float:
+        return self._current_value
+
     def z_score(self, value: float) -> float:
         s = self.std
         if self._count < self.min_samples:
@@ -122,18 +130,16 @@ class SourceStats:
 @register
 class TriageAgent(BaseAgent):
     """
-    Statistical anomaly detection over the event stream.
+    Statistical anomaly detection over the detector event stream.
 
-    Runs continuously in the background, listening to the EventBus and updating
-    per-source statistics. When an anomaly is detected, it creates a Finding.
-
-    This agent has no `_run()` with a single AgentInput — instead it uses a
-    long-lived `run_detached()` coroutine that subscribes to the bus.
+    Runs detached: `p governance triage --start` subscribes it to the EventBus
+    and serves until interrupted; `p governance triage` prints its current
+    statistical view without touching any live stream.
     """
 
     name = "TriageAgent"
     group = AgentGroup.GUARD
-    timeout = 300
+    timeout = 30
 
     def __init__(self) -> None:
         super().__init__()
@@ -197,12 +203,32 @@ class TriageAgent(BaseAgent):
 
         # Check: z-score severity anomaly
         z = stats.rate_meter.z_score(stats.rate_meter.current_value)
-        if z > self._z_score_threshold:
+        if abs(z) > self._z_score_threshold:
             await self._report_anomaly(
                 event,
                 source_key,
-                "statistical_outlier",
-                f"Event from {source_key} is {z:.1f}σ above {tid} baseline (z-score anomaly)",
+                "z_score",
+                f"Event rate from {source_key} deviates {z:.1f}σ from its EWMA baseline",
+            )
+
+        # Check: novelty (technique never seen from this source)
+        await self._check_novelty(event, source_key, tid)
+
+    async def _check_novelty(self, event: Event, source_key: str, tid: str) -> None:
+        """Flag a technique_id this source has never emitted before."""
+        stats = self._sources[source_key]
+        if stats.event_count <= 1:
+            # First ever event from a source is definitionally novel, not an
+            # anomaly — flagging every source's debut would be pure noise.
+            return
+        # technique_ids already contains the current event's tid (added in
+        # _on_event before update), so novelty == this tid arrived exactly once.
+        if sum(1 for t in stats.technique_ids if t == tid) == 1 and tid != TechniqueID.UNKNOWN.value:
+            await self._report_anomaly(
+                event,
+                source_key,
+                "novelty",
+                f"{source_key} emitted technique {tid} for the first time",
             )
 
     # ── Silence check (call periodically, e.g. from a timer) ──────────────────
@@ -212,7 +238,9 @@ class TriageAgent(BaseAgent):
         now = time.monotonic()
         findings: list[Finding] = []
         for source_key, stats in list(self._sources.items()):
-            if stats.event_count < self._ewma.min_samples:
+            # Only sources that were actually chatty (enough events to have a
+            # meaningful baseline) participate in the dead-man's switch.
+            if stats.event_count < 5:
                 continue
             elapsed = now - stats.last_seen
             if elapsed > self._silence_timeout_s:
@@ -220,31 +248,18 @@ class TriageAgent(BaseAgent):
                 findings.append(
                     Finding(
                         agent=self.name,
-                        type="source_silent",
+                        type="silence_anomaly",
                         severity=Severity.MEDIUM,
                         file="",
-                        line=0,
-                        message=f"Source {source_key} has been silent for {elapsed:.0f}s (last seen: {last_seen_str})",
-                        suggestion="Check if the detector pipeline is healthy or if this source was intentionally"
-                        " removed",
+                        message=(
+                            f"Source {source_key} went silent: {elapsed / 60:.0f} min"
+                            f" since last event (was emitting"
+                            f" {stats.rate_meter.mean:.2f} events/s)"
+                        ),
+                        detail=f"last_seen={last_seen_str}; events_seen={stats.event_count}",
                     )
                 )
         return findings
-
-    # ── Novelty check ─────────────────────────────────────────────────────────
-
-    async def _check_novelty(self, event: Event, source_key: str, tid: str) -> None:
-        """Check if this technique_id is new for this source."""
-        stats = self._sources[source_key]
-        if tid not in stats.technique_ids and tid != TechniqueID.UNKNOWN.value:
-            await self._report_anomaly(
-                event,
-                source_key,
-                "novel_technique",
-                f"First occurrence of {tid} ({event.technique_display}) from source {source_key}",
-            )
-
-    # ── Anomaly reporting ─────────────────────────────────────────────────────
 
     async def _report_anomaly(
         self,
