@@ -361,18 +361,28 @@ class Governor:
                 self._conn.commit()
             except Exception as _exc:
                 _log.debug("close commit: %s", _exc)
+            # Part 8: PASSIVE checkpoint + journal-mode switch can still
+            # hit "database is locked" even with busy_timeout when a
+            # long-held read lock (parallel agent, watcher) overlaps the
+            # close.  Retry with backoff instead of failing immediately.
+            from patchi.core.db import retry_on_locked
+
             try:
                 # PASSIVE, not TRUNCATE: TRUNCATE blocks until every reader
                 # finishes and fails the whole close under contention. PASSIVE
                 # checkpoints what it can and never blocks.
-                self._conn.execute("PRAGMA wal_checkpoint(PASSIVE)")
+                retry_on_locked(
+                    self._conn.execute, "PRAGMA wal_checkpoint(PASSIVE)"
+                )
             except Exception as e:
                 checkpoint_ok = False
                 _log.warning("Governor.close checkpoint failed: %s", e)
             try:
                 # Switching journal mode needs the exclusive lock; on success
                 # SQLite checkpoints and REMOVES the -wal/-shm files itself.
-                self._conn.execute("PRAGMA journal_mode=DELETE")
+                retry_on_locked(
+                    self._conn.execute, "PRAGMA journal_mode=DELETE"
+                )
             except Exception as e:
                 checkpoint_ok = False
                 wal_left_behind = True

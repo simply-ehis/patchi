@@ -183,7 +183,10 @@ def validate_project_docs(
     _EXCLUDED_DIRS = DEFAULT_IGNORE_DIRS | {"files 6", ".vscode", ".idea"}
 
     doc_files = []
-    for pattern in ("README*", "*.md", "docs/**/*.md"):
+    for pattern in (
+        "README*", "*.md", "*.txt", "*.rst", "*.adoc", "*.asciidoc", "*.mdown",
+        "docs/**/*.md", "docs/**/*.txt", "docs/**/*.rst",
+    ):
         if "*" in pattern:
             matched = list(root.glob(pattern))
             # Filter out excluded directories

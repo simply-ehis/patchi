@@ -34,7 +34,11 @@ _SNAP_DB_NAME = "snapshot_drift.db"
 def _get_snap_db(root: Path) -> sqlite3.Connection:
     db_path = root / ".patchi" / _SNAP_DB_NAME
     db_path.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(str(db_path), check_same_thread=False)
+    conn = sqlite3.connect(str(db_path), check_same_thread=False, timeout=10.0)
+    # Part 8: bind busy_timeout so concurrent snapshot writes queue
+    # instead of failing with "database is locked".
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA busy_timeout=10000")
     conn.executescript("""
         CREATE TABLE IF NOT EXISTS snapshot_baselines (
             file_path TEXT PRIMARY KEY,

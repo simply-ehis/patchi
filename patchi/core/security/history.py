@@ -57,7 +57,11 @@ CREATE TABLE IF NOT EXISTS findings (
 def _get_db(root: Path) -> sqlite3.Connection:
     db_path = root / ".patchi" / _DB_NAME
     db_path.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(str(db_path))
+    conn = sqlite3.connect(str(db_path), timeout=10.0)
+    # Part 8: bind busy_timeout so concurrent writers (parallel agents,
+    # web dashboard reads) queue instead of failing with "database is locked".
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA busy_timeout=10000")
     conn.executescript(_CREATE_TABLES)
     # Migrate existing DBs that don't have newer columns
     for col_sql in [

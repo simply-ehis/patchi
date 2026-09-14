@@ -183,6 +183,9 @@ class SymbolGraph:
             self._conn = sqlite3.connect(str(self.db_path))
             self._conn.execute("PRAGMA journal_mode=WAL")
             self._conn.execute("PRAGMA synchronous=NORMAL")
+            # Part 8: WAL without busy_timeout → immediate "database is locked"
+            # under concurrent readers (Governor, watcher, parallel agents).
+            self._conn.execute("PRAGMA busy_timeout=10000")
         return self._conn
 
     def close(self) -> None:

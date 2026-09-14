@@ -261,7 +261,11 @@ def _load_scan_history(root: Path, limit: int = 50) -> list[dict]:
     if not db_path.is_file():
         return []
     try:
-        db = sqlite3.connect(str(db_path))
+        db = sqlite3.connect(str(db_path), timeout=10.0)
+        # Part 8: bind busy_timeout so web dashboard reads queue
+        # instead of failing with "database is locked" under scan load.
+        db.execute("PRAGMA journal_mode=WAL")
+        db.execute("PRAGMA busy_timeout=10000")
         cursor = db.cursor()
         cursor.execute(
             "SELECT scan_id, timestamp, tool, findings_count, "

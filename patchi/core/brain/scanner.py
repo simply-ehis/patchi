@@ -2200,6 +2200,24 @@ def _infer_purpose(path: Path, info: FileInfo) -> str:
     if info.functions and not info.classes:
         return f"Function library: {', '.join(f.name for f in info.functions[:3])}."
 
+    # 2.5. Docstrings — stronger than filename, weaker than imports/decorators.
+    #     Module docstrings often state purpose directly ("JWT auth middleware").
+    try:
+        _tree = py_ast.parse(path.read_text(encoding="utf-8", errors="replace"))
+        _mod_doc = py_ast.get_docstring(_tree)
+        if _mod_doc:
+            first_line = _mod_doc.strip().split("\n")[0][:120]
+            return f"Module purpose (from docstring): {first_line}"
+        # Check first class/function docstring as fallback
+        for _node in py_ast.iter_child_nodes(_tree):
+            if isinstance(_node, (py_ast.FunctionDef, py_ast.AsyncFunctionDef, py_ast.ClassDef)):
+                _doc = py_ast.get_docstring(_node)
+                if _doc:
+                    first_line = _doc.strip().split("\n")[0][:120]
+                    return f"{_node.name} purpose (from docstring): {first_line}"
+    except (OSError, SyntaxError):
+        pass
+
     # 3. Filename patterns — last resort, explicitly marked.
     def _guess(text: str) -> str:
         return f"{text} (filename guess)"

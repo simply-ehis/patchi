@@ -612,8 +612,17 @@ class ContractBuilder:
         """
         Infer contract flows from file structure when no routes are detected.
         This helps with projects that don't have standard route definitions.
+
+        Part 7 audit (Item 50): requires at least one source file
+        (not just config/docs) in the directory to corroborate — a
+        directory with only READMEs or lock files is not a "flow".
         """
         from collections import defaultdict
+
+        _SOURCE_EXTS = {
+            ".py", ".js", ".ts", ".jsx", ".tsx", ".java", ".go", ".rs",
+            ".rb", ".php", ".cs", ".swift", ".kt", ".scala", ".ex", ".exs",
+        }
 
         # Group files by directory structure
         dir_groups: dict[str, list[str]] = defaultdict(list)
@@ -648,6 +657,15 @@ class ContractBuilder:
 
         for dir_key, files in dir_groups.items():
             dir_name = dir_key.split("/")[-1].lower()
+
+            # Part 7 audit: require at least one source file to corroborate.
+            # A directory with only READMEs, lock files, or configs is not
+            # a meaningful "flow" — skip it.
+            has_source = any(
+                Path(f).suffix.lower() in _SOURCE_EXTS for f in files
+            )
+            if not has_source:
+                continue
 
             # Check if this directory matches a known pattern
             flow_name = None

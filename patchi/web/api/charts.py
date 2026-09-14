@@ -23,7 +23,11 @@ async def get_timeline(request: Request) -> JSONResponse:
     if db_path.exists():
         conn = None
         try:
-            conn = sqlite3.connect(str(db_path))
+            conn = sqlite3.connect(str(db_path), timeout=10.0)
+            # Part 8: bind busy_timeout so web chart reads queue
+            # instead of failing with "database is locked" under scan load.
+            conn.execute("PRAGMA journal_mode=WAL")
+            conn.execute("PRAGMA busy_timeout=10000")
             cursor = conn.execute(
                 "SELECT severity_breakdown, findings_count FROM scan_history ORDER BY rowid DESC LIMIT 20"
             )
