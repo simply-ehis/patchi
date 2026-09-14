@@ -60,6 +60,8 @@ def run(
     json_output: bool = False,
     ci: bool = False,
     gen: bool = False,
+    file: str | None = None,
+    max_mutants: int = 10,
 ) -> int:
     """Entry point for `p eval`."""
     from patchi.core.evals.runner import eval_all, eval_gate, eval_generation, eval_noise
@@ -102,6 +104,13 @@ def run(
             },
             "ok": bool(n["ok"]),
         }
+    elif suite == "mut":
+        from patchi.core.testing.mutation_tester import run_cli as _mut_run
+
+        return _mut_run(
+            file=file or "",
+            max_mutants=max_mutants,
+        )
     else:
         result = eval_all(root, include_generation=gen)
 

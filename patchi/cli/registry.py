@@ -74,7 +74,7 @@ COMMANDS: list[Command] = [
         "Score the pipeline against the standing eval set (spec §5)",
         "patchi.cli.commands.eval_cmd:run",
         args=(
-            Arg("suite", nargs="?", default="all", help="Suite to run: gate, noise, gen, or all"),
+            Arg("suite", nargs="?", default="all", help="Suite to run: gate, noise, gen, mut, or all"),
             Arg("--json", dest="json_output", action="store_true", help="Output as JSON"),
             Arg("--ci", dest="ci", action="store_true", help="Exit 1 when any suite fails"),
             Arg(
@@ -83,6 +83,8 @@ COMMANDS: list[Command] = [
                 action="store_true",
                 help="Include model-backed generation eval (spends tokens)",
             ),
+            Arg("--file", dest="file", help="Source file to mutate (for mut suite)"),
+            Arg("--max-mutants", dest="max_mutants", type=int, default=10, help="Max mutants per file (default 10)"),
         ),
     ),
     Command(
