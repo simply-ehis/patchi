@@ -121,6 +121,19 @@ def run(args: object) -> None:
         meta_path.write_text(json.dumps(meta, indent=2) + "\n", encoding="utf-8")
         console.print(f"  [dim]Metadata written to {meta_path}[/dim]")
 
+    # ── Tier 2 knowledge docs ─────────────────────────────────────────────────
+    try:
+        from patchi.core.brain.knowledge_doc_generator import generate_knowledge_docs
+
+        console.print("  [dim]Generating Tier 2 knowledge docs...[/dim]")
+        knowledge_docs = generate_knowledge_docs(root, brain_data)
+        for filename, content in knowledge_docs.items():
+            kpath = docs_dir / filename
+            kpath.write_text(content, encoding="utf-8")
+            console.print(f"  [dim]Wrote {kpath}[/dim]")
+    except Exception as exc:
+        _log.debug("Knowledge doc generation failed: %s", exc)
+
     # ── Gap detection ────────────────────────────────────────────────────────
     try:
         from patchi.core.brain.doc_gaps import detect_doc_gaps
