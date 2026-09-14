@@ -52,7 +52,10 @@ _VERSION_ARGS: dict[str, list[str]] = {
 # Focused hints when a present tool fails to run.
 _BROKEN_HINTS: dict[str, str] = {
     "codeql": "codeql binary missing — install the CodeQL CLI and add it to PATH",
-    "pyre": "pyre.bin not runnable on this platform — pyre-check has no Windows build (Linux/macOS only); use mypy or pyright on Windows",
+    "pyre": (
+        "pyre.bin not runnable on this platform — pyre-check has no Windows"
+        " build (Linux/macOS only); use mypy or pyright on Windows"
+    ),
 }
 
 
