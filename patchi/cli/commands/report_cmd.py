@@ -279,12 +279,65 @@ def _export_report(root: Path, data: dict, fmt: str) -> None:
         out_path = report_dir / "report.sarif.json"
         out_path.write_text(ci_bundle.render_findings(findings, "sarif"), encoding="utf-8")
     else:
+        from patchi.cli.markdown_writer import write_markdown
+
         out_path = report_dir / "report.md"
-        out_path.write_text(_render_markdown(data), encoding="utf-8")
+        sections = _build_report_sections(data)
+        write_markdown(out_path, "Patchi Analysis Report", sections)
 
     con.print()
     con.print(f"[#4ADE80]✓[/#4ADE80] Report saved → [bold]{out_path}[/bold]")
     con.print()
+
+
+def _build_report_sections(data: dict) -> list[tuple[int, str, list[str]]]:
+    """Build report content as structured sections for write_markdown."""
+    h = data["health"]
+    proj = data["project"]
+    sections: list[tuple[int, str, list[str]]] = []
+
+    # Header metadata.
+    meta_lines = [
+        f"**Generated:** {data['generated_at']}  ",
+        f"**Project:** `{proj['root']}`  ",
+        f"**Framework:** {proj['framework']}  ",
+        f"**Files:** {proj['file_count']}  |  **Routes:** {proj['route_count']}  ",
+        f"**Last scan:** {proj['last_scan']}  ",
+    ]
+    sections.append((2, "Project Summary", meta_lines))
+
+    # Health score.
+    health_lines = ["| Component | Score |", "|-----------|-------|"]
+    for comp, val in h["components"].items():
+        health_lines.append(f"| {comp.replace('_', ' ').title()} | {val:.0f} |")
+    sections.append((2, f"Health Score: {h['total']}/100 (Grade {h['grade']})", health_lines))
+
+    # Findings.
+    totals = data["finding_totals"]
+    if any(totals.values()):
+        sev_map = {"critical": "🔴", "high": "🟠", "medium": "🟡", "low": "🟢"}
+        for sev in ("critical", "high", "medium", "low"):
+            count = totals[sev]
+            if count:
+                finding_lines = []
+                for finding in data["findings"][sev][:10]:
+                    msg = finding.get("message", "")
+                    file = finding.get("file", "")
+                    finding_lines.append(f"- `{file}` — {msg}")
+                sections.append((3, f"{sev_map[sev]} {sev.title()} ({count})", finding_lines))
+
+    # Patches.
+    if data["patches"]:
+        patch_lines = ["| ID | File | Status |", "|----|------|--------|"]
+        for p in data["patches"]:
+            patch_lines.append(f"| `{p['id'][:8]}` | `{p['file']}` | {p['status']} |")
+        sections.append((2, "Recent Patches", patch_lines))
+
+    # Recommendations.
+    rec_lines = [f"{i}. {rec}" for i, rec in enumerate(data["recommendations"], 1)]
+    sections.append((2, "Recommendations", rec_lines))
+
+    return sections
 
 
 def _render_markdown(data: dict) -> str:
@@ -362,9 +415,12 @@ def _send_weekly(root: Path) -> None:
     config = cfg.load(root)
 
     report_data = _build_report(root, brain, scans, patches, score)
-    markdown = _render_markdown(report_data)
+    from patchi.cli.markdown_writer import write_markdown
+
     out_path = root / ".patchi" / f"weekly_report_{datetime.now(UTC).strftime('%Y%m%d')}.md"
-    out_path.write_text(markdown, encoding="utf-8")
+    sections = _build_report_sections(report_data)
+    write_markdown(out_path, "Patchi Analysis Report", sections)
+    markdown = _render_markdown(report_data)  # retained for email body
 
     con.print()
     con.print(f"[#4ADE80]✓[/#4ADE80] Weekly report saved → [bold]{out_path}[/bold]")

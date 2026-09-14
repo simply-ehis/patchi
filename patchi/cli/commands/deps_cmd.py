@@ -7,6 +7,7 @@ Usage:
   p deps --licenses             — check license compliance
   p deps --outdated             — check for outdated packages
   p deps --cve                  — check for known CVEs
+  p deps --sbom-limit 5000      — max deps in SBOM (0=unlimited)
 """
 
 from __future__ import annotations
@@ -25,6 +26,7 @@ def run(
     outdated: bool = False,
     cve: bool = False,
     json_output: bool = False,
+    sbom_limit: int = 5000,
     root: Path | None = None,
 ) -> None:
     try:
@@ -48,6 +50,8 @@ def run(
         target_agents.append("DependencyCVEChecker")
     if sbom or licenses or no_flags:
         target_agents.append("SupplyChainAgent")
+    if sbom or no_flags:
+        target_agents.append("SBOMGeneratorAgent")
     if outdated or no_flags:
         target_agents.append("DependencyVulnerabilityAgent")
 
@@ -65,11 +69,15 @@ def run(
         lp.set_progress(len(results) + 1, len(target_agents), name)
         lp.log(f"  {name}…")
         lp.update()
+        extra: dict = {}
+        if name == "SBOMGeneratorAgent" and sbom_limit > 0:
+            extra["sbom_limit"] = sbom_limit
         inp = AgentInput(
             root=r,
             scope=[],
             brain=brain,
             config=config,
+            extra=extra,
             on_message=lambda n, msg, s: (lp.log(f"    {msg}", s), lp.update()),
         )
         try:

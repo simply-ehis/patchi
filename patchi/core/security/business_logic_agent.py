@@ -71,14 +71,26 @@ _MUTATION_CALLS = {"update", "put", "patch", "save"}
 _PAGINATION_CALLS = {"limit", "paginate", "offset", "page"}
 # Objects whose status/state changes are business-critical.
 _STATE_BASES = {"order", "payment", "subscription", "ticket", "workflow"}
+# KEEP-AND-HARDEN: State-transition validation — evidence that a state machine or allowed-transitions guard exists —
+
+# absence is MEDIUM, not proof of vuln — never sole verdict source (Part 7 §4)
+
 _STATE_VALIDATION_RE = re.compile(r"(?i)(?:\ballowed\b|\bvalid\b|\btransition\b|state_machine|STATUS_FLOW|\benum\b)")
 # Ownership-identifying symbols for IDOR checks, including Patchi's own
 # tenant-isolation idiom (with tenant_context(...) + per-project ownership
 # comparison) so fixed endpoints stop flagging.
+# KEEP-AND-HARDEN: Ownership/IDOR check — evidence that current_user, owner, tenant_context, or user_id comparison
+
+# exists — absence is MEDIUM (15-line window), not proof of IDOR — never sole verdict source (Part 7 §4)
+
 _OWNERSHIP_RE = re.compile(
     r"(?i)(?:current_user|user\.id|\bowner\b|request\.user|\.user_id\s*=|user_id\s*=="
     r"|tenant_context|patch_project|\btenant\b)"
 )
+# KEEP-AND-HARDEN: Rate-limit decorator — evidence that @ratelimit/@throttle/@limit exists on mutation endpoints —
+
+# absence is LOW, middleware may cover it — never sole verdict source (Part 7 §4)
+
 _RATE_LIMIT_RE = re.compile(r"(?i)@(?:ratelimit|throttle|limit)")
 
 
@@ -149,6 +161,9 @@ class BusinessLogicAgent(BaseAgent):
         # ── Excessive data exposure (__dict__, vars(), .to_dict()) ──────────
         # Part 7: serialization without a response sink is MEDIUM only when
         # returned/rendered; internal use demotes to LOW.
+        # KEEP-AND-HARDEN: Response sink — evidence that serialization output
+        # reaches the HTTP response (not just internal use) — absence demotes
+        # to LOW — never sole verdict source (Part 7 §4)
         _RESPONSE_SINK_RE = re.compile(r"(?i)(?:return|response|jsonify|render|send|respond)")
         if any(kw in rel.lower() for kw in _API_KEYWORDS):
             for m in re.finditer(r"(?i)(?:__dict__|vars\s*\(|\.to_dict\s*\(|\.serialize\s*\()", content):

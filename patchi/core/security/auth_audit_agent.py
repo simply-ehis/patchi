@@ -88,26 +88,46 @@ _GOOD_HASH_PATTERNS = [
 # ── Weak password hashing literal patterns (regex fallback / unsupported langs) ──
 _WEAK_HASH_PATTERNS = [
     (
+        # KEEP-AND-HARDEN: MD5 is cryptographically broken for password hashing — captures hashlib.md5() calls across
+
+        # languages — never sole verdict source (Part 7 §4)
+
         re.compile(r"(?:hashlib\.)?md5\s*\(", re.I),
         Severity.CRITICAL,
         "MD5 used for password hashing — cryptographically broken",
     ),
     (
+        # KEEP-AND-HARDEN: SHA1 is cryptographically weak for password hashing — captures hashlib.sha1() and bare sha1()
+
+        # calls — never sole verdict source (Part 7 §4)
+
         re.compile(r"(?:hashlib\.)?sha1\s*\(", re.I),
         Severity.CRITICAL,
         "SHA1 used for password hashing — cryptographically weak",
     ),
     (
+        # KEEP-AND-HARDEN: SHA-256 is acceptable for general hashing but not password hashing — evidence that
+
+        # bcrypt/scrypt/argon2 is missing — never sole verdict source (Part 7 §4)
+
         re.compile(r"(?:hashlib\.)?sha256\s*\(", re.I),
         Severity.HIGH,
         "SHA-256 used for password hashing — use bcrypt/scrypt/argon2 instead",
     ),
     (
+        # KEEP-AND-HARDEN: SHA-512 alone is not password-safe — evidence of weak hash when bcrypt/scrypt/argon2 absent —
+
+        # never sole verdict source (Part 7 §4)
+
         re.compile(r"hashlib\.sha512\s*\(", re.I),
         Severity.MEDIUM,
         "SHA-512 used for password hashing — prefer bcrypt/scrypt/argon2",
     ),
     (
+        # KEEP-AND-HARDEN: Unix crypt() is a legacy password hasher — evidence of outdated auth implementation — never
+
+        # sole verdict source (Part 7 §4)
+
         re.compile(r"crypt\s*\(", re.I),
         Severity.MEDIUM,
         "Unix crypt() for password hashing — use modern alternatives",
@@ -117,22 +137,38 @@ _WEAK_HASH_PATTERNS = [
 # ── Session patterns ────────────────────────────────────────────────────
 _SESSION_PATTERNS = [
     (
+        # KEEP-AND-HARDEN: Session assignment pattern — evidence of session management that must be verified for secure
+
+        # config — never sole verdict source (Part 7 §4)
+
         re.compile(r"session\[.*?\]\s*=", re.I),
         Severity.LOW,
         "Session assignment — verify secure configuration",
     ),
     (
         # Part 7: keyword tier — value must prove itself (max HIGH).
+        # KEEP-AND-HARDEN: Hardcoded session secret — captures SECRET_KEY/session_secret literals with value group for
+
+        # looks_like_secret gating — never sole verdict source (Part 7 §4)
+
         re.compile(r'(?:session\.secret|SECRET_KEY|session_secret)\s*[:=]\s*["\']([^"\']+)["\']', re.I),
         Severity.HIGH,
         "Hardcoded session secret in source code",
     ),
     (
+        # KEEP-AND-HARDEN: Cookie security flags — evidence of cookie configuration that must be verified for
+
+        # httponly/secure/samesite — never sole verdict source (Part 7 §4)
+
         re.compile(r"(?:cookie_httponly|httponly.*cookie|Secure.*cookie)", re.I),
         Severity.LOW,
         "Cookie security configuration found — verify all flags set",
     ),
     (
+        # KEEP-AND-HARDEN: Cookie-setting call — evidence that a cookie is being set; must verify
+
+        # httponly/secure/samesite flags — never sole verdict source (Part 7 §4)
+
         re.compile(r"(?:set_cookie|set_cookie_attr|response\.set_cookie)", re.I),
         Severity.LOW,
         "Cookie being set — verify httponly, secure, and samesite flags",
@@ -153,17 +189,29 @@ _RATE_LIMIT_PATTERNS = [
 # ── OAuth patterns ──────────────────────────────────────────────────────
 _OAUTH_PATTERNS = [
     (
+        # KEEP-AND-HARDEN: OAuth/OIDC indicator — evidence that OAuth flow exists; implementation security must be
+
+        # verified — never sole verdict source (Part 7 §4)
+
         re.compile(r"(?:oauth|openid|oidc)", re.I),
         Severity.INFO,
         "OAuth/OIDC code found — verify implementation security",
     ),
     (
+        # KEEP-AND-HARDEN: OAuth redirect URI — evidence of redirect target that may be exploitable as open redirect —
+
+        # never sole verdict source (Part 7 §4)
+
         re.compile(r'(?:redirect_uri|callback_url)\s*[:=]\s*["\'][^"\']*["\']', re.I),
         Severity.MEDIUM,
         "OAuth redirect URI — verify it's not open redirect",
     ),
     (
         # Part 7: keyword tier — value must prove itself (max HIGH).
+        # KEEP-AND-HARDEN: Hardcoded OAuth client secret — captures client_secret/client_id literals with value group
+
+        # for looks_like_secret gating — never sole verdict source (Part 7 §4)
+
         re.compile(r'(?:client_secret|client_id)\s*[:=]\s*["\']([^"\']+)["\']', re.I),
         Severity.HIGH,
         "OAuth client secret hardcoded in source",

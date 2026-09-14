@@ -11,11 +11,164 @@ conversations about the codebase.
 from __future__ import annotations
 
 import logging
+import os
+import subprocess
 import time
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 _log = logging.getLogger(__name__)
+
+_SOURCE_EXTS = frozenset({
+    ".py", ".js", ".ts", ".jsx", ".tsx", ".java", ".go", ".rs",
+    ".rb", ".php", ".cs", ".swift", ".kt", ".scala", ".ex", ".exs",
+    ".c", ".cpp", ".h", ".hpp",
+})
+
+
+@dataclass
+class FreshnessReport:
+    """Result of comparing doc mtime vs newest source file mtime."""
+    stale_files: list[str]
+    fresh: bool
+    newest_source_mtime: float
+    newest_doc_mtime: float
+
+
+def _check_docs_freshness(docs_dir: Path, project_root: Path) -> FreshnessReport:
+    """Compare the mtime of the newest source file against the architecture doc.
+
+    Returns a ``FreshnessReport`` with ``fresh=False`` when the doc is older
+    than the newest source file (or when no doc exists yet).
+    """
+    # Find the doc file.
+    doc_path = docs_dir / "ARCHITECTURE.md"
+    newest_doc_mtime = 0.0
+    if doc_path.exists():
+        try:
+            newest_doc_mtime = doc_path.stat().st_mtime
+        except OSError:
+            pass
+
+    # Walk the project for the newest source file mtime.
+    newest_source_mtime = 0.0
+    stale_files: list[str] = []
+
+    ignore_dirs = {
+        ".git", "node_modules", "__pycache__", ".venv", "venv",
+        "dist", "build", ".mypy_cache", ".pytest_cache", ".tox",
+        "patchi",  # don't count patchi's own source as "project source"
+    }
+
+    for dirpath, dirnames, filenames in os.walk(project_root):
+        dirnames[:] = [d for d in dirnames if d not in ignore_dirs]
+        for fname in filenames:
+            fpath = Path(dirpath) / fname
+            if fpath.suffix.lower() not in _SOURCE_EXTS:
+                continue
+            try:
+                mtime = fpath.stat().st_mtime
+            except OSError:
+                continue
+            if mtime > newest_source_mtime:
+                newest_source_mtime = mtime
+            # Track source files that are newer than the doc.
+            if mtime > newest_doc_mtime:
+                try:
+                    stale_files.append(fpath.relative_to(project_root).as_posix())
+                except ValueError:
+                    stale_files.append(str(fpath))
+
+    fresh = newest_doc_mtime >= newest_source_mtime if newest_doc_mtime > 0 else False
+    return FreshnessReport(
+        stale_files=stale_files,
+        fresh=fresh,
+        newest_source_mtime=newest_source_mtime,
+        newest_doc_mtime=newest_doc_mtime,
+    )
+
+
+def generate_sections(
+    root: Path,
+    *,
+    brain_data: dict[str, Any] | None = None,
+    ai_available: bool = False,
+) -> list[tuple[int, str, list[str]]]:
+    """Build the architecture document as structured sections.
+
+    Returns a list of ``(heading_level, heading_text, content_lines)``
+    tuples suitable for :func:`patchi.cli.markdown_writer.write_markdown`.
+    """
+    brain = brain_data or {}
+    sections: list[tuple[int, str, list[str]]] = []
+
+    toc_items = [
+        "1. [Project Overview](#project-overview)",
+        "2. [Project Tree](#project-tree)",
+        "3. [Routes](#routes)",
+        "4. [Key Abstractions](#key-abstractions)",
+        "5. [Dependency Graph](#dependency-graph)",
+        "6. [Capabilities](#capabilities)",
+        "7. [Functionality Checks](#functionality-checks)",
+        "8. [AI Narration](#ai-narration)",
+    ]
+    sections.append((2, "Table of Contents", [f"- {item}" for item in toc_items]))
+    sections.append((2, "Project Overview", _render_overview(root, brain).splitlines()))
+    sections.append((2, "Project Tree", _render_tree(root, brain).splitlines()))
+    sections.append((2, "Routes", _render_routes(brain).splitlines()))
+    sections.append((2, "Key Abstractions", _render_abstractions(brain).splitlines()))
+    sections.append((2, "Dependency Graph", _render_dependency_diagram(brain).splitlines()))
+    sections.append((2, "Capabilities", _render_capabilities(root, brain).splitlines()))
+    sections.append((2, "Functionality Checks", _render_functionality_checks(brain).splitlines()))
+
+    if ai_available:
+        ai_lines = ["_Tier 2 narration would appear here with AI configured._"]
+    else:
+        ai_lines = [
+            "_Unavailable — AI not configured. Configure an AI provider "
+            "with `p key add` to enable scoped narration for abstractions "
+            "and user flows._",
+        ]
+    sections.append((2, "AI Narration", ai_lines))
+
+    return sections
+
+
+def _build_doc_metadata(project_root: Path, brain_data: dict[str, Any]) -> dict:
+    """Build metadata dict for docs/.patchi-meta.json."""
+    from patchi import __version__ as patchi_version
+
+    # Count source files scanned.
+    file_infos = brain_data.get("file_infos", [])
+    source_file_count = len(file_infos) if isinstance(file_infos, list) else 0
+
+    # Count findings.
+    findings = brain_data.get("security_findings", [])
+    finding_count = len(findings) if isinstance(findings, list) else 0
+
+    # Current git commit (graceful failure).
+    git_commit = None
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=project_root,
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        if result.returncode == 0:
+            git_commit = result.stdout.strip()
+    except Exception:
+        pass
+
+    return {
+        "generated_at": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
+        "patchi_version": patchi_version,
+        "git_commit": git_commit,
+        "source_file_count": source_file_count,
+        "finding_count": finding_count,
+    }
 
 
 def generate_docs(
@@ -31,85 +184,31 @@ def generate_docs(
 
     Returns the full Markdown string.
     """
-    brain = brain_data or {}
-    sections: list[str] = []
-
-    # ── Header ────────────────────────────────────────────────────────────
-    project_name = _project_name(root, brain)
-    sections.append(f"# {project_name} — Architecture\n")
-    sections.append(f"_Generated by Patchi on {time.strftime('%Y-%m-%d')}_\n")
-    sections.append("")
-
-    # ── Table of Contents ─────────────────────────────────────────────────
-    toc_items = [
-        "1. [Project Overview](#project-overview)",
-        "2. [Project Tree](#project-tree)",
-        "3. [Routes](#routes)",
-        "4. [Key Abstractions](#key-abstractions)",
-        "5. [Dependency Graph](#dependency-graph)",
-        "6. [Capabilities](#capabilities)",
-        "7. [Functionality Checks](#functionality-checks)",
-        "8. [AI Narration](#ai-narration)",
+    project_name_str = project_name(root, brain_data or {})
+    header_lines = [
+        f"_Generated by Patchi on {time.strftime('%Y-%m-%d')}_",
+        "",
     ]
-    sections.append("## Table of Contents\n")
-    for item in toc_items:
-        sections.append(f"- {item}")
-    sections.append("")
 
-    # ── Section 1: Project Overview ───────────────────────────────────────
-    sections.append("## Project Overview\n")
-    sections.append(_render_overview(root, brain))
-    sections.append("")
+    lines: list[str] = [f"# {project_name_str} — Architecture", ""]
+    lines.extend(header_lines)
 
-    # ── Section 2: Project Tree ───────────────────────────────────────────
-    sections.append("## Project Tree\n")
-    sections.append(_render_tree(root, brain))
-    sections.append("")
+    for level, heading, content in generate_sections(
+        root, brain_data=brain_data, ai_available=ai_available,
+    ):
+        lines.append(f"{'#' * level} {heading}")
+        lines.append("")
+        if content:
+            lines.extend(content)
+            lines.append("")
 
-    # ── Section 3: Routes ─────────────────────────────────────────────────
-    sections.append("## Routes\n")
-    sections.append(_render_routes(brain))
-    sections.append("")
-
-    # ── Section 4: Key Abstractions ───────────────────────────────────────
-    sections.append("## Key Abstractions\n")
-    sections.append(_render_abstractions(brain))
-    sections.append("")
-
-    # ── Section 5: Dependency Graph (Mermaid) ─────────────────────────────
-    sections.append("## Dependency Graph\n")
-    sections.append(_render_dependency_diagram(brain))
-    sections.append("")
-
-    # ── Section 6: Capabilities ───────────────────────────────────────────
-    sections.append("## Capabilities\n")
-    sections.append(_render_capabilities(root, brain))
-    sections.append("")
-
-    # ── Section 7: Functionality Checks ───────────────────────────────────
-    sections.append("## Functionality Checks\n")
-    sections.append(_render_functionality_checks(brain))
-    sections.append("")
-
-    # ── Section 8: AI Narration (Tier 2) ──────────────────────────────────
-    sections.append("## AI Narration\n")
-    if ai_available:
-        sections.append("_Tier 2 narration would appear here with AI configured._\n")
-    else:
-        sections.append(
-            "_Unavailable — AI not configured. Configure an AI provider "
-            "with `p key add` to enable scoped narration for abstractions "
-            "and user flows._\n"
-        )
-    sections.append("")
-
-    return "\n".join(sections)
+    return "\n".join(lines)
 
 
 # ── Section renderers ────────────────────────────────────────────────────────
 
 
-def _project_name(root: Path, brain: dict) -> str:
+def project_name(root: Path, brain: dict) -> str:
     """Derive project name from manifest or directory name."""
     purpose = brain.get("project_purpose", "")
     if purpose and "—" in purpose:
@@ -215,7 +314,12 @@ def _render_abstractions(brain: dict) -> str:
         fan_in[target] = fan_in.get(target, 0) + 1
 
     # Rank by fan-in.
-    ranked = sorted(symbols, key=lambda s: fan_in.get(s.get("id", 0) if isinstance(s, dict) else getattr(s, "id", 0), 0), reverse=True)
+    def _sym_id(s: object) -> int:
+        if isinstance(s, dict):
+            return int(s.get("id", 0) or 0)
+        return int(getattr(s, "id", 0) or 0)
+
+    ranked = sorted(symbols, key=lambda s: fan_in.get(_sym_id(s), 0), reverse=True)
 
     lines = ["| Symbol | Kind | File | Fan-in |"]
     lines.append("|--------|------|------|--------|")

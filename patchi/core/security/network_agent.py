@@ -225,6 +225,10 @@ class NetworkAgent(BaseAgent):
                 re.IGNORECASE,
             )
         )
+        # KEEP-AND-HARDEN: Plain HTTP detection — evidence of http:// URLs excluding localhost/loopback; only fires when
+
+        # no HTTPS enforcement visible — never sole verdict source (Part 7 §4)
+
         has_plain_http = bool(
             re.search(
                 r"http://(?!localhost|127\.0\.0\.1|0\.0\.0\.0)",

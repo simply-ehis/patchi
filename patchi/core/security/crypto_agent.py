@@ -392,6 +392,10 @@ class CryptoAgent(BaseAgent):
 
         # Part 7: Math.random() feeding an animation is not a vuln. Keep
         # HIGH only when a secret-adjacent sink shares the line; else MEDIUM.
+        # KEEP-AND-HARDEN: Secret-adjacent sink — evidence that Math.random output flows to token/secret/key/auth
+
+        # context — demotes to MEDIUM when absent — never sole verdict source (Part 7 §4)
+
         _SINK_RE = re.compile(r"token|secret|key|crypt|password|auth|nonce|session", re.IGNORECASE)
 
         lines = content.splitlines()
@@ -424,6 +428,10 @@ class CryptoAgent(BaseAgent):
         # Look for weak key sizes. Part 7: a bare "1024" may be a buffer,
         # port, or test constant — require key-generation context on the
         # line, else skip (not even a LOW: numbers alone are not findings).
+        # KEEP-AND-HARDEN: Keygen context — evidence that the number appears near key generation — skips bare numbers
+
+        # without this context — never sole verdict source (Part 7 §4)
+
         _KEYGEN_RE = re.compile(r"keygen|generate|genkey|new\s+\w*[Kk]ey|key_size|keysize", re.IGNORECASE)
         key_size_patterns = [
             (r"key_size.*512|rsa.*512", "Weak RSA Key Size (512 bits)", Severity.HIGH),

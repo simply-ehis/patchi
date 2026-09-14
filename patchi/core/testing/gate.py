@@ -39,34 +39,51 @@ def require_ready(root: Path) -> tuple[bool, str | None, dict | None]:
     return False, None, st
 
 
-def require_scope(url: str | None, *, allow_hosts: set[str] | None = None) -> tuple[bool, str]:
+def require_scope(
+    url: str | None,
+    *,
+    allow_hosts: set[str] | None = None,
+    require_explicit: bool = False,
+) -> tuple[bool, str]:
     """Check that *url* is within the authorized scope for active testing.
 
     Active tools (DAST, attack agents) must never fire against production
     hosts without explicit user confirmation.  This gate enforces the
-    minimum: only localhost/loopback addresses are allowed by default.
+    minimum: only hosts listed in an explicit allowlist (charter or
+    ``--target`` flag) are allowed when *require_explicit* is True.
 
     Returns (allowed, reason).
     """
     if not url:
         return False, "No target URL provided."
 
+    # When require_explicit is set (DAST charter gate), block *all*
+    # active tools if no explicit targets are defined — including
+    # localhost.  The user must declare intent via the charter or
+    # the --target CLI flag.
+    if require_explicit and not allow_hosts:
+        return False, (
+            "No explicit targets defined. Active testing requires at least "
+            "one target listed in the project charter or passed via --target. "
+            "Add a target to your charter or run with --target <url>."
+        )
+
     parsed = urlparse(url)
     host = (parsed.hostname or "").lower()
 
-    # Always allow localhost / loopback.
+    # Allow localhost / loopback.
     if host in _LOCALHOST_VARIANTS:
         return True, "Target is localhost — within scope."
 
-    # Allow explicit allowlist (e.g. from charter or config).
-    if allow_hosts and host in allow_hosts:
+    # Allow explicit allowlist (from charter or --target flag).
+    if host in allow_hosts:
         return True, f"Target '{host}' is in the explicit allowlist."
 
     # Everything else is blocked — the user must confirm manually.
     return False, (
-        f"Target '{host}' is not a localhost address. "
-        f"Active testing against non-local hosts requires explicit user "
-        f"confirmation. Add '{host}' to the charter allowlist or confirm "
+        f"Target '{host}' is not in the explicit allowlist. "
+        f"Active testing against non-listed hosts requires explicit user "
+        f"confirmation. Add '{host}' to the charter or confirm "
         f"manually via `p check --allow-host {host}`."
     )
 

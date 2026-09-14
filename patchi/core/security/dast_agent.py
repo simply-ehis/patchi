@@ -19,6 +19,7 @@ import asyncio
 import logging
 import time
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 from patchi.core.agents.base import (
@@ -291,7 +292,10 @@ class DASTAgent(BaseAgent):
         # never tested without an allowlist entry.
         from patchi.core.testing.gate import require_scope
 
-        allowed, scope_reason = require_scope(target_url)
+        allow_hosts = self._build_scope_from_charter(inp.root)
+        allowed, scope_reason = require_scope(
+            target_url, allow_hosts=allow_hosts, require_explicit=True,
+        )
         if not allowed:
             self.skip(result, f"Scope gate: {scope_reason}")
             result.data["scope_blocked"] = True
@@ -835,7 +839,111 @@ class DASTAgent(BaseAgent):
 
         return False, ""
 
-    # ── Helper Methods ─────────────────────────────────────────────────────
+    # ── Charter Scope ──────────────────────────────────────────────────────
+
+    def _build_scope_from_charter(self, root) -> set[str]:
+        """Extract explicit target hosts from the project charter.
+
+        Loads the security charter from ``.patchi/memory/charter.json``
+        and returns every host mentioned in ``metadata.targets`` or the
+        charter's raw/text field.  If a ``charter.md`` (or ``CHARTER.md``)
+        file exists at the project root its listed targets are included too.
+        """
+        import re
+
+        from patchi.core.config import MEMORY_DIR
+
+        targets: set[str] = set()
+
+        # ── 1. Load the structured charter from memory ──────────────────────
+        charter_path = root / MEMORY_DIR / "charter.json"
+        if charter_path.exists():
+            try:
+                import json
+                data = json.loads(charter_path.read_text(encoding="utf-8"))
+                # metadata.targets — explicit host / URL list
+                meta = data.get("metadata", {})
+                for t in meta.get("targets", []):
+                    host = self._extract_host(t)
+                    if host:
+                        targets.add(host)
+                # rules[].metadata.targets — per-rule host lists
+                for rule in data.get("rules", []):
+                    for t in rule.get("metadata", {}).get("targets", []):
+                        host = self._extract_host(t)
+                        if host:
+                            targets.add(host)
+                # raw text / text field — extract URLs
+                text = data.get("text", "") or data.get("raw_text", "")
+                for url in re.findall(r"https?://[^\s)>\]\"]+", text):
+                    host = self._extract_host(url)
+                    if host:
+                        targets.add(host)
+            except Exception as exc:
+                _log.debug("Charter scope load failed: %s", exc)
+
+        # ── 2. Scan for charter markdown at the project root ────────────────
+        md_path = self._find_charter_file(root)
+        if md_path:
+            try:
+                text = md_path.read_text(encoding="utf-8")
+                for url in re.findall(r"https?://[^\s)>\]\"]+", text):
+                    host = self._extract_host(url)
+                    if host:
+                        targets.add(host)
+                # Markdown list items: "- http://example.com" or "- example.com"
+                for line in text.splitlines():
+                    stripped = line.strip().lstrip("-* ")
+                    host = self._extract_host(stripped)
+                    if host:
+                        targets.add(host)
+            except Exception as exc:
+                _log.debug("Charter markdown parse failed: %s", exc)
+
+        return targets
+
+    @staticmethod
+    def _extract_host(value: str) -> str | None:
+        """Return a bare hostname from a URL, host:port, or plain host string.
+
+        Returns ``None`` for values that don't look like hosts (headings,
+        prose, empty strings).
+        """
+        import re as _re
+        from urllib.parse import urlparse
+
+        value = value.strip()
+        if not value:
+            return None
+        if "://" in value:
+            parsed = urlparse(value)
+            return (parsed.hostname or "").lower() or None
+        # host:port or bare host
+        host = value.split(":")[0].strip().lower()
+        # Must look like a hostname: letters/digits/hyphens/dots, at least
+        # one dot (e.g. "example.com") or an explicit localhost variant.
+        if not host:
+            return None
+        # Allow explicit localhost/loopback variants without requiring dots.
+        _LOCALHOST = {"localhost", "127.0.0.1", "0.0.0.0", "::1"}
+        if host in _LOCALHOST:
+            return host
+        # Must look like a hostname: letters/digits/hyphens/dots, at least
+        # one dot (e.g. "example.com").
+        if not _re.match(r"^[a-z0-9]([a-z0-9\-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9\-]*[a-z0-9])?)+$", host):
+            return None
+        return host
+
+    @staticmethod
+    def _find_charter_file(root) -> Path | None:
+        """Locate a charter markdown file at the project root."""
+        for name in ("charter.md", "CHARTER.md", "docs/charter.md"):
+            p = root / name
+            if p.is_file():
+                return p
+        return None
+
+    # ── Target Detection ───────────────────────────────────────────────────
 
     def _detect_target(self, root) -> str | None:
         """Detect the target URL for testing.

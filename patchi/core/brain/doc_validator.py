@@ -13,6 +13,7 @@ removed months ago.
 from __future__ import annotations
 
 import re
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -162,6 +163,154 @@ def cross_reference_claim(
     return verified, evidence[:6]
 
 
+# ── Citation drift detection ────────────────────────────────────────────────────
+
+
+@dataclass
+class DriftIssue:
+    """A documentation reference that points to nonexistent or moved code."""
+
+    type: str  # always "citation"
+    reference: str  # the raw reference (path or symbol name)
+    status: str  # "valid" | "missing" | "moved"
+    suggestion: str  # human-readable hint (e.g. closest match or empty)
+    source: str = ""  # doc file where the reference was found
+
+
+# Paths referenced in docs — relative paths ending in a code extension
+_RE_FILE_PATH = re.compile(
+    r"[`\"\']?((?:[A-Za-z0-9_./\\-]+\.)"
+    r"(?:py|js|ts|go|rs))"
+    r"[`\"\']?",
+)
+
+# Backtick-wrapped or function-call patterns: `func_name` or name()
+# Exclude dots in backtick captures to avoid matching file paths like `foo.py`
+_RE_SYMBOL = re.compile(
+    r"`([A-Za-z_][A-Za-z0-9_]*(?:\(\))?)`"
+    r"|(?<!\w)([A-Za-z_][A-Za-z0-9_]*)(?=\(\))",
+)
+
+
+def _extract_citations(doc_text: str) -> tuple[list[str], list[str]]:
+    """Return (file_paths, symbol_names) referenced in doc text."""
+    paths = []
+    for m in _RE_FILE_PATH.finditer(doc_text):
+        p = m.group(1).strip()
+        if p not in paths:
+            paths.append(p)
+
+    symbols = []
+    for m in _RE_SYMBOL.finditer(doc_text):
+        name = m.group(1) or m.group(2)
+        if name:
+            # Strip trailing () for lookup
+            bare = name.rstrip("()")
+            if bare not in symbols:
+                symbols.append(bare)
+    return paths, symbols
+
+
+def _build_symbol_index(
+    file_infos: list[FileInfo],
+) -> dict[str, list[str]]:
+    """Map lowercase symbol name → list of file paths where it's defined."""
+    index: dict[str, list[str]] = {}
+    for fi in file_infos:
+        for func in fi.functions:
+            key = func.name.lower()
+            index.setdefault(key, []).append(fi.path)
+        for cls in fi.classes:
+            key = cls.name.lower()
+            index.setdefault(key, []).append(fi.path)
+    return index
+
+
+def _find_closest(name: str, candidates: list[str], max_dist: int = 2) -> str:
+    """Return the closest candidate by character-overlap distance, or empty string.
+
+    The distance is: max(len_a, len_b) - shared_characters_at_same_position.
+    Only suggestions within *max_dist* are returned.
+    """
+    if not candidates:
+        return ""
+    lower = name.lower()
+    best, best_dist = "", max_dist + 1
+    for c in candidates:
+        cl = c.lower()
+        common = sum(1 for a, b in zip(lower, cl, strict=False) if a == b)
+        dist = max(len(lower), len(cl)) - common
+        if dist < best_dist:
+            best, best_dist = c, dist
+    return best if best_dist <= max_dist else ""
+
+
+def _check_citation_drift(
+    doc_text: str,
+    project_root: Path,
+    file_infos: list[FileInfo],
+    doc_source: str = "",
+) -> list[DriftIssue]:
+    """Detect references in docs to code that no longer exists or has moved.
+
+    Checks:
+      - File paths: does the referenced file exist on disk?
+      - Symbols: does the referenced function/class exist in the scanned codebase?
+
+    Returns a list of DriftIssue objects.  Only non-valid issues are returned
+    to keep output focused on problems.
+    """
+    paths, symbols = _extract_citations(doc_text)
+    issues: list[DriftIssue] = []
+
+    # ── File path checks ───────────────────────────────────────────────────
+    known_files = {fi.path for fi in file_infos}
+    for ref in paths:
+        ref_fwd = ref.replace("\\", "/").lstrip("./")
+        # Check exact match first
+        if ref_fwd in known_files or (project_root / ref_fwd).exists():
+            continue
+        # Check if file exists anywhere under project root (moved)
+        basename = Path(ref_fwd).name
+        moved_candidates = [
+            fi.path for fi in file_infos if Path(fi.path).name == basename
+        ]
+        if moved_candidates:
+            issues.append(DriftIssue(
+                type="citation",
+                reference=ref,
+                status="moved",
+                suggestion=f"moved to: {moved_candidates[0]}",
+                source=doc_source,
+            ))
+        else:
+            issues.append(DriftIssue(
+                type="citation",
+                reference=ref,
+                status="missing",
+                suggestion="file not found in codebase",
+                source=doc_source,
+            ))
+
+    # ── Symbol checks ──────────────────────────────────────────────────────
+    sym_index = _build_symbol_index(file_infos)
+    all_symbol_names = list(sym_index.keys())
+    for sym in symbols:
+        key = sym.lower()
+        if key in sym_index:
+            continue  # symbol exists — valid
+        suggestion = _find_closest(sym, all_symbol_names)
+        issues.append(DriftIssue(
+            type="citation",
+            reference=sym,
+            status="missing",
+            suggestion=f"did you mean: {suggestion}" if suggestion else "symbol not found",
+            source=doc_source,
+        ))
+
+    return issues
+
+
 # ── Main validation entry point ────────────────────────────────────────────────
 
 
@@ -205,9 +354,24 @@ def validate_project_docs(
         for claim in extract_claims(doc_path):
             all_claims.append((claim, doc_path))
 
+    # ── Citation drift detection ────────────────────────────────────────────
+    all_drift: list[DriftIssue] = []
+    for doc_path in doc_files:
+        try:
+            doc_text = doc_path.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        rel = str(doc_path.relative_to(root))
+        all_drift.extend(_check_citation_drift(doc_text, root, file_infos, doc_source=rel))
+
     result = {
         "validated_claims": [],
         "stale_claims": [],
+        "citation_drift": [
+            {"type": d.type, "reference": d.reference, "status": d.status,
+             "suggestion": d.suggestion, "source": d.source}
+            for d in all_drift
+        ],
         "summary": "",
         "doc_files_found": [str(p) for p in doc_files],
         "total_claims": 0,
@@ -240,11 +404,16 @@ def _build_summary(result: dict) -> str:
     validated = len(result["validated_claims"])
     stale = len(result["stale_claims"])
     doc_count = len(result["doc_files_found"])
+    drift_count = len(result.get("citation_drift", []))
 
-    if total == 0:
+    if total == 0 and drift_count == 0:
         return f"Found {doc_count} doc file(s) but no verifiable claims."
 
-    parts = [f"Verified {validated}/{total} claims across {doc_count} doc file(s)."]
-    if stale:
-        parts.append(f"{stale} claim(s) could not be verified against code")
+    parts = []
+    if total > 0:
+        parts.append(f"Verified {validated}/{total} claims across {doc_count} doc file(s).")
+        if stale:
+            parts.append(f"{stale} claim(s) could not be verified against code")
+    if drift_count:
+        parts.append(f"{drift_count} citation drift issue(s) detected (missing/moved references)")
     return " ".join(parts)

@@ -105,6 +105,7 @@ def cleanup(
     include_evidence: bool = False,
     older_than: str | None = None,
     json_output: bool = False,
+    no_backup: bool = False,
     root: Path | None = None,
 ):
     """Remove stale .patchi/ artifacts.

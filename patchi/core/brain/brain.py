@@ -182,6 +182,9 @@ class BrainReport:
     # Doc validation
     doc_validation: dict = field(default_factory=dict)
 
+    # Synthesis (Item 55)
+    synthesis: dict = field(default_factory=dict)
+
     # Errors encountered during scan
     errors: list[dict] = field(default_factory=list)
 
@@ -214,6 +217,7 @@ class BrainReport:
             "enriched_context": getattr(self, "enriched_context", {}),
             "body_tags_version": 1,
             "doc_validation": self.doc_validation,
+            "synthesis": self.synthesis,
             "graph_diff": self.graph_diff,
             "stale": False,
             "last_scan": self.scanned_at,
@@ -629,6 +633,39 @@ class Brain:
         # ── Project purpose (AI-powered or fallback) ──────────────────────────
         self._emit(ScanProgress(phase="contract", message="Understanding project purpose…"))
         report.project_purpose, report.project_domain = self._infer_project_purpose(file_infos, stack, report)
+
+        # ── Synthesis fallback (Item 55) ────────────────────────────────────
+        try:
+            from patchi.core.brain.doc_synthesizer import _is_unclear, build_synthesis
+
+            synthesis_result = build_synthesis(
+                purpose=report.project_purpose,
+                domain=report.project_domain,
+                file_purposes=[fi.purpose for fi in file_infos],
+                route_paths=[r.path for r in routes],
+                entry_points=[fi.path for fi in file_infos if fi.is_entry_point],
+                security_domains=report.active_security_domains,
+            )
+            report.synthesis = synthesis_result.to_dict()
+            if _is_unclear(report.project_purpose):
+                self._emit(
+                    ScanProgress(
+                        phase="contract",
+                        message="Project purpose unclear — using zero-doc synthesis fallback",
+                    )
+                )
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Doc synthesis failed: %s", exc)
+            report.synthesis = {
+                "purpose": report.project_purpose or "unclear — no evidence found",
+                "domain": report.project_domain or "unknown",
+                "user_stories": [],
+                "api_surface": [],
+                "entry_points": [],
+                "key_modules": [],
+                "security_domains": report.active_security_domains,
+                "summary": "Synthesis unavailable.",
+            }
 
         self._emit(ScanProgress(phase="contract", message="Understanding project…"))
         builder = ContractBuilder(routes, file_infos, dead_files, circular_deps, root=self.root)

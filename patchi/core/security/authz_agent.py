@@ -291,6 +291,10 @@ class AuthZAgent(BaseAgent):
             "secured",
             "preauthorize",
         }
+        # KEEP-AND-HARDEN: Sensitive endpoint path — evidence of admin/user/settings/profile/account access that may
+
+        # lack authz — never sole verdict source (Part 7 §4)
+
         sensitive_re = re.compile(r"/api/.*(?:/users?|/admin|/settings|/profile|/account)", re.IGNORECASE)
 
         for node in self._iter_nodes(tree.root_node):
@@ -359,6 +363,10 @@ class AuthZAgent(BaseAgent):
                             evidence=line.strip(),
                         )
                     )
+        # KEEP-AND-HARDEN: Sensitive endpoint path (regex fallback) — evidence of admin/user/settings/profile/account
+
+        # access when tree-sitter unavailable — never sole verdict source (Part 7 §4)
+
         sensitive_re = re.compile(r"/api/.*(?:/users?|/admin|/settings|/profile|/account)", re.IGNORECASE)
         for i, line in enumerate(lines, 1):
             if sensitive_re.search(line) and not any(

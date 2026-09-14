@@ -58,6 +58,8 @@ _COMPONENT_TYPES = {
 
 _log = logging.getLogger("patchi.agents.sbom_generator")
 
+_MAX_DEPS = 5000
+
 
 def _parse_deps(fp: Path) -> list[dict]:
     deps: list[dict] = []
@@ -129,6 +131,8 @@ def _parse_deps(fp: Path) -> list[dict]:
 def _build_cyclonedx(
     root: Path,
     deps_by_eco: dict[str, list[dict]],
+    *,
+    max_deps: int = _MAX_DEPS,
 ) -> dict:
     components: list[dict] = []
     for eco, dep_list in deps_by_eco.items():
@@ -144,19 +148,39 @@ def _build_cyclonedx(
                 }
             )
 
+    truncated = False
+    total_before = len(components)
+    if max_deps > 0 and total_before > max_deps:
+        components.sort(key=lambda c: (c["name"], c.get("purl", "")))
+        components = components[:max_deps]
+        truncated = True
+        _log.warning(
+            "SBOM truncated: %d deps exceeds limit of %d — keeping first %d "
+            "(sorted alphabetically)",
+            total_before,
+            max_deps,
+            max_deps,
+        )
+
+    metadata: dict = {
+        "timestamp": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "tools": [{"name": "Patchi", "version": "1.0"}],
+        "component": {
+            "type": "application",
+            "name": root.name,
+        },
+    }
+    if truncated:
+        metadata["truncated"] = True
+        metadata["truncated_original_count"] = total_before
+        metadata["truncated_limit"] = max_deps
+
     return {
         "bomFormat": "CycloneDX",
         "specVersion": "1.5",
         "serialNumber": f"urn:uuid:{uuid4().hex}",
         "version": 1,
-        "metadata": {
-            "timestamp": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
-            "tools": [{"name": "Patchi", "version": "1.0"}],
-            "component": {
-                "type": "application",
-                "name": root.name,
-            },
-        },
+        "metadata": metadata,
         "components": components,
     }
 
@@ -202,6 +226,8 @@ class SBOMGeneratorAgent(BaseAgent):
         return None
 
     def _run(self, inp: AgentInput, result: AgentResult) -> None:
+        max_deps = (inp.extra or {}).get("sbom_limit", _MAX_DEPS)
+
         # Try external depth first
         ext = self._try_external(inp)
         if ext and ext.get("components"):
@@ -265,7 +291,7 @@ class SBOMGeneratorAgent(BaseAgent):
             result.status = AgentStatus.DONE
             return
 
-        sbom = _build_cyclonedx(inp.root, deps_by_eco)
+        sbom = _build_cyclonedx(inp.root, deps_by_eco, max_deps=max_deps)
         total_deps = sum(len(d) for d in deps_by_eco.values())
 
         # Write SBOM to .patchi/ directory

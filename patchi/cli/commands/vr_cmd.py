@@ -55,6 +55,7 @@ def run(
     action: str = "list",
     reset: bool = False,
     json_output: bool = False,
+    no_backup: bool = False,
     **_kwargs,
 ) -> None:
     """Dispatch to the appropriate VR baseline subcommand."""
@@ -67,7 +68,7 @@ def run(
     elif action == "compare" or action == "diff":
         _cmd_compare(root, baseline_dir, evidence_dir, json_output)
     elif action == "reset":
-        _cmd_reset(root, baseline_dir)
+        _cmd_reset(root, baseline_dir, no_backup=no_backup)
     elif action == "list" or action == "ls":
         _cmd_list(root, baseline_dir, evidence_dir, json_output)
     else:
@@ -339,15 +340,21 @@ def _draw_bounding_boxes(draw, base_img, curr_img, sw, sh, scale) -> None:
         draw.rectangle([x0 // scale, y0 // scale, x1 // scale, y1 // scale], outline=(255, 50, 50), width=2)
 
 
-def _cmd_reset(root: Path, baseline_dir: Path) -> None:
+def _cmd_reset(root: Path, baseline_dir: Path, no_backup: bool = False) -> None:
     """Delete all baselines to force re-capture."""
     if not baseline_dir.is_dir():
         print("No baselines to reset.")
         return
 
     count = sum(1 for _ in baseline_dir.rglob("*.png"))
-    shutil.rmtree(baseline_dir)
-    print(f"🗑 Deleted {count} baseline screenshots from {baseline_dir}")
+    if no_backup:
+        shutil.rmtree(baseline_dir)
+        print(f"🗑 Deleted {count} baseline screenshots from {baseline_dir}")
+    else:
+        from patchi.core.safety import safe_rmtree
+
+        backup = safe_rmtree(baseline_dir, backup_dir=root / ".patchi" / "backups")
+        print(f"🗑 Moved {count} baseline screenshots to backup: {backup}")
     print("Next `p vr baseline` or `p test visual` will re-create them.")
 
 

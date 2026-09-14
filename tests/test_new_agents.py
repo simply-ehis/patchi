@@ -995,6 +995,38 @@ class TestSBOMGeneratorAgent:
             data = json.loads(sbom_path.read_text())
             assert data["bomFormat"] == "CycloneDX"
 
+    def test_sbom_truncation(self):
+        """Dep count exceeding _MAX_DEPS triggers truncation + metadata flag."""
+        from patchi.core.agents.sbom_generator import _build_cyclonedx
+
+        deps_by_eco = {"npm": [{"name": f"pkg-{i:04d}", "version": "1.0"} for i in range(100)]}
+        sbom = _build_cyclonedx(Path("/fake"), deps_by_eco, max_deps=50)
+        assert len(sbom["components"]) == 50
+        assert sbom["metadata"]["truncated"] is True
+        assert sbom["metadata"]["truncated_original_count"] == 100
+        assert sbom["metadata"]["truncated_limit"] == 50
+        # Deterministic: sorted alphabetically
+        names = [c["name"] for c in sbom["components"]]
+        assert names == sorted(names)
+
+    def test_sbom_no_truncation_when_under_limit(self):
+        """Dep count under _MAX_DEPS produces no truncation metadata."""
+        from patchi.core.agents.sbom_generator import _build_cyclonedx
+
+        deps_by_eco = {"npm": [{"name": f"pkg-{i}", "version": "1.0"} for i in range(10)]}
+        sbom = _build_cyclonedx(Path("/fake"), deps_by_eco, max_deps=50)
+        assert len(sbom["components"]) == 10
+        assert "truncated" not in sbom["metadata"]
+
+    def test_sbom_limit_zero_means_unlimited(self):
+        """max_deps=0 means no truncation."""
+        from patchi.core.agents.sbom_generator import _build_cyclonedx
+
+        deps_by_eco = {"npm": [{"name": f"pkg-{i}", "version": "1.0"} for i in range(200)]}
+        sbom = _build_cyclonedx(Path("/fake"), deps_by_eco, max_deps=0)
+        assert len(sbom["components"]) == 200
+        assert "truncated" not in sbom["metadata"]
+
 
 # ── Test SPARouteInventoryAgent (§3.3.1) ────────────────────────────────────
 
