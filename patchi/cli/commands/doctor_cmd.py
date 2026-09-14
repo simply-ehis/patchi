@@ -54,23 +54,38 @@ def _run_installer(cmd: list[str]) -> tuple[bool, str]:
     return proc.returncode == 0, tail
 
 
-def _auto_install_tools() -> int:
-    """`p doctor --install` — attempt the installable tools, print the rest.
+def _auto_install_tools(only: str | None = None) -> int:
+    """`p doctor --install [--only GROUP]` — attempt the installable tools,
+    print the rest.
+
+    With ``only`` set, the pass is scoped to one tool group (sast, dast,
+    secrets, supply-chain, ...) so CI can install just the tier it needs.
+    Group names are validated against the tool registry.
 
     Returns a process exit code: 0 = everything available afterwards,
     1 = some tools still missing/broken (each with its manual command).
     """
-    from patchi.core.agents.tool_health import check_tool, list_tools
+    from patchi.core.agents.tool_health import check_tool, list_tools, tool_groups
 
+    _groups = tool_groups()
+    if only is not None and only not in _groups:
+        con.print(f"[red]Unknown tool group: {only!r}[/red]")
+        con.print(f"[dim]Valid groups: {', '.join(_groups)}[/dim]")
+        return 2
+
+    scope_label = f" — [bold]{only}[/bold] tools only" if only else ""
     still_manual: list[tuple[str, str]] = []  # (tool, manual command)
     attempted = 0
     installed = 0
 
     con.print()
-    con.print("[bold #C8621A]Tooling install[/bold #C8621A]  [dim]auto-install what I can, print the rest[/dim]")
+    con.print(
+        f"[bold #C8621A]Tooling install{scope_label}[/bold #C8621A]"
+        f"  [dim]auto-install what I can, print the rest[/dim]"
+    )
     con.print()
 
-    for tool in list_tools():
+    for tool in list_tools(only):
         st = check_tool(tool["name"])
         if st["status"] == "ok":
             ver = f" ({st['version']})" if st["version"] else ""
@@ -146,7 +161,10 @@ def _auto_install_tools() -> int:
     if attempted:
         con.print(f"  Attempted [bold]{attempted}[/bold] auto-install(s); [bold]{installed}[/bold] succeeded.")
     if still_manual:
-        con.print(f"  [#FACC15]{len(still_manual)} tool(s) need manual installation:[/#FACC15]")
+        con.print(
+            f"  [#FACC15]{len(still_manual)} tool(s) need manual installation"
+            f"{' in ' + only if only else ''}:[/#FACC15]"
+        )
         for name, hint in still_manual:
             con.print(f"    · {name}: [dim]{hint}[/dim]")
         return 1
@@ -302,13 +320,17 @@ def run(
     json_output: bool = False,
     fix: bool = False,
     install: bool = False,
+    only: str | None = None,
 ) -> None:
     """Entry point for `p doctor`."""
     if install:
         # §2.4: the real install path — attempts pip/npm/go/playwright
         # installs, prints manual commands for the rest, exits non-zero when
-        # anything is still missing so agents/CI can react.
-        raise SystemExit(_auto_install_tools())
+        # anything is still missing so agents/CI can react. --only scopes the
+        # pass to one tool group so CI installs just the tier it needs.
+        raise SystemExit(_auto_install_tools(only))
+    if only:
+        con.print("[yellow]--only has no effect without --install[/yellow]")
     if not json_output:
         con.print()
         con.print("[bold #C8621A]Patchi Doctor[/bold #C8621A]  [dim]system health check[/dim]")

@@ -467,6 +467,8 @@ System health check — stale commands, dependencies, config.
 | `--verbose` | Detailed output |
 | `--json` | JSON output |
 | `--fix` | Auto-fix detected issues |
+| `--install` | Attempt installing missing security tooling (pip/npm/go/playwright); prints manual commands for the rest; non-zero exit if anything is still missing |
+| `--install --only <group>` | Scope the install pass to one tool group (`sast`, `dast`, `secrets`, `supply-chain`, `testing`, `platform`, `ai`) — e.g. CI installs just the tier it needs |
 
 ### `p check`
 Quick health check.

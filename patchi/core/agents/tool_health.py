@@ -373,11 +373,25 @@ _TOOL_INFO: dict[str, dict] = {
 _TOOLS = frozenset(_TOOL_INFO)
 
 
-def list_tools() -> list[dict]:
+def tool_groups() -> tuple[str, ...]:
+    """Sorted group names present in the registry (sast, secrets,
+    supply-chain, dast, testing, platform, ai) — the valid values for
+    `p doctor --install --only <group>`."""
+    return tuple(sorted({info["group"] for info in _TOOL_INFO.values()}))
+
+
+def list_tools(group: str | None = None) -> list[dict]:
     """Every registered tool with its metadata (name, group, desc, install,
-    auto, and the machine-usable pkg/go_pkg fields `p doctor --install` uses)."""
+    auto, and the machine-usable pkg/go_pkg fields `p doctor --install` uses).
+
+    With ``group`` set, only tools in that group are returned (unknown group
+    yields an empty list — callers validate against tool_groups() first)."""
     keep = ("group", "desc", "install", "auto", "pkg", "go_pkg")
-    return [{"name": name, **{k: v for k, v in info.items() if k in keep}} for name, info in sorted(_TOOL_INFO.items())]
+    return [
+        {"name": name, **{k: v for k, v in info.items() if k in keep}}
+        for name, info in sorted(_TOOL_INFO.items())
+        if group is None or info["group"] == group
+    ]
 
 
 def install_hint(tool: str) -> str:

@@ -126,6 +126,12 @@ COMMANDS: list[Command] = [
                 help="Attempt installing missing security tooling (pip/npm/go/playwright); prints manual commands for"
                 " the rest",
             ),
+            Arg(
+                "--only",
+                dest="only",
+                help="With --install: restrict to one tool group"
+                " (sast, dast, secrets, supply-chain, testing)",
+            ),
         ),
     ),
     Command(
