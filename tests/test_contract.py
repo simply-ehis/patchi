@@ -71,8 +71,33 @@ class TestContractInference(unittest.TestCase):
         builder = ContractBuilder(routes, [])
         flows = builder.infer()
         msg = builder.build_confirmation_message(flows)
-        self.assertIn("Settings / Configuration", msg)
+        # Part 7: uncorroborated prefixes get generic names, never the
+        # dashboard-specific table labels.
+        self.assertIn("Settings Endpoints", msg)
+        self.assertNotIn("Settings / Configuration", msg)
         self.assertIn("protect", msg)
+
+    def test_corroborated_prefix_uses_table_name(self):
+        routes = [_make_route("/settings")]
+        files = [_make_file("src/settings.py")]
+        builder = ContractBuilder(routes, files)
+        flows = builder.infer()
+        names = [f.name for f in flows]
+        self.assertIn("Settings / Configuration", names)
+
+    def test_critical_derived_not_defaulted(self):
+        # GET-only, non-sensitive prefix: not critical.
+        routes = [_make_route("/about")]
+        flows = ContractBuilder(routes, []).infer()
+        self.assertFalse(any(f.critical for f in flows))
+        # Mutating method: critical by structure.
+        routes = [_make_route("/items", method="POST")]
+        flows = ContractBuilder(routes, []).infer()
+        self.assertTrue(any(f.critical for f in flows))
+        # Sensitive prefix: critical even when read-only.
+        routes = [_make_route("/login")]
+        flows = ContractBuilder(routes, []).infer()
+        self.assertTrue(any(f.critical for f in flows))
 
     def test_confirmation_message_multiple_flows(self):
         routes = [_make_route("/settings"), _make_route("/security/scan")]

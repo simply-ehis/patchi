@@ -161,6 +161,47 @@ class CryptoAgent(BaseAgent):
 
         return findings
 
+    # Invocation syntax near a weak-algorithm token: hashlib.md5(,
+    # MessageDigest.getInstance("MD5"), createHash('md5'), Cipher/DES args.
+    # A bare token (comment, variable named `des`, docs) is not usage.
+    _CALL_CONTEXT_RE = re.compile(
+        r"(hashlib|hash|digest|createhash|getinstance|get_instance|"
+        r"cipher|encrypt|decrypt|creadecipher|createcipheriv)\s*[\(\.]",
+        re.IGNORECASE,
+    )
+
+    # One notch down when the token has no invocation context on its line:
+    # HIGH->MEDIUM, MEDIUM->LOW. Absence of proof is not proof of safety,
+    # but it is not a HIGH either.
+    _DEMOTE = {Severity.CRITICAL: Severity.HIGH, Severity.HIGH: Severity.MEDIUM,
+               Severity.MEDIUM: Severity.LOW, Severity.LOW: Severity.INFO,
+               Severity.INFO: Severity.INFO}
+
+    def _emit_call_scoped(self, findings, severity, rel_path, i, title, description, line):
+        """Emit at full severity with call context, else demoted + verify note."""
+        if self._CALL_CONTEXT_RE.search(line):
+            findings.append(
+                make_finding(
+                    severity=severity,
+                    file=rel_path,
+                    line_start=i,
+                    title=title,
+                    description=description,
+                    evidence=line.strip(),
+                )
+            )
+        else:
+            findings.append(
+                make_finding(
+                    severity=self._DEMOTE.get(severity, Severity.LOW),
+                    file=rel_path,
+                    line_start=i,
+                    title=title,
+                    description=description + " (unverified usage — confirm a real call site)",
+                    evidence=line.strip(),
+                )
+            )
+
     def _scan_weak_hashing(self, content: str, rel_path: str) -> list[Finding]:
         """Scan for weak hashing algorithm usage."""
         findings = []
@@ -178,15 +219,14 @@ class CryptoAgent(BaseAgent):
             for pattern, description, severity in weak_hash_patterns:
                 matches = re.finditer(pattern, line, re.IGNORECASE)
                 for match in matches:
-                    findings.append(
-                        make_finding(
-                            severity=severity,
-                            file=rel_path,
-                            line_start=i,
-                            title=description,
-                            description=f"Weak hashing algorithm found: {match.group(0)}",
-                            evidence=line.strip(),
-                        )
+                    self._emit_call_scoped(
+                        findings,
+                        severity,
+                        rel_path,
+                        i,
+                        description,
+                        f"Weak hashing algorithm found: {match.group(0)}",
+                        line,
                     )
 
         return findings
@@ -209,32 +249,36 @@ class CryptoAgent(BaseAgent):
             for pattern, description, severity in weak_crypto_patterns:
                 matches = re.finditer(pattern, line, re.IGNORECASE)
                 for match in matches:
-                    findings.append(
-                        make_finding(
-                            severity=severity,
-                            file=rel_path,
-                            line_start=i,
-                            title=description,
-                            description=f"Weak encryption algorithm found: {match.group(0)}",
-                            evidence=line.strip(),
-                        )
+                    self._emit_call_scoped(
+                        findings,
+                        severity,
+                        rel_path,
+                        i,
+                        description,
+                        f"Weak encryption algorithm found: {match.group(0)}",
+                        line,
                     )
 
         return findings
 
     def _scan_hardcoded_keys(self, content: str, rel_path: str) -> list[Finding]:
         """Scan for hardcoded cryptographic keys."""
-        findings = []
+        from patchi.core.security.secret_evidence import is_fixture_path, looks_like_secret
 
-        # Look for hardcoded keys (require key-like context to reduce false positives)
+        findings = []
+        if is_fixture_path(rel_path):
+            return findings
+
+        # Look for hardcoded keys; values must pass the shared secret gate
+        # (Part 7) — the old length-only validation fired on hex blobs.
         key_patterns = [
             (
-                r'(?:\bsecret\b|\bkey\b|\btoken\b|\bpassword)\s*[:=]\s*["\'][A-Za-z0-9+/=]{20,}["\']',
+                r'(?:\bsecret\b|\bkey\b|\btoken\b|\bpassword)\s*[:=]\s*["\']([^"\']+)["\']',
                 "Hardcoded Cryptographic Key",
                 Severity.HIGH,
             ),
             (
-                r'(?:SECRET_KEY|API_KEY|PRIVATE_KEY|ENCRYPTION_KEY)\s*[:=]\s*["\'][^"\']{8,}["\']',
+                r'(?:SECRET_KEY|API_KEY|PRIVATE_KEY|ENCRYPTION_KEY)\s*[:=]\s*["\']([^"\']+)["\']',
                 "Hardcoded Key Constant",
                 Severity.HIGH,
             ),
@@ -245,20 +289,22 @@ class CryptoAgent(BaseAgent):
             for pattern, description, severity in key_patterns:
                 matches = re.finditer(pattern, line)
                 for match in matches:
-                    # Additional validation to reduce false positives
-                    matched_text = match.group(0)
-                    # Check if it looks like a real key (not just a long hex string in other context)
-                    if len(matched_text) > 20 or ("key" in line.lower() and len(matched_text) > 10):
-                        findings.append(
-                            make_finding(
-                                severity=severity,
-                                file=rel_path,
-                                line_start=i,
-                                title=description,
-                                description=f"Potentially hardcoded cryptographic key found: {matched_text[:20]}...",
-                                evidence=line.strip(),
-                            )
+                    try:
+                        value = match.group(1)
+                    except IndexError:
+                        value = ""
+                    if not looks_like_secret(value, allow_spaces=False):
+                        continue
+                    findings.append(
+                        make_finding(
+                            severity=severity,
+                            file=rel_path,
+                            line_start=i,
+                            title=description,
+                            description="Potentially hardcoded cryptographic key found.",
+                            evidence=line.strip(),
                         )
+                    )
 
         return findings
 
@@ -266,11 +312,14 @@ class CryptoAgent(BaseAgent):
         """Scan for improper salt usage."""
         findings = []
 
-        # Look for missing or weak salt usage
+        # Look for missing or weak salt usage. Part 7: a single line cannot
+        # prove absence of salt (it usually lives in an adjacent argument),
+        # so these are MEDIUM + verify language, never HIGH. The bcrypt rule
+        # is deleted outright: bcrypt manages its own salt (gensalt), so
+        # "bcrypt without salt on this line" is false as a rule.
         salt_patterns = [
-            (r"hash.*password(?![^=]*salt)", "Hashing Password Without Salt", Severity.HIGH),
-            (r"pbkdf2(?![^=]*salt)", "PBKDF2 Without Salt", Severity.HIGH),
-            (r"bcrypt(?![^=]*salt)", "bcrypt Without Salt", Severity.HIGH),
+            (r"hash.*password(?![^=]*salt)", "Hashing Password Without Salt", Severity.MEDIUM),
+            (r"pbkdf2(?![^=]*salt)", "PBKDF2 Without Salt", Severity.MEDIUM),
         ]
 
         lines = content.splitlines()
@@ -284,32 +333,42 @@ class CryptoAgent(BaseAgent):
                             file=rel_path,
                             line_start=i,
                             title=description,
-                            description="Cryptographic function used without proper salt",
+                            description="Cryptographic function used without visible salt on this line — "
+                            "verify the salt argument (it often lives in an adjacent parameter)",
                             evidence=line.strip(),
                         )
                     )
 
         # Look for hardcoded salts
         hardcoded_salt_patterns = [
-            (r'\bsalt\b\s*[=:]\s*["\'][^"\']+["\']', "Hardcoded Salt", Severity.HIGH),
+            (r'\bsalt\b\s*[=:]\s*["\']([^"\']+)["\']', "Hardcoded Salt", Severity.MEDIUM),
             (
                 r"const.*\bsalt\b|var.*\bsalt\b|let.*\bsalt\b",
                 "Possible Hardcoded Salt Variable",
-                Severity.MEDIUM,
+                Severity.LOW,
             ),
         ]
+
+        from patchi.core.security.secret_evidence import looks_like_secret
 
         for i, line in enumerate(lines, 1):
             for pattern, description, severity in hardcoded_salt_patterns:
                 matches = re.finditer(pattern, line, re.IGNORECASE)
                 for _match in matches:
+                    if "salt" in description.lower() and "possible" not in description.lower():
+                        try:
+                            value = _match.group(1)
+                        except IndexError:
+                            value = ""
+                        if not looks_like_secret(value, min_length=8, min_entropy=3.0):
+                            continue
                     findings.append(
                         make_finding(
                             severity=severity,
                             file=rel_path,
                             line_start=i,
                             title=description,
-                            description="Possible hardcoded salt detected",
+                            description="Possible hardcoded salt detected — verify it is not a constant",
                             evidence=line.strip(),
                         )
                     )
@@ -331,18 +390,27 @@ class CryptoAgent(BaseAgent):
             (r"System\.Random|Random\.Next", "Potentially Weak Random (C#)", Severity.MEDIUM),
         ]
 
+        # Part 7: Math.random() feeding an animation is not a vuln. Keep
+        # HIGH only when a secret-adjacent sink shares the line; else MEDIUM.
+        _SINK_RE = re.compile(r"token|secret|key|crypt|password|auth|nonce|session", re.IGNORECASE)
+
         lines = content.splitlines()
         for i, line in enumerate(lines, 1):
             for pattern, description, severity in random_patterns:
                 matches = re.finditer(pattern, line)
                 for match in matches:
+                    sev = severity
+                    note = f"Insecure random number generation: {match.group(0)}"
+                    if "Math.random" in match.group(0) and not _SINK_RE.search(line):
+                        sev = Severity.MEDIUM
+                        note += " (no secret sink on this line — verify usage)"
                     findings.append(
                         make_finding(
-                            severity=severity,
+                            severity=sev,
                             file=rel_path,
                             line_start=i,
                             title=description,
-                            description=f"Insecure random number generation: {match.group(0)}",
+                            description=note,
                             evidence=line.strip(),
                         )
                     )
@@ -353,7 +421,10 @@ class CryptoAgent(BaseAgent):
         """Scan for other cryptographic issues."""
         findings = []
 
-        # Look for weak key sizes
+        # Look for weak key sizes. Part 7: a bare "1024" may be a buffer,
+        # port, or test constant — require key-generation context on the
+        # line, else skip (not even a LOW: numbers alone are not findings).
+        _KEYGEN_RE = re.compile(r"keygen|generate|genkey|new\s+\w*[Kk]ey|key_size|keysize", re.IGNORECASE)
         key_size_patterns = [
             (r"key_size.*512|rsa.*512", "Weak RSA Key Size (512 bits)", Severity.HIGH),
             (r"key_size.*1024|rsa.*1024", "Weak RSA Key Size (1024 bits)", Severity.MEDIUM),
@@ -364,6 +435,8 @@ class CryptoAgent(BaseAgent):
             for pattern, description, severity in key_size_patterns:
                 matches = re.finditer(pattern, line, re.IGNORECASE)
                 for match in matches:
+                    if not _KEYGEN_RE.search(line):
+                        continue
                     findings.append(
                         make_finding(
                             severity=severity,

@@ -27,7 +27,9 @@ from patchi.core.agents.base import (
 _log = logging.getLogger("patchi.agents.rust_unwrap")
 
 _UNWRAP_RE = re.compile(r"\.unwrap\(\)")
-_EXPECT_RE = re.compile(r"\.expect\(\s*\"\"|\.expect\(\s*''|\\.expect\(\s*\)")
+# Part 7: the third alternative had a doubled backslash (`\\.expect`) that
+# could never match — fixed to empty-message expect() calls.
+_EXPECT_RE = re.compile(r'\.expect\(\s*""|\.expect\(\s*\'\'|\.expect\(\s*\)')
 
 
 @register
@@ -42,7 +44,15 @@ class RustUnwrapAgent(BaseAgent):
         if shutil.which("cargo"):
             try:
                 proc = subprocess.run(
-                    ["cargo", "clippy", "--", "-W", "clippy::unwrap_used", "-W", "clippy::expect_used"],
+                    [
+                        "cargo",
+                        "clippy",
+                        "--",
+                        "-W",
+                        "clippy::unwrap_used",
+                        "-W",
+                        "clippy::expect_used",
+                    ],
                     capture_output=True,
                     text=True,
                     timeout=30,
@@ -80,7 +90,8 @@ class RustUnwrapAgent(BaseAgent):
                             file=rel,
                             line_start=i,
                             title="Unsafe .unwrap() — panics on Err/None",
-                            description="Prefer `?`, `unwrap_or`, or `.expect(\"context\")` with message. Clippy: unwrap_used.",
+                            description='Prefer `?`, `unwrap_or`, or `.expect("context")` with message. Clippy:'
+                            ' unwrap_used.',
                             evidence=line.strip()[:120],
                             finding_type="rust_unwrap",
                         )
@@ -91,8 +102,8 @@ class RustUnwrapAgent(BaseAgent):
                             severity=Severity.LOW,
                             file=rel,
                             line_start=i,
-                            title="Empty .expect(\"\") — no context",
-                            description="`.expect(\"\")` gives no diagnostic; use descriptive message.",
+                            title='Empty .expect("") — no context',
+                            description='`.expect("")` gives no diagnostic; use descriptive message.',
                             evidence=line.strip()[:120],
                             finding_type="rust_expect_empty",
                         )

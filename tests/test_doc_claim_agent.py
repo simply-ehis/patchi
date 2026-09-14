@@ -387,12 +387,28 @@ class TestVerifyClaimsAgainstCode(unittest.TestCase):
         self.assertTrue(result[0]["verified"])
 
     def test_file_match_hint(self):
+        # Part 7: a single filename-substring hit is weak — not proof alone.
         from patchi.core.agents.doc_claim_agent import verify_claims_against_code
         claims = [
             {"claim": "app code", "category": "feature", "evidence_hints": ["file_match: src/app"]},
         ]
         result = verify_claims_against_code(claims, [self.file_info], [])
+        self.assertFalse(result[0]["verified"])
+        self.assertEqual(result[0]["verify_strength"], "weak")
+
+    def test_two_weak_hits_corroborate(self):
+        # Two independent weak hits verify; one does not.
+        from patchi.core.agents.doc_claim_agent import verify_claims_against_code
+        claims = [
+            {
+                "claim": "app code",
+                "category": "feature",
+                "evidence_hints": ["file_match: src/app", "package: app"],
+            },
+        ]
+        result = verify_claims_against_code(claims, [self.file_info], [])
         self.assertTrue(result[0]["verified"])
+        self.assertEqual(result[0]["verify_strength"], "weak")
 
     def test_fallback_general_keyword(self):
         from patchi.core.agents.doc_claim_agent import verify_claims_against_code

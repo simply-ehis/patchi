@@ -180,6 +180,15 @@ class PrivacyAgent(BaseAgent):
             (r"passport|driver_license", "Government ID Handling", Severity.CRITICAL),
         ]
 
+        # Part 7: an identifier NAME is handling-inventory, not a leak. Full
+        # severity requires a store/log/transmit sink on the line; otherwise
+        # the finding records handling at LOW with verify language.
+        # Note: "log" needs a (?!in|ic) guard (login/logic are not sinks);
+        # "email" itself is the subject here, never the sink.
+        _SINK_RE = re.compile(
+            r"(?i)(?:stor\w*|sav\w*|log(?!in|ic)|send|transmit|write|insert|record|persist|post|publish|dump)"
+        )
+
         lines = content.splitlines()
         for i, line in enumerate(lines, 1):
             for pattern, description, severity in personal_data_patterns:
@@ -187,13 +196,21 @@ class PrivacyAgent(BaseAgent):
                 full_pattern = r"\b" + pattern + r"\b"
                 matches = re.finditer(full_pattern, line, re.IGNORECASE)
                 for match in matches:
+                    if _SINK_RE.search(line):
+                        sev, desc = severity, f"Personal data identifier found: {match.group(0)}"
+                    else:
+                        sev, desc = (
+                            Severity.LOW,
+                            f"Personal data identifier found ({match.group(0)}) with no storage/transmission "
+                            "sink on this line — verify how this data is handled",
+                        )
                     findings.append(
                         make_finding(
-                            severity=severity,
+                            severity=sev,
                             file=rel_path,
                             line_start=i,
                             title=description,
-                            description=f"Personal data identifier found: {match.group(0)}",
+                            description=desc,
                             evidence=line.strip(),
                         )
                     )
@@ -204,10 +221,11 @@ class PrivacyAgent(BaseAgent):
         """Scan for consent mechanism issues."""
         findings = []
 
-        # Look for missing consent mechanisms
+        # Look for missing consent mechanisms. Part 7: keyword×keyword
+        # co-occurrence on one line is inventory, not a MEDIUM verdict.
         consent_patterns = [
             (r"consent|opt_in|opt_out|preferences", "Consent Mechanism", Severity.INFO),
-            (r"tracking|analytics|cookies", "Tracking Consent", Severity.MEDIUM),
+            (r"tracking|analytics|cookies", "Tracking Consent", Severity.INFO),
         ]
 
         lines = content.splitlines()
@@ -217,8 +235,7 @@ class PrivacyAgent(BaseAgent):
                 for _match in matches:
                     # Check if this relates to consent implementation
                     if any(
-                        consent_word in line.lower()
-                        for consent_word in ["require", "need", "must", "agree", "accept"]
+                        consent_word in line.lower() for consent_word in ["require", "need", "must", "agree", "accept"]
                     ):
                         findings.append(
                             make_finding(
@@ -232,13 +249,9 @@ class PrivacyAgent(BaseAgent):
                         )
 
         # Look for missing consent for tracking
-        if any(
-            tracking_term in content.lower()
-            for tracking_term in ["ga(", "gtag(", "analytics", "track"]
-        ):
+        if any(tracking_term in content.lower() for tracking_term in ["ga(", "gtag(", "analytics", "track"]):
             if not any(
-                consent_term in content.lower()
-                for consent_term in ["consent", "opt_in", "opt_out", "preferences"]
+                consent_term in content.lower() for consent_term in ["consent", "opt_in", "opt_out", "preferences"]
             ):
                 findings.append(
                     make_finding(
@@ -246,7 +259,8 @@ class PrivacyAgent(BaseAgent):
                         file=rel_path,
                         line_start=0,
                         title="Missing Consent for Analytics Tracking",
-                        description="Analytics/tracking found without apparent consent mechanism",
+                        description="Analytics/tracking found with no consent mechanism visible in this file"
+                        " — verify CMP/SDK consent config",
                         evidence="Tracking code found without consent implementation",
                     )
                 )

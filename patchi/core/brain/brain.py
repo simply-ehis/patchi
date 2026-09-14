@@ -17,6 +17,7 @@ the config restrictions before scanning.
 
 Output is a BrainReport: rich structured knowledge of the entire project.
 """
+
 from __future__ import annotations
 
 import logging
@@ -52,6 +53,74 @@ _log = logging.getLogger("patchi.brain.brain")
 
 
 logger = logging.getLogger("patchi.brain.brain")
+
+# ── Manifest-first project classification (Part 7 §2) ────────────────────────
+# Dependency names are manifest FACTS. Each entry maps lowercase dependency
+# (or framework) names to the project category they reliably indicate.
+# A project is only classified when its manifests say so; thin signals
+# produce an explicit "unclear", never a compounded filename guess.
+_DEP_CATEGORY_MAP: dict[str, str] = {
+    # Web APIs / servers
+    "fastapi": "web API", "flask": "web API", "django": "web API",
+    "starlette": "web API", "sanic": "web API", "tornado": "web API",
+    "express": "web API", "koa": "web API", "hapi": "web API",
+    "fastify": "web API", "gin": "web API", "echo": "web API",
+    "fiber": "web API", "actix-web": "web API", "axum": "web API",
+    "rocket": "web API", "rails": "web application", "laravel": "web application",
+    "spring-boot": "web API", "spring": "web API", "nestjs": "web API",
+    "@nestjs/core": "web API",
+    # Web frontends
+    "react": "web application", "vue": "web application",
+    "angular": "web application", "svelte": "web application",
+    "next": "web application", "nuxt": "web application",
+    # Bots
+    "discord.py": "Discord bot", "discord.js": "Discord bot",
+    "python-telegram-bot": "Telegram bot", "aiogram": "Telegram bot",
+    "slack-sdk": "Slack bot", "slack-bolt": "Slack bot",
+    # Data
+    "sqlalchemy": "data-driven", "prisma": "data-driven",
+    "typeorm": "data-driven", "mongoose": "data-driven",
+    "pandas": "data-driven", "pyspark": "data-driven",
+    # CLIs
+    "click": "CLI tool", "typer": "CLI tool", "commander": "CLI tool",
+    "yargs": "CLI tool", "cobra": "CLI tool",
+    # Desktop / mobile / games / ML
+    "electron": "desktop app", "tauri": "desktop app",
+    "react-native": "mobile app", "flutter": "mobile app",
+    "pygame": "game", "godot": "game",
+    "torch": "ML project", "tensorflow": "ML project",
+    "scikit-learn": "ML project", "transformers": "ML project",
+}
+
+# Priority order when several categories match: most specific first.
+_CATEGORY_PRIORITY = (
+    "Discord bot", "Telegram bot", "Slack bot",
+    "web API", "web application", "web-enabled project",
+    "desktop app", "mobile app", "game", "ML project",
+    "CLI tool", "data-driven", "security analysis tool",
+)
+
+
+def _manifest_dep_names(root: Path) -> set[str]:
+    """Raw dependency names from manifests (facts, never guesses)."""
+    try:
+        from patchi.core.brain.project_reader import read_project_insight
+
+        insight = read_project_insight(Path(root))
+        names = set(insight.dependencies or []) | set(insight.dev_dependencies or [])
+        return {n.lower() for n in names if n}
+    except Exception:
+        return set()
+
+
+def _classify_by_dependencies(deps: set[str]) -> list[str]:
+    """Map manifest dependency names to project categories, priority-ordered."""
+    found: set[str] = set()
+    for dep in deps:
+        cat = _DEP_CATEGORY_MAP.get(dep)
+        if cat:
+            found.add(cat)
+    return [c for c in _CATEGORY_PRIORITY if c in found]
 
 # ── Brain report ───────────────────────────────────────────────────────────────
 
@@ -129,9 +198,7 @@ class BrainReport:
             "file_count": self.file_count,
             "route_count": self.route_count,
             "languages": self.language_breakdown,
-            "framework": self.stack.frameworks[0].name
-            if self.stack and self.stack.frameworks
-            else "Unknown",
+            "framework": self.stack.frameworks[0].name if self.stack and self.stack.frameworks else "Unknown",
             "frameworks": [f.to_dict() for f in (self.stack.frameworks if self.stack else [])],
             "runtime": self.stack.runtime if self.stack else "",
             "has_typescript": self.stack.has_typescript if self.stack else False,
@@ -160,9 +227,7 @@ class BrainReport:
 class ScanProgress:
     """Emitted during scan for CLI progress bars and Web UI live feed."""
 
-    phase: (
-        str  # "discovery" | "parsing" | "framework" | "routes" | "graph" | "context" | "contract"
-    )
+    phase: str  # "discovery" | "parsing" | "framework" | "routes" | "graph" | "context" | "contract"
     current: int = 0
     total: int = 0
     message: str = ""
@@ -200,6 +265,7 @@ class Brain:
         # Reset AI circuit breaker at the start of each scan
         try:
             from patchi.core.ai.client import reset_ai_circuit_breaker
+
             reset_ai_circuit_breaker()
         except Exception:
             pass
@@ -315,9 +381,7 @@ class Brain:
 
         all_paths = scanner.discover(area)
         total = len(all_paths)
-        self._emit(
-            ScanProgress(phase="parsing", current=0, total=total, message=f"Parsing {total} files…")
-        )
+        self._emit(ScanProgress(phase="parsing", current=0, total=total, message=f"Parsing {total} files…"))
 
         file_infos: list[FileInfo] = []
         for i, path in enumerate(all_paths):
@@ -429,9 +493,7 @@ class Brain:
 
             charter = load_charter(self.root)
             if charter is not None:
-                detected_fw = (
-                    [f.name for f in stack.frameworks] if stack and stack.frameworks else []
-                )
+                detected_fw = [f.name for f in stack.frameworks] if stack and stack.frameworks else []
                 violations = check_charter(
                     charter,
                     {name: lyr.to_dict() for name, lyr in report.layers.items()},
@@ -447,16 +509,12 @@ class Brain:
             ScanProgress(
                 phase="graph",
                 message=(
-                    f"{len(graph.nodes)} nodes · "
-                    f"{len(circular_deps)} circular deps · "
-                    f"{len(dead_files)} dead files"
+                    f"{len(graph.nodes)} nodes · {len(circular_deps)} circular deps · {len(dead_files)} dead files"
                 ),
             )
         )
         # ── Context phase: discover docs, infrastructure, dependencies ────────
-        self._emit(
-            ScanProgress(phase="context", message="Discovering documentation and infrastructure…")
-        )
+        self._emit(ScanProgress(phase="context", message="Discovering documentation and infrastructure…"))
         context_data = self._discover_project_context(self.root, file_infos, report, stack)
         report.project_context = context_data["context"]
         report.active_security_domains = context_data["active_domains"]
@@ -480,14 +538,20 @@ class Brain:
             # Need layers already built (previous phase sets report.layers at line ~410)
             layers_dict = getattr(report, "layers", {}) or {}
             body_tags = build_body_tags(
-                report.file_infos, report.import_graph, layers_dict, report.routes, report.blast_radius_map
+                report.file_infos,
+                report.import_graph,
+                layers_dict,
+                report.routes,
+                report.blast_radius_map,
             )
             save_body_tags(body_tags, self.root)
             self._emit(ScanProgress(phase="context", message=f"Body tags: {len(body_tags)} files tagged"))
             # stash for understander reuse
             report.body_tags = body_tags  # type: ignore[attr-defined]
             # Understander instance for enriched + contract phases
-            _understander = Understander(self.root, report.file_infos, body_tags, report.blast_radius_map, report.routes)
+            _understander = Understander(
+                self.root, report.file_infos, body_tags, report.blast_radius_map, report.routes
+            )
             report._understander = _understander  # type: ignore[attr-defined]
         except Exception as exc:  # noqa: BLE001
             logger.warning("body_tags/understander failed: %s", exc)
@@ -512,7 +576,7 @@ class Brain:
                     _u_block = report._understander.as_prompt_block(limit=8)  # type: ignore[attr-defined]
                     _core_hint["core_files_block"] = _u_block
                 except Exception as _exc:
-                    _log.debug('suppressed: %s', _exc)
+                    _log.debug("suppressed: %s", _exc)
             # ProjectInsight
             try:
                 from patchi.core.brain.project_reader import read_project_insight
@@ -520,17 +584,23 @@ class Brain:
                 _pi = read_project_insight(self.root)
                 _core_hint["project_insight"] = _pi.to_dict()
             except Exception as _exc:
-                _log.debug('suppressed: %s', _exc)
+                _log.debug("suppressed: %s", _exc)
             # Layer summaries (up to 10)
             try:
                 _layer_summ = []
                 for lname, lyr in getattr(report, "layers", {}).items():
-                    _layer_summ.append({"name": lname, "level": getattr(lyr, "level", 0), "summary": getattr(lyr, "summary", "")[:220]})
+                    _layer_summ.append(
+                        {
+                            "name": lname,
+                            "level": getattr(lyr, "level", 0),
+                            "summary": getattr(lyr, "summary", "")[:220],
+                        }
+                    )
                     if len(_layer_summ) >= 10:
                         break
                 _core_hint["layer_summaries"] = _layer_summ
             except Exception as _exc:
-                _log.debug('suppressed: %s', _exc)
+                _log.debug("suppressed: %s", _exc)
             report.enriched_context = enrich_project_context(
                 self.root,
                 cfg_for_ai,
@@ -544,21 +614,21 @@ class Brain:
             self._emit(
                 ScanProgress(
                     phase="context",
-                    message=f"Enriched: {report.enriched_context.get('domain','?')} "
-                    f"({report.enriched_context.get('source','?')})",
+                    message=f"Enriched: {report.enriched_context.get('domain', '?')} "
+                    f"({report.enriched_context.get('source', '?')})",
                 )
             )
         except Exception as exc:  # noqa: BLE001
             logger.warning("enriched_context failed, heuristic fallback: %s", exc)
             report.enriched_context = {
-                "purpose_1sent": report.project_context.get("purpose", "") if isinstance(report.project_context, dict) else "",
+                "purpose_1sent": report.project_context.get("purpose", "")
+                if isinstance(report.project_context, dict)
+                else "",
                 "source": "heuristic_wire_fallback",
             }
         # ── Project purpose (AI-powered or fallback) ──────────────────────────
         self._emit(ScanProgress(phase="contract", message="Understanding project purpose…"))
-        report.project_purpose, report.project_domain = self._infer_project_purpose(
-            file_infos, stack, report
-        )
+        report.project_purpose, report.project_domain = self._infer_project_purpose(file_infos, stack, report)
 
         self._emit(ScanProgress(phase="contract", message="Understanding project…"))
         builder = ContractBuilder(routes, file_infos, dead_files, circular_deps, root=self.root)
@@ -602,9 +672,7 @@ class Brain:
         save_freshness_snapshot(self.root, [fi.path for fi in file_infos])
 
         # ── Documentation validation ──────────────────────────────────────────
-        self._emit(
-            ScanProgress(phase="doc-validation", message="Validating documentation against code…")
-        )
+        self._emit(ScanProgress(phase="doc-validation", message="Validating documentation against code…"))
         doc_result = self._run_doc_validation(self.root, file_infos, routes, config, brain_mem)
         report.doc_validation = doc_result
         brain_mem["doc_validation"] = doc_result
@@ -636,9 +704,7 @@ class Brain:
             )
             assurance_graph.save(self.root)
             report.assurance_graph = (
-                assurance_graph.to_dict()
-                if hasattr(report, "assurance_graph")
-                else assurance_graph.to_dict()
+                assurance_graph.to_dict() if hasattr(report, "assurance_graph") else assurance_graph.to_dict()
             )
         except Exception as e:
             logger.debug("Assurance graph build skipped: %s", e)
@@ -695,16 +761,19 @@ class Brain:
 
                     _rag_index: dict[str, dict] = {}
                     for _lname, _lyr in report.layers.items():
-                        txt = f"{_lname} {getattr(_lyr,'summary','')} {getattr(_lyr,'purpose','')}".lower()
+                        txt = f"{_lname} {getattr(_lyr, 'summary', '')} {getattr(_lyr, 'purpose', '')}".lower()
                         toks = [t for t in _re.findall(r"[a-z0-9_]+", txt) if len(t) > 2]
                         tf: dict[str, int] = {}
                         for t in toks:
                             tf[t] = tf.get(t, 0) + 1
-                        _rag_index[_lname] = {"tf": tf, "summary": getattr(_lyr, "summary", "")[:500]}
+                        _rag_index[_lname] = {
+                            "tf": tf,
+                            "summary": getattr(_lyr, "summary", "")[:500],
+                        }
                     _layers_data["rag_index"] = _rag_index
                     _layers_data["rag_index_version"] = 1
                 except Exception as _exc:
-                    _log.debug('suppressed: %s', _exc)
+                    _log.debug("suppressed: %s", _exc)
                 mem.save_layers(_layers_data, self.root)
         except Exception as e:
             logger.warning("Brain.scan failed: %s", e)
@@ -868,46 +937,46 @@ class Brain:
                 domain = self._domain_from_purpose(purpose, active_domains)
                 return purpose, domain
 
-        # Fallback: build purpose from frameworks, routes, and file purposes
+        # Fallback (no AI): classify from manifest dependency data FIRST
+        # (Part 7 §2 — depending on fastapi IS being a web API; matching
+        # "web" in a filename-guess string is not). File purposes are only
+        # corroboration, and filename guesses never count at all.
         frameworks = [f.name for f in (stack.frameworks if stack else [])]
         fw = ", ".join(frameworks) if frameworks else "Unknown"
+        deps = _manifest_dep_names(self.root) | {f.lower() for f in frameworks}
 
-        # Determine category from file purposes
-        purposes = [fi.purpose for fi in file_infos if fi.purpose]
+        categories = _classify_by_dependencies(deps)
         has_routes = bool(report.routes)
-        has_cli = any("cli" in p.lower() for p in purposes)
-        has_web = any(
-            "web" in p.lower() or "route" in p.lower() or "api" in p.lower() or "http" in p.lower()
-            for p in purposes
-        )
-        has_test = any("test" in p.lower() for p in purposes)
-        has_security = any(
-            "security" in p.lower() or "scanner" in p.lower() or "audit" in p.lower()
-            for p in purposes
-        )
-        has_models = any(
-            "model" in p.lower() or "schema" in p.lower() or "database" in p.lower()
-            for p in purposes
-        )
+        if has_routes and "web application" not in categories and "web API" not in categories:
+            # Real routed endpoints corroborate a web shape — but routes
+            # alone don't say what KIND of web thing this is.
+            categories.append("web-enabled project")
 
-        # Build category description
-        parts = []
-        if has_web and has_routes:
-            parts.append("web application")
-        elif has_web:
-            parts.append("web-enabled project")
-        if has_cli:
-            parts.append("CLI tool")
-        if has_models:
-            parts.append("data-driven")
-        if has_security:
-            parts.append("security analysis tool")
-        if has_test:
-            parts.append("test framework")
-        if not parts:
-            parts.append("software project")
+        # Corroboration from content-derived file purposes only: anything
+        # marked "(filename guess)" is a guess about a guess — excluded.
+        purposes = [
+            p for p in (fi.purpose or "" for fi in file_infos)
+            if p and "(filename guess)" not in p
+        ]
+        lowered = [p.lower() for p in purposes]
+        if any("cli" in p for p in lowered) and "CLI tool" not in categories:
+            categories.append("CLI tool")
+        if (
+            any("security" in p or "scanner" in p or "audit" in p for p in lowered)
+            and "security analysis tool" not in categories
+        ):
+            categories.append("security analysis tool")
 
-        category = " + ".join(parts)
+        if not categories:
+            # Thin signals on every channel: say so, don't confabulate.
+            purpose = (
+                f"A {fw} software project — project type unclear from "
+                f"available signals (no identifying dependencies)."
+            )
+            domain = self._domain_from_purpose(purpose, report.active_security_domains)
+            return purpose, domain
+
+        category = " + ".join(categories)
         route_count = len(report.routes)
         route_note = f" with {route_count} routes" if route_count > 0 else ""
 
@@ -1118,9 +1187,7 @@ class Brain:
             f.name.lower() in ("click", "typer", "argparse", "commander", "cobra", "urfave/cli")
             for f in stack.frameworks
         )
-        has_mobile = any(
-            ext in (".kt", ".kts", ".swift", ".dart", ".java", ".gradle") for ext in file_extensions
-        )
+        has_mobile = any(ext in (".kt", ".kts", ".swift", ".dart", ".java", ".gradle") for ext in file_extensions)
 
         route_paths = [r.path for r in report.routes if hasattr(r, "path")]
         config_keys: set[str] = set()

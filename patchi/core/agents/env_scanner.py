@@ -59,57 +59,70 @@ class EnvScanner(BaseAgent):
     shardable = True
     supported_languages = None
 
-    # Common secret patterns
+    # Common secret patterns — tiered (Part 7).
+    # kind="structural": the token SHAPE is the evidence (prefix + charset +
+    # length). Still gated on placeholder/entropy/fixture via secret_evidence.
+    # kind="keyword": a NAME suggests secrecy; the VALUE must independently
+    # pass looks_like_secret or nothing is emitted (never CRITICAL).
+    # kind="public": public key material — inventory INFO, never a secret.
+    # kind="pem": header alone proves nothing without a base64 body.
+    # Flags are per-pattern: provider prefixes are case-SENSITIVE (akia !=
+    # AKIA); only the keyword names match case-insensitively.
     SECRET_PATTERNS = [
-        # AWS keys
-        (r"AKIA[0-9A-Z]{16}", "AWS Access Key"),
-        (r"AGPA[0-9A-Z]{16}", "AWS Access Key"),
-        (r"AIDA[0-9A-Z]{16}", "AWS Access Key"),
-        (r"AROA[0-9A-Z]{16}", "AWS Access Key"),
-        (r"ASIA[0-9A-Z]{16}", "AWS Access Key"),
-        # AWS secret keys
-        (r"[0-9a-zA-Z/+]{40}(?=\s|$)", "AWS Secret Key"),
+        # AWS keys (case-sensitive by design)
+        (r"AKIA[0-9A-Z]{16}", "AWS Access Key", "structural", ""),
+        (r"AGPA[0-9A-Z]{16}", "AWS Access Key", "structural", ""),
+        (r"AIDA[0-9A-Z]{16}", "AWS Access Key", "structural", ""),
+        (r"AROA[0-9A-Z]{16}", "AWS Access Key", "structural", ""),
+        (r"ASIA[0-9A-Z]{16}", "AWS Access Key", "structural", ""),
+        # AWS secret keys. Part 7: exactly 40 base64 chars AND at least
+        # one digit — prose with slashes ("a/b/c...") has no digits and
+        # longer hashes (sha512 blobs) don't boundary-match.
+        (
+            r"(?<![0-9a-zA-Z/+_])(?=[0-9a-zA-Z/+]{0,39}[0-9])[0-9a-zA-Z/+]{40}(?![0-9a-zA-Z/+_])",
+            "AWS Secret Key",
+            "structural",
+            "",
+        ),
         # GitHub tokens
-        (r"ghp_[0-9a-zA-Z]{36}", "GitHub Personal Access Token"),
-        (r"gho_[0-9a-zA-Z]{36}", "GitHub OAuth Access Token"),
-        (r"ghu_[0-9a-zA-Z]{36}", "GitHub User-to-server Token"),
-        (r"ghs_[0-9a-zA-Z]{36}", "GitHub Server-to-Server Token"),
-        (r"ghr_[0-9a-zA-Z]{76}", "GitHub Refresh Token"),
+        (r"ghp_[0-9a-zA-Z]{36}", "GitHub Personal Access Token", "structural", ""),
+        (r"gho_[0-9a-zA-Z]{36}", "GitHub OAuth Access Token", "structural", ""),
+        (r"ghu_[0-9a-zA-Z]{36}", "GitHub User-to-server Token", "structural", ""),
+        (r"ghs_[0-9a-zA-Z]{36}", "GitHub Server-to-Server Token", "structural", ""),
+        (r"ghr_[0-9a-zA-Z]{76}", "GitHub Refresh Token", "structural", ""),
         # Slack tokens
-        (r"xox[a-zA-Z]-[0-9A-Za-z-]+", "Slack Token"),
+        (r"xox[a-zA-Z]-[0-9A-Za-z-]+", "Slack Token", "structural", ""),
         # Slack webhooks
         (
             r"https://hooks\.slack\.com/services/T[A-Z0-9]{8}/B[A-Z0-9]{8}/[a-zA-Z0-9]{24}",
             "Slack Webhook",
+            "structural",
+            "",
         ),
         # Google API keys
-        (r"AIza[0-9A-Za-z\\-_]{35}", "Google API Key"),
+        (r"AIza[0-9A-Za-z\-_]{35}", "Google API Key", "structural", ""),
         # Google OAuth
-        (r"[0-9]+-[0-9A-Za-z_]{32}\.apps\.googleusercontent\.com", "Google OAuth Client ID"),
+        (r"[0-9]+-[0-9A-Za-z_]{32}\.apps\.googleusercontent\.com", "Google OAuth Client ID", "structural", ""),
         # Facebook access tokens
-        (r"EAACEdEose0cBA[0-9A-Za-z]+", "Facebook Access Token"),
-        # Passwords in various formats
-        (r'password\s*[=:]\s*["\'][^"\']+["\']', "Password in config"),
-        (r'pwd\s*[=:]\s*["\'][^"\']+["\']', "Password in config"),
-        (r'passwd\s*[=:]\s*["\'][^"\']+["\']', "Password in config"),
+        (r"EAACEdEose0cBA[0-9A-Za-z]+", "Facebook Access Token", "structural", ""),
+        # Passwords in various formats (keyword tier: value must prove itself)
+        (r'(?i:password)\s*[=:]\s*["\']([^"\']+)["\']', "Password in config", "keyword", ""),
+        (r'(?i:pwd)\s*[=:]\s*["\']([^"\']+)["\']', "Password in config", "keyword", ""),
+        (r'(?i:passwd)\s*[=:]\s*["\']([^"\']+)["\']', "Password in config", "keyword", ""),
         # Database connection strings with credentials
-        (r"postgres://[a-zA-Z0-9_%]+:[^@]+@", "PostgreSQL Connection String"),
-        (r"mysql://[a-zA-Z0-9_%]+:[^@]+@", "MySQL Connection String"),
-        (r"mongodb://[a-zA-Z0-9_%]+:[^@]+@", "MongoDB Connection String"),
-        # Private key headers
-        (r"-----BEGIN RSA PRIVATE KEY-----", "RSA Private Key"),
-        (r"-----BEGIN DSA PRIVATE KEY-----", "DSA Private Key"),
-        (r"-----BEGIN EC PRIVATE KEY-----", "EC Private Key"),
-        (r"-----BEGIN OPENSSH PRIVATE KEY-----", "OpenSSH Private Key"),
-        (r"-----BEGIN PRIVATE KEY-----", "Private Key"),
-        # SSH keys
-        (r"ssh-rsa [A-Za-z0-9+/\s]+={0,2}", "SSH Public Key"),
-        (r"ssh-ed25519 [A-Za-z0-9+/\s]+={0,2}", "SSH Ed25519 Key"),
-        # Generic API keys
-        (r'api[_-]?key["\']?\s*[=:]\s*["\'][^"\']+["\']', "Generic API Key"),
-        (r'api[_-]?token["\']?\s*[=:]\s*["\'][^"\']+["\']', "Generic API Token"),
-        (r'secret["\']?\s*[=:]\s*["\'][^"\']+["\']', "Generic Secret"),
-        (r'token["\']?\s*[=:]\s*["\'][^"\']+["\']', "Generic Token"),
+        (r"postgres://[a-zA-Z0-9_%]+:[^@]+@", "PostgreSQL Connection String", "structural", ""),
+        (r"mysql://[a-zA-Z0-9_%]+:[^@]+@", "MySQL Connection String", "structural", ""),
+        (r"mongodb://[a-zA-Z0-9_%]+:[^@]+@", "MongoDB Connection String", "structural", ""),
+        # Private key headers (body required — see scan loop)
+        (r"-----BEGIN (?:RSA |DSA |EC |OPENSSH )?PRIVATE KEY-----", "Private Key", "pem", ""),
+        # SSH keys — PUBLIC material, inventory only
+        (r"ssh-rsa [A-Za-z0-9+/\s]+={0,2}", "SSH Public Key", "public", ""),
+        (r"ssh-ed25519 [A-Za-z0-9+/\s]+={0,2}", "SSH Ed25519 Key", "public", ""),
+        # Generic API keys (keyword tier)
+        (r'(?i:api[_-]?key)["\']?\s*[=:]\s*["\']([^"\']+)["\']', "Generic API Key", "keyword", ""),
+        (r'(?i:api[_-]?token)["\']?\s*[=:]\s*["\']([^"\']+)["\']', "Generic API Token", "keyword", ""),
+        (r'(?i:secret)["\']?\s*[=:]\s*["\']([^"\']+)["\']', "Generic Secret", "keyword", ""),
+        (r'(?i:token)["\']?\s*[=:]\s*["\']([^"\']+)["\']', "Generic Token", "keyword", ""),
     ]
 
     def _run(self, inp: AgentInput, result: AgentResult) -> None:
@@ -154,9 +167,28 @@ class EnvScanner(BaseAgent):
         corpus = inp.extra.get("file_corpus")
         _MAX_FILES = 100
         if corpus and corpus.entries:
-            env_exts = {".env", ".envrc", ".config", ".conf", ".ini", ".properties",
-                        ".json", ".yaml", ".yml", ".toml", ".py", ".js", ".ts", ".jsx", ".tsx",
-                        ".sh", ".bash", ".zsh", ".ps1", ".bat"}
+            env_exts = {
+                ".env",
+                ".envrc",
+                ".config",
+                ".conf",
+                ".ini",
+                ".properties",
+                ".json",
+                ".yaml",
+                ".yml",
+                ".toml",
+                ".py",
+                ".js",
+                ".ts",
+                ".jsx",
+                ".tsx",
+                ".sh",
+                ".bash",
+                ".zsh",
+                ".ps1",
+                ".bat",
+            }
             count = 0
             for rel_key in corpus.entries:
                 if count >= _MAX_FILES:
@@ -185,11 +217,7 @@ class EnvScanner(BaseAgent):
         result.data.update(
             {
                 "secrets_found": len(
-                    [
-                        f
-                        for f in findings
-                        if "Secret" in f.title or "Token" in f.title or "Key" in f.title
-                    ]
+                    [f for f in findings if "Secret" in f.title or "Token" in f.title or "Key" in f.title]
                 ),
                 "passwords_found": len([f for f in findings if "Password" in f.title]),
                 "needs_ai": False,
@@ -232,6 +260,16 @@ class EnvScanner(BaseAgent):
         if file_path.name == "package-lock.json":
             return findings
 
+        # Fixture/test/doc paths intentionally look dangerous — verdicts
+        # from them are noise by construction, not findings.
+        from patchi.core.security.secret_evidence import (
+            is_fixture_path,
+            looks_like_secret,
+            private_key_body_present,
+        )
+
+        _is_fixture = is_fixture_path(rel_path)
+
         try:
             content = file_path.read_text(encoding="utf-8")
             lines = content.splitlines()
@@ -259,21 +297,23 @@ class EnvScanner(BaseAgent):
                     continue
                 if any(m in line for m in _fp_markers):
                     continue
-                for pattern, description in self.SECRET_PATTERNS:
-                    matches = re.finditer(pattern, line, re.IGNORECASE)
-                    for match in matches:
-                        masked_match = self._mask_sensitive_info(match.group(0))
-                        findings.append(
-                            make_finding(
-                                severity=Severity.CRITICAL,
-                                finding_type="hardcoded_secret",
-                                file=rel_path,
-                                line_start=line_num,
-                                title=f"Potential {description}",
-                                description=f"Found potential {description} in {file_path.name}",
-                                evidence=f"Match: {masked_match}",
-                            )
+                for pattern, description, kind, _flags in self.SECRET_PATTERNS:
+                    for match in re.finditer(pattern, line):
+                        if _is_fixture and kind != "public":
+                            continue
+                        verdict = self._verdict_for_match(
+                            kind,
+                            match,
+                            description,
+                            rel_path,
+                            line_num,
+                            file_path.name,
+                            lines,
+                            looks_like_secret,
+                            private_key_body_present,
                         )
+                        if verdict is not None:
+                            findings.append(verdict)
 
             # Special check for .env files - look for common environment variable patterns
             if ".env" in file_path.name.lower():
@@ -282,28 +322,36 @@ class EnvScanner(BaseAgent):
         except UnicodeDecodeError:
             # If it's a binary file, try to read as binary and decode what we can
             try:
+                from patchi.core.security.secret_evidence import (
+                    looks_like_secret as _lls,
+                )
+                from patchi.core.security.secret_evidence import (
+                    private_key_body_present as _pkb,
+                )
+
                 content = file_path.read_bytes()
                 # Try to decode as UTF-8, ignoring errors
                 text_content = content.decode("utf-8", errors="ignore")
                 lines = text_content.splitlines()
 
                 for line_num, line in enumerate(lines, 1):
-                    for pattern, description in self.SECRET_PATTERNS:
-                        matches = re.finditer(pattern, line, re.IGNORECASE)
-                        for match in matches:
-                            masked_match = self._mask_sensitive_info(match.group(0))
-
-                            findings.append(
-                                make_finding(
-                                    severity=Severity.CRITICAL,
-                                    finding_type="hardcoded_secret",
-                                    file=rel_path,
-                                    line_start=line_num,
-                                    title=f"Potential {description}",
-                                    description=f"Found potential {description} in {file_path.name}",
-                                    evidence=f"Match: {masked_match}",
-                                )
+                    for pattern, description, kind, _flags in self.SECRET_PATTERNS:
+                        for match in re.finditer(pattern, line):
+                            if _is_fixture and kind != "public":
+                                continue
+                            verdict = self._verdict_for_match(
+                                kind,
+                                match,
+                                description,
+                                rel_path,
+                                line_num,
+                                file_path.name,
+                                lines,
+                                _lls,
+                                _pkb,
                             )
+                            if verdict is not None:
+                                findings.append(verdict)
             except Exception as e:
                 _log.warning("EnvScanner._scan_env_file failed: %s", e)
                 findings.append(
@@ -330,9 +378,91 @@ class EnvScanner(BaseAgent):
 
         return findings
 
+    @staticmethod
+    def _verdict_for_match(
+        kind: str,
+        match,
+        description: str,
+        rel_path: str,
+        line_num: int,
+        file_name: str,
+        lines: list[str],
+        looks_like_secret,
+        private_key_body_present,
+    ):
+        """One match → finding or None (Part 7 verdict policy).
+
+        structural: token shape is evidence, but the VALUE must still pass
+        looks_like_secret (placeholders/examples/low-entropy rejected).
+        keyword: the name suggests secrecy; value must prove it. Max HIGH.
+        public: inventory INFO — public keys are published by design.
+        pem: header + base64 body required, else a doc snippet (skipped).
+        """
+        from patchi.core.agents.base import Severity, make_finding
+
+        matched = match.group(0)
+        # Keyword patterns capture the value in group 1; structural patterns
+        # are matched on the token itself.
+        try:
+            value = match.group(1)
+        except IndexError:
+            value = matched
+
+        if kind == "public":
+            return make_finding(
+                severity=Severity.INFO,
+                finding_type="public_key_material",
+                file=rel_path,
+                line_start=line_num,
+                title=f"Public key material ({description}) — not a secret",
+                description=f"Published-by-design key in {file_name}; no action needed",
+                evidence=f"Match: {matched[:60]}",
+            )
+        if kind == "pem":
+            window = "\n".join(lines[max(0, line_num - 1):line_num + 15])
+            if not private_key_body_present(window):
+                return None
+            return make_finding(
+                severity=Severity.CRITICAL,
+                finding_type="hardcoded_secret",
+                file=rel_path,
+                line_start=line_num,
+                title=f"Potential {description}",
+                description=f"Private key block with key material in {file_name}",
+                evidence="Match: -----BEGIN ... PRIVATE KEY----- (body verified)",
+            )
+        if kind == "keyword":
+            if not looks_like_secret(value, allow_spaces=False):
+                return None
+            return make_finding(
+                severity=Severity.HIGH,
+                finding_type="hardcoded_secret",
+                file=rel_path,
+                line_start=line_num,
+                title=f"Potential {description}",
+                description=f"Secret-shaped value assigned to a sensitive name in {file_name}",
+                evidence=f"Match: {matched[:4]}...{matched[-4:] if len(matched) > 8 else ''}",
+            )
+        # structural
+        if not looks_like_secret(matched):
+            return None
+        return make_finding(
+            severity=Severity.CRITICAL,
+            finding_type="hardcoded_secret",
+            file=rel_path,
+            line_start=line_num,
+            title=f"Potential {description}",
+            description=f"Found potential {description} in {file_name}",
+            evidence=f"Match: {matched[:4]}...{matched[-4:] if len(matched) > 8 else ''}",
+        )
+
     def _scan_dotenv_file(self, file_path: Path, rel_path: str, lines: list[str]) -> list[Finding]:
         """Special scanning for .env files."""
+        from patchi.core.security.secret_evidence import is_fixture_path as _is_fx
+        from patchi.core.security.secret_evidence import looks_like_secret as _lls
+
         findings = []
+        _dotenv_fixture = _is_fx(rel_path)
 
         # Look for common environment variable patterns that might contain secrets
         for line_num, line in enumerate(lines, 1):
@@ -367,8 +497,9 @@ class EnvScanner(BaseAgent):
                 ]
 
                 if any(keyword in var_name.upper() for keyword in sensitive_keywords):
-                    # Check if the value looks like a secret
-                    if self._looks_like_secret(var_value):
+                    # Check if the value looks like a secret (shared Shannon
+                    # gate; fixture .env files are intentional by construction)
+                    if not _dotenv_fixture and _lls(var_value):
                         findings.append(
                             make_finding(
                                 severity=Severity.HIGH,
@@ -377,43 +508,25 @@ class EnvScanner(BaseAgent):
                                 line_start=line_num,
                                 title=f"Potential secret in environment variable: {var_name}",
                                 description=f"Environment variable '{var_name}' may contain sensitive information",
-                                evidence=f"Variable: {var_name}, Value (masked): {self._mask_sensitive_info(var_value)}",
+                                evidence=f"Variable: {var_name}, Value (masked):"
+                                f" {self._mask_sensitive_info(var_value)}",
                             )
                         )
 
         return findings
 
     def _looks_like_secret(self, value: str) -> bool:
-        """Check if a value looks like it might be a secret."""
-        # Check for common secret characteristics
-        if len(value) < 6:  # Too short to be a secret
-            return False
+        """Shared secret gate (Part 7): length + Shannon entropy + no
+        placeholder. Kept as a method for backward compatibility."""
+        from patchi.core.security.secret_evidence import looks_like_secret
 
-        # Check for randomness - if it has high entropy it might be a secret
-        if self._has_high_entropy(value):
-            return True
-
-        # Check against our known patterns
-        for pattern, _ in self.SECRET_PATTERNS:
-            if re.search(pattern, value, re.IGNORECASE):
-                return True
-
-        return False
+        return looks_like_secret(value)
 
     def _has_high_entropy(self, text: str) -> bool:
-        """Check if text has high entropy (suggesting it might be a key/token)."""
-        if len(text) < 10:  # Too short to reliably determine entropy
-            return False
+        """Real Shannon entropy (Part 7). Kept as a method for compatibility."""
+        from patchi.core.security.secret_evidence import shannon_entropy
 
-        # Calculate character diversity
-        unique_chars = len(set(text))
-        total_chars = len(text)
-
-        # If more than 50% of characters are unique, it might be high entropy
-        if unique_chars / total_chars > 0.5:
-            return True
-
-        return False
+        return len(text or "") >= 10 and shannon_entropy(text) >= 3.5
 
     def _mask_sensitive_info(self, text: str) -> str:
         """Mask sensitive information for display."""

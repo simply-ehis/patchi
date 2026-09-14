@@ -234,23 +234,30 @@ class ComplianceAgent(BaseAgent):
                         )
                     )
 
-        # Check for missing audit trails where they should be present
+        # Check for missing audit trails where they should be present.
+        # Part 7: substring matching ("update" fires on "updater") plus
+        # file-level absence produced MEDIUMs from prose. Require a
+        # word-boundary hit on a CODE line, and point at it.
         sensitive_operations = ["delete", "update", "modify", "remove", "transfer", "share"]
+        _code_lines = [
+            (i, ln)
+            for i, ln in enumerate(content.splitlines(), 1)
+            if not ln.strip().startswith(("#", "//", "*", "/*", "<!--"))
+        ]
         for op in sensitive_operations:
-            if op in content.lower():
-                has_audit = any(
-                    audit_term in content.lower()
-                    for audit_term in ["audit", "log", "track", "record"]
-                )
+            hit_lines = [i for i, ln in _code_lines if re.search(r"\b" + op + r"\b", ln, re.IGNORECASE)]
+            if hit_lines:
+                has_audit = any(audit_term in content.lower() for audit_term in ["audit", "log", "track", "record"])
                 if not has_audit:
                     findings.append(
                         make_finding(
                             severity=Severity.MEDIUM,
                             file=rel_path,
-                            line_start=0,
+                            line_start=hit_lines[0],
                             title=f"Missing Audit Trail for {op.title()} Operation",
-                            description=f"Sensitivity operation '{op}' found without apparent audit trail",
-                            evidence=f"Sensitivity operation '{op}' without audit logging",
+                            description=f"Sensitive operation '{op}' found with no audit trail visible"
+                            " in this file — verify centralized logging covers it",
+                            evidence=f"Sensitive operation '{op}' without audit logging",
                         )
                     )
 

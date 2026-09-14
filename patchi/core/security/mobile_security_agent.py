@@ -43,18 +43,21 @@ class MobileSecurityAgent(BaseAgent):
     description = "OWASP MASVS L1/L2 compliance scanning"
 
     # ── MASVS-STORAGE: Positive patterns (found = issue) ──
+    # Part 7: bare storage-API presence is MEDIUM + verify — only the
+    # keyword-near-API variants below (secret words inside the call) keep
+    # HIGH, and test/fixture paths never verdict (fake creds live there).
     STORAGE_PATTERNS: list[tuple[str, str, str, Severity]] = [
         (
             "nsuserdefaults_sensitive",
             r"UserDefaults\.standard",
-            "iOS UserDefaults used for sensitive data (MASVS-STORAGE-1)",
-            Severity.HIGH,
+            "iOS UserDefaults in use — verify no sensitive data stored (MASVS-STORAGE-1)",
+            Severity.MEDIUM,
         ),
         (
             "sharedprefs_sensitive",
             r"SharedPreferences",
-            "Android SharedPreferences stores data in plaintext (MASVS-STORAGE-1)",
-            Severity.HIGH,
+            "Android SharedPreferences in use — verify no sensitive data stored (MASVS-STORAGE-1)",
+            Severity.MEDIUM,
         ),
         (
             "sqlite_plaintext",
@@ -65,7 +68,7 @@ class MobileSecurityAgent(BaseAgent):
         (
             "nsdata_plaintext",
             r"writeToFile.*atomically",
-            "NSData writeToFile stores unencrypted data (MASVS-STORAGE-3)",
+            "NSData writeToFile API present — verify stored data is encrypted (MASVS-STORAGE-3)",
             Severity.MEDIUM,
         ),
         (
@@ -97,10 +100,18 @@ class MobileSecurityAgent(BaseAgent):
             Severity.MEDIUM,
         ),
         (
+            # Part 7: ECB and CBC split — the old alternation reported CBC
+            # (fine) as ECB/HIGH. ECB is the finding; CBC is inventory INFO.
             "aes_ecb",
-            r"AES/(ECB|CBC)/PKCS5Padding",
+            r"AES/ECB/PKCS5Padding",
             "AES-ECB mode used (MASVS-CRYPTO-1)",
             Severity.HIGH,
+        ),
+        (
+            "aes_cbc",
+            r"AES/CBC/PKCS5Padding",
+            "AES-CBC mode in use (acceptable; prefer GCM where available)",
+            Severity.INFO,
         ),
         (
             "hardcoded_key_mobile",
@@ -123,12 +134,15 @@ class MobileSecurityAgent(BaseAgent):
         (
             "flutter_insecure_random",
             r"\bRandom\(\)",
-            "Insecure Random() without cryptographically secure source (MASVS-CRYPTO-4)",
+            "Random() without cryptographically secure source (MASVS-CRYPTO-4)",
             Severity.MEDIUM,
         ),
     ]
 
     # ── MASVS-NETWORK: Positive patterns (found = issue) ──
+    # Part 7 (§4 KEEP-AND-HARDEN): manifest literally allowing cleartext
+    # (usesCleartextTraffic, arbitrary loads) or a cleartext fetch() call
+    # IS the misconfiguration — measured in tests/test_heuristic_verdicts.py.
     NETWORK_PATTERNS: list[tuple[str, str, str, Severity]] = [
         (
             "cleartext_traffic",
@@ -189,16 +203,34 @@ class MobileSecurityAgent(BaseAgent):
             Severity.MEDIUM,
         ),
         (
-            "flutter_javascript_channel",
-            r"JavascriptChannel|javascriptMode:",
-            "Flutter JavaScript channel enabled (MASVS-PLATFORM-1)",
+            # Part 7: split — active JS injection stays HIGH; merely
+            # enabling a channel/mode is MEDIUM + verify (needs
+            # untrusted-content proof to be HIGH).
+            "flutter_javascript_injection",
+            r"injectedJavaScript",
+            "Flutter WebView JavaScript injection enabled (MASVS-PLATFORM-1)",
             Severity.HIGH,
         ),
         (
-            "deep_link_validation",
-            r"autoVerify\s*=\s*true|intent-filter.*android:autoVerify",
-            "Deep link auto-verify — validate URL handling (MASVS-PLATFORM-2)",
+            # Explicitly-disabled values never fire; unknown values verify.
+            "flutter_javascript_mode",
+            r"javascriptMode\s*:\s*(?!false|disabled|off\b)\w+",
+            "Flutter WebView JavaScript mode enabled — verify value (MASVS-PLATFORM-1)",
             Severity.MEDIUM,
+        ),
+        (
+            "flutter_javascript_channel",
+            r"JavascriptChannel",
+            "Flutter JavaScript channel present — verify only trusted content is exposed (MASVS-PLATFORM-1)",
+            Severity.MEDIUM,
+        ),
+        (
+            # Part 7: autoVerify=true IS the verification — flagging its
+            # presence as MEDIUM was inverted. Present = INFO positive.
+            "deep_link_autoverify",
+            r"autoVerify\s*=\s*true",
+            "Deep link auto-verification enabled (good practice confirmed)",
+            Severity.INFO,
         ),
         (
             "react_native_webview_js",
@@ -263,22 +295,27 @@ class MobileSecurityAgent(BaseAgent):
             Severity.MEDIUM,
         ),
         (
+            # Part 7: a bare token NAME proves nothing about binding.
             "no_device_binding",
             r"refreshToken|sessionToken",
-            "Session token without device binding check (MASVS-AUTH-2)",
-            Severity.MEDIUM,
+            "Session token identifier — verify device binding (MASVS-AUTH-2)",
+            Severity.LOW,
         ),
         (
+            # Part 7: an import is not a weak configuration.
             "local_authentication",
             r"LocalAuthentication|DeviceCredentialHandler",
-            "Local auth without strong biometric (MASVS-AUTH-1)",
-            Severity.MEDIUM,
+            "Local-auth API present — verify strong biometric is required (MASVS-AUTH-1)",
+            Severity.LOW,
         ),
         (
+            # Part 7: brittle alternation demoted from CRITICAL; a real
+            # Bearer-in-query instance is HIGH, not CRITICAL, without
+            # exploit proof.
             "token_in_url",
             r"Authorization.*Bearer.*\{.*url|token.*query.*param",
             "Auth token passed in URL query string (MASVS-AUTH-3)",
-            Severity.CRITICAL,
+            Severity.HIGH,
         ),
     ]
 
@@ -323,9 +360,7 @@ class MobileSecurityAgent(BaseAgent):
     ]
 
     # Files to exclude from scanning (node_modules, vendor, etc.)
-    NON_MOBILE_EXTS = frozenset(
-        {".md", ".txt", ".csv", ".json", ".yaml", ".yml", ".xml", ".html", ".css"}
-    )
+    NON_MOBILE_EXTS = frozenset({".md", ".txt", ".csv", ".json", ".yaml", ".yml", ".xml", ".html", ".css"})
 
     def _run(self, inp: AgentInput, result: AgentResult) -> None:
         root = inp.root
@@ -350,6 +385,8 @@ class MobileSecurityAgent(BaseAgent):
         is_mobile_project = False
         seen_defensive: set[str] = set()
 
+        from patchi.core.security.secret_evidence import is_fixture_path
+
         for fp in all_files:
             try:
                 text = fp.read_text(encoding="utf-8", errors="replace")
@@ -357,6 +394,9 @@ class MobileSecurityAgent(BaseAgent):
                 _log.warning("MobileSecurityAgent._run failed: %s", e)
                 continue
             rel = str(fp.relative_to(root))
+            # Part 7: fixtures/tests carry fake creds by construction.
+            if is_fixture_path(rel):
+                continue
             fname = fp.name
 
             if fname in {
@@ -383,7 +423,12 @@ class MobileSecurityAgent(BaseAgent):
                         )
                     )
 
+            # Part 7: Random() is only evidence when no CSPRNG is in use
+            # in the same file — SecureRandom import corroborates safe use.
+            has_csprng = "SecureRandom" in text or "securerandom" in text.lower()
             for pname, pattern, msg, severity in self.CRYPTO_PATTERNS:
+                if pname == "flutter_insecure_random" and has_csprng:
+                    continue
                 if re.search(pattern, text, re.IGNORECASE):
                     findings.append(
                         Finding(
@@ -453,6 +498,21 @@ class MobileSecurityAgent(BaseAgent):
                 for pname, pattern, _msg, _severity in self.DEFENSIVE_PATTERNS:
                     if re.search(pattern, text, re.IGNORECASE):
                         seen_defensive.add(pname)
+
+            # Part 7: browsable deep links WITHOUT autoVerify are the real
+            # gap (not the presence of autoVerify). Manifest-scoped check.
+            if fp.name in ("AndroidManifest.xml",) and "BROWSABLE" in text:
+                if not re.search(r"autoVerify\s*=\s*true", text):
+                    findings.append(
+                        Finding(
+                            agent=self.name,
+                            type="deep_link_no_autoverify",
+                            severity=Severity.MEDIUM,
+                            file=rel,
+                            message="Browsable deep link without autoVerify — verify URL handling",
+                            cwe="CWE-749",
+                        )
+                    )
 
         # Report missing defensive controls
         if is_mobile_project:

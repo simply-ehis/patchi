@@ -99,10 +99,7 @@ class AuthZAgent(BaseAgent):
                     [
                         f
                         for f in findings
-                        if any(
-                            word in f.title.lower()
-                            for word in ["authorization", "auth", "privilege", "idor"]
-                        )
+                        if any(word in f.title.lower() for word in ["authorization", "auth", "privilege", "idor"])
                     ]
                 ),
                 "needs_ai": False,
@@ -236,8 +233,7 @@ class AuthZAgent(BaseAgent):
                 )
                 # Also flag functions named like route handlers (get_X, post_X, delete_X)
                 is_route_name = any(
-                    func_name.lower().startswith(v)
-                    for v in ("get_", "post_", "put_", "delete_", "patch_", "handle_")
+                    func_name.lower().startswith(v) for v in ("get_", "post_", "put_", "delete_", "patch_", "handle_")
                 )
                 if has_route_decorator or is_route_name:
                     if has_auth_decorator:
@@ -265,9 +261,7 @@ class AuthZAgent(BaseAgent):
 
         return findings
 
-    def _scan_javascript_authz(
-        self, content: str, rel_path: str, lang: Lang = Lang.JAVASCRIPT
-    ) -> list[Finding]:
+    def _scan_javascript_authz(self, content: str, rel_path: str, lang: Lang = Lang.JAVASCRIPT) -> list[Finding]:
         """Scan JavaScript/TypeScript code for authorization vulnerabilities.
 
         Uses tree-sitter to locate route-definition call expressions (e.g.
@@ -297,9 +291,7 @@ class AuthZAgent(BaseAgent):
             "secured",
             "preauthorize",
         }
-        sensitive_re = re.compile(
-            r"/api/.*(?:/users?|/admin|/settings|/profile|/account)", re.IGNORECASE
-        )
+        sensitive_re = re.compile(r"/api/.*(?:/users?|/admin|/settings|/profile|/account)", re.IGNORECASE)
 
         for node in self._iter_nodes(tree.root_node):
             if node.type != "call_expression":
@@ -318,6 +310,16 @@ class AuthZAgent(BaseAgent):
             has_auth = any(w in lowered for w in auth_words)
             evidence_line = lines[line - 1].strip() if 0 < line <= len(lines) else call_text.strip()
             if not has_auth:
+                # Part 7: auth may live in a decorator above the route or in
+                # same-file global middleware (app.use(auth…)) — both are
+                # structural coverage, not absence. Only verdict when neither
+                # is present, and say what to verify.
+                above = "\n".join(lines[max(0, line - 6):line - 1]).lower()
+                covered = any(w in above for w in auth_words) or bool(
+                    re.search(r"(?i)app\.use\s*\([^)]*(?:auth|jwt|session|login|protect)", content)
+                )
+                if covered:
+                    continue
                 sensitive = bool(sensitive_re.search(call_text))
                 findings.append(
                     make_finding(
@@ -329,7 +331,8 @@ class AuthZAgent(BaseAgent):
                             if sensitive
                             else "Potential Missing Authorization Check"
                         ),
-                        description="Route definition may lack authentication/authorization middleware",
+                        description="Route definition may lack authentication/authorization middleware"
+                        " — verify decorator-above and global middleware in other files",
                         evidence=evidence_line,
                     )
                 )
@@ -356,20 +359,27 @@ class AuthZAgent(BaseAgent):
                             evidence=line.strip(),
                         )
                     )
-        sensitive_re = re.compile(
-            r"/api/.*(?:/users?|/admin|/settings|/profile|/account)", re.IGNORECASE
-        )
+        sensitive_re = re.compile(r"/api/.*(?:/users?|/admin|/settings|/profile|/account)", re.IGNORECASE)
         for i, line in enumerate(lines, 1):
             if sensitive_re.search(line) and not any(
                 w in line.lower() for w in ["auth", "login", "jwt", "session", "verify"]
             ):
+                # Part 7: single-line fallback misses chained/multiline
+                # middleware — check the lines above before calling it HIGH.
+                above = "\n".join(lines[max(0, i - 4):i - 1]).lower()
+                if any(
+                    w in above
+                    for w in ["auth", "login", "jwt", "session", "verify", "middleware", "guard"]
+                ):
+                    continue
                 findings.append(
                     make_finding(
                         severity=Severity.HIGH,
                         file=rel_path,
                         line_start=i,
                         title="Sensitive Endpoint Without Authorization",
-                        description="API endpoint for sensitive data may lack authorization",
+                        description="API endpoint for sensitive data may lack authorization"
+                        " — verify global middleware in other files",
                         evidence=line.strip(),
                     )
                 )
@@ -459,9 +469,12 @@ class AuthZAgent(BaseAgent):
             for pattern in php_auth_patterns:
                 matches = re.finditer(pattern, line, re.IGNORECASE)
                 for _match in matches:
-                    # Check if this line has authentication
+                    # Check surrounding LINES for authentication (Part 7: the
+                    # old code sliced characters [i-10:i+10] using a line
+                    # number as a char offset — a ~20-char window).
+                    window = "\n".join(lines[max(0, i - 6):min(len(lines), i + 5)])
                     if not any(
-                        auth_word in content[max(0, i - 10) : i + 10]
+                        auth_word in window
                         for auth_word in [
                             "auth",
                             "Auth",
@@ -545,25 +558,29 @@ class AuthZAgent(BaseAgent):
         """Apply general authorization pattern matching."""
         findings = []
 
-        # General authorization patterns
+        # General authorization patterns. Part 7: snake_case names
+        # (delete_user, is_admin) have no \b boundaries inside — match
+        # word-char-joined forms too, or real code never fires. The
+        # (?<![A-Za-z]) guard keeps mid-word matches ("together" has no
+        # "get" finding) while allowing _-joined identifiers.
         authz_patterns = [
             (
-                r"\b(?:delete|remove|update|modify)\b.*\buser\b",
+                r"(?<![A-Za-z])(?:delete|remove|update|modify)[\w_]*(?:user|account|profile|record)",
                 "Potential Missing Authorization",
                 Severity.HIGH,
             ),
             (
-                r"\b(?:change|set|update)\b.*\bpassword\b",
+                r"(?<![A-Za-z])(?:change|set|update)[\w_]*(?:password|passwd|pwd)",
                 "Potential Missing Authorization",
                 Severity.HIGH,
             ),
             (
-                r"\b(?:admin|administrator|superuser)\b",
+                r"(?<![A-Za-z])(?:admin|administrator|superuser)",
                 "Admin Functionality",
                 Severity.MEDIUM,
             ),
             (
-                r"\b(?:get|fetch|retrieve)\b.*\b(?:config|setting)\b",
+                r"(?<![A-Za-z])(?:get|fetch|retrieve)[\w_]*.*\b(?:config|setting)\b",
                 "Configuration Access",
                 Severity.MEDIUM,
             ),
@@ -571,6 +588,10 @@ class AuthZAgent(BaseAgent):
 
         lines = content.splitlines()
         for i, line in enumerate(lines, 1):
+            stripped = line.strip()
+            # Part 7: English words in comments/docs are not code behavior.
+            if stripped.startswith(("#", "//", "*", "/*", "<!--")):
+                continue
             for pattern, description, severity in authz_patterns:
                 matches = re.finditer(pattern, line, re.IGNORECASE)
                 for _match in matches:
@@ -588,13 +609,23 @@ class AuthZAgent(BaseAgent):
                             "allow",
                         ]
                     ):
+                        # Part 7: English-word pairs ("delete"+"user") cap at
+                        # MEDIUM with verify language — never HIGH as fact.
+                        # (Severity is a StrEnum: min() would compare
+                        # alphabetically, so the cap is explicit.)
+                        capped = (
+                            Severity.MEDIUM
+                            if severity in (Severity.CRITICAL, Severity.HIGH)
+                            else severity
+                        )
                         findings.append(
                             make_finding(
-                                severity=severity,
+                                severity=capped,
                                 file=rel_path,
                                 line_start=i,
                                 title=description,
-                                description=f"Found potential {description.lower()} without clear authorization check",
+                                description=f"Found potential {description.lower()} without clear authorization check"
+                                " — verify an authorization check covers this operation",
                                 evidence=line.strip(),
                             )
                         )

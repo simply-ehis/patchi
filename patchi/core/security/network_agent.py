@@ -176,15 +176,23 @@ class NetworkAgent(BaseAgent):
         """Scan for SSL/TLS configuration issues."""
         findings = []
 
-        # Look for weak SSL/TLS protocol versions
+        # Look for weak SSL/TLS protocol versions. Part 7: bare `TLSv1`
+        # as a substring matches TLSv1.2/TLSv1.3 — anchor to 1.0 exactly.
+        # SSLv2/SSLv3 configured is CRITICAL; TLS 1.0 is HIGH.
         ssl_patterns = [
-            (r"SSLv2|SSLv3|TLSv1(\.0)?", "Weak SSL/TLS Protocol", Severity.CRITICAL),
-            (r"ssl_version.*TLSv1(_0|0)?", "Weak TLS Version", Severity.CRITICAL),
-            (r"tls_min_version.*TLSv1(_0|0)?", "Weak TLS Minimum Version", Severity.CRITICAL),
+            (r"SSLv2|SSLv3", "Broken SSL Protocol", Severity.CRITICAL),
+            (r"(?<![\w.])TLSv1\.0(?![\d.])|TLSv1(?![\d._])", "Weak TLS Protocol (1.0)", Severity.HIGH),
+            (r"ssl_version.*TLSv1(\.0|_0)?(?![\d._])", "Weak TLS Version", Severity.HIGH),
+            (r"tls_min_version.*TLSv1(\.0|_0)?(?![\d._])", "Weak TLS Minimum Version", Severity.HIGH),
             (
-                r"protocol.*SSLv2|protocol.*SSLv3|protocol.*TLSv1(\.0)?",
+                r"protocol.*SSLv2|protocol.*SSLv3",
                 "Weak Protocol Configuration",
                 Severity.CRITICAL,
+            ),
+            (
+                r"protocol.*TLSv1\.0(?![\d._])|protocol.*TLSv1(?![\d._])",
+                "Weak Protocol Configuration (TLS 1.0)",
+                Severity.HIGH,
             ),
         ]
 
@@ -245,7 +253,10 @@ class NetworkAgent(BaseAgent):
         """Scan for weak cipher suite configurations."""
         findings = []
 
-        # Look for weak cipher suites
+        # Look for weak cipher suites. Part 7: bare tokens ("DES" in
+        # "description") need cipher/TLS context on the line; AES-128 is
+        # not weak and is dropped outright.
+        _CIPHER_CTX = re.compile(r"cipher|tls|ssl|protocol|suite|openssl|schannel", re.IGNORECASE)
         weak_cipher_patterns = [
             (r"\bRC4\b|\bDES\b|\b3DES\b|\bMD5\b|\bSHA1\b", "Weak Cipher Suite", Severity.HIGH),
             (
@@ -253,7 +264,7 @@ class NetworkAgent(BaseAgent):
                 "Weak Cipher Configuration",
                 Severity.HIGH,
             ),
-            (r"\baes-128\b|\bdes-cbc\b", "Potentially Weak Cipher", Severity.MEDIUM),
+            (r"\bdes-cbc\b", "Potentially Weak Cipher", Severity.MEDIUM),
         ]
 
         lines = content.splitlines()
@@ -261,6 +272,8 @@ class NetworkAgent(BaseAgent):
             for pattern, description, severity in weak_cipher_patterns:
                 matches = re.finditer(pattern, line, re.IGNORECASE)
                 for match in matches:
+                    if not _CIPHER_CTX.search(line):
+                        continue
                     findings.append(
                         make_finding(
                             severity=severity,
@@ -294,8 +307,7 @@ class NetworkAgent(BaseAgent):
             if any(header.lower() in line.lower() for header in security_headers):
                 continue  # Header is being set, no issue here
             elif any(
-                setting_pattern in line.lower()
-                for setting_pattern in ["header(", "setheader", "response.header"]
+                setting_pattern in line.lower() for setting_pattern in ["header(", "setheader", "response.header"]
             ):
                 # Check if it's setting a security header
                 has_security_header = False
@@ -312,18 +324,9 @@ class NetworkAgent(BaseAgent):
         framework_indicators = ["express", "django", "flask", "fastapi", "spring", "laravel"]
         if any(indicator in content.lower() for indicator in framework_indicators):
             # Check if security headers are configured
-            has_hsts = any(
-                hsts_pattern in content.lower()
-                for hsts_pattern in ["strict-transport-security", "hsts"]
-            )
-            has_xfo = any(
-                xfo_pattern in content.lower()
-                for xfo_pattern in ["x-frame-options", "frame-options"]
-            )
-            has_xcto = any(
-                xcto_pattern in content.lower()
-                for xcto_pattern in ["x-content-type-options", "nosniff"]
-            )
+            has_hsts = any(hsts_pattern in content.lower() for hsts_pattern in ["strict-transport-security", "hsts"])
+            has_xfo = any(xfo_pattern in content.lower() for xfo_pattern in ["x-frame-options", "frame-options"])
+            has_xcto = any(xcto_pattern in content.lower() for xcto_pattern in ["x-content-type-options", "nosniff"])
 
             missing_headers = []
             if not has_hsts:
@@ -340,7 +343,8 @@ class NetworkAgent(BaseAgent):
                         file=rel_path,
                         line_start=0,
                         title=f"Missing Security Headers: {', '.join(missing_headers)}",
-                        description=f"Common security headers not configured: {', '.join(missing_headers)}",
+                        description=f"No {', '.join(missing_headers)} found in this file"
+                        " — verify middleware/proxy sets them",
                         evidence=f"Detected web framework but missing security headers: {', '.join(missing_headers)}",
                     )
                 )
@@ -351,10 +355,13 @@ class NetworkAgent(BaseAgent):
         """Scan for other network security issues."""
         findings = []
 
-        # Look for plain HTTP URLs in secure contexts
+        # Part 7: the per-line http check duplicates _scan_https_redirects
+        # (which additionally excludes localhost and checks enforcement).
+        # This block now only covers http:// references in non-URL contexts
+        # the redirect check misses (docs/comments excluded by callers).
         http_patterns = [
-            (r'http://[^s][^"\'\s]+', "Plain HTTP URL", Severity.MEDIUM),
-            (r'"http://|\'http://', "Plain HTTP Reference", Severity.MEDIUM),
+            (r'"http://(?!localhost|127\.0\.0\.1)', "Plain HTTP Reference", Severity.MEDIUM),
+            (r"'http://(?!localhost|127\.0\.0\.1)", "Plain HTTP Reference", Severity.MEDIUM),
         ]
 
         lines = content.splitlines()

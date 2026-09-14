@@ -122,10 +122,9 @@ _SESSION_PATTERNS = [
         "Session assignment — verify secure configuration",
     ),
     (
-        re.compile(
-            r'(?:session\.secret|SECRET_KEY|session_secret)\s*[:=]\s*["\'][^"\']{4,}["\']', re.I
-        ),
-        Severity.CRITICAL,
+        # Part 7: keyword tier — value must prove itself (max HIGH).
+        re.compile(r'(?:session\.secret|SECRET_KEY|session_secret)\s*[:=]\s*["\']([^"\']+)["\']', re.I),
+        Severity.HIGH,
         "Hardcoded session secret in source code",
     ),
     (
@@ -164,8 +163,9 @@ _OAUTH_PATTERNS = [
         "OAuth redirect URI — verify it's not open redirect",
     ),
     (
-        re.compile(r'(?:client_secret|client_id)\s*[:=]\s*["\'][^"\']{8,}["\']', re.I),
-        Severity.CRITICAL,
+        # Part 7: keyword tier — value must prove itself (max HIGH).
+        re.compile(r'(?:client_secret|client_id)\s*[:=]\s*["\']([^"\']+)["\']', re.I),
+        Severity.HIGH,
         "OAuth client secret hardcoded in source",
     ),
 ]
@@ -183,9 +183,7 @@ class AuthenticationAuditAgent(BaseAgent):
     group = AgentGroup.SECURITY
     domain = AgentDomain.SECURITY
     name = "AuthenticationAuditAgent"
-    description = (
-        "Auth security: CSRF, password hashing, session management, brute-force protection"
-    )
+    description = "Auth security: CSRF, password hashing, session management, brute-force protection"
 
     def _run(self, inp: AgentInput, result: AgentResult) -> None:
         from patchi.core.brain.project_context import agent_is_relevant
@@ -224,9 +222,7 @@ class AuthenticationAuditAgent(BaseAgent):
 
     # ── Password hashing (AST + regex) ─────────────────────────────────────
 
-    def _check_password_hashing(
-        self, content: str, rel_path: str, lang: Lang | None
-    ) -> list[Finding]:
+    def _check_password_hashing(self, content: str, rel_path: str, lang: Lang | None) -> list[Finding]:
         findings = []
         lines = content.splitlines()
 
@@ -250,12 +246,19 @@ class AuthenticationAuditAgent(BaseAgent):
                     ast_hits.setdefault(line_num, (severity, message))
 
         has_good_hash = any(p.search(content) for p in _GOOD_HASH_PATTERNS)
+        _PW_CTX = re.compile(r"passw|credential|pwd|login|auth", re.I)
 
         for line_num in sorted(ast_hits):
             severity, message = ast_hits[line_num]
             if has_good_hash:
-                severity = Severity.INFO
-                message += " (but good hash found elsewhere in file)"
+                # Part 7: a good hash elsewhere in the file does not prove
+                # THIS call site is safe — note it, don't bury the finding.
+                message += " (note: bcrypt/scrypt also used in this file)"
+            if not _PW_CTX.search(lines[line_num - 1]):
+                # Part 7: weak hash with no password-adjacent context on the
+                # line is a locator, not a "used for password hashing" verdict.
+                severity = Severity.MEDIUM
+                message += " (no password context on this line — verify usage)"
             findings.append(
                 make_finding(
                     self.name,
@@ -291,38 +294,54 @@ class AuthenticationAuditAgent(BaseAgent):
         )
 
     def _line_scan(self, content, rel_path, patterns, finding_type, suggestion) -> list[Finding]:
+        from patchi.core.security.secret_evidence import looks_like_secret
+
         findings = []
         for line_num, line in enumerate(content.splitlines(), 1):
             stripped = line.strip()
             if stripped.startswith("#"):
                 continue
             for pattern, severity, message in patterns:
-                if pattern.search(line):
-                    findings.append(
-                        make_finding(
-                            self.name,
-                            finding_type,
-                            severity,
-                            rel_path,
-                            message,
-                            line=line_num,
-                            code_snippet=stripped[:120],
-                            suggestion=suggestion,
-                        )
+                m = pattern.search(line)
+                if not m:
+                    continue
+                # Part 7: patterns capturing a value group (group 1) gate
+                # the VALUE through looks_like_secret — a sensitive NAME
+                # with a weak value is not a finding.
+                if pattern.groups >= 1:
+                    try:
+                        value = m.group(1)
+                    except IndexError:
+                        value = ""
+                    if value and not looks_like_secret(value, allow_spaces=False):
+                        continue
+                findings.append(
+                    make_finding(
+                        self.name,
+                        finding_type,
+                        severity,
+                        rel_path,
+                        message,
+                        line=line_num,
+                        code_snippet=stripped[:120],
+                        suggestion=suggestion,
                     )
+                )
         return findings
 
     def _check_rate_limiting(self, content: str, rel_path: str) -> list[Finding]:
         has_rate_limit = any(p.search(content) for p in _RATE_LIMIT_PATTERNS)
         has_auth_endpoint = any(p.search(content) for p in _AUTH_ENDPOINT_PATTERNS)
         if has_auth_endpoint and not has_rate_limit:
+            # Part 7: protection may live in middleware/config in another
+            # file — file-local absence caps at MEDIUM with verify language.
             return [
                 make_finding(
                     self.name,
                     "missing_rate_limit",
-                    Severity.HIGH,
+                    Severity.MEDIUM,
                     rel_path,
-                    "Auth endpoints found but no rate limiting/brute-force protection detected",
+                    "Auth endpoints found with no rate limiting visible in this file — verify middleware/config",
                     suggestion="Add rate limiting to login/auth endpoints to prevent brute-force attacks.",
                 )
             ]

@@ -41,7 +41,10 @@ class ContractFlow:
     signals: list[str]
     confirmed: bool = False
     user_added: bool = False
-    critical: bool = True
+    # Part 7: critical defaults to False — nothing is "critical" until a
+    # structural reason says so (see _derive_critical). The old True default
+    # marked every guessed flow critical, including AI-hallucinated ones.
+    critical: bool = False
     confidence: str = "medium"  # "high" | "medium" | "low"
     suggested: bool = False  # if True, hidden from default confirmation
 
@@ -59,6 +62,25 @@ class ContractFlow:
             "confidence": self.confidence,
             "suggested": self.suggested,
         }
+
+
+_MUTATING_METHODS = frozenset({"POST", "PUT", "DELETE", "PATCH"})
+_SENSITIVE_PREFIXES = frozenset(
+    {"auth", "login", "logout", "keys", "tokens", "admin", "users", "billing", "payment", "session"}
+)
+
+
+def _derive_critical(route_methods: list[str], prefix: str = "") -> bool:
+    """Derive flow criticality from structure, not from a default.
+
+    Critical iff the flow exposes a mutating HTTP method (write surface an
+    attacker or a bug can change state through) or lives under an
+    auth/identity-adjacent prefix. Read-only, non-sensitive flows are not
+    critical no matter how confidently they were detected.
+    """
+    if any((m or "").upper() in _MUTATING_METHODS for m in route_methods):
+        return True
+    return (prefix or "").lower() in _SENSITIVE_PREFIXES
 
 
 _ROUTE_TO_FLOW: dict[str, dict] = {
@@ -129,112 +151,9 @@ _ROUTE_TO_FLOW: dict[str, dict] = {
     },
 }
 
-INFERENCE_RULES: list[tuple[str, str, str, list[str], list[str], list[str]]] = [
-    (
-        "dashboard-overview",
-        "Dashboard Overview",
-        "Users can view the main dashboard with project status and health.",
-        [r"^/$", r"dashboard", r"status$"],
-        [r"dashboard", r"status"],
-        ["dashboard"],
-    ),
-    (
-        "findings-review",
-        "Findings Review",
-        "Users can browse and review scan findings.",
-        [r"findings", r"scan/results", r"findings-table"],
-        [r"finding", r"result"],
-        ["findings"],
-    ),
-    (
-        "settings-config",
-        "Settings / Configuration",
-        "Users can view and update project configuration.",
-        [r"settings", r"config$", r"preferences"],
-        [r"settings", r"config"],
-        ["config"],
-    ),
-    (
-        "security-scanning",
-        "Security Scanning",
-        "Run security scans and view reports on the project.",
-        [r"security", r"scan", r"guard", r"threats"],
-        [r"security", r"scan", r"guard"],
-        ["security"],
-    ),
-    (
-        "history-trends",
-        "History & Trends",
-        "Users can view scan history and health trends over time.",
-        [r"history", r"trend", r"health-breakdown"],
-        [r"history", r"trend"],
-        ["history", "analytics"],
-    ),
-    (
-        "test-management",
-        "Test Management",
-        "Users can run, view, and manage test suites and agents.",
-        [r"tests?", r"test-agents", r"test-agents/status"],
-        [r"test", r"unit", r"suite"],
-        ["testing"],
-    ),
-    (
-        "review-patches",
-        "Review & Fixes",
-        "Users can review proposed fixes and apply or reject patches.",
-        [r"review", r"fix", r"patch", r"issue"],
-        [r"review", r"fix", r"patch"],
-        ["fixes"],
-    ),
-    (
-        "queue-management",
-        "Queue Management",
-        "Users can view and manage the scan queue (pause/resume/clear).",
-        [r"queue", r"queue/pause", r"queue/resume", r"queue/clear"],
-        [r"queue"],
-        ["queue"],
-    ),
-    (
-        "hosted-mode",
-        "Hosted Mode Management",
-        "Users can manage hosted mode, tokens, and IP reputation.",
-        [r"hosted", r"tokens", r"block", r"unblock"],
-        [r"hosted", r"token", r"reputation"],
-        ["hosted"],
-    ),
-    (
-        "brain-insights",
-        "Brain & Memory",
-        "Users can view the brain map, memory, import graph, and blast radius.",
-        [r"brain", r"memory", r"blast", r"explain"],
-        [r"brain", r"memory", r"blast", r"import"],
-        ["insights"],
-    ),
-    (
-        "agent-management",
-        "Agent Management",
-        "Users can view and manage scanner agents and their status.",
-        [r"agents", r"model", r"ai"],
-        [r"agent", r"scanner"],
-        ["agents"],
-    ),
-    (
-        "notifications",
-        "Notifications",
-        "Users can configure and receive notifications and alerts.",
-        [r"notifications?", r"notify"],
-        [r"notify", r"notification", r"alert"],
-        ["notifications"],
-    ),
-    (
-        "key-management",
-        "Key Management",
-        "Users can manage API keys for AI providers.",
-        [r"keys", r"keys/add", r"keys/remove"],
-        [r"key", r"api.key", r"credential"],
-        ["keys"],
-    ),
-]
+# NOTE (Part 7): INFERENCE_RULES was deleted — a second, unused route-name
+# regex table shadowing _ROUTE_TO_FLOW below. Dead guesses don't get kept
+# "just in case".
 
 
 _KNOWN_PREFIXES = set(_ROUTE_TO_FLOW.keys())
@@ -268,7 +187,6 @@ def build_ai_contract_summary(
     # Prefer understander-ranked core files when available (Slice 2)
     use_core = False
     try:
-
         from patchi.core.brain.body_tags import load_body_tags
         from patchi.core.brain.understander import Understander
 
@@ -502,16 +420,18 @@ class ContractBuilder:
                 flow_id = f"project-{dir_name}"
                 if flow_id not in seen_ids:
                     seen_ids.add(flow_id)
-                    flows.append(ContractFlow(
-                        id=flow_id,
-                        name=f"{dir_name.title()} Module",
-                        description=f"The {dir_name} directory containing critical project code.",
-                        routes=[],
-                        files=dir_files[:10],
-                        signals=["project-reader", f"dir:{dir_name}"],
-                        confirmed=False,
-                        confidence="high",
-                    ))
+                    flows.append(
+                        ContractFlow(
+                            id=flow_id,
+                            name=f"{dir_name.title()} Module",
+                            description=f"The {dir_name} directory containing critical project code.",
+                            routes=[],
+                            files=dir_files[:10],
+                            signals=["project-reader", f"dir:{dir_name}"],
+                            confirmed=False,
+                            confidence="high",
+                        )
+                    )
 
         # 2. Create flows from entry points
         for ep in insight.entry_points:
@@ -520,53 +440,71 @@ class ContractBuilder:
                 flow_id = f"entry-{ep.replace('/', '-').replace('.', '-')}"
                 if flow_id not in seen_ids:
                     seen_ids.add(flow_id)
-                    flows.append(ContractFlow(
-                        id=flow_id,
-                        name=f"Entry Point: {ep}",
-                        description=f"Main entry point of the {insight.project_type or 'project'}.",
-                        routes=[],
-                        files=ep_files[:5],
-                        signals=["project-reader", "entry-point"],
-                        confirmed=False,
-                        confidence="high",
-                    ))
+                    flows.append(
+                        ContractFlow(
+                            id=flow_id,
+                            name=f"Entry Point: {ep}",
+                            description=f"Main entry point of the {insight.project_type or 'project'}.",
+                            routes=[],
+                            files=ep_files[:5],
+                            signals=["project-reader", "entry-point"],
+                            confirmed=False,
+                            confidence="high",
+                            # Entry points are the external surface by
+                            # structure, not by guess.
+                            critical=True,
+                        )
+                    )
 
         # 3. Create flows from routes (using project context)
         from collections import defaultdict
-        clusters: dict[str, list[str]] = defaultdict(list)
+
+        clusters: dict[str, list[tuple[str, str]]] = defaultdict(list)
         for r in self.routes:
             segments = [s for s in r.path.split("/") if s]
             prefix = segments[0] if segments else "root"
-            clusters[prefix].append(r.path)
+            clusters[prefix].append((getattr(r, "method", "GET") or "GET", r.path))
 
-        for prefix, matched_routes in clusters.items():
+        for prefix, matched in clusters.items():
             flow_id = f"route-{prefix}"
             if flow_id in seen_ids:
                 continue
             seen_ids.add(flow_id)
+            matched_routes = [p for _, p in matched]
+            methods = [m for m, _ in matched]
 
-            # Use project context to name the flow
+            file_hits = [fi.path for fi in self.file_infos if prefix in fi.path.lower()]
+            # Part 7: the name table is Patchi-dashboard-specific. Its names
+            # are only used when files corroborate the prefix; otherwise the
+            # flow gets a generic name at low confidence — a foreign project's
+            # "/dashboard" must not inherit our dashboard's description.
             meta = _ROUTE_TO_FLOW.get(prefix)
-            if meta:
+            if meta and file_hits:
                 name = meta["name"]
                 desc = meta["desc"]
+                confidence = "high"
+            elif meta:
+                name = f"{prefix.title()} Endpoints"
+                desc = f"Routes under /{prefix}/ (unconfirmed category)"
+                confidence = "low"
             else:
                 name = f"{prefix.title()} Endpoints"
                 desc = f"Routes under /{prefix}/"
+                confidence = "high" if file_hits else "medium"
 
-            file_hits = [fi.path for fi in self.file_infos if prefix in fi.path.lower()]
-            confidence = "high" if file_hits else "medium"
-
-            flows.append(ContractFlow(
-                id=flow_id,
-                name=name,
-                description=desc,
-                routes=matched_routes[:5],
-                files=file_hits[:10],
-                signals=["project-reader", "route"],
-                confirmed=False,
-                confidence=confidence,
-            ))
+            flows.append(
+                ContractFlow(
+                    id=flow_id,
+                    name=name,
+                    description=desc,
+                    routes=matched_routes[:5],
+                    files=file_hits[:10],
+                    signals=["project-reader", "route"],
+                    confirmed=False,
+                    confidence=confidence,
+                    critical=_derive_critical(methods, prefix),
+                )
+            )
 
         # 4. Merge with offline inference for anything we missed
         if not flows:
@@ -592,29 +530,38 @@ class ContractBuilder:
         """
         from collections import defaultdict
 
-        clusters: dict[str, list[str]] = defaultdict(list)
-        unmatched: list[str] = []
+        clusters: dict[str, list[tuple[str, str]]] = defaultdict(list)
+        unmatched: list[tuple[str, str]] = []
 
         for r in self.routes:
             path = r.path
             segments = [s for s in path.split("/") if s]
             prefix = segments[0] if segments else "root"
             if prefix in _KNOWN_PREFIXES:
-                clusters[prefix].append(path)
+                clusters[prefix].append((getattr(r, "method", "GET") or "GET", path))
             else:
-                unmatched.append(path)
+                unmatched.append((getattr(r, "method", "GET") or "GET", path))
 
         found: list[ContractFlow] = []
 
-        for prefix, matched_routes in sorted(clusters.items()):
+        for prefix, matched in sorted(clusters.items()):
             meta = _ROUTE_TO_FLOW[prefix]
             flow_id = prefix
-            name = meta["name"]
-            desc = meta["desc"]
             signal = meta["signal"]
+            matched_routes = [p for _, p in matched]
+            methods = [m for m, _ in matched]
 
             file_hits = [fi.path for fi in self.file_infos if prefix in fi.path.lower()]
-            confidence = "high" if file_hits else "medium"
+            # Same corroboration rule as the project-context path above:
+            # table names require file evidence, else generic + low.
+            if file_hits:
+                name = meta["name"]
+                desc = meta["desc"]
+                confidence = "high"
+            else:
+                name = f"{prefix.title()} Endpoints"
+                desc = f"Routes under /{prefix}/ (unconfirmed category)"
+                confidence = "low"
 
             found.append(
                 ContractFlow(
@@ -628,22 +575,30 @@ class ContractBuilder:
                     user_added=False,
                     confidence=confidence,
                     suggested=False,
+                    critical=_derive_critical(methods, prefix),
                 )
             )
 
         if unmatched:
+            _unmatched_prefixes = {
+                next((s for s in p.split("/") if s), "") for _, p in unmatched
+            }
             found.append(
                 ContractFlow(
                     id="other-api",
                     name="Other API Endpoints",
                     description="Additional API endpoints that don't fit a named category.",
-                    routes=unmatched[:10],
+                    routes=[p for _, p in unmatched[:10]],
                     files=[],
                     signals=["api"],
                     confirmed=False,
                     user_added=False,
                     confidence="medium",
                     suggested=True,
+                    critical=any(
+                        _derive_critical([m for m, _ in unmatched], prefix=pfx)
+                        for pfx in _unmatched_prefixes
+                    ),
                 )
             )
 
@@ -768,6 +723,9 @@ class ContractBuilder:
                     signals=["ai-inferred"],
                     confirmed=False,
                     user_added=False,
+                    # AI-claimed flows are never auto-critical: the model
+                    # names things confidently whether or not they matter.
+                    critical=False,
                 )
             )
 
@@ -796,10 +754,7 @@ class ContractBuilder:
         hidden_count = len(flows) - len(visible)
 
         if not visible:
-            msg = (
-                "I didn't find any obvious critical flows in your project.\n"
-                "You can add them manually below."
-            )
+            msg = "I didn't find any obvious critical flows in your project.\nYou can add them manually below."
             if hidden_count:
                 msg += (
                     f"\n\n[dim]({hidden_count} low-confidence flow(s) were inferred but hidden — "
@@ -824,9 +779,7 @@ class ContractBuilder:
             n_routes = len(self.routes)
             source_note = f"\n(Detected via AI analysis of {n_files} files and {n_routes} routes)"
         if hidden_count:
-            source_note += (
-                f"\n({hidden_count} low-confidence flow(s) hidden — run --all-flows to see)"
-            )
+            source_note += f"\n({hidden_count} low-confidence flow(s) hidden — run --all-flows to see)"
 
         return (
             f"I think your critical flows are: {flow_list}.{source_note}\n"
@@ -863,6 +816,8 @@ def confirm_flows(
                     signals=["user-defined"],
                     confirmed=True,
                     user_added=True,
+                    # The user's own explicit claim — not a guess.
+                    critical=True,
                 )
             )
 

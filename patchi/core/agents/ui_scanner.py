@@ -53,9 +53,9 @@ class UIScanner(BaseAgent):
             title = args[3] if len(args) > 3 else ""
             message = args[4] if len(args) > 4 else ""
             evidence = args[5] if len(args) > 5 else ""
-            finding_type = kwargs.pop("finding_type", None) or title.lower().replace(
-                " ", "_"
-            ).replace(":", "").replace("'", "").replace("-", "_")
+            finding_type = kwargs.pop("finding_type", None) or title.lower().replace(" ", "_").replace(":", "").replace(
+                "'", ""
+            ).replace("-", "_")
             return make_finding(
                 self.name,
                 finding_type,
@@ -117,9 +117,7 @@ class UIScanner(BaseAgent):
                             )
                             continue
                         findings.extend(
-                            self._scan_ui_file(
-                                file_path, rel_path, content, component_tree, navigation_map
-                            )
+                            self._scan_ui_file(file_path, rel_path, content, component_tree, navigation_map)
                         )
 
         for finding in findings:
@@ -164,29 +162,17 @@ class UIScanner(BaseAgent):
 
         # Determine file type and scan accordingly
         if file_path.suffix.lower() in [".jsx", ".tsx"]:
-            findings.extend(
-                self._scan_jsx_tsx(file_path, rel_path, content, component_tree, navigation_map)
-            )
+            findings.extend(self._scan_jsx_tsx(file_path, rel_path, content, component_tree, navigation_map))
         elif file_path.suffix.lower() in [".vue"]:
-            findings.extend(
-                self._scan_vue(file_path, rel_path, content, component_tree, navigation_map)
-            )
+            findings.extend(self._scan_vue(file_path, rel_path, content, component_tree, navigation_map))
         elif file_path.suffix.lower() in [".svelte"]:
-            findings.extend(
-                self._scan_svelte(file_path, rel_path, content, component_tree, navigation_map)
-            )
+            findings.extend(self._scan_svelte(file_path, rel_path, content, component_tree, navigation_map))
         elif file_path.suffix.lower() in [".html", ".htm"]:
-            findings.extend(
-                self._scan_html(file_path, rel_path, content, component_tree, navigation_map)
-            )
+            findings.extend(self._scan_html(file_path, rel_path, content, component_tree, navigation_map))
         elif file_path.suffix.lower() in [".css", ".scss", ".sass", ".less"]:
-            findings.extend(
-                self._scan_css(file_path, rel_path, content, component_tree, navigation_map)
-            )
+            findings.extend(self._scan_css(file_path, rel_path, content, component_tree, navigation_map))
         elif file_path.suffix.lower() in [".hbs", ".handlebars", ".ejs", ".pug", ".jade"]:
-            findings.extend(
-                self._scan_template(file_path, rel_path, content, component_tree, navigation_map)
-            )
+            findings.extend(self._scan_template(file_path, rel_path, content, component_tree, navigation_map))
 
         findings.append(
             self._mkf(
@@ -214,9 +200,7 @@ class UIScanner(BaseAgent):
         findings = []
 
         # Look for React components and prop types
-        component_pattern = (
-            r"(?:class|function)\s+(\w+)(?=\s*\(|\s*\(.*?\))|const\s+(\w+)\s*=\s*(?:\(\)|[^=]*=>)"
-        )
+        component_pattern = r"(?:class|function)\s+(\w+)(?=\s*\(|\s*\(.*?\))|const\s+(\w+)\s*=\s*(?:\(\)|[^=]*=>)"
         comp_matches = list(re.finditer(component_pattern, content))
         props_interface_pattern = r"interface\s+(\w+)\s*\{"
         prop_type_names = {m.group(1) for m in re.finditer(props_interface_pattern, content)}
@@ -237,6 +221,9 @@ class UIScanner(BaseAgent):
             elif any(name in comp_region for name in prop_type_names):
                 component_entry["has_prop_types"] = True
 
+            # Part 7: an argument literally named `props` is not proof of
+            # missing types (it may be typed via interface above). INFO
+            # locator, not a MEDIUM verdict.
             if not component_entry["has_prop_types"] and re.search(
                 r"\bfunction\s+" + re.escape(comp_name) + r"\s*\(\s*props\s*\)", content
             ):
@@ -244,9 +231,9 @@ class UIScanner(BaseAgent):
                     self._mkf(
                         self.name,
                         "missing_prop_types",
-                        Severity.MEDIUM,
+                        Severity.INFO,
                         rel_path,
-                        f"Component {comp_name} is missing prop type definitions",
+                        f"Component {comp_name} takes untyped `props` — verify against its interface",
                         line=line_start,
                         evidence=match.group(0),
                     )
@@ -290,14 +277,13 @@ class UIScanner(BaseAgent):
                     )
                 )
 
-        # Look for accessibility issues
+        # Look for accessibility issues. Part 7: a submit input is NOT
+        # provably unlabeled from the tag alone (value="Search" labels it;
+        # aria-label/associated <label> may sit nearby) — require the
+        # absence of all label sources before verdicting. Same for
+        # "empty" buttons (aria-label/svg content counts).
         accessibility_issues = [
             (r'<img[^>]+?alt\s*=\s*["\']["\'][^>]*>', "Image without alt text"),
-            (
-                r'<input[^>]+?type\s*=\s*["\']submit["\'][^>]*>',
-                "Submit button without accessible label",
-            ),
-            (r"<button[^>]*>(\s*|<(?!span|img))</button>", "Empty button"),
         ]
 
         for pattern, issue_desc in accessibility_issues:
@@ -314,6 +300,49 @@ class UIScanner(BaseAgent):
                         evidence=match.group(0),
                     )
                 )
+
+        for match in re.finditer(
+            r'<input[^>]+?type\s*=\s*["\']submit["\'][^>]*>', content
+        ):
+            tag = match.group(0)
+            line_start = content[: match.start()].count("\n") + 1
+            if re.search(r"value\s*=|aria-label|aria-labelledby", tag, re.IGNORECASE):
+                continue
+            nearby = "\n".join(content.splitlines()[max(0, line_start - 4):line_start + 2])
+            if re.search(r"<label", nearby, re.IGNORECASE):
+                continue
+            findings.append(
+                self._mkf(
+                    self.name,
+                    "accessibility_issue",
+                    Severity.MEDIUM,
+                    rel_path,
+                    "Submit button without accessible label",
+                    line=line_start,
+                    evidence=match.group(0),
+                )
+            )
+
+        for match in re.finditer(r"<button([^>]*)>(.*?)</button>", content, re.DOTALL):
+            attrs, inner = match.group(1), match.group(2)
+            if re.search(r"aria-label|aria-labelledby", attrs, re.IGNORECASE):
+                continue
+            if re.search(r"<svg|aria-hidden\s*=\s*[\"']false[\"']", inner, re.IGNORECASE):
+                continue
+            if inner.strip():
+                continue
+            line_start = content[: match.start()].count("\n") + 1
+            findings.append(
+                self._mkf(
+                    self.name,
+                    "accessibility_issue",
+                    Severity.MEDIUM,
+                    rel_path,
+                    "Empty button",
+                    line=line_start,
+                    evidence=match.group(0)[:120],
+                )
+            )
 
         return findings
 

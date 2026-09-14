@@ -24,17 +24,11 @@ from patchi.core.brain.scanner import FileInfo
 
 # Patterns that look like documented features in README files
 _CLAIM_PATTERNS = [
-    re.compile(
-        r"(?:supports?|handles?|manages?|provides?|offers?|features?)\s+([^.,]+)", re.IGNORECASE
-    ),
+    re.compile(r"(?:supports?|handles?|manages?|provides?|offers?|features?)\s+([^.,]+)", re.IGNORECASE),
     re.compile(r"- \[x\]\s*(.+)", re.IGNORECASE),  # checkbox done
     re.compile(r"\*\*(.+?)\*\*\s*(?:—|–|-|:)\s*.+", re.IGNORECASE),  # **Feature** — description
-    re.compile(
-        r"(?:API|endpoint|route)\s*[`:/]\s*([A-Za-z0-9_/{}]+)", re.IGNORECASE
-    ),  # inline API mentions
-    re.compile(
-        r"(?:CLI|command)\s*[`:]\s*([a-z][a-z0-9_-]+)", re.IGNORECASE
-    ),  # inline CLI mentions
+    re.compile(r"(?:API|endpoint|route)\s*[`:/]\s*([A-Za-z0-9_/{}]+)", re.IGNORECASE),  # inline API mentions
+    re.compile(r"(?:CLI|command)\s*[`:]\s*([a-z][a-z0-9_-]+)", re.IGNORECASE),  # inline CLI mentions
 ]
 
 
@@ -79,37 +73,93 @@ def _code_vocabulary(file_infos: list[FileInfo], routes: list[RouteInfo]) -> dic
     return vocab
 
 
+def _route_segments(routes: list[RouteInfo]) -> set[str]:
+    """Real URL path segments from the route table (structural facts)."""
+    segs: set[str] = set()
+    for r in routes:
+        path = getattr(r, "path", "") or ""
+        for s in path.split("/"):
+            s = s.strip().lower()
+            if len(s) >= 4:
+                segs.add(s)
+    return segs
+
+
+def _cli_command_names() -> set[str]:
+    """Real CLI command names from the registry (structural facts)."""
+    try:
+        from patchi.cli.registry import COMMANDS
+
+        names: set[str] = set()
+        for cmd in COMMANDS:
+            name = getattr(cmd, "name", "") or ""
+            if len(name) >= 2:
+                names.add(name.lower())
+            for alias in getattr(cmd, "aliases", None) or []:
+                if len(alias) >= 2:
+                    names.add(alias.lower())
+        return names
+    except Exception:
+        return set()
+
+
 def cross_reference_claim(
     claim: str,
     file_infos: list[FileInfo],
     routes: list[RouteInfo],
 ) -> tuple[bool, list[str]]:
     """
-    Check if a claim is backed by actual code.
-    Uses token-overlap matching instead of hardcoded keyword lists.
-    Returns (verified, evidence_list).
+    Check if a claim is backed by actual code. Returns (verified, evidence).
+
+    Part 7: one overlapping token is NOT proof (the old
+    ``verified = len(evidence) >= 1``). A claim verifies only through a
+    structural rule, recorded in the evidence as ``[check:...]``:
+    - route-match: a claim token equals a real route path segment.
+    - command-match: a claim token equals a real CLI command name.
+    - symbol-corroboration: 2+ distinct claim tokens hit the SAME
+      function/class/route item (one stray token never suffices).
+    Bare filename-only hits never verify on their own.
     """
     claim_tokens = _tokenize(claim)
     if not claim_tokens:
         return False, []
 
-    vocab = _code_vocabulary(file_infos, routes)
-    evidence: list[str] = []
-    scored: dict[str, float] = {}
+    segments = _route_segments(routes)
+    commands = _cli_command_names()
 
+    evidence: list[str] = []
+    checks: list[str] = []
+
+    route_hits = sorted(t for t in claim_tokens if t in segments)
+    if route_hits:
+        checks.append("route-match")
+        evidence.append(f"[check:route-match] segments={route_hits}")
+    command_hits = sorted(t for t in claim_tokens if t in commands)
+    if command_hits:
+        checks.append("command-match")
+        evidence.append(f"[check:command-match] commands={command_hits}")
+
+    # Symbol corroboration: per-item distinct-token counts over
+    # function/class/route items only (bare file tokens don't count).
+    vocab = _code_vocabulary(file_infos, routes)
+    scored: dict[str, set[str]] = {}
     for token in claim_tokens:
         for ev in vocab.get(token, []):
-            scored[ev] = scored.get(ev, 0) + 1
+            if ev.startswith("route: ") or " function: " in ev or " class: " in ev:
+                scored.setdefault(ev, set()).add(token)
+    best = sorted(scored.items(), key=lambda kv: -len(kv[1]))
+    if best and len(best[0][1]) >= 2:
+        checks.append("symbol-corroboration")
+        evidence.append(
+            f"[check:symbol-corroboration] {best[0][0]} tokens={sorted(best[0][1])}"
+        )
 
-    # Sort by overlap count, take top matches
-    for ev, _ in sorted(scored.items(), key=lambda x: -x[1]):
-        if ev not in evidence:
-            evidence.append(ev)
-        if len(evidence) >= 5:
-            break
+    # Context: top raw overlaps for the human reader (never verdicts).
+    for ev, _ in best[1:4]:
+        evidence.append(ev)
 
-    verified = len(evidence) >= 1
-    return verified, evidence[:5]
+    verified = bool(checks)
+    return verified, evidence[:6]
 
 
 # ── Main validation entry point ────────────────────────────────────────────────
@@ -137,11 +187,7 @@ def validate_project_docs(
         if "*" in pattern:
             matched = list(root.glob(pattern))
             # Filter out excluded directories
-            matched = [
-                p
-                for p in matched
-                if not any(part in _EXCLUDED_DIRS for part in p.relative_to(root).parts)
-            ]
+            matched = [p for p in matched if not any(part in _EXCLUDED_DIRS for part in p.relative_to(root).parts)]
         else:
             p = root / pattern
             if p.exists():
@@ -175,6 +221,10 @@ def validate_project_docs(
         if verified:
             result["validated_claims"].append(entry)
         else:
+            entry["reason"] = (
+                "no route/command/symbol corroboration in code "
+                "(single-token overlaps do not verify)"
+            )
             result["stale_claims"].append(entry)
 
     result["total_claims"] = len(all_claims)

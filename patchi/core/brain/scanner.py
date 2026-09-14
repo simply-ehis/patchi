@@ -16,6 +16,7 @@ Parsing strategy:
 Output per file (FileInfo):
   path, language, size, imports, exports, functions, classes, is_entry_point, purpose
 """
+
 from __future__ import annotations
 
 import ast as py_ast
@@ -403,8 +404,7 @@ class FileScanner:
             dirnames[:] = [
                 d
                 for d in dirnames
-                if d not in self.ignore_dirs
-                and (_safe_relative(current / d) not in self.ignore_paths)
+                if d not in self.ignore_dirs and (_safe_relative(current / d) not in self.ignore_paths)
             ]
 
             for fname in filenames:
@@ -468,9 +468,7 @@ class FileScanner:
             except OSError:
                 source = ""
             lines = source.rstrip("\n").count("\n") + 1 if source.strip() else 0
-            return FileInfo(
-                path=rel_path, language=lang, size_bytes=quick_stat.st_size, lines=lines
-            )
+            return FileInfo(path=rel_path, language=lang, size_bytes=quick_stat.st_size, lines=lines)
 
         # Incremental caching: skip re-parsing unchanged files (M-04)
         # Uses mtime+size instead of content hash for speed (stat is ~100x faster)
@@ -570,13 +568,15 @@ class FileScanner:
                 try:
                     if path.stat().st_size < _MIN_SIZE:
                         rel = path.relative_to(self.root).as_posix()
-                        results.append(FileInfo(
-                            path=rel,
-                            language=detect_language(path),
-                            size_bytes=0,
-                            lines=0,
-                            error="trivially small",
-                        ))
+                        results.append(
+                            FileInfo(
+                                path=rel,
+                                language=detect_language(path),
+                                size_bytes=0,
+                                lines=0,
+                                error="trivially small",
+                            )
+                        )
                         continue
                 except OSError:
                     pass
@@ -649,9 +649,7 @@ class FileScanner:
                         except Exception as e:
                             _log.warning("FileScanner.scan failed: %s", e)
                     if on_progress:
-                        on_progress(
-                            done_count + len(cached_results), total, Path(file_path_str).name
-                        )
+                        on_progress(done_count + len(cached_results), total, Path(file_path_str).name)
 
         # Build final results list (preserving discover order)
         results = []
@@ -984,11 +982,7 @@ def _walk_rust_node(node: Any, source: str, info: FileInfo) -> None:
         names = ["*"]
         is_rel = path.starts_with("crate") or path.starts_with("self") or path.starts_with("super")
         if path:
-            info.imports.append(
-                ImportInfo(
-                    source=path, names=names, is_relative=is_rel, line=node.start_point[0] + 1
-                )
-            )
+            info.imports.append(ImportInfo(source=path, names=names, is_relative=is_rel, line=node.start_point[0] + 1))
 
     elif ntype == "extern_crate_declaration":
         name = _node_text(node, source)
@@ -1010,9 +1004,7 @@ def _walk_rust_node(node: Any, source: str, info: FileInfo) -> None:
             if len(parts) >= 2 and parts[0] == "mod":
                 name = parts[1]
         if name and name != "mod" and "{" not in name:
-            info.imports.append(
-                ImportInfo(source=name, names=["*"], is_relative=True, line=node.start_point[0] + 1)
-            )
+            info.imports.append(ImportInfo(source=name, names=["*"], is_relative=True, line=node.start_point[0] + 1))
 
     elif ntype in ("function_item", "function_signature_item"):
         name = _rust_child_text(node, "identifier", source)
@@ -1158,9 +1150,7 @@ def _ts_spring_route(annotation: str) -> str:
     """Extract route path from a Spring annotation like @GetMapping(\"/api/foo\")."""
     import re
 
-    m = re.search(
-        r"@(?:Get|Post|Put|Delete|Patch|Request)Mapping\s*\(\s*[\"']([^\"']+)[\"']", annotation
-    )
+    m = re.search(r"@(?:Get|Post|Put|Delete|Patch|Request)Mapping\s*\(\s*[\"']([^\"']+)[\"']", annotation)
     return m.group(1) if m else ""
 
 
@@ -1217,9 +1207,7 @@ def _walk_java(node: Any, buf: bytes, info: FileInfo) -> None:
         name = _ts_node_text(name_node, buf) if name_node else ""
         if name:
             annotations = _ts_extract_annotations(node, buf)
-            info.functions.append(
-                FunctionInfo(name=name, line=node.start_point[0] + 1, decorators=annotations)
-            )
+            info.functions.append(FunctionInfo(name=name, line=node.start_point[0] + 1, decorators=annotations))
             for a in annotations:
                 route = _ts_spring_route(a)
                 if route and f"route:{route}" not in info.exports:
@@ -1246,9 +1234,7 @@ def _parse_go_regex(source: str, info: FileInfo) -> None:
     for m in re.finditer(r'^\s+"([^"]+)"', source, re.MULTILINE):
         info.imports.append(ImportInfo(source=m.group(1), names=["*"], is_relative=False))
     for m in re.finditer(r"^func\s+(?:\([^)]*\)\s*)?(\w+)", source, re.MULTILINE):
-        info.functions.append(
-            FunctionInfo(name=m.group(1), line=source[: m.start()].count(chr(10)) + 1)
-        )
+        info.functions.append(FunctionInfo(name=m.group(1), line=source[: m.start()].count(chr(10)) + 1))
     for m in re.finditer(r"r\.(GET|POST|PUT|DELETE|PATCH|HEAD)\s*\(\s*[\"']([^\"']+)[\"']", source):
         info.exports.append(f"route:{m.group(2)}")
 
@@ -1339,12 +1325,8 @@ def _parse_c_cpp(source: str, info: FileInfo) -> None:
 def _parse_c_cpp_regex(source: str, info: FileInfo) -> None:
     for m in re.finditer(r"^#\s*include\s+[<\"]([^>\"]+)[>\"]", source, re.MULTILINE):
         info.imports.append(ImportInfo(source=m.group(1), names=["*"], is_relative=False))
-    for m in re.finditer(
-        r"^(?:static\s+)?\w+(?:\s*\*+)?\s+(\w+)\s*\([^)]*\)\s*\{", source, re.MULTILINE
-    ):
-        info.functions.append(
-            FunctionInfo(name=m.group(1), line=source[: m.start()].count(chr(10)) + 1)
-        )
+    for m in re.finditer(r"^(?:static\s+)?\w+(?:\s*\*+)?\s+(\w+)\s*\([^)]*\)\s*\{", source, re.MULTILINE):
+        info.functions.append(FunctionInfo(name=m.group(1), line=source[: m.start()].count(chr(10)) + 1))
 
 
 def _walk_c_cpp(node: Any, buf: bytes, info: FileInfo, lang: Lang) -> None:
@@ -1402,15 +1384,11 @@ def _parse_swift(source: str, info: FileInfo) -> None:
 def _parse_swift_regex(source: str, info: FileInfo) -> None:
     for m in re.finditer(r"^import\s+(\w+)", source, re.MULTILINE):
         lineno = source[: m.start()].count(chr(10)) + 1
-        info.imports.append(
-            ImportInfo(source=m.group(1), names=["*"], is_relative=False, line=lineno)
-        )
+        info.imports.append(ImportInfo(source=m.group(1), names=["*"], is_relative=False, line=lineno))
     for m in re.finditer(r"(?:public\s+)?(?:class|struct|enum|protocol|extension)\s+(\w+)", source):
         info.classes.append(ClassInfo(name=m.group(1), line=source[: m.start()].count(chr(10)) + 1))
     for m in re.finditer(r"(?:public\s+)?func\s+(\w+)\s*\(", source):
-        info.functions.append(
-            FunctionInfo(name=m.group(1), line=source[: m.start()].count(chr(10)) + 1)
-        )
+        info.functions.append(FunctionInfo(name=m.group(1), line=source[: m.start()].count(chr(10)) + 1))
 
 
 def _walk_swift(node: Any, buf: bytes, info: FileInfo) -> None:
@@ -1424,11 +1402,7 @@ def _walk_swift(node: Any, buf: bytes, info: FileInfo) -> None:
                     break
         path = _ts_node_text(path_node, buf) if path_node else ""
         if path:
-            info.imports.append(
-                ImportInfo(
-                    source=path, names=["*"], is_relative=False, line=node.start_point[0] + 1
-                )
-            )
+            info.imports.append(ImportInfo(source=path, names=["*"], is_relative=False, line=node.start_point[0] + 1))
     elif ntype in (
         "class_declaration",
         "struct_declaration",
@@ -1460,9 +1434,7 @@ def _parse_ruby(source: str, info: FileInfo) -> None:
 
 
 def _parse_ruby_regex(source: str, info: FileInfo) -> None:
-    for m in re.finditer(
-        r'^\s*(?:require|require_relative|load)\s+["\']([^"\']+)["\']', source, re.MULTILINE
-    ):
+    for m in re.finditer(r'^\s*(?:require|require_relative|load)\s+["\']([^"\']+)["\']', source, re.MULTILINE):
         info.imports.append(
             ImportInfo(
                 source=m.group(1),
@@ -1474,12 +1446,8 @@ def _parse_ruby_regex(source: str, info: FileInfo) -> None:
     for m in re.finditer(r"^\s*(?:class|module)\s+(\w+(?:::\w+)*)", source, re.MULTILINE):
         info.classes.append(ClassInfo(name=m.group(1), line=source[: m.start()].count(chr(10)) + 1))
     for m in re.finditer(r"^\s*def\s+(?:self\.)?(\w+)", source, re.MULTILINE):
-        info.functions.append(
-            FunctionInfo(name=m.group(1), line=source[: m.start()].count(chr(10)) + 1)
-        )
-    for m in re.finditer(
-        r"(?:get|post|put|patch|delete|resources)\s+['\"]([^'\"]+)['\"]", source, re.MULTILINE
-    ):
+        info.functions.append(FunctionInfo(name=m.group(1), line=source[: m.start()].count(chr(10)) + 1))
+    for m in re.finditer(r"(?:get|post|put|patch|delete|resources)\s+['\"]([^'\"]+)['\"]", source, re.MULTILINE):
         info.exports.append(f"route:{m.group(1)}")
 
 
@@ -1573,24 +1541,16 @@ def _parse_yaml(source: str, info: FileInfo) -> None:
         if key == "uses" and isinstance(value, str):
             info.imports.append(ImportInfo(source=value, names=["*"], is_relative=False, line=0))
         elif key == "image" and isinstance(value, str):
-            info.imports.append(
-                ImportInfo(source=value, names=["docker"], is_relative=False, line=0)
-            )
+            info.imports.append(ImportInfo(source=value, names=["docker"], is_relative=False, line=0))
         elif isinstance(value, list):
             for item in value:
                 if isinstance(item, dict):
                     sub_uses = item.get("uses")
                     if sub_uses:
-                        info.imports.append(
-                            ImportInfo(source=sub_uses, names=["*"], is_relative=False, line=0)
-                        )
+                        info.imports.append(ImportInfo(source=sub_uses, names=["*"], is_relative=False, line=0))
                     sub_image = item.get("image")
                     if sub_image:
-                        info.imports.append(
-                            ImportInfo(
-                                source=sub_image, names=["docker"], is_relative=False, line=0
-                            )
-                        )
+                        info.imports.append(ImportInfo(source=sub_image, names=["docker"], is_relative=False, line=0))
 
 
 # ── PHP parser ────────────────────────────────────────────────────────────────
@@ -1633,9 +1593,7 @@ def _parse_php_regex(source: str, info: FileInfo) -> None:
             )
         )
     for m in re.finditer(r"""function\s+(\w+)\s*\(""", source):
-        info.functions.append(
-            FunctionInfo(name=m.group(1), line=source[: m.start()].count("\n") + 1)
-        )
+        info.functions.append(FunctionInfo(name=m.group(1), line=source[: m.start()].count("\n") + 1))
     for m in re.finditer(r"""class\s+(\w+)""", source):
         info.classes.append(ClassInfo(name=m.group(1), line=source[: m.start()].count("\n") + 1))
 
@@ -1806,19 +1764,13 @@ def _walk_csharp_node(node: Any, source: str, info: FileInfo) -> None:
     if ntype == "using_directive":
         path = _node_text(node, source).removeprefix("using ").rstrip(";")
         if path:
-            info.imports.append(
-                ImportInfo(
-                    source=path, names=["*"], is_relative=False, line=node.start_point[0] + 1
-                )
-            )
+            info.imports.append(ImportInfo(source=path, names=["*"], is_relative=False, line=node.start_point[0] + 1))
     elif ntype == "class_declaration":
         name = _csharp_child_text(node, "identifier", source)
         if name:
             info.classes.append(ClassInfo(name=name, line=node.start_point[0] + 1))
     elif ntype == "method_declaration":
-        name = _csharp_child_text(node, "identifier", source) or _csharp_child_text(
-            node, "name", source
-        )
+        name = _csharp_child_text(node, "identifier", source) or _csharp_child_text(node, "name", source)
         if name:
             info.functions.append(FunctionInfo(name=name, line=node.start_point[0] + 1))
     for child in node.children:
@@ -1856,11 +1808,7 @@ def _walk_kotlin_node(node: Any, source: str, info: FileInfo) -> None:
             return
         path = raw.removeprefix("import ").rstrip(";").removesuffix(".*")
         if path:
-            info.imports.append(
-                ImportInfo(
-                    source=path, names=["*"], is_relative=False, line=node.start_point[0] + 1
-                )
-            )
+            info.imports.append(ImportInfo(source=path, names=["*"], is_relative=False, line=node.start_point[0] + 1))
     elif ntype == "class_declaration":
         name = _kotlin_child_text(node, "identifier", source)
         if name:
@@ -1904,11 +1852,7 @@ def _walk_dart_node(node: Any, source: str, info: FileInfo) -> None:
         is_rel = raw.startswith(("'", '"', "."))
         path = raw.strip("'\"")
         if path:
-            info.imports.append(
-                ImportInfo(
-                    source=path, names=["*"], is_relative=is_rel, line=node.start_point[0] + 1
-                )
-            )
+            info.imports.append(ImportInfo(source=path, names=["*"], is_relative=is_rel, line=node.start_point[0] + 1))
     elif ntype == "class_definition":
         name = _dart_child_text(node, "identifier", source)
         if name:
@@ -1988,9 +1932,7 @@ def _walk_bash_node(node: Any, source: str, info: FileInfo) -> None:
                             break
                 if path:
                     info.imports.append(
-                        ImportInfo(
-                            source=path, names=["*"], is_relative=True, line=node.start_point[0] + 1
-                        )
+                        ImportInfo(source=path, names=["*"], is_relative=True, line=node.start_point[0] + 1)
                     )
     for child in node.children:
         _walk_bash_node(child, source, info)
@@ -2056,16 +1998,12 @@ def _parse_sql(source: str, info: FileInfo) -> None:
 def _walk_sql_node(node: Any, source: str, info: FileInfo) -> None:
     ntype = node.type
     if ntype == "create_table":
-        name_node = _sql_child_by_type(node, "identifier") or _sql_child_by_type(
-            node, "object_reference"
-        )
+        name_node = _sql_child_by_type(node, "identifier") or _sql_child_by_type(node, "object_reference")
         if name_node:
             name = _node_text(name_node, source)
             info.classes.append(ClassInfo(name=name, line=node.start_point[0] + 1))
     elif ntype in ("create_view", "create_procedure", "create_function"):
-        name_node = _sql_child_by_type(node, "identifier") or _sql_child_by_type(
-            node, "object_reference"
-        )
+        name_node = _sql_child_by_type(node, "identifier") or _sql_child_by_type(node, "object_reference")
         if name_node:
             name = _node_text(name_node, source)
             info.functions.append(FunctionInfo(name=name, line=node.start_point[0] + 1))
@@ -2100,12 +2038,8 @@ def _parse_scala_regex(source: str, info: FileInfo) -> None:
                 line=source[: m.start()].count("\n") + 1,
             )
         )
-    for m in re.finditer(
-        r"^\s*(?:private\s+|protected\s+|final\s+)*def\s+(\w+)", source, re.MULTILINE
-    ):
-        info.functions.append(
-            FunctionInfo(name=m.group(1), line=source[: m.start()].count("\n") + 1)
-        )
+    for m in re.finditer(r"^\s*(?:private\s+|protected\s+|final\s+)*def\s+(\w+)", source, re.MULTILINE):
+        info.functions.append(FunctionInfo(name=m.group(1), line=source[: m.start()].count("\n") + 1))
     for m in re.finditer(r"^\s*(?:case\s+)?(?:class|object|trait)\s+(\w+)", source, re.MULTILINE):
         info.classes.append(ClassInfo(name=m.group(1), line=source[: m.start()].count("\n") + 1))
 
@@ -2160,16 +2094,66 @@ def _is_entry_point(path: Path, info: FileInfo) -> bool:
 # ── Purpose inference ──────────────────────────────────────────────────────────
 
 
+_WEB_IMPORTS = frozenset(
+    {
+        "fastapi", "flask", "django", "starlette", "sanic", "tornado", "bottle",
+        "express", "koa", "hapi", "fastify", "nest", "@nestjs/core",
+        "gin", "echo", "fiber", "actix-web", "axum", "rocket", "rails",
+        "laravel", "spring",
+    }
+)
+_TEST_IMPORTS = frozenset(
+    {
+        "pytest", "unittest", "nose", "jest", "vitest", "mocha", "chai",
+        "rspec", "minitest", "junit", "testng", "go testing", "testing",
+    }
+)
+_ORM_IMPORTS = frozenset(
+    {
+        "sqlalchemy", "django.db", "prisma", "typeorm", "mongoose",
+        "sequelize", "peewee", "tortoise",
+    }
+)
+
+
+def _import_sources(info: FileInfo) -> set[str]:
+    """Lowercased import sources declared by the file (parsed fact)."""
+    out: set[str] = set()
+    for imp in info.imports or []:
+        src = (imp.source or "").lower()
+        if src:
+            out.add(src)
+            out.add(src.split("/")[-1].split(".")[0])
+    return out
+
+
+def _decorator_text(info: FileInfo) -> str:
+    """All function decorators joined (parsed fact)."""
+    parts = []
+    for fn in info.functions or []:
+        parts.extend(fn.decorators or [])
+    return "\n".join(parts).lower()
+
+
 def _infer_purpose(path: Path, info: FileInfo) -> str:
     """
-    Infer a one-sentence plain English purpose from file name, location, and structure.
-    This is a heuristic — not AI. scanner agents will improve on this.
+    Infer a one-sentence plain English purpose, strongest signal first.
+
+    Signal order (Part 7: guesses must not outrank facts):
+    1. Manifest/config identity — the filename IS the fact (package.json
+       is a manifest, not "probably about packages").
+    2. Parsed structure — route decorators, framework/ORM/test imports,
+       entry-point flag, declared symbols. Read from the AST, not the name.
+    3. Filename patterns — last resort only, explicitly marked as such in
+       the sentence ("(filename guess)") so downstream consumers
+       (project-purpose classification, AI prompts) can discount it instead
+       of inheriting it as fact.
     """
     name = path.stem.lower()
     parent = path.parent.name.lower()
     lang = info.language
 
-    # Config files
+    # 1. Config files — identity, not inference.
     if path.name in {
         "package.json",
         "pyproject.toml",
@@ -2187,37 +2171,59 @@ def _infer_purpose(path: Path, info: FileInfo) -> str:
     if path.name in {"docker-compose.yml", "docker-compose.yaml", "Dockerfile"}:
         return "Container configuration."
 
-    # Test files
-    if "test" in name or name.startswith("test_") or name.endswith("_test"):
-        return f"Test file for {name.replace('test_', '').replace('_test', '')} module."
-    if parent in {"tests", "test", "__tests__", "spec", "specs"}:
-        return "Test file."
+    # 2. Parsed structure.
+    imports = _import_sources(info)
+    decorators = _decorator_text(info)
 
-    # Common patterns
-    if "route" in name or "router" in name:
-        return f"Route definitions and URL handlers for {parent}."
-    if "model" in name:
-        return f"Data model definitions for {parent}."
-    if "controller" in name or "handler" in name:
-        return f"Request handler logic for {parent}."
-    if "middleware" in name:
-        return f"Middleware processing for {parent}."
-    if "auth" in name or "login" in name or "session" in name:
-        return "Authentication and session management."
-    if "config" in name or "settings" in name:
-        return "Application configuration."
-    if "util" in name or "helper" in name or "utils" in name:
-        return f"Utility functions shared across {parent}."
-    if "schema" in name or "types" in name:
-        return f"Type definitions and schema validation for {parent}."
-    if "migration" in name:
-        return "Database migration script."
-    if "seed" in name or "fixture" in name:
-        return "Database seed or fixture data."
+    # Route handlers: real decorators, not a "rout" in the filename.
+    if (
+        "rout" in decorators
+        or "controller" in decorators
+        or "endpoint" in decorators
+        or "@app." in decorators
+        or "api_view" in decorators
+    ):
+        return "Route definitions and URL handlers."
+    # Test files: test-framework imports are proof; test paths corroborate.
+    if imports & _TEST_IMPORTS or parent in {"tests", "test", "__tests__", "spec", "specs"}:
+        return "Test file."
+    # Web handling: framework imports say what the file talks to.
+    if imports & _WEB_IMPORTS:
+        return "Web request handling."
+    # Data models: ORM imports, not "model" in the filename.
+    if imports & _ORM_IMPORTS:
+        return "Data model definitions."
     if info.is_entry_point:
         return "Application entry point."
     if info.classes and not info.functions:
         return f"Class definitions: {', '.join(c.name for c in info.classes[:3])}."
     if info.functions and not info.classes:
         return f"Function library: {', '.join(f.name for f in info.functions[:3])}."
+
+    # 3. Filename patterns — last resort, explicitly marked.
+    def _guess(text: str) -> str:
+        return f"{text} (filename guess)"
+
+    if "test" in name or name.startswith("test_") or name.endswith("_test"):
+        return _guess(f"Test file for {name.replace('test_', '').replace('_test', '')} module")
+    if "route" in name or "router" in name:
+        return _guess(f"Route definitions and URL handlers for {parent}")
+    if "model" in name:
+        return _guess(f"Data model definitions for {parent}")
+    if "controller" in name or "handler" in name:
+        return _guess(f"Request handler logic for {parent}")
+    if "middleware" in name:
+        return _guess(f"Middleware processing for {parent}")
+    if "auth" in name or "login" in name or "session" in name:
+        return _guess("Authentication and session management")
+    if "config" in name or "settings" in name:
+        return _guess("Application configuration")
+    if "util" in name or "helper" in name or "utils" in name:
+        return _guess(f"Utility functions shared across {parent}")
+    if "schema" in name or "types" in name:
+        return _guess(f"Type definitions and schema validation for {parent}")
+    if "migration" in name:
+        return _guess("Database migration script")
+    if "seed" in name or "fixture" in name:
+        return _guess("Database seed or fixture data")
     return f"{lang.value.title()} source file."

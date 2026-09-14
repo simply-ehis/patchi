@@ -25,6 +25,7 @@ _log = logging.getLogger("patchi.brain.project_reader")
 @dataclass
 class ProjectInsight:
     """What the project reader understands about the project."""
+
     name: str = ""
     description: str = ""
     tech_stack: list[str] = field(default_factory=list)
@@ -63,6 +64,7 @@ def read_project_insight(root: Path) -> ProjectInsight:
     _read_package_json(root, insight)
     _read_pyproject_toml(root, insight)
     _read_setup_cfg(root, insight)
+    _read_requirements_txt(root, insight)
     _read_cargo_toml(root, insight)
     _read_go_mod(root, insight)
     _read_package_json_ts(root, insight)
@@ -244,6 +246,7 @@ def _read_setup_cfg(root: Path, insight: ProjectInsight) -> None:
 
     try:
         import configparser
+
         cfg = configparser.ConfigParser()
         cfg.read(str(setup_path))
 
@@ -253,7 +256,30 @@ def _read_setup_cfg(root: Path, insight: ProjectInsight) -> None:
             insight.description = cfg.get("metadata", "description", fallback="")
         insight.language = "python"
     except Exception as _exc:
-        _log.debug('_read_setup_cfg skipped: %s', _exc)
+        _log.debug("_read_setup_cfg skipped: %s", _exc)
+
+
+def _read_requirements_txt(root: Path, insight: ProjectInsight) -> None:
+    """Extract from requirements*.txt (Part 7: this ubiquitous manifest was
+    invisible — requirements-only projects classified as 'unknown')."""
+    import re as _re
+
+    for name in ("requirements.txt", "requirements-dev.txt", "requirements-test.txt"):
+        req_path = root / name
+        if not req_path.is_file():
+            continue
+        try:
+            for line in req_path.read_text(encoding="utf-8", errors="replace").splitlines():
+                line = line.strip()
+                if not line or line.startswith(("#", "-", " ")):
+                    continue
+                dep = _re.split(r"[=<>!~\s\[]", line, maxsplit=1)[0].strip()
+                if dep and dep not in insight.dependencies:
+                    insight.dependencies.append(dep)
+            if insight.dependencies and not insight.language:
+                insight.language = "python"
+        except Exception as _exc:
+            _log.debug("_read_requirements_txt skipped: %s", _exc)
 
 
 def _read_cargo_toml(root: Path, insight: ProjectInsight) -> None:
@@ -281,7 +307,7 @@ def _read_cargo_toml(root: Path, insight: ProjectInsight) -> None:
         deps = data.get("dependencies", {})
         insight.dependencies = list(deps.keys())
     except Exception as _exc:
-        _log.debug('_read_cargo_toml skipped: %s', _exc)
+        _log.debug("_read_cargo_toml skipped: %s", _exc)
 
 
 def _read_go_mod(root: Path, insight: ProjectInsight) -> None:
@@ -298,7 +324,7 @@ def _read_go_mod(root: Path, insight: ProjectInsight) -> None:
                 insight.language = "go"
                 break
     except Exception as _exc:
-        _log.debug('_read_go_mod skipped: %s', _exc)
+        _log.debug("_read_go_mod skipped: %s", _exc)
 
 
 def _read_package_json_ts(root: Path, insight: ProjectInsight) -> None:
@@ -314,7 +340,7 @@ def _read_package_json_ts(root: Path, insight: ProjectInsight) -> None:
             if insight.language == "":
                 insight.language = "typescript"
     except Exception as _exc:
-        _log.debug('_read_package_json_ts skipped: %s', _exc)
+        _log.debug("_read_package_json_ts skipped: %s", _exc)
 
 
 def _infer_tech_stack_from_deps(
@@ -383,21 +409,42 @@ def _infer_project_type(root: Path, insight: ProjectInsight) -> None:
 
     indicators = {
         "web-app": [
-            "templates/", "static/", "public/", "pages/", "components/",
-            "app.py", "main.py", "server.py", "index.html",
+            "templates/",
+            "static/",
+            "public/",
+            "pages/",
+            "components/",
+            "app.py",
+            "main.py",
+            "server.py",
+            "index.html",
         ],
         "api": [
-            "routes/", "handlers/", "controllers/", "endpoints/",
-            "api/", "openapi", "swagger",
+            "routes/",
+            "handlers/",
+            "controllers/",
+            "endpoints/",
+            "api/",
+            "openapi",
+            "swagger",
         ],
         "cli": [
-            "cli/", "commands/", "cli.py", "main.py", "__main__.py",
+            "cli/",
+            "commands/",
+            "cli.py",
+            "main.py",
+            "__main__.py",
         ],
         "library": [
-            "src/", "lib/", "__init__.py",
+            "src/",
+            "lib/",
+            "__init__.py",
         ],
         "desktop": [
-            "electron/", "tauri/", "src-tauri/", "main.js",
+            "electron/",
+            "tauri/",
+            "src-tauri/",
+            "main.js",
         ],
     }
 
@@ -426,10 +473,19 @@ def _find_entry_points(root: Path, insight: ProjectInsight) -> None:
 
     # Check common entry points
     candidates = [
-        "main.py", "app.py", "server.py", "index.py",
-        "main.js", "index.js", "app.js", "server.js",
-        "main.ts", "index.ts", "app.ts",
-        "src/main.rs", "src/lib.rs",
+        "main.py",
+        "app.py",
+        "server.py",
+        "index.py",
+        "main.js",
+        "index.js",
+        "app.js",
+        "server.js",
+        "main.ts",
+        "index.ts",
+        "app.ts",
+        "src/main.rs",
+        "src/lib.rs",
         "main.go",
     ]
 
@@ -453,16 +509,29 @@ def _find_entry_points(root: Path, insight: ProjectInsight) -> None:
                 if "console_scripts" in content or "entry_points" in content:
                     insight.entry_points.append(setup_file)
             except Exception as _exc:
-                _log.debug('_find_entry_points skipped: %s', _exc)
+                _log.debug("_find_entry_points skipped: %s", _exc)
 
 
 def _find_critical_dirs(root: Path, insight: ProjectInsight) -> None:
     """Find directories that are critical to the project."""
     # Skip common non-critical directories
     skip_dirs = {
-        ".git", ".venv", "venv", "env", "__pycache__", "node_modules",
-        ".mypy_cache", ".pytest_cache", ".ruff_cache", "dist", "build",
-        ".eggs", "*.egg-info", ".tox", ".nox", "htmlcov",
+        ".git",
+        ".venv",
+        "venv",
+        "env",
+        "__pycache__",
+        "node_modules",
+        ".mypy_cache",
+        ".pytest_cache",
+        ".ruff_cache",
+        "dist",
+        "build",
+        ".eggs",
+        "*.egg-info",
+        ".tox",
+        ".nox",
+        "htmlcov",
     }
 
     # Patterns that indicate critical directories
