@@ -84,6 +84,17 @@ class AttackAgent(BaseAgent):
         result.data["target"] = f"{target_ip}:{target_port}"
         result.data["frameworks"] = frameworks
 
+        # Part 7 (Item 7): scope gate — active testing against non-local
+        # hosts requires explicit user confirmation.  AttackAgent always
+        # targets localhost, but guard against future target changes.
+        from patchi.core.testing.gate import require_scope
+
+        allowed, scope_reason = require_scope(f"http://{target_ip}:{target_port}")
+        if not allowed:
+            self.skip(result, f"Scope gate: {scope_reason}")
+            result.data["scope_blocked"] = True
+            return
+
         # ── 3. Pick modules ──────────────────────────────────────────────────
         modules = _pick_modules(frameworks)
 

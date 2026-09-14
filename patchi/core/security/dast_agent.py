@@ -286,6 +286,17 @@ class DASTAgent(BaseAgent):
             )
             return
 
+        # Part 7 (Item 7): scope gate — active testing against non-local
+        # hosts requires explicit user confirmation.  Production hosts are
+        # never tested without an allowlist entry.
+        from patchi.core.testing.gate import require_scope
+
+        allowed, scope_reason = require_scope(target_url)
+        if not allowed:
+            self.skip(result, f"Scope gate: {scope_reason}")
+            result.data["scope_blocked"] = True
+            return
+
         _log.info("DAST: Testing %s", target_url)
 
         # Run tests synchronously (browser tests)
