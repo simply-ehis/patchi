@@ -1277,4 +1277,13 @@ COMMANDS: list[Command] = [
             Arg("--search", dest="search", type=str, help="Search commands by name/description"),
         ),
     ),
+    Command(
+        "docs",
+        "Generate a project architecture document (Tier 1: no AI required)",
+        "patchi.cli.commands.docs_cmd:run",
+        args=(
+            Arg("--output", "-o", help="Output file path (default: docs/ARCHITECTURE.md)"),
+            Arg("--stdout", help="Print to stdout instead of writing a file", action="store_true"),
+        ),
+    ),
 ]
