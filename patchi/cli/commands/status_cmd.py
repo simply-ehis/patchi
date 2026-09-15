@@ -19,7 +19,7 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 
-from patchi.cli.console import con
+from patchi.cli.console import con, print_json
 
 if TYPE_CHECKING:
     pass
@@ -57,9 +57,8 @@ def run(
         r = root or cfg.find_project_root()
         if not r:
             if json_output:
-                import json as _json
 
-                con.print(_json.dumps({"error": "no project root found"}))
+                print_json({"error": "no project root found"})
             else:
                 con.print("[yellow]No project root found. Run 'p init' first.[/yellow]")
             return
@@ -96,13 +95,10 @@ def _run_status(root: Path, json_output: bool) -> None:
         return
 
     if json_output:
-        import json as _json
 
         health_score = brain.get("health_score", {}) if brain else {}
         stack = (brain or {}).get("stack", {}) or {}
-        con.print(
-            _json.dumps(
-                {
+        print_json({
                     "mode": mode,
                     "queue_mode": qmode,
                     "queue": qstats,
@@ -115,10 +111,7 @@ def _run_status(root: Path, json_output: bool) -> None:
                         "frameworks": [f.get("name", "") for f in stack.get("frameworks", [])[:3]],
                     },
                 },
-                indent=2,
-                default=str,
-            )
-        )
+                default=str,)
         return
 
     con.print()
@@ -246,16 +239,14 @@ def _run_health(root: Path, json_output: bool) -> None:
     brain = mem.get_brain(root)
     if not brain or not brain.get("file_count"):
         if json_output:
-            import json as _json
 
-            con.print(_json.dumps({"error": "no scan data yet"}))
+            print_json({"error": "no scan data yet"})
         else:
             con.print("[yellow]No scan data yet. Run 'p scan' first.[/yellow]")
         return
 
     score = hm.compute(root)
     if json_output:
-        import json as _json
         from dataclasses import asdict, is_dataclass
 
         payload = (
@@ -263,7 +254,7 @@ def _run_health(root: Path, json_output: bool) -> None:
             if is_dataclass(score)
             else (score.__dict__ if hasattr(score, "__dict__") else {"score": str(score)})
         )
-        con.print(_json.dumps(payload, indent=2, default=str))
+        print_json(payload, default=str)
         return
 
     _show_health(score, brain, root)
@@ -606,11 +597,8 @@ def _run_doctor(root: Path, json_output: bool = False, verbose: bool = False) ->
 
     # ── Render results ────────────────────────────────────────────────────────
     if json_output:
-        import json as _json
 
-        con.print(
-            _json.dumps(
-                {
+        print_json({
                     "ok": errors == 0,
                     "errors": errors,
                     "warnings": warnings,
@@ -618,10 +606,7 @@ def _run_doctor(root: Path, json_output: bool = False, verbose: bool = False) ->
                         {"label": label, "status": status.strip(), "note": note}
                         for label, status, note, _color in checks
                     ],
-                },
-                indent=2,
-            )
-        )
+                },)
         return
 
     table = Table(show_header=False, box=None, pad_edge=False, padding=(0, 1))

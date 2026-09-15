@@ -16,6 +16,8 @@ from pathlib import Path
 from rich.console import Console
 from rich.table import Table
 
+from patchi.cli.console import print_json
+
 _log = logging.getLogger("patchi.cli.commands.findings_cmd")
 
 
@@ -62,7 +64,7 @@ def _show_findings(root: Path, con: Console, json_output: bool = False) -> None:
     all_findings.sort(key=lambda f: sev_order.get(f.get("severity", "info"), 5))
 
     if json_output:
-        con.print(json.dumps({"total": len(all_findings), "findings": all_findings}, indent=2, default=str))
+        print_json({"total": len(all_findings), "findings": all_findings}, default=str)
         return
 
     # Summary
@@ -136,7 +138,7 @@ def _show_summary(root: Path, con: Console, json_output: bool = False) -> None:
                     "delta": count - prev,
                 }
             )
-        con.print(json.dumps({"total": total, "agents": rows}, indent=2))
+        print_json({"total": total, "agents": rows})
         return
 
     con.print(f"\n[bold]Finding Counts Summary[/bold] — {len(agent_counts)} agents, {total} total findings\n")

@@ -217,8 +217,12 @@ def main() -> None:
 
     _result, _handled = _registry_dispatch(_REGISTRY_COMMANDS, args)
 
-    # After command dispatch, show update notification if available
-    if cmd and cmd != "update":
+    # After command dispatch, show update notification if available.
+    # Never in --json mode: it would append human text after the JSON
+    # document and break machine consumers.
+    if cmd and cmd != "update" and not (
+        getattr(args, "json", False) or getattr(args, "json_output", False)
+    ):
         from patchi.cli.commands.update_cmd import print_update_available_if_needed
 
         try:

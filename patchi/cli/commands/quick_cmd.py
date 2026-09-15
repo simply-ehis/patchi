@@ -21,7 +21,7 @@ from pathlib import Path
 
 from rich.table import Table
 
-from patchi.cli.console import con
+from patchi.cli.console import con, print_json
 from patchi.cli.ux import (
     format_error,
     format_header,
@@ -125,7 +125,7 @@ def run(
             "total_findings": total_findings,
             "results": results,
         }
-        con.print(json.dumps(output, indent=2))
+        print_json(output)
     else:
         # Show results table
         table = Table(show_header=True, header_style="bold", box=None, padding=(0, 2))

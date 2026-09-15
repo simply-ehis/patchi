@@ -17,6 +17,7 @@ from __future__ import annotations
 import logging
 import os
 import sys
+from contextlib import contextmanager
 
 from rich.console import Console
 
@@ -90,6 +91,49 @@ def configure_theme(
     _active_symbols.clear()
     _active_symbols.update(palette["symbols"])
     return name
+
+
+@contextmanager
+def muted_console():
+    """Silence the shared console for a block; restore afterwards.
+
+    Used to make ``--json`` stdout machine-pure: everything a command (and
+    the core modules it calls) prints through ``con`` during the run phase
+    is captured to a discard buffer, so the JSON document emitted after the
+    block — via plain ``print``, never ``con.print`` (Rich soft-wraps at 80
+    columns, corrupting long string values mid-line) — is the only thing on
+    stdout.
+
+    Swaps the underlying ``_file`` attribute, NOT the ``file`` property: the
+    getter resolves ``None`` to the live ``sys.stdout``, so a save/restore
+    through the property can pin the console to a stream that is closed
+    later (e.g. pytest capsys) — every ``con.print`` after that dies with
+    "I/O operation on closed file". ``_file = None`` is the valid
+    "follow sys.stdout" state and must round-trip untouched.
+    """
+    import io as _io
+
+    saved = con._file
+    con._file = _io.StringIO()
+    try:
+        yield
+    finally:
+        con._file = saved
+
+
+def print_json(document, **dumps_kwargs) -> None:
+    """Emit a JSON document to stdout, byte-pure.
+
+    Plain ``print``, not ``con.print``: Rich soft-wraps at 80 columns when
+    stdout is not a terminal, corrupting JSON string values mid-line (and
+    with them every machine consumer). Call this after a ``muted_console``
+    block so the document is the only thing on stdout. Extra kwargs
+    (e.g. ``default=str`` for datetime/Path payloads) pass through to
+    ``json.dumps``.
+    """
+    import json as _json
+
+    print(_json.dumps(document, indent=2, **dumps_kwargs))  # noqa: T201 — plain print IS the machine contract (Rich soft-wraps)
 
 
 def symbol(key: str) -> str:

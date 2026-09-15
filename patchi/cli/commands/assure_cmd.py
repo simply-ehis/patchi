@@ -23,7 +23,7 @@ import sys
 
 from rich.table import Table
 
-from patchi.cli.console import con
+from patchi.cli.console import con, print_json
 from patchi.core.config import require_project_root
 
 _VERDICT_STYLE = {
@@ -473,16 +473,11 @@ def _show_chain_report(root, con, json_output=False):
             )
 
     if json_output:
-        con.print(
-            _json.dumps(
-                {
+        print_json({
                     "chain_claims": chain_claims,
                     "intent_claims": intent_claims,
                 },
-                indent=2,
-                default=str,
-            )
-        )
+                default=str,)
         return
 
     # ── Display ──────────────────────────────────────────────────────────

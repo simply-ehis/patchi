@@ -11,7 +11,7 @@ from pathlib import Path
 from rich.panel import Panel
 from rich.table import Table
 
-from patchi.cli.console import con
+from patchi.cli.console import con, print_json
 from patchi.core.config import require_project_root
 
 
@@ -25,7 +25,7 @@ def run(json_output: bool = False, root: Path | None = None) -> None:
 
     data = build_heatmap(r)
     if json_output:
-        con.print(json.dumps(data, indent=2))
+        print_json(data)
         return
     hotspots = data.get("hotspots", [])
     if not hotspots:

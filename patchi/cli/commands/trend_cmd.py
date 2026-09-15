@@ -28,7 +28,7 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 
-from patchi.cli.console import con
+from patchi.cli.console import con, print_json
 from patchi.core.config import require_project_root
 
 _log = logging.getLogger("patchi.cli.trend_cmd")
@@ -52,17 +52,15 @@ def run(metric: str | None = None, last_n: int = 20, root: Path | None = None, j
 
     if not trend_data:
         if json_output:
-            import json as _json
 
-            con.print(_json.dumps({"trend": [], "note": "no scan history yet"}))
+            print_json({"trend": [], "note": "no scan history yet"})
         else:
             con.print("[dim]No scan history yet. Run `p scan` a few times to build trend data.[/dim]")
         return
 
     if json_output:
-        import json as _json
 
-        con.print(_json.dumps({"trend": trend_data[-last_n:]}, indent=2, default=str))
+        print_json({"trend": trend_data[-last_n:]}, default=str)
         return
 
     if metric == "security":

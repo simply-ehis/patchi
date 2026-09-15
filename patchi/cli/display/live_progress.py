@@ -52,15 +52,20 @@ class LiveProgress:
         lp.stop(summary="3 findings in 1.2s")
     """
 
-    def __init__(self, console: Console | None = None, title: str = "progress"):
+    def __init__(self, console: Console | None = None, title: str = "progress", quiet: bool = False):
         self.con = console or Console()
         self._title = title
+        # quiet=True (JSON mode): never start the Live renderer, drop log
+        # lines, skip the summary print — machine-pure stdout, no render cost.
+        self._quiet = quiet
         self._lock = threading.RLock()
         self._state = _ProgressState()
         self._live: Live | None = None
         self._start_time: float = 0.0
 
     def start(self):
+        if self._quiet:
+            return
         self._start_time = time.monotonic()
         self._live = Live(
             self._render(),
@@ -72,6 +77,8 @@ class LiveProgress:
         self._live.__enter__()
 
     def stop(self, summary: str = ""):
+        if self._quiet:
+            return
         if self._live:
             with self._lock:
                 self._state.done = True
@@ -94,6 +101,8 @@ class LiveProgress:
                 _log.warning("LiveProgress.update failed: %s", e)
 
     def log(self, message: str, style: str = ""):
+        if self._quiet:
+            return
         with self._lock:
             self._state.log_lines.append((style, message))
             if len(self._state.log_lines) > 50:

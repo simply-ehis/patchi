@@ -14,13 +14,12 @@ Usage:
 
 from __future__ import annotations
 
-import json
 import logging
 from pathlib import Path
 
 from rich.table import Table
 
-from patchi.cli.console import con
+from patchi.cli.console import con, print_json
 from patchi.core.config import require_project_root
 
 _log = logging.getLogger("patchi.cli.agent_stats_cmd")
@@ -54,7 +53,7 @@ def run(
             "profile": profile_data,
             "learning": learning_data,
         }
-        con.print(json.dumps(payload, indent=2, default=str))
+        print_json(payload, default=str)
         return
 
     con.print()

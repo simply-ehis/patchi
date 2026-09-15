@@ -13,7 +13,6 @@ Usage:
 
 from __future__ import annotations
 
-import json
 import logging
 import sys
 import time
@@ -22,7 +21,7 @@ from pathlib import Path
 from rich.table import Table
 from rich.text import Text
 
-from patchi.cli.console import con
+from patchi.cli.console import con, print_json
 from patchi.cli.ux import (
     format_header,
     spinner,
@@ -312,7 +311,7 @@ def run(
             "summary": summary,
             "results": all_results,
         }
-        con.print(json.dumps(output, indent=2))
+        print_json(output)
     else:
         # Show tables for each category
         for category, checks in all_results.items():

@@ -24,7 +24,7 @@ from pathlib import Path
 
 from rich.panel import Panel
 
-from patchi.cli.console import con
+from patchi.cli.console import con, print_json
 from patchi.core.config import require_project_root
 
 _STATUS_FILE = ".patchi/p_check_status.json"
@@ -265,7 +265,7 @@ def run(fix: bool = False, json_output: bool = False, root: Path | None = None) 
         )
         con.print()
         if json_output:
-            con.print(json.dumps({"status": "BLOCKED", "blocking": [f.to_dict() for f in blocking]}, indent=2))
+            print_json({"status": "BLOCKED", "blocking": [f.to_dict() for f in blocking]})
         return
 
     # Step 4: attempt to build and start app as local dev server
@@ -328,4 +328,4 @@ def run(fix: bool = False, json_output: bool = False, root: Path | None = None) 
     except Exception as _exc:
         logging.getLogger("patchi").debug("suppressed: %s", _exc)
     if json_output:
-        con.print(json.dumps({"status": "READY_TO_SERVE", "url": url, "port": port}, indent=2))
+        print_json({"status": "READY_TO_SERVE", "url": url, "port": port})

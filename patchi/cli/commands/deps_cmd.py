@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from patchi.cli.console import con
+from patchi.cli.console import con, print_json
 from patchi.cli.display.live_progress import LiveProgress
 from patchi.core.agents.base import AgentGroup, AgentInput, list_agents
 from patchi.core.config import require_project_root
@@ -94,11 +94,8 @@ def run(
     lp.stop(summary=f"{len(results)} agents - {total_findings} findings")
 
     if json_output:
-        import json as _json
 
-        con.print(
-            _json.dumps(
-                {
+        print_json({
                     "agents": [
                         {
                             "agent": getattr(res, "agent_name", ""),
@@ -112,7 +109,4 @@ def run(
                     ],
                     "total_findings": total_findings,
                 },
-                indent=2,
-                default=str,
-            )
-        )
+                default=str,)

@@ -438,6 +438,13 @@ COMMANDS: list[Command] = [
                 action="store_true",
                 help="Apply every non-blocked patch (AUTO + review), not just AUTO — test-only edits still queue",
             ),
+            Arg(
+                "--json",
+                dest="json_output",
+                action="store_true",
+                help="Machine-pure JSON: {ok, area, dry_run, applied, queued, blocked, patches}"
+                " — no human UI on stdout, review prompt skipped",
+            ),
         ),
     ),
     Command(

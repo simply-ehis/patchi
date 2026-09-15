@@ -27,7 +27,7 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 
-from patchi.cli.console import con
+from patchi.cli.console import con, print_json
 
 _log = logging.getLogger("patchi.cli.doctor")
 
@@ -717,11 +717,8 @@ def run(
 
     # ── Render results ────────────────────────────────────────────────────────
     if json_output:
-        import json as _json
 
-        con.print(
-            _json.dumps(
-                {
+        print_json({
                     "ok": errors == 0,
                     "errors": errors,
                     "warnings": warnings,
@@ -729,10 +726,7 @@ def run(
                         {"label": label, "status": status.strip(), "note": note}
                         for label, status, note, _color in checks
                     ],
-                },
-                indent=2,
-            )
-        )
+                },)
         return
 
     table = Table(show_header=False, box=None, pad_edge=False, padding=(0, 1))

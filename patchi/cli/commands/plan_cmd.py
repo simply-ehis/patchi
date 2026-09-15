@@ -15,12 +15,11 @@ ones that need human review.
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
 from rich.table import Table
 
-from patchi.cli.console import con
+from patchi.cli.console import con, print_json
 from patchi.core.brain.proactive import _FIX_PRIORITY, build_fix_list
 from patchi.core.config import require_project_root
 
@@ -56,7 +55,7 @@ def run(
     )
 
     if json_output:
-        con.print(json.dumps([f.to_dict() for f in fixes], indent=2))
+        print_json([f.to_dict() for f in fixes])
         return
     if html:
         _write_html(Path(html), fixes)

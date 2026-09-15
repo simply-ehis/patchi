@@ -26,7 +26,7 @@ from pathlib import Path
 
 from rich.table import Table
 
-from patchi.cli.console import con
+from patchi.cli.console import con, print_json
 from patchi.core.config import require_project_root
 
 _log = logging.getLogger("patchi.cli.chains_cmd")
@@ -279,7 +279,7 @@ def _analyze_findings(root: Path, min_severity: str, json_output: bool, max_chai
 def _print_json(chains: list, intent: dict | None) -> None:
     """Print chains and intent data as JSON."""
     payload = {"chains": chains, "intent_report": intent}
-    con.print(json.dumps(payload, indent=2, default=str))
+    print_json(payload, default=str)
 
 
 def _apply_fixes(root: Path, chains: list[dict], con) -> None:

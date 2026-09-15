@@ -31,7 +31,7 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 
-from patchi.cli.console import con
+from patchi.cli.console import con, print_json
 from patchi.core.brain.languages import DEFAULT_IGNORE_DIRS
 from patchi.core.brain.reasoning import ReasoningEngine
 from patchi.core.config import require_project_root
@@ -143,26 +143,41 @@ def run_impact(
     json_output: bool = False,
     root: Path | None = None,
 ) -> None:
-    """p impact <file> [<file> ...] — change-impact / blast-radius report.
+    """p impact <file> [<file> ...] --json — machine-pure blast-radius report.
 
     Canonical home of blast-radius analysis (absorbs the former
     `p blast` command: --all lists every file's radius).
+
+    With ``--json``: one pure-JSON stdout document (no human UI before it,
+    no Rich soft-wrapping) — {files, summary, affected_layers,
+    impacted_layers, blast_radii?}. Safe for CI to ``json.load`` directly.
     """
     try:
         r = root or require_project_root()
     except RuntimeError as e:
+        if json_output:
+            print_json({"error": str(e)})
+            return
         con.print(f"[red]{e}[/red]")
         return
 
     if show_all:
         graph = _build_graph(r)
         if not graph.nodes:
-            con.print("[yellow]No import graph data. Run `p scan` first.[/yellow]")
+            if json_output:
+                print_json({"error": "no import graph data — run p scan first"})
+            else:
+                con.print("[yellow]No import graph data. Run `p scan` first.[/yellow]")
             return
         _show_all_blast_radii(graph, r, json_output=json_output)
         return
 
     if not files:
+        if json_output:
+            print_json(
+                {"error": "provide at least one changed file, e.g. p impact <file> (or p impact --all)"}
+            )
+            return
         con.print(
             "[red]Provide at least one changed file, e.g.[/red] "
             "[bold]p impact src/api/routes.py[/bold] "
@@ -174,18 +189,13 @@ def run_impact(
     analysis = engine.impact_analysis(files)
 
     if json_output:
-        import json as _json
-
-        con.print(
-            _json.dumps(
-                {
-                    "files": list(files),
-                    "summary": analysis.summary,
-                    "affected_layers": list(analysis.affected_layers),
-                    "impacted_layers": list(analysis.impacted_layers),
-                },
-                indent=2,
-            )
+        print_json(
+            {
+                "files": list(files),
+                "summary": analysis.summary,
+                "affected_layers": list(analysis.affected_layers),
+                "impacted_layers": list(analysis.impacted_layers),
+            }
         )
         return
 
@@ -270,7 +280,11 @@ def _resolve_import(module_name: str, root: Path, from_file: Path) -> str | None
 
 
 def _show_all_blast_radii(graph, root: Path, json_output: bool = False) -> None:
-    """Show blast radius summary for all files."""
+    """Show blast radius summary for all files.
+
+    With ``json_output`` the document is emitted via :func:`print_json`
+    (byte-pure); the human table path is unchanged.
+    """
     radii = []
     for node in graph.nodes:
         direct = graph.reverse.get(node, set())
@@ -290,14 +304,7 @@ def _show_all_blast_radii(graph, root: Path, json_output: bool = False) -> None:
     radii.sort(key=lambda x: -x[2])
 
     if json_output:
-        import json as _json
-
-        con.print(
-            _json.dumps(
-                {"blast_radii": [{"file": node, "direct": d, "total_affected": t} for node, d, t in radii]},
-                indent=2,
-            )
-        )
+        print_json({"blast_radii": [{"file": node, "direct": d, "total_affected": t} for node, d, t in radii]})
         return
 
     table = Table(show_header=True, header_style="bold #C8621A", box=None, pad_edge=False)

@@ -16,12 +16,11 @@ self-report) and, if a Plan exists, reports the gap between Plan and Built.
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
 from rich.panel import Panel
 
-from patchi.cli.console import con
+from patchi.cli.console import con, print_json
 from patchi.core.brain.audit import (
     compute_drift,
     drift_vs_plan_file,
@@ -120,7 +119,7 @@ def run(
         report["drift"] = {"has_plan": False}
 
     if json_output:
-        con.print(json.dumps(report, indent=2, default=str))
+        print_json(report, default=str)
         return
     if html:
         _write_html(Path(html), report)

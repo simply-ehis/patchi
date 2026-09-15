@@ -27,7 +27,7 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 
-from patchi.cli.console import con
+from patchi.cli.console import con, muted_console, print_json
 from patchi.cli.display.live_progress import LiveProgress
 from patchi.core import memory as mem
 from patchi.core.config import require_project_root
@@ -43,17 +43,30 @@ def run(
     preview: bool = False,
     safe_all: bool = False,
     root: Path | None = None,
+    json_output: bool = False,
 ) -> None:
-    """Entry point for `p fix [area]`."""
+    """Entry point for `p fix [area]`.
+
+    With ``json_output``: one pure-JSON stdout document
+    ({ok, area, dry_run, applied, queued, blocked, patches} or {error, ...}) —
+    the human UI goes to a discard sink and the interactive review prompt is
+    skipped (CI cannot answer prompts).
+    """
     try:
         r = root or require_project_root()
     except RuntimeError as e:
+        if json_output:
+            print_json({"error": str(e)})
+            return
         con.print(f"[red]{e}[/red]")
         return
 
     # ── 1. Contract lock check ─────────────────────────────────────────────────
     brain = mem.get_brain(r)
     if not brain.get("contract_locked"):
+        if json_output:
+            print_json({"error": "app contract not yet formed — run p scan first", "contract_locked": False})
+            return
         con.print()
         con.print(
             Panel(
@@ -74,6 +87,20 @@ def run(
     _annotate_findings_with_framework(all_findings, brain)
 
     if not all_findings:
+        if json_output:
+            print_json(
+                {
+                    "ok": True,
+                    "area": area,
+                    "dry_run": bool(dry_run or preview),
+                    "applied": 0,
+                    "queued": 0,
+                    "blocked": 0,
+                    "patches": [],
+                    "note": "no findings from last scan — run p scan first",
+                }
+            )
+            return
         con.print()
         con.print("[dim]No findings from last scan. Run [bold]p scan[/bold] first.[/dim]")
         con.print()
@@ -81,23 +108,50 @@ def run(
 
     fixable = [f for f in all_findings if f.get("fix_agent")]
     if not fixable:
+        if json_output:
+            print_json(
+                {
+                    "ok": True,
+                    "area": area,
+                    "dry_run": bool(dry_run or preview),
+                    "applied": 0,
+                    "queued": 0,
+                    "blocked": 0,
+                    "patches": [],
+                    "note": "no fixable issues found",
+                }
+            )
+            return
         con.print()
         con.print("[#4ADE80]✓[/#4ADE80] [dim]No fixable issues found.[/dim]")
         con.print()
         return
 
-    con.print()
-    area_label = f" [dim]→ {area}[/dim]" if area else ""
-    con.print(
-        f"[bold #C8621A]Fixing{area_label}[/bold #C8621A]  "
-        f"[dim]{len(fixable)} fixable finding(s)[/dim]"
-    )
-    con.print()
+    # ── JSON mode: silence the shared console for the whole run phase ──────────
+    # Core fix agents, the risk gate, and the verify loop all print through the
+    # same shared `con`; muting BEFORE the header covers them (and the header)
+    # all. The JSON document is emitted via print_json (plain print — Rich
+    # soft-wraps and corrupts long values).
+    _json_ctx = muted_console() if json_output else None
+    if _json_ctx is not None:
+        _json_ctx.__enter__()
+
+    if not json_output:
+        con.print()
+        area_label = f" [dim]→ {area}[/dim]" if area else ""
+        con.print(
+            f"[bold #C8621A]Fixing{area_label}[/bold #C8621A]  "
+            f"[dim]{len(fixable)} fixable finding(s)[/dim]"
+        )
+        con.print()
 
     if dry_run or preview:
-        _show_dry_run(fixable, r, preview=preview)
+        try:
+            _show_dry_run(fixable, r, preview=preview, json_output=json_output)
+        finally:
+            if _json_ctx is not None:
+                _json_ctx.__exit__(None, None, None)
         return
-
     # ── 3. Run fix agents sequentially ────────────────────────────────────────
     from patchi.cli.ux import format_step, status_icon, status_style
 
@@ -120,10 +174,25 @@ def run(
     show_fix_step("Finding analysis", "done")
     show_fix_step("Fix agent execution")
 
-    patches = _run_fix_agents(fixable, r)
+    patches = _run_fix_agents(fixable, r, quiet=json_output)
 
     if not patches:
         show_fix_step("Fix agent execution", "failed")
+        if json_output:
+            _json_ctx.__exit__(None, None, None)
+            print_json(
+                {
+                    "ok": True,
+                    "area": area,
+                    "dry_run": False,
+                    "applied": 0,
+                    "queued": 0,
+                    "blocked": 0,
+                    "patches": [],
+                    "note": "fix agents produced no patches — possibly no AI key configured (p key add)",
+                }
+            )
+            return
         con.print("[dim]Fix agents produced no patches.[/dim]")
         con.print(
             "[dim]This may be because no AI key is configured. "
@@ -252,6 +321,25 @@ def run(
     _show_summary(applied, queued, blocked)
 
     # ── 7. Interactive review prompt ──────────────────────────────────────────
+    # Skipped in JSON mode: a prompt would hang a CI consumer, and stdin is
+    # the human channel — the JSON document is the machine contract.
+    if json_output:
+        _json_ctx.__exit__(None, None, None)
+        print_json(
+            {
+                "ok": True,
+                "area": area,
+                "dry_run": False,
+                "applied": len(applied),
+                "queued": len(queued),
+                "blocked": len(blocked),
+                "patches": [
+                    _patch_json(p, blocked) for p in _ordered_patches(applied, queued, blocked)
+                ],
+            }
+        )
+        return
+
     if queued and not dry_run:
         from patchi.cli.ux import confirm
         con.print()
@@ -263,8 +351,13 @@ def run(
 # ── Fix agents runner ──────────────────────────────────────────────────────────
 
 
-def _run_fix_agents(findings: list[dict], root: Path) -> list[Patch]:
-    """Run relevant fix agents sequentially. Returns all proposed patches."""
+def _run_fix_agents(findings: list[dict], root: Path, quiet: bool = False) -> list[Patch]:
+    """Run relevant fix agents sequentially. Returns all proposed patches.
+
+    With ``quiet`` (JSON mode) the live progress UI is skipped — its writes
+    would only land in the muted console's discard buffer anyway, but the
+    context manager still costs a render cycle per update.
+    """
     import patchi.core.fix.fix_agents  # noqa: F401 — trigger registration
     from patchi.core import config as cfg
     from patchi.core.agents.base import AgentGroup, AgentInput, list_agents
@@ -322,7 +415,7 @@ def _run_fix_agents(findings: list[dict], root: Path) -> list[Patch]:
     fix_agent_classes = list_agents(AgentGroup.FIX)
     all_patches: list[Patch] = []
 
-    lp = LiveProgress(con, title="Fix")
+    lp = LiveProgress(con, title="Fix", quiet=quiet)
     lp.start()
     for agent_cls in fix_agent_classes:
         # Only run agents that have relevant findings
@@ -369,11 +462,47 @@ def _run_fix_agents(findings: list[dict], root: Path) -> list[Patch]:
 # ── Dry run display ────────────────────────────────────────────────────────────
 
 
-def _show_dry_run(findings: list[dict], root: Path, preview: bool = False) -> None:
+def _show_dry_run(
+    findings: list[dict], root: Path, preview: bool = False, json_output: bool = False
+) -> None:
     """Show what would be fixed without doing anything.
 
     If preview=True, also show the actual before/after code diff for each patch.
+    With ``json_output`` the tables are replaced by one pure-JSON document
+    ({ok, area, dry_run: true, fixable, patches}) and the interactive
+    diff preview is skipped (CI cannot page through prose).
     """
+    if json_output:
+        patches = _run_fix_agents(findings, root, quiet=True)
+        gate = RiskGate(root)
+        entries = []
+        for patch in sorted(patches, key=lambda p: p.blast_radius or 0):
+            gr = gate.evaluate(patch)
+            entries.append(
+                {
+                    "id": patch.id,
+                    "files": list(patch.affected_paths),
+                    "risk_score": patch.risk_score,
+                    "confidence": patch.confidence,
+                    "action": (
+                        "blocked"
+                        if gr.is_blocked
+                        else ("auto-apply" if gr.is_auto else "queue")
+                    ),
+                    "description": patch.description or "",
+                }
+            )
+        print_json(
+            {
+                "ok": True,
+                "area": None,
+                "dry_run": True,
+                "fixable": len(findings),
+                "patches": entries,
+            }
+        )
+        return
+
     table = Table(show_header=True, header_style="bold #C8621A", box=None, pad_edge=False)
     table.add_column("Fix Agent", style="bold #F2EDD6", width=20)
     table.add_column("File", style="dim", width=34)
@@ -646,3 +775,31 @@ def _save_patch(patch: Patch, root: Path) -> None:
         mem.save_patch(patch.to_dict(), root)
     except Exception as e:
         con.print(f"[dim]Could not save patch {patch.id}: {e}[/dim]")
+
+
+# ── JSON document helpers ──────────────────────────────────────────────────────
+
+
+def _ordered_patches(applied, queued, blocked):
+    """Deterministic patch order for the JSON document: applied, queued, blocked."""
+    seen: set[str] = set()
+    ordered = []
+    for p in [*applied, *queued, *(patch for patch, _ in blocked)]:
+        if p.id not in seen:
+            seen.add(p.id)
+            ordered.append(p)
+    return ordered
+
+
+def _patch_json(patch: Patch, blocked: list[tuple[Patch, str]]) -> dict:
+    """One patch's machine-readable record."""
+    reason = next((r for p, r in blocked if p.id == patch.id), "")
+    return {
+        "id": patch.id,
+        "files": list(patch.affected_paths),
+        "risk_score": patch.risk_score,
+        "confidence": patch.confidence,
+        "description": patch.description or "",
+        "state": getattr(patch.state, "value", str(patch.state)),
+        "blocked_reason": reason,
+    }

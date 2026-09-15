@@ -17,7 +17,7 @@ from rich.syntax import Syntax
 from rich.table import Table
 from rich.text import Text
 
-from patchi.cli.console import con
+from patchi.cli.console import con, print_json
 from patchi.core import memory as mem
 from patchi.core.config import require_project_root
 from patchi.core.fix.patch import Patch, PatchState
@@ -45,9 +45,8 @@ def run_list(root: Path | None = None, json_output: bool = False) -> None:
 
     patches_raw = mem.list_patches(r)
     if json_output:
-        import json as _json
 
-        con.print(_json.dumps({"patches": patches_raw or []}, indent=2, default=str))
+        print_json({"patches": patches_raw or []}, default=str)
         return
 
     if not patches_raw:
@@ -95,17 +94,15 @@ def run_show(patch_id: str, root: Path | None = None, json_output: bool = False)
     patch_dict = mem.get_patch(patch_id, r)
     if not patch_dict:
         if json_output:
-            import json as _json
 
-            con.print(_json.dumps({"error": f"Patch {patch_id!r} not found"}, indent=2))
+            print_json({"error": f"Patch {patch_id!r} not found"})
         else:
             con.print(f"[red]Patch {patch_id!r} not found.[/red]")
         return
 
     if json_output:
-        import json as _json
 
-        con.print(_json.dumps(patch_dict, indent=2, default=str))
+        print_json(patch_dict, default=str)
         return
 
     patch = Patch.from_dict(patch_dict)
