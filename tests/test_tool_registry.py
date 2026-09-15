@@ -108,6 +108,116 @@ def test_doctor_install_only_scopes_the_pass(monkeypatch, capsys):
     assert "sast tools only" in out
 
 
+def test_doctor_install_json_document_shape(monkeypatch, capsys):
+    """--json must emit one pure-JSON document with per-tool records."""
+    import json as _json
+
+    import patchi.core.agents.tool_health as th
+    from patchi.cli.commands import doctor_cmd
+
+    monkeypatch.setattr(
+        th, "check_tool",
+        lambda name: {"status": "missing", "version": "", "hint": ""}
+        if name == "shannon" else {"status": "ok", "version": "1.0", "hint": ""},
+    )
+    # Stub the installer so the test has no side effects on boxes that have
+    # npm/go/playwright present (gitleaks state is environment-dependent).
+    monkeypatch.setattr(doctor_cmd, "_run_installer", lambda cmd: (False, "stubbed"))
+    rc = doctor_cmd._auto_install_tools("secrets", json=True)
+    out = capsys.readouterr().out
+    doc = _json.loads(out)  # raises if stdout is not one JSON value
+    assert rc == 1
+    assert doc["ok"] is False
+    assert doc["scope"] == "secrets"
+    by_name = {t["tool"]: t for t in doc["tools"]}
+    assert by_name["shannon"]["status"] == "manual"
+    assert by_name["shannon"]["install"]
+    # gitleaks record exists with an honest state regardless of environment
+    assert by_name["gitleaks"]["status"] in {"ok", "manual", "attempted-but-failed"}
+    assert doc["summary"]["manual"] == sum(1 for t in doc["tools"] if t["status"] == "manual")
+
+
+def test_doctor_install_json_all_clean(monkeypatch, capsys):
+    """Everything present → ok:true, exit 0, one record per tool."""
+    import json as _json
+
+    import patchi.core.agents.tool_health as th
+    from patchi.cli.commands import doctor_cmd
+
+    tools = th.list_tools("sast")
+    monkeypatch.setattr(
+        th, "check_tool",
+        lambda name: {"status": "ok", "version": "9.9.9", "hint": ""},
+    )
+    rc = doctor_cmd._auto_install_tools("sast", json=True)
+    out = capsys.readouterr().out
+    doc = _json.loads(out)
+    assert rc == 0
+    assert doc["ok"] is True
+    assert doc["summary"] == {"attempted": 0, "installed": 0, "manual": 0}
+    assert len(doc["tools"]) == len(tools)
+    assert all(t["status"] == "ok" for t in doc["tools"])
+
+
+def test_doctor_install_json_records_failed_attempt(monkeypatch, capsys):
+    """A pip install that fails must surface as action:'attempted-but-failed'."""
+    import json as _json
+
+    import patchi.core.agents.tool_health as th
+    from patchi.cli.commands import doctor_cmd
+
+    monkeypatch.setattr(
+        th, "check_tool",
+        lambda name: {"status": "missing", "version": "", "hint": ""},
+    )
+    monkeypatch.setattr(doctor_cmd, "_run_installer", lambda cmd: (False, "pip exploded"))
+    rc = doctor_cmd._auto_install_tools("sast", json=True)
+    doc = _json.loads(capsys.readouterr().out)
+    assert rc == 1 and doc["ok"] is False
+    pip_tools = [t for t in doc["tools"] if t["action"] == "attempted-but-failed"]
+    assert pip_tools, "no attempted-but-failed record"
+    assert all(t["detail"] == "pip exploded" for t in pip_tools)
+
+
+def test_doctor_install_json_unknown_group_is_json_error(capsys):
+    """--only bogus --json must exit 2 with a machine-usable error doc."""
+    import json as _json
+
+    from patchi.cli.commands.doctor_cmd import _auto_install_tools
+
+    rc = _auto_install_tools("definitely-not-a-group", json=True)
+    out = capsys.readouterr().out
+    doc = _json.loads(out)
+    assert rc == 2
+    assert doc["ok"] is False
+    assert "unknown tool group" in doc["error"]
+    assert "sast" in doc["valid_groups"]
+
+
+def test_semgrep_version_probe_cannot_hang(monkeypatch):
+    """Regression: the probe must be bounded and stdin-guarded.
+
+    semgrep --version blocked forever on stdin in some hosts, hanging the
+    agent and the whole pytest suite. The call must carry a timeout and
+    stdin=DEVNULL; a probe timeout means the binary works.
+    """
+    import subprocess
+
+    from patchi.core.security.sast_agent import SemgrepAgent
+
+    captured = {}
+
+    def fake_run(cmd, **kwargs):
+        captured["cmd"] = cmd
+        captured["kwargs"] = kwargs
+        raise subprocess.TimeoutExpired(cmd, kwargs.get("timeout", 0))
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    assert SemgrepAgent()._is_semgrep_available() is True  # hang = available
+    assert captured["kwargs"]["timeout"] > 0
+    assert captured["kwargs"]["stdin"] == subprocess.DEVNULL
+
+
 def test_tool_verify_delegates_to_registry(monkeypatch):
     from patchi.core.security import tool_verify
 

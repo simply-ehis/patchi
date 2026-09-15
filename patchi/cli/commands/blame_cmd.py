@@ -47,7 +47,7 @@ def run(file_path: str, line: int | None = None, root: Path | None = None) -> No
             if not str(resolved).startswith(str(r.resolve())):
                 con.print("[red]File path is outside the project root[/red]")
                 return
-            subprocess.run(["git", "blame", str(resolved)], cwd=str(r))
+            subprocess.run(["git", "blame", str(resolved)], cwd=str(r), timeout=120)
         except Exception as e:
             _log.warning("run failed: %s", e)
             con.print("[red]Could not run git blame[/red]")

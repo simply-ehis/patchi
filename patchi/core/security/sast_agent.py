@@ -78,9 +78,24 @@ class SemgrepAgent(BaseAgent):
         self.skip_for_tool(result, "semgrep")
 
     def _is_semgrep_available(self) -> bool:
-        """Check if semgrep is installed."""
+        """Check if semgrep is installed.
+
+        stdin=DEVNULL + timeout: semgrep's ``--version`` can wait on stdin in
+        some host environments, and an unbounded probe here hung the whole
+        agent (and the pytest suite) forever. A version probe that hangs
+        usually means the binary itself works — treat a timeout as available
+        and let the bounded real scan (timeout=300 below) decide.
+        """
         try:
-            subprocess.run(["semgrep", "--version"], capture_output=True, check=True)
+            subprocess.run(
+                ["semgrep", "--version"],
+                capture_output=True,
+                check=True,
+                timeout=30,
+                stdin=subprocess.DEVNULL,
+            )
+            return True
+        except subprocess.TimeoutExpired:
             return True
         except (subprocess.CalledProcessError, FileNotFoundError):
             return False

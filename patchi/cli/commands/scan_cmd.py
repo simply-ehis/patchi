@@ -239,11 +239,19 @@ def _run_scan_inner(
     # individually is hopeless. Swap the console to a null sink instead and
     # restore it just before the JSON document (and on the error paths).
     _saved_con_file = None
+    _con_swapped = False
     if json_output:
         import io as _io
 
-        _saved_con_file = con.file
-        con.file = _io.StringIO()
+        # NOTE: swap the underlying `_file` attribute, not the `file` property:
+        # the getter resolves None to the live sys.stdout, so a save/restore
+        # through the property can pin the console to a stream that is closed
+        # later (e.g. pytest capsys) — every con.print() after that dies with
+        # "I/O operation on closed file". `_file = None` is the valid
+        # "follow sys.stdout" state and must round-trip untouched.
+        _saved_con_file = con._file
+        con._file = _io.StringIO()
+        _con_swapped = True
 
     # Chain progress display
     from patchi.cli.ux import format_step, status_icon, status_style
@@ -505,9 +513,9 @@ def _run_scan_inner(
     if error:
         # Phase failures already printed their evidence above; only a hard
         # crash (traceback) prints here.
-        if _saved_con_file is not None:
-            con.file = _saved_con_file
-            _saved_con_file = None
+        if _con_swapped:
+            con._file = _saved_con_file
+            _con_swapped = False
         if "\n" in error:
             con.print(f"\n[red]Scan failed:[/red] {error}")
             return 2
@@ -519,9 +527,9 @@ def _run_scan_inner(
         _run_deep_scan_analysis(r, report, agent_results)
 
     if report is None:
-        if _saved_con_file is not None:
-            con.file = _saved_con_file
-            _saved_con_file = None
+        if _con_swapped:
+            con._file = _saved_con_file
+            _con_swapped = False
         con.print("\n[red]Scan returned no results.[/red]")
         return 2
 
@@ -1112,9 +1120,9 @@ def _run_scan_inner(
         import json
 
         # Restore the real console before emitting the document.
-        if _saved_con_file is not None:
-            con.file = _saved_con_file
-            _saved_con_file = None
+        if _con_swapped:
+            con._file = _saved_con_file
+            _con_swapped = False
 
         from patchi.core.agents.coordinator import merge_results
 

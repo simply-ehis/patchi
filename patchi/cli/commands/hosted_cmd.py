@@ -620,7 +620,9 @@ def run_daemon(root: Path | None = None, guard: bool = False) -> None:
             if platform.system() == "Windows":
                 import subprocess
 
-                result = subprocess.run(["tasklist", "/FI", f"PID eq {old_pid}"], capture_output=True, text=True)
+                result = subprocess.run(
+                    ["tasklist", "/FI", f"PID eq {old_pid}"], capture_output=True, text=True, timeout=30
+                )
                 if str(old_pid) in result.stdout:
                     con.print(f"[yellow]Worker already running (PID {old_pid}).[/yellow]")
                     con.print("[dim]Run 'p hosted stop' first, or delete .patchi/hosted/worker.pid[/dim]")
@@ -832,7 +834,7 @@ def run_stop(root: Path | None = None) -> None:
         if platform.system() == "Windows":
             import subprocess
 
-            subprocess.run(["taskkill", "/PID", str(pid), "/F"], capture_output=True)
+            subprocess.run(["taskkill", "/PID", str(pid), "/F"], capture_output=True, timeout=30)
         else:
             import signal
 

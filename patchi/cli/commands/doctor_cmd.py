@@ -54,21 +54,45 @@ def _run_installer(cmd: list[str]) -> tuple[bool, str]:
     return proc.returncode == 0, tail
 
 
-def _auto_install_tools(only: str | None = None) -> int:
-    """`p doctor --install [--only GROUP]` — attempt the installable tools,
-    print the rest.
+def _auto_install_tools(only: str | None = None, json: bool = False) -> int:
+    """`p doctor --install [--only GROUP] [--json]` — attempt the installable
+    tools, print the rest.
 
     With ``only`` set, the pass is scoped to one tool group (sast, dast,
     secrets, supply-chain, ...) so CI can install just the tier it needs.
     Group names are validated against the tool registry.
+
+    With ``json`` set, stdout is one pure-JSON document ({"ok", "scope",
+    "summary", "tools": [...]}) and nothing else — the human UI goes to a
+    null sink, same pattern as `p scan --json`.
 
     Returns a process exit code: 0 = everything available afterwards,
     1 = some tools still missing/broken (each with its manual command).
     """
     from patchi.core.agents.tool_health import check_tool, list_tools, tool_groups
 
+    # Per-tool records for the --json document (in visit order).
+    _json_records: list[dict] = []
+
     _groups = tool_groups()
     if only is not None and only not in _groups:
+        if json:
+            import json as _json
+
+            print(
+                _json.dumps(
+                    {
+                        "ok": False,
+                        "scope": only,
+                        "error": f"unknown tool group: {only!r}",
+                        "valid_groups": list(_groups),
+                        "summary": {"attempted": 0, "installed": 0, "manual": 0},
+                        "tools": [],
+                    },
+                    indent=2,
+                )
+            )
+            return 2
         con.print(f"[red]Unknown tool group: {only!r}[/red]")
         con.print(f"[dim]Valid groups: {', '.join(_groups)}[/dim]")
         return 2
@@ -77,6 +101,27 @@ def _auto_install_tools(only: str | None = None) -> int:
     still_manual: list[tuple[str, str]] = []  # (tool, manual command)
     attempted = 0
     installed = 0
+
+    # ── JSON mode: silence the shared console for the pass ────────────────────
+    # pip/npm/go subprocesses write nothing to our stdout (output is
+    # captured), so the only polluters are our own human-UI prints here and
+    # anything core prints via the shared `con`. Swap the console to a null
+    # sink for the pass; restore just before the document (and on the
+    # unknown-group error path above, which returns early).
+    _saved_con_file: object = None
+    _con_swapped = False
+    if json:
+        import io as _io
+
+        # NOTE: swap the underlying `_file` attribute, not the `file` property:
+        # the getter resolves None to the live sys.stdout, so a save/restore
+        # through the property can pin the console to a stream that is closed
+        # later (e.g. pytest capsys) — every con.print() after that dies with
+        # "I/O operation on closed file". `_file = None` is the valid
+        # "follow sys.stdout" state and must round-trip untouched.
+        _saved_con_file = con._file
+        con._file = _io.StringIO()
+        _con_swapped = True
 
     con.print()
     con.print(
@@ -89,6 +134,17 @@ def _auto_install_tools(only: str | None = None) -> int:
         st = check_tool(tool["name"])
         if st["status"] == "ok":
             ver = f" ({st['version']})" if st["version"] else ""
+            _json_records.append(
+                {
+                    "tool": tool["name"],
+                    "group": tool["group"],
+                    "status": "ok",
+                    "version": st["version"],
+                    "action": "none",
+                    "install": "",
+                    "detail": "",
+                }
+            )
             con.print(f"  [#4ADE80]✓[/#4ADE80] {tool['name']}[dim]{ver} — already present[/dim]")
             continue
 
@@ -116,16 +172,38 @@ def _auto_install_tools(only: str | None = None) -> int:
         cmd = cmd_map.get(how) if how else None
         if cmd is not None and not _installer_present:
             still_manual.append((tool["name"], tool["install"]))
-            _why = {
+            _why = {  # noqa: F841 — referenced by the JSON record below
                 "npm": "npm not found",
                 "go": "Go toolchain not found",
                 "playwright": "playwright package not installed",
             }.get(how or "", "installer unavailable")
+            _json_records.append(
+                {
+                    "tool": tool["name"],
+                    "group": tool["group"],
+                    "status": "manual",
+                    "version": "",
+                    "action": "manual",
+                    "install": tool["install"],
+                    "detail": _why,
+                }
+            )
             con.print(f"  [dim]— {tool['name']}: manual ({_why}) — {tool['install']}[/dim]")
             continue
 
         if cmd is None:
             still_manual.append((tool["name"], tool["install"]))
+            _json_records.append(
+                {
+                    "tool": tool["name"],
+                    "group": tool["group"],
+                    "status": "manual",
+                    "version": "",
+                    "action": "manual",
+                    "install": tool["install"],
+                    "detail": "no automated installer for this tool",
+                }
+            )
             con.print(f"  [dim]— {tool['name']}: manual — {tool['install']}[/dim]")
             continue
 
@@ -134,10 +212,32 @@ def _auto_install_tools(only: str | None = None) -> int:
         ok, tail = _run_installer(cmd)
         if ok and check_tool(tool["name"])["status"] == "ok":
             installed += 1
+            _json_records.append(
+                {
+                    "tool": tool["name"],
+                    "group": tool["group"],
+                    "status": "ok",
+                    "version": "",
+                    "action": "installed",
+                    "install": "",
+                    "detail": "",
+                }
+            )
             con.print(f"  [#4ADE80]✓[/#4ADE80] {tool['name']} installed")
         else:
             still_manual.append((tool["name"], tool["install"]))
             _fail_note = " — " + tail if tail else ""
+            _json_records.append(
+                {
+                    "tool": tool["name"],
+                    "group": tool["group"],
+                    "status": "failed",
+                    "version": "",
+                    "action": "attempted-but-failed",
+                    "install": tool["install"],
+                    "detail": tail,
+                }
+            )
             con.print(f"  [#FF4D6D]✗[/#FF4D6D] {tool['name']} failed{_fail_note}")
             con.print(f"      [dim]try manually: {tool['install']}[/dim]")
 
@@ -151,9 +251,31 @@ def _auto_install_tools(only: str | None = None) -> int:
         ok, tail = _run_installer([sys.executable, "-m", "playwright", "install", "chromium"])
         if ok and check_tool("playwright")["status"] == "ok":
             installed += 1
+            _json_records.append(
+                {
+                    "tool": "playwright",
+                    "group": "dast",
+                    "status": "ok",
+                    "version": "",
+                    "action": "installed",
+                    "install": "",
+                    "detail": "",
+                }
+            )
             con.print("  [#4ADE80]✓[/#4ADE80] playwright browser binaries installed")
         else:
             _pw_fail_note = " — " + tail if tail else ""
+            _json_records.append(
+                {
+                    "tool": "playwright",
+                    "group": "dast",
+                    "status": "failed",
+                    "version": "",
+                    "action": "attempted",
+                    "install": "playwright install chromium",
+                    "detail": tail,
+                }
+            )
             con.print(f"  [#FF4D6D]✗[/#FF4D6D] playwright browsers failed{_pw_fail_note}")
             con.print("      [dim]try manually: playwright install chromium[/dim]")
 
@@ -167,9 +289,31 @@ def _auto_install_tools(only: str | None = None) -> int:
         )
         for name, hint in still_manual:
             con.print(f"    · {name}: [dim]{hint}[/dim]")
-        return 1
-    con.print("[#4ADE80]All registered tools available.[/#4ADE80]")
-    return 0
+        _rc = 1
+    else:
+        con.print("[#4ADE80]All registered tools available.[/#4ADE80]")
+        _rc = 0
+
+    if json:
+        import json as _json
+
+        # Restore the real stdout sink just before emitting the document.
+        if _con_swapped:
+            con._file = _saved_con_file
+            _con_swapped = False
+        _manual_names = {name for name, _hint in still_manual}
+        print(
+            _json.dumps(
+                {
+                    "ok": _rc == 0,
+                    "scope": only,
+                    "summary": {"attempted": attempted, "installed": installed, "manual": len(still_manual)},
+                    "tools": _json_records,
+                },
+                indent=2,
+            )
+        )
+    return _rc
 
 
 # ── Stale reference auto-fixer ───────────────────────────────────────
@@ -327,8 +471,9 @@ def run(
         # §2.4: the real install path — attempts pip/npm/go/playwright
         # installs, prints manual commands for the rest, exits non-zero when
         # anything is still missing so agents/CI can react. --only scopes the
-        # pass to one tool group so CI installs just the tier it needs.
-        raise SystemExit(_auto_install_tools(only))
+        # pass to one tool group so CI installs just the tier it needs;
+        # --json makes the whole pass machine-parseable (pure-JSON stdout).
+        raise SystemExit(_auto_install_tools(only, json=json_output))
     if only:
         con.print("[yellow]--only has no effect without --install[/yellow]")
     if not json_output:

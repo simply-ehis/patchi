@@ -224,6 +224,9 @@ class TestPerFindingBatch:
     reason="bandit and semgrep not installed",
 )
 class TestConsensusE2E:
+    # Semgrep's cold start (rule-cache warm-up on a fresh runner) can exceed
+    # the global 60s pytest-timeout; the suite hung on exactly that once.
+    @pytest.mark.timeout(300)
     def test_bandit_and_semgrep_correlate(self, tmp_path: Path):
         """Both tools flag the same sink -> CorrelatedFinding with 2 confirmers."""
         import tempfile

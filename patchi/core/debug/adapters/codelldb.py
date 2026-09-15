@@ -370,6 +370,7 @@ def _kill_after(proc: subprocess.Popen, timeout: float = 3) -> None:
             subprocess.run(
                 ["taskkill", "/PID", str(proc.pid), "/T", "/F"],
                 capture_output=True,
+                timeout=30,
             )
         else:
             proc.kill()
