@@ -7,7 +7,7 @@ Checks:
   3. API key configuration
   4. .patchi/ size warnings
   5. Config validation
-  6. External security tooling — the full unified registry (Part 3 §2),
+  6. Security taxonomy — complete + parseable (silent scan narrowing guard) — the full unified registry (Part 3 §2),
      every tool any agent may use, present/broken/missing with the exact
      install command. `p doctor --install` attempts the pip/npm-installable
      ones automatically and prints the manual command for the rest.
@@ -599,29 +599,45 @@ def run(
                 found_stale.append((name, info))
 
         if found_stale:
-            con.print("[bold]Stale Commands Detected[/bold]")
-            con.print("[dim]These commands have been merged or removed. Update your scripts:[/dim]")
-            con.print()
-
-            table = Table(show_header=True, header_style="bold #C8621A", box=None)
-            table.add_column("Command", style="red", width=15)
-            table.add_column("Replacement", style="green", width=25)
-            table.add_column("Reason", style="dim")
-
-            for name, info in found_stale:
-                table.add_row(
-                    f"p {name}",
-                    info["replacement"],
-                    info["reason"],
-                )
+            for _name, _info in found_stale:
                 warnings += 1
+            if json_output:
+                # Machine mode: the stale set rides in the checks list (and
+                # the warnings counter); no table on stdout.
+                checks.append(
+                    (
+                        "Stale commands",
+                        "⚠",
+                        f"{len(found_stale)} stale command(s): "
+                        + ", ".join(f"p {n}" for n, _ in found_stale[:4]),
+                        "#FACC15",
+                    )
+                )
+            else:
+                con.print("[bold]Stale Commands Detected[/bold]")
+                con.print("[dim]These commands have been merged or removed. Update your scripts:[/dim]")
+                con.print()
 
-            con.print(table)
-            con.print()
+                table = Table(show_header=True, header_style="bold #C8621A", box=None)
+                table.add_column("Command", style="red", width=15)
+                table.add_column("Replacement", style="green", width=25)
+                table.add_column("Reason", style="dim")
 
-            # ── --fix: auto-update stale references in scripts/ ──
-            if fix:
-                _fix_stale_references(root, found_stale)
+                for name, info in found_stale:
+                    table.add_row(
+                        f"p {name}",
+                        info["replacement"],
+                        info["reason"],
+                    )
+                    warnings += 1
+
+                con.print(table)
+                con.print()
+
+                # ── --fix: auto-update stale references in scripts/ ──
+                if fix:
+                # (human mode only — it prints its own report)
+                    _fix_stale_references(root, found_stale)
         else:
             checks.append(("Stale commands", "✓", "No stale commands found", "#4ADE80"))
     except Exception as e:
@@ -644,7 +660,8 @@ def run(
             errors += 1
 
     # ── 6. Optional: test tooling ─────────────────────────────────────────────
-    con.print()
+    if not json_output:
+        con.print()
     _OPTIONAL_TEST = [
         ("pytest", "pytest", "pytest", "Unit test runner"),
         ("npx", "", "node/npm", "Playwright host"),
@@ -714,6 +731,38 @@ def run(
                 checks.append((".patchi/ size", "✓", info_msg, "#4ADE80"))
         except Exception as _exc:
             _log.warning("run failed: %s", _exc)
+
+    # ── 9. Security taxonomy: complete and parseable? ───────────────────────
+    # A missing/corrupt domain YAML is silently skipped by DomainLoader, so
+    # a partial taxonomy narrows every scan without any error anywhere.
+    # Compare disk against the shipped expected set (bumped with the
+    # generator; pinned by tests/test_taxonomy_parity.py).
+    try:
+        from patchi.core.security.taxonomy_health import check_taxonomy_health
+
+        th = check_taxonomy_health()
+        if th.status == "ok":
+            checks.append(("Taxonomy", "✓", th.summary, "#4ADE80"))
+        else:
+            status = "⚠" if th.status == "warn" else "✗"
+            color = "#FACC15" if th.status == "warn" else "#FF4D6D"
+            checks.append(("Taxonomy", status, th.summary, color))
+            for line in th.detail_lines():
+                checks.append(("taxonomy", status, line, color))
+            if th.status == "error":
+                checks.append(
+                    (
+                        "Taxonomy",
+                        "✗",
+                        "scans are narrowing — run: python tools/taxonomy/generate_domains.py",
+                        "#FF4D6D",
+                    )
+                )
+                errors += 1
+            else:
+                warnings += 1
+    except Exception as _exc:
+        _log.warning("taxonomy check failed: %s", _exc)
 
     # ── Render results ────────────────────────────────────────────────────────
     if json_output:

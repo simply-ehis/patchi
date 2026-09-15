@@ -469,6 +469,7 @@ System health check — stale commands, dependencies, config.
 | `--fix` | Auto-fix detected issues |
 | `--install` | Attempt installing missing security tooling (pip/npm/go/playwright); prints manual commands for the rest; non-zero exit if anything is still missing |
 | `--install --only <group>` | Scope the install pass to one tool group (`sast`, `dast`, `secrets`, `supply-chain`, `testing`, `platform`, `ai`) — e.g. CI installs just the tier it needs |
+| `--json` | Machine-pure health document: `{ok, errors, warnings, checks:[{label, status, note}]}` — includes the security-taxonomy verdict (`Taxonomy` row: complete / missing files / unparsable YAML). Missing or corrupt domain YAMLs narrow every scan silently; doctor names the offenders and flags it as an error |
 | `--install --json` | Machine-parseable install report: `{ok, scope, summary, tools:[{tool, group, status, action, install, detail}]}` — status is `ok`/`manual`/`failed`; `action` distinguishes `manual` (never attempted) from `attempted-but-failed` (with the tool's own error in `detail`). Pure-JSON stdout, same exit codes |
 
 ### `p check`
