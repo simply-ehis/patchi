@@ -19,6 +19,14 @@ async def why_page(request: Request, path: str | None = None):
     return templates.TemplateResponse(request, "why.html", {"request": request, "initial_path": path or ""})
 
 
+@router.get("/impact", response_class=HTMLResponse)
+async def impact_page(request: Request, files: str | None = None):
+    """Impact view: the affected-neighborhood flowchart the CLI renders via
+    `p impact --mermaid` / `p fix`'s PR summary — same renderer, same
+    cached graph. Prefills with a comma-separated file list when given."""
+    return templates.TemplateResponse(request, "impact.html", {"request": request, "initial_files": files or ""})
+
+
 @router.get("/brain", response_class=HTMLResponse)
 async def brain(request: Request):
     root = request.app.state.root

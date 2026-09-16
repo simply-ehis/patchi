@@ -429,7 +429,7 @@ Launch unified web UI (Mission Control).
 | `--open` | Open browser automatically |
 | `--project <path>` | Serve a different project |
 
-**Pages:** Dashboard, Brain Map (2D/3D), Findings, Review, Guard, Chat, Brain, Why (file explain), Council, Attack Timeline, Live Tests, Hosted, Settings, History, Charter, Assurance, Tokens, Self-Improvement, Smart Agent
+**Pages:** Dashboard, Brain Map (2D/3D), Findings, Review, Guard, Chat, Brain, Why (file explain), Impact (affected neighborhood), Council, Attack Timeline, Live Tests, Hosted, Settings, History, Charter, Assurance, Tokens, Self-Improvement, Smart Agent
 
 ### Web: `/why` (file explain)
 Interactive version of `p why --mermaid`: enter a file path to see its layer facts
@@ -440,6 +440,16 @@ through the same helper as the CLI, so the two can never disagree. Missing path 
 no scan data returns a JSON 404 error document, never an HTML page. The page's
 **Copy markdown** button puts a PR-ready `### Why ...` section with fenced mermaid
 on the clipboard.
+
+### Web: `/impact` (affected neighborhood)
+Interactive version of `p impact --mermaid`: enter comma-separated changed files (or
+leave empty to infer the set from the last `p fix` run) to see the affected-neighborhood
+flowchart — what you touched and everything that transitively depends on it — plus a
+blast-radius stats panel (changed/affected/rendered/omitted, risk classes). Rendered
+with the same vendored mermaid.js and the same `neighborhood_diagram` renderer as the
+CLI. `GET /api/impact?files=<a.py,b.py>` serves the document as JSON (`{ok, files,
+source, mermaid, stats}`; errors as JSON 404s, never HTML pages), and the **Copy
+markdown** button emits a PR-ready section with the fenced chart.
 
 ### `p hosted` **(EXPERIMENTAL)**
 Live monitoring daemon. Tails log files, detects anomalies, blocks IPs.
@@ -621,6 +631,8 @@ Show change impact / blast radius.
 | `--json` | JSON output |
 | `--out <file.md>` | Write a markdown report (impact summary, or full blast-radius table with `--all`) to a file for PRs/docs |
 | `--mermaid` | Emit the affected-neighborhood flowchart for the changed files (scoped to them + their transitive dependents, never the whole graph; `--all --mermaid` is refused) |
+
+Interactive version: the web dashboard's `/impact` page (and `/api/impact?files=<a.py,b.py>`) renders the same chart — with no `files` given it infers the file set from the last fix run (see Web & Hosted). `p fix`'s summary and `--out` PR file embed the same diagram too.
 
 ### `p governance`
 GUARD infrastructure surface — the audit trail, policy, history, blast radius,

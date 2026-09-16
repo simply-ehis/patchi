@@ -162,6 +162,7 @@ def create_app(root: Path) -> FastAPI:
     from patchi.web.api.fix import router as fix_router
     from patchi.web.api.guard import router as guard_api_router
     from patchi.web.api.hosted import router as hosted_router
+    from patchi.web.api.impact import router as impact_api_router
 
     try:
         from patchi.web.api.hosted_v2 import router as hosted_v2_router
@@ -227,6 +228,7 @@ def create_app(root: Path) -> FastAPI:
     app.include_router(self_improvement_router)
     app.include_router(cicd_router)
     app.include_router(why_api_router)
+    app.include_router(impact_api_router)
     app.include_router(live_testing_api_router)
     app.include_router(ready_router)
     app.include_router(smart_api_router)

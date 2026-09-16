@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div style="max-width:1100px; margin:0 auto;">
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">Impact neighborhood</span>
+      <span class="dim" style="font-size:11px">same affected-neighborhood chart as <code>p impact --mermaid</code></span>
+    </div>
+    <div style="padding:16px 20px;">
+      <div style="display:flex; gap:8px; align-items:center;">
+        <input id="impact-files" type="text" value="{{ initial_files }}"
+          placeholder="comma-separated changed files — e.g. core.py,helper.py (empty = last fix run)"
+          style="flex:1; background:var(--bg-tertiary, #101410); color:var(--text-primary);
+                 border:1px solid var(--border); border-radius:6px; padding:8px 10px; font-size:13px;
+                 font-family:ui-monospace, monospace;" />
+        <button type="button" class="btn btn-primary btn-sm" id="impact-go">Show impact</button>
+        <button type="button" class="btn btn-ghost btn-sm" id="impact-copy" title="Copy PR-ready markdown" style="display:none">Copy markdown</button>
+      </div>
+      <div id="impact-error" style="display:none; margin-top:10px; color:var(--danger, #FF4D6D); font-size:13px;"></div>
+    </div>
+  </div>
+
+  <div class="panel" id="impact-stats-panel" style="display:none; margin-top:14px;">
+    <div class="panel-header"><span class="panel-title">Blast radius</span></div>
+    <div id="impact-stats" style="padding:14px 20px; font-size:13px; line-height:1.9; color:var(--text-secondary);"></div>
+  </div>
+
+  <div id="impact-diagram"></div>
+
+  <div class="panel" id="impact-empty" style="margin-top:14px;">
+    <div style="padding:24px 20px; color:var(--text-tertiary, #7A8471); font-size:13px; line-height:1.8;">
+      Enter the files you changed (or leave empty to use your last <code>p fix</code> run) to see
+      the affected neighborhood: what you touched and everything that transitively depends on it —
+      rendered as the same Mermaid flowchart <code>p impact --mermaid</code> puts in PRs.<br>
+      <span class="dim">No diagram data? Run <code>p scan</code> first.</span>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var goBtn = document.getElementById('impact-go');
+  var input = document.getElementById('impact-files');
+  var errBox = document.getElementById('impact-error');
+  var statsPanel = document.getElementById('impact-stats-panel');
+  var stats = document.getElementById('impact-stats');
+  var container = document.getElementById('impact-diagram');
+  var empty = document.getElementById('impact-empty');
+  var copyBtn = document.getElementById('impact-copy');
+  var lastDoc = null;
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  function ensureMermaid(cb) {
+    if (window.mermaid) { cb(true); return; }
+    // Mermaid 10 UMD bundle (vendored) — same load path as the /why view.
+    var s = document.createElement('script');
+    s.src = '/static/mermaid.min.js?v=10.9.1';
+    s.onerror = function () { cb(false); };
+    s.onload = function () {
+      // The UMD bundle registers window.mermaid slightly before its internal
+      // bootstrap settles — initialize+run in the same onload tick can race
+      // it and throw. Defer one tick and retry; the raw-source fallback
+      // below stays intact until a run actually succeeds.
+      setTimeout(function () { cb(!!window.mermaid); }, 0);
+    };
+    document.head.appendChild(s);
+  }
+
+  function tryMermaidRun(nodes, attempt) {
+    try {
+      mermaid.initialize({ startOnLoad: false, securityLevel: 'strict', theme: 'dark' });
+      mermaid.run({ nodes: nodes });
+      return true;
+    } catch (e) {
+      // Transient bootstrap race: retry while the raw source is still intact.
+      if (attempt < 3) { setTimeout(function () { tryMermaidRun(nodes, attempt + 1); }, 120); }
+      return false;
+    }
+  }
+
+  function renderDiagram(mermaid) {
+    container.innerHTML = '';
+    var panel = document.createElement('div');
+    panel.className = 'panel';
+    panel.style.marginTop = '14px';
+    var body = document.createElement('div');
+    body.id = 'impact-mermaid';
+    body.style.padding = '16px 20px';
+    body.style.overflowX = 'auto';
+    body.textContent = mermaid; // fallback: raw source until/if rendered
+    panel.innerHTML =
+      '<div class="panel-header"><span class="panel-title">Affected neighborhood</span>' +
+      '<span class="dim" style="font-size:11px">importer \u2192 imported: what breaks when a node changes</span></div>';
+    panel.appendChild(body);
+    container.appendChild(panel);
+
+    ensureMermaid(function (ok) {
+      if (!ok || !window.mermaid) return; // raw <pre> fallback stays
+      var node = document.getElementById('impact-mermaid');
+      if (node) tryMermaidRun([node], 0);
+    });
+  }
+
+  function renderStats(doc) {
+    var s = doc.stats || {};
+    var risk = s.risk || {};
+    var riskBits = Object.keys(risk).sort().map(function (k) {
+      return '<code>' + esc(k) + '</code> ' + esc(risk[k]);
+    }).join(' &middot; ');
+    stats.innerHTML =
+      '<div><span style="color:var(--text-primary); font-weight:600">Changed</span> ' + esc(s.changed == null ? '—' : s.changed) + '</div>' +
+      '<div><span style="color:var(--text-primary); font-weight:600">Affected (transitive dependents)</span> ' + esc(s.total_affected == null ? '—' : s.total_affected) + '</div>' +
+      '<div><span style="color:var(--text-primary); font-weight:600">Rendered</span> ' + esc(s.rendered == null ? '—' : s.rendered) +
+        (s.omitted ? ' <span class="dim">(+' + esc(s.omitted) + ' omitted beyond depth ' + esc(s.max_distance == null ? '?' : s.max_distance) + ')</span>' : '') + '</div>' +
+      (riskBits ? '<div><span style="color:var(--text-primary); font-weight:600">Risk</span> ' + riskBits + '</div>' : '') +
+      (doc.source === 'recent_fix' ? '<div class="dim" style="margin-top:4px">file set inferred from your last fix run</div>' : '');
+    statsPanel.style.display = '';
+  }
+
+  function prMarkdown(doc) {
+    var s = doc.stats || {};
+    var lines = ['## Patchi fix — impact summary', '',
+      '**' + (s.changed || 0) + ' file(s) changed** · **' + (s.total_affected || 0) + ' file(s) affected** transitively.'];
+    var risk = s.risk || {};
+    var keys = Object.keys(risk).sort();
+    if (keys.length) {
+      lines.push('', '| Risk | Files |', '|---|---|');
+      keys.forEach(function (k) { lines.push('| ' + k + ' | ' + risk[k] + ' |'); });
+    }
+    lines.push('', '```mermaid', doc.mermaid, '```', '',
+      '<sub>importer \u2192 imported — what breaks when a node changes.</sub>', '');
+    return lines.join('\n');
+  }
+
+  function show(doc) {
+    lastDoc = doc;
+    empty.style.display = 'none';
+    errBox.style.display = 'none';
+    renderStats(doc);
+    renderDiagram(doc.mermaid || '');
+    copyBtn.style.display = '';
+  }
+
+  function fail(msg) {
+    errBox.textContent = msg;
+    errBox.style.display = '';
+    statsPanel.style.display = 'none';
+    stats.innerHTML = '';
+    container.innerHTML = '';
+    copyBtn.style.display = 'none';
+    empty.style.display = '';
+  }
+
+  function showImpact(files) {
+    var q = files ? '?files=' + encodeURIComponent(files) : '';
+    goBtn.disabled = true;
+    fetch('/api/impact' + q)
+      .then(function (r) { return r.json(); })
+      .then(function (doc) {
+        if (!doc || !doc.ok) { fail((doc && doc.error) || 'No impact data available.'); return; }
+        show(doc);
+      })
+      .catch(function () { fail('Could not reach /api/impact — is the web server running?'); })
+      .finally(function () { goBtn.disabled = false; });
+  }
+
+  goBtn.addEventListener('click', function () { showImpact(input.value.trim()); });
+  input.addEventListener('keydown', function (e) { if (e.key === 'Enter') showImpact(input.value.trim()); });
+
+  function legacyCopy(text) {
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    var ok = false;
+    try { ok = document.execCommand('copy'); } catch (_) { /* clipboard blocked entirely */ }
+    document.body.removeChild(ta);
+    return ok;
+  }
+
+  copyBtn.addEventListener('click', function () {
+    if (!lastDoc) return;
+    var md = prMarkdown(lastDoc);
+    var done = function () {
+      copyBtn.textContent = 'Copied!';
+      setTimeout(function () { copyBtn.textContent = 'Copy markdown'; }, 1500);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(md).then(done, function () {
+        if (legacyCopy(md)) done();
+      });
+    } else if (legacyCopy(md)) {
+      done();
+    }
+  });
+
+  {% if initial_files %}showImpact({{ initial_files|tojson }});{% endif %}
+})();
+</script>
+{% endblock %}
