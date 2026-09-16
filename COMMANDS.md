@@ -513,6 +513,7 @@ Developer utilities.
 | `p dev playwright` | Check Playwright installation |
 | `p dev docs` | Generate docs |
 | `p dev hook` | Manage git hooks |
+| `p dev ci` | Run CI check locally |
 
 | Flag | Effect |
 |------|--------|
@@ -717,6 +718,48 @@ The web server exposes CI/CD-friendly endpoints:
 **Auth:** `X-API-Key` header (auto-generated at `.patchi/api_key` or env `PATCHI_API_KEY`)
 
 ---
+
+## 13. Utility & Ops Commands
+
+### `p queue`
+View and control the task queue.
+
+| Subcommand | What it does |
+|------------|-------------|
+| `p queue pause` | Pause queue execution |
+| `p queue resume` | Resume queue |
+| `p queue skip` | Skip the current active task |
+| `p queue mode` | Set queue mode |
+
+### `p access`
+Manage dev access tokens.
+
+| Subcommand | What it does |
+|------------|-------------|
+| `p access add` | Add a token |
+| `p access list` | List all tokens (default when no subcommand) |
+| `p access remove` | Remove a token |
+
+### `p ready`
+Ship readiness check — is my code ready to ship?
+
+### `p quick`
+Fast readiness check — minimal agents for quick verification.
+
+### `p security`
+Run the full security agent group (family default for the security surface).
+
+### `p fix-review`
+Review and decide on proposed patches.
+
+### `p docs`
+Generate a project architecture document (Tier 1: no AI required).
+
+### `p eval`
+Score the pipeline against the standing eval set.
+
+### `p commands`
+Show command families and subcommands (`p help [group]` shows help for one).
 
 ## Quick Reference — Most Used Commands
 

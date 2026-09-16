@@ -585,7 +585,8 @@ COMMANDS: list[Command] = [
                 "action",
                 nargs="?",
                 default=None,
-                help="Dev action: check | test | security | playwright | docs | hook (--strict)",
+                choices=("check", "test", "security", "playwright", "docs", "hook", "ci"),
+                help="Dev action: check | test | security | playwright | docs | hook | ci (--strict)",
             ),
             # dev has its own --verbose, separate from the global one
             Arg("--verbose", dest="verbose", action="store_true", help="Show detailed output"),
