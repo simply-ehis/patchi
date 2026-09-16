@@ -110,6 +110,9 @@ Apply AI-generated fixes for findings.
 | `--dry-run` | Preview fixes without applying |
 | `--preview` | Same as --dry-run |
 | `--safe-all` | Auto-apply all safe fixes (skip risky ones) |
+| `--out <file.md>` | Write a PR-ready markdown impact summary (patched files + affected neighborhood as an embedded mermaid diagram) to this file |
+
+**Impact neighborhood**: whenever a fix run produces patches, the summary renders the affected-neighborhood diagram of every touched file (what the fix changes and what transitively depends on it) — same renderer and cached graph as `p impact --mermaid`, so the two never disagree. With `--json`, the diagram and stats ride along under the `impact` key (null when there is no graph data — never a fake empty diagram). `--out` and `--json` are mutually exclusive.
 
 **Modes** (set via `p settings mode`):
 - `confirm` (default): every fix requires approval

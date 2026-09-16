@@ -17,11 +17,15 @@ Flow:
      - AUTO         → apply immediately (AUTO/AUTOPILOT mode, low risk)
      - REQUIRE_REVIEW → queue for `p review`
   6. Show summary: applied / queued / blocked
+     - With patches on disk, the summary embeds the impact-neighborhood
+       diagram of every touched file (what the fix changes and what it
+       takes down) — same renderer as `p impact --mermaid`.
 """
 
 from __future__ import annotations
 
 from pathlib import Path
+from typing import NamedTuple
 
 from rich.panel import Panel
 from rich.table import Table
@@ -44,6 +48,7 @@ def run(
     safe_all: bool = False,
     root: Path | None = None,
     json_output: bool = False,
+    out: str | None = None,
 ) -> None:
     """Entry point for `p fix [area]`.
 
@@ -60,6 +65,10 @@ def run(
             return
         con.print(f"[red]{e}[/red]")
         return
+    out_path = Path(out) if out else None
+    if out_path is not None and json_output:
+        con.print("[red]--out and --json are mutually exclusive — pick one[/red]")
+        raise SystemExit(2)
 
     # ── 1. Contract lock check ─────────────────────────────────────────────────
     brain = mem.get_brain(r)
@@ -318,7 +327,12 @@ def run(
     show_fix_step("Patch application", "done")
 
     # ── 6. Summary ────────────────────────────────────────────────────────────
-    _show_summary(applied, queued, blocked)
+    diagram = _impact_neighborhood(applied, queued, blocked, r)
+    _show_summary(applied, queued, blocked, diagram)
+    if diagram is not None:
+        _show_impact_section(diagram, out_path)
+    elif out_path is not None:
+        con.print(f"[yellow]--out {out_path} requested but no impact diagram was available.[/yellow]")
 
     # ── 7. Interactive review prompt ──────────────────────────────────────────
     # Skipped in JSON mode: a prompt would hang a CI consumer, and stdin is
@@ -336,6 +350,7 @@ def run(
                 "patches": [
                     _patch_json(p, blocked) for p in _ordered_patches(applied, queued, blocked)
                 ],
+                "impact": _impact_json(diagram),
             }
         )
         return
@@ -669,6 +684,7 @@ def _show_summary(
     applied: list[Patch],
     queued: list[Patch],
     blocked: list[tuple[Patch, str]],
+    diagram: ImpactDiagram | None = None,
 ) -> None:
     con.print()
 
@@ -695,7 +711,118 @@ def _show_summary(
     if not applied and not queued and not blocked:
         con.print("[dim]No patches were generated.[/dim]")
 
+    if diagram is not None:
+        con.print()
+        con.print(
+            f"[dim]Impact: {diagram.stats['changed']} changed file(s), "
+            f"{diagram.stats['total_affected']} affected — "
+            "details below.[/dim]"
+        )
+
     con.print()
+
+
+# ── Impact-neighborhood diagram ────────────────────────────────────────────────
+
+
+class ImpactDiagram(NamedTuple):
+    """The scoped neighborhood diagram for one fix run."""
+
+    mermaid: str
+    stats: dict
+
+
+def _impact_neighborhood(
+    applied: list[Patch],
+    queued: list[Patch],
+    blocked: list[tuple[Patch, str]],
+    root: Path,
+) -> ImpactDiagram | None:
+    """The impact-neighborhood diagram of every file this fix run touched.
+
+    Reads the import graph cached by ``p scan`` — the same cached-graph
+    path ``p impact``/``p why`` and the web dashboard use — so it adds no
+    parsing cost and can never disagree with ``p impact`` for the same
+    file set. Returns ``None`` (never an empty diagram) when there are no
+    patches or no graph data: the human summary simply omits the section
+    and CI consumers see ``"impact": null`` rather than a fake zero.
+    """
+    all_patches = [p for p, _ in blocked] + queued + applied
+    changed: set[str] = set()
+    for patch in all_patches:
+        changed.update(patch.affected_paths)
+    if not changed:
+        return None
+
+    from patchi.cli.commands.reason_cmd import _cached_graph
+
+    graph = _cached_graph(root)
+    if graph is None:
+        return None
+
+    try:
+        from patchi.core.brain.mermaid import neighborhood_diagram
+
+        mermaid, stats = neighborhood_diagram(graph, sorted(changed), max_nodes=60)
+    except Exception as e:  # a diagram must never fail a successful fix run
+        con.print(f"[dim]Impact diagram unavailable: {e}[/dim]")
+        return None
+    return ImpactDiagram(mermaid, stats)
+
+
+def _impact_json(diagram: ImpactDiagram | None) -> dict | None:
+    """Machine view of the diagram: stats always, mermaid source for embedding."""
+    if diagram is None:
+        return None
+    return {"mermaid": diagram.mermaid, **diagram.stats}
+
+
+def _show_impact_section(diagram: ImpactDiagram, out_path: Path | None) -> None:
+    """Human view: the diagram in a panel + the PR-comment pointer/file."""
+    from rich.syntax import Syntax
+
+    con.print()
+    con.print(Panel(Syntax(diagram.mermaid, "text", word_wrap=True), title="Impact neighborhood", border_style="cyan"))
+    if out_path is not None:
+        try:
+            _write_pr_markdown(diagram, out_path)
+        except OSError as e:
+            con.print(f"[yellow]Could not write {out_path}: {e}[/yellow]")
+            return
+        con.print(f"[dim]PR-ready summary written to [bold]{out_path}[/bold] — paste into the PR description.[/dim]")
+
+
+def _write_pr_markdown(diagram: ImpactDiagram, out_path: Path) -> None:
+    """One self-contained PR comment: what changed, what it takes down."""
+    s = diagram.stats
+    risk = s.get("risk") or {}
+    rendered = f"rendered {s.get('rendered', 0)}"
+    if s.get("omitted"):
+        rendered += f", {s['omitted']} omitted beyond depth {s.get('max_distance', '?')}"
+    lines = [
+        "## Patchi fix — impact summary",
+        "",
+        f"**{s.get('changed', 0)} file(s) changed** · "
+        f"**{s.get('total_affected', 0)} file(s) affected** transitively ({rendered}).",
+    ]
+    if risk:
+        lines += [
+            "",
+            "| Risk | Files |",
+            "|---|---|",
+            *(f"| {cls} | {count} |" for cls, count in sorted(risk.items())),
+        ]
+    lines += [
+        "",
+        "```mermaid",
+        diagram.mermaid,
+        "```",
+        "",
+        "<sub>Generated by `p fix --out` — importer → imported edges, i.e. what breaks when a node changes.</sub>",
+        "",
+    ]
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text("\n".join(lines), encoding="utf-8")
 
 
 # ── Multi-framework annotation ─────────────────────────────────────────────────

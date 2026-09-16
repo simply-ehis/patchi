@@ -447,6 +447,12 @@ COMMANDS: list[Command] = [
                 help="Machine-pure JSON: {ok, area, dry_run, applied, queued, blocked, patches}"
                 " — no human UI on stdout, review prompt skipped",
             ),
+            Arg(
+                "--out",
+                dest="out",
+                help="Write a PR-ready markdown impact summary (with embedded mermaid "
+                "diagram of the patched neighborhood) to this file",
+            ),
         ),
     ),
     Command(
