@@ -31,6 +31,8 @@ guards the whole set mechanically.
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from patchi.cli.framework import Arg, Command
 from patchi.core.constants import RestrictionType as _RestrictionType
 
@@ -484,6 +486,12 @@ COMMANDS: list[Command] = [
                 action="store_true",
                 help="Emit the explanation path as Mermaid sequence diagrams",
             ),
+            Arg(
+                "--out",
+                dest="out",
+                type=Path,
+                help="Write a markdown report (mermaid + summary) to this file for PRs/docs",
+            ),
         ),
     ),
     Command(
@@ -498,6 +506,12 @@ COMMANDS: list[Command] = [
                 dest="show_all",
                 action="store_true",
                 help="Show blast radius for all files (absorbed from p blast)",
+            ),
+            Arg(
+                "--out",
+                dest="out",
+                type=Path,
+                help="Write a markdown report (summary + blast table) to this file for PRs/docs",
             ),
             Arg("--json", dest="json_output", action="store_true", help="Output as JSON"),
         ),

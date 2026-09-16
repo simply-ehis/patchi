@@ -579,6 +579,7 @@ Explain why a file matters (dependency analysis, risk score, findings).
 | Flag | Effect |
 |------|--------|
 | `--mermaid` | Emit the explanation path as Mermaid sequence diagrams (dependents + call flow) |
+| `--out <file.md>` | Write a markdown report (summary, or fenced mermaid with `--mermaid`) to a file for PRs/docs |
 
 ### `p impact [files..]` (alias: `p blast`)
 Show change impact / blast radius.
@@ -587,6 +588,7 @@ Show change impact / blast radius.
 |------|--------|
 | `--all` | Show all impacts |
 | `--json` | JSON output |
+| `--out <file.md>` | Write a markdown report (impact summary, or full blast-radius table with `--all`) to a file for PRs/docs |
 
 ### `p governance`
 GUARD infrastructure surface — the audit trail, policy, history, blast radius,
