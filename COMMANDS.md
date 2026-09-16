@@ -601,6 +601,7 @@ Show change impact / blast radius.
 | `--all` | Show all impacts |
 | `--json` | JSON output |
 | `--out <file.md>` | Write a markdown report (impact summary, or full blast-radius table with `--all`) to a file for PRs/docs |
+| `--mermaid` | Emit the affected-neighborhood flowchart for the changed files (scoped to them + their transitive dependents, never the whole graph; `--all --mermaid` is refused) |
 
 ### `p governance`
 GUARD infrastructure surface — the audit trail, policy, history, blast radius,

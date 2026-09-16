@@ -513,6 +513,12 @@ COMMANDS: list[Command] = [
                 type=Path,
                 help="Write a markdown report (summary + blast table) to this file for PRs/docs",
             ),
+            Arg(
+                "--mermaid",
+                dest="mermaid",
+                action="store_true",
+                help="Emit the affected-neighborhood flowchart for the changed files",
+            ),
             Arg("--json", dest="json_output", action="store_true", help="Output as JSON"),
         ),
     ),

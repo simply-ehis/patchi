@@ -24,6 +24,7 @@ offline-safe.
 from __future__ import annotations
 
 import ast
+import json
 import logging
 import os
 import sys
@@ -258,6 +259,7 @@ def run_impact(
     json_output: bool = False,
     root: Path | None = None,
     out: Path | None = None,
+    mermaid: bool = False,
 ) -> None:
     """p impact <file> [<file> ...] --json — machine-pure blast-radius report.
 
@@ -279,6 +281,20 @@ def run_impact(
             print_json({"error": str(e)})
             return
         con.print(f"[red]{e}[/red]")
+        return
+
+    if mermaid and show_all:
+        # Diagrams are scoped to a changed set by design; --all has no
+        # neighborhood, only a global map — refuse rather than render a
+        # unreadable hairball.
+        msg = "--mermaid is scoped to a changed-file set and cannot be combined with --all"
+        if json_output:
+            print_json({"error": msg})
+            return
+        if out is not None:
+            _print_err(msg)
+            raise SystemExit(2)
+        con.print(f"[yellow]{msg}[/yellow]")
         return
 
     if show_all:
@@ -305,7 +321,7 @@ def run_impact(
                 {"error": "provide at least one changed file, e.g. p impact <file> (or p impact --all)"}
             )
             return
-        if out is not None:
+        if out is not None or mermaid:
             _print_err("provide at least one changed file, e.g. p impact <file> (or p impact --all)")
             raise SystemExit(1)
         con.print(
@@ -317,6 +333,37 @@ def run_impact(
 
     engine = ReasoningEngine(r)
     analysis = engine.impact_analysis(files)
+
+    if mermaid:
+        payload = _impact_mermaid_block(r, list(files))
+        if payload is None:
+            msg = "No import graph data. Run `p scan` first, then re-run with --mermaid."
+            if json_output:
+                print_json({"error": "no import graph data — run p scan first"})
+                return
+            if out is not None:
+                _print_err(msg)
+                raise SystemExit(1)
+            con.print(f"[yellow]{msg}[/yellow]")
+            return
+        diagram, stats = payload
+        if json_output:
+            print_json({"files": list(files), "mermaid": diagram, "stats": stats})
+            return
+        if out is not None:
+            _write_out(out, _impact_mermaid_markdown(files, diagram, stats))
+            con.print(f"[green]Report written to {out}[/green]")
+            return
+        con.print()
+        con.print("```mermaid")
+        con.print(diagram)
+        con.print("```")
+        con.print(
+            f"[dim]{stats['rendered']} shown · {stats['omitted']} omitted · "
+            f"{stats['total_affected']} affected · risk: {stats['risk']}[/dim]"
+        )
+        con.print()
+        return
 
     if out is not None:
         _write_out(out, _impact_markdown(files, analysis))
@@ -437,6 +484,52 @@ def _blast_radii(graph) -> list[tuple[str, int, int]]:
     return radii
 
 
+def _impact_mermaid_markdown(files: list[str] | None, diagram: str, stats: dict) -> str:
+    """``--out`` document for ``p impact --mermaid``: fenced diagram, the
+    machine-readable stats, and a note when the neighborhood was truncated."""
+    changed = ", ".join(f"`{f}`" for f in (files or []))
+    lines = [
+        "# Impact neighborhood",
+        "",
+        _stamp(),
+        "",
+        f"**Changed:** {changed}",
+        "",
+        f"- Affected (transitive dependents): **{stats['total_affected']}**",
+        f"- Rendered: {stats['rendered']}"
+        + (f" (omitted {stats['omitted']} — closest shells kept first)" if stats["truncated"] else ""),
+        f"- Max BFS distance from the change: {stats['max_distance']}",
+        f"- Risk mix: {stats['risk']}",
+        "",
+        "```mermaid",
+        diagram,
+        "```",
+        "",
+        "<details><summary>stats</summary>",
+        "",
+        "```json",
+        json.dumps(stats, indent=2),
+        "```",
+        "",
+        "</details>",
+        "",
+    ]
+    return "\n".join(lines)
+
+
+def _impact_mermaid_block(root: Path, files: list[str] | None) -> tuple[str, dict] | None:
+    """``--mermaid`` payload for one changed-file set: the affected-neighborhood
+    flowchart plus its stats. None when no cached graph exists."""
+    from patchi.core.brain.mermaid import neighborhood_diagram
+
+    graph = _cached_graph(root)
+    if graph is None:
+        return None
+    changed = list(files or [])
+    title = f"Impact of {', '.join(changed[:3])}" + (f" +{len(changed) - 3} more" if len(changed) > 3 else "")
+    return neighborhood_diagram(graph, changed, title=title)
+
+
 def _radii_markdown(radii: list[tuple[str, int, int]]) -> str:
     """Markdown rendering of the full blast-radius map (--all --out)."""
     lines = [
@@ -447,13 +540,10 @@ def _radii_markdown(radii: list[tuple[str, int, int]]) -> str:
         "| File | Direct | Total | Risk |",
         "|------|--------|-------|------|",
     ]
+    from patchi.core.brain.mermaid import risk_class
+
     for file_rel, direct_count, total_count in radii:
-        if total_count == 0:
-            risk = "LOW"
-        elif total_count <= 3:
-            risk = "MED"
-        else:
-            risk = "HIGH"
+        risk = risk_class(total_count).upper()
         lines.append(f"| `{file_rel}` | {direct_count or '—'} | {total_count or '—'} | {risk} |")
     lines.append("")
     return "\n".join(lines)
@@ -477,13 +567,12 @@ def _show_all_blast_radii(graph, root: Path, json_output: bool = False) -> None:
     table.add_column("Total", justify="right", width=8)
     table.add_column("Risk", width=10)
 
+    from patchi.core.brain.mermaid import risk_class
+
+    risk_style = {"low": "#4ADE80", "med": "#FACC15", "high": "#FF8C42", "critical": "#FF4D6D"}
     for file_rel, direct_count, total_count in radii[:30]:
-        if total_count == 0:
-            risk = Text("LOW", style="#4ADE80")
-        elif total_count <= 3:
-            risk = Text("MED", style="#FACC15")
-        else:
-            risk = Text("HIGH", style="#FF4D6D")
+        rc = risk_class(total_count)
+        risk = Text(rc.upper(), style=risk_style[rc])
 
         table.add_row(
             file_rel[:40],

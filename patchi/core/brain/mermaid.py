@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import html
 import re
-from collections import defaultdict
+from collections import defaultdict, deque
 from pathlib import PurePosixPath
 from typing import TYPE_CHECKING
 
@@ -154,6 +154,179 @@ def route_diagram(
     return "\n".join(lines)
 
 
+# ── Risk classes (shared with the CLI table/markdown renderers) ─────────────
+
+
+def risk_class(total_affected: int) -> str:
+    """Blast-radius risk band for a file, from its transitive-dependent count.
+
+    Bands: 0 = low, 1-3 = med, 4-10 = high, 11+ = critical. Single source of
+    truth for every renderer (CLI table, markdown report, diagram styling)
+    so the bands can never drift apart.
+    """
+    if total_affected <= 0:
+        return "low"
+    if total_affected <= 3:
+        return "med"
+    if total_affected <= 10:
+        return "high"
+    return "critical"
+
+
+# ── Affected-neighborhood diagram ────────────────────────────────────────────
+
+
+def _transitive_dependents(graph: ImportGraph, start: str) -> set[str]:
+    """Everything that (transitively) imports ``start`` — the closure that a
+    change to ``start`` can drag down. Excludes ``start`` itself."""
+    seen: set[str] = set()
+    queue = deque(graph.reverse.get(start, set()))
+    while queue:
+        n = queue.popleft()
+        if n in seen:
+            continue
+        seen.add(n)
+        queue.extend(graph.reverse.get(n, set()))
+    seen.discard(start)
+    return seen
+
+
+def _distance_map(graph: ImportGraph, starts: set[str]) -> dict[str, int]:
+    """BFS hops from the changed set through the dependents graph."""
+    dist = dict.fromkeys(starts, 0)
+    frontier = deque(starts)
+    while frontier:
+        cur = frontier.popleft()
+        for nxt in graph.reverse.get(cur, set()):
+            if nxt not in dist:
+                dist[nxt] = dist[cur] + 1
+                frontier.append(nxt)
+    return dist
+
+
+def neighborhood_diagram(
+    graph: ImportGraph,
+    changed: list[str],
+    *,
+    max_nodes: int = 60,
+    title: str | None = None,
+) -> tuple[str, dict]:
+    """Mermaid flowchart of the *affected neighborhood* of a change set.
+
+    Scoped by construction: only the changed files and the code that
+    transitively depends on them appear — the rest of the graph is not in
+    the data model of this function at all. Edges point in the blast
+    direction (importer --> imported, "who breaks me"), so the chart reads
+    as an impact flow rather than a generic dependency map.
+
+    Node set is adaptive: everything fits unless the neighborhood exceeds
+    *max_nodes*, in which case the closest BFS shells are kept first (the
+    files a change hits soonest), and the omitted tail is reported in the
+    stats rather than silently dropped. Nodes carry risk classes computed
+    from their real transitive-dependent counts.
+
+    Returns ``(mermaid_source, stats)``; stats is machine-readable::
+
+        {changed, total_affected, rendered, omitted, max_distance,
+         omitted_by_distance: {distance: count},
+         risk: {class: count}, truncated: bool}
+
+    """
+    changed_set = {c for c in changed if c in graph.nodes}
+    # A changed file the graph doesn't know still deserves a node — it may
+    # be brand-new. It simply has no neighborhood edges yet.
+    unknown = [c for c in changed if c not in graph.nodes]
+
+    # Unknown changed files are part of the neighborhood (they're being
+    # changed); BFS them too so a dependents chain discovered through a new
+    # file still renders.
+    dist = _distance_map(graph, changed_set | set(unknown))
+    affected = {n: d for n, d in dist.items() if n not in changed_set and n not in unknown}
+
+    kept: set[str] = set(changed_set) | set(affected)
+    omitted_by_distance: dict[int, int] = {}
+    if len(dist) > max_nodes:
+        # Keep the changed files themselves always; then shells outward.
+        by_d: dict[int, list[str]] = defaultdict(list)
+        for n, d in affected.items():
+            by_d[d].append(n)
+        kept = set(changed_set)  # restart from the always-kept core
+        for d in sorted(by_d):
+            if len(kept) + len(by_d[d]) <= max_nodes:
+                kept.update(by_d[d])
+            else:
+                room = max_nodes - len(kept)
+                # Within a shell, keep the highest fan-in first — the files
+                # whose breakage would be most visible.
+                for n in sorted(by_d[d], key=lambda f: -len(graph.reverse.get(f, set())))[:room]:
+                    kept.add(n)
+                break
+        # Anything a kept shell couldn't fit counts as omitted, by shell.
+        for d in sorted(by_d):
+            missing = [n for n in by_d[d] if n not in kept]
+            if missing:
+                omitted_by_distance[d] = len(missing)
+
+    # Risk classes from real transitive-dependent counts (not distance).
+    risk_counts: dict[str, int] = defaultdict(int)
+    node_risk: dict[str, str] = {}
+    for n in kept:
+        rc = risk_class(len(_transitive_dependents(graph, n)))
+        node_risk[n] = rc
+        risk_counts[rc] += 1
+
+    # Dynamic title when none given: shape of the neighborhood, not a label.
+    if title is None:
+        affected_count = len(dist) - len(changed_set) - len(unknown)
+        title = f"Impact neighborhood — {len(changed_set) + len(unknown)} changed, {affected_count} affected"
+
+    lines = ["---", f"title: {title}", "---", "flowchart TD"]
+
+    def _cls(name: str) -> str:
+        if name in changed_set:
+            return "changed"
+        if name in node_risk:
+            return f"risk-{node_risk[name]}"
+        return "risk-low"
+
+    for n in sorted(kept):
+        lines.append(f'    {_safe_id(n)}["{_short_label(n)}"]:::{_cls(n)}')
+    for n in sorted(unknown):
+        lines.append(f'    {_safe_id(n)}["{_short_label(n)}"]:::changed')
+
+    # Edges in blast direction: importer --> imported, restricted to the
+    # rendered universe (kept + unknown changed files, which carry no edges
+    # of their own but are edge TARGETS from their importers).
+    universe = kept | set(unknown)
+    edge_count = 0
+    for src in sorted(universe):
+        for tgt in sorted(graph.edges.get(src, set())):
+            if tgt in universe:
+                lines.append(f"    {_safe_id(src)} --> {_safe_id(tgt)}")
+                edge_count += 1
+
+    # Style from data (counts), not hardcoded assumptions.
+    lines.append("    classDef changed fill:#C8621A,stroke:#F2EDD6,color:#0A0A0A,stroke-width:2px;")
+    lines.append("    classDef risk-low fill:#1A2418,stroke:#4ADE80,color:#F2EDD6;")
+    lines.append("    classDef risk-med fill:#1A2418,stroke:#FACC15,color:#F2EDD6;")
+    lines.append("    classDef risk-high fill:#2A1A1A,stroke:#FF8C42,color:#F2EDD6;")
+    lines.append("    classDef risk-critical fill:#3A1418,stroke:#FF4D6D,color:#F2EDD6,stroke-width:2px;")
+
+    rendered_count = len(kept) + len(unknown)
+    stats = {
+        "changed": len(changed_set) + len(unknown),
+        "total_affected": len(dist) - len(changed_set) - len(unknown),
+        "rendered": rendered_count,
+        "omitted": len(dist) - rendered_count,
+        "max_distance": max((d for n, d in dist.items() if n in universe), default=0),
+        "omitted_by_distance": dict(sorted(omitted_by_distance.items())),
+        "risk": dict(sorted(risk_counts.items())),
+        "truncated": len(dist) - rendered_count > 0,
+        "edges": edge_count,
+    }
+    return "\n".join(lines), stats
+
+
 # ── Sequence diagram ─────────────────────────────────────────────────────────
 
 
@@ -162,15 +335,16 @@ def sequence_diagram(
     graph: ImportGraph,
     *,
     entry: str | None = None,
-    max_hops: int = 8,
+    max_hops: int = 0,
     title: str = "Request Flow",
 ) -> str:
     """Generate a Mermaid sequenceDiagram for one request flow.
 
     Walks the call chain: route handler → files it imports → files they
-    import, up to *max_hops* depth.  If *entry* is provided, only traces
-    from that route path; otherwise picks the first POST/PUT/DELETE route
-    as the most interesting flow.
+    import, until the chain ends naturally (``max_hops`` only caps runaway
+    cycles; 0 = no cap).  If *entry* is provided, only traces from that
+    route path; otherwise picks the first POST/PUT/DELETE route as the most
+    interesting flow.
     """
     # Find the target route.
     target: RouteInfo | None = None
@@ -204,7 +378,7 @@ def sequence_diagram(
     current = handler_file
     hops = 0
 
-    while hops < max_hops:
+    while max_hops <= 0 or hops < max_hops:
         imported = sorted(graph.edges.get(current, set()))
         if not imported:
             break
