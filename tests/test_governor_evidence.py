@@ -134,3 +134,32 @@ def test_empty_execution_is_partial_not_done():
         assert any("no agent reported" in r for r in pr.data["evidence"]["partial_reasons"])
     finally:
         g.close()
+
+
+def test_close_commit_failure_returns_false():
+    """Part 8 §4: Governor.close() must surface commit failures, not swallow them."""
+    import sqlite3 as _sqlite3
+
+    g, t = _gov()
+    try:
+        # sqlite3.Connection is a C type — can't monkey-patch. Instead,
+        # replace _conn with a thin wrapper that fails on commit.
+        class _FailConn:
+            """Wraps a real sqlite3.Connection; commit() always fails."""
+
+            def __init__(self, real: _sqlite3.Connection):
+                object.__setattr__(self, "_real", real)
+
+            def commit(self):
+                raise _sqlite3.OperationalError("database is locked")
+
+            def __getattr__(self, name):
+                return getattr(object.__getattribute__(self, "_real"), name)
+
+        g._conn = _FailConn(g._conn)
+        result = g.close()
+        assert result is False, "close() should return False when commit fails"
+        assert g._conn is None
+    finally:
+        if g._conn is not None:
+            g.close()

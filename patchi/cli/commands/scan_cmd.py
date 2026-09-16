@@ -1100,6 +1100,14 @@ def _run_scan_inner(
             con.print(
                 f"[dim]{validated}/{total} doc claim(s) verified across {doc_files} file(s)[/dim]"
             )
+    else:
+        doc_files = dv.get("doc_files_found", [])
+        if doc_files:
+            con.print(
+                f"[dim]Docs: {len(doc_files)} file(s) found but no extractable claims[/dim]"
+            )
+        else:
+            con.print("[dim]Docs: no documentation files found to validate[/dim]")
 
     # ── Health score ──────────────────────────────────────────────────────────
     health_score = None

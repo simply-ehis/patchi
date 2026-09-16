@@ -360,7 +360,8 @@ class Governor:
             try:
                 self._conn.commit()
             except Exception as _exc:
-                _log.debug("close commit: %s", _exc)
+                checkpoint_ok = False
+                _log.warning("Governor.close commit failed: %s", _exc)
             # Part 8: PASSIVE checkpoint + journal-mode switch can still
             # hit "database is locked" even with busy_timeout when a
             # long-held read lock (parallel agent, watcher) overlaps the
