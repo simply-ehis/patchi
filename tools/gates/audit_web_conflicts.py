@@ -24,7 +24,7 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 failures: list[str] = []
 passed = 0
@@ -42,7 +42,7 @@ def fail(name: str, detail: str) -> None:
 
 
 def main() -> int:
-    root = Path(__file__).resolve().parent.parent / ".patchi_conflict_tmp"
+    root = Path(__file__).resolve().parent.parent.parent / ".patchi_conflict_tmp"
     from patchi.core.config import init_project
 
     init_project(root)
@@ -158,7 +158,7 @@ def main() -> int:
     (ok if ok_ else fail)("alias /v2", f"status={r.status_code}")
 
     # -- D. Static assets referenced by the unified nav ----------------------
-    static_dir = Path(__file__).resolve().parent.parent / "patchi" / "web" / "static"
+    static_dir = Path(__file__).resolve().parent.parent.parent / "patchi" / "web" / "static"
     for asset in ("dashboard_v2.css", "dashboard_v2.js"):
         f = static_dir / asset
         (ok if f.is_file() and f.stat().st_size > 0 else fail)(f"static {asset}", "" if f.exists() else "missing")
@@ -171,7 +171,7 @@ def main() -> int:
         "live_tests_v2.html",
         "hosted.html",
     ):
-        f = Path(__file__).resolve().parent.parent / "patchi" / "web" / "templates_v2" / tpl
+        f = Path(__file__).resolve().parent.parent.parent / "patchi" / "web" / "templates_v2" / tpl
         (ok if f.is_file() else fail)(f"template {tpl}", "" if f.exists() else "missing")
 
     # -- E. CLI parser health with `p web` flags ------------------------------

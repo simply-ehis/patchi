@@ -57,7 +57,7 @@ def http_post_json(path: str, payload: dict) -> tuple[int, str]:
 
 def main() -> int:
     # Prepare an isolated project
-    root = Path(__file__).resolve().parent.parent / ".patchi_e2e_tmp"
+    root = Path(__file__).resolve().parent.parent.parent / ".patchi_e2e_tmp"
     if not (root / ".patchi").exists():
         from patchi.core.config import init_project
 
@@ -238,7 +238,7 @@ def _summary() -> int:
     for name, _, detail in failed:
         print(f"  FAILED: {name} {detail}")
     # cleanup temp project
-    root = Path(__file__).resolve().parent.parent / ".patchi_e2e_tmp"
+    root = Path(__file__).resolve().parent.parent.parent / ".patchi_e2e_tmp"
     import shutil
 
     shutil.rmtree(root, ignore_errors=True)

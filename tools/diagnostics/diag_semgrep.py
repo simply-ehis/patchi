@@ -4,7 +4,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 import patchi.core.security.security_agents  # noqa: E402,F401
 from patchi.core.agents.base import AgentGroup, AgentInput, list_agents  # noqa: E402

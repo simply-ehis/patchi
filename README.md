@@ -237,7 +237,7 @@ Keys stored in `.patchi/keys.json`, never sent elsewhere.
 <!-- BEGIN GENERATED: architecture-diagrams -->
 ### Module dependency map
 
-Auto-generated from the live import graph — the highest fan-in core modules (22 shown of 511 Python modules).
+Auto-generated from the live import graph — the highest fan-in core modules (22 shown of 517 Python modules).
 
 ```mermaid
 ---
@@ -303,10 +303,10 @@ flowchart LR
     brain_brain_py --> health_py
     brain_file_corpus_py --> brain_languages_py
     brain_import_graph_py --> brain_scanner_py
+    brain_route_mapper_py --> brain_scanner_py
     security_defenders_base_py --> agents_base_py
     security_defenders_base_py --> fix_patch_py
     security_defenders_base_py --> fix_risk_gate_py
-    brain_route_mapper_py --> brain_scanner_py
     fix_risk_gate_py --> constants_py
     fix_risk_gate_py --> fix_patch_py
     health_py --> agents_base_py
@@ -317,7 +317,7 @@ flowchart LR
 
 ### Web dashboard routes
 
-Auto-generated route map — 210 endpoints in the bundled web UI.
+Auto-generated route map — 212 endpoints in the bundled web UI.
 
 ```mermaid
 ---
@@ -516,8 +516,8 @@ p scan
 ```bash
 python -m pytest tests/ -q -x           # full suite
 python -m pytest tests/test_contract.py -q  # contract tests
-python tools/deep_audit_web.py           # web UI audit
-python tools/e2e_web_v2.py              # end-to-end
+python tools/gates/deep_audit_web.py     # web UI audit
+python tools/gates/e2e_web_v2.py        # end-to-end
 ```
 
 ---

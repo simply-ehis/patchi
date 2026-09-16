@@ -3,11 +3,11 @@ import os
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 from patchi.cli.commands.web_cmd import _resolve_project  # noqa: E402
 
-base = Path(__file__).resolve().parent / ".par_test"
+base = Path(__file__).resolve().parent.parent / ".par_test"
 if base.exists():
     import shutil
 
@@ -49,7 +49,7 @@ except SystemExit as e:
     raised = True
     assert e.code == 1, f"exit code {e.code}, want 1"
 finally:
-    os.chdir(Path(__file__).resolve().parent.parent)
+    os.chdir(Path(__file__).resolve().parent.parent.parent)
     _cfg.find_project_root = orig
     import shutil as _sh
 

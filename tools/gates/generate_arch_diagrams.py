@@ -15,8 +15,8 @@ Managed README section (do not edit between the markers):
     <!-- END GENERATED: architecture-diagrams -->
 
 Usage:
-  python tools/generate_arch_diagrams.py             # regenerate + rewrite README.md
-  python tools/generate_arch_diagrams.py --check     # exit 1 if README section is stale (CI)
+  python tools/gates/generate_arch_diagrams.py             # regenerate + rewrite README.md
+  python tools/gates/generate_arch_diagrams.py --check     # exit 1 if README section is stale (CI)
 """
 
 from __future__ import annotations
@@ -25,7 +25,7 @@ import argparse
 import sys
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 README = REPO_ROOT / "README.md"
 
 BEGIN = "<!-- BEGIN GENERATED: architecture-diagrams -->"
@@ -170,7 +170,10 @@ def main() -> int:
         if updated == text:
             print("README architecture diagrams are up to date.")
             return 0
-        print("README architecture diagrams are STALE — run: python tools/generate_arch_diagrams.py", file=sys.stderr)
+        print(
+            "README architecture diagrams are STALE — run: python tools/gates/generate_arch_diagrams.py",
+            file=sys.stderr,
+        )
         return 1
 
     README.write_text(updated, encoding="utf-8")

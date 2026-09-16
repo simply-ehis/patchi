@@ -80,7 +80,7 @@
   -> now redirects to unified /live-tests.
 
 ### Deep web audit round (user-requested ultra scan)
-New tooling: `tools/deep_audit_web.py` - validates every href/fetch/static-ref
+New tooling: `tools/gates/deep_audit_web.py` - validates every href/fetch/static-ref
 across all templates+JS against the live route table, template existence,
 WS action coverage, JS DOM-ID contract, full render sweep, and a LIVE
 multi-project discover->switch->verify cycle. Run after any UI change.

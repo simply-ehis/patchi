@@ -65,7 +65,7 @@
 6. **WS & API**
    - Keep both `/ws` and `/ws/v2` (different clients). No delete. Long-term: make `/ws/v2` delegate to `ws.manager` for spawn/queue events so Canvas tap-to-spawn works inside Mission Control brain-map embed.
 
-**Verified:** `python tools/e2e_web_v2.py` → **22/22** (was 16/22). Server boots, all pages 200, APIs 200, WS handshake initial_state.
+**Verified:** `python tools/gates/e2e_web_v2.py` → **22/22** (was 16/22). Server boots, all pages 200, APIs 200, WS handshake initial_state.
 
 ---
 

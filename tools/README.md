@@ -1,48 +1,56 @@
 # Patchi Maintenance Tools
 
-Standalone scripts for regenerating committed artifacts, auditing the web UI,
-and debugging the toolchain. All are run with `python tools/<script>.py` and
-work from any directory (each one resolves the repo root from its own path).
+Standalone scripts for regenerating committed artifacts, gating quality in CI,
+and debugging the toolchain. All are run with `python tools/<path>.py` and work
+from any directory (each resolves the repo root from its own path).
 
-Exit-code convention: verification and audit scripts exit **0 on pass,
-non-zero on any failure** — safe to use as CI gates.
+## Layout — two tiers, by lifecycle
 
-## Regenerators — produce committed artifacts
+| Tier | Meaning | Rules |
+|---|---|---|
+| `tools/gates/` | **Permanent quality gates** — verify an invariant that must hold forever (web UI integrity, taxonomy parity, agent↔CLI linking). | Exit 0 on pass, non-zero on failure; every one supports (or is) a CI-verifiable check; nothing here is run once and forgotten. |
+| `tools/diagnostics/` | **One-shot investigation helpers** — explain a specific symptom when it appears, not part of any invariant. | No CI contract; safe to accumulate; delete when obsolete. |
+| `tools/*.py` (root) | **Generators & runners** — produce committed artifacts, or run/verify whole suites. | Generators are CI-gateable via `--check` where they rewrite a doc; runners are human conveniences. |
+
+Moving a script up into `gates/` is a promotion: it asserts an invariant the
+team agrees CI must enforce from now on. Demoting a stale gate into
+`diagnostics/` (or deleting it) is fine — a gate nobody runs is worse than no
+gate, because it lies about coverage.
+
+## Gates — CI-verifiable invariants (`tools/gates/`)
+
+| Script | Invariant it enforces |
+|---|---|
+| `taxonomy_parity.py` | The committed 800-domain security taxonomy byte-equals a fresh regeneration — hand-edited YAML or a bumped generator without regeneration fails CI. (Pytest twin: `tests/test_taxonomy_parity.py`.) |
+| `generate_arch_diagrams.py --check` | The generated Mermaid section of `README.md` matches the real codebase; exit 1 when stale. |
+| `linking_audit.py --check` | `docs/LINKING_AUDIT.md` matches the registry — a newly orphaned agent (registered but CLI-unreachable) or a hand-edit fails CI. |
+| `audit_web_conflicts.py` | Bundled dashboard integrity: no duplicate method+path route conflicts, critical endpoints present, param-less GETs render, static assets exist. |
+| `deep_audit_web.py` | Every template link, JS `fetch()` target, static ref, `TemplateResponse` file, websocket handler, and the JS↔HTML element-ID contract hold. |
+| `e2e_web_v2.py` | Boots the real FastAPI app and exercises it like a client — v2 pages, tool registry, execute round-trip, websocket handshake. |
+| `check_report_speed.py` | `/api/security/report` is cached-first and answers < 3 s even on an empty cache. |
+| `check_web_resolution.py` | `p web` project resolution is 1:1 with other CLI commands (subdir → nearest ancestor `.patchi`, explicit paths, error cases). |
+
+## Diagnostics — one-shot helpers (`tools/diagnostics/`)
+
+| Script | When to reach for it |
+|---|---|
+| `diag_semgrep.py` | `SemgrepAgent` returns no findings and you want to know why (rules pack? status? errors?) — steps the agent through a fixture. |
+| `smoke_secret_scanner.py` | Sanity-check the `SecretScanner` classification core against known secret shapes after touching it. |
+| `playwright_view.py` | Open an HTML report in headless Chromium, assert it painted, optionally screenshot: `python tools/diagnostics/playwright_view.py report.html [shot.png]`. Needs playwright + browsers. |
+
+## Generators & runners (root)
 
 | Script | What it does |
 |---|---|
-| `generate_arch_diagrams.py` | Rewrites the marked `<!-- BEGIN GENERATED -->` section of `README.md` with Mermaid architecture diagrams derived from the real codebase (same pipeline as `p scan`). `--check` exits 1 when the section is stale — use it in CI. |
-| `taxonomy/generate_domains.py` | Source of truth for the 800-domain security taxonomy: emits `patchi/core/security/domains/*.yaml` + `fix-playbooks/*.playbook.yaml`. `--out DEST` writes elsewhere (layout resolved automatically). |
-| `generate_logo.py` | Renders the logo PNG + favicon ICO from the official design into `patchi/web/static/`. Requires Pillow. |
-
-## Web audits — CI-grade gates for the bundled dashboard
-
-| Script | What it does |
-|---|---|
-| `audit_web_conflicts.py` | Route conflicts (duplicate method+path pairs shadow each other in FastAPI), critical-endpoint presence, every param-less GET renders, static assets exist, `p web` flags parse cleanly. |
-| `deep_audit_web.py` | Goes further: every template link, JS `fetch()` target, and static asset resolves; every `TemplateResponse` file exists; websocket actions have handlers; the JS↔HTML element-ID contract holds; multi-project switching serves the right brain. |
-| `e2e_web_v2.py` | Boots the real FastAPI app on a TCP port and exercises it like a client — v2 pages, tool registry, tool execute round-trip, compliance payload, websocket handshake. |
-| `check_report_speed.py` | Asserts `/api/security/report` is cached-first and answers in < 3 s even on an empty cache. |
-| `check_web_resolution.py` | Asserts `p web` project resolution is 1:1 with the other CLI commands (subdir → nearest ancestor `.patchi`, explicit paths, error cases). |
-
-## Diagnostics — investigation helpers, not gates
-
-| Script | What it does |
-|---|---|
-| `diag_semgrep.py` | Steps through `SemgrepAgent` on a fixture file (rules pack found? status? errors?) to explain missing findings. |
-| `smoke_secret_scanner.py` | Functional smoke of the `SecretScanner` classification core against known secret shapes. |
-| `playwright_view.py` | Opens an HTML report in headless Chromium, asserts it painted, optionally writes a screenshot: `python tools/playwright_view.py report.html [shot.png]`. Requires playwright + browser binaries. |
-
-## Runners
-
-| Script | What it does |
-|---|---|
+| `generate_arch_diagrams.py` | Regenerates the `<!-- BEGIN GENERATED -->` Mermaid section of `README.md` from the real codebase (the `--check` mode of the same script is the gate). |
+| `taxonomy/generate_domains.py` | Source of truth for the 800-domain security taxonomy: emits `patchi/core/security/domains/*.yaml` + `fix-playbooks/*.playbook.yaml`. `--out DEST` writes elsewhere. |
+| `generate_logo.py` | Renders the logo PNG + favicon ICO into `patchi/web/static/`. Requires Pillow. |
 | `run_full_suite.py` | Blocking full pytest run with sane flags (`-m "not slow"`, benchmarks ignored, 300 s per-test timeout). Prints `PYTEST_EXIT=<code>`. |
-| `run_web_v2.py` | Boots the v2 dashboard for manual exploration: `python tools/run_web_v2.py [project_root] [port]` (defaults: cwd, 1617). Initializes a minimal project if none exists. |
+| `run_web_v2.py` | Boots the v2 dashboard for manual exploration: `python tools/run_web_v2.py [project_root] [port]` (defaults: cwd, 1617). |
 
 ## Related
 
-- `docs/LINKING_AUDIT.md` is regenerated by `python tools/linking_audit.py`
-  (agent → CLI reachability; the tool enforces "registered ≠ reachable").
+- `docs/LINKING_AUDIT.md` is regenerated by `python tools/gates/linking_audit.py`
+  (agent → CLI reachability; the gate enforces "registered ≠ reachable").
 - The repository-wide lint (`ruff check patchi tools tests`) covers this
   directory — keep scripts passing it.

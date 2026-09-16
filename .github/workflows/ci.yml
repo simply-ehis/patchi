@@ -36,7 +36,10 @@ jobs:
       - name: Validate security domain data
         # Malformed domains/ or fix-playbooks/ YAML previously crashed every
         # scan (KeyError in DomainLoader). Gate it here so PRs fail fast.
-        run: python tools/validate_domains.py
+        # tools/gates/taxonomy_parity.py regenerates the taxonomy into a
+        # temp dir and byte-compares — catches hand-edited YAML and
+        # generator bumps without regeneration in one shot.
+        run: python tools/gates/taxonomy_parity.py
 
       - name: Run tests
         run: |
