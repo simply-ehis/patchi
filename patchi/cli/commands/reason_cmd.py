@@ -189,27 +189,19 @@ def _cached_graph(root: Path):
     return graph
 
 
-def _emit_mermaid(root: Path, path: str, out: Path | None = None) -> None:
-    """--mermaid: the explanation path as Mermaid sequence diagrams.
+def _why_diagrams(root: Path, path: str) -> list[tuple[str, str]] | None:
+    """The two explanation-path diagrams for one file (shared by the CLI,
+    `--out` reports, and the web dashboard's file-explain view).
 
-    Two walks over the cached import graph, reusing brain/mermaid.py:
-      1. dependents — who calls this file (why it matters)
-      2. call flow  — what this file leans on (what changes drag in)
-    The target is synthesized as a pseudo-route so sequence_diagram's
-    handler walk starts at the file itself. With ``out``, the same markdown
-    is written to a file instead of stdout (no double emission).
+    Returns ``None`` when there is no cached import graph (caller decides
+    how to present that honestly in its own medium).
     """
     from patchi.core.brain.mermaid import sequence_diagram
     from patchi.core.brain.route_mapper import RouteInfo
 
     graph = _cached_graph(root)
     if graph is None:
-        msg = "No import graph data. Run `p scan` first, then re-run with --mermaid."
-        if out is not None:
-            _print_err(msg)
-            raise SystemExit(1)
-        con.print(f"[yellow]{msg}[/yellow]")
-        return
+        return None
 
     route = RouteInfo(method="USE", path=path, handler=Path(path).stem, file=path, line=1)
 
@@ -224,7 +216,27 @@ def _emit_mermaid(root: Path, path: str, out: Path | None = None) -> None:
         ("Dependents — who calls this file", reversed_graph),
         ("Call flow — what this file leans on", graph),
     ]
-    diagrams = [(title, sequence_diagram([route], g, entry=path, title=f"p why — {path}")) for title, g in blocks]
+    return [(title, sequence_diagram([route], g, entry=path, title=f"p why — {path}")) for title, g in blocks]
+
+
+def _emit_mermaid(root: Path, path: str, out: Path | None = None) -> None:
+    """--mermaid: the explanation path as Mermaid sequence diagrams.
+
+    Two walks over the cached import graph, reusing brain/mermaid.py:
+      1. dependents — who calls this file (why it matters)
+      2. call flow  — what this file leans on (what changes drag in)
+    The target is synthesized as a pseudo-route so sequence_diagram's
+    handler walk starts at the file itself. With ``out``, the same markdown
+    is written to a file instead of stdout (no double emission).
+    """
+    diagrams = _why_diagrams(root, path)
+    if diagrams is None:
+        msg = "No import graph data. Run `p scan` first, then re-run with --mermaid."
+        if out is not None:
+            _print_err(msg)
+            raise SystemExit(1)
+        con.print(f"[yellow]{msg}[/yellow]")
+        return
 
     if out is not None:
         _write_out(out, _mermaid_markdown(path, diagrams))

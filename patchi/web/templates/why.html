@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div style="max-width:1100px; margin:0 auto;">
+  <div class="panel">
+    <div class="panel-header">
+      <span class="panel-title">Why this file matters</span>
+      <span class="dim" style="font-size:11px">same explanation path as <code>p why --mermaid</code></span>
+    </div>
+    <div style="padding:16px 20px;">
+      <div style="display:flex; gap:8px; align-items:center;">
+        <input id="why-path" type="text" value="{{ initial_path }}"
+          placeholder="file path — e.g. patchi/core/brain/reasoning.py"
+          style="flex:1; background:var(--bg-tertiary, #101410); color:var(--text-primary);
+                 border:1px solid var(--border); border-radius:6px; padding:8px 10px; font-size:13px;
+                 font-family:ui-monospace, monospace;" />
+        <button type="button" class="btn btn-primary btn-sm" id="why-go">Explain</button>
+        <button type="button" class="btn btn-ghost btn-sm" id="why-copy" title="Copy PR-ready markdown" style="display:none">Copy markdown</button>
+      </div>
+      <div id="why-error" style="display:none; margin-top:10px; color:var(--danger, #FF4D6D); font-size:13px;"></div>
+    </div>
+  </div>
+
+  <div class="panel" id="why-summary-panel" style="display:none; margin-top:14px;">
+    <div class="panel-header"><span class="panel-title">Layer facts</span></div>
+    <div id="why-summary" style="padding:14px 20px; font-size:13px; line-height:1.9; color:var(--text-secondary);"></div>
+  </div>
+
+  <div id="why-diagrams"></div>
+
+  <div class="panel" id="why-empty" style="margin-top:14px;">
+    <div style="padding:24px 20px; color:var(--text-tertiary, #7A8471); font-size:13px; line-height:1.8;">
+      Enter a file path to see why it matters: the layers that depend on it, and the
+      call flow it leans on — rendered as the same Mermaid diagrams
+      <code>p why &lt;file&gt; --mermaid</code> produces for PRs and docs.<br>
+      <span class="dim">No diagram data? Run <code>p scan</code> first.</span>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var goBtn = document.getElementById('why-go');
+  var input = document.getElementById('why-path');
+  var errBox = document.getElementById('why-error');
+  var summaryPanel = document.getElementById('why-summary-panel');
+  var summary = document.getElementById('why-summary');
+  var container = document.getElementById('why-diagrams');
+  var empty = document.getElementById('why-empty');
+  var copyBtn = document.getElementById('why-copy');
+  var lastDoc = null;
+  var mermaidReady = false;
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  function ensureMermaid(cb) {
+    if (window.mermaid) { cb(true); return; }
+    // Mermaid 10 UMD bundle (vendored): with addScriptTag false + a manual
+    // tag append, the bundle stays in UMD mode and binds window.mermaid
+    // (an ESM import here would crash it under minification).
+    var s = document.createElement('script');
+    s.src = '/static/mermaid.min.js?v=10.9.1';
+    s.onerror = function () { cb(false); };
+    s.onload = function () { cb(!!window.mermaid); };
+    document.head.appendChild(s);
+  }
+
+  function renderDiagrams(diagrams) {
+    container.innerHTML = '';
+    diagrams.forEach(function (d, i) {
+      var panel = document.createElement('div');
+      panel.className = 'panel';
+      panel.style.marginTop = '14px';
+      var body = document.createElement('div');
+      body.id = 'why-mermaid-' + i;
+      body.style.padding = '16px 20px';
+      body.style.overflowX = 'auto';
+      body.textContent = d.mermaid; // fallback: raw source until/if rendered
+      panel.innerHTML =
+        '<div class="panel-header"><span class="panel-title">' + esc(d.title) + '</span></div>';
+      panel.appendChild(body);
+      container.appendChild(panel);
+    });
+
+    ensureMermaid(function (ok) {
+      if (!ok || !window.mermaid) return; // raw <pre> fallback stays
+      try {
+        mermaid.initialize({ startOnLoad: false, securityLevel: 'strict', theme: 'dark' });
+        var nodes = diagrams.map(function (_, i) { return document.getElementById('why-mermaid-' + i); });
+        mermaid.run({ nodes: nodes.filter(Boolean) });
+      } catch (e) { /* keep the readable raw-source fallback */ }
+    });
+  }
+
+  function renderSummary(doc) {
+    if (!doc.layer) { summaryPanel.style.display = 'none'; summary.innerHTML = ''; return; }
+    var deps = (doc.depended_on_by || []);
+    summary.innerHTML =
+      '<div><span style="color:var(--text-primary); font-weight:600">Layer</span> ' + esc(doc.layer) + '</div>' +
+      '<div><span style="color:var(--text-primary); font-weight:600">Importance</span> ' + esc(doc.importance || '—') + '</div>' +
+      '<div><span style="color:var(--text-primary); font-weight:600">Depended on by</span> ' +
+        (deps.length ? deps.map(function (d) { return '<code>' + esc(d) + '</code>'; }).join(', ')
+                     : 'nothing (no internal dependents)') + '</div>' +
+      '<div><span style="color:var(--text-primary); font-weight:600">Files in layer</span> ' + esc(doc.files_in_layer == null ? '—' : doc.files_in_layer) + '</div>' +
+      (doc.purpose ? '<div style="margin-top:6px">' + esc(doc.purpose) + '</div>' : '');
+    summaryPanel.style.display = '';
+  }
+
+  function prMarkdown(doc) {
+    var lines = ['### Why `' + doc.path + '` matters', ''];
+    if (doc.layer) {
+      lines.push('- **Layer:** ' + doc.layer,
+                 '- **Importance:** ' + (doc.importance || '—'),
+                 '- **Depended on by:** ' + ((doc.depended_on_by || []).join(', ') || 'nothing (no internal dependents)'));
+      if (doc.purpose) lines.push('', doc.purpose);
+    }
+    (doc.diagrams || []).forEach(function (d) {
+      lines.push('', '#### ' + d.title, '', '```mermaid', d.mermaid, '```');
+    });
+    return lines.join('\n');
+  }
+
+  function show(doc) {
+    lastDoc = doc;
+    empty.style.display = 'none';
+    errBox.style.display = 'none';
+    renderSummary(doc);
+    renderDiagrams(doc.diagrams || []);
+    copyBtn.style.display = '';
+  }
+
+  function fail(msg) {
+    errBox.textContent = msg;
+    errBox.style.display = '';
+    summaryPanel.style.display = 'none';
+    summary.innerHTML = '';
+    container.innerHTML = '';
+    copyBtn.style.display = 'none';
+    empty.style.display = '';
+  }
+
+  function explain(path) {
+    if (!path) { fail('Enter a file path to explain.'); return; }
+    goBtn.disabled = true;
+    fetch('/api/why?path=' + encodeURIComponent(path))
+      .then(function (r) { return r.json(); })
+      .then(function (doc) {
+        if (!doc || !doc.ok) { fail((doc && doc.error) || 'No data for that file.'); return; }
+        show(doc);
+      })
+      .catch(function () { fail('Could not reach /api/why — is the web server running?'); })
+      .finally(function () { goBtn.disabled = false; });
+  }
+
+  goBtn.addEventListener('click', function () { explain(input.value.trim()); });
+  input.addEventListener('keydown', function (e) { if (e.key === 'Enter') explain(input.value.trim()); });
+  function legacyCopy(text) {
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    var ok = false;
+    try { ok = document.execCommand('copy'); } catch (_) { /* clipboard blocked entirely */ }
+    document.body.removeChild(ta);
+    return ok;
+  }
+
+  copyBtn.addEventListener('click', function () {
+    if (!lastDoc) return;
+    var md = prMarkdown(lastDoc);
+    var done = function () {
+      copyBtn.textContent = 'Copied!';
+      setTimeout(function () { copyBtn.textContent = 'Copy markdown'; }, 1500);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(md).then(done, function () {
+        // Unfocused documents reject the async clipboard API — fall back to
+        // the execCommand path instead of surfacing an unhandled rejection.
+        if (legacyCopy(md)) done();
+      });
+    } else if (legacyCopy(md)) {
+      done();
+    }
+  });
+
+  {% if initial_path %}explain({{ initial_path|tojson }});{% endif %}
+})();
+</script>
+{% endblock %}

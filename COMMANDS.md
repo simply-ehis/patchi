@@ -414,7 +414,17 @@ Launch unified web UI (Mission Control).
 | `--open` | Open browser automatically |
 | `--project <path>` | Serve a different project |
 
-**Pages:** Dashboard, Brain Map (2D/3D), Findings, Review, Guard, Chat, Brain, Council, Attack Timeline, Live Tests, Hosted, Settings, History, Charter, Assurance, Tokens, Self-Improvement, Smart Agent
+**Pages:** Dashboard, Brain Map (2D/3D), Findings, Review, Guard, Chat, Brain, Why (file explain), Council, Attack Timeline, Live Tests, Hosted, Settings, History, Charter, Assurance, Tokens, Self-Improvement, Smart Agent
+
+### Web: `/why` (file explain)
+Interactive version of `p why --mermaid`: enter a file path to see its layer facts
+plus the two explanation-path sequence diagrams rendered client-side (mermaid.js,
+vendored at `static/mermaid.min.js`, with a raw-source fallback when the library
+can't load). `GET /api/why?path=<file>` serves the same document as JSON — computed
+through the same helper as the CLI, so the two can never disagree. Missing path or
+no scan data returns a JSON 404 error document, never an HTML page. The page's
+**Copy markdown** button puts a PR-ready `### Why ...` section with fenced mermaid
+on the clipboard.
 
 ### `p hosted` **(EXPERIMENTAL)**
 Live monitoring daemon. Tails log files, detects anomalies, blocks IPs.
@@ -580,6 +590,8 @@ Explain why a file matters (dependency analysis, risk score, findings).
 |------|--------|
 | `--mermaid` | Emit the explanation path as Mermaid sequence diagrams (dependents + call flow) |
 | `--out <file.md>` | Write a markdown report (summary, or fenced mermaid with `--mermaid`) to a file for PRs/docs |
+
+Interactive version: the web dashboard's `/why` page renders the same diagrams (see Web & Hosted).
 
 ### `p impact [files..]` (alias: `p blast`)
 Show change impact / blast radius.

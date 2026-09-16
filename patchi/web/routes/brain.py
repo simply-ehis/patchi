@@ -12,6 +12,13 @@ router = APIRouter()
 templates = Jinja2Templates(directory=str(Path(__file__).parent.parent / "templates"))
 
 
+@router.get("/why", response_class=HTMLResponse)
+async def why_page(request: Request, path: str | None = None):
+    """File-explain view: why a file matters, with the same mermaid
+    explanation-path diagrams `p why --mermaid` renders."""
+    return templates.TemplateResponse(request, "why.html", {"request": request, "initial_path": path or ""})
+
+
 @router.get("/brain", response_class=HTMLResponse)
 async def brain(request: Request):
     root = request.app.state.root
