@@ -550,8 +550,12 @@ class AuthZAgent(BaseAgent):
         findings = []
 
         try:
-            parser, lang_obj = get_parser(lang)
-            parser.parse(bytes(content, "utf8"))
+            # get_parser returns a single Parser (or None for regex-handled
+            # languages) — the old tuple unpack raised TypeError on every
+            # file, silently shunting every language onto the regex path.
+            parser = get_parser(lang)
+            if parser is not None:
+                parser.parse(bytes(content, "utf8"))
 
             # For now, fall back to general pattern matching
             findings.extend(self._scan_general_authz(content, rel_path))

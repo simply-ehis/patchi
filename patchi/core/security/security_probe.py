@@ -10,7 +10,6 @@ import os
 import re
 import shutil
 import subprocess
-import tempfile
 from pathlib import Path
 
 from patchi.core.constants import is_offline
@@ -19,6 +18,7 @@ from ..agents.base import (
     AgentGroup,
     AgentInput,
     AgentResult,
+    AgentStatus,
     BaseAgent,
     Severity,
     make_finding,
@@ -50,6 +50,8 @@ def _run(cmd: list[str], cwd: Path, timeout: int = 120, env: dict | None = None)
             cmd,
             capture_output=True,
             text=True,
+            encoding="utf-8",  # reader threads must never die on cp1252-hostile bytes
+            errors="replace",
             cwd=run_cwd,
             timeout=timeout,
             env=merged,
@@ -383,34 +385,73 @@ class DependencyCVEChecker(BaseAgent):
             self._run_fallback_api_scan(root, result)
 
     def _run_osv_scanner(self, root: Path, result: AgentResult) -> None:
-        """Run osv-scanner binary, parse JSON output."""
-        with tempfile.NamedTemporaryFile(mode="w+", suffix=".json", delete=False) as tf:
-            report_path = tf.name
+        """Run osv-scanner binary, parse JSON output.
 
-        cmd = [
-            "osv-scanner",
-            "--format",
-            "json",
-            "--output",
-            report_path,
-            str(root),
+        osv-scanner v2 prints machine-readable JSON to stdout when run with
+        ``--format json`` (the ``--output FILE`` flag was removed in v2),
+        and the report file must not be pre-created anyway — tools that do
+        accept a path refuse to overwrite existing files. The scratch path
+        is kept as a fallback location for stdout truncation.
+        """
+        from patchi.core.agents.tool_runner import tool_scratch_file
+
+        report_path = tool_scratch_file("osv", ".json")
+
+        # osv-scanner v2 moved source scanning behind `osv-scanner scan
+        # source <dirs>` (bare `osv-scanner --format json <dir>` is an
+        # invalid usage: rc 128, zero stdout). v1 syntax is tried first and
+        # we fall back on the v2-only usage error. No --python/--js
+        # selectors exist; the scanner discovers lockfiles itself.
+        root_arg = str(root)
+        attempts = [
+            ["osv-scanner", "--format", "json", root_arg],
+            ["osv-scanner", "scan", "source", "--format", "json", root_arg],
         ]
 
-        # Add specific flags for different project types
-        if (root / "requirements.txt").exists() or (root / "Pipfile").exists() or (root / "pyproject.toml").exists():
-            cmd.extend(["--python", str(root)])
-        elif (root / "package.json").exists():
-            cmd.extend(["--js", str(root)])
-
         try:
-            proc = _run(cmd, root, timeout=self.timeout - 10)
+            proc: dict | None = None
+            data: dict = {}
+            for cmd in attempts:
+                proc = _run(cmd, root, timeout=self.timeout - 10)
 
-            try:
-                data = json.loads(proc.get("stdout") or "")
-            except Exception as e:
-                _log.warning("DependencyCVEChecker._run_osv_scanner failed: %s", e)
-                with open(report_path, encoding="utf-8") as f:
-                    data = json.load(f)
+                if proc.get("timed_out"):
+                    # A timed-out dependency check must not read as "checked, clean".
+                    result.data["tool_timeout"] = True
+                    result.data["skip_reason"] = (
+                        "osv-scanner exceeded its time budget — dependency check inconclusive"
+                    )
+                    result.status = AgentStatus.SKIPPED
+                    _log.warning("DependencyCVEChecker: osv-scanner timed out after %ss", self.timeout - 10)
+                    return
+
+                raw = (proc.get("stdout") or "").strip()
+                if raw.startswith("{"):
+                    try:
+                        data = json.loads(raw)
+                        break
+                    except Exception as e:
+                        _log.warning("DependencyCVEChecker: stdout parse failed: %s", e)
+                if proc.get("returncode") not in (0, 1):
+                    continue  # usage/config error — try the next syntax
+                break
+
+            proc = proc or {"returncode": -1, "stdout": "", "stderr": "", "timed_out": False}
+            if not data:
+                # Fallback: older versions honor --output; try the scratch file.
+                try:
+                    data = json.loads(report_path.read_text(encoding="utf-8"))
+                except Exception:
+                    data = {}
+
+            if proc.get("returncode") not in (0, 1) and not data:
+                # rc 1 = vulnerabilities found (fine); anything else with no
+                # parsable output is a real failure — say so instead of zero.
+                result.data["osv_scanner_failed"] = True
+                result.data["tool_error"] = (proc.get("stderr") or "no output")[:300]
+                _log.warning(
+                    "DependencyCVEChecker: osv-scanner rc=%s: %s", proc.get("returncode"), result.data["tool_error"]
+                )
+                return
 
             affected_packages = data.get("results", [])
 
@@ -460,8 +501,8 @@ class DependencyCVEChecker(BaseAgent):
         finally:
             try:
                 os.unlink(report_path)
-            except Exception as e:
-                _log.warning("DependencyCVEChecker._run_osv_scanner failed: %s", e)
+            except OSError:
+                pass
 
     def _run_fallback_api_scan(self, root: Path, result: AgentResult) -> None:
         """Fallback: query OSV API directly for package vulnerabilities."""

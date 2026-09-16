@@ -9,7 +9,6 @@ from __future__ import annotations
 import json
 import logging
 import subprocess
-import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -49,6 +48,12 @@ class BanditAgent(BaseAgent):
 
         findings = self._run_bandit(inp.root)
 
+        if getattr(self, "timed_out", False):
+            result.data["tool_timeout"] = True
+            result.data["skip_reason"] = "bandit exceeded its 120s time budget — scan inconclusive"
+            result.status = AgentStatus.SKIPPED
+            return
+
         for finding_data in findings:
             finding = self._create_finding(finding_data)
             result.add_finding(finding)
@@ -65,29 +70,49 @@ class BanditAgent(BaseAgent):
             return False
 
     def _run_bandit(self, root: Path) -> list[dict[str, Any]]:
-        """Run Bandit and parse JSON output."""
+        """Run Bandit and parse JSON output.
+
+        A timeout is recorded on the instance so _run can mark the agent
+        SKIPPED with a reason — a timed-out scan must never read as
+        "checked, nothing found".
+        """
         findings = []
+        self.timed_out = False
 
-        with tempfile.TemporaryDirectory() as tmpdir:
-            output_file = Path(tmpdir) / "bandit_output.json"
+        from patchi.core.tools_workspace import scratch_dir
 
-            try:
-                subprocess.run(
-                    ["bandit", "-r", "--format", "json", "--output", str(output_file), str(root)],
-                    capture_output=True,
-                    timeout=120,
-                    cwd=root,
-                )
+        # Project-local scratch (not %TEMP%): visible for diagnosis, immune
+        # to system-temp sweeps, and cleaned with the rest of tool-runs.
+        output_file = scratch_dir() / f"bandit-{id(root) & 0xFFFF:04x}.json"
 
-                if output_file.exists():
-                    with open(output_file) as f:
+        try:
+            subprocess.run(
+                ["bandit", "-r", "--format", "json", "--output", str(output_file), str(root)],
+                capture_output=True,
+                timeout=120,
+                cwd=root,
+            )
+
+            if output_file.exists():
+                try:
+                    with open(output_file, encoding="utf-8") as f:
                         data = json.load(f)
                         return self._parse_bandit_output(data)
+                except json.JSONDecodeError as e:
+                    _log.warning("Bandit report unparsable: %s", e)
+            else:
+                _log.warning("Bandit produced no report file")
 
-            except subprocess.TimeoutExpired:
-                _log.warning("Bandit timed out")
-            except Exception as e:
-                _log.warning(f"Bandit execution failed: {e}")
+        except subprocess.TimeoutExpired:
+            self.timed_out = True
+            _log.warning("Bandit timed out after 120s — marking scan inconclusive")
+        except Exception as e:
+            _log.warning(f"Bandit execution failed: {e}")
+        finally:
+            try:
+                output_file.unlink(missing_ok=True)
+            except OSError:
+                pass
 
         return findings
 

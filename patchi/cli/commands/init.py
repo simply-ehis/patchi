@@ -104,6 +104,48 @@ def run(no_logo: bool = False) -> int:
     con.print(f"{STEP_ARROW} [bold]AI configuration...[/bold]")
     con.print()
 
+    # Hydrate keys sitting in .patchi/keys.json (a .patchi copied from
+    # another machine, or secrets written outside init) into config so the
+    # "already configured" branch below sees them — otherwise init re-asks
+    # for keys the user already has, and any non-interactive caller
+    # (auto-init on first scan) would hang on the provider prompt.
+    # keys.json maps PATCHI_KEY_<NICKNAME> → secret; known providers are
+    # matched by normalized nickname so base_url/model/format come from
+    # the provider table.
+    try:
+        import json as _json
+
+        keys_file = project_root / ".patchi" / "keys.json"
+        if keys_file.exists():
+            stored = _json.loads(keys_file.read_text(encoding="utf-8"))
+            by_norm = {p["name"].upper().replace(" ", ""): p for p in KEY_PROVIDERS if p.get("base")}
+            current = cfg.load(project_root).get("ai", {}).get("keys", [])
+            known_envs = {k.get("env_var") for k in current}
+            hydrated = []
+            for env_var, secret in stored.items():
+                if not str(secret).strip() or not env_var.startswith("PATCHI_KEY_"):
+                    continue
+                if env_var in known_envs:
+                    continue
+                nick = env_var[len("PATCHI_KEY_") :].replace("_", " ").title()
+                prov = by_norm.get(nick.upper().replace(" ", ""))
+                hydrated.append(
+                    {
+                        "provider": prov["name"] if prov else nick,
+                        "nickname": nick,
+                        "env_var": env_var,
+                        "base_url": prov["base"] if prov else "",
+                        "model": prov["model"] if prov else "",
+                        "format": prov["format"] if prov else "openai",
+                        "status": "untested",
+                    }
+                )
+            if hydrated:
+                cfg.set_value("ai.keys", current + hydrated, project_root)
+                con.print(f"{STEP_DONE} Restored {len(hydrated)} key(s) from .patchi/keys.json")
+    except Exception as e:
+        _log.debug("keys.json hydration skipped: %s", e)
+
     # Check if AI keys already exist
     existing_config = cfg.load(project_root)
     existing_keys = existing_config.get("ai", {}).get("keys", [])

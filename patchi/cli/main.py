@@ -76,6 +76,41 @@ def _build_parser() -> argparse.ArgumentParser:
 # ── Router ─────────────────────────────────────────────────────────────────────
 
 
+def _has_configured_keys(root) -> bool:
+    """True when the project has AI keys ready (config, keys.json, or .env).
+
+    Used to decide that `p init`'s interactive questions are already
+    answered, so onboarding can be completed non-interactively — init's
+    AI-setup step checks config ai.keys/local_model_name and skips its
+    prompts when they exist, so auto-init only fires when it will not
+    block on stdin.
+    """
+    try:
+        import json
+
+        from patchi.core.config import load
+
+        conf = load(root)
+        ai = conf.get("ai", {})
+        if ai.get("keys") or ai.get("local_model_name"):
+            return True
+        keys_file = root / ".patchi" / "keys.json"
+        if keys_file.exists():
+            data = json.loads(keys_file.read_text(encoding="utf-8"))
+            if any(str(v).strip() for v in data.values()):
+                return True
+        env_file = root / ".patchi" / ".env"
+        if env_file.exists():
+            for line in env_file.read_text(encoding="utf-8").splitlines():
+                line = line.strip()
+                if line.startswith("PATCHI_KEY_") and "=" in line and line.split("=", 1)[1].strip():
+                    return True
+    except Exception as e:
+        _log.debug("_has_configured_keys failed: %s", e)
+    return False
+
+
+
 def _load_patchi_env() -> None:
     """
     Load .patchi/.env into os.environ (non-destructive — never overwrites shell env).
@@ -230,9 +265,24 @@ def main() -> None:
                 from patchi.core.config import find_project_root, load
 
                 r = find_project_root()
-                if r:
-                    conf = load(r)
-                    if not conf.get("onboarding_complete", False):
+                if r and not load(r).get("onboarding_complete", False):
+                    # Keys already configured (keys.json from a previous
+                    # machine/init, or hand-placed)? Then everything init
+                    # would interactively ask for is already answered —
+                    # finish onboarding silently instead of nagging forever.
+                    if _has_configured_keys(r) and cmd in ("scan", "status"):
+                        print(  # noqa: T201 - stderr; con soft-wraps & theme-gates
+                            "Onboarding incomplete but AI keys found — completing setup (non-interactive `p init`).",
+                            file=sys.stderr,
+                        )
+                        try:
+                            from patchi.cli.commands.init import run as _init_run
+
+                            _init_run(no_logo=True)
+                            print("Setup complete.", file=sys.stderr)  # noqa: T201
+                        except Exception as e:
+                            _log.warning("auto-init failed: %s", e)
+                    else:
                         print(  # noqa: T201 - stderr nudge; con would soft-wrap & theme-gate
                             "Onboarding incomplete — run `p init` to configure this project.",
                             file=sys.stderr,
@@ -247,12 +297,24 @@ def main() -> None:
             if r:
                 conf = load(r)
                 if not conf.get("onboarding_complete", False):
-                    con.print()
-                    con.print("[bold #C8621A]Welcome to Patchi![/bold #C8621A]")
-                    con.print("[dim]It looks like you haven't completed setup yet.[/dim]")
-                    con.print("[dim]Run [bold]p init[/bold] to configure your project.[/dim]")
-                    con.print()
-                    sys.stdout.flush()
+                    # Keys already configured? Finish setup non-interactively
+                    # (the interactive path would re-ask what's answered).
+                    if _has_configured_keys(r):
+                        con.print("[dim]Onboarding incomplete but AI keys found — completing setup...[/dim]")
+                        try:
+                            from patchi.cli.commands.init import run as _init_run
+
+                            _init_run(no_logo=True)
+                            con.print("[green]Setup complete.[/green]")
+                        except Exception as e:
+                            _log.warning("auto-init failed: %s", e)
+                    else:
+                        con.print()
+                        con.print("[bold #C8621A]Welcome to Patchi![/bold #C8621A]")
+                        con.print("[dim]It looks like you haven't completed setup yet.[/dim]")
+                        con.print("[dim]Run [bold]p init[/bold] to configure your project.[/dim]")
+                        con.print()
+                        sys.stdout.flush()
         except Exception as e:
             _log.warning("main failed: %s", e)
 

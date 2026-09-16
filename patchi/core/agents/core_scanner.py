@@ -142,7 +142,9 @@ class CoreScanner(BaseAgent):
     def _parse_with_treesitter(self, file_path: str, content: str, lang: Lang) -> list[Finding]:
         """Parse file with tree-sitter and extract structured info."""
         try:
-            parser, lang_obj = get_parser(lang)
+            parser = get_parser(lang)
+            if parser is None:  # regex-handled language — nothing to parse
+                return []
             tree = parser.parse(bytes(content, "utf8"))
 
             findings = []

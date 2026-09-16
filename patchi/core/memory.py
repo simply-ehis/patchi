@@ -52,7 +52,11 @@ def _write(category: MemoryCategory, data: Any, root: Path) -> None:
     with _WRITE_LOCK:
         path = _mem_path(category, root)
         path.parent.mkdir(parents=True, exist_ok=True)
-        tmp = path.with_suffix(".tmp")
+        # Unique tmp name: a fixed `.tmp` sibling collided across processes
+        # (watcher + CLI scan) — the second writer opened the first's tmp
+        # file and Windows deny-shared it, surfacing as WinError 32 on the
+        # reader of the freshly-replaced file.
+        tmp = path.with_name(f"{path.stem}.tmp-{uuid.uuid4().hex[:8]}")
         with tmp.open("w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)
         atomic_replace(tmp, path)

@@ -9,7 +9,6 @@ import logging
 import os
 import shutil
 import subprocess
-import tempfile
 from pathlib import Path
 
 from patchi.core.constants import is_offline
@@ -18,6 +17,7 @@ from ..agents.base import (
     AgentGroup,
     AgentInput,
     AgentResult,
+    AgentStatus,
     BaseAgent,
     Severity,
     make_finding,
@@ -41,6 +41,8 @@ def _run(cmd: list[str], cwd: Path, timeout: int = 120, env: dict | None = None)
             cmd,
             capture_output=True,
             text=True,
+            encoding="utf-8",  # reader threads must never die on cp1252-hostile bytes
+            errors="replace",
             cwd=str(cwd),
             timeout=timeout,
             env=merged,
@@ -655,9 +657,18 @@ class SecretScanner(BaseAgent):
         result.data["tool"] = "gitleaks" if shutil.which("gitleaks") else "regex_fallback"
 
     def _run_gitleaks(self, root: Path, result: AgentResult) -> None:
-        """Run gitleaks detect, parse JSON report."""
-        with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as tf:
-            report_path = tf.name
+        """Run gitleaks detect, parse JSON report.
+
+        The report path must NOT be pre-created: gitleaks v8 refuses to
+        write over an existing file, which left the report missing and
+        produced the confusing ENOENT/WinError follow-ups. Scratch files
+        live under .patchi/tmp/tool-runs so failures are diagnosable in
+        the project (and never in a shared %TEMP% another process can
+        sweep mid-scan).
+        """
+        from patchi.core.agents.tool_runner import tool_scratch_file
+
+        report_path = tool_scratch_file("gitleaks", ".json")
 
         cmd = [
             "gitleaks",
@@ -672,20 +683,38 @@ class SecretScanner(BaseAgent):
             "--exit-code",
             "0",  # don't fail on finds — we handle them
         ]
-        _run(cmd, root, timeout=self.timeout - 10)
+        proc = _run(cmd, root, timeout=self.timeout - 10)
+
+        if proc.get("timed_out"):
+            # A timed-out run must not read as "checked, nothing found".
+            result.data["tool_timeout"] = True
+            result.data["skip_reason"] = "gitleaks exceeded its time budget — scan inconclusive"
+            result.status = AgentStatus.SKIPPED
+            _log.warning("SecretScanner: gitleaks timed out after %ss", self.timeout - 10)
+            return
 
         try:
-            findings = json.loads(Path(report_path).read_text())
+            findings = json.loads(Path(report_path).read_text(encoding="utf-8"))
             if not isinstance(findings, list):
                 findings = []
+        except FileNotFoundError:
+            # gitleaks ran but wrote no report (usually a config/flag refusal).
+            _log.warning(
+                "SecretScanner: gitleaks produced no report (rc=%s) — falling back to regex",
+                proc.get("returncode"),
+            )
+            result.data["tool"] = "regex_fallback"
+            result.data["tool_error"] = "gitleaks wrote no report"
+            self._run_fallback(root, result)
+            return
         except Exception as e:
             _log.warning("SecretScanner._run_gitleaks failed: %s", e)
             findings = []
         finally:
             try:
                 os.unlink(report_path)
-            except Exception as e:
-                _log.warning("SecretScanner._run_gitleaks failed: %s", e)
+            except OSError:
+                pass
 
         for f in findings:
             file_path = f.get("File", "")

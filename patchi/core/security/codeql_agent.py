@@ -50,7 +50,13 @@ class CodeqlAgent(BaseAgent):
             self.skip_for_tool(result, "codeql")
             return
 
+        self.skip_python_sources = False
         findings = self._run_codeql(inp.root)
+
+        if getattr(self, "skip_python_sources", False):
+            result.data["skip_reason"] = "no Python sources in repo — codeql python suite has nothing to analyze"
+            result.status = AgentStatus.SKIPPED
+            return
 
         for finding_data in findings:
             finding = self._create_finding(finding_data)
@@ -83,10 +89,33 @@ class CodeqlAgent(BaseAgent):
             return str(candidates[-1])
         return "python-security-extended"
 
+    def _has_python_sources(self, root: Path) -> bool:
+        """True if the repo actually contains Python code to build a DB from."""
+        try:
+            for p in root.rglob("*.py"):
+                rel = p.relative_to(root)
+                parts = {seg.lower() for seg in rel.parts}
+                if parts & {"node_modules", ".venv", "venv", ".git", "dist", "build"}:
+                    continue
+                return True
+        except OSError:
+            return True  # can't tell — let codeql try rather than skip
+        return False
+
     def _run_codeql(self, root: Path) -> list[dict[str, Any]]:
         """Create a database, run the security suite, return parsed findings."""
         findings: list[dict[str, Any]] = []
         suite = self._resolve_query_suite()
+
+        # A Python-only database create on a repo without Python entry
+        # points dies inside autobuild ("Exit status 4 from runner.exe") —
+        # that is the tool refusing the job, not a transient error. Detect
+        # it up front and skip honestly instead of logging a red-herring
+        # tool crash on every non-Python scan.
+        if not self._has_python_sources(root):
+            self.skip_python_sources = True
+            _log.info("CodeQL: no Python sources under %s — skipping (nothing to build)", root)
+            return findings
 
         with tempfile.TemporaryDirectory() as tmpdir:
             db_dir = Path(tmpdir) / "codeql_db"

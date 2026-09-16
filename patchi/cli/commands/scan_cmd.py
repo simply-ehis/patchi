@@ -397,6 +397,14 @@ def _run_scan_inner(
             gov = Governor(r, on_progress=on_progress)
             gov.brain_on_progress = on_progress  # feed Brain phases to the bars
 
+            # Status confirmation, part 1: say up front which external tools
+            # will actually run, so missing tools are named BEFORE the scan,
+            # not discovered from missing findings after it.
+            if not json_output:
+                tool_line = _tool_status_line(r)
+                if tool_line:
+                    con.print(tool_line)
+
             # ── On-demand domain activation from git diff (pre-dispatch) ─
             if changed:
                 try:
@@ -537,6 +545,11 @@ def _run_scan_inner(
     con.print()
     _scan_elapsed = time.monotonic() - _scan_start
     _show_report_summary(report, agent_results, wall_time=_scan_elapsed, root=r)
+
+    # Status confirmation, part 2: every dispatched agent accounted for —
+    # ran (with counts), skipped (with reason), or failed (with error).
+    if agent_results and not json_output and not quiet:
+        _show_agent_status_confirmation(agent_results)
 
     # ── Threat Model Generation (auto-updated from findings) ────────────────
     try:
@@ -1445,6 +1458,76 @@ _SEV_COLORS = {
     "low": "#4ADE80",
     "info": "#B8A898",
 }
+
+
+def _tool_status_line(r: Path) -> str | None:
+    """Up-front one-liner stating which external tools will actually run.
+
+    Never re-probes (mirrors tool_health's cached verdicts where present):
+    only cheap PATH probes for the four tools the default scan dispatches.
+    Returns the rendered line, or None when the console shouldn't show it
+    (JSON/machine modes gate at the caller).
+    """
+    try:
+        import shutil as _sh
+
+        probes = [
+            ("gitleaks", "secrets"),
+            ("osv-scanner", "deps CVE"),
+            ("bandit", "python SAST"),
+            ("codeql", "deep SAST"),
+        ]
+        parts = []
+        missing = []
+        for tool, label in probes:
+            if _sh.which(tool):
+                parts.append(f"[green]✓ {tool}[/green]")
+            else:
+                missing.append(f"{tool} ({label})")
+        line = "  Tools: " + "  ".join(parts)
+        if missing:
+            line += "   [dim]missing: " + ", ".join(missing) + " — skipped (p doctor --install)" + "[/dim]"
+        return line
+    except Exception as e:  # noqa: BLE001 — status must never break the scan
+        _log.debug("tool status line failed: %s", e)
+        return None
+
+
+def _show_agent_status_confirmation(agent_results: list) -> None:
+    """End-of-scan confirmation: per-agent ran/skipped/failed with reasons.
+
+    Closes the "no status confirmation" gap: every dispatched agent is
+    accounted for, tool-missing and timed-out agents are named with their
+    install hint / reason, and nothing silently reads as a clean zero.
+    """
+    if not agent_results:
+        return
+    rows = []
+    for ar in agent_results:
+        status = getattr(getattr(ar, "status", None), "value", "?")
+        name = getattr(ar, "agent_name", "?")
+        data = getattr(ar, "data", {}) or {}
+        n = getattr(ar, "finding_count", len(getattr(ar, "findings", []) or []))
+        if status == "skipped":
+            reason = data.get("skip_reason") or (
+                f"tool missing: {data.get('tool_missing')}" if data.get("tool_missing") else "skipped"
+            )
+            rows.append((name, "skipped", f"[dim]{reason}[/dim]"))
+        elif status == "failed":
+            errs = getattr(ar, "errors", []) or []
+            reason = errs[0] if errs else "failed"
+            rows.append((name, "failed", f"[red]{reason[:90]}[/red]"))
+        else:
+            style = "green" if n else "dim"
+            rows.append((name, status, f"[{style}]{n} finding(s)[/{style}]"))
+
+    con.print()
+    con.print("[bold #C8621A]─ Agent Status ─[/bold #C8621A]")
+    for name, status, detail in rows:
+        icon = {"done": "[green]✓[/green]", "skipped": "[yellow]○[/yellow]", "failed": "[red]✗[/red]"}.get(
+            status, "[dim]·[/dim]"
+        )
+        con.print(f"  {icon} {name:<28} {detail}")
 
 
 def _show_report_summary(

@@ -29,6 +29,18 @@ These work with any command:
 ### `p scan [area]`
 Full codebase scan. Runs all security agents, brain analysis, and import graph.
 
+Status confirmation is built in: before dispatch, a one-line tool status
+(`Tools: ✓ gitleaks ✓ osv-scanner … missing: codeql — skipped (p doctor --install)`)
+says which external tools will actually run; after the summary, an **Agent
+Status** table accounts for every dispatched agent — ran (with finding
+counts), skipped (with reason: tool missing with install hint, timed out,
+nothing to analyze), or failed (with error). A missing tool can never read
+as a clean zero. External-tool reports are written under
+`.patchi/tmp/tool-runs/` (never system temp) and cleaned up automatically.
+If onboarding is incomplete but AI keys are already configured (keys.json
+or config), setup finishes non-interactively on the next `p scan`/`p status`
+instead of nagging forever.
+
 | Flag | What it does |
 |------|-------------|
 | `--deep` | LLM analysis on changed files (costs tokens) |

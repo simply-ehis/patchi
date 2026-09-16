@@ -4,9 +4,11 @@ import json
 import logging
 import shutil
 import subprocess
-import tempfile
+import uuid
 from pathlib import Path
 from typing import Any
+
+from patchi.core.tools_workspace import scratch_file
 
 _log = logging.getLogger("patchi.agents.tool_runner")
 
@@ -27,6 +29,16 @@ def _run_process(cmd: list[str], timeout: int = 120) -> tuple[int, str, str]:
         return 1, "", str(e)
 
 
+def tool_scratch_file(stem: str, suffix: str) -> Path:
+    """Unique scratch path for a tool report under .patchi/tmp/tool-runs.
+
+    The file is NOT created — some tools (gitleaks) refuse to write to an
+    existing path, and a pre-created empty file is exactly what produced
+    'No such file or directory' follow-up errors when the tool bailed.
+    """
+    return scratch_file(f"{stem}-{uuid.uuid4().hex[:10]}{suffix}")
+
+
 def run_gitleaks(root: Path, timeout: int = 120) -> dict[str, Any]:
     """Run gitleaks detect on `root` and return parsed JSON results.
 
@@ -39,8 +51,10 @@ def run_gitleaks(root: Path, timeout: int = 120) -> dict[str, Any]:
     if not is_tool_available("gitleaks"):
         return {"tool": "gitleaks_missing", "findings": [], "tool_missing": True}
 
-    with tempfile.NamedTemporaryFile(prefix="gitleaks_report_", suffix=".json", delete=False) as tf:
-        report_path = Path(tf.name)
+    # gitleaks v8 REFUSES to write to a path that already exists (it wants to
+    # create the report itself), so the report must not be pre-created — pick
+    # a unique path in a scratch dir and let gitleaks open it.
+    report_path = tool_scratch_file("gitleaks", ".json")
 
     cmd = [
         "gitleaks",
