@@ -169,6 +169,73 @@ def _lazy_import(dotted_handler: str):
     return getattr(module, func_name)
 
 
+def walk_registry_handlers() -> list[tuple[str, str]]:
+    """Unique (command_label, handler) pairs over the whole registry.
+
+    Deduped: the undo family is registered both canonically and as compat
+    top-level aliases — the same handlers twice. Used by doctor's registry
+    check and the CI parity tests so both probe the identical set.
+    """
+    from patchi.cli.registry import COMMANDS
+
+    seen: set[tuple[str, str]] = set()
+
+    def walk(cmds) -> None:
+        for cmd in cmds:
+            if cmd.handler:
+                seen.add((cmd.name, cmd.handler))
+            walk(list(cmd.subcommands))
+
+    walk(list(COMMANDS))
+    return sorted(seen)
+
+
+def check_registry_handlers() -> tuple[list[str], int, int]:
+    """Verify every registry handler resolves, without dispatching anything.
+
+    Two layers, mirroring tests/test_registry_handlers_exist.py:
+      1. the handler module exists on disk (importlib.util.find_spec — pure
+         metadata, no side effects);
+      2. the module imports and exposes the handler function (the exact
+         resolution _lazy_import performs at dispatch).
+
+    Returns (problems, checked, missing) where problems are human-readable
+    lines naming the registry entry — safe to render or fold into JSON.
+    """
+    import importlib
+    import importlib.util
+
+    problems: list[str] = []
+    pairs = walk_registry_handlers()
+    missing = 0
+    for name, handler in pairs:
+        mod_path, _, func = handler.partition(":")
+        try:
+            spec = importlib.util.find_spec(mod_path)
+        except (ImportError, ValueError):
+            spec = None
+        if spec is None:
+            problems.append(
+                f"p {name} -> {handler}: module '{mod_path}' does not exist "
+                "(dangling command — restore the module or drop the entry)"
+            )
+            missing += 1
+            continue
+        try:
+            module = importlib.import_module(mod_path)
+        except Exception as exc:  # noqa: BLE001 — report the entry, not the traceback
+            problems.append(f"p {name} -> {handler}: import failed ({exc!r})")
+            missing += 1
+            continue
+        if not hasattr(module, func):
+            problems.append(
+                f"p {name} -> {handler}: '{mod_path}' has no attribute '{func}' "
+                "(renamed or deleted without updating the registry)"
+            )
+            missing += 1
+    return problems, len(pairs), missing
+
+
 def _build_kwargs(cmd: Command, args: argparse.Namespace) -> dict[str, Any]:
     kwargs = dict(cmd.fixed_kwargs)
     for a in cmd.args:

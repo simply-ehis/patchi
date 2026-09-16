@@ -764,6 +764,44 @@ def run(
     except Exception as _exc:
         _log.warning("taxonomy check failed: %s", _exc)
 
+    # ── Registry: every registered command must resolve (doctor twin of the
+    # CI parity tests — a dangling handler shows in the health view the user
+    # actually runs, not only when CI remembers to) ─────────────────────────
+    try:
+        from patchi.cli.framework import check_registry_handlers
+
+        reg_problems, reg_total, reg_missing = check_registry_handlers()
+        if reg_missing:
+            errors += 1
+            shown = reg_problems[:4]
+            checks.append(
+                (
+                    "Command registry",
+                    "✗",
+                    f"{reg_missing} of {reg_total} handler(s) broken:",
+                    "#FF4D6D",
+                )
+            )
+            for line in shown:
+                checks.append(("registry", "✗", line[:90], "#FF4D6D"))
+            if reg_missing > len(shown):
+                checks.append(
+                    ("registry", "✗", f"… and {reg_missing - len(shown)} more", "#FF4D6D")
+                )
+        else:
+            checks.append(("Command registry", "✓", f"{reg_total} handler(s) resolve", "#4ADE80"))
+    except Exception as _exc:
+        # Registry itself unimportable — that IS a broken registry.
+        errors += 1
+        checks.append(
+            (
+                "Command registry",
+                "✗",
+                f"cannot walk registry: {str(_exc)[:70]}",
+                "#FF4D6D",
+            )
+        )
+
     # ── Render results ────────────────────────────────────────────────────────
     if json_output:
 

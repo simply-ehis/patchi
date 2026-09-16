@@ -482,7 +482,10 @@ Notification channel management.
 ## 10. Developer Tools & Diagnostics
 
 ### `p doctor`
-System health check — stale commands, dependencies, config.
+System health check — stale commands, dependencies, config, and the
+command registry itself: every registered handler must resolve on disk
+(doctor twin of the CI registry tests), so a dangling command shows in
+the health view with its registry entry named, not just in CI.
 
 | Flag | Effect |
 |------|--------|
