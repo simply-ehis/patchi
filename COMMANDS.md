@@ -14,7 +14,7 @@ These work with any command:
 
 | Flag | Effect |
 |------|--------|
-| `--json` | Output as JSON (machine-readable). Convention: stdout is exactly one JSON value — no human UI before or after it, no Rich soft-wrapping inside it. Commands that run agents mute their UI during the run and emit via a pure `print`; the post-dispatch update notice is suppressed in JSON mode |
+| `--json` | Output as JSON (machine-readable). Convention: stdout is exactly one JSON value — no human UI before or after it, no Rich soft-wrapping inside it. Commands that run agents mute their UI during the run and emit via a pure `print`; the post-dispatch update notice is suppressed in JSON mode. Works in both positions — `p --json <cmd>` bridges into commands that declare their own `--json` (dest `json_output`), so the subparser default can no longer silently mask the global flag |
 | `--deep` | Enable LLM-assisted analysis (costs tokens) |
 | `--force` | Skip confirmations |
 | `--offline` | Static analysis only, no AI calls |

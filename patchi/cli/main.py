@@ -149,6 +149,14 @@ def main() -> None:
     parser = _build_parser()
     args = parser.parse_args()
 
+    # Bridge the global --json into commands that declare their own --json
+    # (dest json_output): the subparser's default would otherwise mask the
+    # top-level flag, so `p --json status` silently printed the rich panel
+    # while only `p status --json` produced JSON. Commands whose Arg dest is
+    # literally `json` share the top dest and already honor both forms.
+    if getattr(args, "json", False):
+        args.json_output = True
+
     getattr(args, "no_logo", False)
 
     # Apply the CLI theme before ANY command output happens, so every command
@@ -186,13 +194,52 @@ def main() -> None:
     threading.Thread(target=auto_check_background, daemon=True).start()
 
     # Onboarding check (M-01): if project exists but onboarding not complete,
-    # and the user didn't explicitly run `init`, prompt them to run it.
-    # Never in --json mode: stdout must stay machine-parseable (banner corrupts
-    # every `p <cmd> --json` consumer otherwise). Subcommand-level --json lives
-    # on json_output (subparsers don't inherit top-level dests), so check both.
-    if cmd != "init" and not (
-        getattr(args, "json", False) or getattr(args, "json_output", False)
-    ):
+    # and the user didn't explicitly run `init`, nudge them to run it.
+    # Stdout discipline (same contract as every --json command): the banner
+    # must never mix into output a consumer parses. It is suppressed when
+    #   - --json / <cmd> --json   (machine-pure stdout — subcommand-level
+    #     --json lives on json_output, subparsers don't inherit top-level
+    #     dests, so check both),
+    #   - --quiet                 ("errors only" means errors only), or
+    #   - the command prints machine-consumed stdout even in human mode
+    #     (status/why/impact/blast/findings/trend/doctor/memory/governance/
+    #     ready — gate + audit surfaces a CI step or script scans), where any
+    #     leading banner shifts every line the consumer reads.
+    # The banner goes to stderr when suppressed-for-machine-output so the
+    # nudge still reaches interactive users piping output, without touching
+    # the piped stream. In --quiet mode it is dropped entirely: "errors only"
+    # means errors only.
+    _MACHINE_STDOUT_COMMANDS = {
+        "status",
+        "why",
+        "impact",
+        "blast",
+        "findings",
+        "trend",
+        "doctor",
+        "memory",
+        "governance",
+        "ready",
+    }
+    json_mode = bool(getattr(args, "json", False) or getattr(args, "json_output", False))
+    quiet_mode = bool(getattr(args, "quiet", False))
+    machine_stdout = cmd in _MACHINE_STDOUT_COMMANDS
+    if cmd != "init" and (json_mode or quiet_mode or machine_stdout):
+        if not quiet_mode:
+            try:
+                from patchi.core.config import find_project_root, load
+
+                r = find_project_root()
+                if r:
+                    conf = load(r)
+                    if not conf.get("onboarding_complete", False):
+                        print(  # noqa: T201 - stderr nudge; con would soft-wrap & theme-gate
+                            "Onboarding incomplete — run `p init` to configure this project.",
+                            file=sys.stderr,
+                        )
+            except Exception as e:
+                _log.warning("onboarding stderr nudge failed: %s", e)
+    elif cmd != "init":
         try:
             from patchi.core.config import find_project_root, load
 
