@@ -237,7 +237,7 @@ Keys stored in `.patchi/keys.json`, never sent elsewhere.
 <!-- BEGIN GENERATED: architecture-diagrams -->
 ### Module dependency map
 
-Auto-generated from the live import graph — the highest fan-in core modules (22 shown of 520 Python modules).
+Auto-generated from the live import graph — the highest fan-in core modules (22 shown of 524 Python modules).
 
 ```mermaid
 ---
@@ -264,7 +264,6 @@ flowchart LR
         brain_route_mapper_py["route_mapper"]
         brain_ast_utils_helpers_py["helpers"]
         brain_route_detector_registry_py["registry"]
-        brain_type_checker_base_py["type_checker/base"]
     end
     subgraph cli [cli]
         cli_console_py["console"]
@@ -281,6 +280,7 @@ flowchart LR
     end
     subgraph security [security]
         security_defenders_base_py["defenders/base"]
+        security_security_agents_py["security_agents"]
     end
     agents_base_py --> agents_tool_health_py
     agents_base_py --> brain_file_corpus_py
