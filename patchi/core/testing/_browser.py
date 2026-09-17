@@ -154,3 +154,37 @@ def save_screenshot(page, evidence_dir: Path, name: str) -> Path | None:
     except Exception as e:  # pragma: no cover - screenshot infra failure
         _log.warning("save_screenshot failed for %s: %s", name, e)
         return None
+
+
+def evidence_payload(
+    *,
+    screenshot: Path | str | None = None,
+    status: int | None = None,
+    console_errors: list | None = None,
+    page_errors: list | None = None,
+    video: Path | str | None = None,
+    root: Path | None = None,
+) -> dict:
+    """Standard evidence blob every browser finding carries.
+
+    One schema so the UI/CLI can always render screenshot + diagnostics
+    the same way, regardless of which agent produced the finding.
+    Paths are relativized to *root* when given, else returned as-is.
+    """
+
+    def _rel(p: Path | str | None) -> str | None:
+        if not p:
+            return None
+        try:
+            return str(Path(p).relative_to(root)) if root else str(p)
+        except ValueError:
+            # Outside root: basename only — never leak absolute host paths.
+            return Path(p).name
+
+    return {
+        "screenshot": _rel(screenshot),
+        "video": _rel(video),
+        "http_status": status,
+        "console_errors": list(console_errors or [])[:5],
+        "page_errors": list(page_errors or [])[:5],
+    }

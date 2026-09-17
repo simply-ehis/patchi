@@ -166,6 +166,13 @@ COMMANDS: list[Command] = [
             Arg("area", nargs="?", help="Targeted area â€” plain language or path"),
             Arg("--force", action="store_true", help="Re-scan even if brain is fresh"),
             Arg(
+                "--timeout-minutes",
+                dest="timeout_minutes",
+                type=float,
+                default=None,
+                help="Overall scan budget in minutes; remaining phases report SKIPPED past it",
+            ),
+            Arg(
                 "--offline",
                 dest="offline",
                 action="store_true",
@@ -869,8 +876,8 @@ COMMANDS: list[Command] = [
         "Generate a structured analysis report",
         "patchi.cli.commands.report_cmd:run",
         args=(
-            Arg("report_cmd", nargs="?", choices=("export", "weekly"), help="export | weekly"),
-            Arg("--format", dest="fmt", default="markdown", help="Output format (markdown | json)"),
+              Arg("report_cmd", nargs="?", choices=("export", "weekly"), help="export | weekly"),
+              Arg("--format", dest="fmt", default="markdown", help="Output format (markdown | json | sarif | client)"),
         ),
     ),
     Command(
@@ -923,6 +930,30 @@ COMMANDS: list[Command] = [
             Arg("--intent", type=str, help="Intent description (with --plan)"),
             Arg("--no-scan", dest="no_scan", action="store_true", help="Skip scan during audit"),
             Arg("--html", type=str, help="Write self-contained HTML report"),
+        ),
+    ),
+    Command(
+        "retest",
+        "Verify fixes closed last scan's findings (fixed/persisting/new)",
+        "patchi.cli.commands.retest_cmd:run",
+        args=(
+            Arg("--agent", type=str, help="Only retest findings from one agent"),
+            Arg("--json", dest="json_output", action="store_true", help="JSON output"),
+        ),
+    ),
+    Command(
+        "authorize",
+        "Record who approved active testing against which host",
+        "patchi.cli.commands.authorize_cmd:run",
+        args=(
+            Arg("--target", type=str, help="Host or URL approved for active testing"),
+            Arg("--by", dest="by", type=str, help="Approver name (who authorized this?)"),
+            Arg("--scope", type=str, help="Comma-separated paths in scope (default /)"),
+            Arg("--hours", type=float, default=24.0, help="Approval window in hours (default 24)"),
+            Arg("--purpose", type=str, default="", help="Engagement purpose (recorded)"),
+            Arg("--list", dest="list_", action="store_true", help="List recorded authorizations"),
+            Arg("--revoke", type=str, help="Revoke the grant for a host"),
+            Arg("--json", dest="json_output", action="store_true", help="JSON output"),
         ),
     ),
     Command(
@@ -1162,6 +1193,12 @@ COMMANDS: list[Command] = [
                 args=(
                     Arg("symbol", help="Symbol or package name to count references for"),
                     Arg("--json", dest="json_output", action="store_true", help="Output as JSON"),
+                    Arg(
+                        "--out",
+                        dest="out",
+                        type=Path,
+                        help="Write a markdown blast-radius report (references + risk table) to a file for PRs/docs",
+                    ),
                 ),
             ),
             Command(

@@ -22,6 +22,18 @@ test/fix generation must keep `p eval` green before shipping.
 - **clean defend escapes** — clean cases routed `defend` (must be 0; traps may sit in ai_analyze/human_review, never auto-defend).
 - **noise accuracy** — exact kept|capped|discarded match / total (noise).
 
+## Detection benchmarks (`p eval benchmark [name]`)
+- `benchmarks/<name>/manifest.json` — labeled vuln/clean **source cases**
+  (inline `code`, materialized to tmp at run) scored against **real detector
+  agents** (e.g. `InjectionAgent`). This is the sales sheet: per-category
+  detection rate + clean-trap FP count.
+- `kind` is `vuln` | `clean`. `expect` maps a vuln case to finding
+  type/CWE substrings; extras on vuln files are listed for FP review.
+- `known_gap: true` marks a documented miss (with reason) — reported in its
+  own section, excluded from the verdict, so real gaps stay visible without
+  red fatigue. Closing one means deleting the flag, not adding code first.
+- A skipped agent is never a pass: the suite reports partial with reason.
+
 ## Generation eval
 - `cases/generation_cases.json` — 3 seeded vulns; the model must generate a
   regression test that references the seeded symbol and parses as Python.

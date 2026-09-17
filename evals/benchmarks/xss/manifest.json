@@ -1,0 +1,39 @@
+{
+  "name": "xss",
+  "owasp": "A03:2021 – Injection (XSS)",
+  "agents": ["InjectionAgent"],
+  "cases": [
+    {
+      "id": "xss-innerhtml",
+      "kind": "vuln",
+      "category": "xss-dom",
+      "file": "vuln_xss.js",
+      "expect": {"type": ["xss"]},
+      "code": "function greet(name) {\n  var el = document.getElementById('hi');\n  el.innerHTML = '<b>' + name + '</b>';\n}\n"
+    },
+    {
+      "id": "xss-flask-return",
+      "kind": "vuln",
+      "category": "xss-reflected",
+      "file": "vuln_flask_xss.py",
+      "expect": {"type": ["xss"]},
+      "known_gap": true,
+      "known_gap_reason": "server-side template concat (return '<h1>' + name) has no registered Python sink — needs flask/jinja sink set",
+      "code": "from flask import request\n\n\n@app.route('/hello')\ndef hello():\n    name = request.args.get('name', '')\n    return '<h1>Hello ' + name + '</h1>'\n"
+    },
+    {
+      "id": "clean-textcontent",
+      "kind": "clean",
+      "category": "xss-dom",
+      "file": "clean_xss.js",
+      "code": "function greet(name) {\n  var el = document.getElementById('hi');\n  el.textContent = name;\n}\n"
+    },
+    {
+      "id": "clean-escaped",
+      "kind": "clean",
+      "category": "xss-reflected",
+      "file": "clean_escape.py",
+      "code": "from flask import request, escape\n\n\n@app.route('/hello')\ndef hello():\n    name = request.args.get('name', '')\n    return '<h1>Hello ' + escape(name) + '</h1>'\n"
+    }
+  ]
+}

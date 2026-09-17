@@ -32,6 +32,7 @@ from pathlib import Path
 from typing import Any
 
 from rich.live import Live
+from rich.markup import escape as _escape_markup
 from rich.panel import Panel
 from rich.progress import (
     BarColumn,
@@ -53,6 +54,64 @@ from patchi.core.brain.freshness import check_freshness
 from patchi.core.config import require_project_root
 
 _log = logging.getLogger("patchi.cli.scan_cmd")
+
+
+def provenance_badge(brain: dict | None) -> tuple[str, bool]:
+    """Contract provenance badge suffix + offline flag (pure helper).
+
+    Fixed vocabulary — raw memory never reaches markup. Returns
+    (" [dim](<prov>)[/dim]", is_offline); ("", False) when unknown.
+    """
+    prov = (brain or {}).get("contract_provenance", "")
+    if prov not in ("offline-inferred", "ai-inferred", "user-confirmed"):
+        return "", False
+    return f" [dim]({prov})[/dim]", prov == "offline-inferred"
+
+
+def discover_test_stems(root: Path) -> set[str]:
+    """Normalized stems of test_*.py files under root (pruned walk).
+
+    Thin wrapper over coverage_prioritizer.test_stems_from_paths so the
+    banner and the prioritizer share one stem implementation.
+    """
+    from patchi.core.testing.coverage_prioritizer import iter_test_files, test_stems_from_paths
+
+    return test_stems_from_paths(iter_test_files(root))
+
+
+def banner_test_stems(report, root: Path) -> set[str]:
+    """Test stems for the 0-coverage banner without a second tree walk.
+
+    Full scans reuse report.file_infos (already walked, ignore-respecting);
+    targeted scans (report.area set, subset file_infos) fall back to the
+    pruned walk so missing test files can't false-fire the banner.
+    """
+    if getattr(report, "area", None) is None:
+        try:
+            from patchi.core.testing.coverage_prioritizer import test_stems_from_paths
+
+            return test_stems_from_paths(
+                fi.path for fi in (getattr(report, "file_infos", None) or [])
+            )
+        except Exception as exc:
+            _log.debug("banner stems from file_infos failed, walking: %s", exc)
+    return discover_test_stems(root)
+
+
+def uncovered_critical_flow_ids(flows, test_stems: set[str]) -> list[str]:
+    """Ids of critical flows with no sibling test stem (pure helper).
+
+    Cheap name-match prompt to generate tests — never a coverage verdict
+    (real coverage lives in CoveragePrioritizer/p eval).
+    """
+    uncovered: list[str] = []
+    for flow in flows or []:
+        if not getattr(flow, "critical", False):
+            continue
+        flow_stems = {Path(x).stem.lower() for x in (getattr(flow, "files", []) or [])}
+        if flow_stems and flow_stems.isdisjoint(test_stems):
+            uncovered.append(flow.id)
+    return uncovered
 
 
 def run(
@@ -82,6 +141,7 @@ def run(
     root: Path | None = None,
     with_license: bool = False,
     with_extended: bool = False,
+    timeout_minutes: float | None = None,
 ) -> int:
     """Entry point for `p scan [area]`. Returns process exit code."""
     try:
@@ -133,6 +193,7 @@ def run(
             fail_on,
             with_license,
             with_extended,
+            timeout_minutes=timeout_minutes,
         )
 
 
@@ -163,8 +224,13 @@ def _run_scan_inner(
     fail_on: str | None = None,
     with_license: bool = False,
     with_extended: bool = False,
+    timeout_minutes: float | None = None,
 ) -> int:
     """Inner scan logic — runs inside tenant_context. Returns process exit code."""
+
+    if timeout_minutes is not None and timeout_minutes <= 0:
+        con.print("[red]--timeout-minutes must be positive.[/red]")
+        return 2
 
     # ── Contract review mode ──────────────────────────────────────────────────
     if contract:
@@ -434,7 +500,14 @@ def _run_scan_inner(
 
             # Run the full pipeline (see Governor.run_scan for the Brain
             # delegation and the default SECURITY dispatch).
-            phase_results = gov.run_full_pipeline_v2(scope=None, dry_run=True, area=area)
+            _deadline_s: float | None = None
+            if timeout_minutes is not None:
+                _deadline_s = timeout_minutes * 60
+                if not json_output:
+                    con.print(f"[dim]Scan budget: {timeout_minutes:g} minute(s).[/dim]")
+            phase_results = gov.run_full_pipeline_v2(
+                scope=None, dry_run=True, area=area, deadline_s=_deadline_s
+            )
 
             # ── Surface per-phase evidence (§8: verdicts carry evidence) ──
             con.print()
@@ -1079,10 +1152,31 @@ def _run_scan_inner(
         ]
         if new_flows:
             con.print()
+            badge, is_offline = provenance_badge(mem.get_brain(r))
             con.print(
-                f"[yellow]![/yellow] [dim]{len(new_flows)} new potential critical flow(s) found.[/dim]"
+                f"[yellow]![/yellow] [dim]{len(new_flows)} new potential critical flow(s) found{badge}.[/dim]"
             )
             con.print("[dim]Run [bold]p scan --contract[/bold] to review and confirm.[/dim]")
+            if is_offline:
+                con.print("[dim]Contract is offline-inferred — configure AI and rescan to upgrade it.[/dim]")
+
+    if report.inferred_flows:
+        # 0-coverage banner (sibling of `if new_flows:`, not nested in it:
+        # once the contract locks, new_flows is empty but uncovered flows
+        # still matter). Name-match only — prompt to generate, never verdict.
+        try:
+            uncovered_ids = uncovered_critical_flow_ids(
+                report.inferred_flows, banner_test_stems(report, r)
+            )
+            if uncovered_ids:
+                shown = ", ".join(_escape_markup(i) for i in uncovered_ids[:5])
+                more = f" +{len(uncovered_ids) - 5} more" if len(uncovered_ids) > 5 else ""
+                con.print(
+                    f"[yellow]![/yellow] [dim]{len(uncovered_ids)} critical flow(s) with no test file: "
+                    f"{shown}{more} — run [bold]p test generate contract[/bold].[/dim]"
+                )
+        except OSError as exc:
+            _log.debug("0-coverage banner skipped: %s", exc)
 
     # ── Doc validation ────────────────────────────────────────────────────────
     dv = report.doc_validation or {}
@@ -1239,6 +1333,12 @@ def _run_contract_review(root: Path, all_flows: bool = False) -> None:
     brain_data = mem.get_brain(root)
     inferred_flows = brain_data.get("inferred_flows", [])
     confirmed_flows = brain_data.get("confirmed_flows", [])
+    try:
+        from patchi.core.brain.contract import migrate_flow_dicts
+
+        confirmed_flows = migrate_flow_dicts(confirmed_flows)
+    except Exception as exc:
+        _log.debug("contract review migration skipped: %s", exc)
 
     if not inferred_flows:
         con.print("[dim]No inferred contract flows found. Run a full scan first.[/dim]")

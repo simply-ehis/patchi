@@ -1,0 +1,38 @@
+{
+  "name": "jwt",
+  "owasp": "A07:2021 – Identification and Authentication Failures (JWT)",
+  "agents": ["JWTSecurityAgent"],
+  "cases": [
+    {
+      "id": "jwt-none-algo",
+      "kind": "vuln",
+      "category": "jwt-algorithm",
+      "file": "vuln_none.py",
+      "expect": {"type": ["jwt_weak_algorithm"]},
+      "code": "import jwt\n\n\ndef make_token(user):\n    return jwt.encode({'user': user}, 'secret', algorithm='none')\n"
+    },
+    {
+      "id": "jwt-hardcoded-secret",
+      "kind": "vuln",
+      "category": "jwt-secret",
+      "file": "vuln_secret.py",
+      "expect": {"type": ["jwt_hardcoded_secret"]},
+      "code": "import jwt\n\nSECRET = 'dev-secret-change-me-in-prod'\n\n\ndef make_token(user):\n    return jwt.encode({'user': user, 'exp': 9999999999}, SECRET, algorithm='HS256')\n"
+    },
+    {
+      "id": "jwt-no-expiry",
+      "kind": "vuln",
+      "category": "jwt-expiry",
+      "file": "vuln_noexp.py",
+      "expect": {"type": ["jwt_no_expiry"]},
+      "code": "import jwt\nimport os\n\nSECRET = os.environ['JWT_SECRET']\n\n\ndef make_token(user):\n    return jwt.encode({'user': user}, SECRET, algorithm='HS256')\n"
+    },
+    {
+      "id": "clean-rs256-env-expiry",
+      "kind": "clean",
+      "category": "jwt-secret",
+      "file": "clean_jwt.py",
+      "code": "import jwt\nimport os\nfrom datetime import datetime, timedelta, timezone\n\nSECRET = os.environ['JWT_SECRET']\n\n\ndef make_token(user):\n    payload = {'user': user, 'exp': datetime.now(timezone.utc) + timedelta(minutes=15)}\n    return jwt.encode(payload, SECRET, algorithm='RS256')\n"
+    }
+  ]
+}

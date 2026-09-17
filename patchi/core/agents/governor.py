@@ -1678,6 +1678,28 @@ class Governor:
         auto = sum(1 for w in winners if w["decision"] == "auto_apply")
         esc = sum(1 for w in winners if w["decision"] == "escalate")
         evidence["autonomy"] = {"auto_apply": auto, "escalated": esc}
+        # Flake evidence (testing-moat §6): a passing reverify set that
+        # contains historically-flaky tests is weaker than a clean pass.
+        # Recorded here so reports show it; blocking on a fuzzy
+        # test-name↔patch-id join would be a false gate, so flake alone
+        # never flips auto_apply → escalate until that mapping exists.
+        try:
+            from patchi.core.testing.flake_detector_agent import _detect_flaky_tests
+
+            _flaky = _detect_flaky_tests(self.root) or []
+            evidence["flake"] = {
+                "flaky_count": len(_flaky),
+                "flaky_tests": [f.get("test_name", "?") for f in _flaky[:10]],
+            }
+            if _flaky:
+                logger.warning(
+                    f"Score-select: {len(_flaky)} historically-flaky test(s) on record — "
+                    "treat reverify passes covering them as weaker evidence"
+                )
+        except Exception as _exc:
+            # Unknown, not zero: a broken detector must not masquerade as clean.
+            evidence["flake"] = {"flaky_count": None, "error": str(_exc)[:120]}
+            logger.warning(f"Score-select flake check failed: {_exc}")
         if not any("risk_gate" in (w["reason"] or "") and w["decision"] == "escalate" for w in winners):
             # No candidate tripped the autonomy rule — recorded honestly so a
             # future seeded high-criticality case can prove the rule engages.
@@ -1749,7 +1771,7 @@ class Governor:
                             "reason": f"risk_gate REQUIRE_REVIEW on patch {p.get('id')}",
                         }
             except Exception as e:
-                logger.debug("Autonomy check failed open to score rules: %s", e)
+                logger.debug(f"Autonomy check failed open to score rules: {e}")
 
         # Score thresholds
         if score >= 0.8:
@@ -1798,11 +1820,16 @@ class Governor:
         scope: list[str] | None = None,
         dry_run: bool = True,
         area: str | None = None,
+        deadline_s: float | None = None,
     ) -> list[PhaseResult]:
         """Run the full 7-step pipeline.
 
         SCAN → GRAPH_UPDATE → TEST_GENERATION → TEST_EXECUTION
         → FIX_GENERATION → SANDBOX_REVERIFY → SCORE_SELECT
+
+        ``deadline_s`` is an overall time budget (see `p scan
+        --timeout-minutes`). When it fires between phases, remaining phases
+        report SKIPPED with the reason — a time-boxed partial, never a pass.
 
         §1 merge + user decision: ``dry_run`` now defaults to True — plain
         `p scan` stays read-only (candidates are generated, sandbox-verified
@@ -1824,6 +1851,19 @@ class Governor:
                 self.current_phase.value,
             )
             self.reset_pipeline()
+        _t0 = time.monotonic()
+
+        def _timed_out(after: PipelinePhase) -> list[PhaseResult] | None:
+            """Remaining phases as SKIPPED when the budget fired, else None."""
+            elapsed = self._past_deadline(deadline_s, _t0)
+            if elapsed is None:
+                return None
+            logger.warning(
+                f"Scan budget exhausted after {after.value} "
+                f"({elapsed:.0f}s > {deadline_s or 0:g}s) — skipping remainder"
+            )
+            self.current_phase = PipelinePhase.FAILED
+            return self._deadline_skips(after, deadline_s or 0, elapsed)
 
         # 1. SCAN
         scan_result = self.run_scan(scope=scope, area=area)
@@ -1832,30 +1872,42 @@ class Governor:
             logger.error("SCAN failed, aborting v2 pipeline")
             self.current_phase = PipelinePhase.FAILED
             return phases
+        if (skipped := _timed_out(PipelinePhase.SCAN)) is not None:
+            return phases + skipped
 
         # 2. GRAPH_UPDATE — incremental SymbolGraph patch
         graph_result = self.run_graph_update()
         phases.append(graph_result)
+        if (skipped := _timed_out(PipelinePhase.GRAPH_UPDATE)) is not None:
+            return phases + skipped
 
         # 3. TEST_GENERATION — graph-scoped
         test_gen_result = self.run_test_generation()
         phases.append(test_gen_result)
+        if (skipped := _timed_out(PipelinePhase.TEST_GENERATION)) is not None:
+            return phases + skipped
 
         # 4. TEST_EXECUTION — run test agents (existing)
         test_exec_result = self.run_test()
         phases.append(test_exec_result)
         if not test_exec_result.passed:
             logger.warning("TEST_EXECUTION has issues, proceeding with caution")
+        if (skipped := _timed_out(PipelinePhase.TEST_EXECUTION)) is not None:
+            return phases + skipped
 
         # 5. FIX_GENERATION — multiple candidates, deterministic first
         fix_gen_result = self.run_fix_generation(dry_run=dry_run)
         phases.append(fix_gen_result)
         if not fix_gen_result.passed:
             logger.warning("FIX_GENERATION has issues")
+        if (skipped := _timed_out(PipelinePhase.FIX_GENERATION)) is not None:
+            return phases + skipped
 
         # 6. SANDBOX_REVERIFY — loop-back scan + test re-run
         reverify_result = self.run_sandbox_reverify()
         phases.append(reverify_result)
+        if (skipped := _timed_out(PipelinePhase.SANDBOX_REVERIFY)) is not None:
+            return phases + skipped
 
         # 7. SCORE_SELECT — composite score → select or escalate
         select_result = self.run_score_select()
@@ -1883,6 +1935,42 @@ class Governor:
                 elif last.passed:
                     last.data["checkpoint_failed"] = True
         return phases
+
+    def _past_deadline(self, deadline_s: float | None, start: float) -> float | None:
+        """Elapsed seconds if the scan budget is exhausted, else None."""
+        if deadline_s is None:
+            return None
+        elapsed = time.monotonic() - start
+        return elapsed if elapsed > deadline_s else None
+
+    def _deadline_skips(
+        self, after: PipelinePhase, budget_s: float, elapsed_s: float
+    ) -> list[PhaseResult]:
+        """Synthetic SKIPPED results for phases that never ran (time-box).
+
+        Keeps the phases list shape stable and the verdict honest: SKIPPED
+        is degraded, never a pass. Rerun hint names the flag that raises it.
+        """
+        out: list[PhaseResult] = []
+        for phase in PipelinePhase:
+            if phase in (PipelinePhase.COMPLETE, PipelinePhase.FAILED, PipelinePhase.IDLE):
+                continue
+            if phase.order <= after.order:
+                continue
+            out.append(
+                PhaseResult(
+                    phase=phase,
+                    status=AgentStatus.SKIPPED,
+                    results=[],
+                    errors=[
+                        f"skipped: {budget_s:g}s scan budget exhausted after "
+                        f"{after.value} ({elapsed_s:.0f}s elapsed) — rerun with "
+                        f"a larger --timeout-minutes"
+                    ],
+                    data={"verdict": "partial", "deadline_exceeded": True},
+                )
+            )
+        return out
 
     # ── State management ──────────────────────────────────────────────────
 

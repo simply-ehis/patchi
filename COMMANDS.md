@@ -29,6 +29,10 @@ These work with any command:
 ### `p scan [area]`
 Full codebase scan. Runs all security agents, brain analysis, and import graph.
 
+  | Flag | Effect |
+  |------|--------|
+  | `--timeout-minutes <n>` | Overall scan budget; phases past the budget report SKIPPED (partial, never a pass) |
+
 Status confirmation is built in: before dispatch, a one-line tool status
 (`Tools: ✓ gitleaks ✓ osv-scanner … missing: codeql — skipped (p doctor --install)`)
 says which external tools will actually run; after the summary, an **Agent
@@ -354,6 +358,16 @@ Full project audit: scan + security + test + report in one command.
 | `--no-scan` | Skip scan, use cached results |
   | `--html` | HTML report output |
 
+### `p retest`
+Verify fixes closed the last scan's findings — the billable second pass.
+Re-runs the same detector agents and diffs: FIXED / PERSISTING / NEW.
+A finding is UNKNOWN (never fixed) when its agent can't run.
+
+  | Flag | Effect |
+  |------|--------|
+  | `--agent <name>` | Only retest findings from one agent |
+  | `--json` | JSON output |
+
 ### `p authorize`
 Record who approved active testing against which host (the legal shield
 for customer engagements). Localhost stays frictionless; any other host
@@ -665,7 +679,7 @@ event triage, and CI config generation behind one command.
 | `p governance policy [target]` | Show the policy; with a target, test it against the policy |
 | `p governance history` | Scan history + findings lifecycle analytics |
 | `p governance verify <id>` | Mark a finding's fix as verified (`--force` to override status) |
-| `p governance impact <symbol>` | Blast radius: count references across the codebase |
+| `p governance impact <symbol>` | Blast radius: count references across the codebase; `--out <file.md>` writes a PR-ready markdown report (reference table, truncation stated honestly) |
 | `p governance triage` | Event-anomaly stats; `--start` subscribes to the live EventBus |
 | `p governance generate` | Preview CI configs; `--write` creates them, never overwrites without `--force` |
 

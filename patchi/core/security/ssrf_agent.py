@@ -211,11 +211,15 @@ class SSRFProtectionAgent(BaseAgent):
     def _check_http_clients(self, content: str, lang: Lang, rel_path: str) -> list[Finding]:
         findings = []
         for call in find_calls(content, lang, HTTP_CLIENTS):
+            # LOW, not MEDIUM: a bare client call is a review reminder, not
+            # evidence — exploitability needs user-controlled input reaching
+            # the URL (see _check_url_construction, which carries the weight).
+            # Every httpx.get in a codebase is not a MEDIUM finding.
             findings.append(
                 make_finding(
                     self.name,
                     "ssrf_http_client",
-                    Severity.MEDIUM,
+                    Severity.LOW,
                     rel_path,
                     f"HTTP client call ({call['name']}) — verify URL is not user-controlled",
                     line=call["line"],

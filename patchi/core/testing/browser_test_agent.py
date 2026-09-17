@@ -38,6 +38,7 @@ from ..agents.base import (
 )
 from ..ai.client import call_ai
 from ..ai.prompts import Skill, build_prompt, get_system_prompt
+from ._browser import evidence_payload
 
 _log = logging.getLogger("patchi.testing.browser_test_agent")
 
@@ -267,12 +268,16 @@ class BrowserTestAgent(BaseAgent):
                 except Exception as e:
                     slug = "nav-failure"
                     shot = artifacts / f"{slug}-{len(screenshots)}.png"
+                    shot_name: str | None = None
                     try:
                         await page.screenshot(path=str(shot), full_page=False)
                         screenshots.append(shot.name)
+                        shot_name = shot.name
                     except Exception as _exc:
                         _log.warning("_probe_async failed: %s", _exc)
-                    nav_failures.append({"url": url, "error": str(e)[:160]})
+                    nav_failures.append(
+                        {"url": url, "error": str(e)[:160], "screenshot": shot_name}
+                    )
                     continue
         finally:
             await pool.release_page(page)
@@ -303,6 +308,15 @@ class BrowserTestAgent(BaseAgent):
                     "severity": "high",
                     "page": nf["url"],
                     "detail": nf["error"],
+                    "screenshot": nf.get("screenshot"),
+                    "evidence": evidence_payload(
+                        screenshot=(
+                            artifacts / nf["screenshot"]
+                            if nf.get("screenshot")
+                            else None
+                        ),
+                        root=inp.root,
+                    ),
                 }
             )
 

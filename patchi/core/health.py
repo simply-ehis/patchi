@@ -296,6 +296,15 @@ def _compute_contract(brain: dict) -> float:
     inferred = brain.get("inferred_flows", [])
     confirmed = brain.get("confirmed_flows", [])
 
+    # Re-key retired ids before the ratio: orphan confirmations otherwise
+    # inflate the score (confirmed ids infer() can never emit).
+    try:
+        from patchi.core.brain.contract import migrate_flow_dicts
+
+        confirmed = migrate_flow_dicts(confirmed)
+    except Exception as exc:
+        _log.debug("contract health migration skipped: %s", exc)
+
     if not inferred:
         return 50.0
 

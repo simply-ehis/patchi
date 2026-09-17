@@ -1,0 +1,22 @@
+{
+  "name": "crypto",
+  "owasp": "A02:2021 – Cryptographic Failures",
+  "agents": ["CryptoAgent"],
+  "cases": [
+    {
+      "id": "crypto-md5",
+      "kind": "vuln",
+      "category": "weak-hash",
+      "file": "vuln_md5.py",
+      "expect": {"type": ["md5"]},
+      "code": "import hashlib\n\n\ndef hash_pw(pw):\n    return hashlib.md5(pw.encode()).hexdigest()\n"
+    },
+    {
+      "id": "clean-bcrypt",
+      "kind": "clean",
+      "category": "weak-hash",
+      "file": "clean_bcrypt.py",
+      "code": "import bcrypt\n\n\ndef hash_pw(pw):\n    return bcrypt.hashpw(pw.encode(), bcrypt.gensalt())\n"
+    }
+  ]
+}

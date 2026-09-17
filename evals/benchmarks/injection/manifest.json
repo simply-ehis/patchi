@@ -1,0 +1,47 @@
+{
+  "name": "injection",
+  "owasp": "A03:2021 – Injection",
+  "agents": ["InjectionAgent"],
+  "cases": [
+    {
+      "id": "sqli-inline",
+      "kind": "vuln",
+      "category": "sqli",
+      "file": "vuln_sqli.py",
+      "expect": {"type": ["sql_injection"], "cwe": ["CWE-89"]},
+      "code": "import sqlite3\n\n\ndef get_user(user_id):\n    conn = sqlite3.connect('app.db')\n    cur = conn.cursor()\n    cur.execute('SELECT * FROM users WHERE id = ' + user_id)\n    return cur.fetchall()\n"
+    },
+    {
+      "id": "cmdi-system",
+      "kind": "vuln",
+      "category": "cmdi",
+      "file": "vuln_cmdi.py",
+      "expect": {"type": ["command_injection"], "cwe": ["CWE-78"]},
+      "code": "import os\nimport sys\n\n\ndef ping(host):\n    os.system('ping -c 1 ' + host)\n\n\nif __name__ == '__main__':\n    ping(sys.argv[1])\n"
+    },
+    {
+      "id": "sqli-variable-mediated",
+      "kind": "vuln",
+      "category": "sqli",
+      "file": "vuln_sqli_flow.py",
+      "expect": {"type": ["sql_injection"]},
+      "known_gap": true,
+      "known_gap_reason": "concat assigned to a variable before the sink — needs taint/flow analysis, agent only sees inline concat at the call",
+      "code": "import sqlite3\n\n\ndef get_user(user_id):\n    conn = sqlite3.connect('app.db')\n    cur = conn.cursor()\n    query = 'SELECT * FROM users WHERE id = ' + user_id\n    cur.execute(query)\n    return cur.fetchall()\n"
+    },
+    {
+      "id": "clean-param-query",
+      "kind": "clean",
+      "category": "sqli",
+      "file": "clean_param.py",
+      "code": "import sqlite3\n\n\ndef get_user(user_id):\n    conn = sqlite3.connect('app.db')\n    cur = conn.cursor()\n    cur.execute('SELECT * FROM users WHERE id = ?', (user_id,))\n    return cur.fetchall()\n"
+    },
+    {
+      "id": "clean-static-command",
+      "kind": "clean",
+      "category": "cmdi",
+      "file": "clean_static.py",
+      "code": "import os\n\n\ndef list_tmp():\n    os.system('ls /tmp')\n"
+    }
+  ]
+}

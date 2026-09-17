@@ -30,6 +30,10 @@ from ..agents.base import (
 
 _FLAKE_DB_NAME = "flake_history.db"
 _MIN_RUNS_FOR_FLAKE = 2
+# Retention window: history is implicitly windowed to the newest runs, so an
+# ancient failure can't quarantine a test forever (audit: no un-quarantine
+# path). Pruned on every record — one indexed DELETE pair, amortized.
+_MAX_KEPT_RUNS = 50
 
 
 def _get_flake_db(root: Path) -> sqlite3.Connection:
@@ -99,9 +103,93 @@ def _record_test_run(
                 ),
             )
         conn.commit()
+        _prune_old_runs(conn)
     finally:
         conn.close()
     return run_id
+
+
+def _prune_old_runs(conn: sqlite3.Connection, keep: int = _MAX_KEPT_RUNS) -> None:
+    """Drop runs (and their results) older than the newest `keep`."""
+    cur = conn.execute(
+        "SELECT run_id FROM test_runs ORDER BY rowid DESC LIMIT -1 OFFSET ?",
+        (keep,),
+    )
+    stale = [r[0] for r in cur.fetchall()]
+    if not stale:
+        return
+    conn.execute(
+        f"DELETE FROM test_results WHERE run_id IN ({','.join('?' * len(stale))})",
+        stale,
+    )
+    conn.execute(
+        f"DELETE FROM test_runs WHERE run_id IN ({','.join('?' * len(stale))})",
+        stale,
+    )
+    conn.commit()
+
+
+def _flake_rows(
+    conn: sqlite3.Connection, min_runs: int
+) -> list[tuple[str, int, int, int, str, int]]:
+    """One aggregated query: (name, runs, passed, failed, latest file, line).
+
+    Flaky = passed > 0 AND failed > 0. Single round-trip instead of the old
+    names × per-test-history fan-out; full history is then fetched only for
+    the (usually few) flaky names.
+    """
+    cur = conn.execute(
+        "SELECT test_name, COUNT(*), COALESCE(SUM(passed), 0), MAX(rowid) "
+        "FROM test_results GROUP BY test_name HAVING COUNT(*) >= ?",
+        (min_runs,),
+    )
+    agg = [(r[0], r[1], r[2], r[3]) for r in cur.fetchall()]
+    if not agg:
+        return []
+    latest = {
+        r[0]: (r[1], r[2])
+        for r in conn.execute(
+            f"SELECT rowid, file, line FROM test_results WHERE rowid IN "
+            f"({','.join('?' * len(agg))})",
+            [a[3] for a in agg],
+        ).fetchall()
+    }
+    out = []
+    for name, runs, passed, max_rowid in agg:
+        failed = runs - passed
+        if passed > 0 and failed > 0:
+            f, ln = latest.get(max_rowid, ("", 0))
+            out.append((name, runs, passed, failed, f, ln))
+    return out
+
+
+def _histories_for(
+    conn: sqlite3.Connection, names: list[str]
+) -> dict[str, list[dict]]:
+    """Full per-test history for exactly `names` (one query, grouped)."""
+    if not names:
+        return {}
+    cur = conn.execute(
+        "SELECT res.test_name, tr.run_id, tr.timestamp, res.passed, "
+        "res.duration_ms, res.file, res.line "
+        "FROM test_results res JOIN test_runs tr ON res.run_id = tr.run_id "
+        f"WHERE res.test_name IN ({','.join('?' * len(names))}) "
+        "ORDER BY tr.rowid ASC",
+        names,
+    )
+    grouped: dict[str, list[dict]] = {n: [] for n in names}
+    for r in cur.fetchall():
+        grouped[r[0]].append(
+            {
+                "run_id": r[1],
+                "timestamp": r[2],
+                "passed": bool(r[3]),
+                "duration_ms": r[4],
+                "file": r[5],
+                "line": r[6],
+            }
+        )
+    return grouped
 
 
 def _get_all_runs(root: Path) -> list[dict]:
@@ -162,39 +250,52 @@ def _get_all_test_names(root: Path) -> list[str]:
 
 
 def _detect_flaky_tests(root: Path, min_runs: int = _MIN_RUNS_FOR_FLAKE) -> list[dict]:
-    flakes: list[dict] = []
-    for test_name in _get_all_test_names(root):
-        history = _get_test_history(root, test_name)
-        if len(history) < min_runs:
-            continue
-        outcomes = [h["passed"] for h in history]
-        if len(set(outcomes)) > 1:
-            flakes.append(
-                {
-                    "test_name": test_name,
-                    "history": history,
-                    "run_count": len(history),
-                    "pass_count": sum(1 for h in history if h["passed"]),
-                    "fail_count": sum(1 for h in history if not h["passed"]),
-                    "latest_file": history[-1]["file"],
-                    "latest_line": history[-1]["line"],
-                }
-            )
-    return flakes
+    conn = _get_flake_db(root)
+    try:
+        rows = _flake_rows(conn, min_runs)
+        histories = _histories_for(conn, [r[0] for r in rows])
+    finally:
+        conn.close()
+    return [
+        {
+            "test_name": name,
+            "history": histories[name],
+            "run_count": runs,
+            "pass_count": passed,
+            "fail_count": failed,
+            "latest_file": latest_file,
+            "latest_line": latest_line,
+        }
+        for name, runs, passed, failed, latest_file, latest_line in rows
+    ]
 
 
 def _detect_duration_outliers(root: Path, z_threshold: float = 3.0) -> list[dict]:
+    # One connection, one ordered scan grouped in Python: same z-math as
+    # before, without the names × per-test open/query/close fan-out.
+    # (SQLite has no STDDEV aggregate, so the series still comes over.)
+    conn = _get_flake_db(root)
+    try:
+        cur = conn.execute(
+            "SELECT res.test_name, res.duration_ms, res.file, res.line "
+            "FROM test_results res JOIN test_runs tr ON res.run_id = tr.run_id "
+            "ORDER BY res.test_name, tr.rowid ASC"
+        )
+        series: dict[str, list[tuple[int, str, int]]] = {}
+        for name, dur, f, ln in cur.fetchall():
+            series.setdefault(name, []).append((dur, f, ln))
+    finally:
+        conn.close()
     outliers: list[dict] = []
-    for test_name in _get_all_test_names(root):
-        history = _get_test_history(root, test_name)
-        durations = [h["duration_ms"] for h in history if h["duration_ms"] > 0]
+    for test_name, rows in series.items():
+        durations = [d for d, _, _ in rows if d > 0]
         if len(durations) < 3:
             continue
         mean = statistics.mean(durations)
         stdev = statistics.stdev(durations) if len(durations) > 1 else 0.0
         if stdev == 0:
             continue
-        latest_dur = history[-1]["duration_ms"]
+        latest_dur, latest_file, latest_line = rows[-1]
         z_score = (latest_dur - mean) / stdev
         if z_score > z_threshold:
             outliers.append(
@@ -204,9 +305,11 @@ def _detect_duration_outliers(root: Path, z_threshold: float = 3.0) -> list[dict
                     "stdev_duration_ms": round(stdev, 1),
                     "latest_duration_ms": latest_dur,
                     "z_score": round(z_score, 2),
-                    "history": history,
-                    "latest_file": history[-1]["file"],
-                    "latest_line": history[-1]["line"],
+                    "history": [
+                        {"duration_ms": d, "file": f, "line": ln} for d, f, ln in rows
+                    ],
+                    "latest_file": latest_file,
+                    "latest_line": latest_line,
                 }
             )
     return outliers
@@ -297,3 +400,41 @@ def record_test_run(
     Returns the run_id.
     """
     return _record_test_run(root, runner, cases, total, passed, failed, skipped, duration_ms)
+
+
+def get_quarantined_tests(root: Path, flake_threshold: float = 0.5) -> set[str]:
+    """Return test names that should be auto-quarantined (skipped).
+
+    A test is quarantined if it has flaked in >= flake_threshold fraction of
+    its runs (default 50%). Quarantined tests are recorded in a separate table
+    so they can be reviewed and manually un-quarantined.
+    """
+    quarantined: set[str] = set()
+    conn = _get_flake_db(root)
+    try:
+        # Ensure the quarantine table exists
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS quarantined_tests (
+                test_name TEXT PRIMARY KEY,
+                quarantined_at TEXT NOT NULL,
+                reason TEXT DEFAULT 'auto-flake',
+                flake_rate REAL DEFAULT 0.0
+            )
+        """)
+        conn.commit()
+
+        # Flaky candidates from one aggregated query (windowed by retention:
+        # only the newest _MAX_KEPT_RUNS runs exist to flip).
+        for test_name, runs, passed, failed, _f, _ln in _flake_rows(conn, _MIN_RUNS_FOR_FLAKE):
+            fail_rate = failed / runs
+            if fail_rate >= flake_threshold:
+                quarantined.add(test_name)
+                conn.execute(
+                    "INSERT OR REPLACE INTO quarantined_tests (test_name, quarantined_at, reason, flake_rate)"
+                    " VALUES (?, ?, ?, ?)",
+                    (test_name, time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "auto-flake", fail_rate),
+                )
+        conn.commit()
+    finally:
+        conn.close()
+    return quarantined

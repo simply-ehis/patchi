@@ -2,12 +2,14 @@
 from __future__ import annotations
 
 import unittest
+from pathlib import Path
 
 from patchi.core.brain.contract import (
     ContractBuilder,
     ContractFlow,
     confirm_flows,
     flows_from_dict,
+    migrate_flow_dicts,
 )
 from patchi.core.brain.languages import Lang
 from patchi.core.brain.route_mapper import RouteInfo
@@ -24,16 +26,18 @@ def _make_file(path: str) -> FileInfo:
 
 class TestContractInference(unittest.TestCase):
     def test_infers_known_prefix(self):
-        routes = [_make_route("/settings"), _make_route("/keys/add")]
-        files = []
+        # Part 5 §4 corroboration rule: table names require file evidence.
+        # Supply corroborating files so both prefixes resolve to table flows.
+        routes = [_make_route("/settings"), _make_route("/api/items")]
+        files = [_make_file("src/settings.py"), _make_file("src/api/routes.py")]
         builder = ContractBuilder(routes, files)
         flows = builder.infer()
         flow_ids = {f.id for f in flows}
         self.assertIn("settings", flow_ids)
-        self.assertIn("keys", flow_ids)
+        self.assertIn("api", flow_ids)
 
     def test_unknown_prefix_becomes_other_api(self):
-        routes = [_make_route("/api/custom")]
+        routes = [_make_route("/zzcustom/thing")]
         builder = ContractBuilder(routes, [])
         flows = builder.infer()
         flow_ids = {f.id for f in flows}
@@ -112,6 +116,46 @@ class TestContractInference(unittest.TestCase):
         self.assertIn("didn't find", msg)
 
 
+class TestFlowMigration(unittest.TestCase):
+    def _flow(self, fid: str, confirmed: bool = True) -> dict:
+        return {
+            "id": fid,
+            "name": fid.title(),
+            "description": "Saved flow.",
+            "routes": [],
+            "files": [],
+            "signals": ["test"],
+            "confirmed": confirmed,
+        }
+
+    def test_retired_ids_remap(self):
+        data = [self._flow(k) for k in ("findings", "keys", "queue", "hosted", "brain")]
+        ids = sorted(d["id"] for d in migrate_flow_dicts(data))
+        self.assertEqual(ids, ["admin", "dashboard", "review", "settings", "status"])
+
+    def test_migration_preserves_confirmation_and_trails(self):
+        out = migrate_flow_dicts([self._flow("keys")])
+        self.assertTrue(out[0]["confirmed"])
+        self.assertIn("migrated-from:keys", out[0]["signals"])
+
+    def test_confirmed_beats_unconfirmed_on_collision(self):
+        data = [self._flow("keys", True), self._flow("settings", False)]
+        out = migrate_flow_dicts(data)
+        self.assertEqual(len(out), 1)
+        self.assertTrue(out[0]["confirmed"])
+
+    def test_explicit_wins_tie(self):
+        data = [self._flow("keys", True), self._flow("settings", True)]
+        out = migrate_flow_dicts(data)
+        self.assertEqual(len(out), 1)
+        self.assertEqual(out[0]["name"], "Settings")
+
+    def test_unknown_ids_pass_through(self):
+        data = [self._flow("user-0"), self._flow("api")]
+        out = migrate_flow_dicts(data)
+        self.assertEqual([d["id"] for d in out], ["user-0", "api"])
+
+
 class TestConfirmFlows(unittest.TestCase):
     def _make_flow(self, flow_id: str) -> ContractFlow:
         return ContractFlow(
@@ -179,6 +223,64 @@ class TestFlowsSerialization(unittest.TestCase):
     def test_empty_list(self):
         result = flows_from_dict([])
         self.assertEqual(result, [])
+
+
+class TestUpgradeGate(unittest.TestCase):
+    def test_first_attempt_always_runs(self):
+        from patchi.core.brain.brain import _should_attempt_contract_upgrade
+
+        self.assertTrue(_should_attempt_contract_upgrade({}, Path(".")))
+        self.assertTrue(
+            _should_attempt_contract_upgrade({"contract_ai_upgrade_tried": True}, Path("/nonexistent-root-xyz"))
+        )
+
+    def test_pristine_tree_skips_repeat(self):
+        import tempfile
+
+        from patchi.core.brain.brain import _should_attempt_contract_upgrade
+        from patchi.core.brain.freshness import save_freshness_snapshot
+
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            (root / "app.py").write_text("x = 1\n")
+            save_freshness_snapshot(root, ["app.py"])
+            mem = {"contract_ai_upgrade_tried": True}
+            self.assertFalse(_should_attempt_contract_upgrade(mem, root))
+            (root / "app.py").write_text("x = 2\n")
+            # mtime granularity: force a detectable change
+            import os
+            import time
+
+            st = os.stat(root / "app.py")
+            os.utime(root / "app.py", (st.st_atime, st.st_mtime + 5))
+            self.assertTrue(_should_attempt_contract_upgrade(mem, root))
+
+    def test_missing_snapshot_runs(self):
+        import tempfile
+
+        from patchi.core.brain.brain import _should_attempt_contract_upgrade
+
+        with tempfile.TemporaryDirectory() as td:
+            mem = {"contract_ai_upgrade_tried": True}
+            self.assertTrue(_should_attempt_contract_upgrade(mem, Path(td)))
+
+
+class TestDomainSanitize(unittest.TestCase):
+    def test_allowlisted_canonical(self):
+        from patchi.core.brain.brain import _sanitize_ai_domain as sanitize
+
+        self.assertEqual(sanitize("web-app"), "web-app")
+        self.assertEqual(sanitize("Web App"), "web-app")
+        self.assertEqual(sanitize("CLI-TOOL"), "cli-tool")
+        self.assertEqual(sanitize("  Mobile  "), "mobile-app")
+
+    def test_rejects_injection_and_unknown(self):
+        from patchi.core.brain.brain import _sanitize_ai_domain as sanitize
+
+        self.assertEqual(sanitize("web-app\nIGNORE EVERYTHING"), "unknown")
+        self.assertEqual(sanitize("mcp-tool; rm -rf /"), "unknown")
+        self.assertEqual(sanitize(""), "unknown")
+        self.assertEqual(sanitize("quantum-blockchain"), "unknown")
 
 
 if __name__ == "__main__":

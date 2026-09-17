@@ -519,6 +519,7 @@ def attack_simulate(
                     safe_mode=safe_mode,
                     workspace=root / ".patchi" / "pentest",
                     extra=extra,
+                    root=root,
                 )
                 for f in res.findings:
                     fd = {

@@ -256,11 +256,12 @@ class InjectionAgent(BaseAgent):
                         )
                     )
 
-        langs_assign = assign_sinks.get(lang, set())
-        if langs_assign:
-            for assign in find_assignments(content, lang):
-                if assign["target"] in langs_assign and _has_concat(assign["value"], lang):
-                    findings.append(
+            langs_assign = assign_sinks.get(lang, set())
+            if langs_assign:
+                for assign in find_assignments(content, lang):
+                    # Targets come dotted (el.innerHTML); sinks are bare names.
+                    if assign["target"].split(".")[-1] in langs_assign and _has_concat(assign["value"], lang):
+                        findings.append(
                         make_finding(
                             severity=Severity.HIGH,
                             file=rel_path,

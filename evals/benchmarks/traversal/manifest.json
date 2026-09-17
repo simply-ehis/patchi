@@ -1,0 +1,22 @@
+{
+  "name": "traversal",
+  "owasp": "A01:2021 – Broken Access Control (Path Traversal)",
+  "agents": ["InjectionAgent"],
+  "cases": [
+    {
+      "id": "traversal-open-concat",
+      "kind": "vuln",
+      "category": "path-traversal",
+      "file": "vuln_trav.py",
+      "expect": {"type": ["path_traversal"]},
+      "code": "import os\n\n\ndef read_file(filename):\n    f = open('/var/files/' + filename)\n    return f.read()\n"
+    },
+    {
+      "id": "clean-validated-join",
+      "kind": "clean",
+      "category": "path-traversal",
+      "file": "clean_trav.py",
+      "code": "import os\n\nBASE = '/var/files/'\n\n\ndef read_file(filename):\n    if '/' in filename or '..' in filename:\n        raise ValueError('bad name')\n    f = open(os.path.join(BASE, filename))\n    return f.read()\n"
+    }
+  ]
+}

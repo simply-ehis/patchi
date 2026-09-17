@@ -14,8 +14,10 @@ Usage:
 
 from __future__ import annotations
 
+import ast
 import json
 import logging
+import os
 import subprocess
 import sys
 from dataclasses import dataclass, field
@@ -28,6 +30,47 @@ _log = logging.getLogger("patchi.testing.coverage_prioritizer")
 
 _COVERAGE_CACHE = f"{PATCHI_DIR}/coverage_cache.json"
 _COVERAGE_JSON = "coverage.json"
+
+# Directories never containing project tests. Pruned DURING the walk (not
+# filtered after) so node_modules/.git/.venv never pay stat() costs.
+# Shared with scan_cmd's banner via test_stems_from_paths / iter_test_files.
+SKIP_DIRS = frozenset({
+    "__pycache__",
+    ".patchi",
+    ".git",
+    "node_modules",
+    ".venv",
+    "venv",
+    "dist",
+    "build",
+})
+
+
+def iter_test_files(root: Path) -> Any:
+    """Yield test_*.py paths relative to root, pruning SKIP_DIRS in-walk."""
+    for dirpath, dirnames, filenames in os.walk(root):
+        dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS]
+        for fn in filenames:
+            if fn.startswith("test_") and fn.endswith(".py"):
+                yield str((Path(dirpath) / fn).relative_to(root)).replace("\\", "/")
+
+
+def test_stems_from_paths(paths: Any) -> set[str]:
+    """Normalized test stems from relative paths (pure, no I/O).
+
+    Single implementation behind the banner and the prioritizer so the two
+    can never drift: test_foo.py → foo. __pycache__/.patchi excluded.
+    """
+    stems: set[str] = set()
+    for p in paths:
+        rel = str(p).replace("\\", "/")
+        parts = rel.split("/")
+        if "__pycache__" in parts or ".patchi" in parts:
+            continue
+        base = parts[-1]
+        if base.startswith("test_") and base.endswith(".py"):
+            stems.add(base[len("test_") : -len(".py")].lower())
+    return stems
 
 
 # ── Data classes ───────────────────────────────────────────────────────────────
@@ -487,67 +530,68 @@ class CoveragePrioritizer:
     # ── Private helpers ────────────────────────────────────────────────────────
 
     def _discover_test_files(self) -> list[str]:
-        """Find all test_*.py files under the project."""
-        tests: list[str] = []
-        for p in self.root.rglob("test_*.py"):
-            rel = str(p.relative_to(self.root)).replace("\\", "/")
-            if "__pycache__" in rel or ".patchi" in rel:
-                continue
-            tests.append(rel)
-        return sorted(tests)
+        """Find all test_*.py files under the project (pruned walk)."""
+        return sorted(iter_test_files(self.root))
 
     def _infer_covered_sources(
         self, test_file: str, coverage: CoverageData
     ) -> list[str]:
         """Infer which source files a test covers.
 
-        Strategy:
-        1. If we have per-test-file coverage data, look at its functions' file paths.
-        2. Heuristic: match test file name to source (test_foo.py → foo.py).
-        3. Parse imports from the test file to find direct source imports.
+        Strategy (strongest signal first — Part 7 §0):
+        1. AST import parsing (real dependency edge: test imports source).
+        2. Name-based matching (test_foo.py likely tests foo.py) — LAST
+           RESORT fallback only, never the sole signal for a critical verdict.
+
+        COMPULSORY-REASON (Part 7 §4 KEEP-AND-HARDEN): without a coverage
+        tool emitting per-test granularity, there is no structural proof of
+        which source a test exercises. AST imports are the best available
+        real signal; name-matching is kept only as a low-confidence
+        corroborator for prioritization ordering (never for pass/fail).
+        Measured via evals/cases + tests/test_coverage_prioritizer*.
         """
         covered: list[str] = []
 
-        # Strategy 1: if coverage has data for this test file's imports
-        # (coverage tracks executed lines in the test file itself — not what it
-        # imported). So we use heuristic + import parsing instead.
+        # Strategy 1 (primary): AST import parsing — real import edges.
+        test_full = self.root / test_file
+        try:
+            content = test_full.read_text(encoding="utf-8", errors="replace")
+            try:
+                tree = ast.parse(content)
+            except SyntaxError:
+                tree = None
+            if tree is not None:
+                imported_mods: list[str] = []
+                for node in ast.walk(tree):
+                    if isinstance(node, ast.Import):
+                        imported_mods.extend(
+                            (a.name or "").split(".")[0] for a in node.names
+                        )
+                    elif isinstance(node, ast.ImportFrom) and node.module:
+                        imported_mods.append(node.module.split(".")[0])
+                        # from pkg.sub import x -> also record full dotted path
+                        imported_mods.append(node.module)
+                for mod in imported_mods:
+                    if not mod:
+                        continue
+                    mod_path = mod.replace(".", "/")
+                    for src_path in coverage.files:
+                        src_no_ext = str(Path(src_path)).rsplit(".", 1)[0]
+                        if src_no_ext.endswith(mod_path) or mod_path.endswith(
+                            str(Path(src_path).stem)
+                        ):
+                            if src_path not in covered:
+                                covered.append(src_path)
+        except OSError:
+            pass
 
-        # Strategy 2: name-based matching (test_foo.py likely tests foo.py)
+        # Strategy 2 (fallback, low-confidence): name-based matching
+        # (test_foo.py likely tests foo.py). Only fills gaps AST missed.
         test_stem = Path(test_file).stem  # test_foo
         base_name = test_stem.removeprefix("test_")
         for src_path in coverage.files:
             src_stem = Path(src_path).stem
-            if src_stem == base_name:
+            if src_stem == base_name and src_path not in covered:
                 covered.append(src_path)
-
-        # Strategy 3: parse imports from the test file
-        test_full = self.root / test_file
-        try:
-            content = test_full.read_text(encoding="utf-8", errors="replace")
-            for line in content.splitlines():
-                line = line.strip()
-                if line.startswith("from ") and " import " in line:
-                    # from patchi.core.foo import bar → try to map to a file
-                    parts = line.split()
-                    if len(parts) >= 2:
-                        mod_path = parts[1].replace(".", "/")
-                        # Try matching against known source files
-                        for src_path in coverage.files:
-                            src_no_ext = str(Path(src_path)).rsplit(".", 1)[0]
-                            if src_no_ext.endswith(mod_path) or mod_path.endswith(
-                                str(Path(src_path).stem)
-                            ):
-                                if src_path not in covered:
-                                    covered.append(src_path)
-                elif line.startswith("import "):
-                    parts = line.split()
-                    if len(parts) >= 2:
-                        mod_path = parts[1].split(".")[0].replace(".", "/")
-                        for src_path in coverage.files:
-                            src_stem = Path(src_path).stem
-                            if src_stem == mod_path and src_path not in covered:
-                                covered.append(src_path)
-        except OSError:
-            pass
 
         return covered

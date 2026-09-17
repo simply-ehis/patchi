@@ -4,7 +4,10 @@
 Usage:
   p report                 — Print full report to terminal
   p report export          — Write report to .patchi/report.md
-  p report export --format json  — Write JSON report to .patchi/report.json
+  p report export --format json    — Write JSON report to .patchi/report.json
+  p report export --format client  — Client deliverable → .patchi/report-client.md
+                                     (executive summary, scope honesty, evidence,
+                                     remediation — the handoff document)
 
 Report sections:
   1. Project summary (name, framework, file count, last scan)
@@ -91,6 +94,8 @@ def _build_report(
     last_scan = brain.get("last_scan", "Never")
 
     # Aggregate all findings from recent scans
+    from patchi.core.security.redact import redact_finding
+
     findings_by_severity: dict[str, list[dict]] = {
         "critical": [],
         "high": [],
@@ -101,9 +106,12 @@ def _build_report(
         for finding in scan_data.get("findings", []):
             sev = finding.get("severity", "low").lower()
             if sev in findings_by_severity:
+                # Scrub secret values at the output boundary: identity fields
+                # (file/line/type) survive for matching, values never reach a
+                # handoff surface.
                 findings_by_severity[sev].append(
                     {
-                        **finding,
+                        **redact_finding(finding),
                         "agent": agent_name,
                     }
                 )
@@ -270,6 +278,12 @@ def _export_report(root: Path, data: dict, fmt: str) -> None:
     if fmt == "json":
         out_path = report_dir / "report.json"
         out_path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+    elif fmt == "client":
+        from patchi.cli.markdown_writer import write_markdown
+
+        out_path = report_dir / "report-client.md"
+        sections = _build_client_sections(root, data)
+        write_markdown(out_path, "Security & Quality Assessment", sections)
     elif fmt == "sarif":
         from patchi.core import ci_bundle
 
@@ -398,6 +412,157 @@ def _render_markdown(data: dict) -> str:
     lines.append("")
 
     return "\n".join(lines)
+
+
+# ── Client deliverable ───────────────────────────────────────────────────────
+
+
+def _exec_verdict(data: dict) -> str:
+    """One non-technical verdict sentence for the executive summary."""
+    totals = data["finding_totals"]
+    crit, high = totals.get("critical", 0), totals.get("high", 0)
+    if crit:
+        return (
+            f"NOT READY — {crit} critical issue(s) need fixing before release. "
+            "These are active vulnerabilities, not style notes."
+        )
+    if high:
+        return (
+            f"CONDITIONAL — no critical issues, but {high} high-severity "
+            "finding(s) should be resolved before release."
+        )
+    total = sum(totals.values())
+    if total:
+        return (
+            "No critical or high issues found by automated testing. "
+            "Lower-severity items below are worth scheduling."
+        )
+    return (
+        "No issues found by automated testing. This is not a guarantee of "
+        "security — see Scope & Limitations for what was not covered."
+    )
+
+
+def _cwe_link(cwe: str) -> str:
+    """Markdown link for a CWE id, or the raw value when unparseable."""
+    import re
+
+    m = re.search(r"CWE-(\d+)", cwe or "", re.IGNORECASE)
+    if not m:
+        return cwe or "—"
+    return f"[{cwe.strip()}](https://cwe.mitre.org/data/definitions/{m.group(1)}.html)"
+
+
+def _remediation_for(finding: dict) -> str:
+    """Fix guidance: finding's own suggestion → remediation lib → fallback."""
+    if finding.get("suggestion"):
+        return str(finding["suggestion"])
+    try:
+        from patchi.core.security.remediation import get_remediation
+
+        rem = get_remediation(str(finding.get("type", "")))
+        if rem is not None and getattr(rem, "action", ""):
+            return rem.action
+    except Exception:
+        pass
+    return "Review the flagged code and apply the standard fix for this weakness class."
+
+
+def _finding_card(finding: dict) -> list[str]:
+    """One client-readable finding block (evidence + fix, no jargon)."""
+    file = finding.get("file", "?")
+    line = finding.get("line", 0)
+    loc = f"`{file}:{line}`" if line else f"`{file}`"
+    card = [
+        f"**Location:** {loc}  ",
+        f"**Severity:** {str(finding.get('severity', '?')).upper()}  ",
+        f"**Weakness:** {_cwe_link(str(finding.get('cwe', '')))}  ",
+        f"**What this means:** {finding.get('message', 'See evidence below.')}  ",
+    ]
+    evidence = finding.get("code_snippet") or finding.get("detail") or finding.get("evidence", "")
+    if evidence:
+        card.append(f"**Evidence:** `{str(evidence)[:200]}`  ")
+    card.append(f"**How to fix:** {_remediation_for(finding)}  ")
+    return card
+
+
+def _scope_lines(root: Path, data: dict) -> list[str]:
+    """Methodology + scope honesty: what ran, what was authorized, what did NOT run."""
+    from patchi.core import memory as mem
+
+    lines: list[str] = []
+    scans = mem.get_scan_results(root)
+    ran = sorted(scans.keys())
+    lines.append(f"**Automated checks run:** {len(ran)} agent(s): {', '.join(ran[:20])}" + ("…" if len(ran) > 20 else "") + "  ")
+
+    not_tested: list[str] = []
+    for agent_name, scan_data in scans.items():
+        if not isinstance(scan_data, dict):
+            continue
+        status = str(scan_data.get("status", "")).lower()
+        reason = (
+            scan_data.get("skip_reason")
+            or scan_data.get("data", {}).get("skip_reason", "")
+            if isinstance(scan_data.get("data"), dict)
+            else ""
+        )
+        if status == "skipped" or scan_data.get("scope_blocked"):
+            why = reason or ("scope-blocked (no authorization)" if scan_data.get("scope_blocked") else "tool missing or skipped")
+            not_tested.append(f"{agent_name} — {why}")
+    try:
+        from patchi.core.testing.authorization import list_authorizations
+
+        grants = [g for g in list_authorizations(root) if not g.get("expired")]
+        if grants:
+            lines.append(
+                "**Active testing authorized for:** "
+                + "; ".join(f"{g['host']} (by {g['approved_by']})" for g in grants) + "  "
+            )
+    except Exception:
+        pass
+    audit_path = root / ".patchi" / "audit" / "active_requests.jsonl"
+    try:
+        n_audit = sum(1 for _ in audit_path.open(encoding="utf-8")) if audit_path.is_file() else 0
+        lines.append(f"**Active requests logged:** {n_audit} (append-only audit trail)  ")
+    except OSError:
+        pass
+    if not_tested:
+        lines.append("**Explicitly NOT tested:**  ")
+        lines.extend(f"- {entry}  " for entry in not_tested[:15])
+    else:
+        lines.append("**Explicitly NOT tested:** nothing skipped — every planned check ran.  ")
+    lines.append(
+        "**Limits:** automated testing finds known weakness patterns; it does not "
+        "prove the absence of vulnerabilities. Manual review is recommended for "
+        "business-logic flaws (auth bypass, pricing, workflow abuse).  "
+    )
+    return lines
+
+
+def _build_client_sections(root: Path, data: dict) -> list[tuple[int, str, list[str]]]:
+    """Client deliverable sections: verdict → scope → evidence → fixes."""
+    h = data["health"]
+    proj = data["project"]
+    totals = data["finding_totals"]
+    sections: list[tuple[int, str, list[str]]] = [
+        (2, "Executive Summary", [
+            f"**Verdict:** {_exec_verdict(data)}  ",
+            f"**Health:** {h['total']}/100 (Grade {h['grade']})  ",
+            f"**Findings:** {totals.get('critical', 0)} critical, {totals.get('high', 0)} high, "
+            f"{totals.get('medium', 0)} medium, {totals.get('low', 0)} low  ",
+            f"**Project:** `{proj['root']}` ({proj['framework']}, {proj['file_count']} files)  ",
+            f"**Assessed:** {data['generated_at']}  ",
+        ]),
+        (2, "Scope & Methodology", _scope_lines(root, data)),
+    ]
+    for sev in ("critical", "high", "medium", "low"):
+        items = data["findings"][sev]
+        if not items:
+            continue
+        for i, finding in enumerate(items, 1):
+            sections.append((3, f"{sev.title()} {i}: {finding.get('message', '')[:80]}", _finding_card(finding)))
+    sections.append((2, "Recommendations", [f"{i}. {rec}" for i, rec in enumerate(data["recommendations"], 1)]))
+    return sections
 
 
 def _send_weekly(root: Path) -> None:

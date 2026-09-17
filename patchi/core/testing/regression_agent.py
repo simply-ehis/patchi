@@ -110,7 +110,13 @@ class RegressionAgent(BaseAgent):
         return snapshot_tests
 
     def _infer_snapshot_type(self, file_path: Path) -> str:
-        """Infer the type of snapshot from the file path."""
+        """Infer the type of snapshot from the file path.
+        COMPULSORY-REASON (Part 7 §4 KEEP-AND-HARDEN): snapshot kind is a
+        display label for report grouping, not a security/correctness verdict.
+        No AST/symbol signal encodes "jest vs golden" — the directory/suffix
+        convention IS the fact here (same class as file-extension language
+        detection, Part 7 §0 legitimate). Never gates pass/fail alone.
+        """
         if ".snap" in file_path.suffix or "__snapshots__" in file_path.parts:
             return "jest_snapshot"
         elif ".golden" in file_path.suffix or "goldens" in file_path.parts:

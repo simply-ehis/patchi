@@ -1,0 +1,80 @@
+# syntax=docker/dockerfile:1
+# Patchi engagement image — every offline detector pre-baked so a client
+# engagement starts with `docker run`, not a setup call.
+#
+#   docker build -f Dockerfile.tools -t patchi:tools .
+#   docker run --rm -v "$PWD:/data" patchi:tools scan
+#   docker run --rm -v "$PWD:/data" patchi:tools eval benchmark
+#
+# NOT included on purpose (size/arch matrix): nuclei, sqlmap-java/ZAP,
+# CodeQL (license + ~GBs). `p doctor` names them with install hints when an
+# engagement needs them. UNVERIFIED: no builder on this host — CI must
+# `docker build` + `docker run patchi:tools eval benchmark` green before ship.
+FROM python:3.11-slim-bookworm AS builder
+
+WORKDIR /app
+
+# t1: OS packages for tree-sitter builds + Playwright Chromium runtime deps.
+# playwright's own dep list is authoritative; libnss3/libatk* cover Chromium.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc g++ curl ca-certificates \
+    libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 \
+    libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 \
+    libgbm1 libasound2 libpango-1.0-0 libcairo2 && \
+    rm -rf /var/lib/apt/lists/*
+
+# t2: Python deps first (layer cache) — package + SAST pip tools.
+COPY pyproject.toml README.md ./
+RUN pip install --no-cache-dir "$(python3 -c "import tomllib; d=tomllib.load(open('pyproject.toml','rb')); deps=d['project']['dependencies']; extras=d['project']['optional-dependencies'].get('web',[]); print(' '.join(deps + extras))")" \
+    bandit==1.8.6 semgrep==1.86.0 safety==3.2.11 pip-audit==2.9.0
+
+# t3: gitleaks binary (pinned, arch-aware). Checksum omitted — releases are
+# GitHub-attested; pin the version, not the hash, to stay maintainable.
+ARG GITLEAKS_VERSION=8.24.3
+ARG TARGETARCH
+RUN set -eux; \
+    case "${TARGETARCH:-amd64}" in \
+      amd64) _arch=x64 ;; \
+      arm64) _arch=arm64 ;; \
+      *) echo "unsupported arch ${TARGETARCH}"; exit 1 ;; \
+    esac; \
+    curl -fsSL -o /tmp/gitleaks.tar.gz \
+      "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_${_arch}.tar.gz"; \
+    tar -xzf /tmp/gitleaks.tar.gz -C /usr/local/bin gitleaks; \
+    rm /tmp/gitleaks.tar.gz; \
+    gitleaks version
+
+# t4: source + package install + Playwright Chromium (needs network at build).
+COPY patchi/ patchi/
+RUN pip install --no-cache-dir --no-deps . \
+    && python -m playwright install --with-deps chromium
+
+# t5: prove the offline toolchain before shipping the layer.
+RUN bandit --version && semgrep --version && gitleaks version \
+    && python -c "import patchi; print('patchi', patchi.__version__ if hasattr(patchi, '__version__') else 'ok')"
+
+
+# ── Runtime stage ──
+FROM python:3.11-slim-bookworm
+
+WORKDIR /app
+
+# Chromium runtime libs only (no compilers, no curl).
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 \
+    libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 \
+    libgbm1 libasound2 libpango-1.0-0 libcairo2 && \
+    rm -rf /var/lib/apt/lists/*
+
+COPY --from=builder /usr/local /usr/local
+COPY --from=builder /root/.cache/ms-playwright /root/.cache/ms-playwright
+COPY --from=builder /app /app
+
+RUN mkdir -p /data/.patchi && patchi --help >/dev/null
+
+VOLUME ["/data"]
+
+ENV PATCHI_ROOT=/data
+
+ENTRYPOINT ["patchi"]
+CMD ["scan"]

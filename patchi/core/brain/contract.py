@@ -84,15 +84,14 @@ def _derive_critical(route_methods: list[str], prefix: str = "") -> bool:
 
 
 _ROUTE_TO_FLOW: dict[str, dict] = {
+    # Generic web-app route prefixes — any project with a /dashboard,
+    # /settings, /auth route gets these names WHEN files corroborate the
+    # prefix.  Without file evidence, the flow gets a generic name at low
+    # confidence (see corroboration rule in infer/project_infer).
     "dashboard": {
         "name": "Dashboard Overview",
         "desc": "Project dashboard with status and health overview.",
         "signal": "dashboard",
-    },
-    "findings": {
-        "name": "Findings Review",
-        "desc": "Browse, filter, and review scan findings.",
-        "signal": "findings",
     },
     "settings": {
         "name": "Settings / Configuration",
@@ -106,7 +105,7 @@ _ROUTE_TO_FLOW: dict[str, dict] = {
     },
     "history": {
         "name": "History & Trends",
-        "desc": "View scan history and health trends.",
+        "desc": "View history and health trends.",
         "signal": "history",
     },
     "tests": {
@@ -119,35 +118,61 @@ _ROUTE_TO_FLOW: dict[str, dict] = {
         "desc": "Review proposed fixes and apply or reject patches.",
         "signal": "fixes",
     },
-    "queue": {
-        "name": "Queue Management",
-        "desc": "View and manage the scan queue.",
-        "signal": "queue",
-    },
-    "hosted": {
-        "name": "Hosted Mode",
-        "desc": "Manage hosted mode, tokens, and IP reputation.",
-        "signal": "hosted",
-    },
-    "brain": {
-        "name": "Brain & Memory",
-        "desc": "View brain map, memory, import graph, and blast radius.",
-        "signal": "insights",
-    },
-    "agents": {
-        "name": "Agent Management",
-        "desc": "View and manage scanner agents.",
-        "signal": "agents",
-    },
     "notifications": {
         "name": "Notifications",
         "desc": "Configure and receive notifications and alerts.",
         "signal": "notifications",
     },
-    "keys": {
-        "name": "Key Management",
-        "desc": "Manage API keys for AI providers.",
-        "signal": "keys",
+    "agents": {
+        "name": "Agent Management",
+        "desc": "View and manage scanner agents or background workers.",
+        "signal": "agents",
+    },
+    # Common web-app patterns (replacing Patchi-specific entries).
+    "auth": {
+        "name": "Authentication",
+        "desc": "Login, registration, and session management.",
+        "signal": "auth",
+    },
+    "users": {
+        "name": "User Management",
+        "desc": "User profiles, roles, and account operations.",
+        "signal": "users",
+    },
+    "admin": {
+        "name": "Admin Panel",
+        "desc": "Administrative controls and system configuration.",
+        "signal": "admin",
+    },
+    "api": {
+        "name": "API Endpoints",
+        "desc": "REST/GraphQL API routes.",
+        "signal": "api",
+    },
+    "health": {
+        "name": "Health Check",
+        "desc": "Service health, readiness, and liveness probes.",
+        "signal": "health",
+    },
+    "status": {
+        "name": "Status Overview",
+        "desc": "System status and operational metrics.",
+        "signal": "status",
+    },
+    "search": {
+        "name": "Search",
+        "desc": "Full-text or filtered search endpoints.",
+        "signal": "search",
+    },
+    "upload": {
+        "name": "File Upload",
+        "desc": "File upload and media handling.",
+        "signal": "upload",
+    },
+    "webhooks": {
+        "name": "Webhooks",
+        "desc": "Incoming webhook handlers and event receivers.",
+        "signal": "webhooks",
     },
 }
 
@@ -840,6 +865,55 @@ def confirm_flows(
             )
 
     return result
+
+
+# Retired flow ids → current ids. The Patchi-specific prefixes below were
+# removed when _ROUTE_TO_FLOW was generalized (Part 5 §4); saved brains may
+# still confirm them. Re-key on load so confirmations keep counting instead
+# of becoming orphans that inflate the health ratio and re-nag on review.
+# User confirmation is PRESERVED (re-keyed, not dropped); only the id moves,
+# and a migrated-from:<old> signal records the move for auditability.
+_FLOW_ID_ALIASES: dict[str, str] = {
+    "findings": "review",    # Findings Review → Review & Fixes triage
+    "keys": "settings",      # provider keys are project configuration
+    "queue": "status",       # scan queue is operational status
+    "hosted": "admin",       # tokens / IP reputation are admin controls
+    "brain": "dashboard",    # insights map is a status overview
+}
+
+
+def migrate_flow_dicts(data: list[dict]) -> list[dict]:
+    """Re-key retired flow ids to current ids (pure, no I/O).
+
+    Unknown ids (current table ids, user-added flows) pass through
+    untouched. If the alias target is already present, the explicit entry
+    wins and the migrated duplicate is dropped.
+    """
+    out: list[dict] = []
+    seen: set[str] = set()
+    # Collisions on one target id: a confirmed entry beats an unconfirmed
+    # one (confirmation is the scarce signal); ties go to the explicit
+    # (non-migrated) entry. Sort losers last so winners claim the id first.
+    def _rank(d: dict) -> tuple[int, int]:
+        old_id = d.get("id", "")
+        return (0 if d.get("confirmed") else 1, 0 if old_id not in _FLOW_ID_ALIASES else 1)
+
+    for d in sorted(data, key=_rank):
+        old_id = d.get("id", "")
+        new_id = _FLOW_ID_ALIASES.get(old_id, old_id)
+        if new_id in seen:
+            continue
+        seen.add(new_id)
+        if new_id == old_id:
+            out.append(d)
+            continue
+        migrated = dict(d)
+        migrated["id"] = new_id
+        signals = list(migrated.get("signals", []) or [])
+        signals.append(f"migrated-from:{old_id}")
+        migrated["signals"] = signals
+        out.append(migrated)
+    return out
 
 
 def flows_from_dict(data: list[dict]) -> list[ContractFlow]:

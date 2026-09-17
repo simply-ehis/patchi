@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 from pathlib import Path
 
 from ..agents.base import (
@@ -66,14 +67,30 @@ JWT_API_CALLS: set[str] = {
     "JWT.encode",
     "JWT.decode",
     "JWT.verify",
-    "encode",
-    "decode",
-    "sign",
-    "verify",
+    # NOTE: no bare "encode"/"decode"/"sign"/"verify" — find_calls matches
+    # dotted suffixes, so bare names fire on ANY x.encode() call (e.g.
+    # pw.encode() in a bcrypt file) and mark the file as JWT-using.
+    # Dotted jwt.* calls plus JWT library imports are the usage signal;
+    # `from jwt import decode` + bare decode() is still caught via the
+    # import half of has_jwt.
 }
 
 
 _log = logging.getLogger("patchi.security.jwt_agent")
+
+
+_QUOTED_RE = re.compile(r"(?i)^[frbu]{0,2}(['\"`])")
+
+
+def _is_quoted_literal(raw_value: str) -> bool:
+    """True when the assigned value is a quoted string (plain/f/r/b-prefixed).
+
+    Only literals can be hardcoded secrets — ``SECRET = os.environ[...]``
+    is already the fix, not the bug.
+    """
+    stripped = (raw_value or "").strip()
+    m = _QUOTED_RE.match(stripped)
+    return bool(m) and len(stripped) >= 2 and stripped[-1] == m.group(1)
 
 
 @register
@@ -208,8 +225,14 @@ class JWTSecurityAgent(BaseAgent):
             assignments = []
         for assignment in assignments:
             target = str(assignment.get("target", "")).lower()
-            value = self._unquote(str(assignment.get("value", "")))
+            raw_value = str(assignment.get("value", ""))
+            value = self._unquote(raw_value)
             line_num = int(assignment.get("line", 0) or 0)
+            # Literals only: SECRET = os.environ[...] is already the fix,
+            # not the bug. A hardcoded secret must be a quoted string
+            # (plain, f-, r-, or b-prefixed).
+            if not _is_quoted_literal(raw_value):
+                continue
             if any(marker in target for marker in self._SECRET_NAMES) and len(value) >= 8:
                 findings.append(
                     self._make_finding(
@@ -283,8 +306,10 @@ class JWTSecurityAgent(BaseAgent):
                     )
                 )
 
-        # Missing validation: decode sites without verify / algorithms
-        decode_calls = find_calls(content, lang, {"decode"})
+        # Missing validation: decode sites without verify / algorithms.
+        # Gated on JWT usage — a bare decode() in a file that never touches
+        # JWT is not a JWT finding (same bare-name disease as JWT_API_CALLS).
+        decode_calls = find_calls(content, lang, {"decode"}) if has_jwt else []
         if decode_calls:
             verify_calls = find_calls(content, lang, {"verify", "authenticate", "validate"})
             if not verify_calls:

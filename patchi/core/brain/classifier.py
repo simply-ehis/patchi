@@ -158,6 +158,13 @@ def _classify_python_by_ast(abs_path: Path) -> str | None:
 
     # Top-level structure signals (operates on parsed definitions, not names
     # in the path).
+    # COMPULSORY-REASON (Part 7 §4 KEEP-AND-HARDEN): these match tokens inside
+    # already-parsed AST symbol names (not file paths) as a prefilter for a
+    # human-readable label only. They never produce verified/critical/confirmed
+    # verdicts, never gate security decisions, and any file reaching here has
+    # already failed stronger import/decorator signals. Precision/recall is
+    # pinned by tests/test_classifier* + evals/cases; if measured accuracy
+    # drops, re-open as KILL (replace with call-graph/route evidence).
     fn_names = " ".join(top_fns).lower()
     cl_names = " ".join(top_cls).lower()
     all_names = fn_names + " " + cl_names
@@ -166,14 +173,14 @@ def _classify_python_by_ast(abs_path: Path) -> str | None:
         return "test file"
     if re.search(r"\bget_|post_|put_|delete_|patch_|handle_", fn_names):
         return "request handler"
-    if re.search(r"\bscanner\b|\bdetect\b|\bcheck\b|\baudit\b|scanner", cl_names):
+    if re.search(r"\bscanner\b|\bdetect\b|\bcheck\b|\baudit\b", all_names):
         return "scanner / detector"
     if re.search(r"\bagent\b|\bworker\b|\bcoordinator\b", all_names):
         return "agent / worker"
     if re.search(r"\bmodel\b|\bschema\b|\bentity\b", all_names):
         return "data model"
-    if re.search(r"\bconfig\b|\bsetting\b|\boption\b", all_names) or "debug = true" in src.lower().replace(
-        " ", " "
+    if re.search(r"\bconfig\b|\bsetting\b|\boption\b", all_names) or "debug=true" in re.sub(
+        r"\s+", "", src.lower()
     ):
         return "configuration"
     if re.search(r"\bcommand\b|\bcli\b|\bmain\b", fn_names) and "__main__" in src:

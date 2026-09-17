@@ -38,7 +38,14 @@ _METHOD_STATUS_RANGES: dict[str, list[str]] = {
     "DELETE": ["200", "204", "401", "403", "404"],
 }
 
-# Content-Type expectations per route type (path-based heuristic).
+# Content-Type expectations per route type.
+# COMPULSORY-REASON (Part 7 §4 KEEP-AND-HARDEN): without running the live
+# server and inspecting Content-Type headers there is no structural proof of
+# a route's media type at generation time. This regex is a prefilter only —
+# it selects a permissive assertion (strict `application/json` vs lenient
+# `*/*`), never a pass/fail verdict. Generated tests still assert live status
+# codes at runtime; a wrong guess only weakens one assertion, never hides a
+# failure. Measured via tests/test_contract_test_generator*.
 _JSON_PATHS = re.compile(r"/api/|\.json|/v\d+/")
 
 

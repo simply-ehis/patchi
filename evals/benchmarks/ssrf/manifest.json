@@ -1,0 +1,22 @@
+{
+  "name": "ssrf",
+  "owasp": "A10:2021 – Server-Side Request Forgery",
+  "agents": ["SSRFProtectionAgent"],
+  "cases": [
+    {
+      "id": "ssrf-user-url",
+      "kind": "vuln",
+      "category": "ssrf",
+      "file": "vuln_ssrf.py",
+      "expect": {"type": ["ssrf_url_construction"]},
+      "code": "import httpx\nfrom flask import request\n\n\n@app.route('/fetch')\ndef fetch():\n    url = request.args.get('url')\n    return httpx.get(url).text\n"
+    },
+    {
+      "id": "clean-allowlisted",
+      "kind": "clean",
+      "category": "ssrf",
+      "file": "clean_ssrf.py",
+      "code": "import httpx\nfrom urllib.parse import urlparse\n\nALLOWED = {'api.internal'}\n\n\ndef fetch(url):\n    if urlparse(url).hostname not in ALLOWED:\n        raise ValueError('blocked')\n    return httpx.get(url, timeout=5).text\n"
+    }
+  ]
+}

@@ -183,7 +183,9 @@ class AttackExecutor:
             # Run in thread to avoid blocking event loop (subprocess)
             import asyncio as _aio
 
-            res = await _aio.to_thread(reg.run, tool, target, safe, self._evidence_dir, extra)
+            res = await _aio.to_thread(
+                reg.run, tool, target, safe, self._evidence_dir, extra, root=self.root
+            )
             out: dict = {
                 "success": bool(res.success and not res.error and (res.findings or res.evidence)),
                 "evidence": res.evidence or res.error,

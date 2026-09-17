@@ -39,11 +39,17 @@ def require_ready(root: Path) -> tuple[bool, str | None, dict | None]:
     return False, None, st
 
 
+def is_loopback_host(host: str) -> bool:
+    """True for localhost/loopback hostnames (frictionless dev testing)."""
+    return (host or "").lower() in _LOCALHOST_VARIANTS
+
+
 def require_scope(
     url: str | None,
     *,
     allow_hosts: set[str] | None = None,
     require_explicit: bool = False,
+    root: Path | None = None,
 ) -> tuple[bool, str]:
     """Check that *url* is within the authorized scope for active testing.
 
@@ -51,6 +57,9 @@ def require_scope(
     hosts without explicit user confirmation.  This gate enforces the
     minimum: only hosts listed in an explicit allowlist (charter or
     ``--target`` flag) are allowed when *require_explicit* is True.
+
+    When *root* is given, a valid `p authorize` grant for the host also
+    authorizes (see testing/authorization.py).
 
     Returns (allowed, reason).
     """
@@ -72,19 +81,35 @@ def require_scope(
     host = (parsed.hostname or "").lower()
 
     # Allow localhost / loopback.
-    if host in _LOCALHOST_VARIANTS:
+    if is_loopback_host(host):
         return True, "Target is localhost — within scope."
 
+    # Allow a recorded `p authorize` grant (checked before the static
+    # allowlist so the reason names the approver, not just the list).
+    if root is not None:
+        try:
+            from patchi.core.testing.authorization import authorization_for
+
+            grant = authorization_for(root, url)
+            if grant is not None:
+                return True, (
+                    f"Target '{host}' authorized by {grant['approved_by']} "
+                    f"(grant valid, scope {','.join(grant.get('scope_paths', ['/']))})."
+                )
+        except Exception as exc:
+            _log.debug("authorization lookup failed closed-safe: %s", exc)
+
     # Allow explicit allowlist (from charter or --target flag).
-    if host in allow_hosts:
+    if host in (allow_hosts or set()):
         return True, f"Target '{host}' is in the explicit allowlist."
 
     # Everything else is blocked — the user must confirm manually.
     return False, (
         f"Target '{host}' is not in the explicit allowlist. "
         f"Active testing against non-listed hosts requires explicit user "
-        f"confirmation. Add '{host}' to the charter or confirm "
-        f"manually via `p check --allow-host {host}`."
+        f"confirmation. Add '{host}' to the charter, confirm "
+        f"manually via `p check --allow-host {host}`, or grant with "
+        f"`p authorize --target {host} --by <your-name>`."
     )
 
 
