@@ -237,7 +237,7 @@ Keys stored in `.patchi/keys.json`, never sent elsewhere.
 <!-- BEGIN GENERATED: architecture-diagrams -->
 ### Module dependency map
 
-Auto-generated from the live import graph — the highest fan-in core modules (22 shown of 519 Python modules).
+Auto-generated from the live import graph — the highest fan-in core modules (22 shown of 520 Python modules).
 
 ```mermaid
 ---
