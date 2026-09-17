@@ -31,7 +31,7 @@
        A later _loadBrainLibs()/_loadHtmx() call re-attempts only libs that
        previously failed (already-ready libs short-circuit). */
     window._brainLibsCfg=window._brainLibsCfg||{};
-    window._scriptStatus={konva:false,canvas:false,three:false,orbit:false,brain3d:false,htmx:false};
+    window._scriptStatus={konva:false,canvas:false,three:false,orbit:false,brain3d:false,htmx:false,mermaid:false};
     window._brainLibsStatus=window._scriptStatus; /* legacy alias */
     window._preconnectStatus={};
     window._preconnectIssues={};
@@ -61,6 +61,11 @@
         'https://unpkg.com/konva@9.3.22/konva.min.js',
         'https://cdn.jsdelivr.net/npm/konva@9.3.22/konva.min.js'
       ],
+      mermaid:[
+        '/static/mermaid.min.js',
+        'https://unpkg.com/mermaid@10.9.1/dist/mermaid.min.js',
+        'https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js'
+      ],
       canvas:['/static/canvas.js?v=28'],
       three:[
         '/static/three.min.js',
@@ -80,6 +85,20 @@
       try{
         if(name==='htmx')return !!(window.htmx&&typeof window.htmx.ajax==='function'&&typeof window.htmx.trigger==='function');
         if(name==='konva')return !!window.Konva;
+        if(name==='mermaid'){
+          /* Readiness probe = the render API surface exists on the instance:
+             run + initialize + render all callable. (A bare truthiness check
+             races the bundle's bootstrap; and mermaid builds differ on
+             metadata fields like `version` — an API-function check is the
+             only signal that holds across builds. Nothing is invoked, so
+             probing has no side effects; render-level transients — where the
+             API exists but the first run can still no-op — remain the
+             template's retry concern, not the loader's.) */
+          try{
+            var mm=window.mermaid;
+            return !!(mm&&typeof mm.run==='function'&&typeof mm.initialize==='function'&&typeof mm.render==='function');
+          }catch(e){return false;}
+        }
         if(name==='canvas')return !!window.BrainMap;
         if(name==='three')return !!(window.THREE&&window.THREE.Scene);
         if(name==='orbit')return !!(window.THREE&&window.THREE.OrbitControls);
@@ -261,6 +280,23 @@
         return {canvas:false,brain3d:false};
       });
       return window._brainLibsPromise;
+    };
+    /* ── mermaid chain (loaded on demand by /why and /impact; consumers
+           fall back to raw-source <pre> when unavailable) ───────────── */
+    window._mermaidFixing=false;
+    window._mermaidPromise=null;
+    window._loadMermaid=function(){
+      if(window._mermaidFixing)return window._mermaidPromise;
+      if(_libReady('mermaid'))return Promise.resolve(true);
+      window._mermaidFixing=true;
+      var cfg=_cfg();
+      if(cfg.sources&&cfg.sources.mermaid)SRC.mermaid=cfg.sources.mermaid;
+      window._mermaidPromise=_loadStage('mermaid',SRC.mermaid,cfg.timeout||12000,cfg.attempts||2).then(function(ok){
+        window._mermaidFixing=false;
+        if(ok)document.dispatchEvent(new CustomEvent('patchi-mermaid-ready'));
+        return ok;
+      });
+      return window._mermaidPromise;
     };
     /* ── htmx chain (starts immediately; consumers are guarded with
            typeof htmx !== 'undefined' fetch fallbacks) ─────────────── */

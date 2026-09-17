@@ -59,15 +59,15 @@
   }
 
   function ensureMermaid(cb) {
-    if (window.mermaid) { cb(true); return; }
-    // Mermaid 10 UMD bundle (vendored): with addScriptTag false + a manual
-    // tag append, the bundle stays in UMD mode and binds window.mermaid
-    // (an ESM import here would crash it under minification).
-    var s = document.createElement('script');
-    s.src = '/static/mermaid.min.js?v=10.9.1';
-    s.onerror = function () { cb(false); };
-    s.onload = function () { cb(!!window.mermaid); };
-    document.head.appendChild(s);
+    // Shared resilient loader (base.html): vendored -> unpkg -> jsdelivr,
+    // per-source timeout + retry, deep readiness probe on window.mermaid.
+    // False = every source failed; the raw-source fallback below stays and
+    // the page remains functional without the renderer.
+    if (window._loadMermaid) {
+      window._loadMermaid().then(function (ok) { cb(!!ok); });
+    } else {
+      cb(false); // loader missing = degraded page, never a crash
+    }
   }
 
   function renderDiagrams(diagrams) {

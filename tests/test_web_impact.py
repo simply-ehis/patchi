@@ -270,3 +270,39 @@ def test_impact_page_offers_map_toggle(seeded):
     assert 'id="impact-mode-map"' in r.text
     assert 'id="impact-mode-neighborhood"' in r.text
     assert "mode=map" in r.text  # fetch layer sends the mode
+
+
+# ── mermaid via the shared resilient loader (base.html) ────────────────────
+
+
+def test_mermaid_routes_through_base_loader_chain(seeded):
+    """base.html (rendered into every page) declares the same multi-source
+    chain htmx/konva use: local vendored -> unpkg -> jsdelivr."""
+    r = _client(seeded).get("/impact")
+    assert "/static/mermaid.min.js" in r.text  # vendored first
+    assert "unpkg.com/mermaid@10.9.1/dist/mermaid.min.js" in r.text
+    assert "cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js" in r.text
+    assert "mermaid:false" in r.text  # tracked in _scriptStatus like the others
+
+
+def test_base_loader_has_mermaid_entrypoint_and_probe(seeded):
+    """_loadMermaid exists (on-demand chain, patchi-mermaid-ready event) and
+    the readiness probe checks the render API surface — not bare truthiness
+    of window.mermaid, which races the bundle's bootstrap."""
+    r = _client(seeded).get("/impact")
+    assert "window._loadMermaid" in r.text
+    assert "patchi-mermaid-ready" in r.text
+    assert "typeof mm.render==='function'" in r.text
+    # builds differ on metadata fields (vendored build has no `version`) —
+    # the probe must gate on API functions, never on a metadata check
+    assert "mm.version" not in r.text
+
+
+def test_impact_page_delegates_mermaid_loading(seeded):
+    """The page no longer self-injects the script: it calls _loadMermaid and
+    keeps a raw-source fallback when the loader reports failure."""
+    r = _client(seeded).get("/impact")
+    assert "window._loadMermaid().then" in r.text
+    assert "mermaid.min.js?v=" not in r.text.split("panel")[0]  # no direct tag in page head/body
+    # and the degraded path is explicit, not a crash
+    assert "cb(false); // loader missing = degraded page" in r.text
