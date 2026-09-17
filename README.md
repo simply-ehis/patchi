@@ -237,7 +237,7 @@ Keys stored in `.patchi/keys.json`, never sent elsewhere.
 <!-- BEGIN GENERATED: architecture-diagrams -->
 ### Module dependency map
 
-Auto-generated from the live import graph — the highest fan-in core modules (22 shown of 517 Python modules).
+Auto-generated from the live import graph — the highest fan-in core modules (22 shown of 519 Python modules).
 
 ```mermaid
 ---
@@ -317,7 +317,7 @@ flowchart LR
 
 ### Web dashboard routes
 
-Auto-generated route map — 212 endpoints in the bundled web UI.
+Auto-generated route map — 214 endpoints in the bundled web UI.
 
 ```mermaid
 ---
