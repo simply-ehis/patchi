@@ -260,6 +260,7 @@ def run_impact(
     root: Path | None = None,
     out: Path | None = None,
     mermaid: bool = False,
+    max_nodes: int = 60,
 ) -> None:
     """p impact <file> [<file> ...] --json — machine-pure blast-radius report.
 
@@ -269,9 +270,17 @@ def run_impact(
     With ``--json``: one pure-JSON stdout document (no human UI before it,
     no Rich soft-wrapping) — {files, summary, affected_layers,
     impacted_layers, blast_radii?}. Safe for CI to ``json.load`` directly.
+
+    ``max_nodes`` (default 60) caps the ``--mermaid`` neighborhood so CI can
+    trade diagram detail for size; the closest BFS shells are kept first and
+    the omitted tail is reported in ``stats.omitted_by_distance``.
     """
     if out is not None and json_output:
         _print_err("--out and --json are mutually exclusive — pick one")
+        raise SystemExit(2)
+
+    if max_nodes < 1:
+        _print_err("--max-nodes must be >= 1")
         raise SystemExit(2)
 
     try:
@@ -335,7 +344,7 @@ def run_impact(
     analysis = engine.impact_analysis(files)
 
     if mermaid:
-        payload = _impact_mermaid_block(r, list(files))
+        payload = _impact_mermaid_block(r, list(files), max_nodes=max_nodes)
         if payload is None:
             msg = "No import graph data. Run `p scan` first, then re-run with --mermaid."
             if json_output:
@@ -517,7 +526,9 @@ def _impact_mermaid_markdown(files: list[str] | None, diagram: str, stats: dict)
     return "\n".join(lines)
 
 
-def _impact_mermaid_block(root: Path, files: list[str] | None) -> tuple[str, dict] | None:
+def _impact_mermaid_block(
+    root: Path, files: list[str] | None, max_nodes: int = 60
+) -> tuple[str, dict] | None:
     """``--mermaid`` payload for one changed-file set: the affected-neighborhood
     flowchart plus its stats. None when no cached graph exists."""
     from patchi.core.brain.mermaid import neighborhood_diagram
@@ -527,7 +538,7 @@ def _impact_mermaid_block(root: Path, files: list[str] | None) -> tuple[str, dic
         return None
     changed = list(files or [])
     title = f"Impact of {', '.join(changed[:3])}" + (f" +{len(changed) - 3} more" if len(changed) > 3 else "")
-    return neighborhood_diagram(graph, changed, title=title)
+    return neighborhood_diagram(graph, changed, title=title, max_nodes=max_nodes)
 
 
 def _radii_markdown(radii: list[tuple[str, int, int]]) -> str:

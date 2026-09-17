@@ -76,7 +76,8 @@ COMMANDS: list[Command] = [
         "Score the pipeline against the standing eval set (spec §5)",
         "patchi.cli.commands.eval_cmd:run",
         args=(
-            Arg("suite", nargs="?", default="all", help="Suite to run: gate, noise, gen, mut, or all"),
+              Arg("suite", nargs="?", default="all", help="Suite to run: gate, noise, gen, mut, benchmark, or all"),
+              Arg("name", nargs="?", default=None, help="Benchmark name (for benchmark suite, default all)"),
             Arg("--json", dest="json_output", action="store_true", help="Output as JSON"),
             Arg("--ci", dest="ci", action="store_true", help="Exit 1 when any suite fails"),
             Arg(
@@ -524,6 +525,13 @@ COMMANDS: list[Command] = [
                 dest="mermaid",
                 action="store_true",
                 help="Emit the affected-neighborhood flowchart for the changed files",
+            ),
+            Arg(
+                "--max-nodes",
+                dest="max_nodes",
+                type=int,
+                default=60,
+                help="Cap the --mermaid neighborhood at N nodes (closest BFS shells kept first; default 60)",
             ),
             Arg("--json", dest="json_output", action="store_true", help="Output as JSON"),
         ),

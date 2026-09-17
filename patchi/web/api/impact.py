@@ -46,18 +46,27 @@ def _recent_fix_files(root) -> list[str]:
 
 @router.get("")
 @router.get("/")
-async def impact_api(request: Request, files: str = "") -> JSONResponse:
+async def impact_api(
+    request: Request, files: str = "", max_nodes: int = 60
+) -> JSONResponse:
     """Affected-neighborhood diagram for a change set.
 
     Response shapes:
       ok:   {ok, files, mermaid, stats: {changed, total_affected, rendered,
             omitted, max_distance, risk, truncated}}
       miss: {ok: false, error}
+
+    ``max_nodes`` caps the neighborhood (default 60, matching `p impact
+    --mermaid`); values < 1 fall back to the default rather than erroring,
+    since this is a display control, not a data request.
     """
     from patchi.cli.commands.reason_cmd import _cached_graph
     from patchi.core.brain.mermaid import neighborhood_diagram
 
     root = request.app.state.root
+
+    if max_nodes < 1:
+        max_nodes = 60
 
     requested = [f.strip() for f in files.split(",") if f.strip()] if files else []
     source = "explicit"
@@ -76,7 +85,7 @@ async def impact_api(request: Request, files: str = "") -> JSONResponse:
         return _doc(False, error="no import graph data — run `p scan` first")
 
     try:
-        mermaid, stats = neighborhood_diagram(graph, requested)
+        mermaid, stats = neighborhood_diagram(graph, requested, max_nodes=max_nodes)
     except Exception as e:
         return _doc(False, error=f"diagram render failed: {e}")
 

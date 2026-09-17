@@ -151,3 +151,36 @@ def test_api_impact_unknown_files_still_render(seeded):
     assert doc["ok"] is True
     assert "brand_new_py" in doc["mermaid"]
     assert doc["stats"]["changed"] == 1
+
+
+def test_api_impact_max_nodes_caps_like_cli(seeded):
+    """The web view honors the same cap as `p impact --mermaid --max-nodes`
+    — one renderer, one contract."""
+    from patchi.cli.commands.reason_cmd import _cached_graph
+    from patchi.core.brain.mermaid import neighborhood_diagram
+
+    doc = _client(seeded).get("/api/impact", params={"files": "core.py", "max_nodes": 2}).json()
+    assert doc["ok"] is True
+    assert doc["stats"]["rendered"] == 2
+    assert doc["stats"]["truncated"] is True
+
+    # Byte-identical to the CLI renderer at the same budget, modulo the HTTP
+    # boundary's documented int->str key coercion on omitted_by_distance.
+    graph = _cached_graph(seeded)
+    expected_mermaid, expected_stats = neighborhood_diagram(graph, ["core.py"], max_nodes=2)
+    assert doc["mermaid"] == expected_mermaid
+    expected = {
+        **expected_stats,
+        "omitted_by_distance": {
+            str(k): v for k, v in expected_stats["omitted_by_distance"].items()
+        },
+    }
+    assert doc["stats"] == expected
+
+
+def test_api_impact_invalid_max_nodes_falls_back_to_default(seeded):
+    """A display control, not a data request: < 1 falls back to 60 rather
+    than erroring the panel."""
+    doc = _client(seeded).get("/api/impact", params={"files": "core.py", "max_nodes": 0}).json()
+    assert doc["ok"] is True
+    assert doc["stats"]["truncated"] is False  # 5-node graph fits under 60

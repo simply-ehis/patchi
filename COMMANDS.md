@@ -632,8 +632,9 @@ Show change impact / blast radius.
 | `--json` | JSON output |
 | `--out <file.md>` | Write a markdown report (impact summary, or full blast-radius table with `--all`) to a file for PRs/docs |
 | `--mermaid` | Emit the affected-neighborhood flowchart for the changed files (scoped to them + their transitive dependents, never the whole graph; `--all --mermaid` is refused) |
+| `--max-nodes <N>` | Cap the `--mermaid` neighborhood at N nodes (default 60): the closest BFS shells are kept first and the omitted tail is reported in the stats — trade diagram detail for size in CI |
 
-Interactive version: the web dashboard's `/impact` page (and `/api/impact?files=<a.py,b.py>`) renders the same chart — with no `files` given it infers the file set from the last fix run (see Web & Hosted). `p fix`'s summary and `--out` PR file embed the same diagram too.
+Interactive version: the web dashboard's `/impact` page (and `/api/impact?files=<a.py,b.py>&max_nodes=<N>`) renders the same chart — with no `files` given it infers the file set from the last fix run (see Web & Hosted). `p fix`'s summary and `--out` PR file embed the same diagram too.
 
 ### `p governance`
 GUARD infrastructure surface — the audit trail, policy, history, blast radius,

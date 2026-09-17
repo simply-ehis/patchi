@@ -232,3 +232,55 @@ def test_sequence_diagram_walks_to_natural_end():
     route = RouteInfo(method="USE", path="changed.py", handler="changed", file="changed.py", line=1)
     src = sequence_diagram([route], g, entry="changed.py")
     assert "d12" in src  # full chain walked, no cap
+
+
+# ── --max-nodes: CI trades diagram detail for size ─────────────────────────
+
+
+def test_cli_max_nodes_caps_rendered_neighborhood(graph_root, capsys):
+    """max_nodes flows through run_impact to the renderer: the cap holds and
+    the omitted tail is reported, never silently dropped."""
+    import json as jsonlib
+
+    from patchi.cli.commands.reason_cmd import run_impact
+
+    run_impact(["leaf.py"], root=graph_root, mermaid=True, json_output=True, max_nodes=2)
+    doc = jsonlib.loads(capsys.readouterr().out)
+    assert doc["stats"]["rendered"] == 2
+    assert doc["stats"]["truncated"] is True
+    # closest shells first: leaf (changed) + its importers at distance 1
+    assert doc["stats"]["max_distance"] == 1
+    assert doc["stats"]["omitted"] >= 1
+
+
+def test_cli_max_nodes_default_is_60(graph_root, capsys):
+    """Without the flag, unchanged behavior (60) — small graphs render whole."""
+    import json as jsonlib
+
+    from patchi.cli.commands.reason_cmd import run_impact
+
+    run_impact(["leaf.py"], root=graph_root, mermaid=True, json_output=True)
+    doc = jsonlib.loads(capsys.readouterr().out)
+    assert doc["stats"]["truncated"] is False  # 4 nodes < 60
+
+
+def test_cli_max_nodes_zero_or_negative_exits_2(graph_root):
+    """Bad budgets are user errors, not data problems — argparse-style exit."""
+    from patchi.cli.commands.reason_cmd import run_impact
+
+    for bad in (0, -5):
+        with pytest.raises(SystemExit) as exc:
+            run_impact(["leaf.py"], root=graph_root, mermaid=True, max_nodes=bad)
+        assert exc.value.code == 2
+
+
+def test_registry_declares_max_nodes_flag():
+    """The flag parses on the real parser as an int with default 60 —
+    catches registry/flag drift that handler-signature tests can't."""
+    from patchi.cli.main import _build_parser
+
+    parser = _build_parser()
+    args = parser.parse_args(["impact", "leaf.py", "--mermaid", "--max-nodes", "5"])
+    assert args.max_nodes == 5
+    args_default = parser.parse_args(["impact", "leaf.py", "--mermaid"])
+    assert args_default.max_nodes == 60
