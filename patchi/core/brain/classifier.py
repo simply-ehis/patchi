@@ -5,11 +5,11 @@ Philosophy (per supplementary spec §2 offline/AI split):
   80% of files can be classified from their AST and path alone — no AI cost.
   Only genuinely ambiguous files get an AI call.
 
-Offline classification uses:
-  - File path / name patterns (test_, __init__, cli/, routes/, etc.)
-  - Export type (what functions/classes the file defines)
-  - Import patterns (what the file imports)
-  - File size and structure
+Offline classification uses (Part 7 §0 order — evidence outranks naming):
+  1. AST content for Python (imports + top-level structure) — what a file
+     imports and defines IS what it is; a path is only what it was called.
+  2. Extension facts for non-code files.
+  3. Path patterns — last resort, only when content can't be read.
 
 AI classification (fallback only):
   - Called only when offline pass returns label="unknown"
@@ -27,7 +27,7 @@ from pathlib import Path
 # ── Offline label lookup ───────────────────────────────────────────────────────
 
 _PATH_RULES: list[tuple[str, str]] = [
-    # Path segment → label
+    # Path segment → label (LAST RESORT — content unreadable/empty)
     (r"test[_/]|[_/]test\.py$|tests?/", "test"),
     (r"__init__\.py$", "package init"),
     (r"cli[/\\]|commands?[/\\]", "CLI command"),
@@ -89,16 +89,14 @@ _log = logging.getLogger("patchi.brain.classifier")
 def classify_file(rel_path: str, abs_path: Path) -> str:
     """
     Return a short plain-English purpose label for a file.
-    Uses path patterns and AST — no AI call.
+
+    Part 7 §0: content evidence before path naming. An auth_utils.py full
+    of string helpers is NOT "authentication" — its imports say so, its
+    path doesn't get to overrule them.
     """
     path_str = rel_path.replace("\\", "/").lower()
 
-    # 1. Path-based rules — fastest, covers the majority
-    for pattern, label in _PATH_RULES:
-        if re.search(pattern, path_str):
-            return label
-
-    # 2. Extension quick exits
+    # 1. Extension facts — for non-code files the extension IS the answer.
     ext = abs_path.suffix.lower()
     if ext in {".json", ".yaml", ".yml", ".toml", ".ini", ".cfg"}:
         return "configuration / data file"
@@ -112,16 +110,29 @@ def classify_file(rel_path: str, abs_path: Path) -> str:
         return "JavaScript module"
     if ext in {".ts", ".tsx"} and "test" not in path_str:
         return "TypeScript module"
-
     if ext != ".py":
         return "source file"
 
-    # 3. AST — read imports and top-level definitions
+    # 2. Python: AST content FIRST — before any path rule can claim it.
+    ast_label = _classify_python_by_ast(abs_path)
+    if ast_label is not None:
+        return ast_label
+
+    # 3. Path patterns — last resort (unreadable/empty file).
+    for pattern, label in _PATH_RULES:
+        if re.search(pattern, path_str):
+            return label
+
+    return "Python module"
+
+
+def _classify_python_by_ast(abs_path: Path) -> str | None:
+    """Classify one Python file from its own content. None when unparseable."""
     try:
         src = abs_path.read_text(encoding="utf-8", errors="ignore")
         tree = ast.parse(src)
     except (SyntaxError, OSError):
-        return "Python module"
+        return None
 
     imports: list[str] = []
     top_fns: list[str] = []
@@ -140,12 +151,13 @@ def classify_file(rel_path: str, abs_path: Path) -> str:
             if node.col_offset == 0:
                 top_cls.append(node.name)
 
-    # 4. Import signal match
+    # Import signal match — a real dependency is the strongest label.
     for imp in imports:
         if imp in _IMPORT_SIGNALS:
             return _IMPORT_SIGNALS[imp]
 
-    # 5. Top-level structure heuristics
+    # Top-level structure signals (operates on parsed definitions, not names
+    # in the path).
     fn_names = " ".join(top_fns).lower()
     cl_names = " ".join(top_cls).lower()
     all_names = fn_names + " " + cl_names
@@ -154,18 +166,22 @@ def classify_file(rel_path: str, abs_path: Path) -> str:
         return "test file"
     if re.search(r"\bget_|post_|put_|delete_|patch_|handle_", fn_names):
         return "request handler"
-    if re.search(r"\bscanner\b|\bscanner\b|\bdetect\b|\bcheck\b|\baudit\b", cl_names.lower()):
+    if re.search(r"\bscanner\b|\bdetect\b|\bcheck\b|\baudit\b|scanner", cl_names):
         return "scanner / detector"
     if re.search(r"\bagent\b|\bworker\b|\bcoordinator\b", all_names):
         return "agent / worker"
     if re.search(r"\bmodel\b|\bschema\b|\bentity\b", all_names):
         return "data model"
-    if re.search(r"\bconfig\b|\bsetting\b|\boption\b", all_names):
+    if re.search(r"\bconfig\b|\bsetting\b|\boption\b", all_names) or "debug = true" in src.lower().replace(
+        " ", " "
+    ):
         return "configuration"
     if re.search(r"\bcommand\b|\bcli\b|\bmain\b", fn_names) and "__main__" in src:
         return "CLI entry point"
     if re.search(r"\bcreate_app\b|\bapp = \b", src):
         return "application factory"
+    if not top_fns and not top_cls:
+        return "package init" if abs_path.name == "__init__.py" else "Python module"
 
     return "Python module"
 
@@ -196,7 +212,6 @@ def batch_classify(
         from patchi.core.fix.base import _call_ai
 
         for rel_path in needs_ai[:max_ai_calls]:
-            abs_path = root / rel_path
             try:
                 snippet = (root / rel_path).read_text(encoding="utf-8", errors="ignore")[:600]
                 prompt = (

@@ -167,9 +167,10 @@ Run test suites.
 | `browser` | Browser-based tests (Playwright) |
 | `e2e` | End-to-end flow tests |
 | `visual` | Visual regression tests |
+| `live` | Live v2 runner: unit + browser + visual against the running app, with screen recordings (`.patchi/recordings/`) and screenshots surfaced in the results |
 | `full` | All test types |
 | `attack` | Security attack tests |
-| `generate` | AI-generate test files |
+| `generate` | AI-generate test files (harness path: scoped-context, schema-validated behavioral tests with per-case evidence; falls back to skeletons without AI) |
 | `report` | Show test history |
 | `config` | Show/set test config |
 

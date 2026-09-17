@@ -267,6 +267,15 @@ def run(
         if _launcher_url:
             extra["base_url"] = _launcher_url
             extra["live_probe"] = True
+        # Live v2 runner: carry the launch URL + recording intent into its
+        # config contract (recordings/screenshots land in .patchi/recordings
+        # and .patchi/evidence/screenshots/).
+        if agent_cls.name == "LiveTestRunnerV2Agent":
+            extra["live_test_config"] = {
+                "test_types": ["unit", "browser", "visual"],
+                "base_url": _launcher_url or "",
+                "record_video": True,
+            }
         inp = AgentInput(
             root=r,
             scope=scope,
@@ -476,6 +485,32 @@ def run_generate(test_type: str | None = None, root: Path | None = None) -> None
     )
     scope_msg = f" for {test_type} tests" if test_type else " — Patchi decided"
     top_files = project_files  # Patchi decides, not user
+
+    # §3 harness path first: scoped context + schema-validated behavioral
+    # tests with per-case evidence. The skeleton/AI-skeleton path below stays
+    # as the fallback when the harness escalates or is unavailable.
+    try:
+        from patchi.core.ai.test_harness_gen import generate_tests_via_harness
+
+        harness_res = generate_tests_via_harness(r, project_files, config)
+        if harness_res.get("success"):
+            made = [c for c in harness_res["created"] if c.get("status") == "created"]
+            case_count = sum(len(c.get("cases", [])) for c in made)
+            con.print(
+                f"[green]Harness generated {case_count} test case(s) in {len(made)} file(s)"
+                f" → .patchi/generated_tests/[/green]"
+            )
+            for c in made:
+                for ev in c.get("evidence", [])[:2]:
+                    con.print(f"  [dim]● {ev['symbol']}: {ev['why'][:80]}[/dim]")
+            if harness_res.get("escalated"):
+                con.print(f"[yellow]Escalated (schema never satisfied): {', '.join(harness_res['escalated'])}[/yellow]")
+            con.print("[dim]Run: pytest .patchi/generated_tests/[/dim]")
+            return
+        con.print("[dim]Harness path unavailable/escalated — falling back to skeletons.[/dim]")
+    except Exception as e:
+        _log.debug("harness generation failed: %s", e)
+        con.print("[dim]Harness generation error — falling back to skeletons.[/dim]")
 
     # Extract AST skeletons — guaranteed real names, no hallucination
     skeletons = []
@@ -889,6 +924,54 @@ def _save_to_history(results: list, test_type: str, area: str | None, root: Path
 # ── Results display ────────────────────────────────────────────────────────────
 
 
+def _show_evidence(results: list, root: Path) -> None:
+    """Surface the run's evidence artifacts (screenshots, recordings, diffs).
+
+    Live/browser/visual agents save evidence under .patchi/ — the CLI must
+    say where and what, or the artifacts might as well not exist (the same
+    honesty rule that applies to findings applies to evidence).
+    """
+    shots: list[str] = []
+    recordings: list[str] = []
+    for res in results:
+        data = res.data or {}
+        for key in ("screenshots",):
+            val = data.get(key)
+            if isinstance(val, list):
+                shots.extend(str(s) for s in val)
+        live = data.get("live_test_result") or {}
+        for s in live.get("screenshots") or []:
+            shots.append(str(s))
+        for rec in live.get("recordings") or []:
+            path = rec.get("final_path") if isinstance(rec, dict) else rec
+            if path:
+                recordings.append(str(path))
+
+    # Also sweep the well-known evidence dirs — BrowserTestAgent saves
+    # failure screenshots there without listing them in result.data.
+    ev_dir = root / ".patchi" / "artifacts" / "browser"
+    if ev_dir.exists():
+        shots.extend(str(p) for p in sorted(ev_dir.glob("*.png"))[:10])
+    ev2 = root / ".patchi" / "evidence" / "screenshots" / "visual_regression"
+    if ev2.exists():
+        shots.extend(str(p) for p in sorted(ev2.glob("*.png"))[:10])
+
+    if not shots and not recordings:
+        return
+
+    con.print()
+    con.print("[bold #C8621A]Evidence:[/bold #C8621A]")
+    for rec in recordings[:5]:
+        con.print(f"  [dim]● recording:[/dim] {rec}")
+    for shot in shots[:8]:
+        con.print(f"  [dim]● screenshot:[/dim] {shot}")
+    total = len(shots) + len(recordings)
+    if total > 13:
+        con.print(f"  [dim]… and {total - 13} more[/dim]")
+    con.print("[dim]  Visual diffs + baselines: .patchi/visual_baselines — compare with p test visual[/dim]")
+    con.print()
+
+
 def _show_results(results: list) -> None:
     from patchi.core.agents.base import AgentStatus
 
@@ -966,6 +1049,10 @@ def _show_results(results: list) -> None:
         )
 
     con.print(table)
+
+    # Evidence artifacts: screenshots / recordings / diffs the run produced.
+    # "The test took a screenshot" must be visible, not buried in .patchi/.
+    _show_evidence(results, r)
 
     # Show individual failures
     sev_colors = {

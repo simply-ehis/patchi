@@ -558,6 +558,10 @@ class LiveTestRunnerV2Agent(BaseAgent):
             area=inp.scope[0] if inp.scope else None,
             base_url=config_data.get("base_url"),
             parallel=config_data.get("parallel", False),
+            # `p test live` asks for recordings; dropping this flag here used
+            # to silently disable them (the exact honesty bug class the
+            # specs kill everywhere else).
+            record_video=bool(config_data.get("record_video", False)),
         )
 
         # Parse stress config if present

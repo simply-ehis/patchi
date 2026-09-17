@@ -44,17 +44,27 @@ class TestFileClassifier(unittest.TestCase):
             p.write_text(content or "pass\n", encoding="utf-8")
             return classify_file(rel_path, p)
 
+    # Part 7 §0: content outranks path naming. A file whose entire body is
+    # `pass` must NOT be labeled by its filename — that was the old guess.
+
     def test_test_file_by_path(self):
-        label = self._classify("tests/test_auth.py")
+        label = self._classify("tests/test_auth.py", "import pytest\n")
         self.assertIn("test", label.lower())
 
     def test_cli_command_by_path(self):
-        label = self._classify("patchi/cli/commands/scan_cmd.py")
+        label = self._classify(
+            "patchi/cli/commands/scan_cmd.py", "import argparse\n\ndef main():\n    pass\n"
+        )
         self.assertIn("CLI", label)
 
     def test_config_by_path(self):
-        label = self._classify("config/settings.py")
+        label = self._classify("config/settings.py", "DEBUG = True\nTIMEOUT = 30\n")
         self.assertIn("config", label.lower())
+
+    def test_empty_body_not_labeled_by_name(self):
+        """A `pass`-only file has no evidence — the name must not decide."""
+        label = self._classify("config/settings.py")
+        self.assertEqual(label, "Python module")
 
     def test_init_file(self):
         label = self._classify("patchi/core/__init__.py")
@@ -81,8 +91,8 @@ class TestFileClassifier(unittest.TestCase):
     def test_agent_by_class_name(self):
         content = "from base import BaseAgent\nclass MyScanner(BaseAgent):\n    pass\n"
         label = self._classify("core/agents/my_scanner.py", content)
-        # path has agents/ so should hit the agent/scanner rule
-        self.assertIn("agent", label.lower())
+        # class name says scanner — content-derived, no path needed
+        self.assertIn("scanner", label.lower())
 
     def test_batch_classify_returns_all_paths(self):
         from patchi.core.brain.classifier import batch_classify

@@ -85,18 +85,44 @@
   },
   "test": {
     "test_types": {
-      "unit": ["UnitTestAgent"],
-      "regression": ["RegressionAgent"],
-      "browser": ["BrowserTestAgent"],
-      "stress": ["StressTestAgent"],
-      "accessibility": ["UIAccessibilityAgent"],
-      "api": ["APIContractAgent"],
-      "buttons": ["UIButtonAgent"],
-      "layout": ["UILayoutAgent"],
-      "e2e": ["E2EFlowAgent"],
-      "visual": ["VisualRegressionAgent"],
-      "security": ["SecurityTestAgent"],
-      "smoke": ["UIButtonAgent", "UILayoutAgent", "UIAccessibilityAgent"],
+      "unit": [
+        "UnitTestAgent"
+      ],
+      "regression": [
+        "RegressionAgent"
+      ],
+      "browser": [
+        "BrowserTestAgent"
+      ],
+      "stress": [
+        "StressTestAgent"
+      ],
+      "accessibility": [
+        "UIAccessibilityAgent"
+      ],
+      "api": [
+        "APIContractAgent"
+      ],
+      "buttons": [
+        "UIButtonAgent"
+      ],
+      "layout": [
+        "UILayoutAgent"
+      ],
+      "e2e": [
+        "E2EFlowAgent"
+      ],
+      "visual": [
+        "VisualRegressionAgent"
+      ],
+      "security": [
+        "SecurityTestAgent"
+      ],
+      "smoke": [
+        "UIButtonAgent",
+        "UILayoutAgent",
+        "UIAccessibilityAgent"
+      ],
       "full": [
         "UnitTestAgent",
         "RegressionAgent",
@@ -109,7 +135,12 @@
         "BrowserTestAgent",
         "APIContractAgent"
       ],
-      "batch": ["UnitTestAgent"]
+      "batch": [
+        "UnitTestAgent"
+      ],
+      "live": [
+        "LiveTestRunnerV2Agent"
+      ]
     }
   }
 }
