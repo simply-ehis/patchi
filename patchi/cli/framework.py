@@ -80,6 +80,14 @@ class Command:
     # `sensitive` all call the same run_add(path, restriction_type, reason),
     # only restriction_type differs per subcommand. These values are merged
     # into the kwargs unconditionally, never derived from parsed args.
+    maps_key: str | None = None
+    # ^ For namespace_handler commands whose positional values route through an
+    # external agent-map JSON (e.g. `p test stress` resolves via the
+    # "test_types" key of agent_maps.json, not a handler literal). Declaring
+    # maps_key lets check_family_map verify family-map entries against the
+    # REAL runtime resolution instead of the free-form positional, which
+    # accepts anything at parse time (probe: `p test time-travel --help`
+    # exits 0).
     namespace_handler: bool = False
     # ^ Self-routing Namespace-handler shape: the handler receives the WHOLE
     # argparse Namespace (fn(args)) and routes on the subcommand dests itself
@@ -234,6 +242,256 @@ def check_registry_handlers() -> tuple[list[str], int, int]:
             )
             missing += 1
     return problems, len(pairs), missing
+
+
+def check_family_map() -> tuple[list[str], int, int]:
+    """Verify every command_families entry resolves against the real parser.
+
+    The families map (patchi/cli/command_families.py) drives `p commands` and
+    the `p <family> commands` display — it advertises invocations to users,
+    so every advertised form must actually parse. Entries resolve through
+    three rules, probed against the REAL _build_parser (never a hand-rolled
+    name match, so parser and families map can never drift):
+
+      1. `p <family> <cmd> --help` exits 0 — a real subcommand (or a form the
+         parser accepts). --help short-circuits before required-arg errors,
+         so `settings set` (needs key+value) still resolves; exit code 2
+         means argparse rejected the shape.
+      2. `<cmd>` is a declared flag of the family's base command (the map
+         advertises flags as family entries: `p ready quick` = `--quick`),
+         matched against the registry's Arg specs.
+      3. `<cmd>` is itself a registered top-level command/alias (group
+         families like git/maintain list real commands) — the display layer
+         renders these as bare `p <cmd>`.
+      4. Namespace-handler bases (`p test stress` shape): parse-accept is
+         meaningless — the free-form positional accepts anything and the
+         handler self-routes at runtime. The entry must instead resolve the
+         way dispatch does: declared registry subcommand, handler routing
+         literal ("generate"/"report"/"config" for test), a `maps_key`
+         entry in the command's agent-map JSON, or a registered top-level
+         command/alias.
+
+    Family default_commands are probed the same way (rule 1 on bare name).
+
+    Returns (problems, checked, broken) with human-readable problem lines
+    naming the family entry — safe to render or fold into doctor's JSON.
+    """
+    import io
+    import json
+    from contextlib import redirect_stderr, redirect_stdout
+    from pathlib import Path
+
+    from patchi.cli.command_families import FAMILIES
+    from patchi.cli.registry import COMMANDS
+
+    top = {c.name: c for c in COMMANDS}
+    for c in COMMANDS:
+        for alias in c.aliases:
+            top.setdefault(alias, c)
+
+    def base_flags(name: str) -> set[str]:
+        cmd = top.get(name)
+        if not cmd:
+            return set()
+        return {a.name.lstrip("-").lower() for a in cmd.args if a.name.startswith("--")}
+
+    def parses(argv: list[str]) -> bool | None:
+        """True = exit 0 via --help; False = argparse rejected; None = crash."""
+        try:
+            with redirect_stderr(io.StringIO()), redirect_stdout(io.StringIO()):
+                parser.parse_args([*argv, "--help"])
+            return True
+        except SystemExit as exc:
+            return exc.code == 0
+        except Exception:  # noqa: BLE001 — a parser crash is reported per-entry
+            return None
+
+    maps_cache: dict[str, dict | None] = {}
+
+    def namespace_route_resolves(base: Command, entry: str) -> bool:
+        """Runtime-route probe for namespace_handler bases.
+
+        The free-form positional on a self-routing command accepts anything
+        (`p test time-travel --help` exits 0), so parse-accept proves nothing.
+        The entry must resolve the way dispatch actually does: a declared
+        registry subcommand, a routing literal in the handler module, a key
+        under the command's declared maps_key in its agent_maps.json, or a
+        registered top-level command/alias (checked by the caller).
+        """
+        for sub in base.subcommands:
+            if sub.name == entry:
+                return True
+        mod_path = base.handler.partition(":")[0]
+        try:
+            mod = importlib.import_module(mod_path)
+            src = Path(mod.__file__).read_text(encoding="utf-8", errors="replace")
+        except Exception:  # noqa: BLE001 — import failures are the registry walk's job
+            return False
+        if f'"{entry}"' in src or f"'{entry}'" in src:
+            return True
+        if base.maps_key:
+            maps_file = Path(mod.__file__).parent / "agent_maps.json"
+            key = str(maps_file)
+            if key not in maps_cache:
+                try:
+                    maps_cache[key] = json.loads(maps_file.read_text(encoding="utf-8"))
+                except Exception:  # noqa: BLE001 — unreadable map means no resolution
+                    maps_cache[key] = None
+            data = maps_cache[key]
+            if isinstance(data, dict):
+                container = data.get(base.name, data)
+                if isinstance(container, dict) and entry in (container.get(base.maps_key) or {}):
+                    return True
+        return False
+
+    problems: list[str] = []
+    checked = 0
+
+    parser = None
+    build_err = None
+    try:
+        from patchi.cli.main import _build_parser
+
+        parser = _build_parser()
+    except Exception as exc:  # noqa: BLE001 — report, don't crash doctor
+        build_err = exc
+
+    if parser is None:
+        return (
+            [f"families check could not build the real parser ({build_err!r})"],
+            1,
+            1,
+        )
+
+    for fam in FAMILIES.values():
+        flags = base_flags(fam.name)
+        for c in fam.commands:
+            checked += 1
+            label = f"p {fam.name} {c}"
+            if fam.name in top:
+                # family name is a real command — the natural base
+                res = parses([fam.name, c])
+                if (
+                    res is True
+                    and top[fam.name].namespace_handler
+                    and not namespace_route_resolves(top[fam.name], c)
+                ):
+                    # The free-form positional accepted it, but the self-routing
+                    # handler never will. Advertised flags still win (rule 2):
+                    # `p help json` is `--json`. Only report when it's not one.
+                    if c.lower().replace("_", "-") in flags:
+                        continue
+                    problems.append(
+                        f"{label}: parses only because the namespace positional "
+                        "accepts anything — the self-routing handler never resolves "
+                        f"it (no declared subcommand, routing literal, "
+                        f"{top[fam.name].maps_key or 'agent-map'} entry, or registered "
+                        "command matches)"
+                    )
+                    continue
+                if res is True:
+                    continue
+                if c.lower().replace("_", "-") in flags:
+                    continue  # advertised flag of the base command
+                if c in top:
+                    continue  # entry is itself a registered command (group family)
+                if res is False:
+                    problems.append(
+                        f"{label}: does not parse — the families map advertises an "
+                        "invocation argparse rejects (renamed, removed, or never "
+                        "a subcommand/flag)"
+                    )
+                else:
+                    problems.append(f"{label}: parser probe crashed")
+            elif c in top:
+                continue  # group family: entries are top-level commands
+            else:
+                problems.append(
+                    f"{label}: family name '{fam.name}' is not a registered command "
+                    "and '{c}' is not either — nothing this family advertises can run"
+                )
+        if fam.default_command:
+            checked += 1
+            if fam.default_command in top and parses([fam.default_command]) is True:
+                continue
+            problems.append(
+                f"p {fam.name} (default) -> {fam.default_command}: not a runnable "
+                "command — `p <family>` advertises an entry point that doesn't exist"
+            )
+
+    return problems, checked, len(problems)
+
+
+def check_watch_phase_imports() -> tuple[list[str], int, int]:
+    """Verify every import watch_cmd performs inside its on_change Try blocks.
+
+    `p watch`'s rescan pipeline (on_change) imports its phase handlers lazily
+    inside try/except blocks, so a renamed/moved module never fails at import
+    time or test time — watch just prints "Rescan failed" on every save and
+    silently does nothing. This walks watch_cmd's AST, collects every
+    `from X import Y` that lives inside a Try node (the phase handlers), and
+    probes each exactly like dispatch would: find_spec, import, getattr.
+
+    Returns (problems, checked, broken).
+    """
+    import ast
+    import importlib
+    import importlib.util
+    from pathlib import Path
+
+    problems: list[str] = []
+
+    try:
+        module = importlib.import_module("patchi.cli.commands.watch_cmd")
+    except Exception as exc:  # noqa: BLE001 — report, don't crash doctor
+        return [f"p watch: module import failed ({exc!r})"], 1, 1
+
+    src_path = getattr(module, "__file__", None)
+    if not src_path:
+        return ["p watch: cannot locate source for AST walk"], 0, 1
+
+    tree = ast.parse(Path(src_path).read_text(encoding="utf-8"))
+
+    # (module, [names]) pairs inside Try blocks only — the phase imports.
+    phases: list[tuple[str, list[str]]] = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Try):
+            for sub in ast.walk(node):
+                if isinstance(sub, ast.ImportFrom) and sub.module:
+                    phases.append((sub.module, [a.name for a in sub.names]))
+
+    seen: set[tuple[str, str]] = set()
+    checked = 0
+    for mod_path, names in phases:
+        for name in names:
+            if name == "*":
+                continue
+            key = (mod_path, name)
+            if key in seen:
+                continue
+            seen.add(key)
+            checked += 1
+            try:
+                spec = importlib.util.find_spec(mod_path)
+            except (ImportError, ValueError):
+                spec = None
+            if spec is None:
+                problems.append(
+                    f"p watch phase -> {mod_path}: module does not exist (moved/renamed without updating watch_cmd)"
+                )
+                continue
+            try:
+                mod = importlib.import_module(mod_path)
+            except Exception as exc:  # noqa: BLE001 — report the entry
+                problems.append(f"p watch phase -> {mod_path}: import failed ({exc!r})")
+                continue
+            if not hasattr(mod, name):
+                problems.append(
+                    f"p watch phase -> {mod_path}:{name}: attribute missing "
+                    "(renamed or deleted without updating watch_cmd)"
+                )
+
+    return problems, checked, len(problems)
 
 
 def _build_kwargs(cmd: Command, args: argparse.Namespace) -> dict[str, Any]:

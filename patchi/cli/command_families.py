@@ -38,7 +38,11 @@ FAMILIES: dict[str, CommandFamily] = {
             "report",
             "config",
             "regression",
-            "eval",
+            # `eval` was removed: it is a registered top-level command (the
+            # standing eval set), NOT a test type — it never resolved here
+            # (TEST_TYPE_MAP and the TEST agent registry both miss it →
+            # "Unknown test type"). Found by check_family_map's namespace-
+            # route rule; still discoverable as `p eval` / `p commands --flat`.
         ],
         agent_domain="testing",
     ),
@@ -46,7 +50,7 @@ FAMILIES: dict[str, CommandFamily] = {
         name="scan",
         description="Scanning — full analysis, security, structure",
         default_command="scan",
-        commands=["deep", "security", "structure", "since", "contract", "changed"],
+        commands=["deep", "security", "contract", "changed", "since"],
         agent_domain="code_quality",
     ),
     "fix": CommandFamily(
@@ -60,7 +64,7 @@ FAMILIES: dict[str, CommandFamily] = {
         name="ready",
         description="Ship readiness — is my code ready to ship?",
         default_command="ready",
-        commands=["quick", "ci", "json", "baseline"],
+        commands=["quick", "ci", "json"],
         agent_domain="testing",
     ),
     "security": CommandFamily(
@@ -92,33 +96,23 @@ FAMILIES: dict[str, CommandFamily] = {
         agent_domain="code_quality",
     ),
     "config": CommandFamily(
-        name="config",
-        description="Configuration — settings and preferences",
-        default_command="config",
-        commands=[
-            "key",
-            "model",
-            "settings",
-            "brain",
-            "access",
-            "link",
-            "notify",
-            "rules",
-            "plugins",
-        ],
+        name="settings",
+        description="Configuration — view and modify settings, keys, access",
+        default_command="settings",
+        commands=["set", "mode", "show"],
         agent_domain="infrastructure",
     ),
     "agent": CommandFamily(
-        name="agent",
-        description="Agents — list, run, and manage agents",
+        name="agents",
+        description="Agents — list, inspect, and manage agents",
         default_command="agents",
-        commands=["list", "run", "stats", "reset"],
+        commands=["list", "status", "reset"],
         agent_domain="infrastructure",
     ),
     "git": CommandFamily(
         name="git",
-        description="Git — blame and log integration",
-        default_command="git",
+        description="Git — blame and changelog integration",
+        default_command="log",
         commands=["blame", "log"],
         agent_domain="infrastructure",
     ),
@@ -154,7 +148,7 @@ FAMILIES: dict[str, CommandFamily] = {
         name="init",
         description="Initialize — project setup",
         default_command="init",
-        commands=["auto", "no-logo"],
+        commands=[],
         agent_domain="infrastructure",
     ),
     "queue": CommandFamily(
@@ -182,7 +176,7 @@ FAMILIES: dict[str, CommandFamily] = {
         name="help",
         description="Help — show help and documentation",
         default_command="help",
-        commands=["all", "group", "json", "write-md"],
+        commands=["all", "group"],
         agent_domain="infrastructure",
     ),
     "watch": CommandFamily(

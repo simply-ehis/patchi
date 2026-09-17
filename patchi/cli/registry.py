@@ -1267,6 +1267,12 @@ COMMANDS: list[Command] = [
         "Run tests, generate suites, view history",
         "patchi.cli.commands.test_cmd:run_test",
         namespace_handler=True,
+        # Family-map contract: test types beyond the handler's literal routes
+        # (unit/e2e/visual/stress/regression) resolve through this key in
+        # agent_maps.json. Declared so check_family_map can verify advertised
+        # `p test <type>` entries against the real runtime resolution instead
+        # of the free-form positional (which accepts anything).
+        maps_key="test_types",
         args=(
             Arg(
                 "type",

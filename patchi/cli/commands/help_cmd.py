@@ -144,6 +144,12 @@ def run(args) -> None:
             return
 
         if sub_args.json:
+            # Machine-readable surface: the same data the table renders.
+            import json
+
+            from patchi.cli.console import con as _con
+
+            _con.print(json.dumps(all_cmds, indent=2))
             return
 
         _print_commands_table(all_cmds, show_all=sub_args.all)
@@ -152,9 +158,19 @@ def run(args) -> None:
     # Original `p help` behavior
     group = getattr(args, "group", None)
     if group:
-        # Filter commands by group
+        # `p help all` is an advertised family entry — show everything.
+        if group.lower() == "all":
+            _print_commands_table(_collect_commands(COMMANDS))
+            return
         filtered = [c for c in COMMANDS if c.name.startswith(group)]
         if not filtered:
+            # Never silently produce nothing: name the miss and the valid
+            # groups (this exact silent-return is how `p help json` and
+            # friends used to vanish without a trace).
+            from patchi.cli.console import con as _con
+
+            _con.print(f"[yellow]No commands match '{group}'.[/yellow]")
+            _con.print(f"[dim]Groups: {', '.join(sorted({c.name for c in COMMANDS}))}[/dim]")
             return
         _print_commands_table(_collect_commands(filtered))
     else:

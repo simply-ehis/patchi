@@ -125,8 +125,7 @@ def _auto_install_tools(only: str | None = None, json: bool = False) -> int:
 
     con.print()
     con.print(
-        f"[bold #C8621A]Tooling install{scope_label}[/bold #C8621A]"
-        f"  [dim]auto-install what I can, print the rest[/dim]"
+        f"[bold #C8621A]Tooling install{scope_label}[/bold #C8621A]  [dim]auto-install what I can, print the rest[/dim]"
     )
     con.print()
 
@@ -284,8 +283,7 @@ def _auto_install_tools(only: str | None = None, json: bool = False) -> int:
         con.print(f"  Attempted [bold]{attempted}[/bold] auto-install(s); [bold]{installed}[/bold] succeeded.")
     if still_manual:
         con.print(
-            f"  [#FACC15]{len(still_manual)} tool(s) need manual installation"
-            f"{' in ' + only if only else ''}:[/#FACC15]"
+            f"  [#FACC15]{len(still_manual)} tool(s) need manual installation{' in ' + only if only else ''}:[/#FACC15]"
         )
         for name, hint in still_manual:
             con.print(f"    · {name}: [dim]{hint}[/dim]")
@@ -608,8 +606,7 @@ def run(
                     (
                         "Stale commands",
                         "⚠",
-                        f"{len(found_stale)} stale command(s): "
-                        + ", ".join(f"p {n}" for n, _ in found_stale[:4]),
+                        f"{len(found_stale)} stale command(s): " + ", ".join(f"p {n}" for n, _ in found_stale[:4]),
                         "#FACC15",
                     )
                 )
@@ -636,7 +633,7 @@ def run(
 
                 # ── --fix: auto-update stale references in scripts/ ──
                 if fix:
-                # (human mode only — it prints its own report)
+                    # (human mode only — it prints its own report)
                     _fix_stale_references(root, found_stale)
         else:
             checks.append(("Stale commands", "✓", "No stale commands found", "#4ADE80"))
@@ -785,9 +782,7 @@ def run(
             for line in shown:
                 checks.append(("registry", "✗", line[:90], "#FF4D6D"))
             if reg_missing > len(shown):
-                checks.append(
-                    ("registry", "✗", f"… and {reg_missing - len(shown)} more", "#FF4D6D")
-                )
+                checks.append(("registry", "✗", f"… and {reg_missing - len(shown)} more", "#FF4D6D"))
         else:
             checks.append(("Command registry", "✓", f"{reg_total} handler(s) resolve", "#4ADE80"))
     except Exception as _exc:
@@ -802,18 +797,53 @@ def run(
             )
         )
 
+    # ── Surfaces outside the registry: the families map and p watch's lazy
+    # phase imports. Both advertise invocations users can type (`p <family>
+    # <cmd>`) or run silently on every file save (on_change's try/except
+    # imports), and neither is covered by the registry walk above — a stale
+    # entry here shows up as an argparse error or a silently-skipped phase,
+    # never as a crash doctor could see. Same twin-of-CI contract as the
+    # registry check: probe, name the entry, count the failure.
+    try:
+        from patchi.cli.framework import check_family_map, check_watch_phase_imports
+
+        for label, problems, total, broken in (
+            ("Command families", *check_family_map()),
+            ("Watch pipeline", *check_watch_phase_imports()),
+        ):
+            if broken:
+                errors += 1
+                shown = problems[:4]
+                checks.append((label, "✗", f"{broken} of {total} reference(s) broken:", "#FF4D6D"))
+                for line in shown:
+                    checks.append((label.lower(), "✗", line[:90], "#FF4D6D"))
+                if broken > len(shown):
+                    checks.append((label.lower(), "✗", f"… and {broken - len(shown)} more", "#FF4D6D"))
+            else:
+                checks.append((label, "✓", f"{total} reference(s) resolve", "#4ADE80"))
+    except Exception as _exc:
+        errors += 1
+        checks.append(
+            (
+                "Command surfaces",
+                "✗",
+                f"cannot run surface checks: {str(_exc)[:70]}",
+                "#FF4D6D",
+            )
+        )
+
     # ── Render results ────────────────────────────────────────────────────────
     if json_output:
-
-        print_json({
-                    "ok": errors == 0,
-                    "errors": errors,
-                    "warnings": warnings,
-                    "checks": [
-                        {"label": label, "status": status.strip(), "note": note}
-                        for label, status, note, _color in checks
-                    ],
-                },)
+        print_json(
+            {
+                "ok": errors == 0,
+                "errors": errors,
+                "warnings": warnings,
+                "checks": [
+                    {"label": label, "status": status.strip(), "note": note} for label, status, note, _color in checks
+                ],
+            },
+        )
         return
 
     table = Table(show_header=False, box=None, pad_edge=False, padding=(0, 1))
