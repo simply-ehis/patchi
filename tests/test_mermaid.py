@@ -49,3 +49,34 @@ def test_colliding_stems_get_disambiguated_labels():
     assert '["a/base"]' in diagram
     assert '["b/base"]' in diagram
     assert '["c/base"]' in diagram
+
+
+def test_highlight_styles_changed_nodes_and_emits_classdef():
+    """highlight= marks nodes with the neighborhood diagram's `changed` class
+    so a whole-graph map can point at a change set."""
+    g = ImportGraph()
+    g.add_edge("top.py", "core.py")
+    g.add_edge("other.py", "leaf.py")
+    plain = dependency_diagram(g, max_nodes=10)
+    assert ":::changed" not in plain
+    marked = dependency_diagram(g, max_nodes=10, highlight=["core.py"])
+    assert 'core_py["core"]:::changed' in marked
+    assert "top_py" in marked and ":::changed" not in marked.split("top_py")[1].split("\n")[0]
+    assert "classDef changed" in marked
+
+
+def test_highlight_without_graph_membership_is_ignored():
+    """A highlighted file the graph doesn't know is skipped, not rendered."""
+    g = ImportGraph()
+    g.add_edge("top.py", "core.py")
+    diagram = dependency_diagram(g, max_nodes=10, highlight=["brand_new.py"])
+    assert "brand_new" not in diagram
+    assert "classDef changed" not in diagram  # nothing highlighted -> no class
+
+
+def test_highlight_default_keeps_output_byte_identical():
+    """Existing consumers (README generator, docs, p scan) see the exact
+    historical rendering when highlight is not passed."""
+    g = ImportGraph()
+    g.add_edge("top.py", "core.py")
+    assert dependency_diagram(g, max_nodes=10) == dependency_diagram(g, max_nodes=10, highlight=None)

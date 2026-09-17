@@ -1,4 +1,4 @@
-"""Impact API — affected-neighborhood diagrams for the web dashboard.
+"""Impact API — affected-neighborhood diagrams and blast-radius maps.
 
 GET /api/impact?files=<a.py,b.py> — the same affected-neighborhood
 flowchart `p impact --mermaid` renders (changed files + everything that
@@ -8,6 +8,12 @@ the web view and the CLI can never disagree. Machine-pure JSON per the
 --json convention: exactly one document, errors as data (never an HTML
 error page).
 
+``mode=map`` swaps the neighborhood for the whole-graph blast-radius map:
+the same ``dependency_diagram`` the README and `p scan` render, with the
+changed files highlighted, and blast radii computed by the CLI's own
+``_blast_radii`` helper — the map's risk histogram is the CLI table's
+ranking, not a parallel implementation.
+
 With no ``files`` parameter, the endpoint falls back to the files touched
 by the most recent fix run (``.patchi/memory/patches.json``), i.e. the
 dashboard panel answers "what did my last fix take down?" without the
@@ -15,6 +21,8 @@ caller having to know the file list.
 """
 
 from __future__ import annotations
+
+from collections import defaultdict
 
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
@@ -47,21 +55,26 @@ def _recent_fix_files(root) -> list[str]:
 @router.get("")
 @router.get("/")
 async def impact_api(
-    request: Request, files: str = "", max_nodes: int = 60
+    request: Request, files: str = "", max_nodes: int = 60, mode: str = "neighborhood"
 ) -> JSONResponse:
-    """Affected-neighborhood diagram for a change set.
+    """Affected-neighborhood or whole-graph blast-radius map for a change set.
 
     Response shapes:
-      ok:   {ok, files, mermaid, stats: {changed, total_affected, rendered,
-            omitted, max_distance, risk, truncated}}
+      ok:   {ok, mode, files, mermaid, stats: {changed, total_affected,
+            rendered, omitted, max_distance, risk, truncated}}
       miss: {ok: false, error}
 
-    ``max_nodes`` caps the neighborhood (default 60, matching `p impact
-    --mermaid`); values < 1 fall back to the default rather than erroring,
-    since this is a display control, not a data request.
+    ``mode=neighborhood`` (default) renders the affected neighborhood of the
+    changed files — the exact diagram `p impact --mermaid` puts in PRs.
+    ``mode=map`` renders the whole-graph dependency map (highest fan-in
+    first, capped by ``max_nodes``) with the changed files highlighted, plus
+    the per-file blast radii from the CLI's ``_blast_radii`` helper so the
+    ranking the CLI table shows is the same data this serves. Values < 1
+    for ``max_nodes`` fall back to the default rather than erroring, since
+    this is a display control, not a data request.
     """
-    from patchi.cli.commands.reason_cmd import _cached_graph
-    from patchi.core.brain.mermaid import neighborhood_diagram
+    from patchi.cli.commands.reason_cmd import _blast_radii, _cached_graph
+    from patchi.core.brain.mermaid import dependency_diagram, neighborhood_diagram
 
     root = request.app.state.root
 
@@ -69,6 +82,38 @@ async def impact_api(
         max_nodes = 60
 
     requested = [f.strip() for f in files.split(",") if f.strip()] if files else []
+
+    graph = _cached_graph(root)
+    if graph is None:
+        return _doc(False, error="no import graph data — run `p scan` first")
+
+    if mode == "map":
+        radii = _blast_radii(graph)
+        known = {f for f in requested if f in graph.nodes}
+        try:
+            mermaid = dependency_diagram(
+                graph, max_nodes=max_nodes, title="Blast-radius map", highlight=sorted(known)
+            )
+        except Exception as e:
+            return _doc(False, error=f"diagram render failed: {e}")
+        return _doc(
+            True,
+            mode="map",
+            files=requested,
+            mermaid=mermaid,
+            stats={
+                "nodes": len(graph.nodes),
+                "rendered": min(max_nodes, len(graph.nodes)),
+                "highlighted": len(known),
+                "requested": len(requested),
+                "unknown": len(requested) - len(known),
+                "risk": _risk_histogram(radii, max_nodes),
+            },
+        )
+
+    if mode != "neighborhood":
+        return _doc(False, error=f"unknown mode '{mode}' — use 'neighborhood' or 'map'")
+
     source = "explicit"
     if not requested:
         requested = _recent_fix_files(root)
@@ -80,10 +125,6 @@ async def impact_api(
             " (or run `p fix` so recent-patch files can be inferred)",
         )
 
-    graph = _cached_graph(root)
-    if graph is None:
-        return _doc(False, error="no import graph data — run `p scan` first")
-
     try:
         mermaid, stats = neighborhood_diagram(graph, requested, max_nodes=max_nodes)
     except Exception as e:
@@ -91,8 +132,20 @@ async def impact_api(
 
     return _doc(
         True,
+        mode="neighborhood",
         files=requested,
         source=source,
         mermaid=mermaid,
         stats=stats,
     )
+
+
+def _risk_histogram(radii: list[tuple[str, int, int]], top: int) -> dict[str, int]:
+    """Risk-class counts over the same top slice `_show_all_blast_radii`
+    renders (30 rows) — the map's stats answer 'how risky is what I see'."""
+    from patchi.core.brain.mermaid import risk_class
+
+    counts: dict[str, int] = defaultdict(int)
+    for _file, _direct, total in radii[:30]:
+        counts[risk_class(total)] += 1
+    return dict(sorted(counts.items()))

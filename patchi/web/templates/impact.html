@@ -17,6 +17,12 @@
         <button type="button" class="btn btn-primary btn-sm" id="impact-go">Show impact</button>
         <button type="button" class="btn btn-ghost btn-sm" id="impact-copy" title="Copy PR-ready markdown" style="display:none">Copy markdown</button>
       </div>
+      <div style="display:flex; gap:6px; margin-top:10px; align-items:center;">
+        <span class="dim" style="font-size:11px">View:</span>
+        <button type="button" class="btn btn-sm" id="impact-mode-neighborhood" data-mode="neighborhood">Neighborhood</button>
+        <button type="button" class="btn btn-sm btn-ghost" id="impact-mode-map" data-mode="map" title="Whole-graph map, changed files highlighted — same ranking as p impact --all">Blast-radius map</button>
+        <span class="dim" style="font-size:11px">map shows the highest fan-in nodes of the whole graph (80 max), your files highlighted</span>
+      </div>
       <div id="impact-error" style="display:none; margin-top:10px; color:var(--danger, #FF4D6D); font-size:13px;"></div>
     </div>
   </div>
@@ -49,7 +55,24 @@
   var container = document.getElementById('impact-diagram');
   var empty = document.getElementById('impact-empty');
   var copyBtn = document.getElementById('impact-copy');
+  var modeBtns = { neighborhood: document.getElementById('impact-mode-neighborhood'), map: document.getElementById('impact-mode-map') };
   var lastDoc = null;
+  var curMode = 'neighborhood';
+  var lastQuery = { files: '', mode: 'neighborhood' };
+
+  function setMode(mode) {
+    curMode = mode;
+    Object.keys(modeBtns).forEach(function (m) {
+      modeBtns[m].className = 'btn btn-sm' + (m === mode ? '' : ' btn-ghost');
+    });
+  }
+
+  Object.keys(modeBtns).forEach(function (m) {
+    modeBtns[m].addEventListener('click', function () {
+      setMode(m);
+      if (lastQuery.files || m === 'map') showImpact(lastQuery.files, m);
+    });
+  });
 
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
@@ -85,7 +108,7 @@
     }
   }
 
-  function renderDiagram(mermaid) {
+  function renderDiagram(mermaid, mode) {
     container.innerHTML = '';
     var panel = document.createElement('div');
     panel.className = 'panel';
@@ -95,9 +118,15 @@
     body.style.padding = '16px 20px';
     body.style.overflowX = 'auto';
     body.textContent = mermaid; // fallback: raw source until/if rendered
+    var isMap = mode === 'map';
     panel.innerHTML =
-      '<div class="panel-header"><span class="panel-title">Affected neighborhood</span>' +
-      '<span class="dim" style="font-size:11px">importer \u2192 imported: what breaks when a node changes</span></div>';
+      '<div class="panel-header"><span class="panel-title">' +
+      (isMap ? 'Blast-radius map' : 'Affected neighborhood') + '</span>' +
+      '<span class="dim" style="font-size:11px">' +
+      (isMap
+        ? 'whole graph, highest fan-in first \u00b7 highlighted = your changed files'
+        : 'importer \u2192 imported: what breaks when a node changes') +
+      '</span></div>';
     panel.appendChild(body);
     container.appendChild(panel);
 
@@ -114,6 +143,16 @@
     var riskBits = Object.keys(risk).sort().map(function (k) {
       return '<code>' + esc(k) + '</code> ' + esc(risk[k]);
     }).join(' &middot; ');
+    if (doc.mode === 'map') {
+      stats.innerHTML =
+        '<div><span style="color:var(--text-primary); font-weight:600">Graph nodes</span> ' + esc(s.nodes == null ? '—' : s.nodes) +
+          ' <span class="dim">(rendering top ' + esc(s.rendered == null ? '—' : s.rendered) + ' by fan-in)</span></div>' +
+        '<div><span style="color:var(--text-primary); font-weight:600">Highlighted (your changed files)</span> ' + esc(s.highlighted == null ? '—' : s.highlighted) +
+          (s.unknown ? ' <span class="dim">(' + esc(s.unknown) + ' requested file(s) not in the graph)</span>' : '') + '</div>' +
+        (riskBits ? '<div><span style="color:var(--text-primary); font-weight:600">Risk (top 30, CLI ranking)</span> ' + riskBits + '</div>' : '');
+      statsPanel.style.display = '';
+      return;
+    }
     stats.innerHTML =
       '<div><span style="color:var(--text-primary); font-weight:600">Changed</span> ' + esc(s.changed == null ? '—' : s.changed) + '</div>' +
       '<div><span style="color:var(--text-primary); font-weight:600">Affected (transitive dependents)</span> ' + esc(s.total_affected == null ? '—' : s.total_affected) + '</div>' +
@@ -126,10 +165,23 @@
 
   function prMarkdown(doc) {
     var s = doc.stats || {};
-    var lines = ['## Patchi fix — impact summary', '',
-      '**' + (s.changed || 0) + ' file(s) changed** · **' + (s.total_affected || 0) + ' file(s) affected** transitively.'];
+    if (doc.mode === 'map') {
+      var risk = s.risk || {};
+      var keys = Object.keys(risk).sort();
+      var lines = ['## Patchi blast-radius map', '',
+        '**' + (s.highlighted || 0) + ' changed file(s) highlighted** in a whole-graph map of ' + (s.nodes || 0) + ' nodes (top ' + (s.rendered || 0) + ' by fan-in).'];
+      if (keys.length) {
+        lines.push('', '| Risk (top 30, CLI ranking) | Files |', '|---|---|');
+        keys.forEach(function (k) { lines.push('| ' + k + ' | ' + risk[k] + ' |'); });
+      }
+      lines.push('', '```mermaid', doc.mermaid, '```', '',
+        '<sub>highlighted = changed files; ranking matches `p impact --all`.</sub>', '');
+      return lines.join('\n');
+    }
     var risk = s.risk || {};
     var keys = Object.keys(risk).sort();
+    var lines = ['## Patchi fix — impact summary', '',
+      '**' + (s.changed || 0) + ' file(s) changed** · **' + (s.total_affected || 0) + ' file(s) affected** transitively.'];
     if (keys.length) {
       lines.push('', '| Risk | Files |', '|---|---|');
       keys.forEach(function (k) { lines.push('| ' + k + ' | ' + risk[k] + ' |'); });
@@ -143,8 +195,9 @@
     lastDoc = doc;
     empty.style.display = 'none';
     errBox.style.display = 'none';
+    setMode(doc.mode === 'map' ? 'map' : 'neighborhood');
     renderStats(doc);
-    renderDiagram(doc.mermaid || '');
+    renderDiagram(doc.mermaid || '', doc.mode);
     copyBtn.style.display = '';
   }
 
@@ -158,8 +211,11 @@
     empty.style.display = '';
   }
 
-  function showImpact(files) {
-    var q = files ? '?files=' + encodeURIComponent(files) : '';
+  function showImpact(files, mode) {
+    var m = mode || curMode;
+    lastQuery = { files: files || '', mode: m };
+    var q = (files ? '?files=' + encodeURIComponent(files) : '') +
+      (m === 'map' ? (files ? '&' : '?') + 'mode=map' : '');
     goBtn.disabled = true;
     fetch('/api/impact' + q)
       .then(function (r) { return r.json(); })

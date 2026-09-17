@@ -352,7 +352,23 @@ Full project audit: scan + security + test + report in one command.
 | `--plan-file <path>` | Save plan to file |
 | `--intent` | Include intent analysis |
 | `--no-scan` | Skip scan, use cached results |
-| `--html` | HTML report output |
+  | `--html` | HTML report output |
+
+### `p authorize`
+Record who approved active testing against which host (the legal shield
+for customer engagements). Localhost stays frictionless; any other host
+needs a grant, a charter entry, or `--target`.
+
+  | Flag | Effect |
+  |------|--------|
+  | `--target <host>` | Host or URL approved for active testing |
+  | `--by <name>` | Approver name (required with `--target`) |
+  | `--scope <paths>` | Comma-separated paths in scope (default /) |
+  | `--hours <n>` | Approval window in hours (default 24) |
+  | `--purpose <text>` | Engagement purpose (recorded) |
+  | `--list` | List recorded authorizations (with validity) |
+  | `--revoke <host>` | Revoke the grant for a host |
+  | `--json` | JSON output |
 
 ### `p assure`
 Assurance campaigns — prove security properties, record evidence.
@@ -448,9 +464,12 @@ leave empty to infer the set from the last `p fix` run) to see the affected-neig
 flowchart — what you touched and everything that transitively depends on it — plus a
 blast-radius stats panel (changed/affected/rendered/omitted, risk classes). Rendered
 with the same vendored mermaid.js and the same `neighborhood_diagram` renderer as the
-CLI. `GET /api/impact?files=<a.py,b.py>` serves the document as JSON (`{ok, files,
+CLI. `GET /api/impact?files=<a.py,b.py>` serves the document as JSON (`{ok, mode, files,
 source, mermaid, stats}`; errors as JSON 404s, never HTML pages), and the **Copy
-markdown** button emits a PR-ready section with the fenced chart.
+markdown** button emits a PR-ready section with the fenced chart. A **Blast-radius map**
+toggle switches the page to `mode=map`: the whole-graph dependency map (highest fan-in
+nodes, `max_nodes`-capped) with your changed files highlighted, and a risk histogram
+computed by the CLI's own `_blast_radii` helper — the same ranking `p impact --all` shows.
 
 ### `p hosted` **(EXPERIMENTAL)**
 Live monitoring daemon. Tails log files, detects anomalies, blocks IPs.

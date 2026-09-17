@@ -184,3 +184,89 @@ def test_api_impact_invalid_max_nodes_falls_back_to_default(seeded):
     doc = _client(seeded).get("/api/impact", params={"files": "core.py", "max_nodes": 0}).json()
     assert doc["ok"] is True
     assert doc["stats"]["truncated"] is False  # 5-node graph fits under 60
+
+
+# ── mode=map: whole-graph blast-radius map ─────────────────────────────────
+
+
+def test_api_impact_map_mode_shape(seeded):
+    """The map is the whole-graph dependency_diagram with highlights + the
+    CLI's _blast_radii ranking, not the scoped neighborhood."""
+    doc = _client(seeded).get("/api/impact", params={"files": "core.py", "mode": "map"}).json()
+    assert doc["ok"] is True
+    assert doc["mode"] == "map"
+    assert "flowchart LR" in doc["mermaid"]  # dependency_diagram renders LR; neighborhood is TD
+    assert doc["stats"]["nodes"] == 5
+    assert doc["stats"]["highlighted"] == 1
+    assert doc["stats"]["unknown"] == 0
+    assert isinstance(doc["stats"]["risk"], dict)
+
+
+def test_api_impact_map_diagram_matches_cli_helper(seeded):
+    """Verbatim sharing: the map is byte-identical to dependency_diagram with
+    the same highlight set."""
+    from patchi.cli.commands.reason_cmd import _blast_radii, _cached_graph
+    from patchi.core.brain.mermaid import dependency_diagram
+
+    doc = _client(seeded).get(
+        "/api/impact", params={"files": "core.py,island.py", "mode": "map"}
+    ).json()
+    graph = _cached_graph(seeded)
+    expected = dependency_diagram(
+        graph, max_nodes=60, title="Blast-radius map", highlight=["core.py", "island.py"]
+    )
+    assert doc["mermaid"] == expected
+    # and the risk histogram slices the same radii the CLI --all table shows
+    radii = _blast_radii(graph)
+    assert len(radii) == doc["stats"]["nodes"]
+
+
+def test_api_impact_map_highlights_changed_nodes(seeded):
+    """Changed files carry the :::changed class; untouched nodes don't."""
+    doc = _client(seeded).get("/api/impact", params={"files": "core.py", "mode": "map"}).json()
+    assert "core_py[" in doc["mermaid"] and ":::changed" in doc["mermaid"]
+    assert "classDef changed" in doc["mermaid"]
+
+
+def test_api_impact_map_unknown_files_counted_not_rendered(seeded):
+    """A requested file the graph doesn't know is reported in stats, not
+    silently dropped or invented into the map."""
+    doc = _client(seeded).get(
+        "/api/impact", params={"files": "core.py,brand_new.py", "mode": "map"}
+    ).json()
+    assert doc["stats"]["highlighted"] == 1
+    assert doc["stats"]["unknown"] == 1
+    assert "brand_new" not in doc["mermaid"]
+
+
+def test_api_impact_map_respects_max_nodes(seeded):
+    """max_nodes caps the map the same way it caps the neighborhood."""
+    doc = _client(seeded).get(
+        "/api/impact", params={"files": "core.py", "mode": "map", "max_nodes": 3}
+    ).json()
+    assert doc["stats"]["rendered"] == 3
+
+
+def test_api_impact_map_works_without_files(seeded):
+    """The map is whole-graph: it renders even with no changed-file set (the
+    neighborhood mode requires files or a recent fix run; the map doesn't)."""
+    doc = _client(seeded).get("/api/impact", params={"mode": "map"}).json()
+    assert doc["ok"] is True
+    assert doc["stats"]["highlighted"] == 0
+
+
+def test_api_impact_unknown_mode_is_a_json_404(seeded):
+    r = _client(seeded).get("/api/impact", params={"files": "core.py", "mode": "nope"})
+    assert r.status_code == 404
+    doc = r.json()
+    assert doc["ok"] is False
+    assert "neighborhood" in doc["error"] and "map" in doc["error"]
+
+
+def test_impact_page_offers_map_toggle(seeded):
+    """The page exposes the map view and its fetch wiring."""
+    r = _client(seeded).get("/impact")
+    assert r.status_code == 200
+    assert 'id="impact-mode-map"' in r.text
+    assert 'id="impact-mode-neighborhood"' in r.text
+    assert "mode=map" in r.text  # fetch layer sends the mode

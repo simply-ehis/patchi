@@ -67,13 +67,20 @@ def dependency_diagram(
     *,
     max_nodes: int = 80,
     title: str = "Dependency Graph",
+    highlight: list[str] | None = None,
 ) -> str:
     """Generate a Mermaid flowchart from import_graph edges.
 
     Groups files by top-level directory and renders subgraphs.
     Nodes beyond *max_nodes* are truncated (the highest fan-in nodes
     are kept first, per Part 4 §1).
+
+    ``highlight`` styles nodes as *changed* (the same class the
+    neighborhood diagram uses), so a whole-graph map can point at the
+    files a change set touches. Without it the output is identical to
+    the historical rendering.
     """
+    highlighted = {h for h in (highlight or []) if h in graph.nodes}
     # Rank by fan-in across the WHOLE graph first, then truncate. Ranking
     # after truncation would keep the first *max_nodes* alphabetically and
     # silently drop the actual hubs (and with them most edges).
@@ -102,8 +109,12 @@ def dependency_diagram(
             if stem_counts[label] > 1:
                 parent = PurePosixPath(m.replace("\\", "/")).parent.name
                 label = html.escape(f"{parent}/{label}")
-            lines.append(f'        {nid}["{label}"]')
+            cls = ":::changed" if m in highlighted else ""
+            lines.append(f'        {nid}["{label}"]{cls}')
         lines.append("    end")
+
+    if highlighted:
+        lines.append("    classDef changed fill:#C8621A,stroke:#F2EDD6,color:#0A0A0A,stroke-width:2px;")
 
     # Edges.
     for src in nodes:
